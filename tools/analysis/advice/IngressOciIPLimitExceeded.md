@@ -1,1 +1,1 @@
-See [https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/ingressociiplimitexceeded/](https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/ingressociiplimitexceeded/)
+See [https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/ingressociiplimitexceeded/](https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/ingressociiplimitexceeded/)

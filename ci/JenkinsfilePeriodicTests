@@ -1,16 +1,25 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def GIT_COMMIT_TO_USE
+def VERRAZZANO_DEV_VERSION
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def TESTS_FAILED = false
 def tarfilePrefix="verrazzano_periodic"
 def storeLocation=""
+def branchSpecificSchedule = getCronSchedule()
+
+// The job name from which the verrazzano_images file is available to be copied to this job
+// We will copy over and make it part of the artifacts of the periodic job, available when we want to release a candidate
+def verrazzanoImagesJobProjectName = "verrazzano-new-oci-dns-acceptance-tests"
+def verrazzanoImagesFile = "verrazzano_images.txt"
+def verrazzanoImagesBuildNumber = 0 // will be set to actual build number when the job is run
 
 pipeline {
     options {
         skipDefaultCheckout true
+        disableConcurrentBuilds()
         timestamps ()
     }
 
@@ -24,7 +33,12 @@ pipeline {
         }
     }
 
+    triggers {
+        cron(branchSpecificSchedule)
+    }
+
     parameters {
+        booleanParam (description: 'Skip tests to private registry stage, useful for testing out private registry testing, support and push to OCIR', name: 'SKIP_TO_PRIVATE_REGISTRY', defaultValue: false)
         string (name: 'TAGGED_TESTS',
                 defaultValue: '',
                 description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
@@ -40,6 +54,9 @@ pipeline {
     }
 
     environment {
+        IS_PERIODIC_PIPELINE = "true"
+        OCIR_SCAN_COMPARTMENT = credentials('ocir-scan-compartment')
+        OCIR_SCAN_TARGET = credentials('ocir-scan-target')
         OCIR_SCAN_REGISTRY = credentials('ocir-scan-registry')
         OCIR_SCAN_REPOSITORY_PATH = credentials('ocir-scan-repository-path')
         DOCKER_SCAN_CREDS = credentials('v8odev-ocir')
@@ -47,8 +64,9 @@ pipeline {
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
-        BRANCH_NAME="master"
+        CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
+        RELEASABLE_IMAGES_OBJECT_STORE = "releasable-verrazzano-images.txt"
     }
 
     // This job runs against the latest stable master commit. That is defined as the last clean master build and test run whose
@@ -61,7 +79,7 @@ pipeline {
             steps {
                 sh """
                     echo "${NODE_LABELS}"
-                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/last-stable-commit.txt --file ${WORKSPACE}/last-stable-commit.txt
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/last-stable-commit.txt --file ${WORKSPACE}/last-stable-commit.txt
                 """
 
                 script {
@@ -107,17 +125,22 @@ pipeline {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + GIT_COMMIT_TO_USE
-                    storeLocation="${env.BRANCH_NAME}-last-clean-periodic-test/${tarfilePrefix}.zip"
+                    storeLocation="${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${tarfilePrefix}.zip"
                 }
             }
         }
 
         stage ('Periodic Test Suites') {
+            when {
+                allOf {
+                    expression {params.SKIP_TO_PRIVATE_REGISTRY == false}
+                }
+            }
             parallel {
                 stage('Multi Cluster Tests') {
                     steps {
                         script {
-                            build job: "/verrazzano-multi-cluster-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-multi-cluster-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -130,7 +153,7 @@ pipeline {
                 stage('Uninstall Tests') {
                     steps {
                         script {
-                            build job: "/verrazzano-uninstall-test/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-uninstall-test/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -143,7 +166,7 @@ pipeline {
                 stage('OCI DNS tests') {
                     steps {
                         script {
-                            build job: "/verrazzano-new-oci-dns-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            def builtOCIDNS = build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
@@ -151,13 +174,32 @@ pipeline {
                                     string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                     string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
                                 ], wait: true
+                            // The OCI DNS job is the one from which we get the verrazzano images file
+                            verrazzanoImagesBuildNumber = builtOCIDNS.number
                         }
                     }
                 }
-                stage('Kind Acceptance Tests on 1.19') {
+                stage('OCI DNS tests with instance principal') {
                     steps {
                         script {
-                            build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                parameters: [
+                                    string(name: 'OCI_DNS_AUTH', value: 'instance_principal'),
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                    booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                ], wait: true
+                        }
+                    }
+               }
+               stage('Kind Acceptance Tests on 1.19') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -171,7 +213,7 @@ pipeline {
                 stage('Kind Acceptance Tests on 1.20') {
                     steps {
                         script {
-                            build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -185,7 +227,7 @@ pipeline {
                 stage('Kind Acceptance Tests on 1.21') {
                     steps {
                         script {
-                            build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.21'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -199,7 +241,7 @@ pipeline {
                 stage('Upgrade tests') {
                     steps {
                         script {
-                            build job: "/verrazzano-upgrade-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-upgrade-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -213,7 +255,7 @@ pipeline {
                     steps {
                         script {
                             // Do not use Calico
-                            build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -236,7 +278,7 @@ pipeline {
                     steps {
                         script {
                             // test with sslip.io
-                            build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -258,7 +300,7 @@ pipeline {
                 stage('Dynamic Configuration Tests') {
                     steps {
                         script {
-                            build job: "verrazzano-dynamic-config-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -279,7 +321,7 @@ pipeline {
                 stage('OCI DNS/ACME-Staging Tests') {
                     steps {
                         script {
-                            build job: "verrazzano-new-oci-dns-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'CERT_ISSUER', value: "acme"),
@@ -299,16 +341,12 @@ pipeline {
                         }
                     }
                 }
-                /*stage('Multi Cluster with OCI DNS/ACME-Staging Tests') {
+                stage('OCI Service Integration Tests') {
                     steps {
                         script {
-                            build job: "verrazzano-multi-cluster-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-oci-integration-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'TEST_ENV', value: 'ocidns_oke'),
-                                    string(name: 'ACME_ENVIRONMENT', value: "staging"),
-                                    // Disable Calico with these runs temporarily
-                                    booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                     string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                     string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
@@ -322,9 +360,10 @@ pipeline {
                             }
                         }
                     }
-                }*/
+                }
             }
         }
+
         stage("Private Registry") {
             when {
                 allOf {
@@ -335,16 +374,23 @@ pipeline {
                 stage("Upload Periodic Run Artifacts") {
                     steps {
                         sh """
-                            if [ "${env.BRANCH_NAME}" == "master" ]; then
-                                ci/scripts/update_periodic_on_success.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${tarfilePrefix}
-                            fi
+                            ci/scripts/update_periodic_on_success.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${tarfilePrefix}
                         """
                     }
                 }
                 stage('Private Registry Tests') {
+                    when {
+                        allOf {
+                            not { buildingTag() }
+                            anyOf {
+                                branch 'master';
+                                branch 'release-*';
+                            }
+                        }
+                    }
                     steps {
                         script {
-                            build job: "verrazzano-private-registry/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "verrazzano-private-registry/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'ZIPFILE_LOCATION', value: storeLocation)
@@ -353,13 +399,39 @@ pipeline {
                     }
                 }
                 stage('Push to OCIR') {
+                    environment {
+                        OCI_CLI_AUTH="api_key"
+                        OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
+                        OCI_CLI_USER = credentials('oci-dev-user-ocid')
+                        OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
+                        OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
+                        OCI_CLI_REGION = "us-ashburn-1"
+                        OCI_REGION = "${env.OCI_CLI_REGION}"
+                    }
                     steps {
                         script {
                             sh """
-                                if [ "${env.BRANCH_NAME}" == "master" ]; then
-                                    ci/scripts/periodic_push_to_ocir.sh
-                                fi
+                                echo "Pushing images to OCIR, these are treated as the latest scan results for ${CLEAN_BRANCH_NAME}"
+                                ci/scripts/push_to_ocir.sh
                             """
+                        }
+                    }
+                }
+
+                stage('Release Candidate Validation Checks') {
+                    steps {
+                        script {
+                            def built = build job: "verrazzano-prerelease-check/${CLEAN_BRANCH_NAME}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
+                                ], wait: true, propagate: false
+                            println("Result of verrazzano-prerelease-check is ${built.result}")
+                            dir ("${WORKSPACE}") {
+                                copyArtifacts(projectName: "verrazzano-prerelease-check/${CLEAN_BRANCH_NAME}",
+                                        selector: specific("${built.number}"));
+                                def releaseStatus = readFile file: "release_status.out"
+                                currentBuild.displayName = "${currentBuild.displayName} : ${releaseStatus}"
+                            }
                         }
                     }
                 }
@@ -367,13 +439,24 @@ pipeline {
         }
     }
     post {
+        always {
+            script {
+                if (verrazzanoImagesBuildNumber > 0) {
+                    copyArtifacts(projectName: "${verrazzanoImagesJobProjectName}/${CLEAN_BRANCH_NAME}",
+                            selector: specific("${verrazzanoImagesBuildNumber}"),
+                            filter: verrazzanoImagesFile)
+                    sh """
+                        OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/${RELEASABLE_IMAGES_OBJECT_STORE} --file ${verrazzanoImagesFile}
+                    """
+                } else {
+                    println("Cannot copy ${verrazzanoImagesFile} from the project ${verrazzanoImagesJobProjectName} - no build number is available to copy from.")
+                }
+            }
+            archiveArtifacts artifacts: "**/prerelease_validation.out,**/release_status.out,**/${verrazzanoImagesFile}", allowEmptyArchive: true
+        }
         failure {
             script {
                 if (isAlertingEnabled()) {
-                    echo "Send email Job Failed - ${env.JOB_NAME}"
-                    mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
-                    subject: "Verrazzano Periodic Tests: ${env.JOB_NAME} - Failed",
-                    body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n"
                     if (isPagerDutyEnabled()) {
                         pagerduty(resolve: false, serviceKey: "$SERVICE_KEY",
                         incDescription: "Verrazzano Periodic Tests: ${env.JOB_NAME} - Failed",
@@ -392,8 +475,8 @@ pipeline {
 
 def isAlertingEnabled() {
     // this controls whether any alerting happens for these tests
-    if (NOTIFY_PERIODIC_FAILURES.equals("true") && env.BRANCH_NAME.equals("master")) {
-        echo "Alert notifications enabled for master"
+    if (NOTIFY_PERIODIC_FAILURES.equals("true") && (env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-1."))) {
+        echo "Alert notifications enabled for ${env.BRANCH_NAME}"
         return true
     }
     return false
@@ -406,4 +489,13 @@ def isPagerDutyEnabled() {
         return true
     }
     return false
+}
+
+def getCronSchedule() {
+    if (env.BRANCH_NAME.equals("master")) {
+        return "H */2 * * *"
+    } else if (env.BRANCH_NAME.startsWith("release-1")) {
+        return "@daily"
+    }
+    return ""
 }

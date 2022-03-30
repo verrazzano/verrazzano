@@ -1,108 +1,74 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mysql
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"path/filepath"
+
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
 // ComponentName is the name of the component
 const ComponentName = "mysql"
 
-var hc = helm.HelmComponent{
-	ReleaseName:             ComponentName,
-	ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
-	ChartNamespace:          "keycloak",
-	IgnoreNamespaceOverride: true,
-	ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "mysql-values.yaml"),
+// ComponentNamespace is the namespace of the component
+const ComponentNamespace = vzconst.KeycloakNamespace
+
+// mysqlComponent represents an MySQL component
+type mysqlComponent struct {
+	helm.HelmComponent
 }
 
-// MySQLComponent represents an MySQL component
-type MySQLComponent struct {
-}
-
-// Verify that MySQLComponent implements Component
-var _ spi.Component = MySQLComponent{}
+// Verify that mysqlComponent implements Component
+var _ spi.Component = mysqlComponent{}
 
 // NewComponent returns a new MySQL component
 func NewComponent() spi.Component {
-	return MySQLComponent{}
+	return mysqlComponent{
+		helm.HelmComponent{
+			ReleaseName:             ComponentName,
+			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
+			ChartNamespace:          ComponentNamespace,
+			IgnoreNamespaceOverride: true,
+			SupportsOperatorInstall: true,
+			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
+			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "mysql-values.yaml"),
+			AppendOverridesFunc:     appendMySQLOverrides,
+			Dependencies:            []string{istio.ComponentName},
+		},
+	}
 }
 
-// --------------------------------------
-// ComponentInfo interface functions
-// --------------------------------------
-
-// Log returns the logger for the context
-func (k MySQLComponent) Name() string {
-	return hc.Name()
+// IsReady calls MySQL isMySQLReady function
+func (c mysqlComponent) IsReady(context spi.ComponentContext) bool {
+	if c.HelmComponent.IsReady(context) {
+		return isMySQLReady(context)
+	}
+	return false
 }
 
-// Log returns the logger for the context
-func (k MySQLComponent) GetDependencies() []string {
-	return hc.GetDependencies()
+// IsEnabled mysql-specific enabled check for installation
+// If keycloak is enabled, mysql is enabled; disabled otherwise
+func (c mysqlComponent) IsEnabled(ctx spi.ComponentContext) bool {
+	comp := ctx.EffectiveCR().Spec.Components.Keycloak
+	if comp == nil || comp.Enabled == nil {
+		return true
+	}
+	return *comp.Enabled
 }
 
-// IsReady Indicates whether or not a component is available and ready
-func (k MySQLComponent) IsReady(context spi.ComponentContext) bool {
-	return hc.IsReady(context)
+// PreInstall calls MySQL preInstall function
+func (c mysqlComponent) PreInstall(ctx spi.ComponentContext) error {
+	return preInstall(ctx, c.ChartNamespace)
 }
 
-// --------------------------------------
-// ComponentInstaller interface functions
-// --------------------------------------
-
-// IsOperatorInstallSupported Returns true if the component supports install directly via the platform operator
-// - scaffolding while we move components from the scripts to the operator
-func (k MySQLComponent) IsOperatorInstallSupported() bool {
-	return hc.IsOperatorInstallSupported()
-}
-
-// IsInstalled Indicates whether or not the component is installed
-func (k MySQLComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
-	return hc.IsInstalled(context)
-}
-
-// PreInstall allows components to perform any pre-processing required prior to initial install
-func (k MySQLComponent) PreInstall(context spi.ComponentContext) error {
-	return hc.PreInstall(context)
-}
-
-// Install performs the initial install of a component
-func (k MySQLComponent) Install(context spi.ComponentContext) error {
-	return hc.Install(context)
-}
-
-// PostInstall allows components to perform any post-processing required after initial install
-func (k MySQLComponent) PostInstall(context spi.ComponentContext) error {
-	return hc.PostInstall(context)
-}
-
-// --------------------------------------
-// ComponentUpgrader interface functions
-// --------------------------------------
-
-// PreUpgrade allows components to perform any pre-processing required prior to upgrading
-func (k MySQLComponent) PreUpgrade(context spi.ComponentContext) error {
-	return hc.PreUpgrade(context)
-}
-
-// Upgrade will upgrade the Verrazzano component specified in the CR.Version field
-func (k MySQLComponent) Upgrade(context spi.ComponentContext) error {
-	return hc.Upgrade(context)
-}
-
-// PostUpgrade allows components to perform any post-processing required after upgrading
-func (k MySQLComponent) PostUpgrade(context spi.ComponentContext) error {
-	return hc.PostUpgrade(context)
-}
-
-// GetSkipUpgrade returns the value of the SkipUpgrade field
-// - Scaffolding for now during the Istio 1.10.2 upgrade process
-func (k MySQLComponent) GetSkipUpgrade() bool {
-	return hc.GetSkipUpgrade()
+// PostInstall calls MySQL postInstall function
+func (c mysqlComponent) PostInstall(ctx spi.ComponentContext) error {
+	return postInstall(ctx)
 }

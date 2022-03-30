@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package main
@@ -38,6 +38,10 @@ type verrazzanoBom struct {
 type imageError struct {
 	bomImageTag      string
 	clusterImageTags [tagLen]string
+}
+
+var ignoreSubComponents = []string{
+	"additional-rancher",
 }
 
 func main() {
@@ -162,6 +166,10 @@ func validateBOM(vBom *verrazzanoBom, clusterImageMap map[string][tagLen]string,
 	var errorsFound bool = false
 	for _, component := range vBom.Components {
 		for _, subcomponent := range component.Subcomponents {
+			if ignoreSubComponent(subcomponent.Name) {
+				fmt.Printf("Subcomponent %s of component %s on ignore list, skipping images %v\n", subcomponent.Name, component.Name, subcomponent.Images)
+				continue
+			}
 			for _, image := range subcomponent.Images {
 				if tags, ok := clusterImageMap[image.Image]; ok {
 					var tagFound bool = false
@@ -183,6 +191,16 @@ func validateBOM(vBom *verrazzanoBom, clusterImageMap map[string][tagLen]string,
 		}
 	}
 	return !errorsFound
+}
+
+//ignoreSubComponent - checks to see if a particular subcomponent is to be ignored
+func ignoreSubComponent(name string) bool {
+	for _, subComp := range ignoreSubComponents {
+		if subComp == name {
+			return true
+		}
+	}
+	return false
 }
 
 // Report out the findings

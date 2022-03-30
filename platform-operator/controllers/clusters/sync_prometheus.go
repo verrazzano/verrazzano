@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package clusters
@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/Jeffail/gabs/v2"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -34,11 +34,20 @@ metrics_path: '/federate'
 params:
   'match[]':
    - '{__name__=~"..*"}'
+# If an existing verrazzano_cluster metric is present, make sure it is always replaced to
+# the right managed cluster name for the cluster. Do this with a metric_relabel_config so it
+# happens at the end i.e. _after_ scraping is completed, before ingesting into data source.
+metric_relabel_configs:
+  - action: replace
+    source_labels:
+    - verrazzano_cluster
+    target_label: verrazzano_cluster
+    replacement: '##CLUSTER_NAME##'
 static_configs:
 - targets:
   - ##HOST##
-  labels:
-    managed_cluster: '##CLUSTER_NAME##'
+  labels: # add the labels if not already present on managed cluster (this will no op if present)
+    verrazzano_cluster: '##CLUSTER_NAME##'
 basic_auth:
   username: verrazzano-prom-internal
   password: ##PASSWORD##
@@ -59,14 +68,14 @@ func (r *VerrazzanoManagedClusterReconciler) syncPrometheusScraper(ctx context.C
 
 		// validate secret if it exists
 		if err := r.Get(context.TODO(), secretNsn, &secret); err != nil {
-			return fmt.Errorf("Failed to fetch the managed cluster CA secret %s/%s, %v", vmc.Namespace, vmc.Spec.CASecret, err)
+			return fmt.Errorf("failed to fetch the managed cluster CA secret %s/%s, %v", vmc.Namespace, vmc.Spec.CASecret, err)
 		}
 	}
 
 	// Get the Prometheus configuration.  The ConfigMap may not exist if this delete is being called during an uninstall of Verrazzano.
 	promConfigMap, err := r.getPrometheusConfig(ctx, vmc)
 	if err != nil {
-		r.log.Warn(fmt.Sprintf("unable to add Prometheus configuration for managed cluster %s: %v", vmc.ClusterName, err))
+		r.log.Infof("Failed adding Prometheus configuration for managed cluster %s: %v", vmc.ClusterName, err)
 		return nil
 	}
 
@@ -153,7 +162,7 @@ func (r *VerrazzanoManagedClusterReconciler) newScrapeConfig(cacrtSecret *v1.Sec
 		return newScrapeConfig, nil
 	}
 
-	vzPromSecret, err := r.getSecret(constants.VerrazzanoPromInternal)
+	vzPromSecret, err := r.getSecret(constants.VerrazzanoSystemNamespace, constants.VerrazzanoPromInternal, true)
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +194,7 @@ func (r *VerrazzanoManagedClusterReconciler) deleteClusterPrometheusConfiguratio
 	// Get the Prometheus configuration.  The ConfigMap may not exist if this delete is being called during an uninstall of Verrazzano.
 	promConfigMap, err := r.getPrometheusConfig(ctx, vmc)
 	if err != nil {
-		r.log.Warn(fmt.Sprintf("unable to delete Prometheus configuration for managed cluster %s: %v", vmc.ClusterName, err))
+		r.log.Infof("Failed deleting Prometheus configuration for managed cluster %s: %v", vmc.ClusterName, err)
 		return nil
 	}
 

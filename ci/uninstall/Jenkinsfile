@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
@@ -114,9 +114,14 @@ pipeline {
         DATABASE_PSW = credentials('todo-mysql-password')
 
         // used to emit metrics
-        PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
+        PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
+        PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "magicdns_oke"
-        K8S_VERSION_LABEL = "${params.OKE_CLUSTER_VERSION}"
+
+        // used to generate Ginkgo test reports
+        TEST_REPORT = "test-report.xml"
+        GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
+        TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
     }
 
     stages {
@@ -172,22 +177,6 @@ pipeline {
                     }
                 }
 
-                script {
-                    try {
-                        sh """
-                            echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                        """
-                    } catch(error) {
-                        echo "OCR docker login failed, retrying after sleep"
-                        retry(4) {
-                            sleep(30)
-                            sh """
-                                echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                            """
-                        }
-                    }
-                }
-
                 sh """
                     rm -rf ${GO_REPO_PATH}/verrazzano
                     mkdir -p ${GO_REPO_PATH}/verrazzano
@@ -211,6 +200,9 @@ pipeline {
 
                     // derive the prefix for the OKE cluster
                     OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_oke_cluster_name.sh").trim()
+
+                    // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
+                    env.K8S_VERSION_LABEL = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}").trim()
                 }
             }
         }
@@ -232,53 +224,51 @@ pipeline {
                     VZ_TEST_METRIC = metricJobName('')
                     metricTimerStart("${VZ_TEST_METRIC}")
                 }
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    sh """
-                        # Create image pull secret for Verrazzano docker images
-                        cd ${GO_REPO_PATH}/verrazzano
-                        ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-                        ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-                        ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                sh """
+                    # Create image pull secret for Verrazzano docker images
+                    cd ${GO_REPO_PATH}/verrazzano
+                    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                    ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                    ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
 
-                        echo "Install Platform Operator"
-                        cd ${GO_REPO_PATH}/verrazzano
-                        if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
-                            echo "Using operator.yaml from object storage"
-                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
-                            cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
-                        else
-                            echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
-                            env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
-                        fi
-                        kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
+                    echo "Install Platform Operator"
+                    cd ${GO_REPO_PATH}/verrazzano
+                    if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
+                        echo "Using operator.yaml from object storage"
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                        cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
+                    else
+                        echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
+                        env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
+                    fi
+                    kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
 
-                        # make sure ns exists
-                        ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
+                    # make sure ns exists
+                    ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
 
-                        # create secret in verrazzano-install ns
-                        ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
+                    # create secret in verrazzano-install ns
+                    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
 
-                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/pre-install-resources
+                    ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/pre-install-resources
 
-                        ./tests/e2e/config/scripts/process_nipio_install_yaml.sh ${INSTALL_CONFIG_FILE}
+                    ./tests/e2e/config/scripts/process_nipio_install_yaml.sh ${INSTALL_CONFIG_FILE}
 
-                        echo "Waiting for Operator to be ready"
-                        cd ${GO_REPO_PATH}/verrazzano
-                        kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+                    echo "Waiting for Operator to be ready"
+                    cd ${GO_REPO_PATH}/verrazzano
+                    kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
 
-                        echo "Installing Verrazzano on OKE"
-                        kubectl apply -f ${INSTALL_CONFIG_FILE}
+                    echo "Installing Verrazzano on OKE"
+                    kubectl apply -f ${INSTALL_CONFIG_FILE}
 
-                        # wait for Verrazzano install to complete
-                        ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+                    # wait for Verrazzano install to complete
+                    ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
 
-                        ${TEST_SCRIPTS_DIR}/common-test-setup-script.sh "${GO_REPO_PATH}" "${TEST_CONFIG_FILE}" "${env.DOCKER_REPO}" "${KUBECONFIG}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}" "default" "${env.OCR_REPO}"
-                        ${TEST_SCRIPTS_DIR}/get_ingress_ip.sh ${TEST_CONFIG_FILE}
-                        echo "----------Test config file:-------------"
-                        cat ${TEST_CONFIG_FILE}
-                        echo "----------------------------------------"
-                    """
-                }
+                    ${TEST_SCRIPTS_DIR}/common-test-setup-script.sh "${GO_REPO_PATH}" "${TEST_CONFIG_FILE}" "${env.DOCKER_REPO}" "${KUBECONFIG}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}" "default" "${env.OCR_REPO}"
+                    ${TEST_SCRIPTS_DIR}/get_ingress_ip.sh ${TEST_CONFIG_FILE}
+                    echo "----------Test config file:-------------"
+                    cat ${TEST_CONFIG_FILE}
+                    echo "----------------------------------------"
+                """
             }
             post {
                 always {
@@ -324,20 +314,19 @@ pipeline {
         stage('Run Test') {
             environment {
                 TEST_ENV = "OKE"
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
-            parallel {
+            stages {
                 stage('verify-install') {
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            runGinkgo('verify-install')
-                        }
+                        runGinkgo('verify-install')
                     }
                 }
                 stage('verify-infra restapi') {
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            runGinkgo('verify-infra/restapi')
-                        }
+                        runGinkgo('verify-infra/restapi')
                     }
                 }
             }
@@ -358,11 +347,9 @@ pipeline {
 
         stage('Uninstall Verrazzano') {
             steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    sh """
-                        kubectl delete verrazzano my-verrazzano
-                    """
-                }
+                sh """
+                    kubectl delete verrazzano my-verrazzano
+                """
             }
             post {
                 always {
@@ -417,7 +404,7 @@ pipeline {
         stage("Reinstall Verrazzano") {
             steps {
                 sh """
-                    # sleep for a period to ensure async deletion of verrazzano components from uninstall above has completed
+                    # sleep for a period to ensure async deletion of Verrazzano components from uninstall above has completed
                     sleep 90
                     kubectl apply -f ${INSTALL_CONFIG_FILE}
                     # wait for Verrazzano install to complete
@@ -471,20 +458,19 @@ pipeline {
         stage('Rerun Test') {
             environment {
                 TEST_ENV = "OKE"
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
-            parallel {
+            stages {
                 stage('verify-install') {
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            runGinkgo('verify-install')
-                        }
+                        runGinkgo('verify-install')
                     }
                 }
                 stage('verify-infra restapi') {
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            runGinkgo('verify-infra/restapi')
-                        }
+                        runGinkgo('verify-infra/restapi')
                     }
                 }
             }
@@ -504,13 +490,19 @@ pipeline {
     }
     post {
         always {
-            archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
-            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+            sh """
+                # Copy the generated test reports to WORKSPACE to archive them
+                mkdir -p ${TEST_REPORT_DIR}
+                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
+            """
+            archiveArtifacts artifacts: "**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
-                    withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+                    withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
                         sh """
-                            ${GO_REPO_PATH}/verrazzano/ci/scripts/dashboard/emit_metrics.sh "${GO_REPO_PATH}/verrazzano/tests/e2e" "${SAURON_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
+                            ${GO_REPO_PATH}/verrazzano/ci/scripts/dashboard/emit_metrics.sh "${GO_REPO_PATH}/verrazzano/tests/e2e" "${PROMETHEUS_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
                         """
                     }
                 }
@@ -520,11 +512,8 @@ pipeline {
             script {
                 METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                 archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
-                mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
-                subject: "Verrazzano: ${env.JOB_NAME} - Failed",
-                body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
                 script {
-                    if (env.JOB_NAME == "verrazzano-uninstall-test/master") {
+                    if (env.JOB_NAME == "verrazzano-uninstall-test/master" || env.JOB_NAME ==~ "verrazzano-uninstall-test/release-*") {
                         slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                     }
                 }
@@ -547,7 +536,7 @@ def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
@@ -695,8 +684,8 @@ def metricTimerEnd(metricName, status) {
         long y = env."${timerEndName}" as long;
         def dur =  (y-x)
         labels = getMetricLabels()
-        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
             echo "emit prometheus metrics: $EMIT"
             return EMIT
         }
@@ -724,8 +713,8 @@ def metricBuildDuration() {
     if (params.EMIT_METRICS) {
         labels = getMetricLabels()
         labels = labels + ',result=\\"' + "${statusLabel}"+'\\"'
-        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
+        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }

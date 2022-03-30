@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 pipeline {
@@ -47,8 +47,10 @@ pipeline {
                 script {
                     // Do not add a comment to the JIRA if an existing pull request is being updated
                     if (currentBuild.changeSets.size() == 0) {
+                        // Escape double quotes in the PR title
+                        env.PR_TITLE = sh(script:'echo "${CHANGE_TITLE}" | sed \'s/"/\\\\"/g\'', returnStdout: true).trim()
                         sh """
-                            verrazzano-helper update ticket-commits --pr-url "${env.CHANGE_URL}" --pr-title "${env.CHANGE_TITLE}" --pr-target "${env.CHANGE_TARGET}" --token unused --jira-env=prod
+                            verrazzano-helper update ticket-commits --pr-url "${env.CHANGE_URL}" --pr-title "${env.PR_TITLE}" --pr-target "${env.CHANGE_TARGET}" --token unused --jira-env=prod
                         """
                     } else {
                         echo "Existing pull request updated, skipping update of JIRA ticket"
@@ -60,9 +62,11 @@ pipeline {
 
     post {
         failure {
-            mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
-            subject: "Verrazzano: ${env.JOB_NAME} - Failed",
-            body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\n"
+            script {
+                if (env.GIT_BRANCH == "master" || env.GIT_BRANCH ==~ "release-*" ) {
+                    slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\n" )
+                }
+            }
         }
         cleanup {
             deleteDir()

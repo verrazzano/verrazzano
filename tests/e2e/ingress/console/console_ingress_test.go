@@ -1,13 +1,15 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package ingress
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -23,11 +25,24 @@ const (
 	namespace            = "console-ingress"
 )
 
-var _ = BeforeSuite(func() {
+var t = framework.NewTestFramework("ingress")
+
+var _ = t.BeforeSuite(func() {
 	deployApplication()
+	beforeSuitePassed = true
 })
 
-var _ = AfterSuite(func() {
+var failed = false
+var beforeSuitePassed = false
+
+var _ = t.AfterEach(func() {
+	failed = failed || CurrentSpecReport().Failed()
+})
+
+var _ = t.AfterSuite(func() {
+	if failed || !beforeSuitePassed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
 	undeployApplication()
 })
 
@@ -40,6 +55,7 @@ func deployApplication() {
 	regUser := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_USR")
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
 
+	start := time.Now()
 	// Wait for namespace to finish deletion possibly from a prior run.
 	Eventually(func() bool {
 		_, err := pkg.GetNamespace(namespace)
@@ -83,10 +99,21 @@ func deployApplication() {
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/ingress/console/application.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+	// Verify cidomain-adminserver and mysql pods are running
+	Eventually(func() bool {
+		result, err := pkg.PodsRunning(namespace, []string{"mysql", "cidomain-adminserver"})
+		if err != nil {
+			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+		}
+		return result
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
 func undeployApplication() {
 	pkg.Log(pkg.Info, "Delete application")
+	start := time.Now()
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/ingress/console/application.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
@@ -105,29 +132,21 @@ func undeployApplication() {
 		_, err := pkg.GetNamespace(namespace)
 		return err != nil && errors.IsNotFound(err)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
-var _ = Describe("Verify application.", func() {
+var _ = t.Describe("console-ingress app test", Label("f:app-lcm.oam",
+	"f:app-lcm.weblogic-workload"), func() {
 
-	Context("Deployment.", func() {
-		// GIVEN the app is deployed
-		// WHEN the running pods are checked
-		// THEN the adminserver and mysql pods should be found running
-		It("Verify 'cidomain-adminserver' and 'mysql' pods are running", func() {
-			Eventually(func() bool {
-				return pkg.PodsRunning(namespace, []string{"mysql", "cidomain-adminserver"})
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-		})
-	})
-
-	Context("Ingress.", func() {
+	t.Context("Ingress.", Label("f:mesh.ingress",
+		"f:ui.console"), func() {
 		var host = ""
 		var err error
 		// Get the host from the Istio gateway resource.
 		// GIVEN the Istio gateway for the test namespace
 		// WHEN GetHostnameFromGateway is called
 		// THEN return the host name found in the gateway.
-		It("Get host from gateway.", func() {
+		t.BeforeEach(func() {
 			Eventually(func() (string, error) {
 				host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 				return host, err
@@ -138,7 +157,7 @@ var _ = Describe("Verify application.", func() {
 		// GIVEN the app is deployed
 		// WHEN the console endpoint is accessed
 		// THEN the expected results should be returned
-		It("Verify '/console' endpoint is working.", func() {
+		t.It("Verify '/console' endpoint is working.", func() {
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/console/login/LoginForm.jsp", host)
 				return pkg.GetWebPage(url, host)
@@ -149,7 +168,7 @@ var _ = Describe("Verify application.", func() {
 		// GIVEN the app is deployed
 		// WHEN the REST endpoint is accessed
 		// THEN the expected results should be returned
-		It("Verify '/todo/rest/items' REST endpoint is working.", func() {
+		t.It("Verify '/todo/rest/items' REST endpoint is working.", func() {
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/todo/rest/items", host)
 				return pkg.GetWebPage(url, host)

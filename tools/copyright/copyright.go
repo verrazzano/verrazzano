@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package main
 
@@ -82,6 +82,7 @@ var (
 		".jar",
 		".zip",
 		".gz",
+		".test",
 	}
 
 	// copyrightRegex is the regular expression for recognizing correctly formatted copyright statements
@@ -184,7 +185,7 @@ func runScan(args []string) int {
 	// - if it's a file,scan it
 	// - if it's a dir, walk it and scan it recursively
 	for _, arg := range args {
-		fmt.Println(fmt.Sprintf("Scanning target %s", arg))
+		fmt.Printf("Scanning target %s\n", arg)
 		argInfo, err := os.Stat(arg)
 		if err != nil {
 			if os.IsNotExist(err) {
@@ -238,7 +239,7 @@ func checkFile(path string, info os.FileInfo) error {
 	if skipFile(path, info) {
 		numFilesSkipped++
 		if verbose {
-			fmt.Println(fmt.Sprintf("Skipping file %s", path))
+			fmt.Printf("Skipping file %s/n", path)
 		}
 		return nil
 	}

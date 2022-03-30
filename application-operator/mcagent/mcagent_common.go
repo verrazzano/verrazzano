@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
@@ -25,7 +25,7 @@ import (
 type Syncer struct {
 	AdminClient           client.Client
 	LocalClient           client.Client
-	Log                   logr.Logger
+	Log                   *zap.SugaredLogger
 	ManagedClusterName    string
 	Context               context.Context
 	AgentSecretFound      bool
@@ -67,9 +67,9 @@ func (s *Syncer) processStatusUpdates() {
 		case msg := <-s.StatusUpdateChannel:
 			err := s.performAdminStatusUpdate(msg)
 			if err != nil {
-				s.Log.Error(err, fmt.Sprintf("processStatusUpdates: failed to update status on admin cluster for %s/%s from cluster %s after %d retries: %s",
+				s.Log.Errorf("Failed to update status on admin cluster for %s/%s from cluster %s after %d retries: %v",
 					msg.Resource.GetNamespace(), msg.Resource.GetName(),
-					msg.NewClusterStatus.Name, retryCount, err.Error()))
+					msg.NewClusterStatus.Name, retryCount, err)
 			}
 		default:
 			break

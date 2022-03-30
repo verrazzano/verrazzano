@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package clusters
@@ -14,15 +14,15 @@ import (
 	"testing"
 	"time"
 
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-
 	"github.com/Jeffail/gabs/v2"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
-	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	k8net "k8s.io/api/networking/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -110,6 +110,18 @@ func TestCreateVMC(t *testing.T) {
 		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
 		asserts.Equal(prometheusConfigBasePath+"ca-test",
 			scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
+		// assert that the verrazzano_cluster label is added in the static config
+		asserts.Equal(testManagedCluster, scrapeConfig.Search(
+			"static_configs", "0", "labels", "verrazzano_cluster").Data(),
+			"Label verrazzano_cluster not set correctly in static_configs")
+
+		// assert that the VMC job relabels verrazzano_cluster label to the right value
+		asserts.Equal("verrazzano_cluster", scrapeConfig.Search("metric_relabel_configs", "0",
+			"target_label").Data(),
+			"metric_relabel_configs entry to post-process verrazzano_cluster label does not have expected target_label value")
+		asserts.Equal(testManagedCluster, scrapeConfig.Search("metric_relabel_configs", "0",
+			"replacement").Data(),
+			"metric_relabel_configs entry to post-process verrazzano_cluster label does not have right replacement value")
 		return nil
 	})
 
@@ -124,13 +136,13 @@ func TestCreateVMC(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(vpoconstants.ReconcileLoopRequeueInterval), result.RequeueAfter)
 }
 
 // TestCreateVMC tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an VerrazzanoManagedCluster resource
-// WHEN a VerrazzanoManagedCluster resource has been applied on a verrazzano install configured with external ES
+// WHEN a VerrazzanoManagedCluster resource has been applied on a Verrazzano install configured with external ES
 // THEN ensure all the objects are created
 func TestCreateVMCWithExternalES(t *testing.T) {
 	namespace := constants.VerrazzanoMultiClusterNamespace
@@ -186,8 +198,8 @@ func TestCreateVMCWithExternalES(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(vpoconstants.ReconcileLoopRequeueInterval), result.RequeueAfter)
 }
 
 // TestCreateVMC tests the Reconcile method for the following use case
@@ -247,8 +259,8 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(vpoconstants.ReconcileLoopRequeueInterval), result.RequeueAfter)
 }
 
 // TestCreateVMCNoCACert tests the Reconcile method for the following use case
@@ -306,8 +318,8 @@ func TestCreateVMCNoCACert(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(vpoconstants.ReconcileLoopRequeueInterval), result.RequeueAfter)
 }
 
 // TestCreateVMCWithExistingScrapeConfiguration tests the Reconcile method for the following use case
@@ -379,8 +391,8 @@ scrape_configs:
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(vpoconstants.ReconcileLoopRequeueInterval), result.RequeueAfter)
 }
 
 // TestReplaceExistingScrapeConfiguration tests the Reconcile method for the following use case
@@ -452,8 +464,8 @@ scrape_configs:
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(vpoconstants.ReconcileLoopRequeueInterval), result.RequeueAfter)
 }
 
 // TestCreateVMC tests the Reconcile method for the following use case
@@ -515,8 +527,8 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(vpoconstants.ReconcileLoopRequeueInterval), result.RequeueAfter)
 }
 
 // TestCreateVMCSyncSvcAccountFailed tests the Reconcile method for the following use case
@@ -547,10 +559,9 @@ func TestCreateVMCSyncSvcAccountFailed(t *testing.T) {
 
 	// Validate the results - there should have been an error returned for failing to sync svc account
 	mocker.Finish()
-	asserts.NotNil(err)
-	asserts.Contains(err.Error(), "failing syncServiceAccount")
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Nil(err)
+	asserts.Equal(true, result.Requeue)
+	asserts.NotEqual(time.Duration(0), result.RequeueAfter)
 }
 
 // TestCreateVMCSyncRoleBindingFailed tests the Reconcile method for the following use case
@@ -584,10 +595,9 @@ func TestCreateVMCSyncRoleBindingFailed(t *testing.T) {
 
 	// Validate the results - there should have been an error returned
 	mocker.Finish()
-	asserts.NotNil(err)
-	asserts.Contains(err.Error(), "failing syncRoleBinding")
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Nil(err)
+	asserts.Equal(true, result.Requeue)
+	asserts.NotEqual(time.Duration(0), result.RequeueAfter)
 }
 
 // TestDeleteVMC tests the Reconcile method for the following use case
@@ -755,7 +765,7 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
 		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster) error {
 			asserts.Equal(clustersapi.RegistrationFailed, vmc.Status.RancherRegistration.Status)
-			asserts.Equal("Registration of managed cluster failed: unable to get rancher ingress host name", vmc.Status.RancherRegistration.Message)
+			asserts.Equal("Failed to register managed cluster: Failed, Rancher ingress cattle-system/rancher is missing host names", vmc.Status.RancherRegistration.Message)
 			return nil
 		})
 
@@ -780,7 +790,7 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 	// fail but the result of syncManifestSecret should be success
 	vmc := clustersapi.VerrazzanoManagedCluster{ObjectMeta: metav1.ObjectMeta{Name: clusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}}
 	reconciler := newVMCReconciler(mock)
-	reconciler.log = zap.S()
+	reconciler.log = vzlog.DefaultLogger()
 
 	err := reconciler.syncManifestSecret(context.TODO(), &vmc)
 
@@ -807,7 +817,7 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 			return nil
 		})
 
-	regYAML, err := registerManagedClusterWithRancher(mock, testManagedCluster, zap.S())
+	regYAML, err := registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -835,7 +845,7 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 			return errors.NewResourceExpired("something bad happened")
 		})
 
-	regYAML, err = registerManagedClusterWithRancher(mock, testManagedCluster, zap.S())
+	regYAML, err = registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -876,7 +886,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	regYAML, err := registerManagedClusterWithRancher(mock, testManagedCluster, zap.S())
+	regYAML, err := registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -919,7 +929,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	regYAML, err = registerManagedClusterWithRancher(mock, testManagedCluster, zap.S())
+	regYAML, err = registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -974,7 +984,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	regYAML, err = registerManagedClusterWithRancher(mock, testManagedCluster, zap.S())
+	regYAML, err = registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1042,7 +1052,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	regYAML, err = registerManagedClusterWithRancher(mock, testManagedCluster, zap.S())
+	regYAML, err = registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1096,7 +1106,7 @@ func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
 			return resp, nil
 		}).Times(retrySteps)
 
-	_, err := registerManagedClusterWithRancher(mock, clusterName, zap.S())
+	_, err := registerManagedClusterWithRancher(mock, clusterName, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1125,14 +1135,14 @@ func TestRegisterClusterWithRancherOverrideRegistry(t *testing.T) {
 	// override the image registry and repo
 	const registry = "unit-test-registry.io"
 	const imageRepo = "unit-test-repo"
-	oldRegistryEnv := os.Getenv(constants.RegistryOverrideEnvVar)
-	oldImageRepoEnv := os.Getenv(constants.ImageRepoOverrideEnvVar)
+	oldRegistryEnv := os.Getenv(vpoconstants.RegistryOverrideEnvVar)
+	oldImageRepoEnv := os.Getenv(vpoconstants.ImageRepoOverrideEnvVar)
 	defer func() {
-		os.Setenv(constants.RegistryOverrideEnvVar, oldRegistryEnv)
-		os.Setenv(constants.ImageRepoOverrideEnvVar, oldImageRepoEnv)
+		os.Setenv(vpoconstants.RegistryOverrideEnvVar, oldRegistryEnv)
+		os.Setenv(vpoconstants.ImageRepoOverrideEnvVar, oldImageRepoEnv)
 	}()
-	os.Setenv(constants.RegistryOverrideEnvVar, registry)
-	os.Setenv(constants.ImageRepoOverrideEnvVar, imageRepo)
+	os.Setenv(vpoconstants.RegistryOverrideEnvVar, registry)
+	os.Setenv(vpoconstants.ImageRepoOverrideEnvVar, imageRepo)
 
 	// replace the image registry in the Rancher agent image with the overridden registry and repo
 	expectedRancherYAML := strings.Replace(rancherManifestYAML, "image: "+rancherAgentRegistry, "image: "+registry+"/"+imageRepo, 1)
@@ -1176,8 +1186,8 @@ func TestRegisterClusterWithRancherOverrideRegistry(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(vpoconstants.ReconcileLoopRequeueInterval), result.RequeueAfter)
 }
 
 // newScheme creates a new scheme that includes this package's object to use for testing
@@ -1220,18 +1230,18 @@ func fakeGetConfig() (*rest.Config, error) {
 func expectSyncRoleBinding(t *testing.T, mock *mocks.MockClient, name string, succeed bool) {
 	asserts := assert.New(t)
 
-	// Expect a call to get the ClusterRoleBinding - return that it does not exist
+	// Expect a call to get the RoleBinding - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "ServiceAccount"}, generateManagedResourceName(name)))
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "RoleBinding"}, generateManagedResourceName(name)))
 
-	// Expect a call to create the ClusterRoleBinding - return success or failure based on the succeed argument
+	// Expect a call to create the RoleBinding - return success or failure based on the succeed argument
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, binding *rbacv1.ClusterRoleBinding, opts ...client.CreateOption) error {
+		DoAndReturn(func(ctx context.Context, binding *rbacv1.RoleBinding, opts ...client.CreateOption) error {
 			if succeed {
-				asserts.Equalf(generateManagedResourceName(name), binding.Name, "ClusterRoleBinding testManagedCluster did not match")
-				asserts.Equalf(constants.MCClusterRole, binding.RoleRef.Name, "ClusterRoleBinding roleref did not match")
+				asserts.Equalf(generateManagedResourceName(name), binding.Name, "RoleBinding testManagedCluster did not match")
+				asserts.Equalf(vpoconstants.MCClusterRole, binding.RoleRef.Name, "RoleBinding roleref did not match")
 				asserts.Equalf(generateManagedResourceName(name), binding.Subjects[0].Name, "Subject did not match")
 				asserts.Equalf(constants.VerrazzanoMultiClusterNamespace, binding.Subjects[0].Namespace, "Subject namespace did not match")
 				return nil
@@ -1297,10 +1307,10 @@ func expectSyncAgent(t *testing.T, mock *mocks.MockClient, name string) {
 
 	// Expect a call to get the verrazzano-admin-cluster configmap
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: constants.AdminClusterConfigMapName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: vpoconstants.AdminClusterConfigMapName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, cm *corev1.ConfigMap) error {
 			cm.Data = map[string]string{
-				constants.ServerDataKey: testServerData,
+				vpoconstants.ServerDataKey: testServerData,
 			}
 			return nil
 		})
@@ -1401,15 +1411,20 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 			return nil
 		})
 
-	// Expect a call to get the system-tls secret, return the secret with the fields set
+	// Expect a call to get the tls secret, return the secret with the fields set
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.SystemTLS}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "default-secret"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
 				CaCrtKey: []byte(vzCaData),
 			}
 			return nil
 		})
+
+	// Expect a call to get the tls-ca-additional secret, return the secret as not found
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.RancherSystemNamespace, Name: constants.AdditionalTLS}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.RancherSystemNamespace, Resource: "Secret"}, constants.AdditionalTLS))
 
 	// Expect a call to get the keycloak ingress and return the ingress.
 	mock.EXPECT().
@@ -1421,8 +1436,8 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
 				Name:      name.Name}
-			ingress.Spec.TLS = []networkingv1.IngressTLS{{
-				Hosts: []string{"keycloak"},
+			ingress.Spec.Rules = []k8net.IngressRule{{
+				Host: "keycloak",
 			}}
 			return nil
 		})
@@ -1490,7 +1505,7 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockStatus *mocks.
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetManifestSecretName(name)}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoMultiClusterNamespace, Resource: "Secret"}, GetManifestSecretName(name)))
 
-	// Expect all of the calls needed to register the cluster with Rancher
+	// Expect all the calls needed to register the cluster with Rancher
 	expectRegisterClusterWithRancher(t, mock, mockRequestSender, name, clusterAlreadyRegistered)
 
 	mock.EXPECT().Status().Return(mockStatus)
@@ -1646,6 +1661,11 @@ func expectRegisterClusterWithRancherK8sCalls(t *testing.T, k8sMock *mocks.MockC
 			}
 			return nil
 		})
+
+	// Expect a call to get the Rancher additional CA secret
+	k8sMock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherTLSAdditional}), gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: rancherNamespace, Resource: "Secret"}, rancherTLSAdditional))
 }
 
 // expectRegisterClusterWithRancherHTTPCalls asserts all of the expected calls on the HTTP client mock
@@ -1726,7 +1746,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 			// assert that the cluster ID in the request body is what we expect
 			body, err := ioutil.ReadAll(req.Body)
 			asserts.NoError(err)
-			jsonString, err := gabs.ParseJSON([]byte(body))
+			jsonString, err := gabs.ParseJSON(body)
 			asserts.NoError(err)
 			clusterID, ok := jsonString.Path("clusterId").Data().(string)
 			asserts.True(ok)

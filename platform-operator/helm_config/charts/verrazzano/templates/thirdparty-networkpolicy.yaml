@@ -1,4 +1,4 @@
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 ---
 # Network policy for WebLogic operator
@@ -123,6 +123,13 @@ spec:
         - podSelector:
             matchLabels:
               app: system-grafana
+      ports:
+        - port: 9090
+          protocol: TCP
+    - from:
+        - podSelector:
+            matchLabels:
+              app: vmi-system-kiali
       ports:
         - port: 9090
           protocol: TCP
@@ -540,6 +547,7 @@ spec:
 ---
 # Network policy for Istiod
 # Ingress: allow ingress to port 15012 from verrazzano-system prometheus and keycloak (for Istio proxy sidecar)
+#          allow ingress to port 15012 for application namespaces
 #          allow port 15017 for webhooks
 #          allow port 15014 from system-prometheus to scrape metrics
 # Egress: allow all
@@ -561,10 +569,14 @@ spec:
       from:
         - namespaceSelector:
             matchLabels:
+              verrazzano-managed: "true"
+              istio-injection: enabled
+        - namespaceSelector:
+            matchLabels:
               verrazzano.io/namespace: {{ .Release.Namespace }}
           podSelector:
             matchExpressions:
-              - {key: app, operator: In, values: [system-prometheus, fluentd, verrazzano-authproxy, verrazzano-console, system-es-master, system-es-ingest, system-es-data, system-grafana, system-kibana, weblogic-operator]}
+              - {key: app, operator: In, values: [system-prometheus, fluentd, verrazzano-authproxy, verrazzano-console, system-es-master, system-es-ingest, system-es-data, system-grafana, system-kibana, weblogic-operator, vmi-system-kiali]}
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: keycloak
@@ -596,3 +608,43 @@ spec:
           podSelector:
             matchLabels:
               app: system-prometheus
+---
+# Network policy for Kiali
+# Ingress: allow connect from istio-system
+#          allow connect from the ingress controller to port 20001
+#          allow connect from prometheus to port 9090 and the envoy metrics port 15090
+# Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kiali
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: vmi-system-kiali
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: verrazzano-authproxy
+      ports:
+        - port: 20001
+          protocol: TCP
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: system-prometheus
+      ports:
+        - port: 9090
+          protocol: TCP
+        - port: 15090
+          protocol: TCP

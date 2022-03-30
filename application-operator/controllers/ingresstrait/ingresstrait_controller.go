@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package ingresstrait
@@ -7,20 +7,26 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"reflect"
 	"strings"
+
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/gertd/go-pluralize"
-	"github.com/go-logr/logr"
-	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	ptypes "github.com/gogo/protobuf/types"
+	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
+	"go.uber.org/zap"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	appsv1 "k8s.io/api/apps/v1"
@@ -33,33 +39,51 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 const (
-	gatewayAPIVersion        = "networking.istio.io/v1alpha3"
-	gatewayKind              = "Gateway"
-	virtualServiceAPIVersion = "networking.istio.io/v1alpha3"
-	virtualServiceKind       = "VirtualService"
-	certificateAPIVersion    = "cert-manager.io/v1alpha2"
-	certificateKind          = "Certificate"
-	serviceAPIVersion        = "v1"
-	serviceKind              = "Service"
-	clusterIPNone            = "None"
-	verrazzanoClusterIssuer  = "verrazzano-cluster-issuer"
+	gatewayAPIVersion         = "networking.istio.io/v1alpha3"
+	gatewayKind               = "Gateway"
+	virtualServiceAPIVersion  = "networking.istio.io/v1alpha3"
+	virtualServiceKind        = "VirtualService"
+	certificateAPIVersion     = "cert-manager.io/v1"
+	certificateKind           = "Certificate"
+	serviceAPIVersion         = "v1"
+	serviceKind               = "Service"
+	clusterIPNone             = "None"
+	verrazzanoClusterIssuer   = "verrazzano-cluster-issuer"
+	httpServiceNamePrefix     = "http"
+	weblogicOperatorSelector  = "weblogic.createdByOperator"
+	wlProxySSLHeader          = "WL-Proxy-SSL"
+	wlProxySSLHeaderVal       = "true"
+	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
+	destinationRuleKind       = "DestinationRule"
+	controllerName            = "ingresstrait"
+)
+
+// The port names used by WebLogic operator that do not have http prefix.
+// Reference: https://github.com/oracle/weblogic-kubernetes-operator/blob/main/operator/src/main/resources/scripts/model_wdt_mii_filter.py
+var (
+	weblogicPortNames = []string{"tcp-cbt", "tcp-ldap", "tcp-iiop", "tcp-snmp", "tcp-default", "tls-ldaps",
+		"tls-default", "tls-cbts", "tls-iiops", "tcp-internal-t3"}
 )
 
 // Reconciler is used to reconcile an IngressTrait object
 type Reconciler struct {
 	client.Client
-	Log    logr.Logger
+	Log    *zap.SugaredLogger
 	Scheme *runtime.Scheme
 }
 
 // SetupWithManager creates a controller and adds it to the manager
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(controller.Options{
+			RateLimiter: controllers.NewDefaultRateLimiter(),
+		}).
 		For(&vzapi.IngressTrait{}).
 		Complete(r)
 }
@@ -69,34 +93,57 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=ingresstraits,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=ingresstraits/status,verbs=get;update;patch
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	var err error
-	ctx := context.Background()
-	log := r.Log.WithValues("trait", req.NamespacedName)
-	log.Info("Reconcile ingress trait")
 
-	// Fetch the trait.
-	var trait *vzapi.IngressTrait
-	if trait, err = r.fetchTrait(ctx, req.NamespacedName); err != nil {
-		return reconcile.Result{}, err
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == vzconst.KubeSystem {
+		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
+		log.Infof("Ingress trait resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
+		return reconcile.Result{}, nil
 	}
 
+	var err error
+	var trait *vzapi.IngressTrait
+	ctx := context.Background()
+	if trait, err = r.fetchTrait(ctx, req.NamespacedName, zap.S()); err != nil {
+		return clusters.IgnoreNotFoundWithLog(err, zap.S())
+	}
 	// If the trait no longer exists or is being deleted then return success.
 	if trait == nil || isTraitBeingDeleted(trait) {
 		return reconcile.Result{}, nil
 	}
-
-	// Find the service associated with the trait in the application configuration.
-	var service *corev1.Service
-	service, err = r.fetchServiceFromTrait(ctx, trait)
+	log, err := clusters.GetResourceLogger("ingresstrait", req.NamespacedName, trait)
 	if err != nil {
-		return reconcile.Result{}, err
-	} else if service == nil {
-		// This will be the case if the service has not started yet so we requeue and try again.
-		return reconcile.Result{Requeue: true}, err
+		zap.S().Errorf("Failed to create controller logger for ingress trait resource: %v", err)
+		return clusters.NewRequeueWithDelay(), nil
+	}
+	log.Oncef("Reconciling ingress trait resource %v, generation %v", req.NamespacedName, trait.Generation)
+
+	res, err := r.doReconcile(ctx, trait, log)
+	if clusters.ShouldRequeue(res) {
+		return res, nil
+	}
+	// Never return an error since it has already been logged and we don't want the
+	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
+	if err != nil {
+		return clusters.NewRequeueWithDelay(), nil
 	}
 
+	log.Oncef("Finished reconciling ingress trait %v", req.NamespacedName)
+
+	return ctrl.Result{}, nil
+}
+
+// doReconcile performs the reconciliation operations for the ingress trait
+func (r *Reconciler) doReconcile(ctx context.Context, trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
 	// Create or update the child resources of the trait and collect the outcomes.
-	status := r.createOrUpdateChildResources(ctx, trait, service)
+	status, result, err := r.createOrUpdateChildResources(ctx, trait, log)
+	if err != nil {
+		return reconcile.Result{}, err
+	} else if result.Requeue {
+		return result, nil
+	}
 
 	// Update the status of the trait resource using the outcomes of the create or update.
 	return r.updateTraitStatus(ctx, trait, status)
@@ -104,7 +151,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 // createOrUpdateChildResources creates or updates the Gateway and VirtualService resources that
 // should be used to setup ingress to the service.
-func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vzapi.IngressTrait, service *corev1.Service) *reconcileresults.ReconcileResults {
+func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) (*reconcileresults.ReconcileResults, ctrl.Result, error) {
 	status := reconcileresults.ReconcileResults{}
 	rules := trait.Spec.Rules
 	// If there are no rules, create a single default rule
@@ -112,19 +159,33 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 		rules = []vzapi.IngressRule{{}}
 	}
 	for index, rule := range rules {
-		secretName := r.createOrUseGatewaySecret(ctx, trait, &status)
+		secretName := r.createOrUseGatewaySecret(ctx, trait, rule, &status, log)
 		if secretName != "" {
 			gwName, err := getGatewayName(trait)
 			if err != nil {
 				status.Errors = append(status.Errors, err)
 			} else {
-				gateway := r.createOrUpdateGateway(ctx, trait, rule, gwName, secretName, &status)
+				// Must create GW before service so that external DNS sees the GW once the service is created
+				gateway := r.createOrUpdateGateway(ctx, trait, rule, gwName, secretName, &status, log)
+
+				// Find the services associated with the trait in the application configuration.
+				var services []*corev1.Service
+				services, err = r.fetchServicesFromTrait(ctx, trait, log)
+				if err != nil {
+					return &status, reconcile.Result{}, err
+				} else if len(services) == 0 {
+					// This will be the case if the service has not started yet so we requeue and try again.
+					return &status, reconcile.Result{Requeue: true, RequeueAfter: clusters.GetRandomRequeueDelay()}, err
+				}
+
 				vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, index)
-				r.createOrUpdateVirtualService(ctx, trait, rule, vsName, service, gateway, &status)
+				drName := fmt.Sprintf("%s-rule-%d-dr", trait.Name, index)
+				r.createOrUpdateVirtualService(ctx, trait, rule, vsName, services, gateway, &status, log)
+				r.createOrUpdateDestinationRule(ctx, trait, rule, drName, &status, log)
 			}
 		}
 	}
-	return &status
+	return &status, ctrl.Result{}, nil
 }
 
 // getGatewayName will generate a gateway name from the namespace and application name of the provided trait. Returns
@@ -159,15 +220,15 @@ func isTraitBeingDeleted(trait *vzapi.IngressTrait) bool {
 
 // fetchTrait attempts to get a trait given a namespaced name.
 // Will return nil for the trait and no error if the trait does not exist.
-func (r *Reconciler) fetchTrait(ctx context.Context, name types.NamespacedName) (*vzapi.IngressTrait, error) {
+func (r *Reconciler) fetchTrait(ctx context.Context, nsn types.NamespacedName, log *zap.SugaredLogger) (*vzapi.IngressTrait, error) {
 	var trait vzapi.IngressTrait
-	r.Log.Info("Fetch trait", "trait", name)
-	if err := r.Get(ctx, name, &trait); err != nil {
+	log.Debugf("Fetching trait %s", nsn.Name)
+	if err := r.Get(ctx, nsn, &trait); err != nil {
 		if k8serrors.IsNotFound(err) {
-			r.Log.Info("Trait has been deleted")
+			log.Debugf("Trait %s is not found: %v", nsn.Name, err)
 			return nil, nil
 		}
-		r.Log.Info("Failed to fetch trait")
+		log.Debugf("Failed to fetch trait %s", nsn.Name)
 		return nil, err
 	}
 	return &trait, nil
@@ -178,13 +239,13 @@ func (r *Reconciler) fetchTrait(ctx context.Context, name types.NamespacedName) 
 // for example core.oam.dev/v1alpha2.ContainerizedWorkload would be converted to
 // containerizedworkloads.core.oam.dev.  Workload definitions are always found in the default
 // namespace.
-func (r *Reconciler) fetchWorkloadDefinition(ctx context.Context, workload *unstructured.Unstructured) (*v1alpha2.WorkloadDefinition, error) {
+func (r *Reconciler) fetchWorkloadDefinition(ctx context.Context, workload *unstructured.Unstructured, log vzlog.VerrazzanoLogger) (*v1alpha2.WorkloadDefinition, error) {
 	workloadAPIVer, _, _ := unstructured.NestedString(workload.Object, "apiVersion")
 	workloadKind, _, _ := unstructured.NestedString(workload.Object, "kind")
 	workloadName := convertAPIVersionAndKindToNamespacedName(workloadAPIVer, workloadKind)
 	workloadDef := v1alpha2.WorkloadDefinition{}
 	if err := r.Get(ctx, workloadName, &workloadDef); err != nil {
-		r.Log.Error(err, "Failed to fetch workload definition", "name", workloadName)
+		log.Errorf("Failed to fetch workload %s definition: %v", workloadName, err)
 		return nil, err
 	}
 	return &workloadDef, nil
@@ -195,28 +256,28 @@ func (r *Reconciler) fetchWorkloadDefinition(ctx context.Context, workload *unst
 // Finding children is done by first looking to the workflow definition of the provided workload.
 // The workload definition contains a set of child resource types supported by the workload.
 // The namespace of the workload is then searched for child resources of the supported types.
-func (r *Reconciler) fetchWorkloadChildren(ctx context.Context, workload *unstructured.Unstructured) ([]*unstructured.Unstructured, error) {
+func (r *Reconciler) fetchWorkloadChildren(ctx context.Context, workload *unstructured.Unstructured, log vzlog.VerrazzanoLogger) ([]*unstructured.Unstructured, error) {
 	var err error
 	var workloadDefinition *v1alpha2.WorkloadDefinition
 
 	// Attempt to fetch workload definition based on the workload GVK.
-	if workloadDefinition, err = r.fetchWorkloadDefinition(ctx, workload); err != nil {
-		r.Log.Info("Workload definition not found")
+	if workloadDefinition, err = r.fetchWorkloadDefinition(ctx, workload, log); err != nil {
+		log.Debug("Workload definition not found")
 	}
 	if workloadDefinition != nil {
 		// If the workload definition is found then fetch child resources of the declared child types
 		var children []*unstructured.Unstructured
-		if children, err = r.fetchChildResourcesByAPIVersionKinds(ctx, workload.GetNamespace(), workload.GetUID(), workloadDefinition.Spec.ChildResourceKinds); err != nil {
+		if children, err = r.fetchChildResourcesByAPIVersionKinds(ctx, workload.GetNamespace(), workload.GetUID(), workloadDefinition.Spec.ChildResourceKinds, log); err != nil {
 			return nil, err
 		}
 		return children, nil
 	} else if workload.GetAPIVersion() == appsv1.SchemeGroupVersion.String() {
 		// Else if this is a native resource then use the workload itself as the child
-		r.Log.Info("Found native workload")
+		log.Debug("Found native workload")
 		return []*unstructured.Unstructured{workload}, nil
 	} else {
 		// Else return an error that the workload type is not supported by this trait.
-		r.Log.Info("Workload not supported by trait")
+		log.Debug("Workload not supported by trait")
 		return nil, fmt.Errorf("Workload not supported by trait")
 	}
 }
@@ -230,21 +291,21 @@ func (r *Reconciler) fetchWorkloadChildren(ctx context.Context, workload *unstru
 // namespace - The namespace to search for children objects
 // parentUID - The parent UID a child must have to be included in the result.
 // childResKinds - The set of resource kinds a child's resource kind must in to be included in the result.
-func (r *Reconciler) fetchChildResourcesByAPIVersionKinds(ctx context.Context, namespace string, parentUID types.UID, childResKinds []v1alpha2.ChildResourceKind) ([]*unstructured.Unstructured, error) {
+func (r *Reconciler) fetchChildResourcesByAPIVersionKinds(ctx context.Context, namespace string, parentUID types.UID, childResKinds []v1alpha2.ChildResourceKind, log vzlog.VerrazzanoLogger) ([]*unstructured.Unstructured, error) {
 	var childResources []*unstructured.Unstructured
-	r.Log.Info("Fetch child resources")
+	log.Debug("Fetch child resources")
 	for _, childResKind := range childResKinds {
 		resources := unstructured.UnstructuredList{}
 		resources.SetAPIVersion(childResKind.APIVersion)
 		resources.SetKind(childResKind.Kind + "List") // Only required by "fake" client used in tests.
 		if err := r.List(ctx, &resources, client.InNamespace(namespace), client.MatchingLabels(childResKind.Selector)); err != nil {
-			r.Log.Error(err, "Failed listing child resources")
+			log.Errorf("Failed listing child resources: %v", err)
 			return nil, err
 		}
 		for i, item := range resources.Items {
 			for _, owner := range item.GetOwnerReferences() {
 				if owner.UID == parentUID {
-					r.Log.Info(fmt.Sprintf("Found child %s.%s:%s", item.GetAPIVersion(), item.GetKind(), item.GetName()))
+					log.Debugf("Found child %s.%s:%s", item.GetAPIVersion(), item.GetKind(), item.GetName())
 					childResources = append(childResources, &resources.Items[i])
 					break
 				}
@@ -256,13 +317,13 @@ func (r *Reconciler) fetchChildResourcesByAPIVersionKinds(ctx context.Context, n
 
 // createOrUseGatewaySecret will create a certificate that will be embedded in an secret or leverage an existing secret
 // if one is configured in the ingress.
-func (r *Reconciler) createOrUseGatewaySecret(ctx context.Context, trait *vzapi.IngressTrait, status *reconcileresults.ReconcileResults) string {
+func (r *Reconciler) createOrUseGatewaySecret(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) string {
 	var secretName string
 
 	if trait.Spec.TLS != (vzapi.IngressSecurity{}) {
 		secretName = r.validateConfiguredSecret(trait, status)
 	} else {
-		secretName = r.createGatewayCertificate(ctx, trait, status)
+		secretName = r.createGatewayCertificate(ctx, trait, rule, status, log)
 	}
 
 	return secretName
@@ -273,7 +334,7 @@ func (r *Reconciler) createOrUseGatewaySecret(ctx context.Context, trait *vzapi.
 // There will be one gateway generated per application.  The generated virtual services will be routed via the
 // application-wide gateway.  This implementation addresses a known Istio traffic management issue
 // (see https://istio.io/v1.7/docs/ops/common-problems/network-issues/#404-errors-occur-when-multiple-gateways-configured-with-same-tls-certificate)
-func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.IngressTrait, status *reconcileresults.ReconcileResults) string {
+func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) string {
 	var secretName string
 	var err error
 	var certName string
@@ -281,21 +342,28 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 	//ensure trait does not specify hosts.  should be moved to ingress trait validating webhook
 	for _, rule := range trait.Spec.Rules {
 		if len(rule.Hosts) != 0 {
-			r.Log.Info("host(s) specified in the trait rules will likely not correlate to the generated certificate CN." +
+			log.Debug("Host(s) specified in the trait rules will likely not correlate to the generated certificate CN." +
 				" Please redeploy after removing the hosts or specifying a secret with the given hosts in its SAN list")
 			break
 		}
 	}
 
-	certName, err = buildCertificateNameFromAppName(trait)
+	appName, ok := trait.Labels[oam.LabelAppName]
+	if !ok {
+		err = fmt.Errorf("failed to obtain app name from ingress trait")
+		status.Errors = append(status.Errors, err)
+		status.Results = append(status.Results, controllerutil.OperationResultNone)
+		return ""
+	}
+	certName, err = buildCertificateNameFromAppName(types.NamespacedName{Namespace: trait.Namespace, Name: appName})
 	if err != nil {
-		r.Log.Error(err, "failed to create certificate name from ingress trait")
+		log.Errorf("Failed to create certificate name from ingress trait: %v", err)
 		status.Errors = append(status.Errors, err)
 		status.Results = append(status.Results, controllerutil.OperationResultNone)
 		return ""
 	}
 	secretName = fmt.Sprintf("%s-secret", certName)
-	certificate := &certapiv1alpha2.Certificate{
+	certificate := &certapiv1.Certificate{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       certificateKind,
 			APIVersion: certificateAPIVersion,
@@ -306,12 +374,12 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 		}}
 
 	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, certificate, func() error {
-		appDomainName, err := buildNamespacedDomainName(r, trait)
+		hosts, err := createHostsFromIngressTraitRule(r, rule, trait)
 		if err != nil {
 			return err
 		}
-		certificate.Spec = certapiv1alpha2.CertificateSpec{
-			DNSNames:   []string{fmt.Sprintf("*.%s", appDomainName)},
+		certificate.Spec = certapiv1.CertificateSpec{
+			DNSNames:   hosts,
 			SecretName: secretName,
 			IssuerRef: certv1.ObjectReference{
 				Name: verrazzanoClusterIssuer,
@@ -327,7 +395,7 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 	status.Errors = append(status.Errors, err)
 
 	if err != nil {
-		r.Log.Error(err, "failed to create or update gateway secret containing certificate")
+		log.Errorf("Failed to create or update gateway secret containing certificate: %v", err)
 		return ""
 	}
 
@@ -355,19 +423,9 @@ func (r *Reconciler) validateConfiguredSecret(trait *vzapi.IngressTrait, status 
 	return secretName
 }
 
-// buildCertificateNameFromAppName will attempt to retrieve the app name associated with the ingress trait
-// and construct a cert name.  Will generate an error if the app name is missing.
-func buildCertificateNameFromAppName(trait *vzapi.IngressTrait) (string, error) {
-	appName, ok := trait.Labels[oam.LabelAppName]
-	if !ok {
-		return "", errors.New("OAM app name label missing from metadata, unable to generate certificate name")
-	}
-	return fmt.Sprintf("%s-%s-cert", trait.Namespace, appName), nil
-}
-
 // createOrUpdateGateway creates or updates the Gateway child resource of the trait.
 // Results are added to the status object.
-func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, secretName string, status *reconcileresults.ReconcileResults) *istioclient.Gateway {
+func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, secretName string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) *istioclient.Gateway {
 	// Create a gateway populating only name metadata.
 	// This is used as default if the gateway needs to be created.
 	gateway := &istioclient.Gateway{
@@ -382,13 +440,18 @@ func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.Ing
 		return r.mutateGateway(gateway, trait, rule, secretName)
 	})
 
+	// Return if no changes
+	if res == controllerutil.OperationResultNone {
+		return gateway
+	}
+
 	ref := vzapi.QualifiedResourceRelation{APIVersion: gatewayAPIVersion, Kind: gatewayKind, Name: name, Role: "gateway"}
 	status.Relations = append(status.Relations, ref)
 	status.Results = append(status.Results, res)
 	status.Errors = append(status.Errors, err)
 
 	if err != nil {
-		r.Log.Error(err, "Failed to create or update gateway.")
+		log.Errorf("Failed to create or update gateway: %v", err)
 	}
 
 	return gateway
@@ -460,7 +523,7 @@ func findHost(hosts []string, newHost string) (int, bool) {
 
 // createOrUpdateVirtualService creates or updates the VirtualService child resource of the trait.
 // Results are added to the status object.
-func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, service *corev1.Service, gateway *istioclient.Gateway, status *reconcileresults.ReconcileResults) {
+func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, services []*corev1.Service, gateway *istioclient.Gateway, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) {
 	// Create a virtual service populating only name metadata.
 	// This is used as default if the virtual service needs to be created.
 	virtualService := &istioclient.VirtualService{
@@ -472,7 +535,7 @@ func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vz
 			Name:      name}}
 
 	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, virtualService, func() error {
-		return r.mutateVirtualService(virtualService, trait, rule, service, gateway)
+		return r.mutateVirtualService(virtualService, trait, rule, services, gateway)
 	})
 
 	ref := vzapi.QualifiedResourceRelation{APIVersion: virtualServiceAPIVersion, Kind: virtualServiceKind, Name: name, Role: "virtualservice"}
@@ -481,12 +544,12 @@ func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vz
 	status.Errors = append(status.Errors, err)
 
 	if err != nil {
-		r.Log.Error(err, "Failed to create or update virtual service.")
+		log.Errorf("Failed to create or update virtual service: %v", err)
 	}
 }
 
 // mutateVirtualService mutates the output virtual service resource
-func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualService, trait *vzapi.IngressTrait, rule vzapi.IngressRule, service *corev1.Service, gateway *istioclient.Gateway) error {
+func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualService, trait *vzapi.IngressTrait, rule vzapi.IngressRule, services []*corev1.Service, gateway *istioclient.Gateway) error {
 	// Set the spec content.
 	var err error
 	virtualService.Spec.Gateways = []string{gateway.Name}
@@ -500,13 +563,22 @@ func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualSer
 		matches = append(matches, &istionet.HTTPMatchRequest{
 			Uri: createVirtualServiceMatchURIFromIngressTraitPath(path)})
 	}
-	dest, err := createDestinationFromRuleOrService(rule, service)
+	dest, err := createDestinationFromRuleOrService(rule, services)
 	if err != nil {
 		return err
 	}
 	route := istionet.HTTPRoute{
 		Match: matches,
 		Route: []*istionet.HTTPRouteDestination{dest}}
+	if vznav.IsWeblogicWorkloadKind(trait) {
+		route.Headers = &istionet.Headers{
+			Request: &istionet.Headers_HeaderOperations{
+				Add: map[string]string{
+					wlProxySSLHeader: wlProxySSLHeaderVal,
+				},
+			},
+		}
+	}
 	virtualService.Spec.Http = []*istionet.HTTPRoute{&route}
 
 	// Set the owner reference.
@@ -514,10 +586,59 @@ func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualSer
 	return nil
 }
 
+//createOfUpdateDestinationRule creates or updates the DestinationRule.
+func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) {
+	if rule.Destination.HTTPCookie != nil {
+		destinationRule := &istioclient.DestinationRule{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: destinationRuleAPIVersion,
+				Kind:       destinationRuleKind},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: trait.Namespace,
+				Name:      name},
+		}
+
+		res, err := controllerutil.CreateOrUpdate(ctx, r.Client, destinationRule, func() error {
+			return r.mutateDestinationRule(destinationRule, trait, rule)
+		})
+
+		ref := vzapi.QualifiedResourceRelation{APIVersion: destinationRuleAPIVersion, Kind: destinationRuleKind, Name: name, Role: "destinationrule"}
+		status.Relations = append(status.Relations, ref)
+		status.Results = append(status.Results, res)
+		status.Errors = append(status.Errors, err)
+
+		if err != nil {
+			log.Errorf("Failed to create or update destination rule: %v", err)
+		}
+	}
+}
+
+func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.DestinationRule, trait *vzapi.IngressTrait, rule vzapi.IngressRule) error {
+	destinationRule.Spec = istionet.DestinationRule{
+		Host: rule.Destination.Host,
+		TrafficPolicy: &istionet.TrafficPolicy{
+			LoadBalancer: &istionet.LoadBalancerSettings{
+				LbPolicy: &istionet.LoadBalancerSettings_ConsistentHash{
+					ConsistentHash: &istionet.LoadBalancerSettings_ConsistentHashLB{
+						HashKey: &istionet.LoadBalancerSettings_ConsistentHashLB_HttpCookie{
+							HttpCookie: &istionet.LoadBalancerSettings_ConsistentHashLB_HTTPCookie{
+								Name: rule.Destination.HTTPCookie.Name,
+								Path: rule.Destination.HTTPCookie.Path,
+								Ttl:  ptypes.DurationProto(rule.Destination.HTTPCookie.TTL)},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return controllerutil.SetControllerReference(trait, destinationRule, r.Scheme)
+}
+
 // createDestinationFromRuleOrService creates a destination from either the rule or the service.
 // If the rule contains destination information that is used.
-// Otherwise the previously selected service information is used.
-func createDestinationFromRuleOrService(rule vzapi.IngressRule, service *corev1.Service) (*istionet.HTTPRouteDestination, error) {
+// Otherwise, the appropriate service is selected and its information is used.
+func createDestinationFromRuleOrService(rule vzapi.IngressRule, services []*corev1.Service) (*istionet.HTTPRouteDestination, error) {
 	if len(rule.Destination.Host) > 0 {
 		dest := &istionet.HTTPRouteDestination{Destination: &istionet.Destination{Host: rule.Destination.Host}}
 		if rule.Destination.Port != 0 {
@@ -525,7 +646,10 @@ func createDestinationFromRuleOrService(rule vzapi.IngressRule, service *corev1.
 		}
 		return dest, nil
 	}
-	return createDestinationFromService(service)
+	if rule.Destination.Port != 0 {
+		return createDestinationMatchRulePort(services, rule.Destination.Port)
+	}
+	return createDestinationFromService(services)
 }
 
 // getPathsFromRule gets the paths from a trait.
@@ -539,19 +663,160 @@ func getPathsFromRule(rule vzapi.IngressRule) []vzapi.IngressPath {
 	return paths
 }
 
-// createDestinationFromService creates a virtual service destination from a Service.
-// If the service does not have a port it is not included in the destination.
-func createDestinationFromService(service *corev1.Service) (*istionet.HTTPRouteDestination, error) {
-	if service == nil {
-		return nil, fmt.Errorf("unable to select default service for destination")
+// createDestinationFromService selects a Service and creates a virtual service destination for the selected service.
+// If the selected service does not have a port, it is not included in the destination. If the selected service
+// declares port(s), it selects the appropriate one and add it to the destination.
+func createDestinationFromService(services []*corev1.Service) (*istionet.HTTPRouteDestination, error) {
+	selectedService, err := selectServiceForDestination(services)
+	if err != nil {
+		return nil, err
 	}
 	dest := istionet.HTTPRouteDestination{
-		Destination: &istionet.Destination{Host: service.Name}}
-	// If the related service declares a port add it to the destination.
-	if len(service.Spec.Ports) > 0 {
-		dest.Destination.Port = &istionet.PortSelector{Number: uint32(service.Spec.Ports[0].Port)}
+		Destination: &istionet.Destination{Host: selectedService.Name}}
+	// If the selected service declares port(s), select the appropriate port and add it to the destination.
+	if len(selectedService.Spec.Ports) > 0 {
+		selectedPort, err := selectPortForDestination(selectedService)
+		if err != nil {
+			return nil, err
+		}
+		dest.Destination.Port = &istionet.PortSelector{Number: uint32(selectedPort.Port)}
 	}
 	return &dest, nil
+}
+
+// selectServiceForDestination selects a Service to be used for virtual service destination.
+// The service is selected based on the following logic:
+//   - If there is one service, return that service.
+//   - If there are multiple services and one service with cluster-IP, select that service.
+//   - If there are multiple services, select the service with HTTP or WebLogic port. If there is no such service or
+//     multiple such services, return an error. A port is evaluated as an HTTP port if the service has a port named
+//     with the prefix "http" and as a WebLogic port if the port name is from the known WebLogic non-http prefixed
+//     port names used by the WebLogic operator.
+func selectServiceForDestination(services []*corev1.Service) (*corev1.Service, error) {
+	var clusterIPServices []*corev1.Service
+	var allowedServices []*corev1.Service
+	var allowedClusterIPServices []*corev1.Service
+
+	// If there is only one service, return that service
+	if len(services) == 1 {
+		return services[0], nil
+	}
+	// Multiple services case
+	for _, service := range services {
+		if service.Spec.ClusterIP != "" && service.Spec.ClusterIP != clusterIPNone {
+			clusterIPServices = append(clusterIPServices, service)
+		}
+		allowedPorts := append(getHTTPPorts(service), getWebLogicPorts(service)...)
+		if len(allowedPorts) > 0 {
+			allowedServices = append(allowedServices, service)
+		}
+		if service.Spec.ClusterIP != "" && service.Spec.ClusterIP != clusterIPNone && len(allowedPorts) > 0 {
+			allowedClusterIPServices = append(allowedClusterIPServices, service)
+		}
+	}
+	// If there is no service with cluster-IP or no service with allowed port, return an error.
+	if len(clusterIPServices) == 0 && len(allowedServices) == 0 {
+		return nil, fmt.Errorf("unable to select default service for destination")
+	} else if len(clusterIPServices) == 1 {
+		// If there is only one service with cluster IP, return that service.
+		return clusterIPServices[0], nil
+	} else if len(allowedClusterIPServices) == 1 {
+		// If there is only one http/WebLogic service with cluster IP, return that service.
+		return allowedClusterIPServices[0], nil
+	} else if len(allowedServices) == 1 {
+		// If there is only one http/WebLogic service, return that service.
+		return allowedServices[0], nil
+	}
+	// In all other cases, return error.
+	return nil, fmt.Errorf("unable to select the service for destination. The service port " +
+		"should be named with prefix \"http\" if there are multiple services OR the IngressTrait must specify the port")
+}
+
+// selectPortForDestination selects a Service port to be used for virtual service destination port.
+// The port is selected based on the following logic:
+//   - If there is one port, return that port.
+//   - If there are multiple ports, select the http/WebLogic port.
+//   - If there are multiple ports and more than one http/WebLogic port, return an error.
+//   - If there are multiple ports and none of then are http/WebLogic ports, return an error.
+func selectPortForDestination(service *corev1.Service) (corev1.ServicePort, error) {
+	servicePorts := service.Spec.Ports
+	// If there is only one port, return that port
+	if len(servicePorts) == 1 {
+		return servicePorts[0], nil
+	}
+	allowedPorts := append(getHTTPPorts(service), getWebLogicPorts(service)...)
+	// If there are multiple ports and one http/WebLogic port, return that port
+	if len(servicePorts) > 1 && len(allowedPorts) == 1 {
+		return allowedPorts[0], nil
+	}
+	// If there are multiple ports and none of them are http/WebLogic ports, return an error
+	if len(servicePorts) > 1 && len(allowedPorts) < 1 {
+		return corev1.ServicePort{}, fmt.Errorf("unable to select the service port for destination. The service port " +
+			"should be named with prefix \"http\" if there are multiple ports OR the IngressTrait must specify the port")
+	}
+	// If there are multiple http/WebLogic ports, return an error
+	if len(allowedPorts) > 1 {
+		return corev1.ServicePort{}, fmt.Errorf("unable to select the service port for destination. Only one service " +
+			"port should be named with prefix \"http\" OR the IngressTrait must specify the port")
+	}
+	return corev1.ServicePort{}, fmt.Errorf("unable to select default port for destination")
+}
+
+// createDestinationMatchRulePort fetches a Service matching the specified rule port and creates virtual service
+// destination.
+func createDestinationMatchRulePort(services []*corev1.Service, rulePort uint32) (*istionet.HTTPRouteDestination, error) {
+	var eligibleServices []*corev1.Service
+	for _, service := range services {
+		for _, servicePort := range service.Spec.Ports {
+			if servicePort.Port == int32(rulePort) {
+				eligibleServices = append(eligibleServices, service)
+			}
+		}
+	}
+	selectedService, err := selectServiceForDestination(eligibleServices)
+	if err != nil {
+		return nil, err
+	}
+	if selectedService != nil {
+		dest := istionet.HTTPRouteDestination{
+			Destination: &istionet.Destination{Host: selectedService.Name}}
+		// Set the port to rule destination port
+		dest.Destination.Port = &istionet.PortSelector{Number: rulePort}
+		return &dest, nil
+	}
+	return nil, fmt.Errorf("unable to select service for specified destination port %d", rulePort)
+}
+
+// getHTTPPorts returns all the service ports having the prefix "http" in their names.
+func getHTTPPorts(service *corev1.Service) []corev1.ServicePort {
+	var httpPorts []corev1.ServicePort
+	for _, servicePort := range service.Spec.Ports {
+		// Check if service port name has the http prefix
+		if strings.HasPrefix(servicePort.Name, httpServiceNamePrefix) {
+			httpPorts = append(httpPorts, servicePort)
+		}
+	}
+	return httpPorts
+}
+
+// getWebLogicPorts returns WebLogic ports if any present for the service. A port is evaluated as a WebLogic port if
+// the port name is from the known WebLogic non-http prefixed port names used by the WebLogic operator.
+func getWebLogicPorts(service *corev1.Service) []corev1.ServicePort {
+	var webLogicPorts []corev1.ServicePort
+	selectorMap := service.Spec.Selector
+	value, ok := selectorMap[weblogicOperatorSelector]
+	if !ok || value == "false" {
+		return webLogicPorts
+	}
+	for _, servicePort := range service.Spec.Ports {
+		// Check if service port name is one of the predefined WebLogic port names
+		for _, webLogicPortName := range weblogicPortNames {
+			if servicePort.Name == webLogicPortName {
+				webLogicPorts = append(webLogicPorts, servicePort)
+			}
+		}
+	}
+	return webLogicPorts
 }
 
 // createVirtualServiceMatchURIFromIngressTraitPath create the virtual service match uri map from an ingress trait path
@@ -610,42 +875,41 @@ func createHostsFromIngressTraitRule(cli client.Reader, rule vzapi.IngressRule, 
 	return validHosts, nil
 }
 
-// fetchServiceFromTrait traverses from an ingress trait resource to the related service resource and returns it.
+// fetchServicesFromTrait traverses from an ingress trait resource to the related service resources and returns it.
 // This is done by first finding the workload related to the trait.
 // Then the child resources of the workload are founds.
-// Finally those child resources are scanned to find a Service resource which is returned.
-func (r *Reconciler) fetchServiceFromTrait(ctx context.Context, trait *vzapi.IngressTrait) (*corev1.Service, error) {
+// Finally those child resources are scanned to find Service resources which are returned.
+func (r *Reconciler) fetchServicesFromTrait(ctx context.Context, trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) ([]*corev1.Service, error) {
 	var err error
 
 	// Fetch workload resource
 	var workload *unstructured.Unstructured
-	if workload, err = vznav.FetchWorkloadFromTrait(ctx, r.Client, r.Log, trait); err != nil {
+	if workload, err = vznav.FetchWorkloadFromTrait(ctx, r.Client, log, trait); err != nil || workload == nil {
 		return nil, err
 	}
 
 	// Fetch workload child resources
 	var children []*unstructured.Unstructured
-	if children, err = r.fetchWorkloadChildren(ctx, workload); err != nil {
+	if children, err = r.fetchWorkloadChildren(ctx, workload, log); err != nil {
 		return nil, err
 	}
 
-	// Find the service from within the list of unstructured child resources
-	var service *corev1.Service
-	service, err = r.extractServiceFromUnstructuredChildren(children)
+	// Find the services from within the list of unstructured child resources
+	var services []*corev1.Service
+	services, err = r.extractServicesFromUnstructuredChildren(children, log)
 	if err != nil {
 		return nil, err
 	}
 
-	return service, nil
+	return services, nil
 }
 
-// extractServiceFromUnstructuredChildren finds and returns Service in an array of unstructured child service.
-// The children array is scanned looking for Service's APIVersion and Kind, selecting the first service with a
-// cluster IP. If no service has a cluster IP, choose the first service.
+// extractServicesFromUnstructuredChildren finds and returns Services in an array of unstructured child service.
+// The children array is scanned looking for Service's APIVersion and Kind,
 // If found the unstructured data is converted to a Service object and returned.
 // children - An array of unstructured children
-func (r *Reconciler) extractServiceFromUnstructuredChildren(children []*unstructured.Unstructured) (*corev1.Service, error) {
-	var selectedService *corev1.Service
+func (r *Reconciler) extractServicesFromUnstructuredChildren(children []*unstructured.Unstructured, log vzlog.VerrazzanoLogger) ([]*corev1.Service, error) {
+	var services []*corev1.Service
 
 	for _, child := range children {
 		if child.GetAPIVersion() == serviceAPIVersion && child.GetKind() == serviceKind {
@@ -655,25 +919,17 @@ func (r *Reconciler) extractServiceFromUnstructuredChildren(children []*unstruct
 				// maybe we should continue here and hope that another child can be converted?
 				return nil, err
 			}
-
-			if selectedService == nil {
-				selectedService = &service
-			}
-
-			if service.Spec.ClusterIP != clusterIPNone {
-				selectedService = &service
-				break
-			}
+			services = append(services, &service)
 		}
 	}
 
-	if selectedService != nil {
-		return selectedService, nil
+	if len(services) > 0 {
+		return services, nil
 	}
 
 	// Log that the child service was not found and return a nil service
-	r.Log.Info("No child service found")
-	return nil, nil
+	log.Debug("No child service found")
+	return services, nil
 }
 
 // convertAPIVersionAndKindToNamespacedName converts APIVersion and Kind of CR to a CRD namespaced name.
@@ -720,7 +976,7 @@ func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (st
 	const externalDNSKey = "external-dns.alpha.kubernetes.io/target"
 	const wildcardDomainKey = "verrazzano.io/dns.wildcard.domain"
 
-	// Extract the domain name from the verrazzano ingress
+	// Extract the domain name from the Verrazzano ingress
 	ingress := k8net.Ingress{}
 	err := cli.Get(context.TODO(), types.NamespacedName{Name: constants.VzConsoleIngress, Namespace: constants.VerrazzanoSystemNamespace}, &ingress)
 	if err != nil {
@@ -728,7 +984,7 @@ func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (st
 	}
 	externalDNSAnno, ok := ingress.Annotations[externalDNSKey]
 	if !ok || len(externalDNSAnno) == 0 {
-		return "", fmt.Errorf("Annotation %s missing from verrazzano ingress, unable to generate DNS name", externalDNSKey)
+		return "", fmt.Errorf("Annotation %s missing from Verrazzano ingress, unable to generate DNS name", externalDNSKey)
 	}
 
 	domain := externalDNSAnno[len(constants.VzConsoleIngress)+1:]
@@ -763,11 +1019,13 @@ func buildDomainNameForWildcard(cli client.Reader, trait *vzapi.IngressTrait, su
 	}
 	var IP string
 	if istio.Spec.Type == corev1.ServiceTypeLoadBalancer {
-		istioIngress := istio.Status.LoadBalancer.Ingress
-		if len(istioIngress) == 0 {
+		if len(istio.Status.LoadBalancer.Ingress) > 0 {
+			IP = istio.Status.LoadBalancer.Ingress[0].IP
+		} else if len(istio.Spec.ExternalIPs) > 0 {
+			IP = istio.Spec.ExternalIPs[0]
+		} else {
 			return "", fmt.Errorf("%s is missing loadbalancer IP", istioIngressGateway)
 		}
-		IP = istioIngress[0].IP
 	} else if istio.Spec.Type == corev1.ServiceTypeNodePort {
 		// Do the equiv of the following command to get the IP
 		// kubectl -n istio-system get pods --selector app=istio-ingressgateway,istio=ingressgateway -o jsonpath='{.items[0].status.hostIP}'

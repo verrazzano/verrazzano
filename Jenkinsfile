@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
@@ -15,6 +15,7 @@ def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 pipeline {
     options {
         skipDefaultCheckout true
+        copyArtifactPermission('*');
         timestamps ()
     }
 
@@ -36,22 +37,26 @@ pipeline {
         booleanParam (description: 'Whether to trigger full testing after a successful run. Off by default. This is always done for successful master and release* builds, this setting only is used to enable the trigger for other branches', name: 'TRIGGER_FULL_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to generate the analysis tool', name: 'GENERATE_TOOL', defaultValue: false)
         booleanParam (description: 'Whether to generate a tarball', name: 'GENERATE_TARBALL', defaultValue: false)
+        booleanParam (description: 'Whether to push images to OCIR', name: 'PUSH_TO_OCIR', defaultValue: false)
         booleanParam (description: 'Whether to fail the Integration Tests to test failure handling', name: 'SIMULATE_FAILURE', defaultValue: false)
+        booleanParam (description: 'Whether to perform a scan of the built images', name: 'PERFORM_SCAN', defaultValue: false)
+        booleanParam (description: 'Whether to wait for triggered tests or not. This defaults to false, this setting is useful for things like release automation that require everything to complete successfully', name: 'WAIT_FOR_TRIGGERED', defaultValue: false)
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'Wildcard DNS Domain',
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
         string (name: 'CONSOLE_REPO_BRANCH',
-                defaultValue: 'master',
+                defaultValue: '',
                 description: 'The branch to check out after cloning the console repository.',
                 trim: true)
         booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
     }
 
     environment {
-        DOCKER_ANALYSIS_CI_IMAGE_NAME = 'verrazzano-analysis-jenkins'
-        DOCKER_ANALYSIS_PUBLISH_IMAGE_NAME = 'verrazzano-analysis'
-        DOCKER_ANALYSIS_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_ANALYSIS_PUBLISH_IMAGE_NAME : env.DOCKER_ANALYSIS_CI_IMAGE_NAME}"
+        TEST_ENV = "JENKINS"
+        CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
+        IS_PERIODIC_PIPELINE = "false"
+
         DOCKER_PLATFORM_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
         DOCKER_PLATFORM_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
         DOCKER_PLATFORM_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_PLATFORM_PUBLISH_IMAGE_NAME : env.DOCKER_PLATFORM_CI_IMAGE_NAME}"
@@ -101,7 +106,16 @@ pipeline {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
-        PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
+
+        // used to emit metrics
+        PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
+        PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
+
+        OCIR_SCAN_COMPARTMENT = credentials('ocir-scan-compartment')
+        OCIR_SCAN_TARGET = credentials('ocir-scan-target')
+        OCIR_SCAN_REGISTRY = credentials('ocir-scan-registry')
+        OCIR_SCAN_REPOSITORY_PATH = credentials('ocir-scan-repository-path')
+        DOCKER_SCAN_CREDS = credentials('v8odev-ocir')
     }
 
     stages {
@@ -133,21 +147,6 @@ pipeline {
                             sleep(30)
                             sh """
                             echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                            """
-                        }
-                    }
-                }
-                script {
-                    try {
-                        sh """
-                            echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                        """
-                    } catch(error) {
-                        echo "OCR docker login failed, retrying after sleep"
-                        retry(4) {
-                            sleep(30)
-                            sh """
-                                echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
                             """
                         }
                     }
@@ -363,14 +362,18 @@ pipeline {
         }
 
         stage('Scan Image') {
-            when { not { buildingTag() } }
+            when {
+               allOf {
+                   not { buildingTag() }
+                   expression {params.PERFORM_SCAN == true}
+               }
+            }
             steps {
                 script {
-                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_OAM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_ANALYSIS_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                    scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                    scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_OAM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                     if (SCAN_IMAGE_PATCH_OPERATOR == true) {
-                        clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_PATCH_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                        scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_PATCH_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                     }
                 }
             }
@@ -381,25 +384,7 @@ pipeline {
                     }
                 }
                 always {
-                    archiveArtifacts artifacts: '**/scanning-report.json', allowEmptyArchive: true
-                }
-            }
-        }
-
-        stage('Integration Tests') {
-            when { not { buildingTag() } }
-            steps {
-                integrationTests("${DOCKER_IMAGE_TAG}")
-            }
-            post {
-                failure {
-                    script {
-                        SKIP_TRIGGERED_TESTS = true
-                    }
-                }
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/*-cluster-dump/**,**/install.sh.log', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                    archiveArtifacts artifacts: '**/scanning-report*.json', allowEmptyArchive: true
                 }
             }
         }
@@ -438,6 +423,12 @@ pipeline {
                         expression {SKIP_ACCEPTANCE_TESTS == false};
                     }
                 }
+            }
+
+            environment {
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
 
             steps {
@@ -490,19 +481,24 @@ pipeline {
                         parameters: [
                             string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                             string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                            booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
-                        ], wait: false
+                            booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
+                            string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
+                        ], wait: params.WAIT_FOR_TRIGGERED
                 }
             }
         }
         stage('Zip Build and Test') {
             // If the tests are clean and this is a release branch or GENERATE_TARBALL == true,
-            // generate the Verrazzano full product zip and run the Private Registry tests
+            // generate the Verrazzano full product zip and run the Private Registry tests.
+            // Optionally push images to OCIR for scanning.
             when {
                 allOf {
                     not { buildingTag() }
                     expression {SKIP_TRIGGERED_TESTS == false}
-                    expression{params.GENERATE_TARBALL == true}
+                    anyOf {
+                        expression{params.GENERATE_TARBALL == true};
+                        expression{params.PUSH_TO_OCIR == true};
+                    }
                 }
             }
             stages{
@@ -532,6 +528,42 @@ pipeline {
                         }
                     }
                 }
+                stage("Push Images to OCIR") {
+                    environment {
+                        OCI_CLI_AUTH="api_key"
+                        OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
+                        OCI_CLI_USER = credentials('oci-dev-user-ocid')
+                        OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
+                        OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
+                        OCI_CLI_REGION = "us-ashburn-1"
+                        OCI_REGION = "${env.OCI_CLI_REGION}"
+                    }
+                    when {
+                        expression{params.PUSH_TO_OCIR == true}
+                    }
+                    steps {
+                        script {
+                            try {
+                                sh """
+                                    echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
+                                """
+                            } catch(error) {
+                                echo "docker login failed, retrying after sleep"
+                                retry(4) {
+                                    sleep(30)
+                                    sh """
+                                    echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
+                                    """
+                                }
+                            }
+
+                            sh """
+                                echo "Pushing images to OCIR, note that images pushed using this pipeline are NOT treated as the latest scan results, those come from periodic test runs"
+                                ci/scripts/push_to_ocir.sh
+                            """
+                        }
+                    }
+                }
             }
         }
     }
@@ -551,14 +583,11 @@ pipeline {
                 oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip
                 rm archive.zip
             """
-            mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
-            subject: "Verrazzano: ${env.JOB_NAME} - Failed",
-            body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}"
             script {
-                if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-1.*") {
-                    if (isPagerDutyEnabled()) {
-                        pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
-                    }
+                if (isPagerDutyEnabled() && (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-1.*")) {
+                    pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
+                }
+                if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-1.*" || env.BRANCH_NAME ==~ "mark/*") {
                     slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
                 }
             }
@@ -585,28 +614,6 @@ def moveContentToGoRepoPath() {
         rm -rf ${GO_REPO_PATH}/verrazzano
         mkdir -p ${GO_REPO_PATH}/verrazzano
         tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
-    """
-}
-
-// Called in Stage Integration Tests steps
-def integrationTests(dockerImageTag) {
-    sh """
-        if [ "${params.SIMULATE_FAILURE}" == "true" ]; then
-            echo "Simulate failure from a stage"
-            exit 1
-        fi
-        cd ${GO_REPO_PATH}/verrazzano/platform-operator
-
-        make cleanup-cluster
-        make create-cluster KIND_CONFIG="kind-config-ci.yaml"
-        ../ci/scripts/setup_kind_for_jenkins.sh
-        make integ-test CLUSTER_DUMP_LOCATION=${WORKSPACE}/platform-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${dockerImageTag}
-        ../build/copy-junit-output.sh ${WORKSPACE}
-        cd ${GO_REPO_PATH}/verrazzano/application-operator
-        make cleanup-cluster
-        make integ-test KIND_CONFIG="kind-config-ci.yaml" CLUSTER_DUMP_LOCATION=${WORKSPACE}/application-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${dockerImageTag}
-        ../build/copy-junit-output.sh ${WORKSPACE}
-        make cleanup-cluster
     """
 }
 
@@ -637,7 +644,7 @@ def buildImages(dockerImageTag) {
         (cd application-operator; make check-repo-clean)
         (cd image-patch-operator; make check-repo-clean)
         echo 'Now build...'
-        make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} VERRAZZANO_ANALYSIS_IMAGE_NAME=${DOCKER_ANALYSIS_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
+        make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
         cp ${GO_REPO_PATH}/verrazzano/platform-operator/out/generated-verrazzano-bom.json $WORKSPACE/generated-verrazzano-bom.json
         ${GO_REPO_PATH}/verrazzano/tools/scripts/generate_image_list.sh $WORKSPACE/generated-verrazzano-bom.json $WORKSPACE/verrazzano_images.txt
     """
@@ -685,6 +692,7 @@ def qualityCheck() {
 
         echo "copyright scan"
         time make copyright-check
+        ./ci/scripts/check_if_clean_after_generate.sh
 
         echo "Third party license check"
     """
@@ -706,7 +714,7 @@ def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor ${testSuitePath}/...
+            ginkgo -p --randomize-all -v --keep-going --no-color ${testSuitePath}/...
             ../../build/copy-junit-output.sh ${WORKSPACE}
         """
     }
@@ -717,7 +725,7 @@ def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keepGoing --noColor ${testSuitePath}/...
+            ginkgo -v --keep-going --no-color ${testSuitePath}/...
             ../../build/copy-junit-output.sh ${WORKSPACE}
         """
     }
@@ -773,38 +781,76 @@ def trimIfGithubNoreplyUser(userIn) {
 
 def getSuspectList(commitList, userMappings) {
     def retValue = ""
+    def suspectList = []
     if (commitList == null || commitList.size() == 0) {
         echo "No commits to form suspect list"
-        return retValue
+    } else {
+        for (int i = 0; i < commitList.size(); i++) {
+            def id = commitList[i]
+            try {
+                def gitAuthor = sh(
+                    script: "git log --format='%ae' '$id^!'",
+                    returnStdout: true
+                ).trim()
+                if (gitAuthor != null) {
+                    def author = trimIfGithubNoreplyUser(gitAuthor)
+                    echo "DEBUG: author: ${gitAuthor}, ${author}, id: ${id}"
+                    if (userMappings.containsKey(author)) {
+                        def slackUser = userMappings.get(author)
+                        if (!suspectList.contains(slackUser)) {
+                            echo "Added ${slackUser} as suspect"
+                            retValue += " ${slackUser}"
+                            suspectList.add(slackUser)
+                        }
+                    } else {
+                        // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
+                        if (!suspectList.contains(author)) {
+                            echo "Added ${author} as suspect"
+                            retValue += " ${author}"
+                            suspectList.add(author)
+                        }
+                    }
+                } else {
+                    echo "No author returned from git"
+                }
+            } catch (Exception e) {
+                echo "INFO: Problem processing commit ${id}, skipping commit: " + e.toString()
+            }
+        }
     }
-    def suspectList = []
-    for (int i = 0; i < commitList.size(); i++) {
-        def id = commitList[i]
-        def gitAuthor = sh(
-            script: "git log --format='%ae' '$id^!'",
-            returnStdout: true
-        ).trim()
-        if (gitAuthor != null) {
-            def author = trimIfGithubNoreplyUser(gitAuthor)
-            echo "DEBUG: author: ${gitAuthor}, ${author}, id: ${id}"
-            if (userMappings.containsKey(author)) {
-                def slackUser = userMappings.get(author)
-                if (!suspectList.contains(slackUser)) {
-                    echo "Added ${slackUser} as suspect"
-                    retValue += " ${slackUser}"
-                    suspectList.add(slackUser)
-                }
-            } else {
-                // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
-                if (!suspectList.contains(author)) {
-                    echo "Added ${author} as suspect"
-                    retValue += " ${author}"
-                   suspectList.add(author)
-                }
+    def startedByUser = "";
+    def causes = currentBuild.getBuildCauses()
+    echo "causes: " + causes.toString()
+    for (cause in causes) {
+        def causeString = cause.toString()
+        echo "current cause: " + causeString
+        def causeInfo = readJSON text: causeString
+        if (causeInfo.userId != null) {
+            startedByUser = causeInfo.userId
+        }
+    }
+
+    if (startedByUser.length() > 0) {
+        echo "Build was started by a user, adding them to the suspect notification list: ${startedByUser}"
+        def author = trimIfGithubNoreplyUser(startedByUser)
+        echo "DEBUG: author: ${startedByUser}, ${author}"
+        if (userMappings.containsKey(author)) {
+            def slackUser = userMappings.get(author)
+            if (!suspectList.contains(slackUser)) {
+                echo "Added ${slackUser} as suspect"
+                retValue += " ${slackUser}"
+                suspectList.add(slackUser)
             }
         } else {
-            echo "No author returned from git"
+            // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
+            if (!suspectList.contains(author)) {
+               echo "Added ${author} as suspect"
+               retValue += " ${author}"
+               suspectList.add(author)
+            }
         }
+    } else {
+        echo "Build not started by a user, not adding to notification list"
     }
     echo "returning suspect list: ${retValue}"
     return retValue
@@ -843,8 +889,8 @@ def metricTimerEnd(metricName, status) {
         long y = env."${timerEndName}" as long;
         def dur = (y-x)
         labels = getMetricLabels()
-        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${metricName} ${env.GIT_BRANCH} $labels ${status} ${dur}")
+        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${metricName} ${env.GIT_BRANCH} $labels ${status} ${dur}")
             echo "emit prometheus metrics: $EMIT"
             return EMIT
         }
@@ -872,8 +918,8 @@ def metricBuildDuration() {
     if (params.EMIT_METRICS) {
         labels = getMetricLabels()
         labels = labels + ',result=\\"' + "${statusLabel}"+'\\"'
-        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
+        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }

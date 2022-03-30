@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
@@ -161,6 +161,11 @@ function dump_configmaps() {
         NAMESPACE=$(echo "$CSV_LINE" | cut -d, -f"1")
         CONFIGNAME=$(echo "$CSV_LINE" | cut -d, -f"2")
         if [ ! -z $NAMESPACE ] && [ ! -z $CONFIGNAME ] ; then
+          # The cluster-dump should create the directories for us, but just in case there is a situation where there is a namespace
+          # that is present which doesn't have one created, make sure we have the directory
+          if [ ! -d $CAPTURE_DIR/cluster-dump/$NAMESPACE ] ; then
+            mkdir $CAPTURE_DIR/cluster-dump/$NAMESPACE || true
+          fi
           kubectl --insecure-skip-tls-verify describe configmap $CONFIGNAME -n $NAMESPACE > $CAPTURE_DIR/cluster-dump/$NAMESPACE/$CONFIGNAME.configmap || true
         fi
       fi
@@ -202,6 +207,8 @@ function dump_extra_details_per_namespace() {
         kubectl --insecure-skip-tls-verify get pvc -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/persistent-volume-claims.json || true
         kubectl --insecure-skip-tls-verify get pv -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/persistent-volumes.json || true
         kubectl --insecure-skip-tls-verify get jobs.batch -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/jobs.json || true
+        kubectl --insecure-skip-tls-verify get metricsbindings -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/metrics-bindings.json || true
+        kubectl --insecure-skip-tls-verify get metricstemplates -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/metrics-templates.json || true
         kubectl --insecure-skip-tls-verify get multiclusterapplicationconfigurations -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/multicluster-application-configurations.json || true
         kubectl --insecure-skip-tls-verify get multiclustercomponents -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/multicluster-components.json || true
         kubectl --insecure-skip-tls-verify get multiclusterconfigmaps -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/multicluster-config-maps.json || true
@@ -209,10 +216,17 @@ function dump_extra_details_per_namespace() {
         kubectl --insecure-skip-tls-verify get multiclustersecrets -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/multicluster-secrets.json || true
         kubectl --insecure-skip-tls-verify get verrazzanoprojects -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/verrazzano-projects.json || true
         kubectl --insecure-skip-tls-verify get verrazzanomanagedclusters -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/verrazzano-managed-clusters.json || true
+        kubectl --insecure-skip-tls-verify get verrazzanoweblogicworkload -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/verrazzano-weblogic-workload.json || true
+        kubectl --insecure-skip-tls-verify get verrazzanocoherenceworkload -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/verrazzano-coherence-workload.json || true
+        kubectl --insecure-skip-tls-verify get verrazzanohelidonworkload -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/verrazzano-helidon-workload.json || true
+        kubectl --insecure-skip-tls-verify get domain -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/domain.json || true
         kubectl --insecure-skip-tls-verify get clusterroles -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/cluster-roles.json || true
         kubectl --insecure-skip-tls-verify get certificaterequests.cert-manager.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/certificate-requests.json || true
         kubectl --insecure-skip-tls-verify get orders.acme.cert-manager.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/acme-orders.json || true
         kubectl --insecure-skip-tls-verify get statefulsets -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/statefulsets.json || true
+        kubectl --insecure-skip-tls-verify get secrets -n $NAMESPACE -o json |jq 'del(.items[].data)' 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/secrets.json || true
+        kubectl --insecure-skip-tls-verify get certificates -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/certificates.json || true
+        kubectl --insecure-skip-tls-verify get MetricsTrait -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/metrics-traits.json || true
       fi
     fi
   done <$CAPTURE_DIR/cluster-dump/namespace_list.out

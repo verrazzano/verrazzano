@@ -1,1 +1,1 @@
-See [https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/](https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/)
+See [https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/](https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/)

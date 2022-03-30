@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package istio
@@ -6,27 +6,31 @@ package istio
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os/exec"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/istio"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
-	"go.uber.org/zap"
-	"io/ioutil"
 	istiosec "istio.io/api/security/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
-	"testing"
 )
 
 // fakeIstioInstalledRunner is used to test if Istio is installed
@@ -41,10 +45,97 @@ var installCR = &installv1alpha1.Verrazzano{
 					Name:  "arg1",
 					Value: "val1",
 				}},
+				Ingress: &installv1alpha1.IstioIngressSection{
+					Kubernetes: &installv1alpha1.IstioKubernetesSection{
+						CommonKubernetesSpec: installv1alpha1.CommonKubernetesSpec{
+							Replicas: 1,
+							Affinity: &corev1.Affinity{
+								PodAntiAffinity: &corev1.PodAntiAffinity{
+									RequiredDuringSchedulingIgnoredDuringExecution: nil,
+									PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+										{
+											Weight: 100,
+											PodAffinityTerm: corev1.PodAffinityTerm{
+												LabelSelector: &metav1.LabelSelector{
+													MatchLabels: nil,
+													MatchExpressions: []metav1.LabelSelectorRequirement{
+														{
+															Key:      "app",
+															Operator: "In",
+															Values: []string{
+																"istio-ingressgateway",
+															},
+														},
+													},
+												},
+												Namespaces:  nil,
+												TopologyKey: "kubernetes.io/hostname",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				Egress: &installv1alpha1.IstioEgressSection{
+					Kubernetes: &installv1alpha1.IstioKubernetesSection{
+						CommonKubernetesSpec: installv1alpha1.CommonKubernetesSpec{
+							Replicas: 1,
+							Affinity: &corev1.Affinity{
+								PodAntiAffinity: &corev1.PodAntiAffinity{
+									RequiredDuringSchedulingIgnoredDuringExecution: nil,
+									PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+										{
+											Weight: 100,
+											PodAffinityTerm: corev1.PodAffinityTerm{
+												LabelSelector: &metav1.LabelSelector{
+													MatchLabels: nil,
+													MatchExpressions: []metav1.LabelSelectorRequirement{
+														{
+															Key:      "app",
+															Operator: "In",
+															Values: []string{
+																"istio-egressgateway",
+															},
+														},
+													},
+												},
+												Namespaces:  nil,
+												TopologyKey: "kubernetes.io/hostname",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 	},
 }
+
+type fakeMonitor struct {
+	result  bool
+	err     error
+	running bool
+}
+
+func (f *fakeMonitor) run(args installRoutineParams) {
+}
+
+func (f *fakeMonitor) checkResult() (bool, error) { return f.result, f.err }
+
+func (f *fakeMonitor) reset() {}
+
+func (f *fakeMonitor) init() {}
+
+func (f *fakeMonitor) sendResult(r bool) {}
+
+func (f *fakeMonitor) isRunning() bool { return f.running }
+
+var _ installMonitor = &fakeMonitor{}
 
 // TestIsOperatorInstallSupported tests if the install is supported
 // GIVEN a component
@@ -65,7 +156,7 @@ func TestIsInstalled(t *testing.T) {
 	assert := assert.New(t)
 
 	istio.SetCmdRunner(fakeIstioInstalledRunner{})
-	b, err := comp.IsInstalled(spi.NewContext(zap.S(), getIsInstalledMock(t), installCR, false))
+	b, err := comp.IsInstalled(spi.NewFakeContext(getIsInstalledMock(t), installCR, false))
 	assert.NoError(err, "IsInstalled returned an error")
 	assert.True(b, "IsInstalled returned false")
 }
@@ -89,7 +180,7 @@ func TestIsNotInstalled(t *testing.T) {
 	assert := assert.New(t)
 
 	istio.SetCmdRunner(fakeIstioInstalledRunner{})
-	b, err := comp.IsInstalled(spi.NewContext(zap.S(), getIsNotInstalledMock(t), installCR, false))
+	b, err := comp.IsInstalled(spi.NewFakeContext(getIsNotInstalledMock(t), installCR, false))
 	assert.NoError(err, "IsInstalled returned an error")
 	assert.False(b, "IsInstalled returned true")
 }
@@ -108,70 +199,176 @@ func getIsNotInstalledMock(t *testing.T) *mocks.MockClient {
 // TestInstall tests the component install
 // GIVEN a component
 //  WHEN I call Install
-//  THEN the install returns success and passes the correct values to the install function
+//  THEN the install starts a new attempt and returns a RetryableError to requeue
 func TestInstall(t *testing.T) {
 	assert := assert.New(t)
 
-	comp := IstioComponent{
+	comp := istioComponent{
 		ValuesFile: "test-values-file.yaml",
+		monitor:    &fakeMonitor{result: true, running: false},
 	}
+
+	expectedErr := spi2.RetryableError{Source: ComponentName}
+	forkInstallFunc = func(_ spi.ComponentContext, _ installMonitor, _ string, _ []string) error {
+		return expectedErr
+	}
+	defer func() { forkInstallFunc = forkInstall }()
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	istio.SetCmdRunner(fakeRunner{})
 	setInstallFunc(fakeInstall)
 	setBashFunc(fakeBash)
-	err := comp.Install(spi.NewContext(zap.S(), getIstioInstallMock(t), installCR, false))
-	assert.NoError(err, "Upgrade returned an error")
+
+	err := comp.Install(spi.NewFakeContext(getIstioInstallMock(t), installCR, false))
+	assert.Equal(expectedErr, err, "Upgrade returned an unexpected error")
+}
+
+// TestBackgroundInstallCompletedSuccessfully tests the component install
+// GIVEN a call to istioComponent.Install()
+//  WHEN when the monitor goroutine failed to successfully complete
+//  THEN the Install() method returns nil without calling the forkInstall function
+func TestBackgroundInstallCompletedSuccessfully(t *testing.T) {
+	assert := assert.New(t)
+
+	comp := istioComponent{
+		ValuesFile: "test-values-file.yaml",
+	}
+
+	forkInstallFunc = func(_ spi.ComponentContext, _ installMonitor, _ string, _ []string) error {
+		assert.Fail("Unexpected call to forkInstall() function")
+		return nil
+	}
+	defer func() { forkInstallFunc = forkInstall }()
+
+	config.SetDefaultBomFilePath(testBomFilePath)
+	istio.SetCmdRunner(fakeRunner{})
+	setInstallFunc(fakeInstall)
+	setBashFunc(fakeBash)
+
+	comp.monitor = &fakeMonitor{result: true, running: true}
+	err := comp.Install(spi.NewFakeContext(getIstioInstallMock(t), installCR, false))
+	assert.NoError(err)
+}
+
+// TestBackgroundInstallRetryOnFailure tests the component install
+// GIVEN a call to istioComponent.Install()
+//  WHEN when the monitor goroutine failed to successfully complete
+//  THEN the Install() method calls the forkInstall function and returns a retry error
+func TestBackgroundInstallRetryOnFailure(t *testing.T) {
+	assert := assert.New(t)
+
+	comp := istioComponent{
+		ValuesFile: "test-values-file.yaml",
+	}
+
+	forkFuncCalled := false
+	expectedErr := spi2.RetryableError{Source: ComponentName}
+	forkInstallFunc = func(_ spi.ComponentContext, _ installMonitor, _ string, _ []string) error {
+		forkFuncCalled = true
+		return expectedErr
+	}
+	defer func() { forkInstallFunc = forkInstall }()
+
+	config.SetDefaultBomFilePath(testBomFilePath)
+	istio.SetCmdRunner(fakeRunner{})
+	setInstallFunc(fakeInstall)
+	setBashFunc(fakeBash)
+
+	comp.monitor = &fakeMonitor{result: false, running: true}
+
+	err := comp.Install(spi.NewFakeContext(getIstioInstallMock(t), installCR, false))
+	assert.True(forkFuncCalled)
+	assert.Equal(expectedErr, err)
+}
+
+// Test_forkInstallSuccess tests the forkInstall function
+// GIVEN a call to istioComponent.forkInstall()
+//  WHEN when the monitor install successfully runs istioctl install
+//  THEN retryerrors are returned until the goroutine completes, and sends a success message
+func Test_forkInstallSuccess(t *testing.T) {
+	assert := assert.New(t)
+
+	comp := istioComponent{
+		ValuesFile: "test-values-file.yaml",
+	}
+
+	config.SetDefaultBomFilePath(testBomFilePath)
+	istio.SetCmdRunner(fakeRunner{})
+
+	expectedOverridesFiles := []string{comp.ValuesFile, "istio-overrides.yaml"}
+	expectedOverridesString := "myoverride=true"
+
+	setInstallFunc(func(log vzlog.VerrazzanoLogger, overridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+		assert.Equal(expectedOverridesFiles, overridesFiles, "Did not get expected override files")
+		assert.Equal(expectedOverridesString, overridesString)
+		return []byte(""), []byte(""), nil
+	})
+	defer func() { installFunc = istio.Install }()
+
+	setBashFunc(fakeBash)
+
+	var monitor installMonitor = &installMonitorType{}
+	err := forkInstall(spi.NewFakeContext(getIstioInstallMock(t), installCR, false), monitor, expectedOverridesString, expectedOverridesFiles)
+	assert.Equal(spi2.RetryableError{Source: ComponentName}, err)
+	for i := 0; i < 100; i++ {
+		result, retryError := monitor.checkResult()
+		if retryError != nil {
+			t.Log("Waiting for result...")
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+		assert.True(result)
+		assert.Nil(retryError)
+		return
+	}
+	assert.Fail("Did not detect completion in time")
+}
+
+// Test_forkInstallFailure tests the forkInstall function
+// GIVEN a call to istioComponent.forkInstall()
+//  WHEN when the monitor install unsuccessfully runs istioctl install
+//  THEN retryerrors are returned until the goroutine completes, and sends a failure message when istioctl fails
+func Test_forkInstallFailure(t *testing.T) {
+	assert := assert.New(t)
+
+	comp := istioComponent{
+		ValuesFile: "test-values-file.yaml",
+	}
+
+	config.SetDefaultBomFilePath(testBomFilePath)
+	istio.SetCmdRunner(fakeRunner{})
+
+	cause := fmt.Errorf("Unexpected error on install")
+	setInstallFunc(func(log vzlog.VerrazzanoLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+		return []byte(""), []byte(""), cause
+	})
+	defer func() { installFunc = istio.Install }()
+
+	setBashFunc(fakeBash)
+
+	var monitor installMonitor = &installMonitorType{}
+	err := forkInstall(spi.NewFakeContext(getIstioInstallMock(t), installCR, false), monitor, "myoverride=true", []string{comp.ValuesFile, "istio-overrides.yaml"})
+	assert.Equal(spi2.RetryableError{Source: ComponentName}, err)
+	for i := 0; i < 100; i++ {
+		result, retryError := monitor.checkResult()
+		if retryError != nil {
+			t.Log("Waiting for result...")
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+		assert.False(result)
+		assert.Nil(retryError)
+		return
+	}
+	assert.Fail("Did not detect completion in time")
 }
 
 func getIstioInstallMock(t *testing.T) *mocks.MockClient {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, deployList *appsv1.DeploymentList) error {
-			deployList.Items = []appsv1.Deployment{{}}
-			return nil
-		})
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ssList *appsv1.StatefulSetList) error {
-			ssList.Items = []appsv1.StatefulSet{{}}
-			return nil
-		})
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, dsList *appsv1.DaemonSetList) error {
-			dsList.Items = []appsv1.DaemonSet{{}}
-			return nil
-		})
-
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, deploy *appsv1.Deployment) error {
-			deploy.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			deploy.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = "some time"
-			return nil
-		}).AnyTimes()
-
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ss *appsv1.StatefulSet) error {
-			ss.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			ss.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = "some time"
-			return nil
-		}).AnyTimes()
-
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet) error {
-			ds.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			ds.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = "some time"
-			return nil
-		}).AnyTimes()
+	// Add mocks necessary for the system component restart
+	mock.AddRestartMocks()
 
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.DefaultNamespace, Name: constants.GlobalImagePullSecName}, gomock.Not(gomock.Nil())).
@@ -192,7 +389,7 @@ func TestCreateCertSecret(t *testing.T) {
 	assert := assert.New(t)
 
 	setBashFunc(fakeBash)
-	err := createCertSecret(spi.NewContext(zap.S(), createCertSecretMock(t), installCR, false))
+	err := createCertSecret(spi.NewFakeContext(createCertSecretMock(t), installCR, false))
 	assert.NoError(err, "createCertSecret returned an error")
 }
 
@@ -200,50 +397,8 @@ func createCertSecretMock(t *testing.T) *mocks.MockClient {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, deployList *appsv1.DeploymentList) error {
-			deployList.Items = []appsv1.Deployment{{}}
-			return nil
-		})
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ssList *appsv1.StatefulSetList) error {
-			ssList.Items = []appsv1.StatefulSet{{}}
-			return nil
-		})
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, dsList *appsv1.DaemonSetList) error {
-			dsList.Items = []appsv1.DaemonSet{{}}
-			return nil
-		})
-
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, deploy *appsv1.Deployment) error {
-			deploy.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			deploy.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = "some time"
-			return nil
-		}).AnyTimes()
-
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ss *appsv1.StatefulSet) error {
-			ss.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			ss.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = "some time"
-			return nil
-		}).AnyTimes()
-
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet) error {
-			ds.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			ds.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = "some time"
-			return nil
-		}).AnyTimes()
+	// Add mocks necessary for the system component restart
+	mock.AddRestartMocks()
 
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.DefaultNamespace, Name: constants.GlobalImagePullSecName}, gomock.Not(gomock.Nil())).
@@ -264,7 +419,7 @@ func TestCreatePeerAuthentication(t *testing.T) {
 	assert := assert.New(t)
 
 	setBashFunc(fakeBash)
-	err := createPeerAuthentication(spi.NewContext(zap.S(), createPeerAuthenticationMock(t), installCR, false))
+	err := createPeerAuthentication(spi.NewFakeContext(createPeerAuthenticationMock(t), installCR, false))
 	assert.NoError(err, "createPeerAuthentication returned an error")
 }
 
@@ -297,7 +452,7 @@ func TestLabelNamespace(t *testing.T) {
 	assert := assert.New(t)
 
 	setBashFunc(fakeBash)
-	err := labelNamespace(spi.NewContext(zap.S(), labelNamespaceMock(t), installCR, false))
+	err := labelNamespace(spi.NewFakeContext(labelNamespaceMock(t), installCR, false))
 	assert.NoError(err, "labelNamespace returned an error")
 }
 
@@ -322,31 +477,8 @@ func labelNamespaceMock(t *testing.T) *mocks.MockClient {
 	return mock
 }
 
-// TestCreateEnvoyFilter tests creating the Envoy filter
-// GIVEN a component
-//  WHEN I call createEnvoyFilter
-//  THEN the bash function is called to create the filter
-func TestCreateEnvoyFilter(t *testing.T) {
-	assert := assert.New(t)
-
-	setBashFunc(fakeBash)
-	err := createEnvoyFilter(spi.NewContext(zap.S(), createEnvoyFilterMock(t), installCR, false))
-	assert.NoError(err, "createEnvoyFilter returned an error")
-}
-
-func createEnvoyFilterMock(t *testing.T) *mocks.MockClient {
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: IstioNamespace, Name: IstioEnvoyFilter}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: IstioNamespace, Resource: "EnvoyFilter"}, IstioEnvoyFilter))
-
-	return mock
-}
-
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeInstall(log *zap.SugaredLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+func fakeInstall(log vzlog.VerrazzanoLogger, _ string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 	if len(overridesFiles) != 2 {
 		return []byte("error"), []byte(""), fmt.Errorf("incorrect number of override files: expected 2, received %v", len(overridesFiles))
 	}

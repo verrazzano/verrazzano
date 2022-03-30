@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
@@ -92,14 +92,25 @@ pipeline {
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
 
-         // used to emit metrics
-         PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
+        OLD_PODS_FILE="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-old-vpo-app-pods.out"
+        NEW_PODS_FILE="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-new-vpo-app-pods.out"
+        NEW_PODS_FILE2="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-new-vpo-app-pods-2.out"
+        APP_NAMEPACES="'todo-list bobs-books hello-helidon springboot sockshop'"
+
+        // used to emit metrics
+         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
+         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
          TEST_ENV_LABEL = "kind"
          K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
+
+         // used to generate Ginkgo test reports
+         TEST_REPORT = "test-report.xml"
+         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
+         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
     }
 
     stages {
-        stage('Clean workspace and checkout') {
+        stage('Clean Workspace and Checkout') {
             steps {
                 sh """
                     echo "${NODE_LABELS}"
@@ -152,21 +163,7 @@ pipeline {
                         }
                     }
                 }
-                script {
-                    try {
-                        sh """
-                            echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                        """
-                    } catch(error) {
-                        echo "OCR docker login failed, retrying after sleep"
-                        retry(4) {
-                            sleep(30)
-                            sh """
-                                echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                            """
-                        }
-                    }
-                }
+
                 sh """
                     rm -rf ${GO_REPO_PATH}/verrazzano
                     mkdir -p ${GO_REPO_PATH}/verrazzano
@@ -187,154 +184,241 @@ pipeline {
                 }
             }
         }
-
-        stage('Acceptance Tests') {
-            stages {
-                stage('Prepare AT environment') {
-                    environment {
-                        KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
-                        OCI_CLI_AUTH="instance_principal"
-                        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                        OCI_OS_BUCKET="verrazzano-builds"
-                        OCI_OS_LOCATION="${OCI_OS_LOCATION}"
-                        OPERATOR_YAML="${OPERATOR_YAML_FILE}"
-                        CLUSTER_DUMP_DIR="${WORKSPACE}/verrazzano/build/resources/pre-install-resources"
-                    }
-                    steps {
-                        sh """
-                            cd ${GO_REPO_PATH}/verrazzano
-                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_KIND_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
-                        """
-                    }
-                    post {
-                        always {
-                            sh """
-                                ## dump out install logs
-                                mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
-                                kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano --tail -1 > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install.log
-                                kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
-                                cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
-                                echo "Verrazzano Installation logs dumped to verrazzano-install.log"
-                                echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
-                                echo "------------------------------------------"
-                            """
-                            script {
-                                dumpVerrazzanoPlatformOperatorLogs("before-upgrade")
-                                VZ_TEST_METRIC = metricJobName('')
-                                metricTimerStart("${VZ_TEST_METRIC}")
-                            }
-                            archiveArtifacts artifacts: "**/logs/**,${env.INSTALL_CONFIG_FILE_KIND}", allowEmptyArchive: true
-                        }
-                    }
-                }
-                stage("upgrade-platform-operator") {
-                    environment {
-                        KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
-                        OCI_CLI_AUTH="instance_principal"
-                        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                        OCI_OS_BUCKET="verrazzano-builds"
-                    }
-                    steps {
-                        sh """
-                        echo "Upgrading the Verrazzano platform operator"
-                        # Download the operator.yaml for the target version that we are upgrading to
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
-                        cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/upgrade-test-operator.yaml
-                        kubectl apply -f ${WORKSPACE}/upgrade-test-operator.yaml
-
-                        # ensure operator pod is up
-                        kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-
-                        # need to sleep since the old operator needs to transition to terminating state
-                        sleep 45
+        stage('Install Release Version') {
+            environment {
+                KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
+                OCI_CLI_AUTH="instance_principal"
+                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                OCI_OS_BUCKET="verrazzano-builds"
+                OCI_OS_LOCATION="${OCI_OS_LOCATION}"
+                OPERATOR_YAML="${OPERATOR_YAML_FILE}"
+                CLUSTER_DUMP_DIR="${WORKSPACE}/verrazzano/build/resources/pre-install-resources"
+            }
+            steps {
+                sh """
+                    cd ${GO_REPO_PATH}/verrazzano
+                    ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_KIND_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
+                """
+            }
+            post {
+                always {
+                    sh """
+                        ## dump out install logs
+                        mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
+                        kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano --tail -1 > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install.log
+                        kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
+                        cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
+                        echo "Verrazzano Installation logs dumped to verrazzano-install.log"
+                        echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
+                        echo "------------------------------------------"
                     """
+                    script {
+                        dumpVerrazzanoPlatformOperatorLogs("before-upgrade")
+                        VZ_TEST_METRIC = metricJobName('')
+                        metricTimerStart("${VZ_TEST_METRIC}")
                     }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: "upgrade-test-operator.yaml", allowEmptyArchive: true
-                        }
-                    }
+                    archiveArtifacts artifacts: "**/logs/**,${env.INSTALL_CONFIG_FILE_KIND}", allowEmptyArchive: true
                 }
+            }
+        }
 
-                stage("upgrade-verrazzano") {
-                    steps {
-                        script {
-                            // Download the bom for the target version that we are upgrading to, then extract the version
-                            // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
-                            VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json | jq -r '.version'").trim()
-                        }
-                        sh """
-                            echo "Upgrading the Verrazzano installation to version" $VERRAZZANO_DEV_VERSION
-                            # Modify the version field in the verrazzano CR file to be this new verrazzano version
-                            cd ${GO_REPO_PATH}/verrazzano
-                            cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/verrazzano-upgrade-cr.yaml
-                            ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${WORKSPACE}/verrazzano-upgrade-cr.yaml
-                            # Copy upgrade CR where it will be archived
-                            cp ${WORKSPACE}/verrazzano-upgrade-cr.yaml ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
+        stage('Pre-upgrade Acceptance Tests') {
+            environment {
+                TEST_ENV = "KIND"
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+            }
 
-                            # Get the install job in verrazzano-install namespace
-                            kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out
-                              
-                            # Do the upgrade
-                            echo "Following is the verrazano CR file with the new version:"
-                            cat ${WORKSPACE}/verrazzano-upgrade-cr.yaml
-                            kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
-
-                            # wait for the upgrade to complete
-                            kubectl wait --timeout=10m --for=condition=UpgradeComplete verrazzano/my-verrazzano
-
-                            # Dump the resource to debug
-                            kubectl get -o yaml verrazzano/my-verrazzano || true
-
-                            # ideally we don't need to wait here
-                            sleep 15
-                            echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
-                            helm list -A
-                            
-                            # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
-                            kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
-                         
-                            echo "Ensuring that the install job(s) in verrazzzano-system are identical pre and post install"
-                            cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
-
-                        """
-                    }
-                    post {
-                        always {
-                            dumpVerrazzanoPlatformOperatorLogs("after-upgrade")
-                            archiveArtifacts artifacts: "verrazzano-upgrade-cr.yaml", allowEmptyArchive: true
-                        }
-                    }
-                }
-
-                stage("validateBOM") {
-                    when {
-                        allOf {
-                            expression{params.RUN_BOM_VALIDATOR == true}
-                        }
-                    }
-                    environment {
-                        OCI_CLI_AUTH="instance_principal"
-                        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                        OCI_OS_BUCKET="verrazzano-builds"
-                    }
-                    steps {
-                        sh """
-                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
-                            chmod +x ${WORKSPACE}/bom-validator
-                            ${WORKSPACE}/bom-validator
-                        """
-                    }
-                }
-
-                stage('Run Acceptance Tests') {
-                    environment {
-                        TEST_ENV = "KIND"
-                    }
+            stages {
+                stage('Run Acceptance Tests Before Upgrade') {
                     parallel {
-                        stage('verify-install') {
+                        stage('examples spring') {
                             steps {
-                                runGinkgoRandomize('verify-install')
+                                runGinkgoNamespace('examples/springboot', "false", "true", "springboot")
+                            }
+                        }
+                        stage('examples helidon') {
+                            steps {
+                                runGinkgoNamespace('examples/helidon', "false", "true", "hello-helidon")
+                            }
+                        }
+                        // Re-enable this stage when a mechanism is in place to deploy different comp and app yamls based on VZ version
+//                         stage('examples socks') {
+//                             steps {
+//                                 runGinkgoNamespace('examples/socks', "false", "true", "sockshop")
+//                             }
+//                         }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                        failure {
+                            script {
+                                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                                    dumpK8sCluster('pre-upgrade-tests-cluster-dump')
+                                }
+                            }
+                        }
+                        success {
+                            script {
+                                if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                                    dumpK8sCluster('install-success-cluster-dump')
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        stage("Upgrade Platform Operator") {
+            environment {
+                KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
+                OCI_CLI_AUTH="instance_principal"
+                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                OCI_OS_BUCKET="verrazzano-builds"
+            }
+            steps {
+                sh """
+                # dump the app pods before updating the VPO so they can be compared after the VPO is updated
+                echo "Application pods before VPO update:"
+                ${TEST_SCRIPTS_DIR}/dump_pods.sh ${APP_NAMEPACES} > ${OLD_PODS_FILE}
+                cat ${OLD_PODS_FILE}
+                echo "Upgrading the Verrazzano platform operator"
+                # Download the operator.yaml for the target version that we are upgrading to
+                oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/upgrade-test-operator.yaml
+                kubectl apply -f ${WORKSPACE}/upgrade-test-operator.yaml
+
+                # ensure operator pod is up
+                kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+
+                # need to sleep since the old operator needs to transition to terminating state
+                sleep 45
+            """
+
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: "upgrade-test-operator.yaml", allowEmptyArchive: true
+                }
+                failure {
+                    script {
+                        if (fileExists(env.TESTS_EXECUTED_FILE)) {
+                            dumpK8sCluster('post-upgrade-vpo-failure-cluster-dump')
+                        }
+                    }
+                }
+            }
+        }
+
+        stage("Upgrade Verrazzano") {
+            steps {
+                script {
+                    // Download the bom for the target version that we are upgrading to, then extract the version
+                    // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
+                    VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json | jq -r '.version'").trim()
+                }
+                sh """
+                    echo "Upgrading the Verrazzano installation to version" $VERRAZZANO_DEV_VERSION
+                    # Modify the version field in the Verrazzano CR file to be this new Verrazzano version
+                    cd ${GO_REPO_PATH}/verrazzano
+                    cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                    ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                    # Copy upgrade CR where it will be archived
+                    cp ${WORKSPACE}/verrazzano-upgrade-cr.yaml ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
+
+                    # Get the install job in verrazzano-install namespace
+                    kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out
+
+                    # Do the upgrade
+                    echo "Following is the verrazzano CR file with the new version:"
+                    cat ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                    kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+
+                    # wait for the upgrade to complete
+                    kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+
+                    # Dump the resource to debug
+                    kubectl get -o yaml verrazzano/my-verrazzano || true
+
+                    # ideally we don't need to wait here
+                    sleep 15
+                    echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
+                    helm list -A
+
+                    # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
+                    kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
+
+                    echo "Ensuring that the install job(s) in verrazzzano-system are identical pre and post install"
+                    cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
+
+                """
+            }
+            post {
+                always {
+                    dumpVerrazzanoPlatformOperatorLogs("after-upgrade")
+                    archiveArtifacts artifacts: "verrazzano-upgrade-cr.yaml", allowEmptyArchive: true
+                }
+                failure {
+                    script {
+                        if (fileExists(env.TESTS_EXECUTED_FILE)) {
+                            dumpK8sCluster('upgrade-failure-cluster-dump')
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Post-upgrade Acceptance Tests') {
+            environment {
+                TEST_ENV = "KIND"
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+            }
+
+            stages {
+                stage('verify-install') {
+                    steps {
+                        runGinkgoRandomize('verify-install')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                        failure {
+                            script {
+                                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                                    dumpK8sCluster('post-upgrade-install-cluster-dump')
+                                }
+                            }
+                        }
+                    }
+                }
+
+                stage('Run Acceptance Tests After Upgrade') {
+                    parallel {
+                        stage("Validate BOM") {
+                            when {
+                                allOf {
+                                    expression{params.RUN_BOM_VALIDATOR == true}
+                                }
+                            }
+                            environment {
+                                OCI_CLI_AUTH="instance_principal"
+                                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                                OCI_OS_BUCKET="verrazzano-builds"
+                            }
+                            steps {
+                                sh """
+                                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
+                                    chmod +x ${WORKSPACE}/bom-validator
+                                    ${WORKSPACE}/bom-validator
+                                """
                             }
                         }
                         stage('verify-infra restapi') {
@@ -352,24 +436,34 @@ pipeline {
                                 runGinkgoRandomize('verify-infra/vmi')
                             }
                         }
-                        stage('examples todo') {
+                        stage('verify-upgrade post-upgrade') {
                             steps {
-                                runGinkgo('examples/todo')
+                                runGinkgoRandomize('upgrade/post-upgrade/verify')
                             }
                         }
                         stage('examples socks') {
                             steps {
-                                runGinkgo('examples/socks')
+                                runGinkgoNamespace('examples/socks', "false", "false", "sockshop")
                             }
                         }
                         stage('examples spring') {
                             steps {
-                                runGinkgo('examples/springboot')
+                                runGinkgoNamespace('examples/springboot', "true", "false", "springboot")
                             }
                         }
                         stage('examples helidon') {
                             steps {
-                                runGinkgo('examples/helidon')
+                                runGinkgoNamespace('examples/helidon', "true", "false", "hello-helidon")
+                            }
+                        }
+                        stage('examples todo') {
+                            steps {
+                                runGinkgoNamespace('examples/todo', "false", "true", "todo-list")
+                            }
+                        }
+                        stage('examples bobs-books') {
+                            steps {
+                                runGinkgoNamespace('examples/bobsbooks', "false", "true", "bobs-books")
                             }
                         }
                     }
@@ -381,93 +475,86 @@ pipeline {
                         failure {
                             script {
                                 if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                                    dumpK8sCluster('upgrade-failure-cluster-dump')
+                                    dumpK8sCluster('post-upgrade-failure-cluster-dump')
                                 }
                             }
                         }
                         success {
                             script {
                                 if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                                    dumpK8sCluster('upgrade-success-cluster-dump')
+                                    dumpK8sCluster('post-upgrade-success-cluster-dump')
                                 }
                             }
-                        }
-                    }
-                }
-                stage('Uninstall') {
-                    steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            sh """
-                                kubectl delete verrazzano my-verrazzano
-                            """
-                        }
-                    }
-                    post {
-                        always {
-                            sh """
-                                ## dump out uninstall logs
-                                mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
-                                kubectl logs -n verrazzano-install --tail -1 --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall.log
-                                kubectl describe pod -n verrazzano-install --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall-job-pod.out
-                                echo "Listing all pods in all namespaces after uninstall"
-                                kubectl get pods --all-namespaces
-                                echo "-----------------------------------------------------"
-                            """
-                            listNamespacesAndPods('after Verrazzano uninstall')
-                            listHelmReleases('after Verrazzano uninstall')
-                        }
-                        success {
-                            script {
-                                if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                                    dumpK8sCluster('uninstall-success-cluster-dump')
-                                }
-                            }
-                        }
-                        failure {
-                            dumpK8sCluster('uninstall-failure-cluster-dump')
-                        }
-                    }
-                }
-                stage("Verify Uninstall") {
-                    steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            sh """
-                                ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/post-uninstall-resources false
-                                ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources
-                            """
-                        }
-                    }
-                    post {
-                        success {
-                            script {
-                                if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                                    dumpK8sCluster('verify-uninstall-success-cluster-dump')
-                                }
-                            }
-                        }
-                        failure {
-                            dumpK8sCluster('verify-uninstall-failed-cluster-dump')
                         }
                     }
                 }
             }
-
-            post {
-                failure {
-                    script {
-                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
-                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('upgrade-failed-cluster-dump')
-                        }
+        }
+        stage('Uninstall') {
+            options {
+                timeout(time: 30, unit: "MINUTES")
+            }
+            steps {
+                script {
+                    try {
+                        sh """
+                            kubectl delete verrazzano my-verrazzano
+                        """
+                    } catch (err) {
+                        currentBuild.result = "FAILURE"
+                        echo "Caught: ${err}"
+                        err 'Verrazzano uninstall failed'
                     }
+                }
+            }
+            post {
+                always {
+                    sh """
+                        ## dump out uninstall logs
+                        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
+                        kubectl logs -n verrazzano-install --tail -1 --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall.log
+                        kubectl describe pod -n verrazzano-install --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall-job-pod.out
+                        echo "Listing all pods in all namespaces after uninstall"
+                        kubectl get pods --all-namespaces
+                        echo "-----------------------------------------------------"
+                    """
+                    listNamespacesAndPods('after Verrazzano uninstall')
+                    listHelmReleases('after Verrazzano uninstall')
                 }
                 success {
                     script {
-                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
-                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('upgrade-success-cluster-dump')
+                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                            dumpK8sCluster('uninstall-success-cluster-dump')
                         }
                     }
+                }
+                failure {
+                    dumpK8sCluster('uninstall-failure-cluster-dump')
+                }
+                aborted {
+                    dumpK8sCluster('uninstall-aborted-cluster-dump')
+                }
+            }
+        }
+        stage("Verify Uninstall") {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    sh """
+                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/post-uninstall-resources false
+                        ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources
+                    """
+                }
+            }
+            post {
+                success {
+                    script {
+                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                            dumpK8sCluster('verify-uninstall-success-cluster-dump')
+                        }
+                    }
+                }
+                failure {
+                    dumpK8sCluster('verify-uninstall-failed-cluster-dump')
                 }
             }
         }
@@ -485,14 +572,21 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/build/resources/**,**/*-cluster-dump/**', allowEmptyArchive: true
-            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+
+            sh """
+                # Copy the generated test reports to WORKSPACE to archive them
+                mkdir -p ${TEST_REPORT_DIR}
+                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
+            """
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/build/resources/**,**/*-cluster-dump/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
             script {
                 if (params.EMIT_METRICS) {
-                    withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+                    withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
                         sh """
-                            ${GO_REPO_PATH}/verrazzano/ci/scripts/dashboard/emit_metrics.sh "${GO_REPO_PATH}/verrazzano/tests/e2e" "${SAURON_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
+                            ${GO_REPO_PATH}/verrazzano/ci/scripts/dashboard/emit_metrics.sh "${GO_REPO_PATH}/verrazzano/tests/e2e" "${PROMETHEUS_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
                         """
                     }
                 }
@@ -508,13 +602,15 @@ pipeline {
                 fi
             """
         }
-        failure {
-            mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
-                    subject: "Verrazzano: ${env.JOB_NAME} - Failed",
-                    body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
+        success {
             script {
-                if (env.BRANCH_NAME == "master") {
-                    pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
+                METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
+            }
+        }
+        failure {
+            script {
+                METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
+                if (env.BRANCH_NAME == "master" || env.BRANCH_NAME ==~ "release-*" || env.BRANCH_NAME ==~ "mark/*") {
                     slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                 }
             }
@@ -530,16 +626,25 @@ def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+            ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
 
-def runGinkgo(testSuitePath) {
+def runGinkgo(testSuitePath, skipDeploy, skipUndeploy) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy}
+        """
+    }
+}
+
+def runGinkgoNamespace(testSuitePath, skipDeploy, skipUndeploy, namespace) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --namespace=${namespace}
         """
     }
 }
@@ -659,8 +764,8 @@ def metricTimerEnd(metricName, status) {
         long y = env."${timerEndName}" as long;
         def dur = (y-x)
         labels = getMetricLabels()
-        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
             echo "emit prometheus metrics: $EMIT"
             return EMIT
         }
@@ -688,8 +793,8 @@ def metricBuildDuration() {
     if (params.EMIT_METRICS) {
         labels = getMetricLabels()
         labels = labels + ',result=\\"' + "${statusLabel}"+'\\"'
-        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
+        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }
@@ -737,5 +842,13 @@ def listHelmReleases(customMessage) {
         echo "Listing the releases across all namespaces ${customMessage}."
         helm list -A
         echo "-----------------------------------------------------"
+    """
+}
+
+def restartExampleApps() {
+    sh """
+        kubectl rollout restart deployment -n springboot
+
+        kubectl rollout restart deployment -n hello-helidon
     """
 }

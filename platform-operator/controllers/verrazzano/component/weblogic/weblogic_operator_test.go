@@ -1,16 +1,14 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package weblogic
 
 import (
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"go.uber.org/zap"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -22,9 +20,9 @@ import (
 //  WHEN I call with no extra kvs
 //  THEN the correct number of KeyValue objects are returned and no errors occur
 func Test_appendWeblogicOperatorOverrides(t *testing.T) {
-	kvs, err := AppendWeblogicOperatorOverrides(spi.NewContext(zap.S(), nil, nil, false), "weblogic-operator", "verrazzano-system", "", []bom.KeyValue{})
+	kvs, err := AppendWeblogicOperatorOverrides(spi.NewFakeContext(nil, nil, false), "weblogic-operator", "verrazzano-system", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 4)
+	assert.Len(t, kvs, 5)
 }
 
 // Test_appendWeblogicOperatorOverridesExtraKVs tests the AppendWeblogicOperatorOverrides fn
@@ -36,9 +34,9 @@ func Test_appendWeblogicOperatorOverridesExtraKVs(t *testing.T) {
 		{Key: "Key", Value: "Value"},
 	}
 	var err error
-	kvs, err = AppendWeblogicOperatorOverrides(spi.NewContext(zap.S(), nil, nil, false), "weblogic-operator", "verrazzano-system", "", kvs)
+	kvs, err = AppendWeblogicOperatorOverrides(spi.NewFakeContext(nil, nil, false), "weblogic-operator", "verrazzano-system", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 5)
+	assert.Len(t, kvs, 6)
 }
 
 // Test_weblogicOperatorPreInstall tests the WeblogicOperatorPreInstall fn
@@ -47,20 +45,20 @@ func Test_appendWeblogicOperatorOverridesExtraKVs(t *testing.T) {
 //  THEN no errors are returned
 func Test_weblogicOperatorPreInstall(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	err := WeblogicOperatorPreInstall(spi.NewContext(zap.S(), client, &vzapi.Verrazzano{}, false), "weblogic-operator", "verrazzano-system", "")
+	err := WeblogicOperatorPreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false), "weblogic-operator", "verrazzano-system", "")
 	assert.NoError(t, err)
 }
 
-// TestIsWeblogicOperatorReady tests the IsWeblogicOperatorReady function
-// GIVEN a call to IsWeblogicOperatorReady
+// TestIsWeblogicOperatorReady tests the isWeblogicOperatorReady function
+// GIVEN a call to isWeblogicOperatorReady
 //  WHEN the deployment object has enough replicas available
 //  THEN true is returned
 func TestIsWeblogicOperatorReady(t *testing.T) {
 
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      wlsOperatorDeploymentName,
+			Namespace: ComponentNamespace,
+			Name:      ComponentName,
 		},
 		Status: appsv1.DeploymentStatus{
 			Replicas:            1,
@@ -69,19 +67,19 @@ func TestIsWeblogicOperatorReady(t *testing.T) {
 			UnavailableReplicas: 0,
 		},
 	})
-	assert.True(t, IsWeblogicOperatorReady(spi.NewContext(zap.S(), fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
+	assert.True(t, isWeblogicOperatorReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
-// TestIsWeblogicOperatorNotReady tests the IsWeblogicOperatorReady function
-// GIVEN a call to IsWeblogicOperatorReady
+// TestIsWeblogicOperatorNotReady tests the isWeblogicOperatorReady function
+// GIVEN a call to isWeblogicOperatorReady
 //  WHEN the deployment object does NOT have enough replicas available
 //  THEN false is returned
 func TestIsWeblogicOperatorNotReady(t *testing.T) {
 
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      wlsOperatorDeploymentName,
+			Namespace: ComponentNamespace,
+			Name:      ComponentName,
 		},
 		Status: appsv1.DeploymentStatus{
 			Replicas:            1,
@@ -90,5 +88,5 @@ func TestIsWeblogicOperatorNotReady(t *testing.T) {
 			UnavailableReplicas: 1,
 		},
 	})
-	assert.False(t, IsWeblogicOperatorReady(spi.NewContext(zap.S(), fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
+	assert.False(t, isWeblogicOperatorReady(spi.NewFakeContext(fakeClient, nil, false)))
 }

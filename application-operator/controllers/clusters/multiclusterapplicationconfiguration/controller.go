@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package multiclusterapplicationconfiguration
@@ -6,8 +6,11 @@ package multiclusterapplicationconfiguration
 import (
 	"context"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	"github.com/go-logr/logr"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
+	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -24,32 +27,65 @@ import (
 // failure of the changes to the embedded resource
 type Reconciler struct {
 	client.Client
-	Log          logr.Logger
+	Log          *zap.SugaredLogger
 	Scheme       *runtime.Scheme
 	AgentChannel chan clusters.StatusUpdateMessage
 }
 
-const finalizerName = "multiclusterapplicationconfiguration.verrazzano.io"
+const (
+	finalizerName  = "multiclusterapplicationconfiguration.verrazzano.io"
+	controllerName = "multiclusterappconfiguration"
+)
 
 // Reconcile reconciles a MultiClusterApplicationConfiguration resource. It fetches the embedded OAM
 // app config, mutates it based on the MultiClusterApplicationConfiguration, and updates the status
 // of the MultiClusterApplicationConfiguration to reflect the success or failure of the changes to
 // the embedded resource
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	logger := r.Log.WithValues("multiclusterapplicationconfiguration", req.NamespacedName)
-	var mcAppConfig clustersv1alpha1.MultiClusterApplicationConfiguration
-	result := reconcile.Result{}
-	ctx := context.Background()
-	err := r.fetchMultiClusterAppConfig(ctx, req.NamespacedName, &mcAppConfig)
-	if err != nil {
-		return result, clusters.IgnoreNotFoundWithLog("MultiClusterApplicationConfiguration", err, logger)
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == constants.KubeSystem {
+		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
+		log.Infof("Multi-cluster application configuration resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
+		return reconcile.Result{}, nil
 	}
 
+	ctx := context.Background()
+	var mcAppConfig clustersv1alpha1.MultiClusterApplicationConfiguration
+	err := r.fetchMultiClusterAppConfig(ctx, req.NamespacedName, &mcAppConfig)
+	if err != nil {
+		return clusters.IgnoreNotFoundWithLog(err, zap.S())
+	}
+	log, err := clusters.GetResourceLogger("mcapplicationconfiguration", req.NamespacedName, &mcAppConfig)
+	if err != nil {
+		zap.S().Errorf("Failed to create controller logger for multi-cluster application configuration resource: %v", err)
+		return clusters.NewRequeueWithDelay(), nil
+	}
+	log.Oncef("Reconciling multi-cluster application configuration resource %v, generation %v", req.NamespacedName, mcAppConfig.Generation)
+
+	res, err := r.doReconcile(ctx, mcAppConfig, log)
+	if clusters.ShouldRequeue(res) {
+		return res, nil
+	}
+	// Never return an error since it has already been logged and we don't want the
+	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
+	if err != nil {
+		return clusters.NewRequeueWithDelay(), nil
+	}
+	log.Oncef("Finished reconciling multi-cluster application configuration %v", req.NamespacedName)
+
+	return ctrl.Result{}, nil
+}
+
+// doReconcile performs the reconciliation operations for the MC application configuration
+func (r *Reconciler) doReconcile(ctx context.Context, mcAppConfig clustersv1alpha1.MultiClusterApplicationConfiguration, log vzlog2.VerrazzanoLogger) (ctrl.Result, error) {
 	if !mcAppConfig.ObjectMeta.DeletionTimestamp.IsZero() {
 		// delete the wrapped resource since MC is being deleted
-		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcAppConfig, finalizerName, &v1alpha2.ApplicationConfiguration{}, types.NamespacedName{Namespace: mcAppConfig.Namespace, Name: mcAppConfig.Name})
+		err := clusters.DeleteAssociatedResource(ctx, r.Client, &mcAppConfig, finalizerName, &v1alpha2.ApplicationConfiguration{}, types.NamespacedName{Namespace: mcAppConfig.Namespace, Name: mcAppConfig.Name})
 		if err != nil {
-			logger.Error(err, "Failed to delete associated app config and finalizer")
+			log.Errorf("Failed to delete associated app config and finalizer: %v", err)
 		}
 		return reconcile.Result{}, err
 	}
@@ -60,17 +96,17 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			// This must be done whether the resource is placed in this cluster or not, because we
 			// could be in an admin cluster and receive cluster level statuses from managed clusters,
 			// which can change our effective state
-			err = r.Status().Update(ctx, &mcAppConfig)
+			err := r.Status().Update(ctx, &mcAppConfig)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
 		}
 		// if this mc app config is no longer placed on this cluster, remove the associated app config
-		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcAppConfig, finalizerName, &v1alpha2.ApplicationConfiguration{}, types.NamespacedName{Namespace: mcAppConfig.Namespace, Name: mcAppConfig.Name})
+		err := clusters.DeleteAssociatedResource(ctx, r.Client, &mcAppConfig, finalizerName, &v1alpha2.ApplicationConfiguration{}, types.NamespacedName{Namespace: mcAppConfig.Namespace, Name: mcAppConfig.Name})
 		return ctrl.Result{}, err
 	}
 
-	logger.Info("MultiClusterApplicationConfiguration create or update with underlying OAM applicationconfiguration",
+	log.Debug("MultiClusterApplicationConfiguration create or update with underlying OAM applicationconfiguration",
 		"applicationconfiguration", mcAppConfig.Spec.Template.Metadata.Name,
 		"placement", mcAppConfig.Spec.Placement.Clusters[0].Name)
 	opResult, err := r.createOrUpdateAppConfig(ctx, mcAppConfig)

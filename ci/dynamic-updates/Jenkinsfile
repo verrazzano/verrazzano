@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
@@ -42,7 +42,7 @@ pipeline {
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to include the slow tests in the acceptance tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
         string (name: 'CONSOLE_REPO_BRANCH',
-                defaultValue: 'master',
+                defaultValue: '',
                 description: 'The branch to check out after cloning the console repository.',
                 trim: true)
         booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
@@ -108,9 +108,15 @@ pipeline {
         OCI_OS_BUCKET="verrazzano-builds"
 
         // used to emit metrics
-        PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
+        PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
+        PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "kind"
         K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
+
+        // used to generate Ginkgo test reports
+        TEST_REPORT = "test-report.xml"
+        GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
+        TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
     }
 
     stages {
@@ -167,21 +173,6 @@ pipeline {
                         }
                     }
                 }
-                script {
-                    try {
-                        sh """
-                            echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                        """
-                    } catch(error) {
-                        echo "OCR docker login failed, retrying after sleep"
-                        retry(4) {
-                            sleep(30)
-                            sh """
-                                echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                            """
-                        }
-                    }
-	            }
                 sh """
                     rm -rf ${GO_REPO_PATH}/verrazzano
                     mkdir -p ${GO_REPO_PATH}/verrazzano
@@ -202,6 +193,12 @@ pipeline {
         }
 
         stage('Acceptance Tests') {
+            environment {
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+            }
+
             stages {
                 stage('Prepare AT environment') {
                     environment {
@@ -216,6 +213,21 @@ pipeline {
                             cd ${GO_REPO_PATH}/verrazzano
                             yq -i eval '.spec.components.weblogicOperator.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.coherenceOperator.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.kiali.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.rancher.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.certManager.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.ingress.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.istio.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.keycloak.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.applicationOperator.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.oam.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.fluentd.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.elasticsearch.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.kibana.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.prometheus.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.grafana.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.console.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.verrazzano.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
                         """
                     }
@@ -245,7 +257,7 @@ pipeline {
                                 VZ_TEST_METRIC = metricJobName('')
                                 metricTimerStart("${VZ_TEST_METRIC}")
                             }
-                            // enable debug logging of verrazzano api istio proxy
+                            // enable debug logging of Verrazzano api istio proxy
                             script {
                                 if (params.ENABLE_API_ENVOY_LOGGING) {
                                     sh '''
@@ -268,10 +280,43 @@ pipeline {
                     }
                 }
 
-                stage('Post-Install Verify') {
+                // Update1 enables disabled components except WLS/COH
+                stage('Verrazzano Update1') {
+                    steps {
+                        sh """
+                            cd ${GO_REPO_PATH}/verrazzano
+                            cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.kiali.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.rancher.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.certManager.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.ingress.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.istio.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.keycloak.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.applicationOperator.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.oam.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.fluentd.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.elasticsearch.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.kibana.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.prometheus.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.grafana.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.console.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.verrazzano.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            kubectl apply -f ${WORKSPACE}/vz-update1.yaml
+                            ${TEST_SCRIPTS_DIR}/wait-for-component-ready.sh
+                        """
+                    }
+                    post {
+                        always {
+                            dumpVerrazzanoPlatformOperatorLogs("verrazzano-update1")
+                            archiveArtifacts artifacts: "vz-update1.yaml,**/logs/**", allowEmptyArchive: true
+                        }
+                    }
+                }
+
+                stage('Post-Update1 Verify Tests') {
                     environment {
                         TEST_ENV = "KIND"
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-install-verify-infra"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update1-verify-infra"
                     }
                     steps {
                         runGinkgoRandomize('verify-install')
@@ -284,14 +329,14 @@ pipeline {
                     }
                 }
 
-                stage('Post-Install Infra Tests') {
+                stage('Post-Update1 Infra Tests') {
                     environment {
                         TEST_ENV = "KIND"
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-install-infra-tests"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update1-infra-tests"
                     }
                     steps {
                         script {
-                            parallel generateVerifyInfraStages("${TEST_DUMP_ROOT}/post-install-infra-tests")
+                            parallel generateVerifyInfraStages("${TEST_DUMP_ROOT}/post-update1-infra-tests")
                         }
                     }
                     post {
@@ -302,15 +347,15 @@ pipeline {
                     }
                 }
 
-                stage('Post-Install Acceptance Tests') {
+                stage('Post-Update1 Acceptance Tests') {
                     environment {
                         TEST_ENV = "KIND"
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-install-infra-tests"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update1-infra-tests"
                     }
                     steps {
                         script {
                             // Run all but the WLS tests
-                            parallel generateNonWLSAcceptanceTestStages("${TEST_DUMP_ROOT}/post-install-acceptance-tests")
+                            parallel generateNonWLSAcceptanceTestStages("${TEST_DUMP_ROOT}/post-update1-acceptance-tests")
                         }
                     }
                     post {
@@ -321,29 +366,30 @@ pipeline {
                     }
                 }
 
-                stage('Update Verrazzano') {
+                // Update2 enables COH/WLS operators
+                stage('Verrazzano Update2') {
                     steps {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
-                            cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/vz-update.yaml
-                            yq -i eval '.spec.components.weblogicOperator.enabled = true' ${WORKSPACE}/vz-update.yaml
-                            yq -i eval '.spec.components.coherenceOperator.enabled = true' ${WORKSPACE}/vz-update.yaml
-                            kubectl apply -f ${WORKSPACE}/vz-update.yaml
+                            cp ${WORKSPACE}/vz-update1.yaml ${WORKSPACE}/vz-update2.yaml
+                            yq -i eval '.spec.components.weblogicOperator.enabled = true' ${WORKSPACE}/vz-update2.yaml
+                            yq -i eval '.spec.components.coherenceOperator.enabled = true' ${WORKSPACE}/vz-update2.yaml
+                            kubectl apply -f ${WORKSPACE}/vz-update2.yaml
                             ${TEST_SCRIPTS_DIR}/wait-for-component-ready.sh
                         """
                     }
                     post {
                         always {
                             dumpVerrazzanoPlatformOperatorLogs("update-verrazzano")
-                            archiveArtifacts artifacts: "vz-update.yaml,**/logs/**", allowEmptyArchive: true
+                            archiveArtifacts artifacts: "vz-update2.yaml,**/logs/**", allowEmptyArchive: true
                         }
                     }
                 }
 
-                stage('Post-update Tests') {
+                stage('Post-update2 Verify Tests') {
                     environment {
                         TEST_ENV = "KIND"
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update-verify-install"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update2-verify-install"
                     }
                     steps {
                         runGinkgoRandomize('verify-install')
@@ -356,14 +402,14 @@ pipeline {
                     }
                 }
 
-                stage('Post-Update Infra Tests') {
+                stage('Post-Update2 Infra Tests') {
                     environment {
                         TEST_ENV = "KIND"
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update-infra-tests"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update2-infra-tests"
                     }
                     steps {
                         script {
-                            parallel generateVerifyInfraStages("${TEST_DUMP_ROOT}/post-install-infra-tests")
+                            parallel generateVerifyInfraStages("${TEST_DUMP_ROOT}/post-update2-infra-tests")
                         }
                     }
                     post {
@@ -374,7 +420,7 @@ pipeline {
                     }
                 }
 
-                stage('Post-update Acceptance Tests') {
+                stage('Post-update2 Acceptance Tests') {
                     environment {
                         TEST_ENV = "KIND"
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-update"
@@ -382,7 +428,7 @@ pipeline {
                     steps {
                         // Run all acceptance tests
                         script {
-                            parallel generateAllAcceptanceTestStages("${TEST_DUMP_ROOT}/post-install-acceptance-tests")
+                            parallel generateAllAcceptanceTestStages("${TEST_DUMP_ROOT}/post-update2-acceptance-tests")
                         }
                     }
                     post {
@@ -428,13 +474,19 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/Screenshot*.png', allowEmptyArchive: true
-            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+            sh """
+                # Copy the generated test reports to WORKSPACE to archive them
+                mkdir -p ${TEST_REPORT_DIR}
+                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
+            """
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/Screenshot*.png,**/${TEST_REPORT}", allowEmptyArchive: true
+            junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
-                    withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+                    withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
                         sh """
-                            ${GO_REPO_PATH}/verrazzano/ci/scripts/dashboard/emit_metrics.sh "${GO_REPO_PATH}/verrazzano/tests/e2e" "${SAURON_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
+                            ${GO_REPO_PATH}/verrazzano/ci/scripts/dashboard/emit_metrics.sh "${GO_REPO_PATH}/verrazzano/tests/e2e" "${PROMETHEUS_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
                         """
                     }
                 }
@@ -451,11 +503,8 @@ pipeline {
                 oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip
                 rm archive.zip
             """
-            mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
-            subject: "Verrazzano: ${env.JOB_NAME} - Failed",
-            body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
             script {
-                if (env.BRANCH_NAME == "master") {
+                if (env.BRANCH_NAME == "master" || env.BRANCH_NAME ==~ "release-.*" || env.BRANCH_NAME ==~ "mark/*") {
                     slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                 }
             }
@@ -470,7 +519,7 @@ pipeline {
 def generateVerifyInfraStages(dumpRoot) {
     return [
         "verify-scripts": {
-            runGinkgo('scripts')
+            runGinkgo('scripts', '', "${KUBECONFIG}")
         },
         "verify-infra restapi": {
             runGinkgoRandomize('verify-infra/restapi', "${dumpRoot}/verify-infra-restapi")
@@ -521,9 +570,6 @@ def generate_nonwls_tests(dumpRoot) {
         "examples logging helidon": {
             runGinkgo('logging/helidon', "${dumpRoot}/examples-logging-helidon")
         },
-        "examples socks": {
-            runGinkgo('examples/socks', "${dumpRoot}/examples-socks")
-        },
         "examples spring": {
             runGinkgo('examples/springboot', "${dumpRoot}/examples-spring")
         },
@@ -545,6 +591,10 @@ def generate_wls_tests(dumpRoot) {
                 echo "Slow tests disabled, skipping Bob's Books tests"
             }
         },
+        "examples socks": {
+            // socks uses COH
+            runGinkgo('examples/socks', "${dumpRoot}/examples-socks")
+        },
         "examples todo": {
             runGinkgo('examples/todo', "${dumpRoot}/examples-todo")
         },
@@ -562,19 +612,22 @@ def runGinkgoRandomize(testSuitePath, dumpDir = '') {
                 export DUMP_DIRECTORY=${dumpDir}
             fi
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+            ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
 
-def runGinkgo(testSuitePath, dumpDir = '') {
+def runGinkgo(testSuitePath, dumpDir = '', kubeConfig = '') {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             if [ ! -z "${dumpDir}" ]; then
                 export DUMP_DIRECTORY=${dumpDir}
             fi
+            if [ ! -z "${kubeConfig}" ]; then
+                export KUBECONFIG="${kubeConfig}"
+            fi
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
@@ -673,19 +726,7 @@ def getEffectiveDumpOnSuccess() {
 // Called in parallel Stage console of Stage Run Acceptance Tests
 def acceptanceTestsConsole(dumpRoot) {
     try {
-        sh """
-            # Temporarily clone the console repo until it is moved to the verrazzano repo
-            export DUMP_DIRECTORY=${dumpRoot}/console
-            cd ${GO_REPO_PATH}
-            if [ ! -d console ]; then
-                git clone https://${DOCKER_CREDS_USR}:${DOCKER_CREDS_PSW}@github.com/verrazzano/console.git
-            fi
-            cd console
-            git checkout ${params.CONSOLE_REPO_BRANCH}
-            git pull origin ${params.CONSOLE_REPO_BRANCH}
-            # Run the tests
-            make run-ui-tests
-        """
+        sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
     } catch (err) {
         saveConsoleScreenShots()
         error "${err}"
@@ -749,8 +790,8 @@ def metricTimerEnd(metricName, status) {
         long y = env."${timerEndName}" as long;
         def dur = (y-x)
         labels = getMetricLabels()
-        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
             echo "emit prometheus metrics: $EMIT"
             return EMIT
         }
@@ -778,8 +819,8 @@ def metricBuildDuration() {
     if (params.EMIT_METRICS) {
         labels = getMetricLabels()
         labels = labels + ',result=\\"' + "${statusLabel}"+'\\"'
-        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
+        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }

@@ -1,37 +1,21 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-// +build unstable_test
-
-package installscript_test
+package install
 
 import (
-	"bufio"
+	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"os"
-	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-)
-
-const (
-	installComplete           = "Installation Complete."
-	verrazzanoSystemNamespace = "verrazzano-system"
-	rancherNamespace          = "cattle-system"
-	keycloakNamespace         = "keycloak"
-	grafanaIngress            = "vmi-system-grafana"
-	prometheusIngress         = "vmi-system-prometheus"
-	elasticsearchIngress      = "vmi-system-es-ingest"
-	kibanaIngress             = "vmi-system-kibana"
-	verrazzanoIngress         = "verrazzano-ingress"
-	keycloakIngress           = "keycloak"
-	rancherIngress            = "rancher"
-	noOfLinesToRead           = 20
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -39,166 +23,136 @@ const (
 	pollingInterval = 5 * time.Second
 )
 
-var installLogDir = os.Getenv("VERRAZZANO_INSTALL_LOGS_DIR")
-var installLog = os.Getenv("VERRAZZANO_INSTALL_LOG")
-
 var kubeConfigFromEnv = os.Getenv("KUBECONFIG")
-var totalClusters, present = os.LookupEnv("CLUSTER_COUNT")
 
-var _ = BeforeSuite(func() {
-	if len(installLogDir) < 1 {
-		Fail("Specify the directory containing the install logs using environment variable VERRAZZANO_INSTALL_LOGS_DIR")
-	}
-	if len(installLog) < 1 {
-		Fail("Specify the install log file using environment variable VERRAZZANO_INSTALL_LOG")
-	}
-})
+var t = framework.NewTestFramework("install")
 
-// This test checks that the console output at the end of an install does not show a
-// user URL's that do not exist for that installation platform.  For example, a managed
-// cluster install would not have console URLs.
-var _ = Describe("Verify Verrazzano install scripts", func() {
+var _ = t.BeforeSuite(func() {})
+var _ = t.AfterSuite(func() {})
+var _ = t.AfterEach(func() {})
 
-	Context("Verify Console URLs in the install log", func() {
-		clusterCount, _ := strconv.Atoi(totalClusters)
-		if present && clusterCount > 0 {
-			It("Verify the expected console URLs are there in the install logs for the managed cluster(s)", func() {
-				// Validation for admin cluster
-				Eventually(func() bool {
-					return validateConsoleUrlsCluster(kubeConfigFromEnv, "cluster-1")
-				}, waitTimeout, pollingInterval).Should(BeTrue())
+// This test checks that the Verrazzano install resource has the expected console URLs.
+var _ = t.Describe("Verify Verrazzano install scripts.", Label("f:platform-lcm.install"), func() {
 
-				// Validation for managed clusters
-				for i := 2; i <= clusterCount; i++ {
-					installLogForCluster := filepath.FromSlash(installLogDir + "/cluster-" + strconv.Itoa(i) + "/" + installLog)
-					consoleUrls, err := getConsoleURLsFromLog(installLogForCluster)
-					Expect(err).ShouldNot(HaveOccurred(), "There is an error getting console URLs from the log file")
-
-					// By default, install logs of the managed clusters do not contain the console URLs
-					Expect(consoleUrls).To(BeEmpty())
-				}
-			})
-		} else {
-			It("Verify the expected console URLs are there in the install log", func() {
-				Eventually(func() bool {
-					return validateConsoleUrlsCluster(kubeConfigFromEnv, "")
-				}, waitTimeout, pollingInterval).Should(BeTrue())
-			})
-		}
+	t.Context("Check", Label("f:ui.console"), func() {
+		t.It("the expected Console URLs are there in the installed Verrazzano resource", func() {
+			// Validation for passed in cluster
+			Eventually(func() bool {
+				return validateConsoleUrlsCluster(kubeConfigFromEnv)
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
 	})
 })
 
 // Validate the console URLs for the admin cluster and single cluster installation
-func validateConsoleUrlsCluster(kubeconfig string, clusterPrefix string) bool {
-	consoleUrls, err := getConsoleURLsFromLog(filepath.FromSlash(installLogDir + "/" + clusterPrefix + "/" + installLog))
+func validateConsoleUrlsCluster(kubeconfig string) bool {
+	consoleUrls, err := getConsoleURLsFromResource(kubeconfig)
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("There is an error getting console URLs from the log file - %v", err))
+		pkg.Log(pkg.Error, fmt.Sprintf("There is an error getting console URLs from the installed Verrazzano resource - %v", err))
 		return false
 	}
 	expectedConsoleUrls, err := getExpectedConsoleURLs(kubeconfig)
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("There is an error getting console URLs from the API server - %v", err))
+		pkg.Log(pkg.Error, fmt.Sprintf("There is an error getting console URLs from ingress resources - %v", err))
 		return false
 	}
+	pkg.Log(pkg.Info, fmt.Sprintf("Expected URLs based on ingresses: %v", expectedConsoleUrls))
+	pkg.Log(pkg.Info, fmt.Sprintf("Actual URLs in Verrazzano resource: %v", consoleUrls))
 
 	return pkg.SlicesContainSameStrings(consoleUrls, expectedConsoleUrls)
 }
 
-// Get the list of console URLs from the install log, after the line containing "Installation Complete."
-func getConsoleURLsFromLog(installLog string) ([]string, error) {
+// Get the list of console URLs from the status block of the installed Verrazzano resource
+func getConsoleURLsFromResource(kubeconfig string) ([]string, error) {
 	var consoleUrls []string
-	if _, err := os.Stat(installLog); err != nil {
-		if os.IsNotExist(err) {
-			pkg.Log(pkg.Error, "The value set for installLog doesn't exist.")
-		}
-		return consoleUrls, err
-	}
-	inFile, err := os.Open(installLog)
-
+	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfig)
 	if err != nil {
 		return consoleUrls, err
 	}
-	defer inFile.Close()
-	rdr := bufio.NewReader(inFile)
-	scanner := bufio.NewScanner(rdr)
-	var line, startLine, endLine int
 
-	for scanner.Scan() {
-		line++
-		currentLine := scanner.Text()
-		if currentLine == installComplete {
-			startLine = line
-			endLine = startLine + noOfLinesToRead
-			for scanner.Scan() {
-				startLine++
-				innerString := scanner.Text()
-				if strings.Contains(innerString, "- https://") {
-					consoleUrls = append(consoleUrls, innerString)
-				}
-				if startLine == endLine {
-					break
-				}
-			}
-			break
-		}
+	if vz.Status.VerrazzanoInstance.ConsoleURL != nil {
+		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.ConsoleURL)
 	}
+	if vz.Status.VerrazzanoInstance.GrafanaURL != nil {
+		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.GrafanaURL)
+	}
+	if vz.Status.VerrazzanoInstance.ElasticURL != nil {
+		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.ElasticURL)
+	}
+	if vz.Status.VerrazzanoInstance.KeyCloakURL != nil {
+		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.KeyCloakURL)
+	}
+	if vz.Status.VerrazzanoInstance.KibanaURL != nil {
+		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.KibanaURL)
+	}
+	if vz.Status.VerrazzanoInstance.KialiURL != nil {
+		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.KialiURL)
+	}
+	if vz.Status.VerrazzanoInstance.PrometheusURL != nil {
+		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.PrometheusURL)
+	}
+	if vz.Status.VerrazzanoInstance.RancherURL != nil {
+		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.RancherURL)
+	}
+
 	return consoleUrls, nil
 }
 
-// Get the expected console URLs in the install log for the given cluster
+// Get the expected console URLs for the given cluster from the ingress resources
 func getExpectedConsoleURLs(kubeConfig string) ([]string, error) {
-	api, err := pkg.GetAPIEndpoint(kubeConfig)
-	if api == nil {
-		return nil, err
-	}
-	ingress, err := api.GetIngress(keycloakNamespace, keycloakIngress)
+	var expectedUrls []string
+	clientset, err := pkg.GetKubernetesClientsetForCluster(kubeConfig)
 	if err != nil {
-		return nil, err
+		return expectedUrls, err
 	}
-	keycloakURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
-	ingress, err = api.GetIngress(rancherNamespace, rancherIngress)
+	ingresses, err := clientset.NetworkingV1().Ingresses("").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		return nil, err
-	}
-	rancherURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
-	grafanaURL, err := getComponentURL(api, grafanaIngress)
-	if err != nil {
-		return nil, err
-	}
-	prometheusURL, err := getComponentURL(api, prometheusIngress)
-	if err != nil {
-		return nil, err
-	}
-	kibanaURL, err := getComponentURL(api, kibanaIngress)
-	if err != nil {
-		return nil, err
-	}
-	elasticsearchURL, err := getComponentURL(api, elasticsearchIngress)
-	if err != nil {
-		return nil, err
-	}
-	consoleURL, err := getComponentURL(api, verrazzanoIngress)
-	if err != nil {
-		return nil, err
+		return expectedUrls, err
 	}
 
-	// Expected console URLs in the order in which they appear in the install log
-	var expectedUrls = []string{
-		"Grafana - " + grafanaURL,
-		"Prometheus - " + prometheusURL,
-		"Kibana - " + kibanaURL,
-		"Elasticsearch - " + elasticsearchURL,
-		"Verrazzano Console - " + consoleURL,
-		"Rancher - " + rancherURL,
-		"Keycloak - " + keycloakURL}
+	consoleURLExpected, err := isConsoleURLExpected(kubeConfig)
+	if err != nil {
+		return expectedUrls, err
+	}
+
+	for _, ingress := range ingresses.Items {
+		ingressHost := ingress.Spec.Rules[0].Host
+		// If it's not the console ingress, or it is and the console is enabled, add it to the expected set of URLs
+		if !isConsoleIngressHost(ingressHost) || consoleURLExpected {
+			expectedUrls = append(expectedUrls, fmt.Sprintf("https://%s", ingressHost))
+		}
+	}
+
 	return expectedUrls, nil
 }
 
-func getComponentURL(api *pkg.APIEndpoint, ingressName string) (string, error) {
-	ingress, err := api.GetIngress(verrazzanoSystemNamespace, ingressName)
+// isConsoleIngressHost - Returns true if the given ingress host is the one for the VZ UI console
+func isConsoleIngressHost(ingressHost string) bool {
+	return strings.HasPrefix(ingressHost, "verrazzano.")
+}
+
+// isConsoleURLExpected - Returns true in VZ < 1.1.1. For VZ >= 1.1.1, returns false only if explicitly disabled
+// in the CR or when managed cluster profile is used
+func isConsoleURLExpected(kubeconfigPath string) (bool, error) {
+	isAtleastVz111, err := pkg.IsVerrazzanoMinVersion("1.1.1")
 	if err != nil {
-		return "", err
+		return false, err
 	}
-	vmiComponentURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
-	return vmiComponentURL, nil
+	// Pre 1.1.1, the console URL was always present irrespective of whether console is enabled
+	// This behavior changed in VZ 1.1.1
+	if !isAtleastVz111 {
+		return true, nil
+	}
+
+	// In 1.1.1 and later, the console URL will only be present in the VZ status instance info if the console is enabled
+	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		return false, err
+	}
+	// Return the value of the Console enabled flag if present
+	if vz != nil && vz.Spec.Components.Console != nil && vz.Spec.Components.Console.Enabled != nil {
+		return *vz.Spec.Components.Console.Enabled, nil
+	}
+	// otherwise, expect console to be enabled for all profiles but managed-cluster
+	return vz.Spec.Profile != vzapi.ManagedCluster, nil
 }

@@ -1,9 +1,9 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package clusters
 
-// CaCrtKey is the CA cert key in the system-tls secret
+// CaCrtKey is the CA cert key in the tls secret
 const CaCrtKey = "ca.crt"
 
 // ESCaBundleKey is the ES CA cert key in the registration secret
@@ -27,10 +27,10 @@ const RegistrationPasswordKey = "password"
 // RegistrationUsernameKey is the username key in registration secret
 const RegistrationUsernameKey = "username"
 
-// VerrazzanoPasswordKey is the password key in verrazzano secret
+// VerrazzanoPasswordKey is the password key in Verrazzano secret
 const VerrazzanoPasswordKey = "password"
 
-// VerrazzanoUsernameKey is the username key in verrazzano secret
+// VerrazzanoUsernameKey is the username key in Verrazzano secret
 const VerrazzanoUsernameKey = "username"
 
 // TokenKey is the key for the service account token

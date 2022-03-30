@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -68,7 +68,12 @@ helm upgrade --install myv8o ${CHART_LOCATION}/verrazzano-platform-operator \
 # Create docker secret for platform operator image
 ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${REGISTRY}" "${PRIVATE_REGISTRY_USR}" "${PRIVATE_REGISTRY_PSW}" verrazzano-install
 
-# Configure the custom resource to install verrazzano on Kind
+# optionally create a cluster dump snapshot for verifying uninstalls
+if [ -n "${CLUSTER_DUMP_DIR}" ]; then
+  ./tests/e2e/config/scripts/looping-test/dump_cluster.sh ${CLUSTER_DUMP_DIR}
+fi
+
+# Configure the custom resource to install Verrazzano on Kind
 ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}
 
 echo "Wait for Operator to be ready"
@@ -85,12 +90,12 @@ until kubectl apply -f ${INSTALL_CONFIG_FILE_KIND}; do
   install_retries=$((install_retries+1))
   sleep 6
   if [ $install_retries -ge 10 ] ; then
-    echo "Installation Failed trying to apply the Verazzano CR YAML"
+    echo "Installation Failed trying to apply the Verrazzano CR YAML"
     exit 1
   fi
 done
 
-${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/debug-new-kind-acceptance-tests-cluster-dump -r ${WORKSPACE}/debug-new-kind-acceptance-tests-cluster-dump/analysis.report
+${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/post-vz-install-cluster-dump -r ${WORKSPACE}/post-vz-install-cluster-dump/analysis.report
 
 # wait for Verrazzano install to complete
 ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh

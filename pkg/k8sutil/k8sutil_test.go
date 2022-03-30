@@ -1,9 +1,12 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package k8sutil_test
 
 import (
 	"fmt"
+	spdyfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"testing"
 
@@ -281,4 +284,23 @@ func TestGetHostnameFromGatewayGatewaysForAppConfigExists(t *testing.T) {
 	// Reset env variables
 	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
 	asserts.NoError(err)
+}
+
+// TestExecPod tests running a command on a remote pod
+// GIVEN a pod in a cluster and a command to run on that pod
+//  WHEN ExecPod is called
+//  THEN ExecPod return the stdout, stderr, and a nil error
+func TestExecPod(t *testing.T) {
+	k8sutil.NewPodExecutor = spdyfake.NewPodExecutor
+	spdyfake.PodSTDOUT = "foobar"
+	cfg, client := spdyfake.NewClientsetConfig()
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "ns",
+			Name:      "name",
+		},
+	}
+	stdout, _, err := k8sutil.ExecPod(client, cfg, pod, "container", []string{"run", "some", "command"})
+	assert.Nil(t, err)
+	assert.Equal(t, spdyfake.PodSTDOUT, stdout)
 }

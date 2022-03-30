@@ -1,18 +1,19 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package spi
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ComponentContext Defines the context objects required for Component operations
 type ComponentContext interface {
 	// Log returns the logger for the context
-	Log() *zap.SugaredLogger
+	Log() vzlog.VerrazzanoLogger
 	// GetClient returns the controller client for the context
 	Client() clipkg.Client
 	// ActualCR returns the actual unmerged Verrazzano resource
@@ -23,6 +24,14 @@ type ComponentContext interface {
 	IsDryRun() bool
 	// Copy returns a copy of the current context
 	Copy() ComponentContext
+	// Init returns a copy of the current context with an updated logging component field
+	Init(comp string) ComponentContext
+	// Operation specifies the logging operation field
+	Operation(op string) ComponentContext
+	// GetOperation returns the operation object in the context
+	GetOperation() string
+	// GetComponent returns the component object in the context
+	GetComponent() string
 }
 
 // ComponentInfo interface defines common information and metadata about components
@@ -33,6 +42,12 @@ type ComponentInfo interface {
 	GetDependencies() []string
 	// IsReady Indicates whether or not a component is available and ready
 	IsReady(context ComponentContext) bool
+	// IsEnabled Indicates whether or a component is enabled for installation
+	IsEnabled(context ComponentContext) bool
+	// GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
+	GetMinVerrazzanoVersion() string
+	// GetIngressNames returns a list of names of the ingresses associated with the component
+	GetIngressNames(context ComponentContext) []types.NamespacedName
 }
 
 // ComponentInstaller interface defines installs operations for components that support it
@@ -60,9 +75,14 @@ type ComponentUpgrader interface {
 	PostUpgrade(context ComponentContext) error
 }
 
+// Generate mocs for the spi.Component interface for use in tests.
+//go:generate mockgen -destination=../../../../mocks/component_mock.go -package=mocks -copyright_file=../../../../hack/boilerplate.go.txt github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi Component
+
 // Component interface defines the methods implemented by components
 type Component interface {
 	ComponentInfo
 	ComponentInstaller
 	ComponentUpgrader
+
+	Reconcile(ctx ComponentContext) error
 }

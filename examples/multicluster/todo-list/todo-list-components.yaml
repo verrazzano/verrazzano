@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 apiVersion: core.oam.dev/v1alpha2
@@ -16,9 +16,14 @@ spec:
           name: todo-domain
           namespace: mc-todo-list
         spec:
+          adminServer:
+            adminChannelPortForwardingEnabled: true
           domainUID: tododomain
           domainHome: /u01/domains/tododomain
-          image: container-registry.oracle.com/verrazzano/example-todo:1.0.0-1-20210728181814-eb1e622
+          auxiliaryImageVolumes:
+            - name: auxiliaryImageVolume1
+              mountPath: /auxiliary
+          image: container-registry.oracle.com/middleware/weblogic:12.2.1.4
           imagePullSecrets:
             - name: tododomain-repo-credentials
           domainHomeSourceType: "FromModel"
@@ -31,11 +36,18 @@ spec:
             model:
               configMap: tododomain-jdbc-config
               domainType: WLS
-              modelHome: /u01/wdt/models
+              modelHome: /auxiliary/models
+              wdtInstallHome: /auxiliary/weblogic-deploy
               runtimeEncryptionSecret: tododomain-runtime-encrypt-secret
             secrets:
               - tododomain-jdbc-tododb
           serverPod:
+            labels:
+              app: todo-domain
+              version: v1
+            auxiliaryImages:
+              - image: container-registry.oracle.com/verrazzano/example-todo:20211129200415-ae4e89e
+                volume: auxiliaryImageVolume1
             env:
               - name: JAVA_OPTIONS
                 value: "-Dweblogic.StdoutDebugEnabled=false"
@@ -124,7 +136,7 @@ spec:
       ports:
         - port: 3306
       selector:
-        app: mysql
+        app: todo-mysql
       clusterIP: None
 ---
 apiVersion: core.oam.dev/v1alpha2
@@ -143,11 +155,12 @@ spec:
       replicas: 1
       selector:
         matchLabels:
-          app: mysql
+          app: todo-mysql
       template:
         metadata:
           labels:
-            app: mysql
+            app: todo-mysql
+            version: v1
         spec:
           containers:
             - env:
@@ -168,17 +181,20 @@ spec:
                       key: password
                 - name: MYSQL_DATABASE
                   value: tododb
-              image: ghcr.io/verrazzano/mysql:8.0.26
+              image: ghcr.io/verrazzano/mysql:8.0.28
               imagePullPolicy: IfNotPresent
               name: mysql
-              protocol: TCP
-          volumeMounts:
-            - mountPath: /docker-entrypoint-initdb.d
+              ports:
+                - containerPort: 3306
+                  name: mysql
+                  protocol: TCP
+              volumeMounts:
+                - mountPath: /docker-entrypoint-initdb.d
+                  name: mysql-initdb
+          imagePullSecrets:
+            - name: ocr
+          volumes:
+            - configMap:
+                defaultMode: 420
+                name: mysql-initdb-config
               name: mysql-initdb
-      imagePullSecrets:
-        - name: ocr
-      volumes:
-        - configMap:
-            defaultMode: 420
-            name: mysql-initdb-config
-          name: mysql-initdb

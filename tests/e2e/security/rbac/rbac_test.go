@@ -1,10 +1,11 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package rbac_test
+package rbac
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"strconv"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 
 	"strings"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -35,7 +36,9 @@ const (
 	impersonateVerb    = "impersonate"
 )
 
-var _ = BeforeSuite(func() {
+var t = framework.NewTestFramework("rbac")
+
+var _ = t.BeforeSuite(func() {
 	pkg.Log(pkg.Info, "Create namespace")
 	Eventually(func() (*corev1.Namespace, error) {
 		return pkg.CreateNamespace(rbacTestNamespace, map[string]string{"verrazzano-managed": "true", "istio-injection": "enabled"})
@@ -43,11 +46,11 @@ var _ = BeforeSuite(func() {
 })
 
 var failed = false
-var _ = AfterEach(func() {
-	failed = failed || CurrentGinkgoTestDescription().Failed
+var _ = t.AfterEach(func() {
+	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = AfterSuite(func() {
+var _ = t.AfterSuite(func() {
 	if failed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
@@ -63,10 +66,10 @@ var _ = AfterSuite(func() {
 	}, waitTimeout, pollingInterval).Should(BeTrue())
 })
 
-var _ = Describe("Test RBAC Permission", func() {
-	Context("for user with role verrazzano-project-admin", func() {
+var _ = t.Describe("Test RBAC Permission", Label("f:security.rbac"), func() {
+	t.Context("for verrazzano-project-admin.", func() {
 
-		It("Fail getting Pods in namespace rbactest", func() {
+		t.It("Fail getting Pods in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User List Pods in NameSpace rbactest?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanI(v80ProjectAdmin, rbacTestNamespace, "list", "pods")
@@ -75,18 +78,18 @@ var _ = Describe("Test RBAC Permission", func() {
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user list pods. Timeout Expired")
 		})
 
-		It("Create RoleBinding Admin for verrazzano-project-admin", func() {
+		t.It("Create RoleBinding Admin for verrazzano-project-admin", func() {
 			pkg.Log(pkg.Info, "Create RoleBinding Admin for verrazzano-project-admin")
 			Eventually(func() error {
 				return pkg.CreateRoleBinding(v80ProjectAdmin, rbacTestNamespace, "admin-binding", "admin")
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
-		It("Verify RoleBinding Admin for verrazzano-project-admin", func() {
+		t.It("Verify RoleBinding Admin for verrazzano-project-admin", func() {
 			verifyRoleBindingExists("admin-binding")
 		})
 
-		It("Succeed getting Pods in namespace rbactest", func() {
+		t.It("Succeed getting Pods in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User List Pods in NameSpace rbactest?  Yes")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanI(v80ProjectAdmin, rbacTestNamespace, "list", "pods")
@@ -95,7 +98,7 @@ var _ = Describe("Test RBAC Permission", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "FAIL: Did Not Pass Authorization on user list pods. Timeout Expired")
 		})
 
-		It("Fail getting Pods in namespace verrazzano-system", func() {
+		t.It("Fail getting Pods in namespace verrazzano-system", func() {
 			pkg.Log(pkg.Info, "Can User List Pods in NameSpace verrazzano-system?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanI(v80ProjectAdmin, verrazzanoSystemNS, "list", "pods")
@@ -104,7 +107,7 @@ var _ = Describe("Test RBAC Permission", func() {
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user list pods. Timeout Expired")
 		})
 
-		It("Fail create ApplicationConfiguration in namespace rbactest", func() {
+		t.It("Fail create ApplicationConfiguration in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User create ApplicationConfiguration in NameSpace rbactest?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "create", "applicationconfigurations", "core.oam.dev")
@@ -113,7 +116,7 @@ var _ = Describe("Test RBAC Permission", func() {
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user create ApplicationConfiguration. Timeout Expired")
 		})
 
-		It("Fail list ApplicationConfiguration in namespace rbactest", func() {
+		t.It("Fail list ApplicationConfiguration in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User list ApplicationConfiguration in NameSpace rbactest?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "list", "applicationconfigurations", "core.oam.dev")
@@ -122,7 +125,7 @@ var _ = Describe("Test RBAC Permission", func() {
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user list ApplicationConfiguration. Timeout Expired")
 		})
 
-		It("Fail create OAM Component in namespace rbactest", func() {
+		t.It("Fail create OAM Component in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User create OAM Components in NameSpace rbactest?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "create", "components", "core.oam.dev")
@@ -131,7 +134,7 @@ var _ = Describe("Test RBAC Permission", func() {
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user create OAM Components. Timeout Expired")
 		})
 
-		It("Fail list OAM Component in namespace rbactest", func() {
+		t.It("Fail list OAM Component in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User list OAM Components in NameSpace rbactest?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "list", "components", "core.oam.dev")
@@ -140,18 +143,18 @@ var _ = Describe("Test RBAC Permission", func() {
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user list OAM Components. Timeout Expired")
 		})
 
-		It("Create RoleBinding verrazzano-project-admin-binding for verrazzano-project-admin", func() {
+		t.It("Create RoleBinding verrazzano-project-admin-binding for verrazzano-project-admin", func() {
 			pkg.Log(pkg.Info, "Create RoleBinding verrazzano-project-admin-binding for verrazzano-project-admin")
 			Eventually(func() error {
 				return pkg.CreateRoleBinding(v80ProjectAdmin, rbacTestNamespace, "verrazzano-project-admin-binding", "verrazzano-project-admin")
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
-		It("Verify RoleBinding verrazzano-project-admin-binding for verrazzano-project-admin", func() {
+		t.It("Verify RoleBinding verrazzano-project-admin-binding for verrazzano-project-admin", func() {
 			verifyRoleBindingExists("verrazzano-project-admin-binding")
 		})
 
-		It("Succeed create ApplicationConfiguration in namespace rbactest", func() {
+		t.It("Succeed create ApplicationConfiguration in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User create ApplicationConfiguration in NameSpace rbactest?  Yes")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "create", "applicationconfigurations", "core.oam.dev")
@@ -160,7 +163,7 @@ var _ = Describe("Test RBAC Permission", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "FAIL: Did Not Pass Authorization on user create ApplicationConfiguration. Timeout Expired")
 		})
 
-		It("Succeed list ApplicationConfiguration in namespace rbactest", func() {
+		t.It("Succeed list ApplicationConfiguration in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User list ApplicationConfiguration in NameSpace rbactest?  Yes")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "list", "applicationconfigurations", "core.oam.dev")
@@ -169,7 +172,7 @@ var _ = Describe("Test RBAC Permission", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "FAIL: Did Not Pass Authorization on user list ApplicationConfiguration. Timeout Expired")
 		})
 
-		It("Succeed create OAM Components in namespace rbactest", func() {
+		t.It("Succeed create OAM Components in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User create OAM Components in NameSpace rbactest?  Yes")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "create", "components", "core.oam.dev")
@@ -178,7 +181,7 @@ var _ = Describe("Test RBAC Permission", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "FAIL: Did Not Pass Authorization on user create OAM Components. Timeout Expired")
 		})
 
-		It("Succeed list OAM Components in namespace rbactest", func() {
+		t.It("Succeed list OAM Components in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User list OAM Components in NameSpace rbactest?  Yes")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "list", "components", "core.oam.dev")
@@ -190,10 +193,10 @@ var _ = Describe("Test RBAC Permission", func() {
 	})
 })
 
-var _ = Describe("Test RBAC Permission", func() {
-	Context("for user with role verrazzano-project-monitor", func() {
+var _ = t.Describe("Test RBAC Permission", Label("f:security.rbac"), func() {
+	t.Context("for verrazzano-project-monitor.", func() {
 
-		It("Fail getting Pods in namespace rbactest", func() {
+		t.It("Fail getting Pods in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User List Pods in NameSpace rbactest?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanI(v80ProjectMonitor, rbacTestNamespace, "list", "pods")
@@ -202,18 +205,18 @@ var _ = Describe("Test RBAC Permission", func() {
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user list pods. Timeout Expired")
 		})
 
-		It("Create RoleBinding Admin for verrazzano-project-monitor", func() {
+		t.It("Create RoleBinding Admin for verrazzano-project-monitor", func() {
 			pkg.Log(pkg.Info, "Create RoleBinding Admin for verrazzano-project-monitor")
 			Eventually(func() error {
 				return pkg.CreateRoleBinding(v80ProjectMonitor, rbacTestNamespace, "monitor-binding", "admin")
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
-		It("Verify RoleBinding monitor-binding for verrazzano-project-monitor", func() {
+		t.It("Verify RoleBinding monitor-binding for verrazzano-project-monitor", func() {
 			verifyRoleBindingExists("monitor-binding")
 		})
 
-		It("Succeed getting Pods in namespace rbactest", func() {
+		t.It("Succeed getting Pods in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User List Pods in NameSpace rbactest?  Yes")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanI(v80ProjectMonitor, rbacTestNamespace, "list", "pods")
@@ -222,7 +225,7 @@ var _ = Describe("Test RBAC Permission", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "FAIL: Did Not Pass Authorization on user list pods. Timeout Expired")
 		})
 
-		It("Fail getting Pods in namespace verrazzano-system", func() {
+		t.It("Fail getting Pods in namespace verrazzano-system", func() {
 			pkg.Log(pkg.Info, "Can User List Pods in NameSpace verrazzano-system?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanI(v80ProjectMonitor, verrazzanoSystemNS, "list", "pods")
@@ -231,7 +234,7 @@ var _ = Describe("Test RBAC Permission", func() {
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user list pods. Timeout Expired")
 		})
 
-		It("Fail create ApplicationConfiguration in namespace rbactest", func() {
+		t.It("Fail create ApplicationConfiguration in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User create ApplicationConfiguration in NameSpace rbactest?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "create", "applicationconfigurations", "core.oam.dev")
@@ -240,7 +243,7 @@ var _ = Describe("Test RBAC Permission", func() {
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user create ApplicationConfiguration. Timeout Expired")
 		})
 
-		It("Fail list ApplicationConfiguration in namespace rbactest", func() {
+		t.It("Fail list ApplicationConfiguration in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User list ApplicationConfiguration in NameSpace rbactest?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "list", "applicationconfigurations", "core.oam.dev")
@@ -249,7 +252,7 @@ var _ = Describe("Test RBAC Permission", func() {
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user list ApplicationConfiguration. Timeout Expired")
 		})
 
-		It("Fail create OAM Component in namespace rbactest", func() {
+		t.It("Fail create OAM Component in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User create OAM Components in NameSpace rbactest?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "create", "components", "core.oam.dev")
@@ -258,7 +261,7 @@ var _ = Describe("Test RBAC Permission", func() {
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user create OAM Components. Timeout Expired")
 		})
 
-		It("Fail list OAM Component in namespace rbactest", func() {
+		t.It("Fail list OAM Component in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User list OAM Components in NameSpace rbactest?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "list", "components", "core.oam.dev")
@@ -267,18 +270,18 @@ var _ = Describe("Test RBAC Permission", func() {
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user list OAM Components. Timeout Expired")
 		})
 
-		It("Create RoleBinding verrazzano-project-monitor-binding for cluster role verrazzano-project-monitor", func() {
+		t.It("Create RoleBinding verrazzano-project-monitor-binding for cluster role verrazzano-project-monitor", func() {
 			pkg.Log(pkg.Info, "Create RoleBinding verrazzano-project-monitor-binding for verrazzano-project-monitor")
 			Eventually(func() error {
 				return pkg.CreateRoleBinding(v80ProjectMonitor, rbacTestNamespace, "verrazzano-project-monitor-binding", "verrazzano-project-monitor")
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
-		It("Verify RoleBinding verrazzano-project-monitor-binding for verrazzano-project-monitor", func() {
+		t.It("Verify RoleBinding verrazzano-project-monitor-binding for verrazzano-project-monitor", func() {
 			verifyRoleBindingExists("verrazzano-project-monitor-binding")
 		})
 
-		It("Fail create ApplicationConfiguration in namespace rbactest", func() {
+		t.It("Fail create ApplicationConfiguration in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User create ApplicationConfiguration in NameSpace rbactest?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "create", "applicationconfigurations", "core.oam.dev")
@@ -287,7 +290,7 @@ var _ = Describe("Test RBAC Permission", func() {
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user create ApplicationConfiguration. Timeout Expired")
 		})
 
-		It("Succeed list ApplicationConfiguration in namespace rbactest", func() {
+		t.It("Succeed list ApplicationConfiguration in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User list ApplicationConfiguration in NameSpace rbactest?  Yes")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "list", "applicationconfigurations", "core.oam.dev")
@@ -296,7 +299,7 @@ var _ = Describe("Test RBAC Permission", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "FAIL: Did Not Pass Authorization on user list ApplicationConfiguration.  Timeout Expired")
 		})
 
-		It("Fail create OAM Components in namespace rbactest", func() {
+		t.It("Fail create OAM Components in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User create OAM Components in NameSpace rbactest?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "create", "components", "core.oam.dev")
@@ -305,7 +308,7 @@ var _ = Describe("Test RBAC Permission", func() {
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user create OAM Components.  Timeout Expired")
 		})
 
-		It("Succeed list OAM Components in namespace rbactest", func() {
+		t.It("Succeed list OAM Components in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User list OAM Components in NameSpace rbactest?  Yes")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "list", "components", "core.oam.dev")
@@ -317,11 +320,11 @@ var _ = Describe("Test RBAC Permission", func() {
 	})
 })
 
-var _ = Describe("Test Verrazzano API Service Account", func() {
-	Context("for serviceaccount verrazzano-authproxy", func() {
+var _ = t.Describe("Test Verrazzano API Service Account", func() {
+	t.Context("for serviceaccount verrazzano-authproxy", func() {
 		var serviceAccount *corev1.ServiceAccount
 
-		BeforeEach(func() {
+		t.BeforeEach(func() {
 			Eventually(func() (*corev1.ServiceAccount, error) {
 				var err error
 				serviceAccount, err = pkg.GetServiceAccount(verrazzanoSystemNS, verrazzanoAPI)
@@ -329,7 +332,7 @@ var _ = Describe("Test Verrazzano API Service Account", func() {
 			}, waitTimeout, pollingInterval).ShouldNot(BeNil(), fmt.Sprintf("Failed to get service account %s in namespace %s", verrazzanoAPI, verrazzanoSystemNS))
 		})
 
-		It("Validate the secret of the Service Account of Verrazzano API", func() {
+		t.It("Validate the secret of the Service Account of Verrazzano API", Label("f:security.apiproxy"), func() {
 			GinkgoWriter.Write([]byte("DEBUG - This test fails on 1.21 - extra debugging added\n"))
 			// Get secret for the SA
 			var pods *corev1.PodList
@@ -407,7 +410,7 @@ var _ = Describe("Test Verrazzano API Service Account", func() {
 				"%s differs from the secret obtained from the Verrazzano API pod.", verrazzanoAPI))
 		})
 
-		It("Validate the role binding of the Service Account of Verrazzano API", func() {
+		t.It("Validate the role binding of the Service Account of Verrazzano API", func() {
 			var bindings *v1.ClusterRoleBindingList
 			Eventually(func() (*v1.ClusterRoleBindingList, error) {
 				var err error
@@ -469,7 +472,7 @@ var _ = Describe("Test Verrazzano API Service Account", func() {
 				fmt.Sprintf("FAIL: The cluster role %s contains verb other than impersonate.", crole))
 		})
 
-		It("Fail impersonating any other service account", func() {
+		t.It("Fail impersonating any other service account", func() {
 			pkg.Log(pkg.Info, "Can verrazzano-authproxy service account impersonate any other service account?  No")
 			allowed, reason, err := pkg.CanIForAPIGroupForServiceAccountOrUser("verrazzano-authproxy", "", "impersonate", "serviceaccounts", "core", true, verrazzanoSystemNS)
 			Expect(err).ShouldNot(HaveOccurred())

@@ -1,4 +1,4 @@
-// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package k8s
@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -93,7 +93,7 @@ func (c Client) IsDeploymentUpdated(name string, namespace string) bool {
 
 // DoesPodExist returns true if a Pod with the given prefix exists
 func (c Client) DoesPodExist(name string, namespace string) bool {
-	return (c.getPod(name, namespace) != nil)
+	return c.getPod(name, namespace) != nil
 }
 
 // DoesContainerExist returns true if a container with the given name exists in the pod

@@ -1,10 +1,9 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package constants
 
-// SystemTLS is the name of the system-tls secret in the Verrazzano system namespace
-const SystemTLS = "system-tls"
+import "time"
 
 // VerrazzanoSystemNamespace is the system namespace for verrazzano
 const VerrazzanoSystemNamespace = "verrazzano-system"
@@ -12,14 +11,8 @@ const VerrazzanoSystemNamespace = "verrazzano-system"
 // VerrazzanoInstallNamespace is the namespace that the platform operator lives in
 const VerrazzanoInstallNamespace = "verrazzano-install"
 
-// Verrazzano is the name of the verrazzano secret in the Verrazzano system namespace
+// Verrazzano is the name of the Verrazzano secret in the Verrazzano system namespace
 const Verrazzano = "verrazzano"
-
-// VerrazzanoPromInternal is the name of the Verrazzano internal Prometheus secret in the Verrazzano system namespace
-const VerrazzanoPromInternal = "verrazzano-prom-internal"
-
-// VerrazzanoESInternal is the name of the Verrazzano internal Elasticsearch secret in the Verrazzano system namespace
-const VerrazzanoESInternal = "verrazzano-es-internal"
 
 // VerrazzanoMultiClusterNamespace is the multi-cluster namespace for verrazzano
 const VerrazzanoMultiClusterNamespace = "verrazzano-mc"
@@ -48,7 +41,7 @@ const AdminClusterConfigMapName = "verrazzano-admin-cluster"
 // ServerDataKey is the key into ConfigMap data for cluster server address
 const ServerDataKey = "server"
 
-// VzConsoleIngress - the name of the ingress for verrazzano console and api
+// VzConsoleIngress - the name of the ingress for Verrazzano console and api
 const VzConsoleIngress = "verrazzano-ingress"
 
 // RegistryOverrideEnvVar is the environment variable name used to override the registry housing images we install
@@ -78,11 +71,74 @@ const ClusterNameEnvVar = "CLUSTER_NAME"
 // ElasticsearchURLEnvVar is the environment variable used to identify the admin clusters Elasticsearch URL
 const ElasticsearchURLEnvVar = "ELASTICSEARCH_URL"
 
+// ElasticsearchIngress is the name of the ingress for Elasticsearch
+const ElasticsearchIngress = "vmi-system-es-ingest"
+
+// GrafanaIngress is the name of the ingress for Grafana
+const GrafanaIngress = "vmi-system-grafana"
+
+// KibanaIngress is the name of the ingress for Kibana
+const KibanaIngress = "vmi-system-kibana"
+
+// PrometheusIngress is the name of the ingress for Prometheus
+const PrometheusIngress = "vmi-system-prometheus"
+
 // GlobalImagePullSecName is the name of the global image pull secret
 const GlobalImagePullSecName = "verrazzano-container-registry"
 
 // IngressNginxNamespace is the nginx ingress namespace name
 const IngressNginxNamespace = "ingress-nginx"
 
-//  KeycloakNamespace is the keycloak namespace name
+// IstioSystemNamespace - the Istio system namespace
+const IstioSystemNamespace = "istio-system"
+
+// RancherIngress is the name of the ingress for Rancher
+const RancherIngress = "rancher"
+
+// KialiIngress is the name of the ingress for Kiali
+const KialiIngress = "vmi-system-kiali"
+
+// KeycloakNamespace is the keycloak namespace name
 const KeycloakNamespace = "keycloak"
+
+// KeycloakIngress - the name of the ingress for Keycloak console and api
+const KeycloakIngress = "keycloak"
+
+// VerrazzanoAuthProxyServiceName is the name of the Verrazzano auth proxy service
+const VerrazzanoAuthProxyServiceName = "verrazzano-authproxy"
+
+// VerrazzanoAuthProxyServicePort is the port exposed by the Verrazzano auth proxy service
+const VerrazzanoAuthProxyServicePort = 8775
+
+// DefaultEnvironmentName is the default name for install environment
+const DefaultEnvironmentName = "default"
+
+// VerrazzanoVersion1_0_0 is the Verrazzano version string for 1.0.0
+const VerrazzanoVersion1_0_0 = "1.0.0"
+
+// VerrazzanoVersion1_1_0 is the Verrazzano version string for 1.1.0
+const VerrazzanoVersion1_1_0 = "1.1.0"
+
+// VerrazzanoVersion1_3_0 is the Verrazzano version string for 1.2.0
+const VerrazzanoVersion1_3_0 = "1.3.0"
+
+// UpgradeRetryVersion is the restart version annotation field
+const UpgradeRetryVersion = "verrazzano.io/upgrade-retry-version"
+
+// ObservedUpgradeRetryVersion is the previous restart version annotation field
+const ObservedUpgradeRetryVersion = "verrazzano.io/observed-upgrade-retry-version"
+
+// NGINXControllerServiceName
+const NGINXControllerServiceName = "ingress-controller-ingress-nginx-controller"
+
+// InstallOperation is the install string
+const InstallOperation = "install"
+
+// UpgradeOperation is the install string
+const UpgradeOperation = "upgrade"
+
+// InitializeOperation is the initialize string
+const InitializeOperation = "initialize"
+
+// ReconcileLoopRequeueInterval is the interval before reconcile gets called again.
+const ReconcileLoopRequeueInterval = 3 * time.Minute

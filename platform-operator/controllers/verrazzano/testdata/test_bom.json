@@ -1,6 +1,6 @@
 {
   "registry": "ghcr.io",
-  "version": "0.17.0",
+  "version": "1.1.0",
   "components": [
     {
       "name": "verrazzano-platform-operator",
@@ -102,12 +102,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.10.2",
+              "tag": "1.10.4",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.10.2",
+              "tag": "1.10.4",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"

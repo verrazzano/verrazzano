@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
@@ -15,7 +15,7 @@ set -o pipefail
 
 function delete_external_dns() {
   log "Deleting external-dns"
-  helm ls -A \
+  helm ls -n cert-manager \
     | awk '/external-dns/ {print $1}' \
     | xargsr helm uninstall -n cert-manager \
     || err_return $? "Could not delete external-dns from helm" || return $? # return on pipefail
@@ -29,7 +29,7 @@ function delete_external_dns() {
 function delete_nginx() {
   # uninstall ingress-nginx
   log "Deleting ingress-nginx"
-  helm ls -A \
+  helm ls -n ingress-nginx \
     | awk '/ingress-controller/ {print $1}' \
     | xargsr helm uninstall -n ingress-nginx \
     || err_return $? "Could not delete ingress-controller from helm" || return $? # return on pipefail
@@ -51,7 +51,7 @@ function delete_nginx() {
 function delete_cert_manager() {
   # uninstall cert manager deployment
   log "Deleting cert-manager"
-  helm ls -A \
+  helm ls -n cert-manager \
     | awk '/cert-manager/ {print $1}' \
     | xargsr helm uninstall -n cert-manager \
     || err_return $? "Could not delete cert-manager from helm" || return $? # return on pipefail
@@ -151,12 +151,12 @@ function delete_rancher() {
 
   # delete clusterrolebindings deployed by rancher
   log "Deleting ClusterRoleBindings"
-  delete_k8s_resources clusterrolebinding ":metadata.name,:metadata.labels" "Could not delete ClusterRoleBindings from Rancher" '/cattle.io|app:rancher|fleetworkspace-|fleet-/ {print $1}' \
+  delete_k8s_resources clusterrolebinding ":metadata.name,:metadata.labels" "Could not delete ClusterRoleBindings from Rancher" '/cattle.io|app:rancher|fleetworkspace-|fleet-|gitjob/ {print $1}' \
     || return $? # return on pipefail
 
   # delete clusterroles
   log "Deleting ClusterRoles"
-  delete_k8s_resources clusterrole ":metadata.name,:metadata.labels" "Could not delete ClusterRoles from Rancher" '/cattle.io|fleetworkspace-|fleet-/ {print $1}' \
+  delete_k8s_resources clusterrole ":metadata.name,:metadata.labels" "Could not delete ClusterRoles from Rancher" '/cattle.io|app:rancher|fleetworkspace-|fleet-|gitjob/ {print $1}' \
     || return $? # return on pipefail
 
   # delete rolebinding

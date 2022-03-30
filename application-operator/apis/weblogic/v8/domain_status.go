@@ -26,6 +26,9 @@ type DomainStatus struct {
 	// A brief CamelCase message indicating details about why the domain is in this state
 	Reason string `json:"reason,omitempty"`
 
+	// Unique id of the last introspector job that was processed for this domain.
+	LastIntrospectJobProcessedUID string `json:"lastIntrospectJobProcessedUid,omitempty"`
+
 	// The number of running managed servers in the WebLogic cluster if there is
 	// only one cluster in the domain and where the cluster does not explicitly
 	// configure its replicas in a cluster specification.

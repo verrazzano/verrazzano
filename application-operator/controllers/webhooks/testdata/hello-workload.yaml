@@ -1,0 +1,29 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: core.oam.dev/v1alpha2
+kind: ContainerizedWorkload
+metadata:
+  annotations:
+    description: Hello application
+  name: hello-workload
+  namespace: default
+spec:
+  containers:
+  - args:
+    - /bin/sh
+    - -c
+    - echo 'sleeping'; sleep 50000;
+    image: ghcr.io/oracle/oraclelinux:7-slim
+    name: hello
+    ports:
+    - containerPort: 8080
+      name: http
+status:
+  resources:
+  - apiVersion: apps/v1
+    kind: Deployment
+    name: hello-workload
+  - apiVersion: v1
+    kind: Service
+    name: hello-workload

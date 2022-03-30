@@ -1,0 +1,39 @@
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+config:
+  dnsSuffix: 11.22.33.44.xip.io
+  envName: myenv
+console:
+  enabled: false
+dns:
+  wildcard:
+    domain: xip.io
+elasticSearch:
+  enabled: false
+  nodes:
+    data:
+      requests:
+        storage: ""
+logging:
+  elasticsearchSecret: verrazzano-es-internal
+  elasticsearchURL: http://verrazzano-authproxy-elasticsearch:8775
+fluentd:
+  enabled: true
+grafana:
+  enabled: false
+  requests:
+    storage: ""
+keycloak:
+  enabled: false
+kibana:
+  enabled: false
+monitoringOperator:
+  enabled: false
+prometheus:
+  enabled: false
+  requests:
+    storage: ""
+rancher:
+  enabled: false
+verrazzanoOperator:
+  enabled: false

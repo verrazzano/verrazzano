@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // This runs the acceptance tests on an OKE cluster with OCI DNS
@@ -43,12 +43,19 @@ pipeline {
     }
 
     parameters {
-        choice (description: 'OCI region to launch OKE clusters in', name: 'OKE_CLUSTER_REGION',
+        // OKE_CLUSTER_REGION parameter will be ignored for private DNS tests. They get overwritten with runner region 
+        choice (description: 'OCI region to launch OKE clusters in. This parameter will be ignored for private DNS tests', name: 'OKE_CLUSTER_REGION',
             // 1st choice is the default value
             choices: availableRegions )
         choice (description: 'OKE node pool configuration', name: 'OKE_NODE_POOL',
             // 1st choice is the default value
             choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.2" ])
+        choice (description: 'Use instance principal for oci dns tests', name: 'OCI_DNS_AUTH',
+                // 1st choice is the default value
+                choices: [ "user_principal", "instance_principal" ])
+        choice (description: 'Specifies  DNS scope. Values: GLOBAL, PRIVATE. Default: GLOBAL',name: 'DNS_SCOPE',
+            // 1st choice is the default value
+            choices: [ "GLOBAL","PRIVATE" ])
         choice (description: 'Kubernetes Version for OKE Cluster', name: 'OKE_CLUSTER_VERSION',
                 // 1st choice is the default value
                 choices: [ "v1.20.8", "1.18.10", "v1.19.7", "v1.19.12" ])
@@ -101,7 +108,8 @@ pipeline {
 
         TF_VAR_tenancy_id = credentials('oci-tenancy')
         TF_VAR_user_id = credentials('oci-user-ocid')
-        TF_VAR_region = "${params.OKE_CLUSTER_REGION}"
+
+
         TF_VAR_kubernetes_version = "${params.OKE_CLUSTER_VERSION}"
         TF_VAR_nodepool_config = "${params.OKE_NODE_POOL}"
         TF_VAR_api_fingerprint = credentials('oci-api-key-fingerprint')
@@ -115,7 +123,6 @@ pipeline {
         OCI_CLI_USER = credentials('oci-user-ocid')
         OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
-        OCI_CLI_REGION = "${params.OKE_CLUSTER_REGION}"
 
         TEST_CONFIG_FILE = "${HOME}/testConfigOke.yaml"
         CLUSTER_TYPE = getTestClusterType("${TEST_ENV}")
@@ -144,7 +151,8 @@ pipeline {
         INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
         INSTALL_CONFIG_FILE_NODEPORT = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nodeport.yaml"
 
-        OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
+        //OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
+        OCI_DNS_ZONE_NAME="${params.DNS_SCOPE == 'PRIVATE' ? "z${zoneId}-private.v8o.io" : "z${zoneId}.v8o.io"}"
         CERT_ISSUER="${params.CERT_ISSUER}"
         ACME_ENVIRONMENT="${params.ACME_ENVIRONMENT}"
 
@@ -164,13 +172,16 @@ pipeline {
         //OC_TELEMETRY_URL = credentials('oci-telemetry-url')
 
         // used to emit metrics
-        PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
+        PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
+        PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "${params.TEST_ENV}"
-        K8S_VERSION_LABEL = "${params.OKE_CLUSTER_VERSION}"
+
+        // used to generate Ginkgo test reports
+        TEST_REPORT = "test-report.xml"
+        GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
     }
 
     stages {
-
         stage('Initialize') {
             steps {
                 script {
@@ -220,6 +231,8 @@ pipeline {
                         // derive the prefix for the OKE cluster
                         OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_oke_cluster_name.sh").trim()
                     }
+                    // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
+                    env.K8S_VERSION_LABEL = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}").trim()
                 }
             }
         }
@@ -232,6 +245,10 @@ pipeline {
             steps {
                 script {
                     withCredentials([sshUserPrivateKey(credentialsId: '5fcc03de-31ce-4566-b11f-9de38e5d98fd', keyFileVariable: 'OPC_USER_KEY_FILE', passphraseVariable: 'OPC_USER_PASSPHRASE', usernameVariable: 'OPC_USERNAME')]) {
+                    def RUNNER_REGION = sh(returnStdout: true, script: "curl -s -H \"Authorization: Bearer Oracle\" http://169.254.169.254/opc/v2/instance/canonicalRegionName").trim()
+                    env.TF_VAR_region = "${params.DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OKE_CLUSTER_REGION}"
+                    env.OCI_CLI_REGION = "${params.DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OKE_CLUSTER_REGION}"
+                    println("runner region is ${RUNNER_REGION}, tf var region is ${env.TF_VAR_REGION}")
                         sh """
                             # get the ssh public key
                             ssh-keygen -y -e -f ${OPC_USER_KEY_FILE} > /tmp/opc_ssh2.pub
@@ -305,9 +322,27 @@ pipeline {
 
         stage("create-dns-zone") {
             when { expression { return params.TEST_ENV == 'ocidns_oke' } }
+            environment {
+                            TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
+
+                        }
             steps {
                 script {
-                    dns_zone_ocid = sh(script: "${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId}", returnStdout: true)
+                     println("DNS_SCOPE =  ${params.DNS_SCOPE}")
+                     if (params.DNS_SCOPE == "PRIVATE") {
+                        switch(TF_VAR_region) {
+                           case "uk-london-1":
+                              env.VCN_VIEW_ID = "${DNS_VIEW_FOR_PRIVATE_DNS_LHR}"
+                              break
+                           default:
+                             env.VCN_VIEW_ID = "${DNS_VIEW_FOR_PRIVATE_DNS_PHX}"
+                             break
+                         }
+                         println("view id is ${env.VCN_VIEW_ID}")
+                     }
+                    // VCN_VIEW_ID is used inside oci_dns_ops.sh to associate private zones to view
+                    // this is only used when zone is PRIVATE
+                    dns_zone_ocid = sh(script: "${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId} -k ${params.DNS_SCOPE}", returnStdout: true)
                 }
             }
         }
@@ -322,7 +357,7 @@ pipeline {
             steps {
                 script {
                     sh """
-                        ${WORKSPACE}/tests/e2e/config/scripts/process_oci_dns_install_yaml.sh $INSTALL_CONFIG_FILE_OCIDNS $CERT_ISSUER $ACME_ENVIRONMENT
+                        ${WORKSPACE}/tests/e2e/config/scripts/process_oci_dns_install_yaml.sh $INSTALL_CONFIG_FILE_OCIDNS $CERT_ISSUER $ACME_ENVIRONMENT ${params.DNS_SCOPE}
                     """
                 }
             }
@@ -332,6 +367,9 @@ pipeline {
             when { expression { return params.TEST_ENV == 'ocidns_oke' } }
             steps {
                 script {
+                    if (params.OCI_DNS_AUTH == "instance_principal") {
+                            env.OCI_DNS_AUTH="instance_principal"
+                    }
                     sh """
                         ${WORKSPACE}/tests/e2e/config/scripts/create-test-oci-config-secret.sh
                     """
@@ -413,25 +451,45 @@ pipeline {
         }
 
         stage('acceptance-tests-1') {
-            parallel {
-                // Quick fix for Bob's Books test failure that reports "Webpage is NOT Robert's Books Greetings from Verrazzano!"
-                //     Do not run this in parallel with Bob's Books because both specify a mapping for "/" path.
-                // Real fix may be to have each app use a different dnsName in the ingress binding section of the binding file
-                // and put a host header in the corresponding calls to the app.
-                stage('generic-springboot') {
-                    environment {
-                        DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/generic-springboot-test.log"
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-springboot"
-                    }
+            environment {
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+            }
+
+            stages {
+                stage('verify-install') {
                     steps {
-                        script {
-                            runGinkgo('examples/springboot')
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            sh """
+                                cd ${WORKSPACE}/tests/e2e
+                                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/...
+                            """
                         }
                     }
-                    post {
-                        always {
-                            dumpGenericSpringbootObjects()
-                            dumpGenericSpringbootLogs()
+                }
+                stage('springboot') {
+                    parallel {
+                        // Quick fix for Bob's Books test failure that reports "Webpage is NOT Robert's Books Greetings from Verrazzano!"
+                        //     Do not run this in parallel with Bob's Books because both specify a mapping for "/" path.
+                        // Real fix may be to have each app use a different dnsName in the ingress binding section of the binding file
+                        // and put a host header in the corresponding calls to the app.
+                        stage('generic-springboot') {
+                            environment {
+                                DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/generic-springboot-test.log"
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-springboot"
+                            }
+                            steps {
+                                script {
+                                    runGinkgo('examples/springboot')
+                                }
+                            }
+                            post {
+                                always {
+                                    dumpGenericSpringbootObjects()
+                                    dumpGenericSpringbootLogs()
+                                }
+                            }
                         }
                     }
                 }
@@ -439,126 +497,135 @@ pipeline {
         }
 
         stage('acceptance-tests-2') {
-            parallel {
-                stage('verify-install') {
-                    steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            sh """
-                                cd ${WORKSPACE}/tests/e2e
-                                ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true verify-install/...
-                            """
+            environment {
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+            }
+
+            stages {
+                stage('run-acceptance-tests') {
+                    parallel {
+                        stage('metrics') {
+                            steps {
+                                script {
+                                    runGinkgo('metrics/syscomponents')
+                                }
+                            }
+                        }
+                        stage('hello-helidon') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-hello-helidon"
+                            }
+                            steps {
+                                script {
+                                    runGinkgoFailFast('examples/helidon')
+                                }
+                            }
+                        }
+                        stage('restapi') {
+                            steps {
+                                script {
+                                    runGinkgo('verify-infra/restapi')
+                                }
+                            }
+                        }
+                        stage('vmi') {
+                            steps {
+                                script {
+                                    runGinkgo('verify-infra/vmi')
+                                }
+                            }
+                        }
+                        stage('oam') {
+                            steps {
+                                script {
+                                    runGinkgo('verify-infra/oam')
+                                }
+                            }
+                        }
+                        stage('system logging') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-logging"
+                            }
+                            steps {
+                                runGinkgo('logging/system')
+                            }
+                        }
+                        stage('lift-and-shift') {
+                            environment {
+                                DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/lift-and-shift-test.log"
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-lift-and-shift"
+                            }
+                            steps {
+                                script {
+                                    runGinkgoFailFast('examples/todo')
+                                }
+                            }
+                        }
+                        stage('istio authorization policy') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-istio-auth-policy"
+                            }
+                            steps {
+                                runGinkgo('istio/authz')
+                            }
+                        }
+                        stage('security role based access') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-rbac"
+                            }
+                            steps {
+                                runGinkgo('security/rbac')
+                            }
+                        }
+                        stage('bobs-books') {
+                            environment {
+                                DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/bobs-book-test.log"
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-bobs-books-dump"
+                            }
+                            steps {
+                                script {
+                                    runGinkgoFailFast('examples/bobsbooks')
+                                }
+                                sh """
+                                    ${WORKSPACE}/tests/e2e/config/scripts/get_verrazzano_image.sh bob >> ${IMG_LIST_FILE}
+                                    ${WORKSPACE}/tests/e2e/config/scripts/get_verrazzano_image.sh bobby >> ${IMG_LIST_FILE}
+                                    ${WORKSPACE}/tests/e2e/config/scripts/get_verrazzano_image.sh robert >> ${IMG_LIST_FILE}
+                                """
+                            }
+                            post {
+                                always {
+                                    dumpBobObjects()
+                                    dumpBobLogs()
+                                }
+                            }
+                        }
+                        stage('socks') {
+                            environment {
+                                DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/socks-test.log"
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-socks"
+                            }
+                            steps {
+                                script {
+                                    runGinkgo('examples/socks')
+                                }
+                                sh """
+                                    ${WORKSPACE}/tests/e2e/config/scripts/create_verrazzano_image_list.sh ${IMG_LIST_FILE}
+                                    # make necessary substitutions
+                                    sed -i 's/example-hello-world-helidon/example-helidon-greet-app-v1/' ${IMG_LIST_FILE}
+                                    sed -i 's/example-bobs-books-order-manager/example-bobs-bookstore-order-manager/' ${IMG_LIST_FILE}
+                                """
+                           }
+                           post {
+                              always {
+                                    dumpSockObjects()
+                                    dumpSockLogs()
+                              }
+                           }
                         }
                     }
-                }
-                stage('metrics') {
-                    steps {
-                        script {
-                            runGinkgo('metrics/syscomponents')
-                        }
-                    }
-                }
-                stage('hello-helidon') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-hello-helidon"
-                    }
-                    steps {
-                        script {
-                            runGinkgoFailFast('examples/helidon')
-                        }
-                    }
-                }
-                stage('restapi') {
-                    steps {
-                        script {
-                            runGinkgo('verify-infra/restapi')
-                        }
-                    }
-                }
-                stage('vmi') {
-                    steps {
-                        script {
-                            runGinkgo('verify-infra/vmi')
-                        }
-                    }
-                }
-                stage('oam') {
-                    steps {
-                        script {
-                            runGinkgo('verify-infra/oam')
-                        }
-                    }
-                }
-                stage('lift-and-shift') {
-                    environment {
-                        DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/lift-and-shift-test.log"
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-lift-and-shift"
-                    }
-                    steps {
-                        script {
-                            runGinkgoFailFast('examples/todo')
-                        }
-                    }
-                }
-                stage('istio authorization policy') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-istio-auth-policy"
-                    }
-                    steps {
-                        runGinkgo('istio/authz')
-                    }
-                }
-                stage('security role based access') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-rbac"
-                    }
-                    steps {
-                        runGinkgo('security/rbac')
-                    }
-                }
-                stage('bobs-books') {
-                    environment {
-                        DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/bobs-book-test.log"
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-bobs-books-dump"
-                    }
-                    steps {
-                        script {
-                            runGinkgoFailFast('examples/bobsbooks')
-                        }
-                        sh """
-                            ${WORKSPACE}/tests/e2e/config/scripts/get_verrazzano_image.sh bob >> ${IMG_LIST_FILE}
-                            ${WORKSPACE}/tests/e2e/config/scripts/get_verrazzano_image.sh bobby >> ${IMG_LIST_FILE}
-                            ${WORKSPACE}/tests/e2e/config/scripts/get_verrazzano_image.sh robert >> ${IMG_LIST_FILE}
-                        """
-                    }
-                    post {
-                        always {
-                            dumpBobObjects()
-                            dumpBobLogs()
-                        }
-                    }
-                }
-                stage('socks') {
-                    environment {
-                        DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/socks-test.log"
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-socks"
-                    }
-                    steps {
-                        script {
-                            runGinkgo('examples/socks')
-                        }
-                        sh """
-                            ${WORKSPACE}/tests/e2e/config/scripts/create_verrazzano_image_list.sh ${IMG_LIST_FILE}
-                            # make necessary substitutions
-                            sed -i 's/example-hello-world-helidon/example-helidon-greet-app-v1/' ${IMG_LIST_FILE}
-                            sed -i 's/example-bobs-books-order-manager/example-bobs-bookstore-order-manager/' ${IMG_LIST_FILE}
-                        """
-                   }
-                    post {
-                        always {
-                            dumpSockObjects()
-                            dumpSockLogs()
-                        }
-                    }
+
                 }
             }
         }
@@ -583,13 +650,13 @@ pipeline {
                     sort -u -o ${IMG_LIST_FILE} ${IMG_LIST_FILE}
                 fi
             """
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/test-cluster-dumps/**', allowEmptyArchive: true
-            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/test-cluster-dumps/**/,**/${TEST_REPORT}", allowEmptyArchive: true
+            junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
-                    withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+                    withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
                         sh """
-                            ${WORKSPACE}/ci/scripts/dashboard/emit_metrics.sh "${WORKSPACE}/tests/e2e" "${SAURON_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
+                            ${WORKSPACE}/ci/scripts/dashboard/emit_metrics.sh "${WORKSPACE}/tests/e2e" "${PROMETHEUS_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
                         """
                     }
                 }
@@ -597,7 +664,7 @@ pipeline {
 
             sh """
                 if [ "${TEST_ENV}" == "ocidns_oke" ]; then
-                  ${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
+                  ${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} -k ${params.DNS_SCOPE} || echo "Failed to delete DNS zone z${zoneId}"
                 fi
                 if [ "${TEST_ENV}" == "kind" ]; then
                   ${WORKSPACE}/tests/e2e/config/scripts/delete-kind-cluster.sh
@@ -622,10 +689,7 @@ pipeline {
             """
             script {
                 METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
-                if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME == "verrazzano/develop") {
-                    emailext recipientProviders: [[$class: 'CulpritsRecipientProvider'],[$class: 'RequesterRecipientProvider']],
-                       subject: "Verrazzano: ${env.JOB_NAME} - Failed",
-                       body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
+                if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-.*" || env.BRANCH_NAME ==~ "mark/*") {
                     slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                 }
            }
@@ -654,7 +718,7 @@ def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${WORKSPACE}/tests/e2e
-            ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
@@ -663,7 +727,7 @@ def runGinkgoFailFast(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${WORKSPACE}/tests/e2e
-            ginkgo -v -failFast --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+            ginkgo -v --fail-fast --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
@@ -881,8 +945,8 @@ def metricTimerEnd(metricName, status) {
         // OCI_MET=sh(returnStdout: true, script: "ci/scripts/oci_metric_emit.sh ${env.OC_TELEMETRY_URL} ${env.OCI_COMPARTMENT_ID} ${OCI_METRICS_NAMESPACE} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
 
         labels = getMetricLabels()
-        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
             echo "emit prometheus metrics: $EMIT"
             return EMIT
         }
@@ -910,8 +974,8 @@ def metricBuildDuration() {
     if (params.EMIT_METRICS) {
         labels = getMetricLabels()
         labels = labels + ',result=\\"' + "${statusLabel}"+'\\"'
-        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
+        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }

@@ -1,11 +1,17 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package main
 
 import (
 	"flag"
-	"github.com/verrazzano/verrazzano/pkg/log"
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+
+	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
+	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/pkg/helm"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	clusterscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
@@ -17,11 +23,12 @@ import (
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 
+	"os"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -32,12 +39,19 @@ var scheme = runtime.NewScheme()
 
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
-
+	_ = vmov1.AddToScheme(scheme)
 	_ = installv1alpha1.AddToScheme(scheme)
 	_ = clustersv1alpha1.AddToScheme(scheme)
 
 	_ = istioclinet.AddToScheme(scheme)
 	_ = istioclisec.AddToScheme(scheme)
+
+	_ = oam.AddToScheme(scheme)
+
+	_ = vzapp.AddToScheme(scheme)
+
+	// Add cert-manager components to the scheme
+	cmapiv1.AddToScheme(scheme)
 
 	// +kubebuilder:scaffold:scheme
 }
@@ -61,8 +75,9 @@ func main() {
 	flag.BoolVar(&config.InitWebhooks, "init-webhooks", config.InitWebhooks,
 		"Initialize webhooks for the operator")
 	flag.StringVar(&config.VerrazzanoRootDir, "vz-root-dir", config.VerrazzanoRootDir,
-		"Specify the root directory of verrazzano (used for development)")
+		"Specify the root directory of Verrazzano (used for development)")
 	flag.StringVar(&bomOverride, "bom-path", "", "BOM file location")
+	flag.BoolVar(&helm.Debug, "helm-debug", helm.Debug, "Add the --debug flag to helm commands")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}
@@ -70,61 +85,61 @@ func main() {
 
 	flag.Parse()
 	kzap.UseFlagOptions(&opts)
-	log.InitLogs(opts)
+	vzlog.InitLogs(opts)
 
 	// Save the config as immutable from this point on.
 	internalconfig.Set(config)
+	log := zap.S()
 
-	setupLog := zap.S()
+	log.Info("Starting Verrazzano Platform Operator")
 
 	// Set the BOM file path for the operator
 	if len(bomOverride) > 0 {
+		log.Infof("Using BOM override file %s", bomOverride)
 		internalconfig.SetDefaultBomFilePath(bomOverride)
 	}
 
 	// initWebhooks flag is set when called from an initContainer.  This allows the certs to be setup for the
 	// validatingWebhookConfiguration resource before the operator container runs.
 	if config.InitWebhooks {
-		setupLog.Info("Setting up certificates for webhook")
+		log.Debug("Creating certificates used by webhooks")
 		caCert, err := certificate.CreateWebhookCertificates(config.CertDir)
 		if err != nil {
-			setupLog.Errorf("unable to setup certificates for webhook: %v", err)
+			log.Errorf("Failed to create certificates used by webhooks: %v", err)
 			os.Exit(1)
 		}
 
 		config, err := ctrl.GetConfig()
 		if err != nil {
-			setupLog.Errorf("unable to get kubeconfig: %v", err)
+			log.Errorf("Failed to get kubeconfig: %v", err)
 			os.Exit(1)
 		}
 
 		kubeClient, err := kubernetes.NewForConfig(config)
 		if err != nil {
-			setupLog.Errorf("unable to get clientset: %v", err)
+			log.Errorf("Failed to get clientset: %v", err)
 			os.Exit(1)
 		}
 
-		setupLog.Info("Updating webhook configuration")
+		log.Debug("Updating webhook configuration")
 		err = certificate.UpdateValidatingnWebhookConfiguration(kubeClient, caCert)
 		if err != nil {
-			setupLog.Errorf("unable to update validation webhook configuration: %v", err)
+			log.Errorf("Failed to update validation webhook configuration: %v", err)
 			os.Exit(1)
 		}
 
 		client, err := client.New(config, client.Options{})
 		if err != nil {
-			setupLog.Errorf("unable to get client: %v", err)
+			log.Errorf("Failed to get controller-runtime client: %v", err)
 			os.Exit(1)
 		}
 
-		setupLog.Info("Creating or updating network policies")
-		opResult, err := netpolicy.CreateOrUpdateNetworkPolicies(kubeClient, client)
+		log.Debug("Creating or updating network policies")
+		_, err = netpolicy.CreateOrUpdateNetworkPolicies(kubeClient, client)
 		if err != nil {
-			setupLog.Errorf("unable to create or update network policies: %v", err)
+			log.Errorf("Failed to create or update network policies: %v", err)
 			os.Exit(1)
 		}
-		setupLog.Infof("Network policy operation result: %s", opResult)
-
 		return
 	}
 
@@ -136,7 +151,7 @@ func main() {
 		LeaderElectionID:   "3ec4d290.verrazzano.io",
 	})
 	if err != nil {
-		setupLog.Errorf("unable to start manager: %v", err)
+		log.Errorf("Failed to create a controller-runtime manager: %v", err)
 		os.Exit(1)
 	}
 
@@ -147,15 +162,15 @@ func main() {
 		DryRun: config.DryRun,
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
-		setupLog.Errorf("unable to create controller: %v", err)
+		log.Error(err, "Failed to setup controller", vzlog.FieldController, "Verrazzano")
 		os.Exit(1)
 	}
 
 	// Setup the validation webhook
 	if config.WebhooksEnabled {
-		setupLog.Info("Setting up Verrazzano webhook with manager")
-		if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Errorf("unable to setup webhook with manager: %v", err)
+		log.Debug("Setting up Verrazzano webhook with manager")
+		if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr, log); err != nil {
+			log.Errorf("Failed to setup webhook with manager: %v", err)
 			os.Exit(1)
 		}
 		mgr.GetWebhookServer().CertDir = config.CertDir
@@ -166,15 +181,15 @@ func main() {
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoManagedCluster")
+		log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoManagedCluster")
 		os.Exit(1)
 	}
 
 	// Setup the validation webhook
 	if config.WebhooksEnabled {
-		setupLog.Info("Setting up VerrazzanoManagedCluster webhook with manager")
+		log.Debug("Setting up VerrazzanoManagedCluster webhook with manager")
 		if err = (&clustersv1alpha1.VerrazzanoManagedCluster{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Errorf("unable to setup webhook with manager: %v", err)
+			log.Errorf("Failed to setup webhook with manager: %v", err)
 			os.Exit(1)
 		}
 		mgr.GetWebhookServer().CertDir = config.CertDir
@@ -182,9 +197,9 @@ func main() {
 
 	// +kubebuilder:scaffold:builder
 
-	setupLog.Info("starting manager")
+	log.Info("Starting controller-runtime manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Errorf("problem running manager: %v", err)
+		log.Errorf("Failed starting controller-runtime manager: %v", err)
 		os.Exit(1)
 	}
 }

@@ -19,7 +19,7 @@ import (
 // allNamespacesFound is a list of the namespaces found
 var allNamespacesFound []string
 
-// verrazzanoNamespacesFound is a list of the verrazzano namespaces found
+// verrazzanoNamespacesFound is a list of the Verrazzano namespaces found
 var verrazzanoNamespacesFound []string
 
 // Pattern matchers
@@ -39,7 +39,7 @@ var verrazzanoAnalysisFunctions = map[string]func(log *zap.SugaredLogger, cluste
 	"Installation status": installationStatus,
 }
 
-// AnalyzeVerrazano handles high level checking for Verrazzano itself. Note that we are not necessarily going to drill deeply here and
+// AnalyzeVerrazzano handles high level checking for Verrazzano itself. Note that we are not necessarily going to drill deeply here and
 // we may actually handle scenarios as part of the other drill-downs separately
 func AnalyzeVerrazzano(log *zap.SugaredLogger, clusterRoot string) (err error) {
 	log.Debugf("AnalyzeVerrazzano called for %s", clusterRoot)
@@ -48,7 +48,7 @@ func AnalyzeVerrazzano(log *zap.SugaredLogger, clusterRoot string) (err error) {
 		PendingIssues: make(map[string]report.Issue),
 	}
 
-	// Call the verrazzano analysis functions
+	// Call the Verrazzano analysis functions
 	for functionName, function := range verrazzanoAnalysisFunctions {
 		err := function(log, clusterRoot, &issueReporter)
 		if err != nil {
@@ -74,7 +74,7 @@ func installationStatus(log *zap.SugaredLogger, clusterRoot string, issueReporte
 		return err
 	}
 	for _, namespace := range allNamespacesFound {
-		// These are verrazzano owned namespaces
+		// These are Verrazzano owned namespaces
 		if strings.Contains(namespace, "verrazzano") {
 			verrazzanoNamespacesFound = append(verrazzanoNamespacesFound, namespace)
 			deploymentList, err := GetDeploymentList(log, files.FindFileInNamespace(clusterRoot, namespace, "deployments.json"))
@@ -93,13 +93,13 @@ func installationStatus(log *zap.SugaredLogger, clusterRoot string, issueReporte
 		}
 
 		// TBD: For now not enumerating out potentially related namespaces that could be here even
-		// without verrazzano (cattle, keycloak, etc...). Those will still be in the AllNamespacesFound if present
+		// without Verrazzano (cattle, keycloak, etc...). Those will still be in the AllNamespacesFound if present
 		// so until there is an explicit need to separate those, not doing that here (we could though)
 	}
 
 	// TODO: Inspect the verrazzano-install namespace platform operator logs. We should be able to glean state from the
 	//       the logs here, and what the name of the install job resource to look for is.
-	// TODO: Inspect the default namespace for a verrazzano install job pod logs. Inspecting the logs should here should
+	// TODO: Inspect the default namespace for a Verrazzano install job pod logs. Inspecting the logs should here should
 	//       tell us whether an install/uninstall was done and what state it thinks it is in. NOTE, a user can name this
 	//       how they want, so use the resource gleaned above on what to look for here.
 	// TODO: Inspect the verrazzano-system namespace. The deployments/status here will tell us what we need to fan out

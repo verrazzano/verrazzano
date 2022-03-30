@@ -51,30 +51,57 @@ function wait_for_ingress_ip() {
   fi
 }
 
-# Wait for a deployment to become available in target namespace
+function execute_wait {
+  fn=$1
+  shift
+  for iter in {1..60}; do
+    if ${fn} $* 2>&1 > /dev/null; then
+      return 0
+    fi
+    log "Waiting..."
+    sleep 10s
+  done
+  return 1
+}
+
+function get_ns {
+  kubectl get namespace ${1}
+}
+
+function get_deployment {
+  kubectl get -n $1  deployment $2
+}
+
+# Wait for a deployment to become available in target namespace up to 20m max
 # - scaffolding support while we move some things to the platform operator; some components have dependencies
 #   on others during install at present
 function wait_for_deployment {
   local ns=$1
   local deployment=$2
-  for iter in {1..60}; do
-    if ! kubectl get namespace ${ns} 2>&1 > /dev/null; then
-      echo Waiting for namespace ${ns}...
-      sleep 5s
-    else
-      break
+  # Wait up 5 min for the ns to appear
+  log "Waiting for namespace $ns to be created..."
+  execute_wait get_ns $ns
+  # Wait up 5 min for the deployment to appear
+  log "Waiting for deployment ${deployment} in namespace $ns to be created..."
+  execute_wait get_deployment $ns ${deployment}
+
+  # Wait for a max of up to 20 mins for the deployment
+  intervalWaitSeconds=60
+  intervalsMax=20
+  for ((iter=1; iter < $intervalsMax; iter++)); do
+    log "Waiting for deployment ${deployment} in namespace $ns to become available..."
+    if kubectl  wait --for=condition=available deployment ${deployment} -n ${ns}  --timeout=${intervalWaitSeconds}s 2>&1 > /dev/null; then
+      log "Wait for deployment ${deployment} completed"
+      return 0
+    fi
+    if [[ $iter -gt 2 ]] && [[ $(($iter % 2)) -eq 0 ]]; then
+      log "Waited for ${deployment} for $(( ${iter}*${intervalWaitSeconds} )) seconds, checking for slow image pulls in namespace $ns"
+      check_for_slow_image_pulls $ns || true  # eat the failure error code, we want to keep checking
     fi
   done
-  for iter in {1..60}; do
-    if ! kubectl get -n ${ns}  deployment ${deployment} 2>&1 > /dev/null; then
-      echo Waiting for deployment ${deployment}...
-      sleep 5s
-    else
-      break
-    fi
-  done
-  kubectl  wait --for=condition=available deployment ${deployment} -n ${ns}  --timeout=7m
-  return $?
+  log "Wait for deployment ${deployment} FAILED, deployment ${ns}/${deployment} state:"
+  kubectl  describe deployment -n ${ns} ${deployment} || true
+  return 1
 }
 
 function get_rancher_access_token {
@@ -414,7 +441,7 @@ function check_for_slow_image_pulls() {
     return 0
   fi
 
-  log "Slow image pulls detected for namepace $1 after install failure"
+  log "Slow image pulls detected for namepace $1"
   return 1
 }
 
@@ -460,16 +487,16 @@ The status of that component is reported in the \".status.components\" field of 
 }
 
 VERRAZZANO_DIR=${SCRIPT_DIR}/.verrazzano
-
-VERRAZZANO_KUBECONFIG="${VERRAZZANO_KUBECONFIG:-}"
-if [ -z "${VERRAZZANO_KUBECONFIG}" ] ; then
-  fail "Environment variable VERRAZZANO_KUBECONFIG must be set and point to a valid kubernetes configuration file"
+if [[ -z "$VERRAZZNO_KUBECONFIG_DISABLED" ]]; then
+  VERRAZZANO_KUBECONFIG="${VERRAZZANO_KUBECONFIG:-}"
+  if [ -z "${VERRAZZANO_KUBECONFIG}" ] ; then
+    fail "Environment variable VERRAZZANO_KUBECONFIG must be set and point to a valid kubernetes configuration file"
+  fi
+  if [ ! -f "${VERRAZZANO_KUBECONFIG}" ] ; then
+    fail "Environment variable VERRAZZANO_KUBECONFIG points to file ${VERRAZZANO_KUBECONFIG} which does not exist"
+  fi
+  export KUBECONFIG="${VERRAZZANO_KUBECONFIG}"
 fi
-if [ ! -f "${VERRAZZANO_KUBECONFIG}" ] ; then
-  fail "Environment variable VERRAZZANO_KUBECONFIG points to file ${VERRAZZANO_KUBECONFIG} which does not exist"
-fi
-export KUBECONFIG="${VERRAZZANO_KUBECONFIG}"
-
 
 command -v helm >/dev/null 2>&1 || {
   fail "helm is required but cannot be found on the path. Aborting."

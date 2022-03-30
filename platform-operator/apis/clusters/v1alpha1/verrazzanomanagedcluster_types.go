@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -35,6 +35,15 @@ type ConditionType string
 const (
 	// Ready = true means the VMC is ready to be used and all resources needed have been generated
 	ConditionReady ConditionType = "Ready"
+)
+
+// StateType identifies the state of the VMC which is shown in Verrazzano Dashboard.
+type StateType string
+
+const (
+	StateActive   StateType = "Active"
+	StateInactive StateType = "Inactive"
+	StatePending  StateType = "Pending"
 )
 
 // Condition describes a condition that occurred on the VerrazzanoManagedCluster resource
@@ -74,6 +83,8 @@ type VerrazzanoManagedClusterStatus struct {
 	// Last time the agent from this managed cluster connected to the admin cluster.
 	// +optional
 	LastAgentConnectTime *metav1.Time `json:"lastAgentConnectTime,omitempty"`
+	// State of the Cluster to determine if it is Active, Pending, or Inactive.
+	State StateType `json:"state"`
 	// Verrazzano API Server URL for the managed cluster.
 	APIUrl string `json:"apiUrl,omitempty"`
 	// Prometheus Host for the managed cluster.

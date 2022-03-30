@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package loggingtrait
@@ -6,12 +6,16 @@ package loggingtrait
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"os"
 	"strings"
 
-	"github.com/go-logr/logr"
 	oamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,12 +37,13 @@ const (
 	loggingMountPath          = "/fluentd/etc/custom.conf"
 	loggingKey                = "custom.conf"
 	defaultMode         int32 = 400
+	controllerName            = "loggingtrait"
 )
 
 // LoggingTraitReconciler reconciles a LoggingTrait object
 type LoggingTraitReconciler struct {
 	client.Client
-	Log    logr.Logger
+	Log    *zap.SugaredLogger
 	Scheme *runtime.Scheme
 }
 
@@ -53,15 +58,46 @@ type LoggingTraitReconciler struct {
 // +kubebuilder:rbac:groups=apps,resources=pods,verbs=get;list;watch;update;patch;delete
 
 func (r *LoggingTraitReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	var err error
-	ctx := context.Background()
-	log := r.Log.WithValues("loggingtrait", req.NamespacedName)
 
-	var trait *oamv1alpha1.LoggingTrait
-	if trait, err = r.fetchTrait(ctx, req.NamespacedName); err != nil || trait == nil {
-		return reconcile.Result{}, client.IgnoreNotFound(err)
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == constants.KubeSystem {
+		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
+		log.Infof("Logging trait resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
+		return reconcile.Result{}, nil
 	}
 
+	ctx := context.Background()
+	var err error
+	var trait *oamv1alpha1.LoggingTrait
+	if trait, err = r.fetchTrait(ctx, req.NamespacedName, zap.S()); err != nil || trait == nil {
+		return clusters.IgnoreNotFoundWithLog(err, zap.S())
+	}
+	log, err := clusters.GetResourceLogger("loggingtrait", req.NamespacedName, trait)
+	if err != nil {
+		zap.S().Errorf("Failed to create controller logger for logging trait resource: %v", err)
+		return clusters.NewRequeueWithDelay(), nil
+	}
+	log.Oncef("Reconciling logging trait resource %v, generation %v", req.NamespacedName, trait.Generation)
+
+	res, err := r.doReconcile(ctx, trait, log)
+	if clusters.ShouldRequeue(res) {
+		return res, nil
+	}
+	// Never return an error since it has already been logged and we don't want the
+	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
+	if err != nil {
+		return clusters.NewRequeueWithDelay(), nil
+	}
+
+	log.Oncef("Finished reconciling logging trait %v", req.NamespacedName)
+
+	return ctrl.Result{}, nil
+}
+
+// doReconcile performs the reconciliation operations for the logging trait
+func (r *LoggingTraitReconciler) doReconcile(ctx context.Context, trait *oamv1alpha1.LoggingTrait, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
 	if trait.DeletionTimestamp.IsZero() {
 		result, supported, err := r.reconcileTraitCreateOrUpdate(ctx, log, trait)
 		if err != nil {
@@ -69,7 +105,7 @@ func (r *LoggingTraitReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 		}
 		if !supported {
 			// If the workload kind is not supported then delete the trait
-			r.Log.V(1).Info(fmt.Sprintf("deleting trait %s because workload is not supported", trait.Name))
+			log.Debugf("Deleting trait %s because workload is not supported", trait.Name)
 
 			err = r.Client.Delete(context.TODO(), trait, &client.DeleteOptions{})
 
@@ -81,7 +117,7 @@ func (r *LoggingTraitReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 }
 
 // reconcileTraitDelete reconciles a logging trait that is being deleted.
-func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log logr.Logger, trait *oamv1alpha1.LoggingTrait) (ctrl.Result, error) {
+func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log vzlog.VerrazzanoLogger, trait *oamv1alpha1.LoggingTrait) (ctrl.Result, error) {
 	// Retrieve the workload the trait is related to
 	workload, err := vznav.FetchWorkloadFromTrait(ctx, r, log, trait)
 	if err != nil || workload == nil {
@@ -94,7 +130,7 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 	// Retrieve the child resources of the workload
 	resources, err := vznav.FetchWorkloadChildren(ctx, r, log, workload)
 	if err != nil {
-		log.Error(err, "Error retrieving the workloads child resources", "workload", workload.UnstructuredContent())
+		log.Errorw(fmt.Sprintf("Failed to retrieve the workloads child resources: %v", err), "workload", workload.UnstructuredContent())
 	}
 
 	// If there are no child resources fallback to the workload
@@ -109,7 +145,7 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 		if ok, containersFieldPath := locateContainersField(resource); ok {
 			resourceContainers, ok, err := unstructured.NestedSlice(resource.Object, containersFieldPath...)
 			if !ok || err != nil {
-				log.Error(err, "Failed to gather resource containers")
+				log.Errorf("Failed to gather resource containers: %v", err)
 				return reconcile.Result{}, err
 			}
 
@@ -145,7 +181,7 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 			}
 			err = unstructured.SetNestedSlice(resource.Object, resourceContainers, containersFieldPath...)
 			if err != nil {
-				log.Error(err, "Unable to set resource containers")
+				log.Errorf("Failed to set resource containers: %v", err)
 				return reconcile.Result{}, err
 			}
 
@@ -156,10 +192,10 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 		if ok, volumesFieldPath := locateVolumesField(resource); ok {
 			resourceVolumes, ok, err := unstructured.NestedSlice(resource.Object, volumesFieldPath...)
 			if err != nil {
-				log.Error(err, "Failed to gather resource volumes")
+				log.Errorf("Failed to gather resource volumes: %v", err)
 				return reconcile.Result{}, err
 			} else if !ok {
-				log.Info("No volumes found")
+				log.Debug("No volumes found")
 			}
 
 			loggingVolume := &corev1.Volume{
@@ -180,7 +216,7 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 			repeat := false
 			for i, resVolume := range resourceVolumes {
 				if loggingVolume.Name == resVolume.(map[string]interface{})["name"] {
-					log.Info("Volume was discarded because of duplicate names", "volume name", loggingVolume.Name)
+					log.Debugw("Volume was discarded because of duplicate names", "volume name", loggingVolume.Name)
 					repeat = true
 					repeatNo = i
 					break
@@ -193,7 +229,7 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 
 			err = unstructured.SetNestedSlice(resource.Object, resourceVolumes, volumesFieldPath...)
 			if err != nil {
-				log.Error(err, "Unable to set resource containers")
+				log.Errorf("Failed to set resource containers: %v", err)
 				return reconcile.Result{}, err
 			}
 
@@ -206,7 +242,7 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 			// if the resource exists
 			specCopy, _, err := unstructured.NestedFieldCopy(resource.Object, "spec")
 			if err != nil {
-				log.Error(err, "Unable to make a copy of the spec")
+				log.Errorf("Failed to make a copy of the spec: %v", err)
 				return reconcile.Result{}, err
 			}
 
@@ -214,10 +250,10 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 				return unstructured.SetNestedField(resource.Object, specCopy, "spec")
 			})
 			if err != nil {
-				log.Error(err, "Error creating or updating resource")
+				log.Errorf("Failed creating or updating resource: %v", err)
 				return reconcile.Result{}, err
 			}
-			log.Info("Successfully removed logging from resource", "resource GVK", resource.GroupVersionKind().String())
+			log.Debugw("Successfully removed logging from resource", "resource GVK", resource.GroupVersionKind().String())
 		}
 
 		r.deleteLoggingConfigMap(ctx, trait, resource)
@@ -229,23 +265,21 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log l
 
 // fetchTrait attempts to get a trait given a namespaced name.
 // Will return nil for the trait and no error if the trait does not exist.
-func (r *LoggingTraitReconciler) fetchTrait(ctx context.Context, name types.NamespacedName) (*oamv1alpha1.LoggingTrait, error) {
+func (r *LoggingTraitReconciler) fetchTrait(ctx context.Context, name types.NamespacedName, log *zap.SugaredLogger) (*oamv1alpha1.LoggingTrait, error) {
 	var trait oamv1alpha1.LoggingTrait
-	r.Log.Info("Fetch trait", "trait", name)
+	log.Debugw("Fetch trait", "trait", name)
 	if err := r.Get(ctx, name, &trait); err != nil {
 		if k8serrors.IsNotFound(err) {
-			r.Log.Info("Trait has been deleted")
+			log.Debug("Trait has been deleted")
 			return nil, nil
 		}
-		r.Log.Info("Failed to fetch trait")
+		log.Debug("Failed to fetch trait")
 		return nil, err
 	}
 	return &trait, nil
 }
 
-func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
-	ctx context.Context, log logr.Logger, trait *oamv1alpha1.LoggingTrait) (
-	ctrl.Result, bool, error) {
+func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(ctx context.Context, log vzlog.VerrazzanoLogger, trait *oamv1alpha1.LoggingTrait) (ctrl.Result, bool, error) {
 
 	// Retrieve the workload the trait is related to
 	workload, err := vznav.FetchWorkloadFromTrait(ctx, r, log, trait)
@@ -258,7 +292,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 	// Retrieve the child resources of the workload
 	resources, err := vznav.FetchWorkloadChildren(ctx, r, log, workload)
 	if err != nil {
-		log.Error(err, "Error retrieving the workloads child resources", "workload", workload.UnstructuredContent())
+		log.Errorw(fmt.Sprintf("Failed to retrieve the workloads child resources: %v", err), "workload", workload.UnstructuredContent())
 	}
 
 	// If there are no child resources fallback to the workload
@@ -274,7 +308,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 		if ok, containersFieldPath := locateContainersField(resource); ok {
 			resourceContainers, ok, err := unstructured.NestedSlice(resource.Object, containersFieldPath...)
 			if !ok || err != nil {
-				log.Error(err, "Failed to gather resource containers")
+				log.Errorf("Failed to gather resource containers: %v", err)
 				return reconcile.Result{}, true, err
 			}
 			loggingVolumeMount := &corev1.VolumeMount{
@@ -285,7 +319,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 			}
 			uLoggingVolumeMount, err := struct2Unmarshal(loggingVolumeMount)
 			if err != nil {
-				log.Error(err, "Failed to unmarshal a volumeMount for logging")
+				log.Errorf("Failed to unmarshal a volumeMount for logging: %v", err)
 			}
 
 			var volumeMountFieldPath = []string{"volumeMounts"}
@@ -293,10 +327,10 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 			for _, resContainer := range resourceContainers {
 				volumeMounts, ok, err := unstructured.NestedSlice(resContainer.(map[string]interface{}), volumeMountFieldPath...)
 				if err != nil {
-					log.Error(err, "Failed to gather resource container volumeMounts")
+					log.Errorf("Failed to gather resource container volumeMounts: %v", err)
 					return reconcile.Result{}, true, err
 				} else if !ok {
-					log.Info("No volumeMounts found")
+					log.Debug("No volumeMounts found")
 				}
 				resourceVolumeMounts = appendSliceOfInterface(resourceVolumeMounts, volumeMounts)
 
@@ -323,12 +357,12 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 
 			uLoggingContainer, err := struct2Unmarshal(loggingContainer)
 			if err != nil {
-				log.Error(err, "Failed to unmarshal a container for logging")
+				log.Errorf("Failed to unmarshal a container for logging: %v", err)
 			}
 
 			err = unstructured.SetNestedSlice(uLoggingContainer.Object, resourceVolumeMounts, volumeMountFieldPath...)
 			if err != nil {
-				log.Error(err, "Unable to set container volumeMounts")
+				log.Errorf("Failed to set container volumeMounts: %v", err)
 				return reconcile.Result{}, true, err
 			}
 
@@ -349,7 +383,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 
 			err = unstructured.SetNestedSlice(resource.Object, resourceContainers, containersFieldPath...)
 			if err != nil {
-				log.Error(err, "Unable to set resource containers")
+				log.Errorf("Failed to set resource containers: %v", err)
 				return reconcile.Result{}, true, err
 			}
 
@@ -361,10 +395,10 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 		if ok, volumesFieldPath := locateVolumesField(resource); ok {
 			resourceVolumes, ok, err := unstructured.NestedSlice(resource.Object, volumesFieldPath...)
 			if err != nil {
-				log.Error(err, "Failed to gather resource volumes")
+				log.Errorf("Failed to gather resource volumes: %v", err)
 				return reconcile.Result{}, true, err
 			} else if !ok {
-				log.Info("No volumes found")
+				log.Debug("No volumes found")
 			}
 
 			loggingVolume := &corev1.Volume{
@@ -382,14 +416,14 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 			}
 			uLoggingVolume, err := struct2Unmarshal(loggingVolume)
 			if err != nil {
-				log.Error(err, "Error unmarshalling logging volume")
+				log.Errorf("Failed unmarshalling logging volume: %v", err)
 			}
 
 			repeatNo := 0
 			repeat := false
 			for i, resVolume := range resourceVolumes {
 				if loggingVolume.Name == resVolume.(map[string]interface{})["name"] {
-					log.Info("Volume was discarded because of duplicate names", "volume name", loggingVolume.Name)
+					log.Debugw("Volume was discarded because of duplicate names", "volume name", loggingVolume.Name)
 					repeat = true
 					repeatNo = i
 					break
@@ -403,7 +437,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 
 			err = unstructured.SetNestedSlice(resource.Object, resourceVolumes, volumesFieldPath...)
 			if err != nil {
-				log.Error(err, "Unable to set resource volumes")
+				log.Errorf("Failed to set resource volumes: %v", err)
 				return reconcile.Result{}, true, err
 			}
 
@@ -421,7 +455,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 			// if the resource exists
 			specCopy, _, err := unstructured.NestedFieldCopy(resource.Object, "spec")
 			if err != nil {
-				log.Error(err, "Unable to make a copy of the spec")
+				log.Errorf("Failed to make a copy of the spec: %v", err)
 				r.deleteLoggingConfigMap(ctx, trait, resource)
 				return reconcile.Result{}, true, err
 			}
@@ -430,15 +464,15 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
 				return unstructured.SetNestedField(resource.Object, specCopy, "spec")
 			})
 			if err != nil {
-				log.Error(err, "Error creating or updating resource")
+				log.Errorf("Failed creating or updating resource: %v", err)
 				r.deleteLoggingConfigMap(ctx, trait, resource)
 				return reconcile.Result{}, true, err
 			}
-			log.Info("Successfully deploy logging to resource", "resource GVK", resource.GroupVersionKind().String())
+			log.Debugw("Successfully deploy logging to resource", "resource GVK", resource.GroupVersionKind().String())
 		}
 
 		if !isFound {
-			log.Info("Cannot locate any resource", "total resources", len(resources))
+			log.Debugw("Cannot locate any resource", "total resources", len(resources))
 			return reconcile.Result{}, false, fmt.Errorf(errLoggingResource)
 		}
 

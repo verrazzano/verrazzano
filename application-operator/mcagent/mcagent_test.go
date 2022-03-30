@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
@@ -14,7 +14,9 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -22,7 +24,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -40,7 +41,7 @@ var validSecret = corev1.Secret{
 // THEN ensure that there are no calls to sync any multi-cluster resources
 func TestProcessAgentThreadNoProjects(t *testing.T) {
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 
 	// Managed cluster mocks
 	mcMocker := gomock.NewController(t)
@@ -110,7 +111,7 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 // THEN ensure that there are no calls to get VerrazzanoProject resources
 func TestProcessAgentThreadSecretDeleted(t *testing.T) {
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 
 	// Managed cluster mocks
 	mcMocker := gomock.NewController(t)
@@ -324,7 +325,7 @@ func TestSyncer_updateDeployment(t *testing.T) {
 					return nil
 				})
 
-			// Managed Cluster - expect call to get the verrazzano monitoring operator deployment.
+			// Managed Cluster - expect call to get the Verrazzano monitoring operator deployment.
 			mcMock.EXPECT().
 				Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: deploymentName}, gomock.Not(gomock.Nil())).
 				DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
@@ -336,7 +337,7 @@ func TestSyncer_updateDeployment(t *testing.T) {
 
 			// update only when registration is updated
 			if oldVersion != newVersion {
-				// Managed Cluster - expect another call to get the verrazzano operator deployment prior to updating it
+				// Managed Cluster - expect another call to get the Verrazzano operator deployment prior to updating it
 				mcMock.EXPECT().
 					Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: deploymentName}, gomock.Not(gomock.Nil())).
 					DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
@@ -358,7 +359,7 @@ func TestSyncer_updateDeployment(t *testing.T) {
 			// Make the request
 			s := &Syncer{
 				LocalClient: mcMock,
-				Log:         ctrl.Log.WithName("test"),
+				Log:         zap.S().With("test"),
 				Context:     context.TODO(),
 			}
 			s.updateDeployment(deploymentName)
@@ -417,7 +418,7 @@ func expectAdminVMCStatusUpdateSuccess(adminMock *mocks.MockClient, vmcName type
 // THEN updateVMCStatus returns a non-nil error
 func TestSyncer_updateVMCStatus(t *testing.T) {
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 
 	// Admin cluster mocks
 	adminMocker := gomock.NewController(t)
@@ -457,8 +458,8 @@ func expectGetAPIServerURLCalled(mock *mocks.MockClient) {
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
 				Name:      name.Name}
-			ingress.Spec.TLS = []networkingv1.IngressTLS{{
-				Hosts: []string{"console"},
+			ingress.Spec.Rules = []networkingv1.IngressRule{{
+				Host: "console",
 			}}
 			return nil
 		})
@@ -475,8 +476,8 @@ func expectGetPrometheusHostCalled(mock *mocks.MockClient) {
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
 				Name:      name.Name}
-			ingress.Spec.TLS = []networkingv1.IngressTLS{{
-				Hosts: []string{"prometheus"},
+			ingress.Spec.Rules = []networkingv1.IngressRule{{
+				Host: "prometheus",
 			}}
 			return nil
 		})
@@ -650,9 +651,9 @@ func TestSyncer_configureLogging(t *testing.T) {
 
 			// Managed Cluster - expect call to get the fluentd daemonset.
 			mcMock.EXPECT().
-				Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "fluentd"}, gomock.Not(gomock.Nil())).
+				Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: vzconstants.FluentdDaemonSetName}, gomock.Not(gomock.Nil())).
 				DoAndReturn(func(ctx context.Context, name types.NamespacedName, ds *appsv1.DaemonSet) error {
-					ds.Name = "fluentd"
+					ds.Name = vzconstants.FluentdDaemonSetName
 					ds.Namespace = constants.VerrazzanoSystemNamespace
 					ds.Spec = getTestDaemonSetSpec(dsClusterName, dsEsURL, dsSecretName)
 					return nil
@@ -661,9 +662,9 @@ func TestSyncer_configureLogging(t *testing.T) {
 			// we always call controllerutil.CreateOrUpdate in mcagent_test, which will do another get for fluentd
 			// daemonset. However, update will only be called if we changed the daemonset
 			mcMock.EXPECT().
-				Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "fluentd"}, gomock.Not(gomock.Nil())).
+				Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: vzconstants.FluentdDaemonSetName}, gomock.Not(gomock.Nil())).
 				DoAndReturn(func(ctx context.Context, name types.NamespacedName, ds *appsv1.DaemonSet) error {
-					ds.Name = "fluentd"
+					ds.Name = vzconstants.FluentdDaemonSetName
 					ds.Namespace = constants.VerrazzanoSystemNamespace
 					ds.Spec = getTestDaemonSetSpec(dsClusterName, dsEsURL, dsSecretName)
 					return nil
@@ -680,7 +681,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 			// Make the request
 			s := &Syncer{
 				LocalClient: mcMock,
-				Log:         ctrl.Log.WithName("test"),
+				Log:         zap.S().With("test"),
 				Context:     context.TODO(),
 			}
 			s.configureLogging()

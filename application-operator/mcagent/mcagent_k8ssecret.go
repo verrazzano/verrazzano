@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 
@@ -23,8 +25,10 @@ func (s *Syncer) syncSecretObjects(namespace string) error {
 	allAdminMCAppConfigs := clustersv1alpha1.MultiClusterApplicationConfigurationList{}
 	listOptions := &client.ListOptions{Namespace: namespace}
 	err := s.AdminClient.List(s.Context, &allAdminMCAppConfigs, listOptions)
-	if err != nil {
-		return client.IgnoreNotFound(err)
+	// When placements are changed a forbidden error can be returned.  In this case,
+	// we want to fall through and delete orphaned resources.
+	if err != nil && !apierrors.IsNotFound(err) && !apierrors.IsForbidden(err) {
+		return err
 	}
 
 	// Write each of the secrets that are targeted for the local cluster
@@ -39,7 +43,7 @@ func (s *Syncer) syncSecretObjects(namespace string) error {
 				}
 				_, err = s.createOrUpdateSecret(secret, mcAppConfig.Name)
 				if err != nil {
-					s.Log.Error(err, "Error syncing object",
+					s.Log.Errorw(fmt.Sprintf("Failed syncing object: %v", err),
 						"Secret",
 						types.NamespacedName{Namespace: secret.Namespace, Name: secret.Name})
 				}
@@ -54,7 +58,7 @@ func (s *Syncer) syncSecretObjects(namespace string) error {
 	listOptions = &client.ListOptions{Namespace: namespace}
 	err = s.LocalClient.List(s.Context, &allLocalSecrets, listOptions)
 	if err != nil {
-		s.Log.Error(err, "failed to list Secrets on local cluster")
+		s.Log.Errorf("Failed to list Secrets on local cluster: %v", err)
 		return nil
 	}
 	for i, secret := range allLocalSecrets.Items {
@@ -67,7 +71,7 @@ func (s *Syncer) syncSecretObjects(namespace string) error {
 		if !s.k8sSecretPlacedOnCluster(secret, &allAdminMCAppConfigs) {
 			err := s.LocalClient.Delete(s.Context, &allLocalSecrets.Items[i])
 			if err != nil {
-				s.Log.Error(err, fmt.Sprintf("failed to delete Secret with name %s and namespace %s", secret.Name, secret.Namespace))
+				s.Log.Errorf("Failed to delete Secret with name %s and namespace %s: %v", secret.Name, secret.Namespace, err)
 			}
 		} else {
 			// Update the secrets label if the secret was shared across app configs and one of the app configs
@@ -90,7 +94,7 @@ func (s *Syncer) syncSecretObjects(namespace string) error {
 				secret.Labels[mcAppConfigsLabel] = strings.Join(actualAppConfigs, ",")
 				err := s.LocalClient.Update(s.Context, &allLocalSecrets.Items[i])
 				if err != nil {
-					s.Log.Error(err, fmt.Sprintf("failed to update Secret with name %s and namespace %s", secret.Name, secret.Namespace))
+					s.Log.Errorf("Failed to update Secret with name %s and namespace %s: %v", secret.Name, secret.Namespace, err)
 				}
 			}
 		}

@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vmi
@@ -9,15 +9,23 @@ import (
 	"net/http"
 
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
 // Elastic contains information about the Elasticsearch instance
 type Elastic struct {
-	ClusterName   string `json:"cluster_name"`
+	ClusterName   string         `json:"cluster_name"`
+	EsVersion     ElasticVersion `json:"version"`
 	binding       string
 	vmiHTTPClient *retryablehttp.Client
+}
+
+// ElasticVersion contains information about the version of Elasticsearch instance
+type ElasticVersion struct {
+	Number       string `json:"number"`
+	Distribution string `json:"distribution"`
 }
 
 // GetElastic gets Elastic representing the elasticsearch cluster with the binding name
@@ -35,35 +43,51 @@ func (e *Elastic) PodsRunning() bool {
 		fmt.Sprintf("vmi-%s-grafana", e.binding),
 		fmt.Sprintf("vmi-%s-prometheus", e.binding),
 		fmt.Sprintf("vmi-%s-api", e.binding)}
-	running := pkg.PodsRunning("verrazzano-system", expectedElasticPods)
+	running, _ := pkg.PodsRunning("verrazzano-system", expectedElasticPods)
 
 	if running {
 		expectedElasticPods = []string{
 			fmt.Sprintf("vmi-%s-es-ingest", e.binding),
 			fmt.Sprintf("vmi-%s-es-data", e.binding)}
-		running = pkg.PodsRunning("verrazzano-system", expectedElasticPods)
+		running, _ = pkg.PodsRunning("verrazzano-system", expectedElasticPods)
 	}
 
 	return running
 }
 
-// Connect checks if the elasticsearch cluster can be connected
-func (e *Elastic) Connect() bool {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+// getResponseBody gets the response body for the specified path from elasticsearch cluster
+func (e *Elastic) getResponseBody(path string) ([]byte, error) {
+	kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
-		return false
+		return nil, err
 	}
 
-	api, err := pkg.GetAPIEndpoint(kubeconfigPath)
+	api, err := pkg.GetAPIEndpoint(kubeConfigPath)
 	if err != nil {
-		return false
+		pkg.Log(pkg.Error, fmt.Sprintf("Error getting API endpoint: %v", err))
+		return nil, err
 	}
+
 	esURL, err := api.GetElasticURL()
 	if err != nil {
-		return false
+		pkg.Log(pkg.Error, fmt.Sprintf("Error getting Elasticsearch URL: %v", err))
+		return nil, err
 	}
-	body, err := e.retryGet(esURL, pkg.Username, pkg.GetVerrazzanoPasswordInCluster(kubeconfigPath), kubeconfigPath)
+
+	esURL = esURL + path
+
+	password, err := pkg.GetVerrazzanoPasswordInCluster(kubeConfigPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return e.retryGet(esURL, pkg.Username, password, kubeConfigPath)
+}
+
+// Connect checks if the elasticsearch cluster can be connected
+func (e *Elastic) Connect() bool {
+	body, err := e.getResponseBody("/")
 	if err != nil {
 		return false
 	}
@@ -104,7 +128,7 @@ func (e *Elastic) retryGet(url, username, password string, kubeconfigPath string
 func (e *Elastic) getVmiHTTPClient(kubeconfigPath string) (*retryablehttp.Client, error) {
 	if e.vmiHTTPClient == nil {
 		var err error
-		e.vmiHTTPClient, err = pkg.GetBindingVmiHTTPClient(e.binding, kubeconfigPath)
+		e.vmiHTTPClient, err = pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
 		if err != nil {
 			return nil, err
 		}
@@ -115,32 +139,17 @@ func (e *Elastic) getVmiHTTPClient(kubeconfigPath string) (*retryablehttp.Client
 // ListIndices lists elasticsearch indices
 func (e *Elastic) ListIndices() []string {
 	idx := []string{}
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
-		return nil
-	}
-
-	for i := range e.getIndices(kubeconfigPath) {
+	for i := range e.getIndices() {
 		idx = append(idx, i)
 	}
 	return idx
 }
 
 // getIndices gets index metadata (aliases, mappings, and settings) of all elasticsearch indices in the given cluster
-func (e *Elastic) getIndices(kubeconfigPath string) map[string]interface{} {
-	api, err := pkg.GetAPIEndpoint(kubeconfigPath)
+func (e *Elastic) getIndices() map[string]interface{} {
+	body, err := e.getResponseBody("/_all")
 	if err != nil {
-		return nil
-	}
-	esURL, err := api.GetElasticURL()
-	if err != nil {
-		return nil
-	}
-	esURL = esURL + "/_all"
-	body, err := e.retryGet(esURL, pkg.Username, pkg.GetVerrazzanoPasswordInCluster(kubeconfigPath), kubeconfigPath)
-	if err != nil {
-		pkg.Log(pkg.Info, fmt.Sprintf("Error ListIndices %v error: %v", esURL, err))
+		pkg.Log(pkg.Info, fmt.Sprintf("Error ListIndices error: %v", err))
 		return nil
 	}
 	var indices map[string]interface{}
@@ -152,6 +161,77 @@ func (e *Elastic) getIndices(kubeconfigPath string) map[string]interface{} {
 func (e *Elastic) CheckTLSSecret() bool {
 	secretName := fmt.Sprintf("%v-tls", e.binding)
 	return pkg.SecretsCreated("verrazzano-system", secretName)
+}
+
+// CheckHealth checks the health status of Elasticsearch cluster
+// Returns true if the health status is green otherwise false
+func (e *Elastic) CheckHealth() bool {
+	supported, err := pkg.IsVerrazzanoMinVersion("1.1.0")
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Error getting Verrazzano version: %v", err))
+		return false
+	}
+	if !supported {
+		pkg.Log(pkg.Info, "Skipping Elasticsearch cluster health check since version < 1.1.0")
+		return true
+	}
+	body, err := e.getResponseBody("/_cluster/health")
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Error getting cluster health: %v", err))
+		return false
+	}
+	pkg.Log(pkg.Info, fmt.Sprintf("Response body %v", string(body)))
+	status, err := httputil.ExtractFieldFromResponseBodyOrReturnError(string(body), "status", "unable to find status in Elasticsearch health response")
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Error extracting health status from response body: %v", err))
+		return false
+	}
+	if status == "green" {
+		pkg.Log(pkg.Info, "Elasticsearch cluster health status is green")
+		return true
+	}
+	pkg.Log(pkg.Error, fmt.Sprintf("Elasticsearch cluster health status is %v instead of green", status))
+	return false
+}
+
+// CheckIndicesHealth checks the health status of indices in a cluster
+// Returns true if the health status of all the indices is green otherwise false
+func (e *Elastic) CheckIndicesHealth() bool {
+	supported, err := pkg.IsVerrazzanoMinVersion("1.1.0")
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Error getting Verrazzano version: %v", err))
+		return false
+	}
+	if !supported {
+		pkg.Log(pkg.Info, "Skipping Elasticsearch indices health check since version < 1.1.0")
+		return true
+	}
+	body, err := e.getResponseBody("/_cat/indices?format=json")
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Error getting cluster indices: %v", err))
+		return false
+	}
+	pkg.Log(pkg.Info, fmt.Sprintf("Response body %v", string(body)))
+	var indices []map[string]interface{}
+	if err := json.Unmarshal(body, &indices); err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Error unmarshalling indices response body: %v", err))
+		return false
+	}
+
+	for _, index := range indices {
+		pkg.Log(pkg.Debug, fmt.Sprintf("Index details: %v", index))
+		val, found := index["health"]
+		if !found {
+			pkg.Log(pkg.Error, fmt.Sprintf("Not able to find the health of the index: %v", index))
+			return false
+		}
+		if val.(string) != "green" {
+			pkg.Log(pkg.Error, fmt.Sprintf("Current index health status %v is not green", val))
+			return false
+		}
+	}
+	pkg.Log(pkg.Info, "The health status of all the indices is green")
+	return true
 }
 
 ////Check the Elasticsearch certificate

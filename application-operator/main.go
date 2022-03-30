@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package main
@@ -8,24 +8,13 @@ import (
 	"os"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
-	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
-	"github.com/verrazzano/verrazzano/pkg/log"
-	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
-	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"k8s.io/client-go/tools/clientcmd"
-	ctrl "sigs.k8s.io/controller-runtime"
-	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
-
+	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	wls "github.com/verrazzano/verrazzano/application-operator/apis/weblogic/v8"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterapplicationconfiguration"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustercomponent"
@@ -33,14 +22,31 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustersecret"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/verrazzanoproject"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/cohworkload"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/containerizedworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/helidonworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/ingresstrait"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingtrait"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/metricsbinding"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/namespace"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/webhooks"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
 	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
 	"github.com/verrazzano/verrazzano/application-operator/mcagent"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	vmcclient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned/scheme"
+	"go.uber.org/zap"
+	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
+	k8sapiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	ctrl "sigs.k8s.io/controller-runtime"
+	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 var (
@@ -49,17 +55,19 @@ var (
 
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
+	_ = k8sapiext.AddToScheme(scheme)
 
 	// Add core oam types to scheme
 	_ = core.AddToScheme(scheme)
 
 	// Add ingress trait to scheme
 	_ = vzapi.AddToScheme(scheme)
+	_ = vzapp.AddToScheme(scheme)
 	_ = istioclinet.AddToScheme(scheme)
 	_ = wls.AddToScheme(scheme)
 
 	_ = clustersv1alpha1.AddToScheme(scheme)
-	_ = certapiv1alpha2.AddToScheme(scheme)
+	_ = certapiv1.AddToScheme(scheme)
 }
 
 const defaultScraperName = "verrazzano-system/vmi-system-prometheus-0"
@@ -89,9 +97,10 @@ func main() {
 
 	flag.Parse()
 	kzap.UseFlagOptions(&opts)
-	log.InitLogs(opts)
+	vzlog.InitLogs(opts)
 
-	setupLog := ctrl.Log.WithName("operator").WithName("setup")
+	// Initialize the zap log
+	log := zap.S()
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
@@ -101,97 +110,92 @@ func main() {
 		LeaderElectionID:   "5df248b3.verrazzano.io",
 	})
 	if err != nil {
-		setupLog.Error(err, "unable to start manager")
+		log.Errorf("Failed to start manager: %v", err)
 		os.Exit(1)
 	}
 
 	if err = (&ingresstrait.Reconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("IngressTrait"),
+		Log:    log,
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "IngressTrait")
+		log.Errorf("Failed to create IngressTrait controller: %v", err)
 		os.Exit(1)
 	}
 	metricsReconciler := &metricstrait.Reconciler{
 		Client:  mgr.GetClient(),
-		Log:     ctrl.Log.WithName("controllers").WithName("MetricsTrait"),
+		Log:     log,
 		Scheme:  mgr.GetScheme(),
 		Scraper: defaultMetricsScraper,
 	}
 
 	if err = metricsReconciler.SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MetricsTrait")
+		log.Errorf("Failed to create MetricsTrait controller: %v", err)
 		os.Exit(1)
 	}
+
+	config, err := ctrl.GetConfig()
+	if err != nil {
+		log.Errorf("Failed to get kubeconfig: %v", err)
+		os.Exit(1)
+	}
+
+	kubeClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		log.Errorf("Failed to get clientset", err)
+		os.Exit(1)
+	}
+
 	if enableWebhooks {
-		setupLog.Info("Setting up certificates for webhook")
+		log.Debug("Setting up certificates for webhook")
 		caCert, err := certificates.SetupCertificates(certDir)
 		if err != nil {
-			setupLog.Error(err, "unable to setup certificates for webhook")
+			log.Errorf("Failed to setup certificates for webhook: %v", err)
 			os.Exit(1)
 		}
 
-		config, err := ctrl.GetConfig()
-		if err != nil {
-			setupLog.Error(err, "unable to get kubeconfig")
-			os.Exit(1)
-		}
-
-		kubeClient, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			setupLog.Error(err, "unable to get clientset")
-			os.Exit(1)
-		}
-
-		setupLog.Info("Updating webhook configurations")
+		log.Debug("Updating webhook configurations")
 		err = certificates.UpdateMutatingWebhookConfiguration(kubeClient, caCert, certificates.AppConfigMutatingWebhookName)
 		if err != nil {
-			setupLog.Error(err, "unable to update appconfig mutating webhook configuration")
+			log.Errorf("Failed to update appconfig mutating webhook configuration: %v", err)
 			os.Exit(1)
 		}
 		err = certificates.UpdateMutatingWebhookConfiguration(kubeClient, caCert, certificates.IstioMutatingWebhookName)
 		if err != nil {
-			setupLog.Error(err, "unable to update pod mutating webhook configuration")
+			log.Errorf("Failed to update pod mutating webhook configuration: %v", err)
 			os.Exit(1)
 		}
 
 		// IngressTrait validating webhook
 		err = certificates.UpdateValidatingWebhookConfiguration(kubeClient, caCert, certificates.IngressTraitValidatingWebhookName)
 		if err != nil {
-			setupLog.Error(err, "unable to update ingresstrait validation webhook configuration")
+			log.Errorf("Failed to update IngressTrait validation webhook configuration: %v", err)
 			os.Exit(1)
 		}
 		if err = (&vzapi.IngressTrait{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "IngressTrait")
+			log.Errorf("Failed to create IngressTrait webhook: %v", err)
 			os.Exit(1)
 		}
 
 		// VerrazzanoProject validating webhook
 		err = certificates.UpdateValidatingWebhookConfiguration(kubeClient, caCert, certificates.VerrazzanoProjectValidatingWebhookName)
 		if err != nil {
-			setupLog.Error(err, "unable to update verrazzanoproject validation webhook configuration")
+			log.Errorf("Failed to update verrazzanoproject validation webhook configuration: %v", err)
 			os.Exit(1)
 		}
 		mgr.GetWebhookServer().Register(
 			"/validate-clusters-verrazzano-io-v1alpha1-verrazzanoproject",
 			&webhook.Admission{Handler: &webhooks.VerrazzanoProjectValidator{}})
 
-		// Get a Kubernetes dynamic client.
-		restConfig, err := clientcmd.BuildConfigFromFlags("", "")
+		dynamicClient, err := dynamic.NewForConfig(config)
 		if err != nil {
-			setupLog.Error(err, "unable to build kube config")
-			os.Exit(1)
-		}
-		dynamicClient, err := dynamic.NewForConfig(restConfig)
-		if err != nil {
-			setupLog.Error(err, "unable to create Kubernetes dynamic client")
+			log.Errorf("Failed to create Kubernetes dynamic client: %v", err)
 			os.Exit(1)
 		}
 
-		istioClientSet, err := istioversionedclient.NewForConfig(restConfig)
+		istioClientSet, err := istioversionedclient.NewForConfig(config)
 		if err != nil {
-			setupLog.Error(err, "Failed to create istio client")
+			log.Errorf("Failed to create istio client: %v", err)
 			os.Exit(1)
 		}
 
@@ -208,16 +212,39 @@ func main() {
 			},
 		)
 
+		// Register the metrics binding mutating webhooks for plain old kubernetes objects workloads
+		mgr.GetWebhookServer().Register(
+			webhooks.MetricsBindingGeneratorWorkloadPath,
+			&webhook.Admission{
+				Handler: &webhooks.GeneratorWorkloadWebhook{
+					Client:     mgr.GetClient(),
+					KubeClient: kubeClient,
+				},
+			},
+		)
+		mgr.GetWebhookServer().Register(
+			webhooks.MetricsBindingLabelerPodPath,
+			&webhook.Admission{
+				Handler: &webhooks.LabelerPodWebhook{
+					Client:        mgr.GetClient(),
+					DynamicClient: dynamicClient,
+				},
+			},
+		)
+		err = certificates.UpdateMutatingWebhookConfiguration(kubeClient, caCert, certificates.MetricsBindingWebhookName)
+		if err != nil {
+			log.Errorf("Failed to update %s mutating webhook configuration: %v", certificates.MetricsBindingWebhookName, err)
+			os.Exit(1)
+		}
+
 		mgr.GetWebhookServer().CertDir = certDir
 		appconfigWebhook := &webhooks.AppConfigWebhook{
 			Client:      mgr.GetClient(),
 			KubeClient:  kubeClient,
 			IstioClient: istioClientSet,
 			Defaulters: []webhooks.AppConfigDefaulter{
-				&webhooks.MetricsTraitDefaulter{},
-				&webhooks.NetPolicyDefaulter{
-					Client:          mgr.GetClient(),
-					NamespaceClient: kubeClient.CoreV1().Namespaces(),
+				&webhooks.MetricsTraitDefaulter{
+					Client: mgr.GetClient(),
 				},
 			},
 		}
@@ -226,7 +253,7 @@ func main() {
 		// MultiClusterApplicationConfiguration validating webhook
 		err = certificates.UpdateValidatingWebhookConfiguration(kubeClient, caCert, certificates.MultiClusterApplicationConfigurationName)
 		if err != nil {
-			setupLog.Error(err, "unable to update multiclusterapplicationconfiguration validation webhook configuration")
+			log.Errorf("Failed to update multiclusterapplicationconfiguration validation webhook configuration: %v", err)
 			os.Exit(1)
 		}
 		mgr.GetWebhookServer().Register(
@@ -236,7 +263,7 @@ func main() {
 		// MultiClusterComponent validating webhook
 		err = certificates.UpdateValidatingWebhookConfiguration(kubeClient, caCert, certificates.MultiClusterComponentName)
 		if err != nil {
-			setupLog.Error(err, "unable to update multiclusterapplicationconfiguration validation webhook configuration")
+			log.Errorf("Failed to update multiclusterapplicationconfiguration validation webhook configuration: %v", err)
 			os.Exit(1)
 		}
 		mgr.GetWebhookServer().Register(
@@ -246,7 +273,7 @@ func main() {
 		// MultiClusterConfigMap validating webhook
 		err = certificates.UpdateValidatingWebhookConfiguration(kubeClient, caCert, certificates.MultiClusterConfigMapName)
 		if err != nil {
-			setupLog.Error(err, "unable to update multiclusterconfigmap validation webhook configuration")
+			log.Errorf("Failed to update multiclusterconfigmap validation webhook configuration: %v", err)
 			os.Exit(1)
 		}
 		mgr.GetWebhookServer().Register(
@@ -256,7 +283,7 @@ func main() {
 		// MultiClusterSecret validating webhook
 		err = certificates.UpdateValidatingWebhookConfiguration(kubeClient, caCert, certificates.MultiClusterSecretName)
 		if err != nil {
-			setupLog.Error(err, "unable to update multiclustersecret validation webhook configuration")
+			log.Errorf("Failed to update multiclustersecret validation webhook configuration: %v", err)
 			os.Exit(1)
 		}
 		mgr.GetWebhookServer().Register(
@@ -264,32 +291,42 @@ func main() {
 			&webhook.Admission{Handler: &webhooks.MultiClusterSecretValidator{}})
 	}
 
+	logger, err := vzlog.BuildZapLogger(0)
+	if err != nil {
+		log.Errorf("Failed to create ApplicationConfiguration logger: %v", err)
+		os.Exit(1)
+	}
 	if err = (&cohworkload.Reconciler{
 		Client:  mgr.GetClient(),
-		Log:     ctrl.Log.WithName("controllers").WithName("VerrazzanoCoherenceWorkload"),
+		Log:     logger,
 		Scheme:  mgr.GetScheme(),
 		Metrics: metricsReconciler,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoCoherenceWorkload")
+		log.Errorf("Failed to create VerrazzanoCoherenceWorkload controller: %v", err)
 		os.Exit(1)
 	}
 	wlsWorkloadReconciler := &wlsworkload.Reconciler{
 		Client:  mgr.GetClient(),
-		Log:     ctrl.Log.WithName("controllers").WithName("VerrazzanoWebLogicWorkload"),
+		Log:     log,
 		Scheme:  mgr.GetScheme(),
 		Metrics: metricsReconciler,
 	}
 	if err = wlsWorkloadReconciler.SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoWebLogicWorkload")
+		log.Errorf("Failed to create VerrazzanoWeblogicWorkload controller %v", err)
 		os.Exit(1)
 	}
 	if err = (&helidonworkload.Reconciler{
 		Client:  mgr.GetClient(),
-		Log:     ctrl.Log.WithName("controllers").WithName("VerrazzanoHelidonWorkload"),
+		Log:     log,
 		Scheme:  mgr.GetScheme(),
 		Metrics: metricsReconciler,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoHelidonWorkload")
+		log.Errorf("Failed to create VerrazzanoHelidonWorkload controller: %v", err)
+		os.Exit(1)
+	}
+	// Setup the namespace reconciler
+	if _, err := namespace.NewNamespaceController(mgr, log.With("controller", "VerrazzanoNamespaceController")); err != nil {
+		log.Errorf("Failed to create VerrazzanoNamespaceController controller: %v", err)
 		os.Exit(1)
 	}
 
@@ -298,65 +335,93 @@ func main() {
 
 	if err = (&multiclustersecret.Reconciler{
 		Client:       mgr.GetClient(),
-		Log:          ctrl.Log.WithName("controllers").WithName(clustersv1alpha1.MultiClusterSecretKind),
+		Log:          log,
 		Scheme:       mgr.GetScheme(),
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", clustersv1alpha1.MultiClusterSecretKind)
+		log.Errorf("Failed to create %s controller: %v", clustersv1alpha1.MultiClusterSecretKind, err)
 		os.Exit(1)
 	}
 	if err = (&multiclustercomponent.Reconciler{
 		Client:       mgr.GetClient(),
-		Log:          ctrl.Log.WithName("controllers").WithName(clustersv1alpha1.MultiClusterComponentKind),
+		Log:          log,
 		Scheme:       mgr.GetScheme(),
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", clustersv1alpha1.MultiClusterComponentKind)
+		log.Errorf("Failed to create %s controller: %v", clustersv1alpha1.MultiClusterComponentKind, err)
 		os.Exit(1)
 	}
 	if err = (&multiclusterconfigmap.Reconciler{
 		Client:       mgr.GetClient(),
-		Log:          ctrl.Log.WithName("controllers").WithName(clustersv1alpha1.MultiClusterConfigMapKind),
+		Log:          log,
 		Scheme:       mgr.GetScheme(),
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", clustersv1alpha1.MultiClusterConfigMapKind)
+		log.Errorf("Failed to create %s controller %v", clustersv1alpha1.MultiClusterConfigMapKind, err)
 		os.Exit(1)
 	}
 	if err = (&multiclusterapplicationconfiguration.Reconciler{
 		Client:       mgr.GetClient(),
-		Log:          ctrl.Log.WithName("controllers").WithName(clustersv1alpha1.MultiClusterAppConfigKind),
+		Log:          log,
 		Scheme:       mgr.GetScheme(),
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", clustersv1alpha1.MultiClusterAppConfigKind)
+		log.Errorf("Failed to create %s controller: %v", clustersv1alpha1.MultiClusterAppConfigKind, err)
 		os.Exit(1)
 	}
+	scheme := mgr.GetScheme()
+	vmcclient.AddToScheme(scheme)
 	if err = (&verrazzanoproject.Reconciler{
 		Client:       mgr.GetClient(),
-		Log:          ctrl.Log.WithName("controllers").WithName(clustersv1alpha1.VerrazzanoProjectKind),
-		Scheme:       mgr.GetScheme(),
+		Log:          log,
+		Scheme:       scheme,
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", clustersv1alpha1.VerrazzanoProjectKind)
+		log.Errorf("Failed to create %s controller %v", clustersv1alpha1.VerrazzanoProjectKind, err)
 		os.Exit(1)
 	}
 	if err = (&loggingtrait.LoggingTraitReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("LoggingTrait"),
+		Log:    log,
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "LoggingTrait")
+		log.Errorf("Failed to create LoggingTrait controller: %v", err)
 		os.Exit(1)
 	}
+	if err = (&appconfig.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    logger,
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		log.Errorf("Failed to create ApplicationConfiguration controller: %v", err)
+		os.Exit(1)
+	}
+	if err = (&containerizedworkload.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    logger,
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		log.Errorf("Failed to create ContainerizedWorkload controller: %v", err)
+		os.Exit(1)
+	}
+	// Register the metrics workload controller
+	if err = (&metricsbinding.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    logger,
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		log.Errorf("Failed to create MetricsBinding controller: %v", err)
+		os.Exit(1)
+	}
+
 	// +kubebuilder:scaffold:builder
 
-	setupLog.Info("Starting agent for syncing multi-cluster objects")
-	go mcagent.StartAgent(mgr.GetClient(), agentChannel, ctrl.Log.WithName("multi-cluster").WithName("agent"))
+	log.Debug("Starting agent for syncing multi-cluster objects")
+	go mcagent.StartAgent(mgr.GetClient(), agentChannel, log)
 
-	setupLog.Info("starting manager")
+	log.Info("Starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
+		log.Errorf("Failed to run manager: %v", err)
 		os.Exit(1)
 	}
 }

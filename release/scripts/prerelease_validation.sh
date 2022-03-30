@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -29,7 +29,7 @@ SCRIPT_DIR=$(dirname "$0")
 # Check for CRD changes
 
 echo "Checking for CRD changes... you should visually inspect for potential backward incompatibilities"
-$SCRIPT_DIR/compare_crds.sh
+$SCRIPT_DIR/compare_crds.sh $VERSION
 EXIT_CODE=$?
 echo ""
 
@@ -57,5 +57,6 @@ else
 fi
 
 # If the IGNORE_FAILURES environment variable is set, always exit with zero
+echo "IGNORE_FAILURES=${IGNORE_FAILURES}"
 
-[[ -n "$IGNORE_FAILURES" ]] && exit 0 || exit $EXIT_CODE
+[[ "$IGNORE_FAILURES" == "true" ]] && exit 0 || exit $EXIT_CODE

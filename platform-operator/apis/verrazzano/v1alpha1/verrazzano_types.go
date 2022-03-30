@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -76,11 +76,23 @@ type VerrazzanoSpec struct {
 	// at present only EmptyDirVolumeSource or PersistentVolumeClaimVolumeSource are supported. If PersistentVolumeClaimVolumeSource
 	// is used, it must reference a VolumeClaimSpecTemplate in the VolumeClaimSpecTemplates section.
 	// +optional
-	DefaultVolumeSource *corev1.VolumeSource `json:"defaultVolumeSource,omitempty"`
+	// +patchStrategy=replace
+	DefaultVolumeSource *corev1.VolumeSource `json:"defaultVolumeSource,omitempty" patchStrategy:"replace"`
 
 	// VolumeClaimSpecTemplates Defines a named set of PVC configurations that can be referenced from components using persistent volumes.
 	// +optional
-	VolumeClaimSpecTemplates []VolumeClaimSpecTemplate `json:"volumeClaimSpecTemplates,omitempty"`
+	// +patchStrategy=merge,retainKeys
+	VolumeClaimSpecTemplates []VolumeClaimSpecTemplate `json:"volumeClaimSpecTemplates,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
+}
+
+// CommonKubernetesSpec - Kubernetes resources that are common to a subgroup of components
+type CommonKubernetesSpec struct {
+	// Replicas specifies the number of pod instances to run
+	// +optional
+	Replicas uint32 `json:"replicas,omitempty"`
+	// Affinity specifies the group of affinity scheduling rules
+	// +optional
+	Affinity *corev1.Affinity `json:"affinity,omitempty"`
 }
 
 // SecuritySpec defines the security configuration for Verrazzano
@@ -120,6 +132,8 @@ type InstanceInfo struct {
 	GrafanaURL *string `json:"grafanaUrl,omitempty"`
 	// PrometheusURL The Prometheus URL for this Verrazzano installation
 	PrometheusURL *string `json:"prometheusUrl,omitempty"`
+	// KialiURL The Kiali URL for this Verrazzano installation
+	KialiURL *string `json:"kialiUrl,omitempty"`
 }
 
 // VerrazzanoStatus defines the observed state of Verrazzano
@@ -131,7 +145,7 @@ type VerrazzanoStatus struct {
 	// The latest available observations of an object's current state.
 	Conditions []Condition `json:"conditions,omitempty"`
 	// State of the Verrazzano custom resource
-	State StateType `json:"state,omitempty"`
+	State VzStateType `json:"state,omitempty"`
 	// States of the individual installed components
 	Components ComponentStatusMap `json:"components,omitempty"`
 }
@@ -145,7 +159,7 @@ type ComponentStatusDetails struct {
 	// Information about the current state of a component
 	Conditions []Condition `json:"conditions,omitempty"`
 	// The version of Verrazzano that is installed
-	State StateType `json:"state,omitempty"`
+	State CompStateType `json:"state,omitempty"`
 	// The version of Verrazzano that is installed
 	Version string `json:"version,omitempty"`
 }
@@ -154,35 +168,35 @@ type ComponentStatusDetails struct {
 type ConditionType string
 
 const (
-	// PreInstall means an install about to start.
-	PreInstall ConditionType = "PreInstall"
+	// CondPreInstall means an install about to start.
+	CondPreInstall ConditionType = "PreInstall"
 
-	// InstallStarted means an install is in progress.
-	InstallStarted ConditionType = "InstallStarted"
+	// CondInstallStarted means an install is in progress.
+	CondInstallStarted ConditionType = "InstallStarted"
 
-	// InstallComplete means the install job has completed its execution successfully
-	InstallComplete ConditionType = "InstallComplete"
+	// CondInstallComplete means the install job has completed its execution successfully
+	CondInstallComplete ConditionType = "InstallComplete"
 
-	// InstallFailed means the install job has failed during execution.
-	InstallFailed ConditionType = "InstallFailed"
+	// CondInstallFailed means the install job has failed during execution.
+	CondInstallFailed ConditionType = "InstallFailed"
 
-	// UninstallStarted means an uninstall is in progress.
-	UninstallStarted ConditionType = "UninstallStarted"
+	// CondUninstallStarted means an uninstall is in progress.
+	CondUninstallStarted ConditionType = "UninstallStarted"
 
-	// UninstallComplete means the uninstall job has completed its execution successfully
-	UninstallComplete ConditionType = "UninstallComplete"
+	// CondUninstallComplete means the uninstall job has completed its execution successfully
+	CondUninstallComplete ConditionType = "UninstallComplete"
 
-	// UninstallFailed means the uninstall job has failed during execution.
-	UninstallFailed ConditionType = "UninstallFailed"
+	// CondUninstallFailed means the uninstall job has failed during execution.
+	CondUninstallFailed ConditionType = "UninstallFailed"
 
-	// UpgradeStarted means that an upgrade has been started.
-	UpgradeStarted ConditionType = "UpgradeStarted"
+	// CondUpgradeStarted means that an upgrade has been started.
+	CondUpgradeStarted ConditionType = "UpgradeStarted"
 
-	// UpgradeFailed means the upgrade has failed during execution.
-	UpgradeFailed ConditionType = "UpgradeFailed"
+	// CondUpgradeFailed means the upgrade has failed during execution.
+	CondUpgradeFailed ConditionType = "UpgradeFailed"
 
-	// UpgradeComplete means the upgrade has completed successfully
-	UpgradeComplete ConditionType = "UpgradeComplete"
+	// CondUpgradeComplete means the upgrade has completed successfully
+	CondUpgradeComplete ConditionType = "UpgradeComplete"
 )
 
 // Condition describes current state of an install.
@@ -199,39 +213,53 @@ type Condition struct {
 	Message string `json:"message,omitempty"`
 }
 
-// StateType identifies the state of an install/uninstall/upgrade
-type StateType string
+// type VzStateType string identifies the state of a Verrazzano installation
+type VzStateType string
 
 const (
-	// Disabled is the state for when a component is not currently installed
-	Disabled StateType = "Disabled"
+	// VzStateInstalling is the state when an install is in progress
+	VzStateInstalling VzStateType = "Installing"
 
-	// PreInstalling is the state when an install is about to be started
-	PreInstalling StateType = "PreInstalling"
+	// VzStateUninstalling is the state when an uninstall is in progress
+	VzStateUninstalling VzStateType = "Uninstalling"
 
-	// Installing is the state when an install is in progress
-	Installing StateType = "Installing"
+	// VzStateUpgrading is the state when an upgrade is in progress
+	VzStateUpgrading VzStateType = "Upgrading"
 
-	// Uninstalling is the state when an uninstall is in progress
-	Uninstalling StateType = "Uninstalling"
+	// VzStateReady is the state when a Verrazzano resource can perform an uninstall or upgrade
+	VzStateReady VzStateType = "Ready"
 
-	// Upgrading is the state when an upgrade is in progress
-	Upgrading StateType = "Upgrading"
+	// VzStateFailed is the state when an install/uninstall/upgrade has failed
+	VzStateFailed VzStateType = "Failed"
+)
 
-	// Updating is the state when a component configuration update is being applied
-	Updating StateType = "Updating"
+// CompStateType identifies the state of a component
+type CompStateType string
 
-	// Error is the state when a Verrazzano resource has experienced an error that may leave it in an unstable state
-	Error StateType = "Error"
+const (
+	// CompStateDisabled is the state for when a component is not currently installed
+	CompStateDisabled CompStateType = "Disabled"
 
-	// Ready is the state when a Verrazzano resource can perform an uninstall or upgrade
-	Ready StateType = "Ready"
+	// CompStatePreInstalling is the state when an install is about to be started
+	CompStatePreInstalling CompStateType = "PreInstalling"
 
-	// Quiescing state when waiting for stable condition to start uninstall
-	Quiescing StateType = "Quiescing"
+	// CompStateInstalling is the state when an install is in progress
+	CompStateInstalling CompStateType = "Installing"
 
-	// Failed is the state when an install/uninstall/upgrade has failed
-	Failed StateType = "Failed"
+	// CompStateUninstalling is the state when an uninstall is in progress
+	CompStateUninstalling CompStateType = "Uninstalling"
+
+	// CompStateUpgrading is the state when an upgrade is in progress
+	CompStateUpgrading CompStateType = "Upgrading"
+
+	// CompStateError is the state when a Verrazzano resource has experienced an error that may leave it in an unstable state
+	CompStateError CompStateType = "Error"
+
+	// CompStateReady is the state when a Verrazzano resource can perform an uninstall or upgrade
+	CompStateReady CompStateType = "Ready"
+
+	// CompStateFailed is the state when an install/uninstall/upgrade has failed
+	CompStateFailed CompStateType = "Failed"
 )
 
 // ComponentSpec contains a set of components used by Verrazzano
@@ -244,13 +272,30 @@ type ComponentSpec struct {
 	// +optional
 	CoherenceOperator *CoherenceOperatorComponent `json:"coherenceOperator,omitempty"`
 
+	// Alertmanager configuration
+	// +optional
+	Alertmanager *AlertmanagerComponent `json:"alertmanager,omitempty"`
+
+	// ApplicationOperator configuration
+	// +optional
+	ApplicationOperator *ApplicationOperatorComponent `json:"applicationOperator,omitempty"`
+
+	// AuthProxy configuration
+	// +optional
+	AuthProxy *AuthProxyComponent `json:"authProxy,omitempty"`
+
+	// OAM configuration
+	// +optional
+	OAM *OAMComponent `json:"oam,omitempty"`
+
 	// Console configuration
 	// +optional
 	Console *ConsoleComponent `json:"console,omitempty"`
 
 	// DNS contains the DNS component configuration
 	// +optional
-	DNS *DNSComponent `json:"dns,omitempty"`
+	// +patchStrategy=replace
+	DNS *DNSComponent `json:"dns,omitempty" patchStrategy:"replace"`
 
 	// Elasticsearch configuration
 	// +optional
@@ -272,6 +317,10 @@ type ComponentSpec struct {
 	// +optional
 	Istio *IstioComponent `json:"istio,omitempty"`
 
+	// Kiali contains the Kiali component configuration
+	// +optional
+	Kiali *KialiComponent `json:"kiali,omitempty"`
+
 	// Keycloak contains the Keycloak component configuration
 	// +optional
 	Keycloak *KeycloakComponent `json:"keycloak,omitempty"`
@@ -291,6 +340,10 @@ type ComponentSpec struct {
 	// WebLogicOperator configuration
 	// +optional
 	WebLogicOperator *WebLogicOperatorComponent `json:"weblogicOperator,omitempty"`
+
+	// Verrazzano configuration
+	// +optional
+	Verrazzano *VerrazzanoComponent `json:"verrazzano,omitempty"`
 }
 
 // MonitoringComponent Common configuration for monitoring components
@@ -305,7 +358,9 @@ type ElasticsearchComponent struct {
 
 	// Arguments for installing Elasticsearch
 	// +optional
-	ESInstallArgs []InstallArgs `json:"installArgs,omitempty"`
+	// +patchMergeKey=name
+	// +patchStrategy=merge,retainKeys
+	ESInstallArgs []InstallArgs `json:"installArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 }
 
 // KibanaComponent specifies the Kibana configuration.
@@ -327,11 +382,72 @@ type PrometheusComponent struct {
 type CertManagerComponent struct {
 	// Certificate used for an install
 	// +optional
-	Certificate Certificate `json:"certificate,omitempty"`
+	// +patchStrategy=replace
+	Certificate Certificate `json:"certificate,omitempty" patchStrategy:"replace"`
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // CoherenceOperatorComponent specifies the Coherence Operator configuration
 type CoherenceOperatorComponent struct {
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// AlertmanagerComponent specifies the Alertmanager configuration
+type AlertmanagerComponent struct {
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// Location of the Alertmanager ConfigMap
+	// +optional
+	AlertmanagerConfigMap *NamespaceName `json:"alertmanagerConfigMap,omitempty"`
+	// Location of the Prometheus rule ConfigMap
+	// +optional
+	RuleConfigMap *NamespaceName `json:"ruleConfigMap,omitempty"`
+	// Location of the Alertmanager receiver template ConfigMap
+	// +optional
+	ReceiverTemplateConfigMap *NamespaceName `json:"receiverTemplateConfigMap,omitempty"`
+}
+
+// ApplicationOperatorComponent specifies the Application Operator configuration
+type ApplicationOperatorComponent struct {
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// AuthProxyKubernetesSection specifies the Kubernetes resources that can be customized for AuthProxy.
+type AuthProxyKubernetesSection struct {
+	CommonKubernetesSpec `json:",inline"`
+}
+
+// AuthProxyComponent specifies the AuthProxy configuration
+type AuthProxyComponent struct {
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// +optional
+	Kubernetes *AuthProxyKubernetesSection `json:"kubernetes,omitempty"`
+}
+
+// OAMComponent specifies the OAM configuration
+type OAMComponent struct {
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// VerrazzanoComponent specifies the Verrazzano configuration
+type VerrazzanoComponent struct {
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Arguments for installing Verrazzano
+	// +optional
+	// +patchMergeKey=name
+	// +patchStrategy=merge,retainKeys
+	InstallArgs []InstallArgs `json:"installArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
+}
+
+// KialiComponent specifies the Kiali configuration
+type KialiComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 }
@@ -361,24 +477,53 @@ type IngressNginxComponent struct {
 	Type IngressType `json:"type,omitempty"`
 	// Arguments for installing NGINX
 	// +optional
-	NGINXInstallArgs []InstallArgs `json:"nginxInstallArgs,omitempty"`
+	// +patchMergeKey=name
+	// +patchStrategy=merge,retainKeys
+	NGINXInstallArgs []InstallArgs `json:"nginxInstallArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 	// Ports to be used for NGINX
 	// +optional
 	Ports []corev1.ServicePort `json:"ports,omitempty"`
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// IstioIngressSection specifies the specific config options available for the Istio Ingress Gateways.
+type IstioIngressSection struct {
+	Kubernetes *IstioKubernetesSection `json:"kubernetes,omitempty"`
+}
+
+// IstioEgressSection specifies the specific config options available for the Istio Egress Gateways.
+type IstioEgressSection struct {
+	Kubernetes *IstioKubernetesSection `json:"kubernetes,omitempty"`
+}
+
+// IstioKubernetesSection specifies the Kubernetes resources that can be customized for Istio.
+type IstioKubernetesSection struct {
+	CommonKubernetesSpec `json:",inline"`
 }
 
 // IstioComponent specifies the Istio configuration
 type IstioComponent struct {
 	// Arguments for installing Istio
 	// +optional
-	IstioInstallArgs []InstallArgs `json:"istioInstallArgs,omitempty"`
+	// +patchMergeKey=name
+	// +patchStrategy=merge,retainKeys
+	IstioInstallArgs []InstallArgs `json:"istioInstallArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// +optional
+	Ingress *IstioIngressSection `json:"ingress,omitempty"`
+	// +optional
+	Egress *IstioEgressSection `json:"egress,omitempty"`
 }
 
 // KeycloakComponent specifies the Keycloak configuration
 type KeycloakComponent struct {
 	// Arguments for installing Keycloak
 	// +optional
-	KeycloakInstallArgs []InstallArgs `json:"keycloakInstallArgs,omitempty"`
+	// +patchMergeKey=name
+	// +patchStrategy=merge,retainKeys
+	KeycloakInstallArgs []InstallArgs `json:"keycloakInstallArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 	// MySQL contains the MySQL component configuration needed for Keycloak
 	// +optional
 	MySQL MySQLComponent `json:"mysql,omitempty"`
@@ -390,12 +535,15 @@ type KeycloakComponent struct {
 type MySQLComponent struct {
 	// Arguments for installing MySQL
 	// +optional
-	MySQLInstallArgs []InstallArgs `json:"mysqlInstallArgs,omitempty"`
+	// +patchMergeKey=name
+	// +patchStrategy=merge,retainKeys
+	MySQLInstallArgs []InstallArgs `json:"mysqlInstallArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 	// VolumeSource Defines the type of volume to be used for persistence; at present only EmptyDirVolumeSource or
 	// PersistentVolumeClaimVolumeSource are supported. If PersistentVolumeClaimVolumeSource
 	// is used, it must reference a VolumeClaimSpecTemplate in the VolumeClaimSpecTemplates section.
 	// +optional
-	VolumeSource *corev1.VolumeSource `json:"volumeSource,omitempty"`
+	// +patchStrategy=replace
+	VolumeSource *corev1.VolumeSource `json:"volumeSource,omitempty" patchStrategy:"replace"`
 }
 
 // RancherComponent specifies the Rancher configuration
@@ -410,11 +558,16 @@ type FluentdComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 	// +optional
-	ExtraVolumeMounts []VolumeMount `json:"extraVolumeMounts,omitempty"`
+	// +patchStrategy=merge,retainKeys
+	ExtraVolumeMounts []VolumeMount `json:"extraVolumeMounts,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"source"`
 	// +optional
 	ElasticsearchURL string `json:"elasticsearchURL,omitempty"`
 	// +optional
 	ElasticsearchSecret string `json:"elasticsearchSecret,omitempty"`
+
+	// Configuration for integration with OCI (Oracle Cloud Infrastructure) Logging Service
+	// +optional
+	OCI *OciLoggingConfiguration `json:"oci,omitempty"`
 }
 
 // WebLogicOperatorComponent specifies the WebLogic Operator configuration
@@ -436,7 +589,16 @@ type InstallArgs struct {
 	SetString bool `json:"setString,omitempty"`
 	// List of values for named install argument
 	// +optional
-	ValueList []string `json:"valueList,omitempty"`
+	// +patchStrategy=replace
+	ValueList []string `json:"valueList,omitempty" patchStrategy:"replace"`
+}
+
+// NamespaceName Identifies a Namespace and Name pair for a resource
+type NamespaceName struct {
+	// Namespace of a resource
+	Namespace string `json:"namespace"`
+	// Name of a resource
+	Name string `json:"name"`
 }
 
 // VolumeMount defines a hostPath type Volume mount
@@ -508,6 +670,7 @@ type OCI struct {
 	DNSZoneCompartmentOCID string `json:"dnsZoneCompartmentOCID"`
 	DNSZoneOCID            string `json:"dnsZoneOCID"`
 	DNSZoneName            string `json:"dnsZoneName"`
+	DNSScope               string `json:"dnsScope,omitempty"`
 }
 
 // External DNS type
@@ -521,4 +684,11 @@ type IngressType string
 
 func init() {
 	SchemeBuilder.Register(&Verrazzano{}, &VerrazzanoList{})
+}
+
+// OCI Logging configuration for Fluentd DaemonSet
+type OciLoggingConfiguration struct {
+	DefaultAppLogID string `json:"defaultAppLogId"`
+	SystemLogID     string `json:"systemLogId"`
+	APISecret       string `json:"apiSecret,omitempty"`
 }

@@ -1,15 +1,16 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package syscomponents
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"os"
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -35,7 +36,6 @@ const (
 	keycloakNamespace         = "keycloak"
 
 	// Constants for various metric labels, used in the validation
-	labelManagedCluster = "managed_cluster"
 	nodeExporter        = "node-exporter"
 	istiod              = "istiod"
 	prometheus          = "prometheus"
@@ -51,6 +51,10 @@ const (
 
 var clusterName = os.Getenv("CLUSTER_NAME")
 var kubeConfig = os.Getenv("KUBECONFIG")
+
+// will be initialized in BeforeSuite so that any log messages during init are available
+var clusterNameMetricsLabel = ""
+var isMinVersion110 bool
 
 var adminKubeConfig string
 var isManagedClusterProfile bool
@@ -77,8 +81,11 @@ var excludePodsIstio = []string{
 	"istiod",
 }
 
-var _ = BeforeSuite(func() {
+var t = framework.NewTestFramework("syscomponents")
+
+var _ = t.BeforeSuite(func() {
 	present := false
+	var err error
 	adminKubeConfig, present = os.LookupEnv("ADMIN_KUBECONFIG")
 	isManagedClusterProfile = pkg.IsManagedClusterProfile()
 	if isManagedClusterProfile {
@@ -88,18 +95,26 @@ var _ = BeforeSuite(func() {
 	} else {
 		// Include the namespace keycloak for the validation for admin cluster and single cluster installation
 		envoyStatsNamespaces = append(envoyStatsNamespaces, keycloakNamespace)
-		var err error
 		adminKubeConfig, err = k8sutil.GetKubeConfigLocation()
 		if err != nil {
 			Fail(err.Error())
 		}
 	}
+
+	isMinVersion110, err = pkg.IsVerrazzanoMinVersion("1.1.0")
+	if err != nil {
+		Fail(err.Error())
+	}
 })
 
-var _ = Describe("Prometheus Metrics", func() {
+var _ = t.AfterSuite(func() {})
+
+var _ = t.AfterEach(func() {})
+
+var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"), func() {
 	// Query Prometheus for the sample metrics from the default scraping jobs
-	var _ = Describe("for the system components", func() {
-		It("Verify sample NGINX metrics can be queried from Prometheus", func() {
+	var _ = t.Describe("for the system components", func() {
+		t.It("Verify sample NGINX metrics can be queried from Prometheus", func() {
 			Eventually(func() bool {
 				kv := map[string]string{
 					controllerNamespace: ingressNginxNamespace,
@@ -109,13 +124,13 @@ var _ = Describe("Prometheus Metrics", func() {
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
-		It("Verify sample Container Advisor metrics can be queried from Prometheus", func() {
+		t.It("Verify sample Container Advisor metrics can be queried from Prometheus", func() {
 			Eventually(func() bool {
 				return metricsContainLabels(containerStartTimeSeconds, map[string]string{})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
-		It("Verify sample Node Exporter metrics can be queried from Prometheus", func() {
+		t.It("Verify sample Node Exporter metrics can be queried from Prometheus", func() {
 			Eventually(func() bool {
 				kv := map[string]string{
 					job: nodeExporter,
@@ -124,7 +139,7 @@ var _ = Describe("Prometheus Metrics", func() {
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
-		It("Verify sample mesh metrics can be queried from Prometheus", func() {
+		t.It("Verify sample mesh metrics can be queried from Prometheus", func() {
 			Eventually(func() bool {
 				kv := map[string]string{
 					namespace: verrazzanoSystemNamespace,
@@ -133,7 +148,7 @@ var _ = Describe("Prometheus Metrics", func() {
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
-		It("Verify sample istiod metrics can be queried from Prometheus", func() {
+		t.It("Verify sample istiod metrics can be queried from Prometheus", func() {
 			Eventually(func() bool {
 				kv := map[string]string{
 					app: istiod,
@@ -143,7 +158,7 @@ var _ = Describe("Prometheus Metrics", func() {
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
-		It("Verify sample metrics can be queried from Prometheus", func() {
+		t.It("Verify sample metrics can be queried from Prometheus", func() {
 			Eventually(func() bool {
 				kv := map[string]string{
 					job: prometheus,
@@ -152,7 +167,7 @@ var _ = Describe("Prometheus Metrics", func() {
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
-		It("Verify envoy stats", func() {
+		t.It("Verify envoy stats", func() {
 			Eventually(func() bool {
 				return verifyEnvoyStats(envoyStatsRecentLookups)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
@@ -162,7 +177,7 @@ var _ = Describe("Prometheus Metrics", func() {
 
 // Validate the Istio envoy stats for the pods in the namespaces defined in envoyStatsNamespaces
 func verifyEnvoyStats(metricName string) bool {
-	envoyStatsMetric, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, labelManagedCluster, getClusterNameForPromQuery())
+	envoyStatsMetric, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, getClusterNameMetricLabel(), getClusterNameForPromQuery())
 	if err != nil {
 		return false
 	}
@@ -203,21 +218,40 @@ func verifyEnvoyStats(metricName string) bool {
 	return true
 }
 
+func getClusterNameMetricLabel() string {
+	if clusterNameMetricsLabel == "" {
+		// ignore error getting the metric label - we'll just use the default value returned
+		lbl, err := pkg.GetClusterNameMetricLabel()
+		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Error getting cluster name metric label: %s", err.Error()))
+		}
+		clusterNameMetricsLabel = lbl
+	}
+	return clusterNameMetricsLabel
+}
+
 // Assert the existence of labels for namespace and pod in the envoyStatsMetric
 func verifyLabels(envoyStatsMetric string, ns string, pod string) bool {
 	metrics := pkg.JTq(envoyStatsMetric, "data", "result").([]interface{})
 	for _, metric := range metrics {
 		if pkg.Jq(metric, "metric", namespace) == ns && pkg.Jq(metric, "metric", podName) == pod {
 			if isManagedClusterProfile {
-				// when the admin cluster scrapes the metrics from a managed cluster, as label managed_cluster with value
+				// when the admin cluster scrapes the metrics from a managed cluster, as label verrazzano_cluster with value
 				// name of the managed cluster is added to the metrics
-				if pkg.Jq(metric, "metric", labelManagedCluster) == clusterName {
+				if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == clusterName {
 					return true
 				}
 			} else {
-				// the metrics for the admin cluster or in the single cluster installation should not contain the label managed_cluster
-				if pkg.Jq(metric, "metric", labelManagedCluster) == nil {
-					return true
+				// the metrics for the admin cluster or in the single cluster installation should contain the label
+				// verrazzano_cluster with the value "local" when version 1.1 or higher.
+				if isMinVersion110 {
+					if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == "local" {
+						return true
+					}
+				} else {
+					if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == nil {
+						return true
+					}
 				}
 			}
 		}
@@ -227,7 +261,9 @@ func verifyLabels(envoyStatsMetric string, ns string, pod string) bool {
 
 // Validate the metrics contain the labels with values specified as key-value pairs of the map
 func metricsContainLabels(metricName string, kv map[string]string) bool {
-	compMetrics, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, labelManagedCluster, getClusterNameForPromQuery())
+	clusterNameValue := getClusterNameForPromQuery()
+	pkg.Log(pkg.Debug, fmt.Sprintf("Looking for metric name %s with label %s = %s", metricName, getClusterNameMetricLabel(), clusterNameValue))
+	compMetrics, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, getClusterNameMetricLabel(), clusterNameValue)
 	if err != nil {
 		return false
 	}
@@ -243,15 +279,22 @@ func metricsContainLabels(metricName string, kv map[string]string) bool {
 
 		if metricFound {
 			if isManagedClusterProfile {
-				// when the admin cluster scrapes the metrics from a managed cluster, as label managed_cluster with value
+				// when the admin cluster scrapes the metrics from a managed cluster, as label verrazzano_cluster with value
 				// name of the managed cluster is added to the metrics
-				if pkg.Jq(metric, "metric", labelManagedCluster) == clusterName {
+				if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == clusterName {
 					return true
 				}
 			} else {
-				// the metrics for the admin cluster or in the single cluster installation should not contain the label managed_cluster
-				if pkg.Jq(metric, "metric", labelManagedCluster) == nil {
-					return true
+				// the metrics for the admin cluster or in the single cluster installation should contain the label
+				// verrazzano_cluster with the local cluster as its value when version 1.1 or higher
+				if isMinVersion110 {
+					if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == "local" {
+						return true
+					}
+				} else {
+					if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == nil {
+						return true
+					}
 				}
 			}
 		}
@@ -273,6 +316,9 @@ func excludePods(pod string, excludeList []string) bool {
 func getClusterNameForPromQuery() string {
 	if isManagedClusterProfile {
 		return clusterName
+	}
+	if isMinVersion110 {
+		return "local"
 	}
 	return ""
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package sock_shop
@@ -9,6 +9,7 @@ import (
 
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -81,17 +82,20 @@ func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisC
 
 // VerifySockShopInCluster verifies that the sock-shop app resources are either present or absent
 // depending on whether the app is placed in this cluster
-func VerifySockShopInCluster(kubeconfigPath string, isAdminCluster bool, placedInThisCluster bool, projectName string, namespace string) bool {
+func VerifySockShopInCluster(kubeconfigPath string, isAdminCluster bool, placedInThisCluster bool, projectName string, namespace string) (bool, error) {
 	projectExists := projectExists(kubeconfigPath, projectName)
-	podsRunning := sockShopPodsRunning(kubeconfigPath, namespace)
+	podsRunning, err := sockShopPodsRunning(kubeconfigPath, namespace)
+	if err != nil {
+		return false, err
+	}
 
 	if placedInThisCluster {
-		return projectExists && podsRunning
+		return projectExists && podsRunning, nil
 	} else {
 		if isAdminCluster {
-			return projectExists && !podsRunning
+			return projectExists && !podsRunning, nil
 		} else {
-			return !podsRunning && !projectExists
+			return !podsRunning && !projectExists, nil
 		}
 	}
 }
@@ -103,7 +107,7 @@ func VerifySockShopDeleteOnAdminCluster(kubeconfigPath string, placedInCluster b
 	if !placedInCluster {
 		return mcResDeleted
 	}
-	appDeleted := VerifyAppDeleted(kubeconfigPath, namespace)
+	appDeleted, _ := VerifyAppDeleted(kubeconfigPath, namespace)
 
 	return mcResDeleted && appDeleted
 }
@@ -112,17 +116,16 @@ func VerifySockShopDeleteOnAdminCluster(kubeconfigPath string, placedInCluster b
 // cluster after the application has been deleted
 func VerifySockShopDeleteOnManagedCluster(kubeconfigPath string, namespace string, projectName string) bool {
 	mcResDeleted := VerifyMCResourcesDeleted(kubeconfigPath, namespace, projectName)
-	appDeleted := VerifyAppDeleted(kubeconfigPath, namespace)
+	appDeleted, _ := VerifyAppDeleted(kubeconfigPath, namespace)
 
 	return mcResDeleted && appDeleted
-
 }
 
 // VerifyAppDeleted verifies that the workload and pods are deleted on the specified cluster
-func VerifyAppDeleted(kubeconfigPath string, namespace string) bool {
-	podsRunning := sockShopPodsRunning(kubeconfigPath, namespace)
+func VerifyAppDeleted(kubeconfigPath string, namespace string) (bool, error) {
+	podsRunning, _ := sockShopPodsRunning(kubeconfigPath, namespace)
 
-	return !podsRunning
+	return !podsRunning, nil
 }
 
 // VerifyMCResourcesDeleted verifies that any resources created by the deployment are deleted on the specified cluster
@@ -177,7 +180,7 @@ func componentExists(kubeconfigPath string, namespace string, component string) 
 
 // resourceExists Check if given resource exists
 func resourceExists(gvr schema.GroupVersionResource, ns string, name string, kubeconfigPath string) bool {
-	config, err := pkg.GetKubeConfigGivenPath(kubeconfigPath)
+	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Could not get kube config: %v\n", err))
 		return false
@@ -201,6 +204,11 @@ func resourceExists(gvr schema.GroupVersionResource, ns string, name string, kub
 }
 
 // sockShopPodsRunning Check if expected pods are running on a given cluster
-func sockShopPodsRunning(kubeconfigPath string, namespace string) bool {
-	return pkg.PodsRunningInCluster(namespace, expectedPodsSockShop, kubeconfigPath)
+func sockShopPodsRunning(kubeconfigPath string, namespace string) (bool, error) {
+	result, err := pkg.PodsRunningInCluster(namespace, expectedPodsSockShop, kubeconfigPath)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+		return false, err
+	}
+	return result, nil
 }

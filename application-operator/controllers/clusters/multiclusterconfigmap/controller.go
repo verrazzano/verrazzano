@@ -1,12 +1,16 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package multiclusterconfigmap
 
 import (
 	"context"
-	"github.com/go-logr/logr"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -14,39 +18,71 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 )
 
 // Reconciler reconciles a MultiClusterConfigMap object
 type Reconciler struct {
 	client.Client
-	Log          logr.Logger
+	Log          *zap.SugaredLogger
 	Scheme       *runtime.Scheme
 	AgentChannel chan clusters.StatusUpdateMessage
 }
 
-const finalizerName = "multiclusterconfigmap.verrazzano.io"
+const (
+	finalizerName  = "multiclusterconfigmap.verrazzano.io"
+	controllerName = "multiclusterconfigmap"
+)
 
 // Reconcile reconciles a MultiClusterConfigMap resource. It fetches the embedded ConfigMap,
 // mutates it based on the MultiClusterConfigMap, and updates the status of the
 // MultiClusterConfigMap to reflect the success or failure of the changes to the embedded resource
 // Currently it does NOT support Immutable ConfigMap resources
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	logger := r.Log.WithValues("multiclusterconfigmap", req.NamespacedName)
-	var mcConfigMap clustersv1alpha1.MultiClusterConfigMap
-	result := reconcile.Result{}
-	ctx := context.Background()
-	err := r.fetchMultiClusterConfigMap(ctx, req.NamespacedName, &mcConfigMap)
-	if err != nil {
-		return result, clusters.IgnoreNotFoundWithLog("MultiClusterConfigMap", err, logger)
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == constants.KubeSystem {
+		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
+		log.Infof("Multi-cluster application configuration resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
+		return reconcile.Result{}, nil
 	}
 
+	ctx := context.Background()
+	var mcConfigMap clustersv1alpha1.MultiClusterConfigMap
+	err := r.fetchMultiClusterConfigMap(ctx, req.NamespacedName, &mcConfigMap)
+	if err != nil {
+		return clusters.IgnoreNotFoundWithLog(err, zap.S())
+	}
+	log, err := clusters.GetResourceLogger("mcconfigmap", req.NamespacedName, &mcConfigMap)
+	if err != nil {
+		zap.S().Error("Failed to create controller logger for multi-cluster config map resource: %v", err)
+		return clusters.NewRequeueWithDelay(), nil
+	}
+	log.Oncef("Reconciling multi-cluster config map resource %v, generation %v", req.NamespacedName, mcConfigMap.Generation)
+
+	res, err := r.doReconcile(ctx, mcConfigMap, log)
+	if clusters.ShouldRequeue(res) {
+		return res, nil
+	}
+	// Never return an error since it has already been logged and we don't want the
+	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
+	if err != nil {
+		return clusters.NewRequeueWithDelay(), nil
+	}
+
+	log.Oncef("Finished reconciling multi-cluster config map %v", req.NamespacedName)
+
+	return ctrl.Result{}, nil
+}
+
+// doReconcile performs the reconciliation operations for the MC config map
+func (r *Reconciler) doReconcile(ctx context.Context, mcConfigMap clustersv1alpha1.MultiClusterConfigMap, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
 	// delete the wrapped resource since MC is being deleted
 	if !mcConfigMap.ObjectMeta.DeletionTimestamp.IsZero() {
-		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcConfigMap, finalizerName, &corev1.ConfigMap{}, types.NamespacedName{Namespace: mcConfigMap.Namespace, Name: mcConfigMap.Name})
+		err := clusters.DeleteAssociatedResource(ctx, r.Client, &mcConfigMap, finalizerName, &corev1.ConfigMap{}, types.NamespacedName{Namespace: mcConfigMap.Namespace, Name: mcConfigMap.Name})
 		if err != nil {
-			logger.Error(err, "Failed to delete associated configmap and finalizer")
+			log.Errorf("Failed to delete associated configmap and finalizer: %v", err)
 		}
 		return ctrl.Result{}, err
 	}
@@ -57,17 +93,17 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			// This must be done whether the resource is placed in this cluster or not, because we
 			// could be in an admin cluster and receive cluster level statuses from managed clusters,
 			// which can change our effective state
-			err = r.Status().Update(ctx, &mcConfigMap)
+			err := r.Status().Update(ctx, &mcConfigMap)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
 		}
 		// if this mc config map is no longer placed on this cluster, remove the associated config map
-		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcConfigMap, finalizerName, &corev1.ConfigMap{}, types.NamespacedName{Namespace: mcConfigMap.Namespace, Name: mcConfigMap.Name})
+		err := clusters.DeleteAssociatedResource(ctx, r.Client, &mcConfigMap, finalizerName, &corev1.ConfigMap{}, types.NamespacedName{Namespace: mcConfigMap.Namespace, Name: mcConfigMap.Name})
 		return ctrl.Result{}, err
 	}
 
-	logger.Info("MultiClusterConfigMap create or update with underlying ConfigMap",
+	log.Debug("MultiClusterConfigMap create or update with underlying ConfigMap",
 		"ConfigMap", mcConfigMap.Spec.Template.Metadata.Name,
 		"placement", mcConfigMap.Spec.Placement.Clusters[0].Name)
 	// Immutable ConfigMaps are not supported - we need a webhook to validate, or add the support

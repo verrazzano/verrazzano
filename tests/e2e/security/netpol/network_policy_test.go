@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package netpol
@@ -9,10 +9,13 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -29,65 +32,94 @@ const (
 	nodeExporterMetricsPort      = 9100
 )
 
+// accessCheckConfig is the configuration used for the NetworkPolicy access check
+type accessCheckConfig struct {
+	// pod label selector for pods sending network traffic
+	fromSelector metav1.LabelSelector
+	// namespace of pod sending network traffic
+	fromNamespace string
+	// pod label selector for pods receiving network traffic
+	toSelector metav1.LabelSelector
+	// namespace of pod receiving network traffic
+	toNamespace string
+	// port that on the to pod that is tested for access
+	port int
+	// indicates if network traffic should be allowed
+	expectAccess bool
+	// ignore if pods not found
+	ignorePodsNotFound bool
+}
+
 var (
-	expectedPods         = []string{"netpol-test"}
-	waitTimeout          = 3 * time.Minute
-	pollingInterval      = 30 * time.Second
-	shortWaitTimeout     = 30 * time.Second
-	shortPollingInterval = 10 * time.Second
+	expectedPods             = []string{"netpol-test"}
+	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
+	waitTimeout              = 15 * time.Minute
+	pollingInterval          = 30 * time.Second
+	shortWaitTimeout         = 30 * time.Second
+	shortPollingInterval     = 10 * time.Second
+	generatedNamespace       = pkg.GenerateNamespace("hello-helidon")
 )
 
-var _ = BeforeSuite(func() {
+var t = framework.NewTestFramework("netpol")
+var clusterDump = pkg.NewClusterDumpWrapper()
+
+var _ = clusterDump.BeforeSuite(func() {
+	start := time.Now()
 	Eventually(func() (*corev1.Namespace, error) {
 		nsLabels := map[string]string{}
 		return pkg.CreateNamespace(testNamespace, nsLabels)
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
-
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/security/network-policies/netpol-test.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
+
+	start = time.Now()
+	pkg.DeployHelloHelidonApplication(namespace, "")
+
+	pkg.Log(pkg.Info, "Verify test pod is running")
+	Eventually(func() bool {
+		result, err := pkg.PodsRunning(testNamespace, expectedPods)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+		}
+		return result
+	}, waitTimeout, pollingInterval).Should(BeTrue())
+
+	pkg.Log(pkg.Info, "hello-helidon pod")
+	Eventually(func() bool {
+		result, err := pkg.PodsRunning(namespace, expectedPodsHelloHelidon)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+		}
+		return result
+	}, waitTimeout, pollingInterval).Should(BeTrue())
+	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var failed = false
-var _ = AfterEach(func() {
-	failed = failed || CurrentGinkgoTestDescription().Failed
-})
-
-var _ = AfterSuite(func() {
-	// undeploy the application here
+var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
+var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
+	// undeploy the applications here
+	start := time.Now()
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/security/network-policies/netpol-test.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
-
 	Eventually(func() error {
 		return pkg.DeleteNamespace(testNamespace)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 
-	if failed {
-		err := pkg.ExecuteClusterDumpWithEnvVarConfig()
-		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Error dumping cluster %v", err))
-		}
-	}
+	start = time.Now()
+	pkg.UndeployHelloHelidonApplication(namespace)
+	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = Describe("Test Network Policies", func() {
-	// Verify test pod is running
-	// GIVEN netpol-test is deployed
-	// WHEN the pod is created
-	// THEN the expected pod must be running in the test namespace
-	Describe("Verify test pod is running.", func() {
-		It("and waiting for expected pod must be running", func() {
-			Eventually(func() bool {
-				return pkg.PodsRunning(testNamespace, expectedPods)
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-		})
-	})
+var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 
 	// GIVEN a Verrazzano deployment
 	// WHEN access is attempted between pods within the ingress rules of the Verrazzano network policies
 	// THEN the attempted access should succeed
-	It("Test NetworkPolicy Rules", func() {
+	t.It("Test NetworkPolicy Rules", func() {
 		pkg.Concurrently(
 			func() {
 				pkg.Log(pkg.Info, "Test rancher ingress rules")
@@ -132,6 +164,11 @@ var _ = Describe("Test Network Policies", func() {
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test istiod-verrazzano-system ingress failed: reason = %s", err))
 			},
 			func() {
+				pkg.Log(pkg.Info, "Test istiod application namespace ingress rules")
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "hello-helidon"}}, generatedNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": "istiod"}}, "istio-system", 15012, true)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test istiod application namespace ingress failed: reason = %s", err))
+			},
+			func() {
 				pkg.Log(pkg.Info, "Test keycloak ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/instance": "ingress-controller"}}, "ingress-nginx", metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/name": "keycloak"}}, "keycloak", 8080, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test keycloak ingress rules failed: reason = %s", err))
@@ -150,9 +187,11 @@ var _ = Describe("Test Network Policies", func() {
 			},
 			func() {
 				pkg.Log(pkg.Info, "Test coherence-operator ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"control-plane": "coherence"}}, "verrazzano-system", 9443, true)
+				// Allowing pods to be optional because some contexts in which this test is run disables the Coherence operator.
+				err := testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"control-plane": "coherence"}}, "verrazzano-system", 9443, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test coherence-operator ingress rules failed: reason = %s", err))
-				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"control-plane": "coherence"}}, "verrazzano-system", 8000, true)
+				// Allowing pods to be optional because some contexts in which this test is run disables the Coherence operator.
+				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"control-plane": "coherence"}}, "verrazzano-system", 8000, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test coherence-operator ingress rules failed: reason = %s", err))
 			},
 			func() {
@@ -198,7 +237,7 @@ var _ = Describe("Test Network Policies", func() {
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-es-master"}}, "verrazzano-system", envoyStatsMetricsPort, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test vmi-system-es-master ingress rules failed: reason = %s", err))
 				/* TODO:
-				The following tests only work in verrazzano prod profile. There is a differnce in network policies used in prod and
+				The following tests only work in Verrazzano prod profile. There is a differnce in network policies used in prod and
 				dev profile. Once that is resolved, the following lines can be uncommented. They have been tested to work in prod profile.
 				*/
 				// err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-es-data"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-es-master"}}, "verrazzano-system", 9300, true)
@@ -207,7 +246,7 @@ var _ = Describe("Test Network Policies", func() {
 				// Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test vmi-system-es-master ingress rules failed: reason = %s", err))
 			},
 			/* TODO:
-			The following tests only work in verrazzano prod profile. There is a differnce in network policies used in prod and
+			The following tests only work in Verrazzano prod profile. There is a differnce in network policies used in prod and
 			dev profile. Once that is resolved, the following lines can be uncommented. They have been tested to work in prod profile.
 			*/
 			// func() {
@@ -255,6 +294,8 @@ var _ = Describe("Test Network Policies", func() {
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test vmi-system-prometheus ingress rules failed: reason = %s", err))
 				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-grafana"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", 9090, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test vmi-system-prometheus ingress rules failed: reason = %s", err))
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "vmi-system-kiali"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", 9090, true)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test vmi-system-prometheus ingress rules failed: reason = %s", err))
 			},
 			func() {
 				pkg.Log(pkg.Info, "Test node-exporter ingress rules")
@@ -263,14 +304,25 @@ var _ = Describe("Test Network Policies", func() {
 			},
 			func() {
 				pkg.Log(pkg.Info, "Test weblogic-operator ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "istio-ingressgateway"}}, "istio-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", envoyStatsMetricsPort, true)
+				// Allowing pods to be optional because some contexts in which this test is run disables the WebLogic operator.
+				err := testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "istio-ingressgateway"}}, "istio-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", envoyStatsMetricsPort, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test weblogic-operator ingress rules failed: reason = %s", err))
-				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "istio-egressgateway"}}, "istio-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", envoyStatsMetricsPort, true)
+				// Allowing pods to be optional because some contexts in which this test is run disables the WebLogic operator.
+				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "istio-egressgateway"}}, "istio-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", envoyStatsMetricsPort, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test weblogic-operator ingress rules failed: reason = %s", err))
-				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "istiod"}}, "istio-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", envoyStatsMetricsPort, true)
+				// Allowing pods to be optional because some contexts in which this test is run disables the WebLogic operator.
+				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "istiod"}}, "istio-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", envoyStatsMetricsPort, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test weblogic-operator ingress rules failed: reason = %s", err))
-				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", envoyStatsMetricsPort, true)
+				// Allowing pods to be optional because some contexts in which this test is run disables the WebLogic operator.
+				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", envoyStatsMetricsPort, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test weblogic-operator ingress rules failed: reason = %s", err))
+			},
+			func() {
+				pkg.Log(pkg.Info, "Test kiali ingress rules")
+				err := testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-authproxy"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "kiali"}}, "verrazzano-system", 20001, true)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test Kiali network ingress from verrazzano-authproxy failed: reason = %s", err))
+				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "kiali"}}, "verrazzano-system", envoyStatsMetricsPort, true)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test Kiali network ingress from prometheus failed: reason = %s", err))
 			},
 		)
 	})
@@ -278,8 +330,8 @@ var _ = Describe("Test Network Policies", func() {
 	// GIVEN a Verrazzano deployment
 	// WHEN access is attempted between pods that violate the rules of the Verrazzano network policies
 	// THEN the attempted access should fail
-	It("Negative Test NetworkPolicy Rules", func() {
-		pkg.Concurrently(
+	t.It("Negative Test NetworkPolicy Rules", func() {
+		assertions := []func(){
 			func() {
 				pkg.Log(pkg.Info, "Negative test rancher ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "rancher"}}, "cattle-system", 80, false)
@@ -341,17 +393,12 @@ var _ = Describe("Test Network Policies", func() {
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test verrazzano-monitoring-operator ingress rules failed: reason = %s", err))
 			},
 			func() {
-				pkg.Log(pkg.Info, "Negative test verrazzano-operator ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-operator"}}, "verrazzano-system", 8000, false)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test verrazzano-operator ingress rules failed: reason = %s", err))
-			},
-			func() {
 				pkg.Log(pkg.Info, "Negative test vmi-system-es-master ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-es-master"}}, "verrazzano-system", 9200, false)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test vmi-system-es-master ingress rules failed: reason = %s", err))
 			},
 			/* TODO:
-			The following tests only work in verrazzano prod profile. There is a differnce in network policies used in prod and
+			The following tests only work in Verrazzano prod profile. There is a differnce in network policies used in prod and
 			dev profile. Once that is resolved, the following lines can be uncommented. They have been tested to work in prod profile.
 			*/
 			// func() {
@@ -381,46 +428,106 @@ var _ = Describe("Test Network Policies", func() {
 			},
 			func() {
 				pkg.Log(pkg.Info, "Negative test weblogic-operator ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", 8000, false)
+				// Allowing pods to be optional because some contexts in which this test is run disables the WebLogic operator.
+				err := testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "weblogic-operator"}}, "verrazzano-system", 8000, false)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test weblogic-operator ingress rules failed: reason = %s", err))
 			},
+			func() {
+				pkg.Log(pkg.Info, "Negative test kiali ingress rules")
+				err := testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "kiali"}}, "verrazzano-system", envoyStatsMetricsPort, false)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test kiali ingress rules failed: reason = %s", err))
+			},
+		}
+
+		if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0"); !ok {
+			assertions = append(assertions, func() {
+				pkg.Log(pkg.Info, "Negative test verrazzano-operator ingress rules")
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-operator"}}, "verrazzano-system", 8000, false)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test verrazzano-operator ingress rules failed: reason = %s", err))
+			})
+		}
+
+		pkg.Concurrently(
+			assertions...,
 		)
 	})
 })
 
 // testAccess attempts to access a given pod from another pod on a given port and tests for the expected result
 func testAccess(fromSelector metav1.LabelSelector, fromNamespace string, toSelector metav1.LabelSelector, toNamespace string, port int, expectAccess bool) error {
+	return doAccessCheck(accessCheckConfig{
+		fromSelector:       fromSelector,
+		fromNamespace:      fromNamespace,
+		toSelector:         toSelector,
+		toNamespace:        toNamespace,
+		port:               port,
+		expectAccess:       expectAccess,
+		ignorePodsNotFound: false,
+	})
+}
+
+// testAccessPodsOptional attempts to access a given pod from another pod on a given port and tests for the expected result
+// Ignore pods not found
+func testAccessPodsOptional(fromSelector metav1.LabelSelector, fromNamespace string, toSelector metav1.LabelSelector, toNamespace string, port int, expectAccess bool) error {
+	return doAccessCheck(accessCheckConfig{
+		fromSelector:       fromSelector,
+		fromNamespace:      fromNamespace,
+		toSelector:         toSelector,
+		toNamespace:        toNamespace,
+		port:               port,
+		expectAccess:       expectAccess,
+		ignorePodsNotFound: true,
+	})
+}
+
+// doAccessCheck attempts to access a given pod from another pod on a given port and tests for the expected result.
+func doAccessCheck(c accessCheckConfig) error {
 	// get the FROM pod
 	var pods []corev1.Pod
 	Eventually(func() error {
 		var err error
-		pods, err = pkg.GetPodsFromSelector(&fromSelector, fromNamespace)
+		pods, err = pkg.GetPodsFromSelector(&c.fromSelector, c.fromNamespace)
+		if err != nil && errors.IsNotFound(err) && c.ignorePodsNotFound {
+			// Ignore pods not found
+			return nil
+		}
 		return err
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
-	mapFromSelector, _ := metav1.LabelSelectorAsMap(&fromSelector)
+	if len(pods) == 0 && c.ignorePodsNotFound {
+		return nil
+	}
+
+	mapFromSelector, _ := metav1.LabelSelectorAsMap(&c.fromSelector)
 	jsonFromSelector, _ := json.Marshal(mapFromSelector)
-	Expect(len(pods) > 0).To(BeTrue(), fmt.Sprintf("FAIL: Pod not found with label: %s in namespace: %s", jsonFromSelector, fromNamespace))
+	Expect(len(pods) > 0).To(BeTrue(), fmt.Sprintf("FAIL: Pod not found with label: %s in namespace: %s", jsonFromSelector, c.fromNamespace))
 	fromPod := pods[0]
 
 	// get the TO pod
 	Eventually(func() error {
 		var err error
-		pods, err = pkg.GetPodsFromSelector(&toSelector, toNamespace)
+		pods, err = pkg.GetPodsFromSelector(&c.toSelector, c.toNamespace)
+		if err != nil && errors.IsNotFound(err) && c.ignorePodsNotFound {
+			// Ignore pods not found
+			return nil
+		}
 		return err
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
-	mapToSelector, _ := metav1.LabelSelectorAsMap(&toSelector)
+	if len(pods) == 0 && c.ignorePodsNotFound {
+		return nil
+	}
+	mapToSelector, _ := metav1.LabelSelectorAsMap(&c.toSelector)
 	jsonToSelector, _ := json.Marshal(mapToSelector)
-	Expect(len(pods) > 0).To(BeTrue(), fmt.Sprintf("FAIL: Pod not found with label: %s in namespace: %s", jsonToSelector, toNamespace))
+	Expect(len(pods) > 0).To(BeTrue(), fmt.Sprintf("FAIL: Pod not found with label: %s in namespace: %s", jsonToSelector, c.toNamespace))
 	toPod := pods[0]
 
-	if expectAccess {
+	if c.expectAccess {
 		Eventually(func() bool {
-			return attemptConnection(&fromPod, &toPod, port, 10)
-		}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Should be able to access pod %s from pod %s on port %d", toPod.Name, fromPod.Name, port))
+			return attemptConnection(&fromPod, &toPod, c.port, 10)
+		}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Should be able to access pod %s from pod %s on port %d", toPod.Name, fromPod.Name, c.port))
 	} else {
 		Consistently(func() bool {
-			return attemptConnection(&fromPod, &toPod, port, 10)
-		}, shortWaitTimeout, shortPollingInterval).Should(BeFalse(), fmt.Sprintf("Should NOT be able to access pod %s from pod %s on port %d", toPod.Name, fromPod.Name, port))
+			return attemptConnection(&fromPod, &toPod, c.port, 10)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeFalse(), fmt.Sprintf("Should NOT be able to access pod %s from pod %s on port %d", toPod.Name, fromPod.Name, c.port))
 	}
 	return nil
 }

@@ -1,10 +1,12 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
 
 import (
 	"fmt"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
@@ -19,8 +21,10 @@ func (s *Syncer) syncMCComponentObjects(namespace string) error {
 	allAdminMCComponents := clustersv1alpha1.MultiClusterComponentList{}
 	listOptions := &client.ListOptions{Namespace: namespace}
 	err := s.AdminClient.List(s.Context, &allAdminMCComponents, listOptions)
-	if err != nil {
-		return client.IgnoreNotFound(err)
+	// When placements are changed a forbidden error can be returned.  In this case,
+	// we want to fall through and delete orphaned resources.
+	if err != nil && !apierrors.IsNotFound(err) && !apierrors.IsForbidden(err) {
+		return err
 	}
 
 	// Write each of the records that are targeted to this cluster
@@ -28,7 +32,7 @@ func (s *Syncer) syncMCComponentObjects(namespace string) error {
 		if s.isThisCluster(mcComponent.Spec.Placement) {
 			_, err := s.createOrUpdateMCComponent(mcComponent)
 			if err != nil {
-				s.Log.Error(err, "Error syncing object",
+				s.Log.Errorw(fmt.Sprintf("Failed syncing object: %v", err),
 					"MultiClusterComponent",
 					types.NamespacedName{Namespace: mcComponent.Namespace, Name: mcComponent.Name})
 			}
@@ -42,7 +46,7 @@ func (s *Syncer) syncMCComponentObjects(namespace string) error {
 	allLocalMCComponents := clustersv1alpha1.MultiClusterComponentList{}
 	err = s.LocalClient.List(s.Context, &allLocalMCComponents, listOptions)
 	if err != nil {
-		s.Log.Error(err, "failed to list MultiClusterComponent on local cluster")
+		s.Log.Errorf("Failed to list MultiClusterComponent on local cluster: %v", err)
 		return nil
 	}
 	for i, mcComponent := range allLocalMCComponents.Items {
@@ -50,7 +54,7 @@ func (s *Syncer) syncMCComponentObjects(namespace string) error {
 		if !s.componentPlacedOnCluster(&allAdminMCComponents, mcComponent.Name, mcComponent.Namespace) {
 			err := s.LocalClient.Delete(s.Context, &allLocalMCComponents.Items[i])
 			if err != nil {
-				s.Log.Error(err, fmt.Sprintf("failed to delete MultiClusterComponent with name %q and namespace %q", mcComponent.Name, mcComponent.Namespace))
+				s.Log.Errorf("Failed to delete MultiClusterComponent with name %q and namespace %q: %v", mcComponent.Name, mcComponent.Namespace, err)
 			}
 		}
 	}

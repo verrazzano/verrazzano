@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package clusters
@@ -7,21 +7,23 @@ import (
 	"context"
 	"fmt"
 
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	clusterapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
 	k8net "k8s.io/api/networking/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const vmiIngest = "vmi-system-es-ingest"
 const defaultElasticURL = "http://verrazzano-authproxy-elasticsearch:8775"
 const defaultSecretName = "verrazzano"
+const rancherCAAdditionalPem = "ca-additional.pem"
 
 // Create a registration secret with the managed cluster information.  This secret will
 // be used on the managed cluster to get information about itself, like the cluster name
@@ -44,7 +46,10 @@ func (r *VerrazzanoManagedClusterReconciler) createOrUpdateRegistrationSecret(vm
 	secret.Name = name
 
 	return controllerutil.CreateOrUpdate(context.TODO(), r.Client, &secret, func() error {
-		r.mutateRegistrationSecret(&secret, vmc.Name)
+		err := r.mutateRegistrationSecret(&secret, vmc.Name)
+		if err != nil {
+			return err
+		}
 		// This SetControllerReference call will trigger garbage collection i.e. the secret
 		// will automatically get deleted when the VerrazzanoManagedCluster is deleted
 		return controllerutil.SetControllerReference(vmc, &secret, r.Scheme)
@@ -55,8 +60,18 @@ func (r *VerrazzanoManagedClusterReconciler) createOrUpdateRegistrationSecret(vm
 func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *corev1.Secret, manageClusterName string) error {
 	secret.Type = corev1.SecretTypeOpaque
 
+	vzList := vzapi.VerrazzanoList{}
+	err := r.List(context.TODO(), &vzList, &client.ListOptions{})
+	if err != nil {
+		r.log.Errorf("Failed to list Verrazzano CR: %v", err)
+		return err
+	}
+	if len(vzList.Items) < 1 {
+		return fmt.Errorf("can not find Verrazzano CR")
+	}
+
 	// Get the fluentd configuration for ES URL and secret
-	fluentdESURL, fluentdESSecretName, err := r.getVzESURLSecret()
+	fluentdESURL, fluentdESSecretName, err := r.getVzESURLSecret(&vzList)
 	if err != nil {
 		return err
 	}
@@ -73,7 +88,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	}
 
 	// Get the CA bundle needed to connect to the admin keycloak
-	adminCaBundle, err := r.getAdminCaBundle()
+	adminCaBundle, err := r.getAdminCaBundle(getTLSSecretName(&vzList))
 	if err != nil {
 		return err
 	}
@@ -85,7 +100,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	var esUsername []byte
 	var esPassword []byte
 	if fluentdESSecretName != "verrazzano" {
-		esSecret, err := r.getSecret(fluentdESSecretName)
+		esSecret, err := r.getSecret(constants.VerrazzanoSystemNamespace, fluentdESSecretName, true)
 		if err != nil {
 			return err
 		}
@@ -93,7 +108,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 		esUsername = esSecret.Data[VerrazzanoUsernameKey]
 		esPassword = esSecret.Data[VerrazzanoPasswordKey]
 	} else {
-		esSecret, err := r.getSecret(constants.VerrazzanoESInternal)
+		esSecret, err := r.getSecret(constants.VerrazzanoSystemNamespace, constants.VerrazzanoESInternal, true)
 		if err != nil {
 			return err
 		}
@@ -128,15 +143,9 @@ func GetRegistrationSecretName(vmcName string) string {
 }
 
 // getVzESURLSecret returns the elasticsearchURL and elasticsearchSecret from Verrazzano CR
-func (r *VerrazzanoManagedClusterReconciler) getVzESURLSecret() (string, string, error) {
+func (r *VerrazzanoManagedClusterReconciler) getVzESURLSecret(vzList *vzapi.VerrazzanoList) (string, string, error) {
 	url := defaultElasticURL
 	secret := defaultSecretName
-	vzList := vzapi.VerrazzanoList{}
-	err := r.List(context.TODO(), &vzList, &client.ListOptions{})
-	if err != nil {
-		r.log.Error(err, "Can not list Verrazzano CR")
-		return url, secret, err
-	}
 	// what to do when there is more than one Verrazzano CR
 	for _, vz := range vzList.Items {
 		if vz.Spec.Components.Fluentd != nil {
@@ -159,7 +168,7 @@ func (r *VerrazzanoManagedClusterReconciler) getVmiESURL() (URL string, err erro
 		Name:      vmiIngest,
 	}
 	if err := r.Get(context.TODO(), nsn, &Ingress); err != nil {
-		return "", fmt.Errorf("Failed to fetch the VMI ingress %s/%s, %v", nsn.Namespace, nsn.Name, err)
+		return "", fmt.Errorf("failed to fetch the VMI ingress %s/%s, %v", nsn.Namespace, nsn.Name, err)
 	}
 	if len(Ingress.Spec.Rules) == 0 {
 		return "", fmt.Errorf("VMI ingress %s/%s missing host entry in rule", nsn.Namespace, nsn.Name)
@@ -172,25 +181,44 @@ func (r *VerrazzanoManagedClusterReconciler) getVmiESURL() (URL string, err erro
 }
 
 // Get secret from verrazzano-system namespace
-func (r *VerrazzanoManagedClusterReconciler) getSecret(secretName string) (corev1.Secret, error) {
+func (r *VerrazzanoManagedClusterReconciler) getSecret(namespace string, secretName string, required bool) (corev1.Secret, error) {
 	var secret corev1.Secret
 	nsn := types.NamespacedName{
-		Namespace: constants.VerrazzanoSystemNamespace,
+		Namespace: namespace,
 		Name:      secretName,
 	}
-	if err := r.Get(context.TODO(), nsn, &secret); err != nil {
-		return corev1.Secret{}, fmt.Errorf("Failed to fetch the secret %s/%s, %v", nsn.Namespace, nsn.Name, err)
+	err := r.Get(context.TODO(), nsn, &secret)
+	if err != nil {
+		if !required && errors.IsNotFound(err) {
+			return corev1.Secret{}, err
+		}
+		return corev1.Secret{}, fmt.Errorf("failed to fetch the secret %s/%s, %v", nsn.Namespace, nsn.Name, err)
 	}
 	return secret, nil
 }
 
-// Get the CA bundle used by system-tls
-func (r *VerrazzanoManagedClusterReconciler) getAdminCaBundle() ([]byte, error) {
-	secret, err := r.getSecret(constants.SystemTLS)
+// Get the CA bundle used by verrazzano ingress and the optional rancher-ca-additional secret
+func (r *VerrazzanoManagedClusterReconciler) getAdminCaBundle(secretName string) ([]byte, error) {
+	var caBundle []byte
+	secret, err := r.getSecret(constants.VerrazzanoSystemNamespace, secretName, true)
 	if err != nil {
 		return nil, err
 	}
-	return secret.Data[CaCrtKey], nil
+	caBundle = secret.Data[CaCrtKey]
+
+	// Append CA from additional-ca secret if it exists
+	optSecret, err := r.getSecret(constants.RancherSystemNamespace, constants.AdditionalTLS, false)
+	if err != nil && !errors.IsNotFound(err) {
+		return nil, err
+	}
+	if err == nil {
+		// Combine the two CA bundles
+		caBundle = make([]byte, len(secret.Data[CaCrtKey]))
+		copy(caBundle, secret.Data[CaCrtKey])
+		caBundle = append(caBundle, optSecret.Data[rancherCAAdditionalPem]...)
+	}
+
+	return caBundle, nil
 }
 
 // Get the keycloak URL
@@ -200,5 +228,19 @@ func (r *VerrazzanoManagedClusterReconciler) getKeycloakURL() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("unable to fetch ingress %s/%s, %v", "keycloak", "keycloak", err)
 	}
-	return fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0]), nil
+	return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host), nil
+}
+
+// getTLSSecretName returns expected TLS secret name
+func getTLSSecretName(vzList *vzapi.VerrazzanoList) string {
+	return fmt.Sprintf("%s-secret", getEnvironmentName(vzList.Items[0].Spec.EnvironmentName))
+}
+
+// getEnvironmentName returns the name of the Verrazzano install environment
+func getEnvironmentName(envName string) string {
+	if envName == "" {
+		return vpoconstants.DefaultEnvironmentName
+	}
+
+	return envName
 }

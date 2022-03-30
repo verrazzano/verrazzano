@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
@@ -53,16 +53,21 @@ pipeline {
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
+        string (name: 'CONSOLE_REPO_BRANCH',
+                defaultValue: '',
+                description: 'The branch to check out after cloning the console repository.',
+                trim: true)
     }
 
     environment {
+        CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         KUBERNETES_VERSION = '1.19,1.20,1.21,1.22'
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
-        PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
+        PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
     }
 
@@ -129,7 +134,7 @@ pipeline {
                 stage('Multi Cluster Tests') {
                     steps {
                         script {
-                            build job: "/verrazzano-multi-cluster-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-multi-cluster-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -137,7 +142,8 @@ pipeline {
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                     string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                     string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
+                                    string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
                                 ], wait: true
                         }
                     }
@@ -145,7 +151,7 @@ pipeline {
                 stage('Multi Cluster Tests with External ES') {
                     steps {
                         script {
-                            build job: "/verrazzano-multi-cluster-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-multi-cluster-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     booleanParam(name: 'EXTERNAL_ELASTICSEARCH', value: true),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -154,7 +160,8 @@ pipeline {
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                     string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                     string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
+                                    string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
                                 ], wait: true
                         }
                     }
@@ -162,7 +169,7 @@ pipeline {
                 stage('Uninstall Tests') {
                     steps {
                         script {
-                            build job: "/verrazzano-uninstall-test/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-uninstall-test/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -170,7 +177,8 @@ pipeline {
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                     string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                     string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
+                                    string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
                                 ], wait: true
                         }
                     }
@@ -178,7 +186,7 @@ pipeline {
                 stage('OCI DNS tests') {
                     steps {
                         script {
-                            build job: "/verrazzano-new-oci-dns-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -194,7 +202,7 @@ pipeline {
                 stage('Kind Acceptance Tests on 1.21') {
                     steps {
                         script {
-                            build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.21'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -203,16 +211,18 @@ pipeline {
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                     string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                     string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
+                                    string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
                                 ], wait: true
                         }
                     }
                 }
+/*
                 stage('Kind Acceptance Tests on 1.22') {
                     steps {
                         script {
                             try {
-                                build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                                build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -230,10 +240,11 @@ pipeline {
                         }
                     }
                 }
+*/
                 stage('Kind Acceptance Tests on 1.19') {
                     steps {
                         script {
-                            build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -242,7 +253,8 @@ pipeline {
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                     string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                     string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
+                                    string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
                                 ], wait: true
                         }
                     }
@@ -250,7 +262,7 @@ pipeline {
                 stage('Upgrade tests') {
                     steps {
                         script {
-                            build job: "/verrazzano-upgrade-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-upgrade-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -271,9 +283,6 @@ pipeline {
             storePipelineArtifacts()
         }
         failure {
-            mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
-            subject: "Verrazzano: ${env.JOB_NAME} - Failed",
-            body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}"
             script {
                 if (env.JOB_NAME == "verrazzano-push-triggered-acceptance-tests/master" || env.JOB_NAME ==~ "verrazzano-push-triggered-acceptance-tests/release-1.*") {
                     if (isPagerDutyEnabled()) {
@@ -301,12 +310,12 @@ def isPagerDutyEnabled() {
 // Called in final post success block of pipeline
 def storePipelineArtifacts() {
     script {
-        // If this is master and it was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of master
+        // If this was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of the branch
+        // NOTE: Normally master and release-* branches are the only ones doing this, but when we need to test out pipeline changes we can make use
+        // as well
         sh """
-            if [ "${env.JOB_NAME}" == "verrazzano-push-triggered-acceptance-tests/master" ]; then
-                echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
-                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
-            fi
+            echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
+            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
         """
     }
 }
@@ -353,38 +362,76 @@ def trimIfGithubNoreplyUser(userIn) {
 
 def getSuspectList(commitList, userMappings) {
     def retValue = ""
+    def suspectList = []
     if (commitList == null || commitList.size() == 0) {
         echo "No commits to form suspect list"
-        return retValue
+    } else {
+        for (int i = 0; i < commitList.size(); i++) {
+            def id = commitList[i]
+            try {
+                def gitAuthor = sh(
+                    script: "git log --format='%ae' '$id^!'",
+                    returnStdout: true
+                ).trim()
+                if (gitAuthor != null) {
+                    def author = trimIfGithubNoreplyUser(gitAuthor)
+                    echo "DEBUG: author: ${gitAuthor}, ${author}, id: ${id}"
+                    if (userMappings.containsKey(author)) {
+                        def slackUser = userMappings.get(author)
+                        if (!suspectList.contains(slackUser)) {
+                            echo "Added ${slackUser} as suspect"
+                            retValue += " ${slackUser}"
+                            suspectList.add(slackUser)
+                        }
+                    } else {
+                        // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
+                        if (!suspectList.contains(author)) {
+                            echo "Added ${author} as suspect"
+                            retValue += " ${author}"
+                            suspectList.add(author)
+                        }
+                    }
+                } else {
+                    echo "No author returned from git"
+                }
+            } catch (Exception e) {
+                echo "INFO: Problem processing commit ${id}, skipping commit: " + e.toString()
+            }
+        }
     }
-    def suspectList = []
-    for (int i = 0; i < commitList.size(); i++) {
-        def id = commitList[i]
-        def gitAuthor = sh(
-            script: "git log --format='%ae' '$id^!'",
-            returnStdout: true
-        ).trim()
-        if (gitAuthor != null) {
-            def author = trimIfGithubNoreplyUser(gitAuthor)
-            echo "DEBUG: author: ${gitAuthor}, ${author}, id: ${id}"
-            if (userMappings.containsKey(author)) {
-                def slackUser = userMappings.get(author)
-                if (!suspectList.contains(slackUser)) {
-                    echo "Added ${slackUser} as suspect"
-                    retValue += " ${slackUser}"
-                    suspectList.add(slackUser)
-                }
-            } else {
-                // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
-                if (!suspectList.contains(author)) {
-                    echo "Added ${author} as suspect"
-                    retValue += " ${author}"
-                   suspectList.add(author)
-                }
+    def startedByUser = "";
+    def causes = currentBuild.getBuildCauses()
+    echo "causes: " + causes.toString()
+    for (cause in causes) {
+        def causeString = cause.toString()
+        echo "current cause: " + causeString
+        def causeInfo = readJSON text: causeString
+        if (causeInfo.userId != null) {
+            startedByUser = causeInfo.userId
+        }
+    }
+
+    if (startedByUser.length() > 0) {
+        echo "Build was started by a user, adding them to the suspect notification list: ${startedByUser}"
+        def author = trimIfGithubNoreplyUser(startedByUser)
+        echo "DEBUG: author: ${startedByUser}, ${author}"
+        if (userMappings.containsKey(author)) {
+            def slackUser = userMappings.get(author)
+            if (!suspectList.contains(slackUser)) {
+                echo "Added ${slackUser} as suspect"
+                retValue += " ${slackUser}"
+                suspectList.add(slackUser)
             }
         } else {
-            echo "No author returned from git"
+            // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
+            if (!suspectList.contains(author)) {
+               echo "Added ${author} as suspect"
+               retValue += " ${author}"
+               suspectList.add(author)
+            }
         }
+    } else {
+        echo "Build not started by a user, not adding to notification list"
     }
     echo "returning suspect list: ${retValue}"
     return retValue
@@ -428,8 +475,8 @@ def metricBuildDuration() {
     if (params.EMIT_METRICS) {
         labels = getMetricLabels()
         labels = labels + ',result=\\"' + "${statusLabel}"+'\\"'
-        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
+        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }

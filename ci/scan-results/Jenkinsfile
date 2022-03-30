@@ -1,0 +1,83 @@
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+pipeline {
+    options {
+        timestamps ()
+    }
+
+    agent {
+       docker {
+            image "${RUNNER_DOCKER_IMAGE}"
+            args "${RUNNER_DOCKER_ARGS}"
+            label "VM.Standard2.8"
+            registryCredentialsId 'ocir-pull-and-push-account'
+        }
+    }
+
+    triggers { cron("@daily") }
+
+    environment {
+        CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
+
+        OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
+        OCI_CLI_USER = credentials('oci-dev-user-ocid')
+        OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
+        OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
+        OCI_CLI_REGION = "us-ashburn-1"
+        OCI_REGION = "${env.OCI_CLI_REGION}"
+
+        OCIR_COMPARTMENT_ID = credentials('ocir-scan-compartment')
+        OCIR_SCAN_REGISTRY = credentials('ocir-scan-registry')
+        OCIR_REPOSITORY_BASE = credentials('ocir-scan-repository-path')
+        OCIR_PATH_FILTER = ".*"
+        DOCKER_SCAN_CREDS = credentials('v8odev-ocir')
+
+        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+        OCI_OS_BUCKET = "verrazzano-builds"
+        OCI_SCAN_BUCKET = "verrazzano-scan-results"
+
+        GITHUB_ACCESS_TOKEN = credentials('github-api-token-release-process')
+    }
+
+    stages {
+        stage('Fetch Scan Results') {
+            steps {
+                script {
+                    try {
+                        sh """
+                            echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
+                        """
+                    } catch(error) {
+                        echo "docker login failed, retrying after sleep"
+                        retry(4) {
+                            sleep(30)
+                            sh """
+                            echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
+                            """
+                        }
+                    }
+
+                    sh """
+                        git fetch --tags
+                        echo "${env.GITHUB_ACCESS_TOKEN}" | gh auth login --with-token
+                        echo "Fetching scan results for branch: ${CLEAN_BRANCH_NAME}"
+                        ci/scripts/get_branch_scan_results.sh
+                    """
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'boms/**,scan-results/**', allowEmptyArchive: true
+                }
+                failure {
+                    script {
+                        if (env.BRANCH_NAME == "master" || env.BRANCH_NAME ==~ "release-.*" || env.BRANCH_NAME ==~ "mark/*") {
+                            slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,4 +1,4 @@
-# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (C) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 FROM ghcr.io/oracle/oraclelinux:7-slim AS build_base
@@ -21,13 +21,14 @@ FROM ghcr.io/oracle/oraclelinux:7-slim
 
 ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 
-# Use olcne13, which is required for kubectl 1.20.6-2
+# Use olcne13, which is required for kubectl
 RUN yum update -y \
     && yum install -y openssl jq patch \
     && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne13/x86_64/ \
-    && yum install -y kubectl-1.20.6-2.el7 \
-    && yum install -y helm-3.5.4-1.el7 \
-    && yum install -y istio-istioctl-1.10.2-2.el7 \
+    && yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/olcne/x86_64 \
+    && yum install -y kubectl-1.20.11-4.el7 \
+    && yum install -y helm-3.8.0-1.el7 \
+    && yum install -y istio-istioctl-1.10.4-6.el7 \
     && yum clean all \
     && rm -rf /var/cache/yum
 
@@ -42,6 +43,7 @@ COPY --from=build_base --chown=verrazzano:verrazzano /usr/local/bin/verrazzano-p
 # Copy the Verrazzano install and uninstall scripts
 WORKDIR /verrazzano
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/thirdparty ./platform-operator/thirdparty
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/manifests ./platform-operator/manifests
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/scripts/install ./platform-operator/scripts/install
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/scripts/uninstall ./platform-operator/scripts/uninstall
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/config/scripts/run.sh .

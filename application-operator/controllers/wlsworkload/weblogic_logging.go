@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package wlsworkload
@@ -40,9 +40,8 @@ const WlsFluentdParsingRules = `<match fluent.**>
 	format10 / <(?<sequenceNumber>(.*?))>/
 	format11 / <(?<severity>(.*?))>/
 	format12 / <(?<messageID>(.*?))>/
-	format13 / <(?<message>[^>]*)>[\s]*/
+	format13 / <(?<message>([\s\S]*?))>\s*$/
 	time_key timestamp
-	keep_time_key true
   </parse>
 </source>
 <source>
@@ -66,9 +65,8 @@ const WlsFluentdParsingRules = `<match fluent.**>
 	format10 / <(?<sequenceNumber>(.*?))>/
 	format11 / <(?<severity>(.*?))>/
 	format12 / <(?<messageID>(.*?))>/
-	format13 / <(?<message>[^>]*)>[\s]*/
+	format13 / <(?<message>([\s\S]*?))>\s*$/
 	time_key timestamp
-	keep_time_key true
   </parse>
 </source>
 <source>

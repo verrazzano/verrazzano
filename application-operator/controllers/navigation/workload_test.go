@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package navigation
@@ -6,6 +6,7 @@ package navigation
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"strings"
 	"testing"
 
@@ -20,7 +21,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -40,7 +40,7 @@ func TestFetchWorkloadDefinition(t *testing.T) {
 	// THEN expect an error
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
-	definition, err = FetchWorkloadDefinition(ctx, cli, ctrl.Log, nil)
+	definition, err = FetchWorkloadDefinition(ctx, cli, vzlog.DefaultLogger(), nil)
 	mocker.Finish()
 	assert.Error(err)
 	assert.Nil(definition)
@@ -59,7 +59,7 @@ func TestFetchWorkloadDefinition(t *testing.T) {
 		})
 	workload = unstructured.Unstructured{}
 	workload.SetGroupVersionKind(oamcore.ContainerizedWorkloadGroupVersionKind)
-	definition, err = FetchWorkloadDefinition(ctx, cli, ctrl.Log, &workload)
+	definition, err = FetchWorkloadDefinition(ctx, cli, vzlog.DefaultLogger(), &workload)
 	mocker.Finish()
 	assert.NoError(err)
 	assert.NotNil(definition)
@@ -77,7 +77,7 @@ func TestFetchWorkloadDefinition(t *testing.T) {
 		})
 	workload = unstructured.Unstructured{}
 	workload.SetGroupVersionKind(oamcore.ContainerizedWorkloadGroupVersionKind)
-	definition, err = FetchWorkloadDefinition(ctx, cli, ctrl.Log, &workload)
+	definition, err = FetchWorkloadDefinition(ctx, cli, vzlog.DefaultLogger(), &workload)
 	mocker.Finish()
 	assert.Error(err)
 	assert.Equal("test-error", err.Error())
@@ -100,7 +100,7 @@ func TestFetchWorkloadChildren(t *testing.T) {
 	// THEN verify an error is returned
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
-	children, err = FetchWorkloadChildren(ctx, cli, ctrl.Log, nil)
+	children, err = FetchWorkloadChildren(ctx, cli, vzlog.DefaultLogger(), nil)
 	mocker.Finish()
 	assert.Error(err)
 	assert.Len(children, 0)
@@ -141,7 +141,7 @@ func TestFetchWorkloadChildren(t *testing.T) {
 	workload.SetNamespace("test-namespace")
 	workload.SetName("test-workload-name")
 	workload.SetUID("test-workload-uid")
-	children, err = FetchWorkloadChildren(ctx, cli, ctrl.Log, &workload)
+	children, err = FetchWorkloadChildren(ctx, cli, vzlog.DefaultLogger(), &workload)
 	mocker.Finish()
 	assert.NoError(err)
 	assert.Len(children, 1)
@@ -170,7 +170,7 @@ func TestFetchWorkloadChildren(t *testing.T) {
 	workload.SetNamespace("test-namespace")
 	workload.SetName("test-workload-name")
 	workload.SetUID("test-workload-uid")
-	children, err = FetchWorkloadChildren(ctx, cli, ctrl.Log, &workload)
+	children, err = FetchWorkloadChildren(ctx, cli, vzlog.DefaultLogger(), &workload)
 	mocker.Finish()
 	assert.Error(err)
 	assert.Equal("test-error", err.Error())

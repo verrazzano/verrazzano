@@ -1,7 +1,5 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-
-// +build unstable_test
 
 package restapi_test
 
@@ -13,26 +11,27 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var _ = Describe("VMI urls test", func() {
+var _ = t.Describe("VMI", Label("f:infra-lcm",
+	"f:ui.console"), func() {
 	const (
 		waitTimeout     = 5 * time.Minute
 		pollingInterval = 5 * time.Second
 	)
 
-	Context("Fetching the system vmi using api and test urls", func() {
+	t.Context("urls test to", func() {
 		isManagedClusterProfile := pkg.IsManagedClusterProfile()
 		var isEsEnabled = false
 		var isKibanaEnabled = false
 		var isPrometheusEnabled = false
 		var isGrafanaEnabled = false
 
-		It("Fetches VMI", func() {
+		t.It("Fetch VMI", func() {
 			if !isManagedClusterProfile {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
@@ -71,7 +70,7 @@ var _ = Describe("VMI urls test", func() {
 			}
 		})
 
-		It("Accesses VMI endpoints", func() {
+		t.It("Access VMI endpoints", FlakeAttempts(5), Label("f:ui.api"), func() {
 			if !isManagedClusterProfile {
 				var api *pkg.APIEndpoint
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -93,7 +92,7 @@ var _ = Describe("VMI urls test", func() {
 				var sysVmiHTTPClient *retryablehttp.Client
 				Eventually(func() (*retryablehttp.Client, error) {
 					var err error
-					sysVmiHTTPClient, err = pkg.GetSystemVmiHTTPClient()
+					sysVmiHTTPClient, err = pkg.GetVerrazzanoRetryableHTTPClient()
 					return sysVmiHTTPClient, err
 				}, waitTimeout, pollingInterval).ShouldNot(BeNil(), "Unable to get system VMI HTTP client")
 
@@ -125,13 +124,15 @@ var _ = Describe("VMI urls test", func() {
 	})
 })
 
+var _ = t.AfterEach(func() {})
+
 func verifySystemVMIComponent(api *pkg.APIEndpoint, sysVmiHTTPClient *retryablehttp.Client, vmiCredentials *pkg.UsernamePassword, ingressName, expectedURLPrefix string) bool {
 	ingress, err := api.GetIngress("verrazzano-system", ingressName)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting ingress from API: %v", err))
 		return false
 	}
-	vmiComponentURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
+	vmiComponentURL := fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
 	if !strings.HasPrefix(vmiComponentURL, expectedURLPrefix) {
 		pkg.Log(pkg.Error, fmt.Sprintf("URL '%s' does not have expected prefix: %s", vmiComponentURL, expectedURLPrefix))
 		return false

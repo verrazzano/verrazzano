@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
@@ -31,7 +31,7 @@ func (s *Syncer) syncVerrazzanoProjects() error {
 			if s.isThisCluster(vp.Spec.Placement) {
 				_, err := s.createOrUpdateVerrazzanoProject(vp)
 				if err != nil {
-					s.Log.Error(err, "Error syncing object",
+					s.Log.Errorw(fmt.Sprintf("Failed syncing object: %v", err),
 						"VerrazzanoProject",
 						types.NamespacedName{Namespace: vp.Namespace, Name: vp.Name})
 				}
@@ -41,10 +41,10 @@ func (s *Syncer) syncVerrazzanoProjects() error {
 				vpLocal := clustersv1alpha1.VerrazzanoProject{}
 				err := s.LocalClient.Get(s.Context, types.NamespacedName{Namespace: vp.Namespace, Name: vp.Name}, &vpLocal)
 				if err == nil {
-					s.Log.Info(fmt.Sprintf("deleting VerrazzanoProject %q from namespace %q because it is no longer targetted at this cluster", vp.Name, vp.Namespace))
+					s.Log.Debugf("Deleting VerrazzanoProject %q from namespace %q because it is no longer targetted at this cluster", vp.Name, vp.Namespace)
 					err2 := s.LocalClient.Delete(s.Context, &vpLocal)
 					if err2 != nil {
-						s.Log.Error(err, fmt.Sprintf("failed to delete VerrazzanoProject with name %q and namespace %q: %s", vp.Name, vp.Namespace, err2.Error()))
+						s.Log.Errorf("failed to delete VerrazzanoProject with name %q and namespace %q: %v", vp.Name, vp.Namespace, err2)
 					}
 				}
 			}
@@ -58,7 +58,7 @@ func (s *Syncer) syncVerrazzanoProjects() error {
 	allLocalProjects := clustersv1alpha1.VerrazzanoProjectList{}
 	err = s.LocalClient.List(s.Context, &allLocalProjects, listOptions)
 	if err != nil {
-		s.Log.Error(err, "failed to list VerrazzanoProject on local cluster")
+		s.Log.Errorf("Failed to list VerrazzanoProject on local cluster: %v", err)
 		return nil
 	}
 	for i, project := range allLocalProjects.Items {
@@ -66,7 +66,7 @@ func (s *Syncer) syncVerrazzanoProjects() error {
 		if !projectListContains(allAdminProjects, project.Name, project.Namespace) {
 			err := s.LocalClient.Delete(s.Context, &allLocalProjects.Items[i])
 			if err != nil {
-				s.Log.Error(err, fmt.Sprintf("failed to delete VerrazzanoProject with name %q and namespace %q", project.Name, project.Namespace))
+				s.Log.Errorf("Failed to delete VerrazzanoProject with name %q and namespace %q: %v", project.Name, project.Namespace, err)
 			}
 		}
 	}
@@ -74,7 +74,7 @@ func (s *Syncer) syncVerrazzanoProjects() error {
 	// Update the list of namespaces being watched for multi-cluster objects
 	s.ProjectNamespaces, err = s.getManagedNamespaces()
 	if err != nil {
-		s.Log.Error(err, "failed to get the list of Verrazzano managed namespaces")
+		s.Log.Errorf("Failed to get the list of Verrazzano managed namespaces: %v", err)
 		return err
 	}
 

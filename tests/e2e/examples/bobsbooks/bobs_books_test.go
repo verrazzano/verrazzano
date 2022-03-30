@@ -1,13 +1,15 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package bobsbooks
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -16,29 +18,71 @@ import (
 )
 
 const (
-	shortWaitTimeout     = 10 * time.Minute
-	shortPollingInterval = 10 * time.Second
-	longWaitTimeout      = 20 * time.Minute
-	longPollingInterval  = 20 * time.Second
+	shortWaitTimeout         = 10 * time.Minute
+	shortPollingInterval     = 10 * time.Second
+	longWaitTimeout          = 20 * time.Minute
+	longPollingInterval      = 20 * time.Second
+	imagePullWaitTimeout     = 40 * time.Minute
+	imagePullPollingInterval = 30 * time.Second
+)
+
+var (
+	t                  = framework.NewTestFramework("bobsbooks")
+	generatedNamespace = pkg.GenerateNamespace("bobs-books")
+	expectedPods       = []string{
+		"bobbys-front-end-adminserver",
+		"bobs-bookstore-adminserver",
+		"bobbys-coherence-0",
+		"roberts-coherence-0",
+		"roberts-coherence-1",
+		"bobbys-helidon-stock-application",
+		"robert-helidon",
+		"mysql"}
 )
 
 var _ = BeforeSuite(func() {
-	deployBobsBooksExample()
+	if !skipDeploy {
+		start := time.Now()
+		deployBobsBooksExample(namespace)
+		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
+	}
+	pkg.Log(pkg.Info, "Container image pull check")
+	Eventually(func() bool {
+		return pkg.ContainerImagePullWait(namespace, expectedPods)
+	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
+	pkg.Log(pkg.Info, "Bobs Books Application expected pods running check.")
+	Eventually(func() bool {
+		result, err := pkg.PodsRunning(namespace, expectedPods)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+		}
+		return result
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy")
+	beforeSuitePassed = true
 })
 
 var failed = false
-var _ = AfterEach(func() {
-	failed = failed || CurrentGinkgoTestDescription().Failed
+var beforeSuitePassed = false
+var _ = t.AfterEach(func() {
+	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = AfterSuite(func() {
-	if failed {
+var _ = t.AfterSuite(func() {
+	if failed || !beforeSuitePassed {
+		// bobbys frontend
+		pkg.DumpContainerLogs(namespace, "bobbys-front-end-adminserver", "weblogic-server", "/scratch/logs/bobbys-front-end")
+		pkg.DumpContainerLogs(namespace, "bobbys-front-end-managed-server1", "weblogic-server", "/scratch/logs/bobbys-front-end")
+		// Bobs Bookstore
+		pkg.DumpContainerLogs(namespace, "bobs-bookstore-adminserver", "weblogic-server", "/scratch/logs/bobs-orders-wls")
+		pkg.DumpContainerLogs(namespace, "bobs-bookstore-managed-server1", "weblogic-server", "/scratch/logs/bobs-orders-wls")
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
-	undeployBobsBooksExample()
+	if !skipUndeploy {
+		undeployBobsBooksExample()
+	}
 })
 
-func deployBobsBooksExample() {
+func deployBobsBooksExample(namespace string) {
 	pkg.Log(pkg.Info, "Deploy BobsBooks example")
 	wlsUser := "weblogic"
 	wlsPass := pkg.GetRequiredEnvVarOrFail("WEBLOGIC_PSW")
@@ -47,86 +91,78 @@ func deployBobsBooksExample() {
 	regUser := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_USR")
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
 
+	start := time.Now()
 	pkg.Log(pkg.Info, "Create namespace")
 	Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
 			"istio-injection":    "enabled"}
-		return pkg.CreateNamespace("bobs-books", nsLabels)
+		return pkg.CreateNamespace(namespace, nsLabels)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	pkg.Log(pkg.Info, "Create Docker repository secret")
 	Eventually(func() (*v1.Secret, error) {
-		return pkg.CreateDockerSecret("bobs-books", "bobs-books-repo-credentials", regServ, regUser, regPass)
+		return pkg.CreateDockerSecret(namespace, "bobs-books-repo-credentials", regServ, regUser, regPass)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create Bobbys front end Weblogic credentials secret")
+	pkg.Log(pkg.Info, "Create Bobbys front end WebLogic credentials secret")
 	Eventually(func() (*v1.Secret, error) {
-		return pkg.CreateCredentialsSecret("bobs-books", "bobbys-front-end-weblogic-credentials", wlsUser, wlsPass, nil)
+		return pkg.CreateCredentialsSecret(namespace, "bobbys-front-end-weblogic-credentials", wlsUser, wlsPass, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create Bobs Bookstore Weblogic credentials secret")
+	pkg.Log(pkg.Info, "Create Bobs Bookstore WebLogic credentials secret")
 	Eventually(func() (*v1.Secret, error) {
-		return pkg.CreateCredentialsSecret("bobs-books", "bobs-bookstore-weblogic-credentials", wlsUser, wlsPass, nil)
+		return pkg.CreateCredentialsSecret(namespace, "bobs-bookstore-weblogic-credentials", wlsUser, wlsPass, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	pkg.Log(pkg.Info, "Create database credentials secret")
 	Eventually(func() (*v1.Secret, error) {
-		m := map[string]string{"password": dbPass, "username": wlsUser, "url": "jdbc:mysql://mysql.bobs-books.svc.cluster.local:3306/books"}
-		return pkg.CreateCredentialsSecretFromMap("bobs-books", "mysql-credentials", m, nil)
+		m := map[string]string{"password": dbPass, "username": wlsUser, "url": "jdbc:mysql://mysql:3306/books"}
+		return pkg.CreateCredentialsSecretFromMap(namespace, "mysql-credentials", m, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	// Note: creating the app config first to verify that default metrics traits are created properly if the app config exists before the components
 	pkg.Log(pkg.Info, "Create application resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-app.yaml")
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/bobs-books/bobs-books-app.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create component resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-comp.yaml")
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/bobs-books/bobs-books-comp.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval, "Failed to create Bobs Books component resources").ShouldNot(HaveOccurred())
+	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
 func undeployBobsBooksExample() {
 	pkg.Log(pkg.Info, "Undeploy BobsBooks example")
 	pkg.Log(pkg.Info, "Delete application")
+	start := time.Now()
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("examples/bobs-books/bobs-books-app.yaml")
+		return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/bobs-books/bobs-books-app.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Delete components")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("examples/bobs-books/bobs-books-comp.yaml")
+		return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/bobs-books/bobs-books-comp.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Delete namespace")
 	Eventually(func() error {
-		return pkg.DeleteNamespace("bobs-books")
+		return pkg.DeleteNamespace(namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() bool {
-		_, err := pkg.GetNamespace("bobs-books")
+		_, err := pkg.GetNamespace(namespace)
 		return err != nil && errors.IsNotFound(err)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
-var _ = Describe("Verify Bobs Books example application.", func() {
-	It("Wait for deployment.", func() {
-		Eventually(func() bool {
-			expectedPods := []string{
-				"bobbys-front-end-adminserver",
-				"bobs-bookstore-adminserver",
-				"bobbys-coherence-0",
-				"roberts-coherence-0",
-				"roberts-coherence-1",
-				"bobbys-helidon-stock-application",
-				"robert-helidon",
-				"mysql",
-			}
-			return pkg.PodsRunning("bobs-books", expectedPods)
-		}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy")
-	})
+var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
+	"f:app-lcm.helidon-workload",
+	"f:app-lcm.weblogic-workload",
+	"f:app-lcm.coherence-workload"), func() {
 
 	var host = ""
 	var err error
@@ -134,18 +170,20 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 	// GIVEN the Istio gateway for the bobs-books namespace
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
-	It("Get host from gateway.", func() {
+	t.BeforeEach(func() {
+		start := time.Now()
 		Eventually(func() (string, error) {
-			host, err = k8sutil.GetHostnameFromGateway("bobs-books", "")
+			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 			return host, err
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
+		metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
 	})
-	Context("Ingress.", func() {
+	t.Context("Ingress.", Label("f:mesh.ingress"), FlakeAttempts(8), func() {
 		// Verify the application endpoint is working.
 		// GIVEN the Bobs Books app is deployed
 		// WHEN the roberts-books UI is accessed
 		// THEN the expected returned page should contain an expected value.
-		It("Verify roberts-books UI endpoint is working.", func() {
+		t.It("Verify roberts-books UI endpoint is working.", func() {
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s", host)
 				return pkg.GetWebPage(url, host)
@@ -155,35 +193,45 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 		// GIVEN the Bobs Books app is deployed
 		// WHEN the bobbys-books UI is accessed
 		// THEN the expected returned page should contain an expected value.
-		It("Verify bobbys-books UI endpoint is working.", func() {
+		t.It("Verify bobbys-books UI endpoint is working.", func() {
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/bobbys-front-end/", host)
 				return pkg.GetWebPage(url, host)
-			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bobby's Books")))
+			}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bobby's Books")))
+		})
+		// Verify the application endpoint is working even without trailing slash.
+		// GIVEN the Bobs Books app is deployed
+		// WHEN the bobbys-books UI is accessed
+		// THEN the expected returned page should contain an expected value.
+		t.It("Verify bobbys-books UI endpoint without trailing slash is working.", func() {
+			Eventually(func() (*pkg.HTTPResponse, error) {
+				url := fmt.Sprintf("https://%s/bobbys-front-end", host)
+				return pkg.GetWebPage(url, host)
+			}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bobby's Books")))
 		})
 		// Verify the application endpoint is working.
 		// GIVEN the Bobs Books app is deployed
 		// WHEN the bobs-orders UI is accessed
 		// THEN the expected returned page should contain an expected value.
-		It("Verify bobs-orders UI endpoint for orders is working.", func() {
+		t.It("Verify bobs-orders UI endpoint for orders is working.", func() {
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/bobs-bookstore-order-manager/orders", host)
 				return pkg.GetWebPage(url, host)
-			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bob's Order Manager")))
+			}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bob's Order Manager")))
 		})
-		It("Verify bobs-orders UI endpoint for books is working.", func() {
+		t.It("Verify bobs-orders UI endpoint for books is working.", func() {
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/bobs-bookstore-order-manager/books", host)
 				return pkg.GetWebPage(url, host)
-			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bob's Order Manager")))
+			}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bob's Order Manager")))
 		})
 	})
-	Context("Metrics.", func() {
+	t.Context("Metrics.", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
 		// Verify application Prometheus scraped metrics
 		// GIVEN a deployed Bob's Books application
 		// WHEN the application configuration uses a default metrics trait
 		// THEN confirm that metrics are being collected
-		It("Retrieve application Prometheus scraped metrics", func() {
+		t.It("Retrieve application Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
 					Eventually(func() bool {
@@ -213,7 +261,7 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 				func() {
 					Eventually(func() bool {
 						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", "bobs-bookstore")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
@@ -223,7 +271,7 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 				func() {
 					Eventually(func() bool {
 						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "weblogic_domainName", "bobs-bookstore")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
@@ -241,7 +289,7 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 		// GIVEN a deployed Bob's Books application
 		// WHEN the application configuration is deployed
 		// THEN confirm that Istio metrics are being collected
-		It("Retrieve Istio Prometheus scraped metrics", func() {
+		t.It("Retrieve Istio Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
 					Eventually(func() bool {
@@ -255,12 +303,12 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobbys-front-end-adminserver")
+						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobbys-front-end")
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobs-bookstore-adminserver")
+						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobs-orders-wls")
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
@@ -276,12 +324,12 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 			)
 		})
 	})
-	Context("WebLogic logging.", func() {
-		bobsIndexName := "verrazzano-namespace-bobs-books"
+	t.Context("WebLogic logging.", Label("f:observability.logging.es"), func() {
+		bobsIndexName := "verrazzano-namespace-" + namespace
 		// GIVEN a WebLogic application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
-		It("Verify Elasticsearch index exists", func() {
+		t.It("Verify Elasticsearch index exists", func() {
 			Eventually(func() bool {
 				return pkg.LogIndexFound(bobsIndexName)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find log index "+bobsIndexName)
@@ -291,7 +339,7 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobbys-front-end-adminserver stdout is found
 			func() {
-				It("Verify recent bobbys-front-end-adminserver log record exists", func() {
+				t.It("Verify recent bobbys-front-end-adminserver log record exists", func() {
 					Eventually(func() bool {
 						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.weblogic_domainUID":  "bobbys-front-end",
@@ -306,7 +354,7 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobbys-front-end-adminserver log file is found
 			func() {
-				It("Verify recent bobbys-front-end-adminserver log record exists", func() {
+				t.It("Verify recent bobbys-front-end-adminserver log record exists", func() {
 					Eventually(func() bool {
 						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.weblogic_domainUID":  "bobbys-front-end",
@@ -321,7 +369,7 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobbys-front-end-managed-server stdout is found
 			func() {
-				It("Verify recent bobbys-front-end-managed-server1 log record exists", func() {
+				t.It("Verify recent bobbys-front-end-managed-server1 log record exists", func() {
 					Eventually(func() bool {
 						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.weblogic_domainUID":  "bobbys-front-end",
@@ -337,7 +385,7 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent pattern-matched log record of bobbys-front-end-adminserver stdout is found
 			func() {
-				It("Verify recent pattern-matched AdminServer log record exists", func() {
+				t.It("Verify recent pattern-matched AdminServer log record exists", func() {
 					Eventually(func() bool {
 						return pkg.FindLog(bobsIndexName,
 							[]pkg.Match{
@@ -354,7 +402,7 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent pattern-matched log record of bobbys-front-end-adminserver stdout is found
 			func() {
-				It("Verify recent pattern-matched AdminServer log record exists", func() {
+				t.It("Verify recent pattern-matched AdminServer log record exists", func() {
 					Eventually(func() bool {
 						return pkg.FindLog(bobsIndexName,
 							[]pkg.Match{
@@ -369,23 +417,9 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 			},
 			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
-			// THEN verify that no 'pattern not matched' log record of fluentd-stdout-sidecar is found
-			func() {
-				It("Verify recent 'pattern not matched' log records do not exist", func() {
-					Eventually(func() bool {
-						return pkg.FindLog(bobsIndexName,
-							[]pkg.Match{
-								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
-								{Key: "message", Value: "pattern not matched"}},
-							[]pkg.Match{})
-					}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Expected to find No pattern not matched log records")
-				})
-			},
-			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobbys-front-end-managed-server log file is found
 			func() {
-				It("Verify recent bobbys-front-end-managed-server1 log record exists", func() {
+				t.It("Verify recent bobbys-front-end-managed-server1 log record exists", func() {
 					Eventually(func() bool {
 						return pkg.FindLog(bobsIndexName,
 							[]pkg.Match{
@@ -404,7 +438,7 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent pattern-matched log record of bobbys-front-end-managed-server stdout is found
 			func() {
-				It("Verify recent pattern-matched managed-server log record exists", func() {
+				t.It("Verify recent pattern-matched managed-server log record exists", func() {
 					Eventually(func() bool {
 						return pkg.FindLog(bobsIndexName,
 							[]pkg.Match{
@@ -421,7 +455,7 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent pattern-matched log record of bobbys-front-end-managed-server stdout is found
 			func() {
-				It("Verify recent pattern-matched managed-server log record exists", func() {
+				t.It("Verify recent pattern-matched managed-server log record exists", func() {
 					Eventually(func() bool {
 						return pkg.FindLog(bobsIndexName,
 							[]pkg.Match{
@@ -440,7 +474,7 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobs-bookstore-adminserver stdout is found
 			func() {
-				It("Verify recent bobs-bookstore-adminserver log record exists", func() {
+				t.It("Verify recent bobs-bookstore-adminserver log record exists", func() {
 					Eventually(func() bool {
 						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.weblogic_domainUID":  "bobs-bookstore",
@@ -455,7 +489,7 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobs-bookstore-adminserver log file is found
 			func() {
-				It("Verify recent bobs-bookstore-adminserver log record exists", func() {
+				t.It("Verify recent bobs-bookstore-adminserver log record exists", func() {
 					Eventually(func() bool {
 						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.weblogic_domainUID":  "bobs-bookstore",
@@ -470,7 +504,7 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobs-bookstore-managed-server stdout is found
 			func() {
-				It("Verify recent bobs-bookstore-managed-server1 log record exists", func() {
+				t.It("Verify recent bobs-bookstore-managed-server1 log record exists", func() {
 					Eventually(func() bool {
 						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.weblogic_domainUID":  "bobs-bookstore",
@@ -485,7 +519,7 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobs-bookstore-managed-server log file is found
 			func() {
-				It("Verify recent bobs-bookstore-managed-server1 log record exists", func() {
+				t.It("Verify recent bobs-bookstore-managed-server1 log record exists", func() {
 					Eventually(func() bool {
 						return pkg.FindLog(bobsIndexName,
 							[]pkg.Match{
@@ -502,12 +536,12 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 			},
 		)
 	})
-	Context("Coherence logging.", func() {
-		indexName := "verrazzano-namespace-bobs-books"
+	t.Context("Coherence logging.", Label("f:observability.logging.es"), func() {
+		indexName := "verrazzano-namespace-" + namespace
 		// GIVEN a Coherence application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
-		It("Verify Elasticsearch index exists", func() {
+		t.It("Verify Elasticsearch index exists", func() {
 			Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find log index "+indexName)
@@ -517,7 +551,7 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of roberts-coherence-0 stdout is found
 			func() {
-				It("Verify recent roberts-coherence-0 log record exists", func() {
+				t.It("Verify recent roberts-coherence-0 log record exists", func() {
 					Eventually(func() bool {
 						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.coherenceCluster":                "roberts-coherence",
@@ -532,7 +566,7 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of roberts-coherence-0 log file is found
 			func() {
-				It("Verify recent roberts-coherence-0 log record exists", func() {
+				t.It("Verify recent roberts-coherence-0 log record exists", func() {
 					Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
@@ -550,7 +584,7 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of roberts-coherence-1 stdout is found
 			func() {
-				It("Verify recent roberts-coherence-1 log record exists", func() {
+				t.It("Verify recent roberts-coherence-1 log record exists", func() {
 					Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
@@ -568,7 +602,7 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of roberts-coherence-1 log file is found
 			func() {
-				It("Verify recent roberts-coherence-1 log record exists", func() {
+				t.It("Verify recent roberts-coherence-1 log record exists", func() {
 					Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
@@ -584,7 +618,7 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobbys-coherence log file is found
 			func() {
-				It("Verify recent roberts-coherence-1 log record exists", func() {
+				t.It("Verify recent roberts-coherence-1 log record exists", func() {
 					Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{

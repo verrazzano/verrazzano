@@ -15,33 +15,36 @@ spec:
         metadata:
           name: carts-coh
         spec:
+          labels:
+            app: carts-coh
+            version: v1
           cluster: SockShop
           role: Carts
           replicas: 1
-          image: ghcr.io/helidon-sockshop/carts-coherence:2.2.0
+          image: ghcr.io/oracle/coherence-helidon-sockshop-carts:1.0.0
           imagePullPolicy: IfNotPresent
           application:
             type: helidon
           jvm:
-            args:
-              - "-Dcoherence.k8s.operator.health.wait.dcs=false"
-              - "-Dcoherence.metrics.legacy.names=false"
             memory:
               heapSize: 2g
           coherence:
             logLevel: 9
+            metrics:
+              enabled: true
           ports:
             - name: http
               port: 7001
               service:
                 name: carts
-                port: 80
+                port: 7001
               serviceMonitor:
                 enabled: true
-            - name: metrics
-              port: 7001
-              serviceMonitor:
-                enabled: true
+# these additional metrics ports are commented out here and elsewhere until VZ-3760 is fixed
+#            - name: metrics
+#              port: 9612
+#              serviceMonitor:
+#                enabled: true
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
@@ -57,31 +60,33 @@ spec:
         metadata:
           name: catalog-coh
         spec:
+          labels:
+            app: catalog-coh
+            version: v1
           cluster: SockShop
           role: Catalog
           replicas: 1
-          image: ghcr.io/helidon-sockshop/catalog-coherence:2.2.0
+          image: ghcr.io/oracle/coherence-helidon-sockshop-catalog:1.0.0
           imagePullPolicy: IfNotPresent
           application:
             type: helidon
           jvm:
-            args:
-              - "-Dcoherence.k8s.operator.health.wait.dcs=false"
-              - "-Dcoherence.metrics.legacy.names=false"
             memory:
               heapSize: 2g
           coherence:
             logLevel: 9
+            metrics:
+              enabled: true
           ports:
+            #            - name: metrics
+            #              port: 9612
+            #              serviceMonitor:
+            #                enabled: true
             - name: http
               port: 7001
               service:
                 name: catalogue  # for compatibility with the existing front-end implementation
-                port: 80
-              serviceMonitor:
-                enabled: true
-            - name: metrics
-              port: 7001
+                port: 7001
               serviceMonitor:
                 enabled: true
 ---
@@ -99,33 +104,35 @@ spec:
         metadata:
           name: orders-coh
         spec:
+          labels:
+            app: orders-coh
+            version: v1
           cluster: SockShop
           role: Orders
           replicas: 1
-          image: ghcr.io/helidon-sockshop/orders-coherence:2.2.0
+          image: ghcr.io/oracle/coherence-helidon-sockshop-orders:1.0.0
           imagePullPolicy: IfNotPresent
           application:
             type: helidon
           jvm:
-            args:
-              - "-Dcoherence.k8s.operator.health.wait.dcs=false"
-              - "-Dcoherence.metrics.legacy.names=false"
             memory:
               heapSize: 2g
           coherence:
             logLevel: 9
+            metrics:
+              enabled: true
           ports:
             - name: http
               port: 7001
               service:
                 name: orders
-                port: 80
+                port: 7001
               serviceMonitor:
                 enabled: true
-            - name: metrics
-              port: 7001
-              serviceMonitor:
-                enabled: true
+#            - name: metrics
+#              port: 9612
+#              serviceMonitor:
+#                enabled: true
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
@@ -141,21 +148,23 @@ spec:
         metadata:
           name: payment-coh
         spec:
+          labels:
+            app: payment-coh
+            version: v1
           cluster: SockShop
           role: Payment
           replicas: 1
-          image: ghcr.io/helidon-sockshop/payment-coherence:2.2.0
+          image: ghcr.io/oracle/coherence-helidon-sockshop-payment:1.0.0
           imagePullPolicy: IfNotPresent
           application:
             type: helidon
           jvm:
-            args:
-              - "-Dcoherence.k8s.operator.health.wait.dcs=false"
-              - "-Dcoherence.metrics.legacy.names=false"
             memory:
               heapSize: 2g
           coherence:
             logLevel: 9
+            metrics:
+              enabled: true
           ports:
             - name: grpc
               port: 1408
@@ -165,13 +174,13 @@ spec:
               port: 7001
               service:
                 name: payment-http
-                port: 80
+                port: 7001
               serviceMonitor:
                 enabled: true
-            - name: metrics
-              port: 7001
-              serviceMonitor:
-                enabled: true
+#            - name: metrics
+#              port: 9612
+#              serviceMonitor:
+#                enabled: true
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
@@ -187,37 +196,39 @@ spec:
         metadata:
           name: shipping-coh
         spec:
+          labels:
+            app: shipping-coh
+            version: v1
           cluster: SockShop
           role: Shipping
           replicas: 1
-          image: ghcr.io/helidon-sockshop/shipping-coherence:2.2.0
+          image: ghcr.io/oracle/coherence-helidon-sockshop-shipping:1.0.0
           imagePullPolicy: IfNotPresent
           application:
             type: helidon
           jvm:
-            args:
-              - "-Dcoherence.k8s.operator.health.wait.dcs=false"
-              - "-Dcoherence.metrics.legacy.names=false"
             memory:
               heapSize: 2g
           coherence:
             logLevel: 9
+            metrics:
+              enabled: true
           ports:
-            - name: grpc
-              port: 1408
-              service:
-                name: shipping
             - name: http
               port: 7001
               service:
                 name: shipping-http
-                port: 80
+                port: 7001
               serviceMonitor:
                 enabled: true
-            - name: metrics
-              port: 7001
-              serviceMonitor:
-                enabled: true
+            - name: grpc
+              port: 1408
+              service:
+                name: shipping
+#            - name: metrics
+#              port: 9612
+#              serviceMonitor:
+#                enabled: true
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
@@ -233,30 +244,32 @@ spec:
         metadata:
           name: users-coh
         spec:
+          labels:
+            app: users-coh
+            version: v1
           cluster: SockShop
           role: Users
           replicas: 1
-          image: ghcr.io/helidon-sockshop/users-coherence:2.2.0
+          image: ghcr.io/oracle/coherence-helidon-sockshop-users:1.0.0
           imagePullPolicy: IfNotPresent
           application:
             type: helidon
           jvm:
-            args:
-              - "-Dcoherence.k8s.operator.health.wait.dcs=false"
-              - "-Dcoherence.metrics.legacy.names=false"
             memory:
               heapSize: 2g
           coherence:
             logLevel: 9
+            metrics:
+              enabled: true
           ports:
             - name: http
               port: 7001
               service:
                 name: user  # for compatibility with the existing front-end implementation
-                port: 80
+                port: 7001
               serviceMonitor:
                 enabled: true
-            - name: metrics
-              port: 7001
-              serviceMonitor:
-                enabled: true
+#            - name: metrics
+#              port: 9612
+#              serviceMonitor:
+#                enabled: true

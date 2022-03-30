@@ -1,31 +1,34 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-
 package keycloak
 
 import (
+	"context"
+	"path/filepath"
+
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"path/filepath"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ComponentName is the name of the component
 const ComponentName = "keycloak"
 
-var hc = helm.HelmComponent{
-	ReleaseName:             ComponentName,
-	ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
-	ChartNamespace:          ComponentName,
-	IgnoreNamespaceOverride: true,
-	ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
-	Dependencies:            []string{istio.ComponentName},
-	AppendOverridesFunc:     AppendKeycloakOverrides,
-}
+// ComponentNamespace is the namespace of the component
+const ComponentNamespace = constants.KeycloakNamespace
 
 // KeycloakComponent represents an Keycloak component
 type KeycloakComponent struct {
+	helm.HelmComponent
 }
 
 // Verify that KeycloakComponent implements Component
@@ -33,79 +36,118 @@ var _ spi.Component = KeycloakComponent{}
 
 // NewComponent returns a new Keycloak component
 func NewComponent() spi.Component {
-	return KeycloakComponent{}
+	return KeycloakComponent{
+		helm.HelmComponent{
+			ReleaseName:             ComponentName,
+			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
+			ChartNamespace:          ComponentNamespace,
+			IgnoreNamespaceOverride: true,
+			//  Check on Image Pull Key
+			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
+			Dependencies:            []string{istio.ComponentName},
+			SupportsOperatorInstall: true,
+			AppendOverridesFunc:     AppendKeycloakOverrides,
+			IngressNames: []types.NamespacedName{
+				{
+					Namespace: ComponentNamespace,
+					Name:      constants.KeycloakIngress,
+				},
+			},
+		},
+	}
 }
 
-// --------------------------------------
-// ComponentInfo interface functions
-// --------------------------------------
+func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
+	// Check Verrazzano Secret. return error which will cause reque
+	secret := &corev1.Secret{}
+	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
+		Namespace: constants.VerrazzanoSystemNamespace,
+		Name:      constants.Verrazzano,
+	}, secret)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			ctx.Log().Progressf("Component Keycloak waiting for the Verrazzano password %s/%s to exist",
+				constants.VerrazzanoSystemNamespace, constants.Verrazzano)
+			return ctrlerrors.RetryableError{Source: ComponentName}
+		}
+		ctx.Log().Errorf("Component Keycloak failed to get the Verrazzano password %s/%s: %v",
+			constants.VerrazzanoSystemNamespace, constants.Verrazzano, err)
+		return err
+	}
+	// Check MySQL Secret. return error which will cause reque
+	secret = &corev1.Secret{}
+	err = ctx.Client().Get(context.TODO(), client.ObjectKey{
+		Namespace: ComponentNamespace,
+		Name:      mysql.ComponentName,
+	}, secret)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			ctx.Log().Progressf("Component Keycloak waiting for the MySql password %s/%s to exist", ComponentNamespace, mysql.ComponentName)
+			return ctrlerrors.RetryableError{Source: ComponentName}
+		}
+		ctx.Log().Errorf("Component Keycloak failed to get the MySQL password %s/%s: %v", ComponentNamespace, mysql.ComponentName, err)
+		return err
+	}
 
-// Log returns the logger for the context
-func (k KeycloakComponent) Name() string {
-	return hc.Name()
+	// Create secret for the keycloakadmin user if it doesn't exist
+	err = createAuthSecret(ctx, ComponentNamespace, "keycloak-http", "keycloakadmin")
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-// Log returns the logger for the context
-func (k KeycloakComponent) GetDependencies() []string {
-	return hc.GetDependencies()
+func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
+	// Create secret for the verrazzano-prom-internal user
+	err := createAuthSecret(ctx, constants.VerrazzanoSystemNamespace, "verrazzano-prom-internal", "verrazzano-prom-internal")
+	if err != nil {
+		return err
+	}
+
+	// Create secret for the verrazzano-es-internal user
+	err = createAuthSecret(ctx, constants.VerrazzanoSystemNamespace, "verrazzano-es-internal", "verrazzano-es-internal")
+	if err != nil {
+		return err
+	}
+	// Create the verrazzano-system realm and populate it with users, groups, clients, etc.
+	err = configureKeycloakRealms(ctx)
+	if err != nil {
+		return err
+	}
+
+	// If OCI DNS, update annotation on Keycloak Ingress
+	if vzconfig.IsExternalDNSEnabled(ctx.EffectiveCR()) {
+		err := updateKeycloakIngress(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	return c.HelmComponent.PostInstall(ctx)
 }
 
-// IsReady Indicates whether or not a component is available and ready
-func (k KeycloakComponent) IsReady(context spi.ComponentContext) bool {
-	return hc.IsReady(context)
+// PostUpgrade Keycloak-post-upgrade processing, create or update the Kiali ingress
+func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
+		return err
+	}
+	return updateKeycloakUris(ctx)
 }
 
-// --------------------------------------
-// ComponentInstaller interface functions
-// --------------------------------------
-
-// IsOperatorInstallSupported Returns true if the component supports install directly via the platform operator
-// - scaffolding while we move components from the scripts to the operator
-func (k KeycloakComponent) IsOperatorInstallSupported() bool {
-	return hc.IsOperatorInstallSupported()
+// IsEnabled Keycloak-specific enabled check for installation
+func (c KeycloakComponent) IsEnabled(ctx spi.ComponentContext) bool {
+	comp := ctx.EffectiveCR().Spec.Components.Keycloak
+	if comp == nil || comp.Enabled == nil {
+		return true
+	}
+	return *comp.Enabled
 }
 
-// IsInstalled Indicates whether or not the component is installed
-func (k KeycloakComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
-	return hc.IsInstalled(context)
-}
-
-// PreInstall allows components to perform any pre-processing required prior to initial install
-func (k KeycloakComponent) PreInstall(context spi.ComponentContext) error {
-	return hc.PreInstall(context)
-}
-
-// Install performs the initial install of a component
-func (k KeycloakComponent) Install(context spi.ComponentContext) error {
-	return hc.Install(context)
-}
-
-// PostInstall allows components to perform any post-processing required after initial install
-func (k KeycloakComponent) PostInstall(context spi.ComponentContext) error {
-	return hc.PostInstall(context)
-}
-
-// --------------------------------------
-// ComponentUpgrader interface functions
-// --------------------------------------
-
-// PreUpgrade allows components to perform any pre-processing required prior to upgrading
-func (k KeycloakComponent) PreUpgrade(context spi.ComponentContext) error {
-	return hc.PreUpgrade(context)
-}
-
-// Upgrade will upgrade the Verrazzano component specified in the CR.Version field
-func (k KeycloakComponent) Upgrade(context spi.ComponentContext) error {
-	return hc.Upgrade(context)
-}
-
-// PostUpgrade allows components to perform any post-processing required after upgrading
-func (k KeycloakComponent) PostUpgrade(context spi.ComponentContext) error {
-	return hc.PostUpgrade(context)
-}
-
-// GetSkipUpgrade returns the value of the SkipUpgrade field
-// - Scaffolding for now during the Istio 1.10.2 upgrade process
-func (k KeycloakComponent) GetSkipUpgrade() bool {
-	return hc.GetSkipUpgrade()
+// IsReady component check
+func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
+	if c.HelmComponent.IsReady(ctx) {
+		return isKeycloakReady(ctx)
+	}
+	return false
 }

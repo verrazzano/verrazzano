@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
@@ -23,7 +23,7 @@ function delete_verrazzano() {
   helm ls -n verrazzano-system \
     | awk '/verrazzano/ {print $1}' \
     | xargsr helm uninstall -n verrazzano-system \
-    || err_return $? "Could not delete verrazzano from helm" || return $? # return on pipefail
+    || err_return $? "Could not delete Verrazzano from helm" || return $? # return on pipefail
 
   # delete verrazzano-managed-cluster-local secret
   log "Deleting Verrazzano secrets"
@@ -89,6 +89,17 @@ function delete_application_operator {
   fi
 }
 
+function delete_authproxy {
+  log "Uninstall the Verrazzano AuthProxy"
+  if helm status verrazzano-authproxy --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
+    if ! helm uninstall verrazzano-authproxy --namespace "${VERRAZZANO_NS}" ; then
+      error "Failed to uninstall the Verrazzano AuthProxy."
+    fi
+  fi
+}
+
+
+
 function delete_weblogic_operator {
   log "Uninstall the WebLogic Kubernetes operator"
   if helm status uninstall weblogic-operator --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
@@ -116,8 +127,22 @@ function delete_coherence_operator {
   kubectl delete mutatingwebhookconfigurations.admissionregistration.k8s.io coherence-operator-mutating-webhook-configuration --ignore-not-found
 }
 
+function delete_kiali {
+  KIALI_CHART_DIR=${CHARTS_DIR}/kiali-server
+  log "Uninstall Kiali"
+  if helm status kiali-server  --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
+    if ! helm uninstall kiali-server  --namespace "${VERRAZZANO_NS}" ; then
+      error "Failed to uninstall Kiali."
+    fi
+  fi
+  log "Deleting Kiali Custom Resource Definitions"
+  kubectl delete -f ${KIALI_CHART_DIR}/crds || true
+}
+
 action "Deleting Verrazzano Application Kubernetes operator" delete_application_operator || exit 1
 action "Deleting OAM Kubernetes operator" delete_oam_operator || exit 1
 action "Deleting Coherence Kubernetes operator" delete_coherence_operator || exit 1
 action "Deleting WebLogic Kubernetes operator" delete_weblogic_operator || exit 1
+action "Deleting Verrazzano AuthProxy" delete_authproxy || exit 1
 action "Deleting Verrazzano Components" delete_verrazzano || exit 1
+action "Deleting Kiali " delete_kiali || exit 1

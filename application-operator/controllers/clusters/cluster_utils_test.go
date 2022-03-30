@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package clusters
@@ -6,6 +6,7 @@ package clusters
 import (
 	"context"
 	"errors"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"testing"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -99,13 +101,15 @@ func TestGetConditionFromResult(t *testing.T) {
 // WHEN IgnoreNotFoundWithLog is called
 // THEN the error is returned
 func TestIgnoreNotFoundWithLog(t *testing.T) {
-	logger := controllerruntime.Log.WithName("somelogger")
-	err := IgnoreNotFoundWithLog("myResourceType", kerr.NewNotFound(controllerruntime.GroupResource{}, ""), logger)
+	log := zap.S().With("somelogger")
+	result, err := IgnoreNotFoundWithLog(kerr.NewNotFound(controllerruntime.GroupResource{}, ""), log)
 	asserts.Nil(t, err)
+	asserts.False(t, result.Requeue)
 
 	otherErr := kerr.NewBadRequest("some other error")
-	err = IgnoreNotFoundWithLog("myResourceType", otherErr, logger)
-	asserts.Equal(t, otherErr, err)
+	result, err = IgnoreNotFoundWithLog(otherErr, log)
+	asserts.Nil(t, err)
+	asserts.True(t, result.Requeue)
 }
 
 // TestIsPlacedInThisCluster tests the IsPlacedInThisCluster function
@@ -441,6 +445,31 @@ func TestDeleteAssociatedResource(t *testing.T) {
 	asserts.NotNil(t, err)
 
 	mocker.Finish()
+}
+
+// TestRequeueWithDelay tests that when a result is requested it has requeue set to true and a requeue after greater
+// than 2 seconds
+// GIVEN a need for a requeue result
+// WHEN NewRequeueWithDelay is called
+// THEN the returned result indicates a requeue with a requeueAfter time greaater than or equal to 2 seconds
+func TestRequeueWithDelay(t *testing.T) {
+	result := NewRequeueWithDelay()
+	asserts.True(t, result.Requeue)
+	asserts.GreaterOrEqual(t, result.RequeueAfter.Seconds(), time.Duration(2).Seconds())
+}
+
+// GIVEN a need for a testing a result for requeueing
+// WHEN ShouldRequeue is called
+// THEN a value of true is returned if Requeue is set to true or the RequeueAfter time is greater than 0, false otherwise
+func TestShouldRequeue(t *testing.T) {
+	val := ShouldRequeue(reconcile.Result{Requeue: true})
+	asserts.True(t, val)
+	val = ShouldRequeue(reconcile.Result{Requeue: false})
+	asserts.False(t, val)
+	val = ShouldRequeue(reconcile.Result{RequeueAfter: time.Duration(2)})
+	asserts.True(t, val)
+	val = ShouldRequeue(reconcile.Result{RequeueAfter: time.Duration(0)})
+	asserts.False(t, val)
 }
 
 func expectGetAndDeleteAppConfig(t *testing.T, cli *mocks.MockClient, name types.NamespacedName, deleteErr error) {

@@ -4,18 +4,12 @@
 package integ_test
 
 import (
-	"fmt"
+	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/gomega"
 	"testing"
-
-	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/reporters"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
 func TestInteg(t *testing.T) {
-	RegisterFailHandler(Fail)
-	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("integ-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
-	RunSpecsWithDefaultAndCustomReporters(t, "Integration Test Suite", []Reporter{junitReporter})
+	gomega.RegisterFailHandler(ginkgo.Fail)
+	ginkgo.RunSpecs(t, "Integration Test Suite")
 }

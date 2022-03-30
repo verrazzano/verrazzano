@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package pkg
@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	// Username - the username of the verrazzano admin user
+	// Username - the username of the Verrazzano admin user
 	Username               = "verrazzano"
 	realm                  = "verrazzano-system"
 	verrazzanoAPIURLPrefix = "20210501"
@@ -48,7 +48,11 @@ func GetAPIEndpoint(kubeconfigPath string) (*APIEndpoint, error) {
 	}
 	var ingressRules = ingress.Spec.Rules
 	keycloakURL := fmt.Sprintf("https://%s/auth/realms/%s/protocol/openid-connect/token", ingressRules[0].Host, realm)
-	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", Username, GetVerrazzanoPassword(), keycloakAPIClientID)
+	password, err := GetVerrazzanoPassword()
+	if err != nil {
+		return nil, err
+	}
+	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", Username, password, keycloakAPIClientID)
 	resp, err := doReq(keycloakURL, "POST", "application/x-www-form-urlencoded", "", "", "", strings.NewReader(body), keycloakHTTPClient)
 	if err != nil {
 		return nil, err
@@ -177,5 +181,5 @@ func (api *APIEndpoint) GetElasticURL() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0]), nil
+	return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host), nil
 }

@@ -1,0 +1,31 @@
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+config:
+  dnsSuffix: 11.22.33.44.nip.io
+  envName: default
+console:
+  enabled: false
+dns:
+  wildcard:
+    domain: nip.io
+elasticSearch:
+  enabled: false
+logging:
+  elasticsearchSecret: verrazzano-es-internal
+  elasticsearchURL: http://verrazzano-authproxy-elasticsearch:8775
+fluentd:
+  enabled: true
+grafana:
+  enabled: false
+keycloak:
+  enabled: false
+kibana:
+  enabled: false
+monitoringOperator:
+  enabled: true
+prometheus:
+  enabled: true
+rancher:
+  enabled: false
+verrazzanoOperator:
+  enabled: true

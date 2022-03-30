@@ -1,4 +1,4 @@
-# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (C) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 include ../make/quality.mk
@@ -60,11 +60,12 @@ INTEG_RUN_ID=
 ENV_NAME=verrazzano-platform-operator
 GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
+GO_BINDATA_VERSION ?= $(shell go list -m -f '{{.Version}}' 'github.com/go-bindata/go-bindata/v3' )
 
 CRD_PATH=helm_config/charts/verrazzano-platform-operator/crds
 
 CLUSTER_DUMP_LOCATION ?= platform-operator-integ-cluster-dump
-
+SHELL = bash
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 .PHONY: run
@@ -86,7 +87,7 @@ uninstall-crds:
 # Go build related tasks
 #
 .PHONY: go-build
-go-build:
+go-build: assets
 	$(GO) build \
 		-ldflags "${GO_LDFLAGS}" \
 		-o out/$(shell uname)_$(shell uname -m)/verrazzano-platform-operator \
@@ -105,6 +106,38 @@ go-install:
 
 .PHONY: manifests
 manifests: platform-manifests
+
+# Generate mocks
+.PHONY: mock-gen
+mock-gen:
+	mockgen -destination=mocks/component_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi ComponentContext,ComponentInfo,ComponentInstaller,ComponentUpgrader,Component
+	mockgen -destination=mocks/controller_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
+
+# find or download go-bindata
+# download go-bindata if necessary
+.PHONY: go-bindata
+go-bindata:
+ifeq (, $(shell command -v go-bindata))
+	$(GO) get github.com/go-bindata/go-bindata/v3/...@${GO_BINDATA_VERSION}
+	echo $(GOBIN)
+	$(eval GO_BINDATA=$(GOBIN)/go-bindata)
+else
+	$(eval GO_BINDATA=$(shell command -v go-bindata))
+endif
+	@{ \
+	set -eu; \
+	ACTUAL_GO_BINDATA_VERSION=$$(${GO_BINDATA} --version | head -1 | awk '{print $$2}') ; \
+	if [ "v$${ACTUAL_GO_BINDATA_VERSION}" != "${GO_BINDATA_VERSION}" ] ; then \
+		echo  "Bad go-bindata version $${ACTUAL_GO_BINDATA_VERSION}, please install ${GO_BINDATA_VERSION}" ; \
+	fi ; \
+	}
+
+.PHONY: assets
+assets: go-bindata
+	$(GO_BINDATA) -pkg verrazzano -o generated_assets.go ./manifests/dashboards/...
+	echo '// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.' | cat - generated_assets.go > tmp && mv tmp generated_assets.go
+	echo '// Copyright (C) 2022, Oracle and/or its affiliates.' | cat - generated_assets.go > tmp && mv tmp generated_assets.go
+	mv ./generated_assets.go ./controllers/verrazzano/component/verrazzano/
 
 #
 # Docker-related tasks
@@ -158,10 +191,10 @@ KIND_CONFIG ?= kind-config.yaml
 integ-test: create-cluster generate-operator-yaml
 	echo 'Load docker image for the verrazzano-platform-operator...'
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
-	echo 'Deploy verrazzano platform operator ...'
+	echo 'Deploy Verrazzano platform operator ...'
 	kubectl apply -f ${OPERATOR_YAML} || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -r ${CLUSTER_DUMP_LOCATION}/analysis.report; exit 1)
 	echo 'Run tests...'
-	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Platform operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -r ${CLUSTER_DUMP_LOCATION}/analysis.report; exit 1)
+	ginkgo -v --keep-going -cover test/integ/... || (echo 'Platform operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -r ${CLUSTER_DUMP_LOCATION}/analysis.report; exit 1)
 
 .PHONY: generate-operator-yaml
 generate-operator-yaml:
@@ -174,6 +207,7 @@ cleanup-cluster:
 	./build/scripts/cleanup.sh ${CLUSTER_NAME}
 
 .PHONY: create-cluster
+create-cluster: WORKSPACE ?= ${CURDIR}
 create-cluster:
 	kind_clusters=$$(kind get clusters) ; \
     if [ -z "$${kind_clusters}" ] || ! kind get clusters | egrep "^${CLUSTER_NAME}\$$" > /dev/null ; then \
@@ -183,6 +217,12 @@ create-cluster:
 			--name ${CLUSTER_NAME} \
 			--wait 5m \
 			--config=test/${KIND_CONFIG} ;\
+		if [ $$? -ne 0 ] ; then \
+			mkdir ${WORKSPACE}/kind-logs ;\
+			kind export logs ${WORKSPACE}/kind-logs ;\
+			echo "Kind cluster creation failed" ;\
+			exit 1 ;\
+		fi ;\
 		kubectl config set-context kind-${CLUSTER_NAME} ;\
 	fi
 

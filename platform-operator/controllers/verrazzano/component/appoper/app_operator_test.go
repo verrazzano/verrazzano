@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package appoper
@@ -10,7 +10,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -57,8 +56,8 @@ func TestAppendAppOperatorOverrides(t *testing.T) {
 	assert.Equalf(expectedIstioProxyImage, kvs[2].Value, "Did not get expected istioProxyImage Value")
 }
 
-// TestIsApplicationOperatorReady tests the IsApplicationOperatorReady function
-// GIVEN a call to IsApplicationOperatorReady
+// TestIsApplicationOperatorReady tests the isApplicationOperatorReady function
+// GIVEN a call to isApplicationOperatorReady
 //  WHEN the deployment object has enough replicas available
 //  THEN true is returned
 func TestIsApplicationOperatorReady(t *testing.T) {
@@ -75,11 +74,11 @@ func TestIsApplicationOperatorReady(t *testing.T) {
 			UnavailableReplicas: 0,
 		},
 	})
-	assert.True(t, IsApplicationOperatorReady(spi.NewContext(zap.S(), fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
+	assert.True(t, isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
-// TestIsApplicationOperatorNotReady tests the IsApplicationOperatorReady function
-// GIVEN a call to IsApplicationOperatorReady
+// TestIsApplicationOperatorNotReady tests the isApplicationOperatorReady function
+// GIVEN a call to isApplicationOperatorReady
 //  WHEN the deployment object does NOT have enough replicas available
 //  THEN false is returned
 func TestIsApplicationOperatorNotReady(t *testing.T) {
@@ -96,7 +95,7 @@ func TestIsApplicationOperatorNotReady(t *testing.T) {
 			UnavailableReplicas: 1,
 		},
 	})
-	assert.False(t, IsApplicationOperatorReady(spi.NewContext(zap.S(), fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
+	assert.False(t, isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
 //  TestIsApplyCRDYamlValid tests the ApplyCRDYaml function
@@ -106,6 +105,25 @@ func TestIsApplicationOperatorNotReady(t *testing.T) {
 func TestIsApplyCRDYamlValid(t *testing.T) {
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 	config.TestHelmConfigDir = "../../../../helm_config"
-	logger := zap.SugaredLogger{}
-	assert.Nil(t, ApplyCRDYaml(&logger, fakeClient, "", "", ""))
+	assert.Nil(t, ApplyCRDYaml(nil, fakeClient, "", "", ""))
+}
+
+//  TestIsApplyCRDYamlInvalidPath tests the ApplyCRDYaml function
+//  GIVEN a call to ApplyCRDYaml
+//  WHEN the path is invalid
+//  THEN an appropriate error is returned
+func TestIsApplyCRDYamlInvalidPath(t *testing.T) {
+	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	config.TestHelmConfigDir = "./testdata"
+	assert.Error(t, ApplyCRDYaml(nil, fakeClient, "", "", ""))
+}
+
+//  TestIsApplyCRDYamlInvalidChart tests the ApplyCRDYaml function
+//  GIVEN a call to ApplyCRDYaml
+//  WHEN the yaml is invalid
+//  THEN an appropriate error is returned
+func TestIsApplyCRDYamlInvalidChart(t *testing.T) {
+	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	config.TestHelmConfigDir = "invalidPath"
+	assert.Error(t, ApplyCRDYaml(nil, fakeClient, "", "", ""))
 }

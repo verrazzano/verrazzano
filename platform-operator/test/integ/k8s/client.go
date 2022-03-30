@@ -8,7 +8,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	vzcli "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned/typed/verrazzano/v1alpha1"
-	apixv1beta1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 )
 
 // Client to access the Kubernetes API objects needed for the integration test
@@ -17,7 +17,7 @@ type Client struct {
 	Clientset *kubernetes.Clientset
 
 	// Client to access the Kubernetes API for extensions
-	ApixClient *apixv1beta1client.ApiextensionsV1beta1Client
+	ApixClient *apiextv1.ApiextensionsV1Client
 
 	// Client to access Verrazzano API
 	VzClient *vzcli.VerrazzanoV1alpha1Client
@@ -38,7 +38,7 @@ func NewClient(kubeconfig string) (Client, error) {
 	}
 
 	// Client to access the Kubernetes API for extensions
-	apixcli, err := apixv1beta1client.NewForConfig(config)
+	apixcli, err := apiextv1.NewForConfig(config)
 	if err != nil {
 		return Client{}, err
 	}

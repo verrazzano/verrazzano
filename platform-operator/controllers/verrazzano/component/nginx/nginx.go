@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package nginx
@@ -6,11 +6,14 @@ package nginx
 import (
 	"context"
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,30 +23,25 @@ import (
 )
 
 const (
-	// ComponentName is the name of the component
-	ComponentName = "ingress-controller"
-
-	// ComponentNamespace is the NGINX namespace for verrazzano
-	ComponentNamespace = "ingress-nginx"
-
 	// ValuesFileOverride Name of the values file override for NGINX
 	ValuesFileOverride = "ingress-nginx-values.yaml"
 
-	controllerName = "ingress-controller-ingress-nginx-controller"
+	ControllerName = vpoconst.NGINXControllerServiceName
 	backendName    = "ingress-controller-ingress-nginx-defaultbackend"
 )
 
-func IsReady(context spi.ComponentContext, name string, namespace string) bool {
+func isNginxReady(context spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
-		{Name: controllerName, Namespace: namespace},
-		{Name: backendName, Namespace: namespace},
+		{Name: ControllerName, Namespace: ComponentNamespace},
+		{Name: backendName, Namespace: ComponentNamespace},
 	}
-	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1)
+	prefix := fmt.Sprintf("Component %s", context.GetComponent())
+	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
 func AppendOverrides(context spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	cr := context.EffectiveCR()
-	ingressType, err := getServiceType(cr)
+	ingressType, err := vzconfig.GetServiceType(cr)
 	if err != nil {
 		return []bom.KeyValue{}, err
 	}
@@ -64,10 +62,10 @@ func AppendOverrides(context spi.ComponentContext, _ string, _ string, _ string,
 // PreInstall Create and label the NGINX namespace, and create any override helm args needed
 func PreInstall(compContext spi.ComponentContext, name string, namespace string, dir string) error {
 	if compContext.IsDryRun() {
-		compContext.Log().Infof("NGINX PostInstall dry run")
+		compContext.Log().Debug("NGINX PostInstall dry run")
 		return nil
 	}
-	compContext.Log().Infof("Adding label needed by network policies to ingress-nginx namespace")
+	compContext.Log().Debug("Adding label needed by network policies to ingress-nginx namespace")
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), compContext.Client(), &ns, func() error {
 		if ns.Labels == nil {
@@ -85,7 +83,7 @@ func PreInstall(compContext spi.ComponentContext, name string, namespace string,
 // PostInstall Patch the controller service ports based on any user-supplied overrides
 func PostInstall(ctx spi.ComponentContext, _ string, _ string) error {
 	if ctx.IsDryRun() {
-		ctx.Log().Infof("NGINX PostInstall dry run")
+		ctx.Log().Debug("NGINX PostInstall dry run")
 		return nil
 	}
 	// Add any port specs needed to the service after boot
@@ -99,7 +97,7 @@ func PostInstall(ctx spi.ComponentContext, _ string, _ string) error {
 
 	c := ctx.Client()
 	svcPatch := v1.Service{}
-	if err := c.Get(context.TODO(), types.NamespacedName{Name: controllerName, Namespace: ComponentNamespace}, &svcPatch); err != nil {
+	if err := c.Get(context.TODO(), types.NamespacedName{Name: ControllerName, Namespace: ComponentNamespace}, &svcPatch); err != nil {
 		if errors.IsNotFound(err) {
 			return nil
 		}
@@ -119,18 +117,4 @@ func getInstallArgs(cr *vzapi.Verrazzano) []vzapi.InstallArgs {
 		return []vzapi.InstallArgs{}
 	}
 	return cr.Spec.Components.Ingress.NGINXInstallArgs
-}
-
-// Identify the service type, LB vs NodePort
-func getServiceType(cr *vzapi.Verrazzano) (vzapi.IngressType, error) {
-	ingressConfig := cr.Spec.Components.Ingress
-	if ingressConfig == nil || len(ingressConfig.Type) == 0 {
-		return vzapi.LoadBalancer, nil
-	}
-	switch ingressConfig.Type {
-	case vzapi.NodePort, vzapi.LoadBalancer:
-		return ingressConfig.Type, nil
-	default:
-		return "", fmt.Errorf("Unrecognized ingress type %s", ingressConfig.Type)
-	}
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package bom
@@ -59,7 +59,7 @@ type BomSubComponent struct {
 
 	// Repository is the name of the repository within a registry.  This is combined
 	// with the registry Value to form the image URL prefix, for example: ghcr.io/verrazzano,
-	// where ghci.io is the registry and verrazzano is the repository name.
+	// where ghci.io is the registry and Verrazzano is the repository name.
 	Repository string `json:"repository"`
 
 	// Override the registry within a subcomponent
@@ -80,6 +80,12 @@ type BomImage struct {
 
 	// ImageTag specifies the name of the image tag, such as `0.46.0-20210510134749-abc2d2088`
 	ImageTag string `json:"tag"`
+
+	// Registry is the image registry. It can be used to override the subcomponent registry
+	Registry string `json:"registry,omitempty"`
+
+	// Repository is the image repository. It can be used to override the subcomponent repository
+	Repository string `json:"repository,omitempty"`
 
 	// HelmRegistryKey is the helm template Key which identifies the image registry.  This is not
 	// normally specified.  An example is `image.registry` in external-dns.  The default is empty string
@@ -109,7 +115,9 @@ type BomImage struct {
 type KeyValue struct {
 	Key       string
 	Value     string
-	SetString bool
+	SetString bool // for --set-string
+	SetFile   bool // for --set-file
+	IsFile    bool // for -f
 }
 
 // Create a new bom from a JSON file
@@ -190,9 +198,6 @@ func (b *Bom) BuildImageOverrides(subComponentName string) ([]KeyValue, error) {
 		return nil, errors.New("unknown subcomponent " + subComponentName)
 	}
 
-	registry := b.ResolveRegistry(sc)
-	repo := b.ResolveRepo(sc)
-
 	// Loop through the images used by this subcomponent, building
 	// the list of Key:Value pairs.  At the very least, this will build
 	// a single Value for the fully qualified image name in the format of
@@ -200,6 +205,8 @@ func (b *Bom) BuildImageOverrides(subComponentName string) ([]KeyValue, error) {
 	var kvs []KeyValue
 	for _, imageBom := range sc.Images {
 		fullImageBldr := strings.Builder{}
+		registry := b.ResolveRegistry(sc, imageBom)
+		repo := b.ResolveRepo(sc, imageBom)
 
 		// Normally, the registry is the first segment of the image name, for example "ghcr.io/"
 		// However, there are exceptions like in external-dns, where the registry is a separate helm field,
@@ -275,7 +282,7 @@ func (b *Bom) BuildImageOverrides(subComponentName string) ([]KeyValue, error) {
 }
 
 // ResolveRegistry resolves the registry name using the ENV var if it exists.
-func (b *Bom) ResolveRegistry(sc *BomSubComponent) string {
+func (b *Bom) ResolveRegistry(sc *BomSubComponent, img BomImage) string {
 	// Get the registry ENV override, if it doesn't exist use the default
 	registry := os.Getenv(constants.RegistryOverrideEnvVar)
 	if registry == "" {
@@ -283,17 +290,34 @@ func (b *Bom) ResolveRegistry(sc *BomSubComponent) string {
 		if len(sc.Registry) > 0 {
 			registry = sc.Registry
 		}
+		if len(img.Registry) > 0 {
+			registry = img.Registry
+		}
 	}
 	return registry
 }
 
 // ResolveRepo resolves the repository name using the ENV var if it exists.
-func (b *Bom) ResolveRepo(sc *BomSubComponent) string {
+func (b *Bom) ResolveRepo(sc *BomSubComponent, img BomImage) string {
 	// Get the repo ENV override.  This needs to get prepended to the bom repo
 	userRepo := os.Getenv(constants.ImageRepoOverrideEnvVar)
 	repo := sc.Repository
+	if len(img.Repository) > 0 {
+		repo = img.Repository
+	}
+
 	if userRepo != "" {
 		repo = userRepo + slash + repo
 	}
 	return repo
+}
+
+// FindKV searches an array of KeyValue structs for a Key and returns the Value if found, or returns an empty string
+func FindKV(kvs []KeyValue, key string) string {
+	for _, kv := range kvs {
+		if kv.Key == key {
+			return kv.Value
+		}
+	}
+	return ""
 }

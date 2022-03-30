@@ -1,13 +1,30 @@
 #!/bin/bash
 #
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
+
 
 . ./init.sh
 
 $SCRIPT_DIR/terraform init -no-color -reconfigure
-$SCRIPT_DIR/terraform plan -var-file=$TF_VAR_nodepool_config.tfvars -var-file=$TF_VAR_region.tfvars -no-color
+
+set -o pipefail
+
+# retry 3 times, 30 seconds apart
+tries=0
+MAX_TRIES=3
+while true; do
+   tries=$((tries+1))
+   echo "terraform plan iteration ${tries}"
+   $SCRIPT_DIR/terraform plan -var-file=$TF_VAR_nodepool_config.tfvars -var-file=$TF_VAR_region.tfvars -no-color && break
+   if [ "$tries" -ge "$MAX_TRIES" ];
+   then
+      echo "Terraform plan tries exceeded.  Cluster creation has failed!"
+      exit 1
+   fi
+   sleep 30
+done
 
 # retry 3 times, 30 seconds apart
 tries=0
@@ -21,6 +38,8 @@ while true; do
       echo "Terraform apply tries exceeded.  Cluster creation has failed!"
       break
    fi
+   echo "Deleting Cluster Terraform and applying again"
+   $SCRIPT_DIR/delete-cluster.sh
    sleep 30
 done
 
@@ -41,7 +60,7 @@ VCN_ID=$(oci network vcn list \
   | jq -r '.data[0].id')
 
 if [ -z "$VCN_ID" ]; then
-    echo "Failed to get the id for OKE cluster vcn ${TF_VAR_label_prefix}-oke"
+    echo "Failed to get the id for OKE cluster vcn ${TF_VAR_label_prefix}-oke-vcn"
     exit 0
 fi
 

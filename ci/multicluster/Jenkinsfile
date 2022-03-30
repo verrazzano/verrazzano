@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
@@ -80,7 +80,7 @@ pipeline {
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', description: 'Whether to dump k8s cluster on success (off by default, can be useful to capture for comparing to failed cluster)', defaultValue: false)
         string (name: 'CONSOLE_REPO_BRANCH',
-                defaultValue: 'master',
+                defaultValue: '',
                 description: 'The branch to check out after cloning the console repository.',
                 trim: true)
         booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
@@ -181,15 +181,27 @@ pipeline {
         OCI_OS_BUCKET="verrazzano-builds"
 
         // used to emit metrics
-        PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
+        PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
+        PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "${params.TEST_ENV}"
-        K8S_VERSION_LABEL = "${params.TEST_ENV == 'kind' ? params.KIND_CLUSTER_VERSION : params.OKE_CLUSTER_VERSION}"
+        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
 
         // sample app deployed before upgrade and UI console tests
         SAMPLE_APP_NAME="hello-helidon-appconf"
         SAMPLE_APP_NAMESPACE="hello-helidon-sample"
         SAMPLE_APP_PROJECT="hello-helidon-sample-proj"
         SAMPLE_APP_COMPONENT="hello-helidon-component"
+
+        // used by ToDoList example test
+        WEBLOGIC_PSW = credentials('weblogic-example-domain-password')
+        DATABASE_PSW = credentials('todo-mysql-password')
+
+        // used to generate Ginkgo test reports
+        TEST_REPORT = "test-report.xml"
+        GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
+        TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
     }
 
     stages {
@@ -246,21 +258,6 @@ pipeline {
                         }
                     }
 	            }
-                script {
-                    try {
-                        sh """
-                            echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                        """
-                    } catch(error) {
-                        echo "OCR docker login failed, retrying after sleep"
-                        retry(4) {
-                            sleep(30)
-                            sh """
-                                echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                            """
-                        }
-                    }
-                }
                 sh """
                     rm -rf ${GO_REPO_PATH}/verrazzano
                     mkdir -p ${GO_REPO_PATH}/verrazzano
@@ -280,6 +277,8 @@ pipeline {
                         // derive the prefix for the OKE cluster
                         OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${GO_REPO_PATH}/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
                     }
+                    // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
+                    env.K8S_VERSION_LABEL = "${params.TEST_ENV == 'kind' ? params.KIND_CLUSTER_VERSION : sh(returnStdout: true, script: '${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}').trim()}"
                 }
             }
         }
@@ -390,6 +389,7 @@ pipeline {
                         }
                         failure {
                             script {
+                                dumpK8sCluster("${WORKSPACE}/install-failure-cluster-dump")
                                 INSTALL_METRICS_PUSHED=metricTimerEnd("${VZ_INSTALL_METRIC}", '0')
                             }
                         }
@@ -397,48 +397,6 @@ pipeline {
                             script {
                                 INSTALL_METRICS_PUSHED=metricTimerEnd("${VZ_INSTALL_METRIC}", '1')
                             }
-                        }
-                    }
-                }
-                stage ('Verify Install') {
-                    // NOTE: The stages are executed in parallel, however the tests themselves are executed against
-                    //       each cluster in sequence. If possible, we should parallelize that as well.
-                    parallel {
-                        stage ('multicluster/verify-install') {
-                            steps {
-                                runGinkgoRandomize('multicluster/verify-install')
-                            }
-                        }
-                        stage('verify-install') {
-                            steps {
-                                runGinkgoRandomize('verify-install')
-                            }
-                        }
-                        stage('verify-scripts') {
-                            steps {
-                                runGinkgo('scripts', "${ADMIN_KUBECONFIG}", "${params.TOTAL_CLUSTERS}")
-                            }
-                        }
-                        stage('verify-infra restapi') {
-                            steps {
-                                runGinkgoRandomize('verify-infra/restapi')
-                            }
-                        }
-                        stage('verify-infra oam') {
-                            steps {
-                                runGinkgoRandomize('verify-infra/oam')
-                            }
-                        }
-                        stage('verify-infra vmi') {
-                            steps {
-                                runGinkgoRandomize('verify-infra/vmi')
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
                 }
@@ -476,7 +434,7 @@ pipeline {
             post {
                 failure {
                     script {
-                        dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-install")
+                        dumpK8sCluster("${WORKSPACE}/multicluster-install-cluster-dump")
                     }
                 }
             }
@@ -504,8 +462,57 @@ pipeline {
             post {
                 failure {
                     script {
-                        dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-verify-upgrade")
+                        dumpK8sCluster("${WORKSPACE}/multicluster-verify-upgrade-cluster-dump")
                     }
+                }
+            }
+        }
+
+        stage ('Verify Install') {
+            stages {
+                stage('verify-install') {
+                    steps {
+                        runGinkgoRandomize('verify-install')
+                    }
+                }
+
+                stage ('multicluster/verify-install') {
+                    steps {
+                        runGinkgoRandomize('multicluster/verify-install')
+                    }
+                }
+            }
+        }
+
+        stage ('Verify Infra') {
+            // NOTE: The stages are executed in parallel, however the tests themselves are executed against
+            //       each cluster in sequence. If possible, we should parallelize that as well.
+            parallel {
+                stage('verify-scripts') {
+                    steps {
+                        runGinkgoRandomize('scripts')
+                    }
+                }
+                stage('verify-infra restapi') {
+                    steps {
+                        runGinkgoRandomize('verify-infra/restapi')
+                    }
+                }
+                stage('verify-infra oam') {
+                    steps {
+                        runGinkgoRandomize('verify-infra/oam')
+                    }
+                }
+                stage('verify-infra vmi') {
+                    steps {
+                        runGinkgoRandomize('verify-infra/vmi')
+                    }
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
             }
         }
@@ -536,22 +543,16 @@ pipeline {
                                 testSockExample("multicluster/examples/sock-shop")
                             }
                         }
+                        stage('Examples Todo List') {
+                            steps {
+                                testTodoExample("multicluster/examples/todo-list")
+                            }
+                        }
                     }
                 }
                 stage ('Console') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
-                        CONSOLE_REPO_BRANCH="${params.CONSOLE_REPO_BRANCH}"
-                        // Set app information used by the application page UI tests to assert for app info
-                        CONSOLE_APP_NAME="${SAMPLE_APP_NAME}"
-                        CONSOLE_APP_NAMESPACE="${SAMPLE_APP_NAMESPACE}"
-                        CONSOLE_APP_CLUSTER="managed1"
-                        CONSOLE_APP_COMP="${SAMPLE_APP_COMPONENT}"
-                    }
                     steps {
-                        // Console runs on admin cluster and the KUBECONFIG is pointed at it (which is cluster 1)
-                        // Make sure that application page tests are also run
-                        sh "KUBECONFIG=${ADMIN_KUBECONFIG} RUN_APP_TESTS=true ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
+                        runConsoleTests()
                     }
                     post {
                         always {
@@ -580,50 +581,6 @@ pipeline {
                         }
                     }
                 }
-                stage ('verify deregister') {
-                    steps {
-                        verifyDeregisterManagedClusters()
-                    }
-                }
-                stage ('Uninstall Verrazzano') {
-                    steps {
-                        script {
-                            // Create a dictionary of Verrazzano uninstall steps to be executed in parallel
-                            // - the first one will always be the Admin cluster
-                            // - clusters 2-max are managed clusters
-                            def verrazzanoUninstallStages = [:]
-                            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                            for(int count=1; count<=clusterCount; count++) {
-                                def installerPath="${KUBECONFIG_DIR}/${count}/${installerFileName}"
-                                def key = "vz-mgd-${count-1}"
-                                if (count == 1) {
-                                    key = "vz-admin"
-                                }
-                                verrazzanoUninstallStages["${key}"] = uninstallVerrazzano(count, installerPath)
-                            }
-                            parallel verrazzanoUninstallStages
-                        }
-                    }
-                }
-                stage("Verify Uninstall") {
-                    steps {
-                        script {
-                            // Create a dictionary of Verrazzano verify uninstall steps to be executed in parallel
-                            // - the first one will always be the Admin cluster
-                            // - clusters 2-max are managed clusters
-                            def verifyUninstallStages = [:]
-                            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                            for(int count=1; count<=clusterCount; count++) {
-                                def key = "vz-mgd-${count-1}"
-                                if (count == 1) {
-                                    key = "vz-admin"
-                                }
-                                verifyUninstallStages["${key}"] = verifyUninstall(count)
-                            }
-                            parallel verifyUninstallStages
-                        }
-                    }
-                }
             }
             post {
                 failure {
@@ -644,6 +601,23 @@ pipeline {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                             dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
                         }
+                    }
+                }
+            }
+        }
+        stage('Cleanup Tests') {
+            stages {
+                stage('verify deregister') {
+                    steps {
+                        verifyDeregisterManagedClusters()
+                    }
+                }
+            }
+            post {
+                failure {
+                    script {
+                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
+                        dumpK8sCluster("${WORKSPACE}/multicluster-cleanup-tests-cluster-dump")
                     }
                 }
             }
@@ -675,14 +649,53 @@ pipeline {
                 }
                 dumpUninstallLogs()
             }
-            archiveArtifacts artifacts: '**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump*/**,**/test-cluster-dumps/**', allowEmptyArchive: true
-            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+            sh """
+                # Copy the generated test reports to WORKSPACE to archive them
+                mkdir -p ${TEST_REPORT_DIR}
+                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
+            """
+            archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump*/**,**/test-cluster-dumps/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
+
+            script {
+                 // Create a dictionary of Verrazzano uninstall steps to be executed in parallel
+                 // - the first one will always be the Admin cluster
+                 // - clusters 2-max are managed clusters
+                 def verrazzanoUninstallStages = [:]
+                 int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                 for (int count = 1; count <= clusterCount; count++) {
+                     def installerPath = "${KUBECONFIG_DIR}/${count}/${installerFileName}"
+                     def key = "vz-mgd-${count - 1}"
+                     if (count == 1) {
+                         key = "vz-admin"
+                     }
+                     verrazzanoUninstallStages["${key}"] = uninstallVerrazzano(count, installerPath)
+                 }
+                 parallel verrazzanoUninstallStages
+            }
+
+            script {
+                // Create a dictionary of Verrazzano verify uninstall steps to be executed in parallel
+                // - the first one will always be the Admin cluster
+                // - clusters 2-max are managed clusters
+                def verifyUninstallStages = [:]
+                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                for (int count = 1; count <= clusterCount; count++) {
+                    def key = "vz-mgd-${count - 1}"
+                    if (count == 1) {
+                        key = "vz-admin"
+                    }
+                    verifyUninstallStages["${key}"] = verifyUninstall(count)
+                }
+                parallel verifyUninstallStages
+            }
 
             script {
                 if (params.EMIT_METRICS) {
-                    withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+                    withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
                         sh """
-                            ${GO_REPO_PATH}/verrazzano/ci/scripts/dashboard/emit_metrics.sh "${GO_REPO_PATH}/verrazzano/tests/e2e" "${SAURON_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
+                            ${GO_REPO_PATH}/verrazzano/ci/scripts/dashboard/emit_metrics.sh "${GO_REPO_PATH}/verrazzano/tests/e2e" "${PROMETHEUS_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
                         """
                     }
                 }
@@ -898,16 +911,16 @@ def upgradeVerrazzano() {
                 kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out
                   
                 echo "Upgrading the Verrazzano installation to version" $VERRAZZANO_DEV_VERSION
-                # Modify the version field in the verrazzano CR file to be this new verrazzano version
+                # Modify the version field in the Verrazzano CR file to be this new Verrazzano version
                 cd ${GO_REPO_PATH}/verrazzano
                 cp ${v8oInstallFile} ${v8oUpgradeFile}
                 ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${v8oUpgradeFile}
                 # Do the upgrade
-                echo "Following is the verrazano CR file with the new version:"
+                echo "Following is the verrazzano CR file with the new version:"
                 cat ${v8oUpgradeFile}
                 kubectl apply -f ${v8oUpgradeFile}
                 # wait for the upgrade to complete
-                kubectl wait --timeout=10m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
                             
                 # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
                 kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
@@ -965,6 +978,7 @@ def registerManagedClusters() {
                     export MANAGED_CLUSTER_DIR="${KUBECONFIG_DIR}/${count}"
                     export MANAGED_CLUSTER_NAME="managed${count-1}"
                     export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                    export MANAGED_CLUSTER_ENV="mgd${count-1}"
                     cd ${GO_REPO_PATH}/verrazzano
                     ./tests/e2e/config/scripts/register_managed_cluster.sh
                 """
@@ -983,7 +997,7 @@ def verifyRegisterManagedClusters() {
                     export MANAGED_CLUSTER_NAME="managed${count-1}"
                     export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-register/...
+                    ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-register/...
                 """
             }
         }
@@ -1002,7 +1016,7 @@ def verifyDeregisterManagedClusters() {
                     export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     kubectl -n verrazzano-system delete secret verrazzano-cluster-registration
                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-deregister/...
+                    ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-deregister/...
                 """
             }
         }
@@ -1020,7 +1034,7 @@ def verifyManagedClusterPermissions() {
                     export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     export MANAGED_ACCESS_KUBECONFIG="${KUBECONFIG_DIR}/${count}/managed_kube_config"
                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    ginkgo -v -stream -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-permissions/...
+                    ginkgo -v -stream --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-permissions/...
                 """
             }
         }
@@ -1038,7 +1052,7 @@ def testHelidonExample(testSuitePath) {
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
             export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
-            ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
@@ -1054,7 +1068,23 @@ def testSockExample(testSuitePath) {
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
             export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-sock"
-            ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+        """
+    }
+}
+
+// Test the multicluster todo-list example
+def testTodoExample(testSuitePath) {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        sh """
+            export MANAGED_CLUSTER_NAME="managed1"
+            export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+            export CLUSTER_COUNT=$clusterCount
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+            export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
+            ginkgo -v -keepGoing --noColor ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
         """
     }
 }
@@ -1077,22 +1107,10 @@ def runGinkgoRandomize(testSuitePath) {
                     export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     export CLUSTER_NAME="${clusterName}"
                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+                    ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
                 """
             }
         }
-    }
-}
-
-// Run a test suite using a given kube configuration against all clusters
-def runGinkgo(testSuitePath, kubeConfig, clusterCount) {
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        sh """
-            export KUBECONFIG="${kubeConfig}"
-            export CLUSTER_COUNT="${clusterCount}"
-            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
-        """
     }
 }
 
@@ -1330,7 +1348,7 @@ def dumpInstallLogs() {
                 namespace = "default"
             }
             sh """
-                ## dump verrazzano install logs
+                ## dump Verrazzano install logs
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 mkdir -p ${LOG_DIR}
                 kubectl -n ${namespace} logs --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/${VERRAZZANO_INSTALL_LOG} --tail -1
@@ -1347,7 +1365,7 @@ def dumpUninstallLogs() {
         for(int count=1; count<=clusterCount; count++) {
             LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/uninstall/build/logs/cluster-$count"
             sh """
-                ## dump verrazzano uninstall logs
+                ## dump Verrazzano uninstall logs
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 mkdir -p ${LOG_DIR}
                 kubectl logs --selector=job-name=verrazzano-uninstall-my-verrazzano > ${LOG_DIR}/verrazzano-uninstall.log --tail -1
@@ -1404,8 +1422,8 @@ def metricTimerEnd(metricName, status) {
         long y = env."${timerEndName}" as long;
         def dur = (y-x)
         labels = getMetricLabels()
-        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
             echo "emit prometheus metrics: $EMIT"
             return EMIT
         }
@@ -1433,8 +1451,8 @@ def metricBuildDuration() {
     if (params.EMIT_METRICS) {
         labels = getMetricLabels()
         labels = labels + ',result=\\"' + "${statusLabel}"+'\\"'
-        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
+        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }
@@ -1499,7 +1517,7 @@ def runHelidonNsOpsTest() {
       cd ${GO_REPO_PATH}/verrazzano/tests/e2e
       export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
       export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-ns-ops"
-      ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/examples/helidon-ns-ops/...
+      ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/examples/helidon-ns-ops/...
     """
 }
 
@@ -1510,7 +1528,23 @@ def runMulticlusterVerifyApi() {
           export MANAGED_CLUSTER_NAME="managed${count-1}"
           export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
           cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-          ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-api/...
+          ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-api/...
         """
     }
+}
+
+def runConsoleTests() {
+    // Set app information used by the application page UI tests to assert for app info
+    // Console runs on admin cluster and the KUBECONFIG is pointed at it (which is cluster 1)
+    // Make sure that application page tests are also run by setting RUN_APP_TESTS=true since we deployed
+    // a sample app for that purpose
+    sh """
+        export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
+        export CONSOLE_REPO_BRANCH="${params.CONSOLE_REPO_BRANCH}"
+        export CONSOLE_APP_NAME="${SAMPLE_APP_NAME}"
+        export CONSOLE_APP_NAMESPACE="${SAMPLE_APP_NAMESPACE}"
+        export CONSOLE_APP_CLUSTER="managed1"
+        export CONSOLE_APP_COMP="${SAMPLE_APP_COMPONENT}"
+        KUBECONFIG=${ADMIN_KUBECONFIG} RUN_APP_TESTS=true ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh
+   """
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
@@ -10,6 +10,7 @@ def ocirRegion = "phx"
 def ocirRegistry = "${ocirRegion}.ocir.io"
 def imageRepoSubPath=""
 def baseImageRepo=""
+def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 
 pipeline {
     options {
@@ -40,7 +41,7 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
         string (name: 'ZIPFILE_LOCATION',
-                        defaultValue: 'master-last-clean-periodic-test/verrazzano_full.zip',
+                        defaultValue: 'master-last-clean-periodic-test/verrazzano_periodic.zip',
                         description: 'The bucket location to use for the Zip file download',
                         trim: true)
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
@@ -87,7 +88,9 @@ pipeline {
         INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind.yaml"
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
+        LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
+        VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
@@ -112,6 +115,16 @@ pipeline {
         REPOSITORY_COMPARTMENT_OCID = credentials('oci-tiburon-dev-compartment-ocid')
 
         TARBALL_DIR = "${WORKSPACE}/vz-tarball"
+
+        // used to emit metrics
+        PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
+
+        K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
+
+        // used to generate Ginkgo test reports
+        TEST_REPORT = "test-report.xml"
+        GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
+        TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
     }
 
     stages {
@@ -123,6 +136,7 @@ pipeline {
                 }
 
                 script {
+                   EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
                     if (params.GIT_COMMIT_TO_USE == "NONE") {
                         echo "Specific GIT commit was not specified, use current head"
                         def scmInfo = checkout scm
@@ -163,9 +177,9 @@ pipeline {
 
                 script {
                     try {
-                    sh """
-                        echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                    """
+                        sh """
+                            echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                        """
                     } catch(error) {
                         echo "docker login failed, retrying after sleep"
                         retry(4) {
@@ -176,21 +190,6 @@ pipeline {
                         }
                     }
                 }
-                script {
-                    try {
-                        sh """
-                            echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                        """
-                    } catch(error) {
-                        echo "OCR docker login failed, retrying after sleep"
-                        retry(4) {
-                            sleep(30)
-                            sh """
-                                echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                            """
-                        }
-                    }
-	            }
                 script {
                     try {
                         sh """
@@ -269,6 +268,12 @@ pipeline {
             }
         }
         stage('Acceptance Tests') {
+            environment {
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+            }
+
             stages {
                 stage('Prepare AT environment') {
                     environment {
@@ -277,6 +282,7 @@ pipeline {
                         REGISTRY="${ocirRegistry}"
                         PRIVATE_REGISTRY_USR="${OCIR_CREDS_USR}"
                         PRIVATE_REGISTRY_PSW="${OCIR_CREDS_PSW}"
+                        CLUSTER_DUMP_DIR="${WORKSPACE}/verrazzano/build/resources/pre-install-resources"
                     }
                     steps {
                         sh """
@@ -285,6 +291,13 @@ pipeline {
                         """
                     }
                     post {
+                        success {
+                            script {
+                                if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                                    dumpK8sCluster('install-success-cluster-dump')
+                                }
+                            }
+                        }
                         always {
                             archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
                             sh """
@@ -303,159 +316,165 @@ pipeline {
                     environment {
                         TEST_ENV = "KIND"
                     }
-                    parallel {
+
+                    stages {
                         stage('verify-install') {
                             steps {
                                 runGinkgoRandomize('verify-install')
                             }
                         }
-                        stage('verify-infra restapi') {
-                            steps {
-                                runGinkgoRandomize('verify-infra/restapi')
-                            }
-                        }
-                        stage('verify-infra oam') {
-                            steps {
-                                runGinkgoRandomize('verify-infra/oam')
-                            }
-                        }
-                        stage('verify-infra vmi') {
-                            steps {
-                                runGinkgoRandomize('verify-infra/vmi')
-                            }
-                        }
-                        stage('istio authorization policy') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"
-                            }
-                            steps {
-                                runGinkgoKeepGoing('istio/authz')
-                            }
-                        }
-                        stage('security role based access') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
-                            }
-                            steps {
-                                runGinkgoKeepGoing('security/rbac')
-                            }
-                        }
-                        stage('security network policies') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/netpol"
-                            }
-                            steps {
-                                script {
-                                    if (params.CREATE_CLUSTER_USE_CALICO == true) {
-                                        runGinkgo('security/netpol')
+
+                        stage('run-acceptance-tests') {
+                            parallel {
+                                stage('verify-infra restapi') {
+                                    steps {
+                                        runGinkgoRandomize('verify-infra/restapi')
+                                    }
+                                }
+                                stage('verify-infra oam') {
+                                    steps {
+                                        runGinkgoRandomize('verify-infra/oam')
+                                    }
+                                }
+                                stage('verify-infra vmi') {
+                                    steps {
+                                        runGinkgoRandomize('verify-infra/vmi')
+                                    }
+                                }
+                                stage('istio authorization policy') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"
+                                    }
+                                    steps {
+                                        runGinkgoKeepGoing('istio/authz')
+                                    }
+                                }
+                                stage('security role based access') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
+                                    }
+                                    steps {
+                                        runGinkgoKeepGoing('security/rbac')
+                                    }
+                                }
+                                stage('security network policies') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/netpol"
+                                    }
+                                    steps {
+                                        script {
+                                            if (params.CREATE_CLUSTER_USE_CALICO == true) {
+                                                runGinkgo('security/netpol')
+                                            }
+                                        }
+                                    }
+                                }
+                                stage('k8s deployment workload metrics') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/k8sdeploy-workload-metrics"
+                                    }
+                                    steps {
+                                        runGinkgo('metrics/deploymetrics')
+                                    }
+                                }
+                                stage('examples logging helidon') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"
+                                    }
+                                    steps {
+                                        runGinkgoKeepGoing('logging/helidon')
+                                    }
+                                }
+                                stage('examples todo') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
+                                    }
+                                    steps {
+                                        runGinkgoFailFast('examples/todo')
+                                    }
+                                }
+                                stage('examples socks') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-socks"
+                                    }
+                                    steps {
+                                        runGinkgoKeepGoing('examples/socks')
+                                    }
+                                }
+                                stage('examples spring') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-spring"
+                                    }
+                                    steps {
+                                        runGinkgoKeepGoing('examples/springboot')
+                                    }
+                                }
+                                stage('examples helidon') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
+                                    }
+                                    steps {
+                                        runGinkgoKeepGoing('examples/helidon')
+                                    }
+                                }
+                                stage('examples helidon-config') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-config"
+                                    }
+                                    steps {
+                                        runGinkgoKeepGoing('examples/helidonconfig')
+                                    }
+                                }
+                                stage('examples bobs') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-bobs"
+                                    }
+                                    when {
+                                        expression {params.RUN_SLOW_TESTS == true}
+                                    }
+                                    steps {
+                                        runGinkgoKeepGoing('examples/bobsbooks')
+                                    }
+                                }
+                                stage('console ingress') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console-ingress"
+                                    }
+                                    steps {
+                                        runGinkgoKeepGoing('ingress/console')
+                                    }
+                                }
+                                stage('logging trait WebLogic workload') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
+                                    }
+                                    steps {
+                                        runGinkgo('loggingtrait/weblogicworkload')
+                                    }
+                                }
+                                stage('logging trait Helidon workload') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-helidonworkload"
+                                    }
+                                    steps {
+                                        runGinkgo('loggingtrait/helidonworkload')
+                                    }
+                                }
+                                stage('logging trait Coherence workload') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-coherenceworkload"
+                                    }
+                                    steps {
+                                        runGinkgo('loggingtrait/coherenceworkload')
                                     }
                                 }
                             }
-                        }
-                        stage('k8s deployment workload metrics') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/k8sdeploy-workload-metrics"
+                            post {
+                                always {
+                                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                                }
                             }
-                            steps {
-                                runGinkgo('metrics/deploymetrics')
-                            }
-                        }
-                        stage('examples logging helidon') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"
-                            }
-                            steps {
-                                runGinkgoKeepGoing('logging/helidon')
-                            }
-                        }
-                        stage('examples todo') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
-                            }
-                            steps {
-                                runGinkgoFailFast('examples/todo')
-                            }
-                        }
-                        stage('examples socks') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-socks"
-                            }
-                            steps {
-                                runGinkgoKeepGoing('examples/socks')
-                            }
-                        }
-                        stage('examples spring') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-spring"
-                            }
-                            steps {
-                                runGinkgoKeepGoing('examples/springboot')
-                            }
-                        }
-                        stage('examples helidon') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
-                            }
-                            steps {
-                                runGinkgoKeepGoing('examples/helidon')
-                            }
-                        }
-                        stage('examples helidon-config') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-config"
-                            }
-                            steps {
-                                runGinkgoKeepGoing('examples/helidonconfig')
-                            }
-                        }
-                        stage('examples bobs') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-bobs"
-                            }
-                            when {
-                                expression {params.RUN_SLOW_TESTS == true}
-                            }
-                            steps {
-                                runGinkgoKeepGoing('examples/bobsbooks')
-                            }
-                        }
-                        stage('console ingress') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console-ingress"
-                            }
-                            steps {
-                                runGinkgoKeepGoing('ingress/console')
-                            }
-                        }
-                        stage('logging trait WebLogic workload') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
-                            }
-                            steps {
-                                runGinkgo('loggingtrait/weblogicworkload')
-                            }
-                        }
-                        stage('logging trait Helidon workload') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-helidonworkload"
-                            }
-                            steps {
-                                runGinkgo('loggingtrait/helidonworkload')
-                            }
-                        }
-                        stage('logging trait Coherence workload') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-coherenceworkload"
-                            }
-                            steps {
-                                runGinkgo('loggingtrait/coherenceworkload')
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
                 }
@@ -485,16 +504,77 @@ pipeline {
                 failure {
                     script {
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('private-registry-tests-cluster-dump')
+                            dumpK8sCluster('tests-failure-cluster-dump')
                         }
                     }
                 }
                 success {
                     script {
-                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('private-registry-tests-cluster-dump')
+                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('tests-success-cluster-dump')
                         }
                     }
+                }
+            }
+        }
+        stage('Uninstall') {
+            options {
+                timeout(time: 30, unit: "MINUTES")
+            }
+            steps {
+                script {
+                    try {
+                        sh """
+                            kubectl delete verrazzano my-verrazzano
+                        """
+                    } catch (err) {
+                        currentBuild.result = "FAILURE"
+                        echo "Caught: ${err}"
+                        err 'Verrazzano uninstall failed'
+                    }
+                }
+            }
+            post {
+                always {
+                    sh """
+                        ## dump out uninstall logs
+                        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
+                        kubectl logs -n verrazzano-install --tail -1 --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall.log
+                        kubectl describe pod -n verrazzano-install --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall-job-pod.out
+                        echo "Listing all pods in all namespaces after uninstall"
+                        kubectl get pods --all-namespaces
+                        echo "-----------------------------------------------------"
+                    """
+                    listNamespacesAndPods('after Verrazzano uninstall')
+                    listHelmReleases('after Verrazzano uninstall')
+                }
+                failure {
+                    dumpK8sCluster('uninstall-failure-cluster-dump')
+                }
+                aborted {
+                    dumpK8sCluster('uninstall-aborted-cluster-dump')
+                }
+            }
+        }
+        stage("Verify Uninstall") {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    sh """
+                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/post-uninstall-resources false
+                        ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources
+                    """
+                }
+            }
+            post {
+                success {
+                    script {
+                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                            dumpK8sCluster('verify-uninstall-success-cluster-dump')
+                        }
+                    }
+                }
+                failure {
+                    dumpK8sCluster('verify-uninstall-failed-cluster-dump')
                 }
             }
         }
@@ -502,6 +582,19 @@ pipeline {
 
     post {
         always {
+            sh """
+                echo "Current execution region: $ocirRegion"
+                echo "OCIR Repository: ${ocirRegistry}"
+                echo "Image repo subpath: ${imageRepoSubPath}"
+                echo "Base image repo: ${baseImageRepo}"
+                sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
+
+                # Copy the generated test reports to WORKSPACE to archive them
+                mkdir -p ${TEST_REPORT_DIR}
+                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
+            """
+
             script {
                 if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
                     dumpVerrazzanoSystemPods()
@@ -513,8 +606,8 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
-            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
             sh """
                 cd ${GO_REPO_PATH}/verrazzano/platform-operator
@@ -524,12 +617,6 @@ pipeline {
                   echo "Failures seen during dumping of artifacts, treat post as failed"
                   exit 1
                 fi
-
-                echo "Current execution region: $ocirRegion"
-                echo "OCIR Repository: ${ocirRegistry}"
-                echo "Image repo subpath: ${imageRepoSubPath}"
-                echo "Base image repo: ${baseImageRepo}"
-                sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
             """
         }
         cleanup {
@@ -542,18 +629,18 @@ def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+            ginkgo -p --randomize-all -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
             ../../build/copy-junit-output.sh ${WORKSPACE}
         """
     }
 }
 
 def runGinkgoKeepGoing(testSuitePath) {
-    runGinkgo(testSuitePath, '-keepGoing')
+    runGinkgo(testSuitePath, '--keep-going')
 }
 
 def runGinkgoFailFast(testSuitePath) {
-    runGinkgo(testSuitePath, '-failFast')
+    runGinkgo(testSuitePath, '--fail-fast')
 }
 
 def runGinkgo(testSuitePath, String... extraArgs) {
@@ -563,7 +650,7 @@ def runGinkgo(testSuitePath, String... extraArgs) {
         extraArgs.each { extraGinkgoArgs += it + " " }
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v ${extraGinkgoArgs} --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+            ginkgo -v ${extraGinkgoArgs} --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
             ../../build/copy-junit-output.sh ${WORKSPACE}
         """
     }
@@ -669,3 +756,30 @@ def setDisplayName() {
     }
     echo "End setDisplayName"
 }
+
+def getEffectiveDumpOnSuccess() {
+    def effectiveValue = params.DUMP_K8S_CLUSTER_ON_SUCCESS
+    if (FORCE_DUMP_K8S_CLUSTER_ON_SUCCESS.equals("true") && (env.BRANCH_NAME.equals("master"))) {
+        effectiveValue = true
+        echo "Forcing dump on success based on global override setting"
+    }
+    return effectiveValue
+}
+
+def listNamespacesAndPods(customMessage) {
+    sh """
+        echo "Listing all the namespaces and pods the namespaces ${customMessage}."
+        kubectl get namespaces
+        kubectl get pods -A
+        echo "-----------------------------------------------------"
+    """
+}
+
+def listHelmReleases(customMessage) {
+    sh """
+        echo "Listing the releases across all namespaces ${customMessage}."
+        helm list -A
+        echo "-----------------------------------------------------"
+    """
+}
+

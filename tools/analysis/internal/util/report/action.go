@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package report handles reporting
@@ -40,18 +40,18 @@ const (
 
 // RunbookLinks are known runbook links
 var RunbookLinks = map[string][]string{
-	ImagePullBackOff:          {"https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/imagepullbackoff"},
-	ImagePullRateLimit:        {"https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/imagepullratelimit"},
-	ImagePullNotFound:         {"https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/imagepullnotfound"},
-	ImagePullService:          {"https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/imagepullservice"},
-	InsufficientMemory:        {"https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/insufficientmemory"},
-	IngressInstallFailure:     {"https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/ingressinstallfailure"},
-	IngressLBLimitExceeded:    {"https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/ingresslblimitexceeded"},
-	IngressNoLoadBalancerIP:   {"https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/ingressnoloadbalancerip"},
-	IngressOciIPLimitExceeded: {"https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/ingressociiplimitexceeded"},
-	InstallFailure:            {"https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/installfailure"},
-	PendingPods:               {"https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/pendingpods"},
-	PodProblemsNotReported:    {"https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/podproblemsnotreported"},
+	ImagePullBackOff:          {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/imagepullbackoff"},
+	ImagePullRateLimit:        {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/imagepullratelimit"},
+	ImagePullNotFound:         {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/imagepullnotfound"},
+	ImagePullService:          {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/imagepullservice"},
+	InsufficientMemory:        {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/insufficientmemory"},
+	IngressInstallFailure:     {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/ingressinstallfailure"},
+	IngressLBLimitExceeded:    {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/ingresslblimitexceeded"},
+	IngressNoLoadBalancerIP:   {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/ingressnoloadbalancerip"},
+	IngressOciIPLimitExceeded: {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/ingressociiplimitexceeded"},
+	InstallFailure:            {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/installfailure"},
+	PendingPods:               {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/pendingpods"},
+	PodProblemsNotReported:    {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/podproblemsnotreported"},
 }
 
 // KnownActions are Standard Action types

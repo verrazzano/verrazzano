@@ -1,4 +1,4 @@
-# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (C) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 include ../make/quality.mk
@@ -68,19 +68,23 @@ CLUSTER_DUMP_LOCATION ?= application-operator-integ-cluster-dump
 build: go-fmt go-vet
 	go build -o bin/manager main.go
 
+# Disable the application operator in the local Kubernetes cluster
+# Deletes all of the webhook configuration for the application operator
+# Scales the in-cluster application operator deployment to replicas 0
+.PHONY: disable-operator
+disable-operator:
+	kubectl delete validatingwebhookconfigurations verrazzano-application-ingresstrait-validator || true
+	kubectl delete mutatingwebhookconfigurations verrazzano-application-istio-defaulter || true
+	kubectl delete mutatingwebhookconfigurations verrazzano-application-appconfig-defaulter || true
+	kubectl delete validatingwebhookconfigurations verrazzano-application-verrazzanoproject || true
+	kubectl delete mutatingwebhookconfigurations verrazzano-application-scrape-generator || true
+	kubectl scale deployment verrazzano-application-operator --replicas=0 -n verrazzano-system
+
 # Run against the configured Kubernetes cluster in ~/.kube/config
 .PHONY: run
 run:
-	# The commands below should be executed to disable the in-cluster verrazzano-application-operator
-	# kubectl delete validatingwebhookconfigurations verrazzano-application-ingresstrait-validator
-	# kubectl delete mutatingwebhookconfigurations verrazzano-application-istio-defaulter
-	# kubectl delete mutatingwebhookconfigurations verrazzano-application-appconfig-defaulter
-	# kubectl delete validatingwebhookconfigurations verrazzano-application-verrazzanoproject
-	# kubectl scale deployment verrazzano-application-operator --replicas=0 -n verrazzano-system
-
 	# To enable webhooks: $(GO) run main.go --kubeconfig=${KUBECONFIG} --enable-webhooks=true --metrics-addr=localhost:0 --cert-dir=build/webhook-certs
 	$(GO) run main.go --kubeconfig=${KUBECONFIG} --enable-webhooks=false --metrics-addr=localhost:0
-
 
 .PHONY: install-oam-crds
 install-oam-crds:
@@ -188,13 +192,14 @@ setup-cluster: create-cluster
 .PHONY: integ-test
 integ-test: setup-cluster
 	echo 'Run tests...'
-	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Application operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -r ${CLUSTER_DUMP_LOCATION}/analysis.report; exit 1)
+	ginkgo -v --keep-going -cover test/integ/... || (echo 'Application operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -r ${CLUSTER_DUMP_LOCATION}/analysis.report; exit 1)
 
 .PHONY: cleanup-cluster
 cleanup-cluster:
 	./build/scripts/cleanup.sh ${CLUSTER_NAME}
 
 .PHONY: create-cluster
+create-cluster: WORKSPACE ?= ${CURDIR}
 create-cluster:
 	kind_clusters=$$(kind get clusters) ; \
     if [ -z "$${kind_clusters}" ] || ! kind get clusters | egrep "^${CLUSTER_NAME}\$$" > /dev/null ; then \
@@ -204,6 +209,12 @@ create-cluster:
             --name ${CLUSTER_NAME} \
             --wait 5m \
             --config=test/${KIND_CONFIG} ;\
+		if [ $$? -ne 0 ] ; then \
+			mkdir ${WORKSPACE}/kind-logs ;\
+			kind export logs ${WORKSPACE}/kind-logs ;\
+			echo "Kind cluster creation failed" ;\
+			exit 1 ;\
+		fi ;\
         kubectl config set-context kind-${CLUSTER_NAME} ;\
     fi
 ifdef JENKINS_URL

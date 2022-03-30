@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package api_test
@@ -6,11 +6,12 @@ package api_test
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"net/http"
 	"os"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -25,13 +26,19 @@ const (
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 
-var _ = Describe("Multi Cluster Verify API", func() {
-	Context("Admin Cluster", func() {
-		BeforeEach(func() {
+var t = framework.NewTestFramework("api_test")
+
+var _ = t.AfterSuite(func() {})
+var _ = t.BeforeSuite(func() {})
+var _ = t.AfterEach(func() {})
+
+var _ = t.Describe("Multi Cluster Verify API", Label("f:ui.api"), func() {
+	t.Context("Admin Cluster", func() {
+		t.BeforeEach(func() {
 			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
 		})
 
-		It("Get and Validate Verrazzano resource for admin cluster", func() {
+		t.It("Get and Validate Verrazzano resource for admin cluster", func() {
 			Eventually(func() bool {
 				api, err := pkg.GetAPIEndpoint(adminKubeconfig)
 				if err != nil {
@@ -43,7 +50,7 @@ var _ = Describe("Multi Cluster Verify API", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		It("Get and Validate Verrazzano resource for managed cluster", func() {
+		t.It("Get and Validate Verrazzano resource for managed cluster", func() {
 			Eventually(func() bool {
 				api, err := pkg.GetAPIEndpoint(adminKubeconfig)
 				if err != nil {

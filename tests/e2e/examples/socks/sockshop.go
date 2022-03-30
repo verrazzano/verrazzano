@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package socks
@@ -99,12 +99,14 @@ func (s *SockShop) Delete(url string) (*pkg.HTTPResponse, error) {
 }
 
 // RegisterUser interacts with sock shop to create a user
-func (s *SockShop) RegisterUser(body string, hostname string) bool {
+func (s *SockShop) RegisterUser(body string, hostname string) (bool, error) {
 	url := fmt.Sprintf("https://%v/register", hostname)
 	resp, err := pkg.PostWithHostHeader(url, "application/json", s.hostHeader, strings.NewReader(body))
-	Expect(err).ShouldNot(HaveOccurred())
+	if err != nil {
+		return false, err
+	}
 	pkg.Log(Info, fmt.Sprintf("Finished register %s status: %v", resp.Body, resp.StatusCode))
-	return (resp.StatusCode == http.StatusOK) && (strings.Contains(string(resp.Body), "username"))
+	return (resp.StatusCode == http.StatusOK) && (strings.Contains(string(resp.Body), "username")), nil
 }
 
 // GetCatalogItems retrieves the catalog items
