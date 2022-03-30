@@ -6,6 +6,7 @@ package istio
 import (
 	"bytes"
 	"fmt"
+	"sigs.k8s.io/yaml"
 	"strings"
 	"text/template"
 
@@ -35,7 +36,7 @@ const ExternalIPArg = "gateways.istio-ingressgateway.externalIPs"
 // {{.Values}}
 // See the leftMargin usage in the code
 //
-const istioEgressGatewayTempate = `
+const istioGatewayTemplate = `
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
@@ -43,26 +44,30 @@ spec:
     egressGateways:
       - name: istio-egressgateway
         enabled: true
-`
-
-// Template for merging externalIp YAML
-const externalIPTemplate = `
-apiVersion: install.istio.io/v1alpha1
-kind: IstioOperator
-spec:
-  components:
+        k8s:
+          replicaCount: {{.EgressReplicaCount}}
+          affinity:
+{{ multiLineIndent 12 .EgressAffinity }}
     ingressGateways:
       - name: istio-ingressgateway
         enabled: true
         k8s:
+          replicaCount: {{.IngressReplicaCount}}
+          {{- if .ExternalIps }}
           service:
             externalIPs:
-{{.ExternalIps}}
+              {{.ExternalIps}}
+          {{- end}}
+          affinity:
+{{ multiLineIndent 12 .IngressAffinity }}
 `
 
-// templateValuesExternalIPs needed for template rendering of external IPs.
-type templateValuesExternalIPs struct {
-	ExternalIps string
+type ReplicaData struct {
+	IngressReplicaCount uint32
+	EgressReplicaCount  uint32
+	IngressAffinity     string
+	EgressAffinity      string
+	ExternalIps         string
 }
 
 // BuildIstioOperatorYaml builds the IstioOperator CR YAML that will be passed as an override to istioctl
@@ -72,10 +77,9 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 	const leftMargin = 0
 	const leftMarginExtIP = 12
 
-	var externalIPYAMLTemplateValue string
-
+	var externalIPYAMLTemplateValue string = ""
 	// Build a list of YAML strings from the istioComponent initargs, one for each arg.
-	expandedYamls := []string{istioEgressGatewayTempate}
+	expandedYamls := []string{}
 	for _, arg := range comp.IstioInstallArgs {
 		values := arg.ValueList
 		if len(values) == 0 {
@@ -105,7 +109,11 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 			expandedYamls = append(expandedYamls, yaml)
 		}
 	}
-
+	gatewayYaml, err := configureGateways(comp, fixExternalIPYaml(externalIPYAMLTemplateValue))
+	if err != nil {
+		return "", err
+	}
+	expandedYamls = append(expandedYamls, gatewayYaml)
 	// Merge all of the expanded YAMLs into a single YAML,
 	// second has precedence over first, third over second, and so forth.
 	merged, err := vzyaml.ReplacementMerge(expandedYamls...)
@@ -113,35 +121,7 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 		return "", err
 	}
 
-	// If the externalIPs exists, the render that YAML and merge it
-	if len(externalIPYAMLTemplateValue) > 0 {
-		// Render the IstioOperator YAML with the external IPs
-		externalIPYaml, err := renderExternalIPYAML(externalIPYAMLTemplateValue)
-		if err != nil {
-			return "", err
-		}
-		// Now merge the 2 IstioOperator YAMLs
-		merged, err = vzyaml.ReplacementMerge(merged, externalIPYaml)
-		if err != nil {
-			return "", err
-		}
-	}
 	return merged, nil
-}
-
-// Render the externalIP values using the template, return the YAML
-func renderExternalIPYAML(yaml string) (string, error) {
-	t, err := template.New("externalIP").Parse(externalIPTemplate)
-	if err != nil {
-		return "", err
-	}
-	var rendered bytes.Buffer
-	tInput := templateValuesExternalIPs{ExternalIps: fixExternalIPYaml(yaml)}
-	err = t.Execute(&rendered, tInput)
-	if err != nil {
-		return "", err
-	}
-	return rendered.String(), nil
 }
 
 // Change the YAML from
@@ -159,4 +139,59 @@ func fixExternalIPYaml(yaml string) string {
 		return segs[1]
 	}
 	return ""
+}
+
+// value replicas and create Istio gateway yaml
+func configureGateways(istioComponent *vzapi.IstioComponent, externalIP string) (string, error) {
+	var data = ReplicaData{}
+
+	data.IngressReplicaCount = istioComponent.Ingress.Kubernetes.Replicas
+	data.EgressReplicaCount = istioComponent.Egress.Kubernetes.Replicas
+
+	if istioComponent.Ingress.Kubernetes.Affinity != nil {
+		yml, err := yaml.Marshal(istioComponent.Ingress.Kubernetes.Affinity)
+		if err != nil {
+			return "", err
+		}
+		data.IngressAffinity = string(yml)
+	}
+
+	if istioComponent.Egress.Kubernetes.Affinity != nil {
+		yml, err := yaml.Marshal(istioComponent.Egress.Kubernetes.Affinity)
+		if err != nil {
+			return "", err
+		}
+		data.EgressAffinity = string(yml)
+	}
+
+	data.ExternalIps = ""
+	if externalIP != "" {
+		data.ExternalIps = externalIP
+	}
+
+	// use template to get populate template with data
+	var b bytes.Buffer
+	t, err := template.New("istioGateways").Funcs(template.FuncMap{
+		"multiLineIndent": func(indentNum int, aff string) string {
+			var b = make([]byte, indentNum)
+			for i := 0; i < indentNum; i++ {
+				b[i] = 32
+			}
+			lines := strings.SplitAfter(aff, "\n")
+			for i, line := range lines {
+				lines[i] = string(b) + line
+			}
+			return strings.Join(lines[:], "")
+		},
+	}).Parse(istioGatewayTemplate)
+	if err != nil {
+		return "", err
+	}
+
+	err = t.Execute(&b, &data)
+	if err != nil {
+		return "", err
+	}
+
+	return b.String(), nil
 }

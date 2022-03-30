@@ -6,11 +6,10 @@ package mysql
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -18,11 +17,9 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-
-	"io/ioutil"
-
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -40,12 +37,13 @@ const (
 	mySQLInitFilePrefix = "init-mysql-"
 )
 
-// isReady checks to see if the MySQL component is in ready state
-func isReady(context spi.ComponentContext, name string, namespace string) bool {
+// isMySQLReady checks to see if the MySQL component is in ready state
+func isMySQLReady(context spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
-		{Name: name, Namespace: namespace},
+		{Name: ComponentName, Namespace: ComponentNamespace},
 	}
-	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1)
+	prefix := fmt.Sprintf("Component %s", context.GetComponent())
+	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
 // appendMySQLOverrides appends the MySQL helm overrides
@@ -57,16 +55,15 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 
-	if compContext.For(ComponentName).GetOperation() == vzconst.UpgradeOperation {
+	if compContext.Init(ComponentName).GetOperation() == vzconst.UpgradeOperation {
 		secret := &v1.Secret{}
 		nsName := types.NamespacedName{
-			Namespace: vzconst.KeycloakNamespace,
+			Namespace: ComponentNamespace,
 			Name:      secretName}
 		// Get the mysql secret
 		err := compContext.Client().Get(context.TODO(), nsName, secret)
 		if err != nil {
-			compContext.Log().Errorf("Error getting mysql secret: %v", err)
-			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+			return []bom.KeyValue{}, compContext.Log().ErrorfNewErr("Failed getting MySQL secret: %v", err)
 		}
 		// Force mysql to use the initial password and root password during the upgrade, by specifying as helm overrides
 		kvs = append(kvs, bom.KeyValue{
@@ -81,7 +78,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 
 	kvs = append(kvs, bom.KeyValue{Key: mySQLUsernameKey, Value: mySQLUsername})
 
-	if compContext.For(ComponentName).GetOperation() == vzconst.InstallOperation {
+	if compContext.Init(ComponentName).GetOperation() == vzconst.InstallOperation {
 		mySQLInitFile, err := createMySQLInitFile(compContext)
 		if err != nil {
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
@@ -148,13 +145,11 @@ func createMySQLInitFile(ctx spi.ComponentContext) (string, error) {
 		mySQLUsername,
 	)))
 	if err != nil {
-		ctx.Log().Errorf("Failed to write to temporary file: %v", err)
-		return "", err
+		return "", ctx.Log().ErrorfNewErr("Failed to write to temporary file: %v", err)
 	}
 	// Close the file
 	if err := file.Close(); err != nil {
-		ctx.Log().Errorf("Failed to close temporary file: %v", err)
-		return "", err
+		return "", ctx.Log().ErrorfNewErr("Failed to close temporary file: %v", err)
 	}
 	return file.Name(), nil
 }
@@ -163,14 +158,14 @@ func createMySQLInitFile(ctx spi.ComponentContext) (string, error) {
 func removeMySQLInitFile(ctx spi.ComponentContext) {
 	files, err := ioutil.ReadDir(os.TempDir())
 	if err != nil {
-		ctx.Log().Errorf("Error reading temp directory: %s", err.Error())
+		ctx.Log().Errorf("Failed reading temp directory: %v", err)
 	}
 	for _, file := range files {
 		if !file.IsDir() && strings.HasPrefix(file.Name(), mySQLInitFilePrefix) && strings.HasSuffix(file.Name(), ".sql") {
 			fullPath := filepath.Join(os.TempDir(), file.Name())
 			ctx.Log().Debugf("Deleting temp MySQL init file %s", fullPath)
 			if err := os.Remove(fullPath); err != nil {
-				ctx.Log().Errorf("Error deleting temp MySQL init file %s", fullPath)
+				ctx.Log().Errorf("Failed deleting temp MySQL init file %s", fullPath)
 			}
 		}
 	}
@@ -203,8 +198,7 @@ func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.K
 		pvcs := mySQLVolumeSource.PersistentVolumeClaim
 		storageSpec, found := vzconfig.FindVolumeTemplate(pvcs.ClaimName, effectiveCR.Spec.VolumeClaimSpecTemplates)
 		if !found {
-			err := fmt.Errorf("No VolumeClaimTemplate found for %s", pvcs.ClaimName)
-			return kvs, err
+			return kvs, compContext.Log().ErrorfNewErr("Failed, No VolumeClaimTemplate found for %s", pvcs.ClaimName)
 		}
 		storageClass := storageSpec.StorageClassName
 		if storageClass != nil && len(*storageClass) > 0 {

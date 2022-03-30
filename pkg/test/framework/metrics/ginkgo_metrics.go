@@ -6,6 +6,8 @@ package metrics
 import (
 	"fmt"
 	neturl "net/url"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
@@ -16,11 +18,18 @@ import (
 )
 
 const (
-	Duration = "duration"
-	Started  = "started"
-	Status   = "status"
-	attempts = "attempts"
-	test     = "test"
+	Duration          = "duration"
+	Started           = "started"
+	Status            = "status"
+	attempts          = "attempts"
+	test              = "test"
+	BuildURL          = "build_url"
+	JenkinsJob        = "jenkins_job"
+	BranchName        = "branch_name"
+	CommitHash        = "commit_hash"
+	KubernetesVersion = "kubernetes_version"
+	TestEnv           = "test_env"
+	Label             = "label"
 
 	MetricsIndex     = "metrics"
 	TestLogIndex     = "testlogs"
@@ -84,7 +93,49 @@ func NewLogger(pkg string, ind string) (*zap.SugaredLogger, error) {
 	}
 
 	suiteUUID := uuid.NewUUID()
-	return log.Sugar().With("suite_uuid", suiteUUID).With("package", pkg), nil
+	sugaredLogger := log.Sugar().With("suite_uuid", suiteUUID).With("package", pkg)
+	return configureLoggerWithJenkinsEnv(sugaredLogger), nil
+}
+
+func configureLoggerWithJenkinsEnv(log *zap.SugaredLogger) *zap.SugaredLogger {
+
+	kubernetesVersion := os.Getenv("K8S_VERSION_LABEL")
+	if kubernetesVersion != "" {
+		log = log.With(KubernetesVersion, kubernetesVersion)
+	}
+
+	branchName := os.Getenv("BRANCH_NAME")
+	if branchName != "" {
+		log = log.With(BranchName, branchName)
+	}
+
+	buildURL := os.Getenv("BUILD_URL")
+	if buildURL != "" {
+		buildURL = strings.Replace(buildURL, "%252F", "/", 1)
+		log = log.With(BuildURL, buildURL)
+	}
+
+	jobName := os.Getenv("JOB_NAME")
+	if jobName != "" {
+		jobName = strings.Replace(jobName, "%252F", "/", 1)
+		jobNameSplit := strings.Split(jobName, "/")
+		jobPipeline := jobNameSplit[0]
+		log = log.With(JenkinsJob, jobPipeline)
+	}
+
+	gitCommit := os.Getenv("GIT_COMMIT")
+	//Tagging commit with the branch.
+	if gitCommit != "" {
+		gitCommitAndBranch := branchName + "/" + gitCommit
+		log = log.With(CommitHash, gitCommitAndBranch)
+	}
+
+	testEnv := os.Getenv("TEST_ENV")
+	if testEnv != "" {
+		log = log.With(TestEnv, testEnv)
+	}
+
+	return log
 }
 
 func Millis() int64 {
@@ -115,13 +166,17 @@ func Emit(log *zap.SugaredLogger) {
 		log = log.With(Status, spec.State)
 	}
 	t := spec.FullText()
+	l := spec.Labels()
 
 	log.With(attempts, spec.NumAttempts).
 		With(test, t).
+		With(Label, l).
 		Info()
 }
 
 func DurationMillis() int64 {
+	// this value is in nanoseconds, so we need to divide by one million
+	// to convert to milliseconds
 	spec := ginkgo.CurrentSpecReport()
-	return int64(spec.RunTime) / 1000
+	return int64(spec.RunTime) / 1_000_000
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package clusters
@@ -6,11 +6,13 @@ package clusters
 import (
 	"context"
 	"fmt"
+	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"time"
 
-	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -216,12 +218,15 @@ func IsPlacedInThisCluster(ctx context.Context, rdr client.Reader, placement clu
 
 // IgnoreNotFoundWithLog returns nil if err is a "Not Found" error, and if not, logs an error
 // message that the resource could not be fetched and returns the original error
-func IgnoreNotFoundWithLog(resourceType string, err error, logger logr.Logger) error {
+func IgnoreNotFoundWithLog(err error, log *zap.SugaredLogger) (reconcile.Result, error) {
 	if apierrors.IsNotFound(err) {
-		return nil
+		log.Debug("Resource has been deleted")
+		return reconcile.Result{}, nil
 	}
-	logger.Info("Failed to fetch resource", "type", resourceType, "err", err)
-	return err
+	if err != nil {
+		log.Errorf("Failed to fetch resource: %v", err)
+	}
+	return NewRequeueWithDelay(), nil
 }
 
 // GetClusterName returns the cluster name for a this cluster, empty string if the cluster
@@ -366,4 +371,31 @@ func GetRandomRequeueDelay() time.Duration {
 	// get a jittered delay to use for requeueing reconcile
 	var seconds = rand.IntnRange(2, 8)
 	return time.Duration(seconds) * time.Second
+}
+
+// NewRequeueWithDelay retruns a result set to requeue in 2 to 3 seconds
+func NewRequeueWithDelay() reconcile.Result {
+	return vzctrl.NewRequeueWithDelay(2, 3, time.Second)
+}
+
+// ShouldRequeue returns true if requeue is needed
+func ShouldRequeue(r reconcile.Result) bool {
+	return r.Requeue || r.RequeueAfter > 0
+}
+
+// GetResourceLogger will return the controller logger associated with the resource
+func GetResourceLogger(controller string, namespacedName types.NamespacedName, obj controllerutil.Object) (vzlog.VerrazzanoLogger, error) {
+	// Get the resource logger needed to log message using 'progress' and 'once' methods
+	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
+		Name:           namespacedName.Name,
+		Namespace:      namespacedName.Namespace,
+		ID:             string(obj.GetUID()),
+		Generation:     obj.GetGeneration(),
+		ControllerName: controller,
+	})
+	if err != nil {
+		zap.S().Errorf("Failed to create controller logger for %v: %v", namespacedName, err)
+	}
+
+	return log, err
 }

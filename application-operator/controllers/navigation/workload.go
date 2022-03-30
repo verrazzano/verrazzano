@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package navigation
@@ -7,12 +7,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"strings"
 
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
-	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"go.uber.org/zap"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -33,7 +34,7 @@ var workloadToContainedGVKMap = map[string]schema.GroupVersionKind{
 // for example core.oam.dev/v1alpha2.ContainerizedWorkload would be converted to
 // containerizedworkloads.core.oam.dev.  Workload definitions are always found in the default
 // namespace.
-func FetchWorkloadDefinition(ctx context.Context, cli client.Reader, log logr.Logger, workload *unstructured.Unstructured) (*oamv1.WorkloadDefinition, error) {
+func FetchWorkloadDefinition(ctx context.Context, cli client.Reader, log vzlog.VerrazzanoLogger, workload *unstructured.Unstructured) (*oamv1.WorkloadDefinition, error) {
 	if workload == nil {
 		return nil, fmt.Errorf("invalid workload reference")
 	}
@@ -42,7 +43,7 @@ func FetchWorkloadDefinition(ctx context.Context, cli client.Reader, log logr.Lo
 	workloadName := GetDefinitionOfResource(workloadAPIVer, workloadKind)
 	workloadDef := oamv1.WorkloadDefinition{}
 	if err := cli.Get(ctx, workloadName, &workloadDef); err != nil {
-		log.Error(err, "Failed to fetch workload definition", "workload", workloadName)
+		log.Errorf("Failed to fetch workload %s definition: %v", workloadName, err)
 		return nil, err
 	}
 	return &workloadDef, nil
@@ -53,13 +54,13 @@ func FetchWorkloadDefinition(ctx context.Context, cli client.Reader, log logr.Lo
 // Finding children is done by first looking to the workflow definition of the provided workload.
 // The workload definition contains a set of child resource types supported by the workload.
 // The namespace of the workload is then searched for child resources of the supported types.
-func FetchWorkloadChildren(ctx context.Context, cli client.Reader, log logr.Logger, workload *unstructured.Unstructured) ([]*unstructured.Unstructured, error) {
+func FetchWorkloadChildren(ctx context.Context, cli client.Reader, log vzlog.VerrazzanoLogger, workload *unstructured.Unstructured) ([]*unstructured.Unstructured, error) {
 	var err error
 	var workloadDefinition *oamv1.WorkloadDefinition
 
 	// Attempt to fetch workload definition based on the workload GVK.
 	if workloadDefinition, err = FetchWorkloadDefinition(ctx, cli, log, workload); err != nil {
-		log.Info("Workload definition not found")
+		log.Debug("Workload definition not found")
 		return nil, err
 	}
 	// If the workload definition is found then fetch child resources of the declared child types
@@ -106,8 +107,8 @@ func ComponentFromWorkloadLabels(ctx context.Context, cli client.Reader, namespa
 // LoggingTraitFromWorkloadLabels returns the LoggingTrait object associated with the workload or nil if
 // there is no associated logging trait for the workload. If there is an associated logging trait and the lookup of the
 // trait fails, an error is returned and the reconcile should be retried.
-func LoggingTraitFromWorkloadLabels(ctx context.Context, cli client.Reader, log logr.Logger, namespace string, workloadMeta v1.ObjectMeta) (*vzapi.LoggingTrait, error) {
-	log.Info(fmt.Sprintf("Getting logging trait from OAM labels: %v", workloadMeta.Labels))
+func LoggingTraitFromWorkloadLabels(ctx context.Context, cli client.Reader, log vzlog.VerrazzanoLogger, namespace string, workloadMeta v1.ObjectMeta) (*vzapi.LoggingTrait, error) {
+	log.Debugf("Getting logging trait from OAM labels: %v", workloadMeta.Labels)
 	component, err := ComponentFromWorkloadLabels(ctx, cli, namespace, workloadMeta.Labels)
 	if err != nil {
 		return nil, err
@@ -134,14 +135,14 @@ func LoggingTraitFromWorkloadLabels(ctx context.Context, cli client.Reader, log 
 			for _, owner := range workloadMeta.OwnerReferences {
 				ownerUIDs[owner.UID] = struct{}{}
 			}
-			log.Info(fmt.Sprintf("Workload owner UID's: %v", ownerUIDs))
+			log.Debugf("Workload owner UID's: %v", ownerUIDs)
 
 			for _, item := range loggingTraitList.Items {
 				for _, owner := range item.GetOwnerReferences() {
-					log.Info(fmt.Sprintf("Comparing logging trait owner with UID: %s and name: %s", owner.UID, item.Spec.WorkloadReference.Name))
+					log.Debugf("Comparing logging trait owner with UID: %s and name: %s", owner.UID, item.Spec.WorkloadReference.Name)
 					if _, ok := ownerUIDs[owner.UID]; ok {
 						if workloadMeta.Name == item.Spec.WorkloadReference.Name {
-							log.Info("Matched Trait")
+							log.Debug("Matched Trait")
 							return &item, nil
 						}
 					}
@@ -151,18 +152,18 @@ func LoggingTraitFromWorkloadLabels(ctx context.Context, cli client.Reader, log 
 	}
 
 	if hasLoggingTrait {
-		log.Info(fmt.Sprintf("Unable to lookup associated LoggingTrait for workload %s", workloadMeta.Name))
+		log.Debugf("Unable to lookup associated LoggingTrait for workload %s", workloadMeta.Name)
 		return nil, fmt.Errorf("lookup of LoggingTrait failed for workload %s", workloadMeta.Name)
 	}
-	log.Info(fmt.Sprintf("Workload %s has no associated logging trait", workloadMeta.Name))
+	log.Debugf("Workload %s has no associated logging trait", workloadMeta.Name)
 	return nil, nil
 }
 
 // MetricsTraitFromWorkloadLabels returns the MetricsTrait object associated with the workload or nil if
 // there is no associated metrics trait for the workload. If there is an associated metrics trait and the lookup of the
 // trait fails, an error is returned and the reconcile should be retried.
-func MetricsTraitFromWorkloadLabels(ctx context.Context, cli client.Reader, log logr.Logger, namespace string, workloadMeta v1.ObjectMeta) (*vzapi.MetricsTrait, error) {
-	log.Info(fmt.Sprintf("Getting metrics trait from OAM labels: %v", workloadMeta.Labels))
+func MetricsTraitFromWorkloadLabels(ctx context.Context, cli client.Reader, log *zap.SugaredLogger, namespace string, workloadMeta v1.ObjectMeta) (*vzapi.MetricsTrait, error) {
+	log.Debug(fmt.Sprintf("Getting metrics trait from OAM labels: %v", workloadMeta.Labels))
 	component, err := ComponentFromWorkloadLabels(ctx, cli, namespace, workloadMeta.Labels)
 	if err != nil {
 		return nil, err
@@ -189,14 +190,14 @@ func MetricsTraitFromWorkloadLabels(ctx context.Context, cli client.Reader, log 
 			for _, owner := range workloadMeta.OwnerReferences {
 				ownerUIDs[owner.UID] = struct{}{}
 			}
-			log.Info(fmt.Sprintf("Workload owner UID's: %v", ownerUIDs))
+			log.Debugf("Workload owner UID's: %v", ownerUIDs)
 
 			for _, item := range metricsTraitList.Items {
 				for _, owner := range item.GetOwnerReferences() {
-					log.Info(fmt.Sprintf("Comparing metrics trait owner with UID: %s and name: %s", owner.UID, item.Spec.WorkloadReference.Name))
+					log.Debugf("Comparing metrics trait owner with UID: %s and name: %s", owner.UID, item.Spec.WorkloadReference.Name)
 					if _, ok := ownerUIDs[owner.UID]; ok {
 						if workloadMeta.Name == item.Spec.WorkloadReference.Name {
-							log.Info("Matched Trait")
+							log.Debug("Matched Trait")
 							return &item, nil
 						}
 					}
@@ -206,10 +207,10 @@ func MetricsTraitFromWorkloadLabels(ctx context.Context, cli client.Reader, log 
 	}
 
 	if hasMetricsTrait {
-		log.Info(fmt.Sprintf("Unable to lookup associated MetricTrait for workload %s", workloadMeta.Name))
+		log.Debugf("Unable to lookup associated MetricTrait for workload %s", workloadMeta.Name)
 		return nil, fmt.Errorf("lookup of MetricTrait failed for workload %s", workloadMeta.Name)
 	}
-	log.Info(fmt.Sprintf("Workload %s has no associated metric trait", workloadMeta.Name))
+	log.Debugf("Workload %s has no associated metric trait", workloadMeta.Name)
 	return nil, nil
 }
 

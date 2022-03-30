@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package verrazzanoproject
@@ -6,6 +6,7 @@ package verrazzanoproject
 import (
 	"context"
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"testing"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vmcclient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned/scheme"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -27,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -595,7 +596,7 @@ func TestDeleteVerrazzanoProjectFinalizer(t *testing.T) {
 func newVerrazzanoProjectReconciler(c client.Client) Reconciler {
 	return Reconciler{
 		Client: c,
-		Log:    ctrl.Log.WithName("test"),
+		Log:    zap.S().With("test"),
 		Scheme: clusters.NewScheme(),
 	}
 }
@@ -759,4 +760,22 @@ func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mock
 			clusterstest.AssertMultiClusterResourceStatus(assert, vp.Status, clustersv1alpha1.Succeeded, clustersv1alpha1.DeployComplete, corev1.ConditionTrue)
 			return nil
 		})
+}
+
+// TestReconcileKubeSystem tests to make sure we do not reconcile
+// Any resource that belong to the kube-system namespace
+func TestReconcileKubeSystem(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// create a request and reconcile it
+	request := clusterstest.NewRequest(vzconst.KubeSystem, "unit-test-verrazzano-helidon-workload")
+	reconciler := newVerrazzanoProjectReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.Nil(err)
+	assert.True(result.IsZero())
 }

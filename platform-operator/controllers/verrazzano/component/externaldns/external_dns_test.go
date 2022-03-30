@@ -4,6 +4,8 @@
 package externaldns
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -14,7 +16,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 const (
@@ -81,26 +82,26 @@ func TestIsExternalDNSDisabled(t *testing.T) {
 	assert.False(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, vz, false)))
 }
 
-// TestIsExternalDNSReady tests the IsReady fn
-// GIVEN a call to IsReady
+// TestIsExternalDNSReady tests the isExternalDNSReady fn
+// GIVEN a call to isExternalDNSReady
 // WHEN the external dns deployment is ready
 // THEN the function returns true
 func TestIsExternalDNSReady(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
-		newDeployment(externalDNSDeploymentName, true),
+		newDeployment(ComponentName, true),
 	)
-	assert.True(t, fakeComponent.IsReady(spi.NewFakeContext(client, nil, false)))
+	assert.True(t, isExternalDNSReady(spi.NewFakeContext(client, nil, false)))
 }
 
-// TestIsExternalDNSNotReady tests the IsReady fn
-// GIVEN a call to IsReady
+// TestIsExternalDNSNotReady tests the isExternalDNSReady fn
+// GIVEN a call to isExternalDNSReady
 // WHEN the external dns deployment is not ready
 // THEN the function returns false
 func TestIsExternalDNSNotReady(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
-		newDeployment(externalDNSDeploymentName, false),
+		newDeployment(ComponentName, false),
 	)
-	assert.False(t, fakeComponent.IsReady(spi.NewFakeContext(client, nil, false)))
+	assert.False(t, isExternalDNSReady(spi.NewFakeContext(client, nil, false)))
 }
 
 // TestAppendExternalDNSOverrides tests the AppendOverrides fn
@@ -110,7 +111,7 @@ func TestIsExternalDNSNotReady(t *testing.T) {
 func TestAppendExternalDNSOverrides(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.DNS.OCI = oci
-	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, false, profileDir), ComponentName, externalDNSNamespace, "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, false, profileDir), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 9)
 }
@@ -193,7 +194,7 @@ func TestExternalDNSPreInstall3InvalidScope(t *testing.T) {
 func newDeployment(name string, ready bool) *appsv1.Deployment {
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: externalDNSNamespace,
+			Namespace: ComponentNamespace,
 			Name:      name,
 		},
 		Status: appsv1.DeploymentStatus{

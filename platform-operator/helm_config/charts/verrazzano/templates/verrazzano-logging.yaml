@@ -37,7 +37,7 @@ data:
   {{- if .Values.logging.elasticsearchSecret }}
   es-secret: {{ .Values.logging.elasticsearchSecret }}
   {{- else }}
-  es-secret: verrazzano
+  es-secret: verrazzano-es-internal
   {{- end }}
 ---
 apiVersion: v1
@@ -67,6 +67,7 @@ data:
     # Parsing/Filtering
     @include systemd-filter.conf
     @include kubernetes-filter.conf
+    @include components-filter.conf
 
     # Send to storage
     @include output.conf
@@ -230,6 +231,499 @@ data:
       </parse>
     </source>
 
+  components-filter.conf: |
+    # filter to parse istio-proxy and istiod container log files
+    <filter kubernetes.**istio-proxy** kubernetes.**istiod**istio-system_discovery**>
+      @type parser
+      @id istio
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # istio containers have two formats for log records
+        # one has a timestamp, log level and other fields
+        # the other is just a messsage
+        @type multi_format
+        <pattern>
+          format /^(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{6}Z)\t(?<level>.*?)\t(?<message>[\s\S]*?)$/
+          time_key logtime
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    # filter to parse authproxy container log files
+    <filter kubernetes.**verrazzano-authproxy**verrazzano-authproxy**>
+      @type parser
+      @id authproxy
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # authproxy has two formats for log records
+        # one has a timestamp, log level and other fields
+        # the other is just a messsage
+        @type multi_format
+        <pattern>
+          format /^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}\:\d{2}\:\d{2}) \[(?<level>.*?)\] (?<message>[\s\S]*?)$/
+          time_key logtime
+          time_format %Y/%m/%d %H:%M:%S
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    # filter to parse kiali container log files
+    <filter kubernetes.**vmi-system-kiali**verrazzano-system_vmi-system-kiali**>
+      @type parser
+      @id vmi-system-kiali
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # Kiali has two formats for log records
+        # Kiali format and a klog format
+        @type multi_format
+        <pattern>
+          format /^(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z) (?<level>.*?) (?<message>[\s\S]*?)$/
+          time_key logtime
+          time_format %Y-%m-%dT%H:%M:%SZ
+        </pattern>
+        <pattern>
+          format /^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/
+          time_key logtime
+          time_format %H:%M:%S.%N
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    # filter to parse Coherence operator container log files
+    <filter kubernetes.**coherence-operator**verrazzano-system_manager**>
+      @type parser
+      @id coh-operator
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # Coherence operator has two formats for log records
+        # Coherence operator format and a klog format
+        @type multi_format
+        <pattern>
+          format /^(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)\t(?<level>.*?)\t(?<message>[\s\S]*?)$/
+          time_key logtime
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        <pattern>
+          format /^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/
+          time_key logtime
+          time_format %H:%M:%S.%N
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    # filter to parse oam-kubernetes-runtime container log files
+    <filter kubernetes.**oam-kubernetes-runtime**verrazzano-system_oam-kubernetes-runtime**>
+      @type parser
+      @id oam-kubernetes-runtime
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # oam-kubernetes-runtime has two formats for log records
+        # oam-kubernetes-runtime format and a klog format
+        @type multi_format
+        <pattern>
+          format /^(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)\t(?<level>.*?)\t(?<message>[\s\S]*?)$/
+          time_key logtime
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        <pattern>
+          format /^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/
+          time_key logtime
+          time_format %H:%M:%S.%N
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    # filter to parse cert-manager container log files
+    # includes cert-manager, ca-injector, webhook
+    <filter kubernetes.**cert-manager**cert-manager**>
+      @type parser
+      @id cert-manager
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # cert-manager has a klog format
+        @type multi_format
+        <pattern>
+          format /^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/
+          time_key logtime
+          time_format %H:%M:%S.%N
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    # filter to parse Verrazzano platform operator container log files
+    <filter kubernetes.**verrazzano-**-operator** kubernetes.**verrazzano-**_webhook-init**>
+      @type parser
+      @id verrazzano-operators
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        @type multi_format
+        <pattern>
+          format json
+          time_key @timestamp
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        # Kubernetes klog format
+        <pattern>
+          format /^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/
+          time_key logtime
+          time_format %H:%M:%S.%N
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    # filter to parse Keycloak container log files
+    <filter kubernetes.**keycloak**keycloak_keycloak**>
+      @type parser
+      @id keycloak
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # Keycloak has one format for log records
+        @type multi_format
+        <pattern>
+          format /^.*?(?<logtime>\d{2}:\d{2}:\d{2},\d{3}) (?<level>.*?)( |\t)+\[.*?\]( |\t)+\(.*?\)( |\t)+(?<message>.*)$/
+          time_key logtime
+          time_format %H:%M:%S,%N
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    # filter to parse MySQL container log files
+    <filter kubernetes.**mysql**keycloak_mysql**>
+      @type parser
+      @id mysql
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # MySQL has two formats for log records
+        @type multi_format
+        <pattern>
+          format /^(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{6}Z) \d+ \[(?<level>.*?)\] (\[.*?\] ){2}(?<message>.*?)$/
+          time_key logtime
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        <pattern>
+          format /^(?<logtime>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\+\d{2}:\d{2} \[(?<level>.*?)\] \[.*?\]: (?<message>.*?)$/
+          time_key logtime
+          time_format %Y-%m-%d %H:%M:%S
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    # filter to parse Grafana container log files
+    <filter kubernetes.**vmi-system-grafana**verrazzano-system_grafana**>
+      @type parser
+      @id grafana
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # Grafana has two formats for log records
+        # one for json logs and one for string logs
+        @type multi_format
+        <pattern>
+          format json
+          time_key @timestamp
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        <pattern>
+          format /^t=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\+\d{4} lvl=(?<level>\S+) msg="(?<message>.*?)".*?$/
+          time_key logtime
+          time_format %Y-%m-%dT%H:%M:%S
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    # filter to apply a record transformer Grafana container log files in JSON format
+    <filter kubernetes.**vmi-system-grafana**verrazzano-system_grafana**>
+      @type record_transformer
+      @id grafana-json
+      enable_ruby true
+      <record>
+        message ${record["@message"] ? record["@message"] : record["message"] ? record["message"] : ""}
+        level ${record["@level"] ? record["@level"] : record["level"] ? record["level"] : ""}
+      </record>
+    </filter>
+
+
+    # filter to parse verrazzano-system Prometheus container log files
+    <filter kubernetes.**vmi-system-prometheus**verrazzano-system_prometheus**>
+      @type parser
+      @id vmi-system-prometheus
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # Prometheus has two formats for log records
+        # One with a level and msg
+        # One with a level but not msg
+        @type multi_format
+        <pattern>
+          format /^ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)(.*)level=(?<level>.*?) (.*?)msg="(?<message>.*?)"([\s\S]*?)$/
+          time_key logtime
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        <pattern>
+          format /^ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)(.*)level=(?<level>.*?) (?<message>[\s\S]*?)$/
+          time_key logtime
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        # Kubernetes klog format
+        <pattern>
+          format /^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/
+          time_key logtime
+          time_format %H:%M:%S.%N
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    # filter to parse verrazzano-system Prometheus config-reloader container log files
+    <filter kubernetes.**vmi-system-prometheus**verrazzano-system_config-reloader**>
+      @type parser
+      @id config-reloader
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # config-reloader log messages do not have a log level
+        @type multi_format
+        <pattern>
+          format /^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}) (?<message>[\s\S]*?)$/
+          time_key logtime
+          time_format %Y/%m/%d %H:%M:%S
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    # filter to parse Weblogic Operator Dashboard container log files
+    <filter kubernetes.**weblogic-operator**verrazzano-system_weblogic-operator**>
+      @type parser
+      @id weblogic-operator
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # WebLogic Operator Dashboard has one format for log records
+        @type multi_format
+        <pattern>
+          format json
+          time_key timestamp
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    # filter to apply a record transformer into WebLogic Component log files in JSON format
+    <filter kubernetes.**weblogic-operator**verrazzano-system_weblogic-operator**>
+      @type record_transformer
+      @id weblogic-operator-json
+      remove_keys timestamp
+    </filter>
+
+    # filter to parse OpenSearch Dashboard container log files
+    <filter kubernetes.**vmi-system-kibana**verrazzano-system_kibana**>
+      @type parser
+      @id kibana
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # OpenSearch Dashboard has one format for log records
+        @type multi_format
+        <pattern>
+          format json
+          time_key @timestamp
+          time_format %Y-%m-%dT%H:%M:%SZ
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    # filter to parse OpenSearch Dashboard container log files
+    <filter kubernetes.**vmi-system-kibana**verrazzano-system_kibana**>
+      @type record_transformer
+      @id kibana-json
+      enable_ruby true
+      <record>
+        # the following Ruby code looks for an intersection between the "tags" values and the log level values
+        # it returns the first intersection value if found or empty string if not
+        level ${!!record["tags"] ? !(['trace', 'debug', 'info', 'warn', 'error', 'fail'] & record["tags"])[0].nil? ? (['trace', 'debug', 'info', 'warn', 'error', 'fail'] & record["tags"])[0] : "" : ""}
+      </record>
+    </filter>
+
+    # filter to parse NGINX Ingress Controller container log files
+    <filter **ingress-nginx-controller**ingress-nginx_controller-**>
+      @type parser
+      @id nginx-ingress-controller
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        @type multi_format
+        <pattern>
+          format /^(?:[^ ]*) (?:[^ ]*) (?:[^ ]*) \[(?<time>[^\]]*)\] "(?<method>\S+)(?: +(?<path>[^\"]*?)(?: +\S*)?)?" (?<code>[^ ]*) (?:[^ ]*)(?: "(?:[^\"]*)" "(?:[^\"]*)") (?<message>[\s\S]*)$/
+          time_key time
+          time_format %d/%b/%Y:%H:%M:%S %z
+        </pattern>
+        # Kubernetes klog format
+        <pattern>
+          format /^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/
+          time_key logtime
+          time_format %H:%M:%S.%N
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    # filter to parse Rancher namespace container log files
+    <filter kubernetes.**cattle-system** kubernetes.**rancher-operator-system** kubernetes.**fleet-system** kubernetes.**local-path-provisioner**>
+      @type parser
+      @id rancher
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        @type multi_format
+        # Rancher pattern #1
+        <pattern>
+          format /^time="(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)" level=(?<level>.*?) msg="(?<message>.*?)"[\s\S]*?$/
+          time_key logtime
+          time_format %Y-%m-%dT%H:%M:%SZ
+        </pattern>
+        # Rancher pattern #2
+        <pattern>
+          format /^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}) \[(?<level>.*?)\] (?<message>[\s\S]*?)?$/
+          time_key logtime
+          time_format %Y/%m/%d %H:%M:%S
+        </pattern>
+        # Kubernetes klog format
+        <pattern>
+          format /^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/
+          time_key logtime
+          time_format %H:%M:%S.%N
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    # filter to parse External-dns container log files
+    <filter kubernetes.**external-dns**external-dns**>
+      @type parser
+      @id external-dns
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        @type multi_format
+        # external-dns pattern
+        <pattern>
+          format /^time="(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)" level=(?<level>.*?) msg="(?<message>.*?)"[\s\S]*?$/
+          time_key logtime
+          time_format %Y-%m-%dT%H:%M:%SZ
+        </pattern>
+        # Kubernetes klog format
+        <pattern>
+          format /^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/
+          time_key logtime
+          time_format %H:%M:%S.%N
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+
+    # filter to parse node-exporter container log files
+    <filter kubernetes.**node-exporter**monitoring_node-exporter**>
+      @type parser
+      @id node-exporter
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # Node exporter has two formats for log records
+        # One with a level and msg
+        # One with a level but not msg
+        @type multi_format
+        <pattern>
+          format /^level=(?<level>.*?) ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)(.*?)msg="(?<message>.*?)"([\s\S]*?)$/
+          time_key logtime
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        <pattern>
+          format /^level=(?<level>.*?) ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z) (?<message>[\s\S]*?)$/
+          time_key logtime
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
   kubernetes-filter.conf: |
     # Query the API for extra metadata.
     <filter kubernetes.**>
@@ -281,14 +775,15 @@ data:
       ignore_key_not_exist true
       emit_invalid_record_to_error true
       <parse>
-         @type multi_format
-         <pattern>
-            format json
-            time_format %Y-%m-%dT%H:%M:%S.%NZ
-         </pattern>
-         <pattern>
-            format none
-         </pattern>
+        @type multi_format
+        <pattern>
+          format json
+          time_key @timestamp
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
       </parse>
     </filter>
 
@@ -329,11 +824,21 @@ data:
 
   output.conf: |
     <filter **>
-       @type record_transformer
-       @id cluster_name
-       <record>
-          cluster_name "#{ENV['CLUSTER_NAME']}"
-       </record>
+      @type record_transformer
+      @id cluster_name
+      <record>
+        cluster_name "#{ENV['CLUSTER_NAME']}"
+      </record>
+    </filter>
+
+    # Force the timestamp field into ISO 8601 format
+    <filter **>
+      @type record_transformer
+      @id time_format
+      enable_ruby true
+      <record>
+        @timestamp ${time.iso8601(3)}
+      </record>
     </filter>
 
   es-output.conf: |
@@ -342,9 +847,9 @@ data:
       @id out_elasticsearch
       @log_level info
       log_es_400_reason true
-      logstash_format true
-      logstash_prefix verrazzano-logstash
+      include_timestamp true
       target_index_key target_index
+      index_name verrazzano-namespace-verrazzano-system
       include_tag_key true
 
       template_file /fluentd/etc/elasticsearch-template-verrazzano.json
@@ -372,6 +877,7 @@ data:
       password "#{ENV['ELASTICSEARCH_PASSWORD']}"
       bulk_message_request_threshold 16M
       suppress_type_name true
+      type_name _doc
       # 2 ^ 31
       request_timeout 2147483648
       <buffer>
@@ -392,7 +898,7 @@ data:
 {{- if .Values.fluentd.oci }}
   oci-logging-system.conf: |
     # Match all "system" namespaces so system log records are sent to a separate OCI Log object
-    <match kubernetes.**kube-** kubernetes.**verrazzano-system** kubernetes.**verrazzano-install** kubernetes.**cattle-** kubernetes.**rancher-** kubernetes.**fleet-** kubernetes.**ingress-nginx** kubernetes.**istio-system** kubernetes.**keycloak** kubernetes.**cert-manager**  kubernetes.**monitoring** systemd.** fluentd.monitor.metrics>
+    <match kubernetes.**kube-** kubernetes.**verrazzano-system** kubernetes.**verrazzano-install** kubernetes.**cattle-** kubernetes.**rancher-** kubernetes.**fleet-** kubernetes.**ingress-nginx** kubernetes.**istio-system** kubernetes.**keycloak** kubernetes.**cert-manager**  kubernetes.**_monitoring_** kubernetes.**_metallb-** kubernetes.**_local-path-storage_** systemd.** fluentd.monitor.metrics>
       @type oci_logging
       log_object_id {{ .Values.fluentd.oci.systemLogId }}
       <buffer>
@@ -426,50 +932,44 @@ data:
 
   elasticsearch-template-verrazzano.json: |
     {
-      "index_patterns" : "verrazzano-*",
-      "version" : 60001,
-      "settings" : {
-        "index.refresh_interval" : "5s",
-        "index.mapping.total_fields.limit" : "2000",
-        "number_of_shards": 5,
-        "index.number_of_replicas" : 0,
-        "index.auto_expand_replicas" : "0-1"
+      "index_patterns":"verrazzano-*",
+      "version":60001,
+      "settings":{
+        "index.refresh_interval":"5s",
+        "index.mapping.total_fields.limit":"2000",
+        "number_of_shards":5,
+        "index.number_of_replicas":0,
+        "index.auto_expand_replicas":"0-1"
       },
-      "mappings" : {
-        "dynamic_templates" : [ {
-          "message_field" : {
-            "path_match" : "message",
-            "match_mapping_type" : "string",
-            "mapping" : {
-              "type" : "text",
-              "norms" : false
+      "mappings":{
+        "dynamic_templates":[
+          {
+            "message_field":{
+              "path_match":"message",
+              "match_mapping_type":"string",
+              "mapping":{
+                "type":"text",
+                "norms":false
+              }
             }
-          }
-        }, {
-          "string_fields" : {
-            "match" : "*",
-            "match_mapping_type" : "string",
-            "mapping" : {
-              "type" : "text", "norms" : false,
-              "fields" : {
-                "keyword" : { "type": "keyword", "ignore_above": 256 }
+          },
+          {
+            "string_fields":{
+              "match":"*",
+              "match_mapping_type":"string",
+              "mapping":{
+                "type":"text",
+                "norms":false,
+                "fields":{
+                  "keyword":{
+                    "type":"keyword",
+                    "ignore_above":256
+                  }
+                }
               }
             }
           }
-        } ],
-        "properties" : {
-          "@timestamp": { "type": "date", "format": "strict_date_time||strict_date_optional_time||epoch_millis"},
-          "@version": { "type": "keyword"},
-          "geoip"  : {
-            "dynamic": true,
-            "properties" : {
-              "ip": { "type": "ip" },
-              "location" : { "type" : "geo_point" },
-              "latitude" : { "type" : "half_float" },
-              "longitude" : { "type" : "half_float" }
-            }
-          }
-        }
+        ]
       }
     }
 ---
@@ -569,7 +1069,7 @@ spec:
   {{- if .Values.logging.elasticsearchSecret }}
                   name: {{ .Values.logging.elasticsearchSecret }}
   {{- else }}
-                  name: verrazzano
+                  name: verrazzano-es-internal
   {{- end }}
                   optional: true
             - name: ELASTICSEARCH_PASSWORD
@@ -579,7 +1079,7 @@ spec:
   {{- if .Values.logging.elasticsearchSecret }}
                   name: {{ .Values.logging.elasticsearchSecret }}
   {{- else }}
-                  name: verrazzano
+                  name: verrazzano-es-internal
   {{- end }}
                   optional: true
             - name: CA_FILE
@@ -636,7 +1136,7 @@ spec:
   {{- if .Values.logging.elasticsearchSecret }}
             secretName: {{ .Values.logging.elasticsearchSecret }}
   {{- else }}
-            secretName: verrazzano
+            secretName: verrazzano-es-internal
   {{- end }}
   {{- if .Values.fluentd.oci }}
   {{- if .Values.fluentd.oci.apiSecret }}

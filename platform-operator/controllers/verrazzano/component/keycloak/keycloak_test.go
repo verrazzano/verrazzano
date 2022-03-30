@@ -6,26 +6,27 @@ package keycloak
 import (
 	"errors"
 	"fmt"
-	networkv1 "k8s.io/api/networking/v1"
 	"os"
 	"os/exec"
 	"testing"
 
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
+	certmanager "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
+	networkv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -35,8 +36,8 @@ const (
 	profilesRelativePath    = "../../../../manifests/profiles"
 )
 
-var keycloakClientIds string = "[ {\n  \"id\" : \"a732-249893586af2\",\n  \"clientId\" : \"account\"\n}, {\n  \"id\" : \"4256-a350-e46eb48e8606\",\n  \"clientId\" : \"account-console\"\n}, {\n  \"id\" : \"4c1d-8d1b-68635e005567\",\n  \"clientId\" : \"admin-cli\"\n}, {\n  \"id\" : \"4350-ab70-17c37dd995b9\",\n  \"clientId\" : \"broker\"\n}, {\n  \"id\" : \"4f6d-a495-0e9e3849608e\",\n  \"clientId\" : \"realm-management\"\n}, {\n  \"id\" : \"4d92-9d64-f201698d2b79\",\n  \"clientId\" : \"security-admin-console\"\n}, {\n  \"id\" : \"4160-8593-32697ebf2c11\",\n  \"clientId\" : \"verrazzano-oauth-client\"\n}, {\n  \"id\" : \"bde9-9374bd6a38fd\",\n  \"clientId\" : \"verrazzano-pg\"\n}, {\n  \"id\" : \"8327-13cdbfe3b000\",\n  \"clientId\" : \"verrazzano-pkce\"\n\n}, {\n  \"id\" : \"494a-b7ec-b05681cafc73\",\n  \"clientId\" : \"webui\"\n} ]"
-var keycloakErrorClientIds string = "[ {\n  \"id\" : \"a732-249893586af2\",\n  \"clientId\" : \"account\"\n}, {\n  \"id\" : \"4256-a350-e46eb48e8606\",\n  \"clientId\" : \"account-console\"\n}, {\n  \"id\" : \"4c1d-8d1b-68635e005567\",\n  \"clientId\" : \"admin-cli\"\n}, {\n  \"id\" : \"4f6d-a495-0e9e3849608e\",\n  \"clientId\" : \"realm-management\"\n}, {\n  \"id\" : \"4d92-9d64-f201698d2b79\",\n  \"clientId\" : \"security-admin-console\"\n}, {\n  \"id\" : \"4160-8593-32697ebf2c11\",\n  \"clientId\" : \"verrazzano-oauth-client\"\n}, {\n  \"id\" : \"bde9-9374bd6a38fd\",\n  \"clientId\" : \"verrazzano-pg\"\n}, {\n  \"id\" : \"494a-b7ec-b05681cafc73\",\n  \"clientId\" : \"webui\"\n} ]"
+var keycloakClientIds = "[ {\n  \"id\" : \"a732-249893586af2\",\n  \"clientId\" : \"account\"\n}, {\n  \"id\" : \"4256-a350-e46eb48e8606\",\n  \"clientId\" : \"account-console\"\n}, {\n  \"id\" : \"4c1d-8d1b-68635e005567\",\n  \"clientId\" : \"admin-cli\"\n}, {\n  \"id\" : \"4350-ab70-17c37dd995b9\",\n  \"clientId\" : \"broker\"\n}, {\n  \"id\" : \"4f6d-a495-0e9e3849608e\",\n  \"clientId\" : \"realm-management\"\n}, {\n  \"id\" : \"4d92-9d64-f201698d2b79\",\n  \"clientId\" : \"security-admin-console\"\n}, {\n  \"id\" : \"4160-8593-32697ebf2c11\",\n  \"clientId\" : \"verrazzano-oauth-client\"\n}, {\n  \"id\" : \"bde9-9374bd6a38fd\",\n  \"clientId\" : \"verrazzano-pg\"\n}, {\n  \"id\" : \"8327-13cdbfe3b000\",\n  \"clientId\" : \"verrazzano-pkce\"\n\n}, {\n  \"id\" : \"494a-b7ec-b05681cafc73\",\n  \"clientId\" : \"webui\"\n} ]"
+var keycloakErrorClientIds = "[ {\n  \"id\" : \"a732-249893586af2\",\n  \"clientId\" : \"account\"\n}, {\n  \"id\" : \"4256-a350-e46eb48e8606\",\n  \"clientId\" : \"account-console\"\n}, {\n  \"id\" : \"4c1d-8d1b-68635e005567\",\n  \"clientId\" : \"admin-cli\"\n}, {\n  \"id\" : \"4f6d-a495-0e9e3849608e\",\n  \"clientId\" : \"realm-management\"\n}, {\n  \"id\" : \"4d92-9d64-f201698d2b79\",\n  \"clientId\" : \"security-admin-console\"\n}, {\n  \"id\" : \"4160-8593-32697ebf2c11\",\n  \"clientId\" : \"verrazzano-oauth-client\"\n}, {\n  \"id\" : \"bde9-9374bd6a38fd\",\n  \"clientId\" : \"verrazzano-pg\"\n}, {\n  \"id\" : \"494a-b7ec-b05681cafc73\",\n  \"clientId\" : \"webui\"\n} ]"
 var testVZ = &vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		Profile: "dev",
@@ -356,14 +357,14 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret),
 			"",
 			true,
-			"Error retrieving User Group ID from Keycloak",
+			"Component Keycloak failed; user group ID from Keycloak is zero length",
 		},
 		{
 			"should fail to retrieve user group ID from Keycloak when stdout is incorrect",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret),
 			"",
 			true,
-			"Error parsing output returned from Users Group",
+			"failed parsing output returned from Users Group",
 		},
 		{
 			"should fail when Verrazzano secret is not present",
@@ -385,7 +386,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			}),
 			"blahblah'id",
 			true,
-			"getSecretPassword: Error retrieving secret verrazzano password",
+			"password field empty in secret",
 		},
 		{
 			"should fail when nginx service is not present",
@@ -1081,4 +1082,66 @@ func TestUpdateKeycloakIngress(t *testing.T) {
 	ctx := spi.NewFakeContext(c, testVZ, false)
 	err := updateKeycloakIngress(ctx)
 	assert.NoError(t, err)
+}
+
+func TestIsKeycloakReady(t *testing.T) {
+	readySecret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      getSecretName(testVZ),
+			Namespace: ComponentNamespace,
+		},
+	}
+	scheme := k8scheme.Scheme
+	_ = certmanager.AddToScheme(scheme)
+	var tests = []struct {
+		name    string
+		c       client.Client
+		isReady bool
+	}{
+		{
+			"should not be ready when certificate not found",
+			fake.NewFakeClientWithScheme(scheme),
+			false,
+		},
+		{
+			"should not be ready when certificate has no status",
+			fake.NewFakeClientWithScheme(scheme, &certmanager.Certificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      getSecretName(testVZ),
+					Namespace: ComponentNamespace,
+				},
+			}),
+			false,
+		},
+		{
+			"should not be ready when secret does not exists",
+			fake.NewFakeClientWithScheme(scheme),
+			false,
+		},
+		{
+			"should not be ready when certificate status is ready but statefulset is not ready",
+			fake.NewFakeClientWithScheme(scheme, readySecret),
+			false,
+		},
+		{
+			"should be ready when certificate status is ready and statefulset is ready",
+			fake.NewFakeClientWithScheme(scheme, readySecret, &appsv1.StatefulSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: ComponentNamespace,
+					Name:      ComponentName,
+				},
+				Status: appsv1.StatefulSetStatus{
+					ReadyReplicas: 1,
+				},
+			}),
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.c, testVZ, false)
+			assert.Equal(t, tt.isReady, isKeycloakReady(ctx))
+		})
+	}
 }

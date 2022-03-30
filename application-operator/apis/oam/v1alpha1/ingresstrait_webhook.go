@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -8,11 +8,12 @@ import (
 	"fmt"
 	s "strings"
 
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sValidations "k8s.io/apimachinery/pkg/util/validation"
 	ctrl "sigs.k8s.io/controller-runtime"
 	c "sigs.k8s.io/controller-runtime/pkg/client"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
@@ -20,7 +21,7 @@ var getAllIngressTraits = listIngressTraits
 var client c.Client
 
 // log is for logging in this package.
-var log = logf.Log.WithName("ingresstrait-resource")
+var log = zap.S().With(vzlog.FieldResourceName, "ingresstrait-resource")
 
 // SetupWebhookWithManager saves client from manager and sets up webhook
 func (r *IngressTrait) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -36,7 +37,7 @@ var _ webhook.Validator = &IngressTrait{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for ingress trait type creation.
 func (r *IngressTrait) ValidateCreate() error {
-	log.Info("validate create", "name", r.Name)
+	log.Debugw("Validate create", "name", r.Name)
 	allIngressTraits, err := getAllIngressTraits(r.Namespace)
 	if err != nil {
 		return fmt.Errorf("unable to obtain list of existing IngressTrait's during create validation: %v", err)
@@ -46,7 +47,7 @@ func (r *IngressTrait) ValidateCreate() error {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for ingress trait type update.
 func (r *IngressTrait) ValidateUpdate(old runtime.Object) error {
-	log.Info("validate update", "name", r.Name)
+	log.Debugw("Validate update", "name", r.Name)
 
 	existingIngressList, err := getAllIngressTraits(r.Namespace)
 	if err != nil {
@@ -67,7 +68,7 @@ func (r *IngressTrait) ValidateUpdate(old runtime.Object) error {
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for ingress trait type deletion.
 func (r *IngressTrait) ValidateDelete() error {
-	log.Info("validate delete", "name", r.Name)
+	log.Debugw("Validate delete", "name", r.Name)
 
 	// no validation on delete
 	return nil

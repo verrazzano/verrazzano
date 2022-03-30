@@ -13,6 +13,7 @@ import (
 
 	oamapi "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
+	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -36,8 +37,10 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-const namespace = "unit-test-namespace"
-const testRestartVersion = "new-restart"
+const (
+	namespace          = "unit-test-namespace"
+	testRestartVersion = "new-restart"
+)
 
 // TestReconcilerSetupWithManager test the creation of the VerrazzanoHelidonWorkload reconciler.
 // GIVEN a controller implementation
@@ -121,8 +124,8 @@ func TestReconcileFetchWorkloadError(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
-	assert.Equal("An error has occurred", err.Error())
-	assert.Equal(false, result.Requeue)
+	assert.Nil(err)
+	assert.True(result.Requeue)
 }
 
 // TestReconcileWorkloadMissingData tests reconciling a VerrazzanoHelidonWorkload when the workload
@@ -181,8 +184,8 @@ func TestReconcileWorkloadMissingData(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
-	assert.Equal("VerrazzanoHelidonWorkload is missing required spec.deploymentTemplate.metadata.name", err.Error())
-	assert.Equal(false, result.Requeue)
+	assert.Nil(err)
+	assert.True(result.Requeue)
 }
 
 // TestReconcileCreateHelidon tests the basic happy path of reconciling a VerrazzanoHelidonWorkload. We
@@ -677,7 +680,7 @@ func newReconciler(c client.Client) Reconciler {
 	metricsReconciler := &metricstrait.Reconciler{Client: c, Scheme: scheme, Scraper: "verrazzano-system/vmi-system-prometheus-0"}
 	return Reconciler{
 		Client:  c,
-		Log:     ctrl.Log.WithName("test"),
+		Log:     zap.S().With("test"),
 		Scheme:  scheme,
 		Metrics: metricsReconciler,
 	}
@@ -913,4 +916,23 @@ func TestReconcileRestart(t *testing.T) {
 	mocker.Finish()
 	assert.NoError(err)
 	assert.Equal(false, result.Requeue)
+}
+
+// TestReconcileKubeSystem tests to make sure we do not reconcile
+// Any resource that belong to the kube-system namespace
+func TestReconcileKubeSystem(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// create a request and reconcile it
+	request := newRequest(vzconst.KubeSystem, "unit-test-verrazzano-helidon-workload")
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.Nil(err)
+	assert.True(result.IsZero())
 }

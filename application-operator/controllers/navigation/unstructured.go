@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package navigation
@@ -6,10 +6,11 @@ package navigation
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -67,15 +68,15 @@ func GetAPIVersionKindOfUnstructured(u *unstructured.Unstructured) (string, erro
 // namespace - The namespace to search for children objects
 // parentUID - The parent UID a child must have to be included in the result.
 // childResKinds - The set of resource kinds a child's resource kind must in to be included in the result.
-func FetchUnstructuredChildResourcesByAPIVersionKinds(ctx context.Context, cli client.Reader, log logr.Logger, namespace string, parentUID types.UID, childResKinds []v1alpha2.ChildResourceKind) ([]*unstructured.Unstructured, error) {
+func FetchUnstructuredChildResourcesByAPIVersionKinds(ctx context.Context, cli client.Reader, log vzlog.VerrazzanoLogger, namespace string, parentUID types.UID, childResKinds []v1alpha2.ChildResourceKind) ([]*unstructured.Unstructured, error) {
 	var childResources []*unstructured.Unstructured
-	log.V(1).Info("Fetch children", "parent", parentUID)
+	log.Debugf("Fetch children, parent: %s", parentUID)
 	for _, childResKind := range childResKinds {
 		resources := unstructured.UnstructuredList{}
 		resources.SetAPIVersion(childResKind.APIVersion)
 		resources.SetKind(childResKind.Kind)
 		if err := cli.List(ctx, &resources, client.InNamespace(namespace), client.MatchingLabels(childResKind.Selector)); err != nil {
-			log.Error(err, "Failed listing children")
+			log.Errorf("Failed listing children: %v", err)
 			return nil, err
 		}
 		for i, item := range resources.Items {
@@ -96,12 +97,12 @@ func FetchUnstructuredChildResourcesByAPIVersionKinds(ctx context.Context, cli c
 }
 
 // FetchUnstructuredByReference fetches an unstructured using the namespace and name from a qualified resource relation.
-func FetchUnstructuredByReference(ctx context.Context, cli client.Reader, log logr.Logger, reference vzapi.QualifiedResourceRelation) (*unstructured.Unstructured, error) {
+func FetchUnstructuredByReference(ctx context.Context, cli client.Reader, log *zap.SugaredLogger, reference vzapi.QualifiedResourceRelation) (*unstructured.Unstructured, error) {
 	var uns unstructured.Unstructured
 	uns.SetAPIVersion(reference.APIVersion)
 	uns.SetKind(reference.Kind)
 	key := client.ObjectKey{Name: reference.Name, Namespace: reference.Namespace}
-	log.Info("Fetch related resource", "resource", key)
+	log.Debugw("Fetch related resource", "resource", key)
 	if err := cli.Get(ctx, key, &uns); err != nil {
 		return nil, err
 	}

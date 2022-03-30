@@ -8,6 +8,22 @@ spec:
   components:
     applicationOperator:
       enabled: true
+    authProxy:
+      enabled: true
+      kubernetes:
+        replicas: 2
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                podAffinityTerm:
+                  labelSelector:
+                    matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - verrazzano-authproxy
+                  topologyKey: kubernetes.io/hostname
     certManager:
       enabled: true
       certificate:
@@ -23,10 +39,25 @@ spec:
         domain: "nip.io"
     elasticsearch:
       enabled: true
+      installArgs:
+        - name: nodes.master.replicas
+          value: "3"
+        - name: nodes.master.requests.memory
+          value: "1.4Gi"
+        - name: nodes.ingest.replicas
+          value: "1"
+        - name: nodes.ingest.requests.memory
+          value: "2.5Gi"
+        - name: nodes.data.replicas
+          value: "3"
+        - name: nodes.data.requests.memory
+          value: "4.8Gi"
+        - name: nodes.data.requests.storage
+          value: "50Gi"
     fluentd:
       enabled: true
       elasticsearchURL: "http://verrazzano-authproxy-elasticsearch:8775"
-      elasticsearchSecret: verrazzano
+      elasticsearchSecret: verrazzano-es-internal
     grafana:
       enabled: true
     ingress:
@@ -43,7 +74,7 @@ spec:
           value: "3"
         - name: controller.service.externalIPs
           valueList:
-          - 11.22.33.44
+            - 11.22.33.44
       ports:
         - name: http
           nodePort: 30080
@@ -64,7 +95,37 @@ spec:
           value: "3"
         - name: gateways.istio-ingressgateway.externalIPs
           valueList:
-          - 11.22.33.44
+            - 11.22.33.44
+      ingress:
+        kubernetes:
+          replicas: 2
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                        - key: app
+                          operator: In
+                          values:
+                            - istio-ingressgateway
+                    topologyKey: kubernetes.io/hostname
+      egress:
+        kubernetes:
+          replicas: 2
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                        - key: app
+                          operator: In
+                          values:
+                            - istio-egressgateway
+                    topologyKey: kubernetes.io/hostname
     kiali:
       enabled: true
     keycloak:

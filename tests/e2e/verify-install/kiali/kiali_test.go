@@ -6,6 +6,8 @@ package kiali
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -15,14 +17,13 @@ import (
 	networking "k8s.io/api/networking/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"time"
 )
 
 const (
 	systemNamespace = "verrazzano-system"
 	kiali           = "vmi-system-kiali"
-	waitTimeout     = 10 * time.Minute
-	pollingInterval = 5 * time.Second
+	waitTimeout     = 15 * time.Minute
+	pollingInterval = 10 * time.Second
 )
 
 var (
@@ -36,7 +37,7 @@ var t = framework.NewTestFramework("kiali")
 var _ = t.BeforeSuite(func() {
 	client, kialiErr = k8sutil.GetKubernetesClientset()
 	Expect(kialiErr).ToNot(HaveOccurred())
-	httpClient, kialiErr = pkg.GetSystemVmiHTTPClient()
+	httpClient, kialiErr = pkg.GetVerrazzanoRetryableHTTPClient()
 	Expect(kialiErr).ToNot(HaveOccurred())
 })
 
@@ -56,7 +57,7 @@ func WhenKialiInstalledIt(description string, f interface{}) {
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Kiali", func() {
+var _ = t.Describe("Kiali", Label("f:platform-lcm.install"), func() {
 
 	t.Context("after successful installation", func() {
 		WhenKialiInstalledIt("should have a monitoring crd", func() {
@@ -71,7 +72,11 @@ var _ = t.Describe("Kiali", func() {
 
 		WhenKialiInstalledIt("should have a running pod", func() {
 			kialiPodsRunning := func() bool {
-				return pkg.PodsRunning(systemNamespace, []string{kiali})
+				result, err := pkg.PodsRunning(systemNamespace, []string{kiali})
+				if err != nil {
+					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", kiali, systemNamespace, err))
+				}
+				return result
 			}
 			Eventually(kialiPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})
@@ -85,10 +90,11 @@ var _ = t.Describe("Kiali", func() {
 			)
 
 			BeforeEach(func() {
-				ingress, kialiErr = client.NetworkingV1().
-					Ingresses(systemNamespace).
-					Get(context.TODO(), kiali, v1.GetOptions{})
-				Expect(kialiErr).ToNot(HaveOccurred())
+				Eventually(func() (*networking.Ingress, error) {
+					var err error
+					ingress, err = client.NetworkingV1().Ingresses(systemNamespace).Get(context.TODO(), kiali, v1.GetOptions{})
+					return ingress, err
+				}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 				rules := ingress.Spec.Rules
 				Expect(len(rules)).To(Equal(1))
 				Expect(rules[0].Host).To(ContainSubstring("kiali.vmi.system"))
@@ -101,7 +107,7 @@ var _ = t.Describe("Kiali", func() {
 
 			WhenKialiInstalledIt("not allow unauthenticated logins", func() {
 				Eventually(func() bool {
-					unauthHTTPClient, err := pkg.GetSystemVmiHTTPClient()
+					unauthHTTPClient, err := pkg.GetVerrazzanoRetryableHTTPClient()
 					if err != nil {
 						return false
 					}

@@ -4,7 +4,6 @@ package mysql
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"os"
 	"testing"
 
@@ -14,8 +13,8 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
-
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -59,7 +58,7 @@ func TestAppendMySQLOverrides(t *testing.T) {
 		config.SetDefaultBomFilePath("")
 	}()
 	vz := &vzapi.Verrazzano{}
-	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
+	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
@@ -92,7 +91,7 @@ func TestAppendMySQLOverridesWithInstallArgs(t *testing.T) {
 			},
 		},
 	}
-	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
+	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
@@ -120,7 +119,7 @@ func TestAppendMySQLOverridesDev(t *testing.T) {
 			},
 		},
 	}
-	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
+	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
@@ -164,7 +163,7 @@ func TestAppendMySQLOverridesDevWithPersistence(t *testing.T) {
 			},
 		},
 	}
-	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
+	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 5+minExpectedHelmOverridesCount)
@@ -190,7 +189,7 @@ func TestAppendMySQLOverridesProd(t *testing.T) {
 			Profile: vzapi.ProfileType("prod"),
 		},
 	}
-	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
+	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
@@ -229,7 +228,7 @@ func TestAppendMySQLOverridesProdWithOverrides(t *testing.T) {
 			}},
 		},
 	}
-	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
+	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 5+minExpectedHelmOverridesCount)
@@ -254,7 +253,7 @@ func TestAppendMySQLOverridesUpgrade(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vzconst.KeycloakNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
 			secret.Name = secretName
 			secret.Data = map[string][]byte{}
@@ -262,7 +261,7 @@ func TestAppendMySQLOverridesUpgrade(t *testing.T) {
 			secret.Data[mySQLKey] = []byte("test-key")
 			return nil
 		})
-	ctx := spi.NewFakeContext(mock, vz, false, profilesDir).For(ComponentName).Operation(vzconst.UpgradeOperation)
+	ctx := spi.NewFakeContext(mock, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
@@ -272,14 +271,14 @@ func TestAppendMySQLOverridesUpgrade(t *testing.T) {
 	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
 }
 
-// TestIsMySQLReady tests the isReady function
-// GIVEN a call to isReady
+// TestIsMySQLReady tests the isMySQLReady function
+// GIVEN a call to isMySQLReady
 //  WHEN the deployment object has enough replicas available
 //  THEN true is returned
 func TestIsMySQLReady(t *testing.T) {
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vzconst.KeycloakNamespace,
+			Namespace: ComponentNamespace,
 			Name:      ComponentName,
 		},
 		Status: appsv1.DeploymentStatus{
@@ -289,17 +288,17 @@ func TestIsMySQLReady(t *testing.T) {
 			UnavailableReplicas: 0,
 		},
 	})
-	assert.True(t, isReady(spi.NewFakeContext(fakeClient, nil, false), ComponentName, vzconst.KeycloakNamespace))
+	assert.True(t, isMySQLReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
-// TestIsMySQLNotReady tests the isReady function
-// GIVEN a call to isReady
+// TestIsMySQLNotReady tests the isMySQLReady function
+// GIVEN a call to isMySQLReady
 //  WHEN the deployment object does NOT have enough replicas available
 //  THEN false is returned
 func TestIsMySQLNotReady(t *testing.T) {
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vzconst.KeycloakNamespace,
+			Namespace: ComponentNamespace,
 			Name:      ComponentName,
 		},
 		Status: appsv1.DeploymentStatus{
@@ -309,7 +308,7 @@ func TestIsMySQLNotReady(t *testing.T) {
 			UnavailableReplicas: 1,
 		},
 	})
-	assert.False(t, isReady(spi.NewFakeContext(fakeClient, nil, false), "", vzconst.KeycloakNamespace))
+	assert.False(t, isMySQLReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
 // TestSQLFileCreatedAndRemoved tests the creation and deletion of the mysql db init file

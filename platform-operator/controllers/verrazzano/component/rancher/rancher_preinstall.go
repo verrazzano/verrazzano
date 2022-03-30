@@ -5,19 +5,19 @@ package rancher
 
 import (
 	"context"
-	"fmt"
+	"net/http"
+
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"net/http"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func createRancherOperatorNamespace(log *zap.SugaredLogger, c client.Client) error {
+func createRancherOperatorNamespace(log vzlog.VerrazzanoLogger, c client.Client) error {
 	namespace := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: OperatorNamespace,
@@ -33,7 +33,7 @@ func createRancherOperatorNamespace(log *zap.SugaredLogger, c client.Client) err
 }
 
 // createCattleSystemNamespace creates the cattle-system namespace if it does not exist
-func createCattleSystemNamespace(log *zap.SugaredLogger, c client.Client) error {
+func createCattleSystemNamespace(log vzlog.VerrazzanoLogger, c client.Client) error {
 	namespace := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: common.CattleSystem,
@@ -56,7 +56,7 @@ func createCattleSystemNamespace(log *zap.SugaredLogger, c client.Client) error 
 
 //copyDefaultCACertificate copies the defaultVerrazzanoName TLS Secret to the ComponentNamespace for use by Rancher
 //This method will only copy defaultVerrazzanoName if default CA certificates are being used.
-func copyDefaultCACertificate(log *zap.SugaredLogger, c client.Client, vz *vzapi.Verrazzano) error {
+func copyDefaultCACertificate(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi.Verrazzano) error {
 	cm := vz.Spec.Components.CertManager
 	if isUsingDefaultCACertificate(cm) {
 		namespacedName := types.NamespacedName{Namespace: defaultSecretNamespace, Name: defaultVerrazzanoName}
@@ -65,7 +65,7 @@ func copyDefaultCACertificate(log *zap.SugaredLogger, c client.Client, vz *vzapi
 			return err
 		}
 		if len(defaultSecret.Data[caCert]) < 1 {
-			return fmt.Errorf("%s/%s does not have a value for %s", defaultSecretNamespace, defaultVerrazzanoName, caCert)
+			return log.ErrorfNewErr("Failed, secret %s/%s does not have a value for %s", defaultSecretNamespace, defaultVerrazzanoName, caCert)
 		}
 		rancherCaSecret := &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -94,7 +94,7 @@ func isUsingDefaultCACertificate(cm *vzapi.CertManagerComponent) bool {
 		cm.Certificate.CA.ClusterResourceNamespace == defaultSecretNamespace
 }
 
-func createAdditionalCertificates(log *zap.SugaredLogger, c client.Client, vz *vzapi.Verrazzano) error {
+func createAdditionalCertificates(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi.Verrazzano) error {
 	cm := vz.Spec.Components.CertManager
 	if (cm != nil && cm.Certificate.Acme != vzapi.Acme{} && useAdditionalCAs(cm.Certificate.Acme)) {
 		log.Debugf("Creating additional Rancher certificates for non-production environment")

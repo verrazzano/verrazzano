@@ -1,22 +1,23 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package common
 
 import (
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"io"
+	"net/http"
+	"strings"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networking "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"strings"
-	"testing"
 )
 
 const (
@@ -181,14 +182,14 @@ func TestHttpClient(t *testing.T) {
 		isErr    bool
 	}{
 		{
-			"should get an HTTP Client when CA Secret exists",
+			"should get an HTTP Client when additional CA Secret exists",
 			fake.NewFakeClientWithScheme(getScheme(), &secret),
 			false,
 		},
 		{
-			"should fail to create an HTTP Client when CA Secret is not present",
+			"should get an HTTP Client when additional CA Secret is not present",
 			fake.NewFakeClientWithScheme(getScheme()),
-			true,
+			false,
 		},
 	}
 

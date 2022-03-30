@@ -6,15 +6,16 @@ import (
 	"context"
 	"path/filepath"
 
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -41,7 +42,7 @@ func NewComponent() spi.Component {
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
-			//  Check on Image Pull Pull Key
+			//  Check on Image Pull Key
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
 			Dependencies:            []string{istio.ComponentName},
 			SupportsOperatorInstall: true,
@@ -64,7 +65,13 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 		Name:      constants.Verrazzano,
 	}, secret)
 	if err != nil {
-		ctx.Log().Errorf("Keycloak PreInstall: Error retrieving Verrazzano password: %s", err)
+		if errors.IsNotFound(err) {
+			ctx.Log().Progressf("Component Keycloak waiting for the Verrazzano password %s/%s to exist",
+				constants.VerrazzanoSystemNamespace, constants.Verrazzano)
+			return ctrlerrors.RetryableError{Source: ComponentName}
+		}
+		ctx.Log().Errorf("Component Keycloak failed to get the Verrazzano password %s/%s: %v",
+			constants.VerrazzanoSystemNamespace, constants.Verrazzano, err)
 		return err
 	}
 	// Check MySQL Secret. return error which will cause reque
@@ -74,7 +81,11 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 		Name:      mysql.ComponentName,
 	}, secret)
 	if err != nil {
-		ctx.Log().Errorf("Keycloak PreInstall: Error retrieving MySQL password: %s", err)
+		if errors.IsNotFound(err) {
+			ctx.Log().Progressf("Component Keycloak waiting for the MySql password %s/%s to exist", ComponentNamespace, mysql.ComponentName)
+			return ctrlerrors.RetryableError{Source: ComponentName}
+		}
+		ctx.Log().Errorf("Component Keycloak failed to get the MySQL password %s/%s: %v", ComponentNamespace, mysql.ComponentName, err)
 		return err
 	}
 
@@ -133,21 +144,10 @@ func (c KeycloakComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	return *comp.Enabled
 }
 
+// IsReady component check
 func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
-	// TLS cert from Cert Manager should be in Ready state
-	secretName := getSecretName(ctx.EffectiveCR())
-	secret := &corev1.Secret{}
-	namespacedName := types.NamespacedName{Name: secretName, Namespace: ComponentNamespace}
-	if err := ctx.Client().Get(context.TODO(), namespacedName, secret); err != nil {
-		ctx.Log().Infof("Waiting for Keycloak Certificate: %s to exist", secretName)
-		return false
+	if c.HelmComponent.IsReady(ctx) {
+		return isKeycloakReady(ctx)
 	}
-
-	statefulsetName := []types.NamespacedName{
-		{
-			Namespace: ComponentNamespace,
-			Name:      ComponentName,
-		},
-	}
-	return status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsetName, 1)
+	return false
 }

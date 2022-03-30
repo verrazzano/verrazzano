@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"math/big"
 	"os"
 	"reflect"
@@ -17,14 +18,16 @@ import (
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
-	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	wls "github.com/verrazzano/verrazzano/application-operator/apis/weblogic/v8"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"go.uber.org/zap"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
@@ -55,6 +58,7 @@ const (
 	webLogicDomainUIDLabel                = "weblogic.domainUID"
 	webLogicPluginConfigYamlKey           = "WebLogicPlugin.yaml"
 	WDTConfigMapNameSuffix                = "-wdt-config-map"
+	controllerName                        = "weblogicworkload"
 )
 
 const defaultMonitoringExporterData = `
@@ -204,7 +208,7 @@ type containersMountsVolumes struct {
 // Reconciler reconciles a VerrazzanoWebLogicWorkload object
 type Reconciler struct {
 	client.Client
-	Log     logr.Logger
+	Log     *zap.SugaredLogger
 	Scheme  *runtime.Scheme
 	Metrics *metricstrait.Reconciler
 }
@@ -221,16 +225,46 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=verrazzanoweblogicworkloads,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=verrazzanoweblogicworkloads/status,verbs=get;update;patch
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
-	log := r.Log.WithValues("verrazzanoweblogicworkload", req.NamespacedName)
-	log.Info("Reconciling Verrazzano WebLogic workload")
 
-	// fetch the workload and unwrap the WebLogic resource
-	workload, err := r.fetchWorkload(ctx, req.NamespacedName)
-	if err != nil {
-		return reconcile.Result{}, client.IgnoreNotFound(err)
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == vzconst.KubeSystem {
+		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
+		log.Infof("Weblogic workload resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
+		return reconcile.Result{}, nil
 	}
 
+	ctx := context.Background()
+	// fetch the workload and unwrap the WebLogic resource
+	workload, err := r.fetchWorkload(ctx, req.NamespacedName, zap.S())
+	if err != nil {
+		return clusters.IgnoreNotFoundWithLog(err, zap.S())
+	}
+	log, err := clusters.GetResourceLogger("verrazzanoweblogicworkload", req.NamespacedName, workload)
+	if err != nil {
+		zap.S().Errorf("Failed to create controller logger for weblogic workload resource: %v", err)
+		return clusters.NewRequeueWithDelay(), nil
+	}
+	log.Oncef("Reconciling weblogic workload resource %v, generation %v", req.NamespacedName, workload.Generation)
+
+	res, err := r.doReconcile(ctx, workload, log)
+	if clusters.ShouldRequeue(res) {
+		return res, nil
+	}
+	// Never return an error since it has already been logged and we don't want the
+	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
+	if err != nil {
+		return clusters.NewRequeueWithDelay(), nil
+	}
+
+	log.Oncef("Finished reconciling weblogic workload %v", req.NamespacedName)
+
+	return ctrl.Result{}, nil
+}
+
+// doReconcile performs the reconciliation operations for the weblogic workload
+func (r *Reconciler) doReconcile(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
 	// Make sure the last generation exists in the status
 	result, err := r.ensureLastGeneration(workload)
 	if err != nil || result.Requeue {
@@ -243,7 +277,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// make sure the namespace is set to the namespace of the component
-	if err = unstructured.SetNestedField(u.Object, req.NamespacedName.Namespace, "metadata", "namespace"); err != nil {
+	if err = unstructured.SetNestedField(u.Object, workload.Namespace, "metadata", "namespace"); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -269,10 +303,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	domainKey := types.NamespacedName{Name: u.GetName(), Namespace: workload.Namespace}
 	if err := r.Get(ctx, domainKey, &existingDomain); err != nil {
 		if k8serrors.IsNotFound(err) {
-			log.Info("No existing domain found")
+			log.Debug("No existing domain found")
 			domainExists = false
 		} else {
-			log.Error(err, "An error occurred trying to obtain an existing domain")
+			log.Errorf("Failed trying to obtain an existing domain: %v", err)
 			return reconcile.Result{}, err
 		}
 	}
@@ -280,19 +314,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// If the domain already exists, make sure that the domain can be restarted.
 	// If the domain cannot be restarted, don't make any domain changes.
 	if domainExists && !r.isOkToRestartWebLogic(workload) {
-		log.Info("There have been no changes to the WebLogic workload, nor has the restart annotation changed. The Domain will not be modified.")
-		return ctrl.Result{}, nil
-	}
-
-	// If the domain already exists, make sure that the domain can be restarted.
-	// If the domain cannot be restarted, don't make any domain changes.
-	if domainExists && !r.isOkToRestartWebLogic(workload) {
-		log.Info("There have been no changes to the WebLogic workload, nor has the restart annotation changed. The Domain will not be modified.")
+		log.Debug("There have been no changes to the WebLogic workload, nor has the restart annotation changed. The Domain will not be modified.")
 		return ctrl.Result{}, nil
 	}
 
 	// Add the Fluentd sidecar container required for logging to the Domain.  If the image is old, update it
-	if err = r.addLogging(ctx, log, workload, u, &existingDomain); err != nil {
+	if err = r.addLogging(ctx, log, workload, u); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -308,7 +335,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// Get the namespace resource that the VerrazzanoWebLogicWorkload resource is deployed to
 	namespace := &corev1.Namespace{}
-	if err = r.Client.Get(ctx, client.ObjectKey{Namespace: "", Name: req.NamespacedName.Namespace}, namespace); err != nil {
+	if err = r.Client.Get(ctx, client.ObjectKey{Namespace: "", Name: workload.Namespace}, namespace); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -319,7 +346,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// set controller reference so the WebLogic domain CR gets deleted when the workload is deleted
 	if err = controllerutil.SetControllerReference(workload, u, r.Scheme); err != nil {
-		log.Error(err, "Unable to set controller ref")
+		log.Errorf("Failed to set controller ref: %v", err)
 		return reconcile.Result{}, err
 	}
 
@@ -336,7 +363,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// Set/Update the WDT config map with WeblogicPluginEnabled setting
-	if err = r.CreateOrUpdateWDTConfigMap(ctx, log, req.NamespacedName.Namespace, u, workload.ObjectMeta.Labels); err != nil {
+	if err = r.CreateOrUpdateWDTConfigMap(ctx, log, workload.Namespace, u, workload.ObjectMeta.Labels); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -344,7 +371,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// if the WebLogic CR exists
 	specCopy, _, err := unstructured.NestedFieldCopy(u.Object, specField)
 	if err != nil {
-		log.Error(err, "Unable to make a copy of the WebLogic spec")
+		log.Errorf("Failed to make a copy of the WebLogic spec: %v", err)
 		return reconcile.Result{}, err
 	}
 
@@ -362,7 +389,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return nil
 	})
 	if err != nil {
-		log.Error(err, "Error creating or updating WebLogic CR")
+		log.Errorf("Failed creating or updating WebLogic CR: %v", err)
 		return reconcile.Result{}, err
 	}
 
@@ -374,18 +401,18 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	log.Info("Successfully reconcile the WebLogic workload")
+	log.Debug("Successfully reconcile the WebLogic workload")
 	return reconcile.Result{}, nil
 }
 
 // fetchWorkload fetches the VerrazzanoWebLogicWorkload data given a namespaced name
-func (r *Reconciler) fetchWorkload(ctx context.Context, name types.NamespacedName) (*vzapi.VerrazzanoWebLogicWorkload, error) {
+func (r *Reconciler) fetchWorkload(ctx context.Context, name types.NamespacedName, log *zap.SugaredLogger) (*vzapi.VerrazzanoWebLogicWorkload, error) {
 	var workload vzapi.VerrazzanoWebLogicWorkload
 	if err := r.Get(ctx, name, &workload); err != nil {
 		if k8serrors.IsNotFound(err) {
-			r.Log.Info("VerrazzanoWebLogicWorkload has been deleted", "workload", name)
+			log.Debugf("VerrazzanoWebLogicWorkload %s has been deleted", name.Name)
 		} else {
-			r.Log.Error(err, "Failed to fetch VerrazzanoWebLogicWorkload", "workload", name)
+			log.Errorf("Failed to fetch VerrazzanoWebLogicWorkload %s: %v", name.Name, err)
 		}
 		return nil, err
 	}
@@ -425,7 +452,7 @@ func (r *Reconciler) isOkToRestartWebLogic(wl *vzapi.VerrazzanoWebLogicWorkload)
 }
 
 // copyLabels copies specific labels from the Verrazzano workload to the contained WebLogic resource
-func copyLabels(log logr.Logger, workloadLabels map[string]string, weblogic *unstructured.Unstructured) error {
+func copyLabels(log vzlog.VerrazzanoLogger, workloadLabels map[string]string, weblogic *unstructured.Unstructured) error {
 	// the WebLogic domain spec/serverPod/labels field has labels that get propagated to the pods
 	labels, found, _ := unstructured.NestedStringMap(weblogic.Object, specServerPodLabelsFields...)
 	if !found {
@@ -446,7 +473,7 @@ func copyLabels(log logr.Logger, workloadLabels map[string]string, weblogic *uns
 
 	err := unstructured.SetNestedStringMap(weblogic.Object, labels, specServerPodLabelsFields...)
 	if err != nil {
-		log.Error(err, "Unable to set labels in spec serverPod")
+		log.Errorf("Failed to set labels in spec serverPod: %v", err)
 		return err
 	}
 	return nil
@@ -454,7 +481,7 @@ func copyLabels(log logr.Logger, workloadLabels map[string]string, weblogic *uns
 
 // addLogging adds a FLUENTD sidecar and updates the WebLogic spec if there is an associated LogInfo
 // If the Fluentd image changed during an upgrade, then the new image will be used
-func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoWebLogicWorkload, weblogic *unstructured.Unstructured, existingDomain *wls.Domain) error {
+func (r *Reconciler) addLogging(ctx context.Context, log vzlog.VerrazzanoLogger, workload *vzapi.VerrazzanoWebLogicWorkload, weblogic *unstructured.Unstructured) error {
 	// extract just enough of the WebLogic data into concrete types so we can merge with
 	// the FLUENTD data
 	var extracted containersMountsVolumes
@@ -479,7 +506,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 		HandlerEnv:   getWlsSpecificContainerEnv(name),
 	}
 	fluentdManager := &logging.Fluentd{Context: ctx,
-		Log:                    r.Log,
+		Log:                    zap.S(),
 		Client:                 r.Client,
 		ParseRules:             WlsFluentdParsingRules,
 		StorageVolumeName:      storageVolumeName,
@@ -493,7 +520,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 
 	// note that this call has the side effect of creating a FLUENTD config map if one
 	// does not already exist in the namespace
-	if _, err := fluentdManager.Apply(logging.NewLogInfo(), resource, fluentdPod); err != nil {
+	if err := fluentdManager.Apply(logging.NewLogInfo(), resource, fluentdPod); err != nil {
 		return err
 	}
 
@@ -506,29 +533,29 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 
 	err = unstructured.SetNestedSlice(weblogic.Object, fluentdPodUnstructured["containers"].([]interface{}), specServerPodContainersFields...)
 	if err != nil {
-		log.Error(err, "Unable to set serverPod containers")
+		log.Errorf("Failed to set serverPod containers: %v", err)
 		return err
 	}
 	err = unstructured.SetNestedSlice(weblogic.Object, fluentdPodUnstructured["volumes"].([]interface{}), specServerPodVolumesFields...)
 	if err != nil {
-		log.Error(err, "Unable to set serverPod volumes")
+		log.Errorf("Failed to set serverPod volumes: %v", err)
 		return err
 	}
 	err = unstructured.SetNestedField(weblogic.Object, fluentdPodUnstructured["volumeMounts"].([]interface{}), specServerPodVolumeMountsFields...)
 	if err != nil {
-		log.Error(err, "Unable to set serverPod volumeMounts")
+		log.Errorf("Failed to set serverPod volumeMounts: %v", err)
 		return err
 	}
 
 	// logHome and logHomeEnabled fields need to be set to turn on logging
 	err = unstructured.SetNestedField(weblogic.Object, getWLSLogHome(name), specField, "logHome")
 	if err != nil {
-		log.Error(err, "Unable to set logHome")
+		log.Errorf("Failed to set logHome: %v", err)
 		return err
 	}
 	err = unstructured.SetNestedField(weblogic.Object, true, specField, "logHomeEnabled")
 	if err != nil {
-		log.Error(err, "Unable to set logHomeEnabled")
+		log.Errorf("Failed to set logHomeEnabled: %v", err)
 		return err
 	}
 
@@ -536,7 +563,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 }
 
 // createRuntimeEncryptionSecret creates the runtimeEncryptionSecret specified in the domain spec if it does not exist.
-func (r *Reconciler) createRuntimeEncryptionSecret(ctx context.Context, log logr.Logger, namespaceName string, secretName string, workloadLabels map[string]string) error {
+func (r *Reconciler) createRuntimeEncryptionSecret(ctx context.Context, log vzlog.VerrazzanoLogger, namespaceName string, secretName string, workloadLabels map[string]string) error {
 	appName, ok := workloadLabels[oam.LabelAppName]
 	if !ok {
 		return errors.New("OAM app name label missing from metadata, unable to create owner reference to appconfig")
@@ -575,7 +602,7 @@ func (r *Reconciler) createRuntimeEncryptionSecret(ctx context.Context, log logr
 			return err
 		}
 
-		log.Info(fmt.Sprintf("Creating secret %s:%s", namespaceName, secretName))
+		log.Debugf("Creating secret %s:%s", namespaceName, secretName)
 		err = r.Create(ctx, secret)
 		if err != nil {
 			return err
@@ -584,14 +611,14 @@ func (r *Reconciler) createRuntimeEncryptionSecret(ctx context.Context, log logr
 	} else if err != nil {
 		return err
 	}
-	log.Info(fmt.Sprintf("Secret %s:%s already exist", namespaceName, secretName))
+	log.Debugf("Secret %s:%s already exist", namespaceName, secretName)
 
 	return nil
 }
 
 // createDestinationRule creates an Istio destinationRule required by WebLogic servers.
 // The destinationRule is only created when the namespace has the label istio-injection=enabled.
-func (r *Reconciler) createDestinationRule(ctx context.Context, log logr.Logger, namespace string, namespaceLabels map[string]string, workloadLabels map[string]string) error {
+func (r *Reconciler) createDestinationRule(ctx context.Context, log vzlog.VerrazzanoLogger, namespace string, namespaceLabels map[string]string, workloadLabels map[string]string) error {
 	istioEnabled := false
 	value, ok := namespaceLabels["istio-injection"]
 	if ok && value == "enabled" {
@@ -638,7 +665,7 @@ func (r *Reconciler) createDestinationRule(ctx context.Context, log logr.Logger,
 			return err
 		}
 
-		log.Info(fmt.Sprintf("Creating Istio destination rule %s:%s", namespace, appName))
+		log.Debugf("Creating Istio destination rule %s:%s", namespace, appName)
 		err = r.Create(ctx, destinationRule)
 		if err != nil {
 			return err
@@ -646,7 +673,7 @@ func (r *Reconciler) createDestinationRule(ctx context.Context, log logr.Logger,
 	} else if err != nil {
 		return err
 	}
-	log.Info(fmt.Sprintf("Istio destination rule %s:%s already exist", namespace, appName))
+	log.Debugf("Istio destination rule %s:%s already exist", namespace, appName)
 
 	return nil
 }
@@ -677,22 +704,21 @@ func (r *Reconciler) updateStatusReconcileDone(ctx context.Context, wl *vzapi.Ve
 // CreateOrUpdateWDTConfigMap creates a default WDT config map with WeblogicPluginEnabled setting if the
 // WDT config map is not specified in the WebLogic spec. Otherwise it updates the specified WDT config map
 // with WeblogicPluginEnabled setting if not already done.
-func (r *Reconciler) CreateOrUpdateWDTConfigMap(ctx context.Context, log logr.Logger, namespaceName string,
-	u *unstructured.Unstructured, workloadLabels map[string]string) error {
+func (r *Reconciler) CreateOrUpdateWDTConfigMap(ctx context.Context, log vzlog.VerrazzanoLogger, namespaceName string, u *unstructured.Unstructured, workloadLabels map[string]string) error {
 	// Get the specified WDT config map name in the WebLogic spec
 	configMapName, found, err := unstructured.NestedString(u.Object, specConfigurationWDTConfigMap...)
 	if err != nil {
-		log.Error(err, "unable to extract WDT configMap from WebLogic spec")
+		log.Errorf("Failed to extract WDT configMap from WebLogic spec: %v", err)
 		return err
 	}
 	if !found {
 		domainUID, domainUIDFound, err := unstructured.NestedString(u.Object, specDomainUID...)
 		if err != nil {
-			log.Error(err, "Unable to extract domainUID from the WebLogic spec")
+			log.Errorf("Failed to extract domainUID from the WebLogic spec: %v", err)
 			return err
 		}
 		if !domainUIDFound {
-			log.Error(err, "Unable to find domainUID in WebLogic spec")
+			log.Errorf("Failed to find domainUID in WebLogic spec: %v", err)
 			return errors.New("unable to find domainUID in WebLogic spec")
 		}
 		// Create a default WDT config map
@@ -703,7 +729,7 @@ func (r *Reconciler) CreateOrUpdateWDTConfigMap(ctx context.Context, log logr.Lo
 		// Set WDT config map field in WebLogic spec
 		err = unstructured.SetNestedField(u.Object, getWDTConfigMapName(domainUID), specConfigurationWDTConfigMap...)
 		if err != nil {
-			log.Error(err, "Unable to set WDT config map in WebLogic spec")
+			log.Errorf("Failed to set WDT config map in WebLogic spec: %v", err)
 			return err
 		}
 	} else {
@@ -712,7 +738,7 @@ func (r *Reconciler) CreateOrUpdateWDTConfigMap(ctx context.Context, log logr.Lo
 			return err
 		}
 		if configMap == nil {
-			log.Error(err, "Unable to find the specified WDT config map")
+			log.Errorf("Failed to find the specified WDT config map: %v", err)
 			return err
 		}
 		// Update WDT configMap configuration to add default WLS plugin configuration
@@ -733,8 +759,7 @@ func (r *Reconciler) CreateOrUpdateWDTConfigMap(ctx context.Context, log logr.Lo
 }
 
 // createDefaultWDTConfigMap creates a default WDT config map with WeblogicPluginEnabled setting.
-func (r *Reconciler) createDefaultWDTConfigMap(ctx context.Context, log logr.Logger, namespaceName string,
-	domainName string, workloadLabels map[string]string) error {
+func (r *Reconciler) createDefaultWDTConfigMap(ctx context.Context, log vzlog.VerrazzanoLogger, namespaceName string, domainName string, workloadLabels map[string]string) error {
 	configMapName := getWDTConfigMapName(domainName)
 	// Create a configMap resource that will contain WeblogicPluginEnabled setting
 	configMap := &corev1.ConfigMap{
@@ -752,7 +777,7 @@ func (r *Reconciler) createDefaultWDTConfigMap(ctx context.Context, log logr.Log
 	}
 	// Create the config map if it does not already exist
 	configMapFound := &corev1.ConfigMap{}
-	log.Info(fmt.Sprintf("Checking if WDT ConfigMap %s:%s exists", namespaceName, configMapName))
+	log.Debugf("Checking if WDT ConfigMap %s:%s exists", namespaceName, configMapName)
 	err := r.Get(ctx, types.NamespacedName{Name: configMapName, Namespace: namespaceName}, configMapFound)
 	if err != nil && k8serrors.IsNotFound(err) {
 		// set controller reference so the WDT config map gets deleted when the app config is deleted
@@ -766,7 +791,7 @@ func (r *Reconciler) createDefaultWDTConfigMap(ctx context.Context, log logr.Log
 			return err
 		}
 		if err = controllerutil.SetControllerReference(appConfig, configMap, r.Scheme); err != nil {
-			log.Error(err, "Unable to set controller ref for WDT config map")
+			log.Errorf("Failed to set controller ref for WDT config map: %v", err)
 			return err
 		}
 		bytes, err := yaml.JSONToYAML([]byte(defaultWDTConfigMapData))
@@ -774,7 +799,7 @@ func (r *Reconciler) createDefaultWDTConfigMap(ctx context.Context, log logr.Log
 			return err
 		}
 		configMap.Data = map[string]string{webLogicPluginConfigYamlKey: string(bytes)}
-		log.Info(fmt.Sprintf("Creating WDT ConfigMap %s:%s", namespaceName, configMapName))
+		log.Debugf("Creating WDT ConfigMap %s:%s", namespaceName, configMapName)
 		err = r.Create(ctx, configMap)
 		if err != nil {
 			return err
@@ -783,7 +808,7 @@ func (r *Reconciler) createDefaultWDTConfigMap(ctx context.Context, log logr.Log
 	} else if err != nil {
 		return err
 	}
-	log.Info(fmt.Sprintf("ConfigMap %s:%s already exists", namespaceName, configMapName))
+	log.Debugf("ConfigMap %s:%s already exists", namespaceName, configMapName)
 	return nil
 }
 
@@ -849,7 +874,7 @@ func getDefaultMonitoringExporter() (interface{}, error) {
 }
 
 // addLoggingTrait adds the logging trait sidecar to the workload
-func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoWebLogicWorkload, weblogic *unstructured.Unstructured) error {
+func (r *Reconciler) addLoggingTrait(ctx context.Context, log vzlog.VerrazzanoLogger, workload *vzapi.VerrazzanoWebLogicWorkload, weblogic *unstructured.Unstructured) error {
 	loggingTrait, err := vznav.LoggingTraitFromWorkloadLabels(ctx, r.Client, log, workload.GetNamespace(), workload.ObjectMeta)
 	if err != nil {
 		return err
@@ -875,7 +900,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		if err != nil {
 			return err
 		}
-		log.Info(fmt.Sprintf("Creating logging trait configmap %s:%s", weblogic.GetNamespace(), loggingNamePart+"-"+weblogic.GetName()+"-"+strings.ToLower(weblogic.GetKind())))
+		log.Debugf("Creating logging trait configmap %s:%s", weblogic.GetNamespace(), loggingNamePart+"-"+weblogic.GetName()+"-"+strings.ToLower(weblogic.GetKind()))
 		err = r.Create(ctx, configMap)
 		if err != nil {
 			return err
@@ -883,7 +908,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	} else if err != nil {
 		return err
 	}
-	log.Info(fmt.Sprintf("logging trait configmap %s:%s already exist", weblogic.GetNamespace(), loggingNamePart+"-"+weblogic.GetName()+"-"+strings.ToLower(weblogic.GetKind())))
+	log.Debugf("logging trait configmap %s:%s already exist", weblogic.GetNamespace(), loggingNamePart+"-"+weblogic.GetName()+"-"+strings.ToLower(weblogic.GetKind()))
 
 	// extract just enough of the WebLogic data into concrete types so we can merge with
 	// the logging trait data
@@ -979,12 +1004,12 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 
 	err = unstructured.SetNestedSlice(weblogic.Object, extractedUnstructured["containers"].([]interface{}), specServerPodContainersFields...)
 	if err != nil {
-		log.Error(err, "Unable to set serverPod containers")
+		log.Errorf("Failed to set serverPod containers: %v", err)
 		return err
 	}
 	err = unstructured.SetNestedSlice(weblogic.Object, extractedUnstructured["volumes"].([]interface{}), specServerPodVolumesFields...)
 	if err != nil {
-		log.Error(err, "Unable to set serverPod volumes")
+		log.Errorf("Failed to set serverPod volumes: %v", err)
 		return err
 	}
 
@@ -994,7 +1019,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 // If any domainlifecycle start, stop, or restart is requested, then set the appropriate field in the domain resource
 // Note that it is valid to a have new restartVersion value along with a lifecycle action change.  This
 // will not result in additional restarts.
-func setDomainLifecycleFields(log logr.Logger, wl *vzapi.VerrazzanoWebLogicWorkload, domain *unstructured.Unstructured) error {
+func setDomainLifecycleFields(log vzlog.VerrazzanoLogger, wl *vzapi.VerrazzanoWebLogicWorkload, domain *unstructured.Unstructured) error {
 	if len(wl.Annotations[vzconst.LifecycleActionAnnotation]) > 0 && wl.Annotations[vzconst.LifecycleActionAnnotation] != wl.Status.LastLifecycleAction {
 		action := wl.Annotations[vzconst.LifecycleActionAnnotation]
 		if strings.EqualFold(action, vzconst.LifecycleActionStart) {
@@ -1011,17 +1036,17 @@ func setDomainLifecycleFields(log logr.Logger, wl *vzapi.VerrazzanoWebLogicWorkl
 }
 
 // Set domain restart version.  If it is changed from the previous value, then the WebLogic Operator will restart the domain
-func restartWebLogic(log logr.Logger, domain *unstructured.Unstructured, version string) error {
+func restartWebLogic(log vzlog.VerrazzanoLogger, domain *unstructured.Unstructured, version string) error {
 	err := unstructured.SetNestedField(domain.Object, version, specRestartVersionFields...)
 	if err != nil {
-		log.Error(err, "Error setting restartVersion in domain")
+		log.Errorf("Failed setting restartVersion in domain: %v", err)
 		return err
 	}
 	return nil
 }
 
 // Set the serverStartPolicy to stop WebLogic domain, return the current serverStartPolicy
-func stopWebLogicDomain(log logr.Logger, domain *unstructured.Unstructured) error {
+func stopWebLogicDomain(log vzlog.VerrazzanoLogger, domain *unstructured.Unstructured) error {
 	// Return if serverStartPolicy is already never
 	currentServerStartPolicy, _, _ := unstructured.NestedString(domain.Object, specServerStartPolicyFields...)
 	if currentServerStartPolicy == Never {
@@ -1034,7 +1059,7 @@ func stopWebLogicDomain(log logr.Logger, domain *unstructured.Unstructured) erro
 	}
 	annos, found, err := unstructured.NestedStringMap(domain.Object, metaAnnotationFields...)
 	if err != nil {
-		log.Error(err, "Error getting domain annotations")
+		log.Errorf("Failed getting domain annotations: %v", err)
 		return err
 	}
 	if !found {
@@ -1043,27 +1068,27 @@ func stopWebLogicDomain(log logr.Logger, domain *unstructured.Unstructured) erro
 	annos[lastServerStartPolicyAnnotation] = currentServerStartPolicy
 	err = unstructured.SetNestedStringMap(domain.Object, annos, metaAnnotationFields...)
 	if err != nil {
-		log.Error(err, "Unable to set annotations in domain")
+		log.Errorf("Failed to set annotations in domain: %v", err)
 		return err
 	}
 
 	// set serverStartPolicy to "NEVER" to shutdown the domain
 	err = unstructured.SetNestedField(domain.Object, Never, specServerStartPolicyFields...)
 	if err != nil {
-		log.Error(err, "Unable to set serverStartPolicy in domain")
+		log.Errorf("Failed to set serverStartPolicy in domain: %v", err)
 		return err
 	}
 	return nil
 }
 
 // Set the serverStartPolicy to start the WebLogic domain
-func startWebLogicDomain(log logr.Logger, domain *unstructured.Unstructured) error {
+func startWebLogicDomain(log vzlog.VerrazzanoLogger, domain *unstructured.Unstructured) error {
 	var startPolicy = IfNeeded
 
 	// Get the last serverStartPolicy if it exists
 	annos, found, err := unstructured.NestedStringMap(domain.Object, metaAnnotationFields...)
 	if err != nil {
-		log.Error(err, "Error getting domain annotations")
+		log.Errorf("Failed getting domain annotations: %v", err)
 		return err
 	}
 	if found {

@@ -1,11 +1,12 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package spi
 
 import (
 	"fmt"
-	controllerruntime "sigs.k8s.io/controller-runtime"
 	"strings"
+
+	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
 // RetryableError an error that can be used to indicate to a controller that a requeue is needed, with an optional custom result
@@ -38,4 +39,23 @@ func (r RetryableError) Error() string {
 		builder.WriteString(fmt.Sprintf(", result: {requeue: %v, requeueAfter: %s}", r.Result.Requeue, r.Result.RequeueAfter))
 	}
 	return builder.String()
+}
+
+// IsUpdateConflict returns true if the error is an update confict error.  This is occurs when the controller-runtime cache
+// is out of sync with the etc database
+func IsUpdateConflict(err error) bool {
+	return strings.Contains(err.Error(), "the object has been modified; please apply your changes to the latest version")
+}
+
+// ShouldLogKubenetesAPIError returns true if error should be logged.  This is used
+// when calling the Kubernetes API, so conflict and webhook
+// errors are not logged, the controller will just retry.
+func ShouldLogKubenetesAPIError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if IsUpdateConflict(err) {
+		return false
+	}
+	return true
 }

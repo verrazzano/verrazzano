@@ -5,21 +5,16 @@ package weblogic
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
-
-// ComponentName is the name of the component
-const ComponentName = "weblogic-operator"
-
-const wlsOperatorDeploymentName = ComponentName
 
 // AppendWeblogicOperatorOverrides appends the WKO-specific helm Value overrides.
 func AppendWeblogicOperatorOverrides(_ spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
@@ -39,6 +34,10 @@ func AppendWeblogicOperatorOverrides(_ spi.ComponentContext, _ string, _ string,
 		{
 			Key:   "enableClusterRoleBinding",
 			Value: "true",
+		},
+		{
+			Key:   "istioLocalhostBindingsEnabled",
+			Value: "false",
 		},
 	}
 
@@ -72,9 +71,10 @@ func WeblogicOperatorPreInstall(ctx spi.ComponentContext, _ string, namespace st
 	return nil
 }
 
-func IsWeblogicOperatorReady(ctx spi.ComponentContext, _ string, namespace string) bool {
+func isWeblogicOperatorReady(ctx spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
-		{Name: wlsOperatorDeploymentName, Namespace: namespace},
+		{Name: ComponentName, Namespace: ComponentNamespace},
 	}
-	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1)
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }

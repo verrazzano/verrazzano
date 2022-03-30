@@ -13,10 +13,14 @@
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 RELEASE_SCRIPT_DIR=${SCRIPT_DIR}/../../release/scripts
 
-if [ -z "$JENKINS_URL" ] || [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ] || [ -z "$CLEAN_BRANCH_NAME" ]; then
+if [ -z "$JENKINS_URL" ] || [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ] || [ -z "$OCI_SCAN_BUCKET" ] || [ -z "$CLEAN_BRANCH_NAME" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
 fi
+
+BASE_OBJ_PATH="daily-scan/${CLEAN_BRANCH_NAME}"
+SCAN_DATETIME="$(date '+%Y%m%d%H%M%S')"
+JOB_OBJ_PATH="${BASE_OBJ_PATH}/${SCAN_DATETIME}-${BUILD_NUMBER}"
 
 # Hack to get the generated BOM from a release by pulling down the operator.yaml from the release artifacts
 # and copying the BOM from the platform operator image
@@ -36,6 +40,28 @@ function get_bom_from_release() {
 
     rm -fr ${tmpDir}
 }
+
+# Publish the results to object storage
+function publish_results() {
+    local resultName=$1
+    local bomFile=$2
+    local resultsDir=$3
+
+    zip -r ${WORKSPACE}/${resultName}-details.zip ${resultsDir}
+
+    # Push latest
+    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${BASE_OBJ_PATH}/${resultName}/verrazzano-bom.json --file ${bomFile}
+    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${BASE_OBJ_PATH}/${resultName}/consolidated-report.out --file ${resultsDir}/consolidated-report.out
+    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${BASE_OBJ_PATH}/${resultName}/consolidated.csv --file ${resultsDir}/consolidated.csv
+    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${BASE_OBJ_PATH}/${resultName}/details.zip --file ${WORKSPACE}/${resultName}-details.zip
+
+    # Push to job specific location
+    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${JOB_OBJ_PATH}/${resultName}/verrazzano-bom.json --file ${bomFile}
+    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${JOB_OBJ_PATH}/${resultName}/consolidated-report.out --file ${resultsDir}/consolidated-report.out
+    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${JOB_OBJ_PATH}/${resultName}/consolidated.csv --file ${resultsDir}/consolidated.csv
+    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${JOB_OBJ_PATH}/${resultName}/details.zip --file ${WORKSPACE}/${resultName}-details.zip
+}
+
 
 BOM_DIR=${WORKSPACE}/boms
 mkdir -p ${BOM_DIR}
@@ -71,22 +97,31 @@ export SCAN_BOM_FEATURE_PATH=${CLEAN_BRANCH_NAME}/last-ocir-pushed-verrazzano-bo
 export SCAN_LAST_PERIODIC_BOM_FILE=${BOM_DIR}/${SCAN_BOM_PERIODIC_PATH}
 export SCAN_LAST_SNAPSHOT_BOM_FILE=${BOM_DIR}/${SCAN_BOM_SNAPSHOT_PATH}
 export SCAN_FEATURE_BOM_FILE=${BOM_DIR}/${SCAN_BOM_FEATURE_PATH}
+export SCAN_COMMIT_PERIODIC_PATH=${CLEAN_BRANCH_NAME}-last-clean-periodic-test/verrazzano_periodic-commit.txt
+export SCAN_LAST_PERIODIC_COMMIT_FILE=${BOM_DIR}/${SCAN_COMMIT_PERIODIC_PATH}
 
 # If there is a periodic BOM file for this branch, get those results
+GIT_COMMIT="TBD-Commit"
 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SCAN_BOM_PERIODIC_PATH} --file ${SCAN_LAST_PERIODIC_BOM_FILE} 2> /dev/null
 if [ $? -eq 0 ]; then
   echo "Fetching scan results for BOM: ${SCAN_LAST_PERIODIC_BOM_FILE}"
+  oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SCAN_COMMIT_PERIODIC_PATH} --file ${SCAN_LAST_PERIODIC_COMMIT_FILE} 2> /dev/null
+  if [ $? -eq 0 ]; then
+    GIT_COMMIT=$(cat ${SCAN_LAST_PERIODIC_COMMIT_FILE} | cut -d'=' -f2)
+  fi
   export SCAN_RESULTS_DIR=${SCAN_RESULTS_BASE_DIR}/latest-periodic
   mkdir -p ${SCAN_RESULTS_DIR}
   ${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_LAST_PERIODIC_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE}
   ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_LAST_PERIODIC_BOM_FILE}
-  ${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR}
+  ${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR} ${GIT_COMMIT} ${CLEAN_BRANCH_NAME} "periodic" ${SCAN_DATETIME} ${BUILD_NUMBER}
+  publish_results "last-clean-periodic-test" ${SCAN_LAST_PERIODIC_BOM_FILE} ${SCAN_RESULTS_DIR}
 else
   echo "INFO: Did not find a periodic BOM for ${CLEAN_BRANCH_NAME}"
   rm ${SCAN_LAST_PERIODIC_BOM_FILE} || true
 fi
 
 # If there is a snapshot BOM file for this branch, get those results
+GIT_COMMIT="TBD-Commit"
 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SCAN_BOM_SNAPSHOT_PATH} --file ${SCAN_LAST_SNAPSHOT_BOM_FILE} 2> /dev/null
 if [ $? -eq 0 ]; then
   echo "Fetching scan results for BOM: ${SCAN_LAST_SNAPSHOT_BOM_FILE}"
@@ -94,13 +129,15 @@ if [ $? -eq 0 ]; then
   mkdir -p ${SCAN_RESULTS_DIR}
   ${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_LAST_SNAPSHOT_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE}
   ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_LAST_SNAPSHOT_BOM_FILE}
-  ${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR}
+  ${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR} ${GIT_COMMIT} ${CLEAN_BRANCH_NAME} "snapshot" ${SCAN_DATETIME} ${BUILD_NUMBER}
+  publish_results "last-snapshot" ${SCAN_LAST_SNAPSHOT_BOM_FILE} ${SCAN_RESULTS_DIR}
 else
   echo "INFO: Did not find a snapshot BOM for ${CLEAN_BRANCH_NAME}"
   rm ${SCAN_LAST_SNAPSHOT_BOM_FILE} || true
 fi
 
 # If this is a feature branch, get those results
+GIT_COMMIT="TBD-Commit"
 if [[ "${CLEAN_BRANCH_NAME}" != "master" ]] && [[ "${CLEAN_BRANCH_NAME}" != release-* ]]; then
   oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SCAN_BOM_FEATURE_PATH} --file ${SCAN_FEATURE_BOM_FILE} 2> /dev/null
   if [ $? -eq 0 ]; then
@@ -109,7 +146,8 @@ if [[ "${CLEAN_BRANCH_NAME}" != "master" ]] && [[ "${CLEAN_BRANCH_NAME}" != rele
     mkdir -p ${SCAN_RESULTS_DIR}
     ${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_FEATURE_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE}
     ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_FEATURE_BOM_FILE}
-    ${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR}
+    ${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR} ${GIT_COMMIT} ${CLEAN_BRANCH_NAME} "feature" ${SCAN_DATETIME} ${BUILD_NUMBER}
+    publish_results "feature" ${SCAN_FEATURE_BOM_FILE} ${SCAN_RESULTS_DIR}
   else
     echo "INFO: Did not find a feature BOM for ${CLEAN_BRANCH_NAME}"
     rm ${SCAN_FEATURE_BOM_FILE} || true
@@ -126,6 +164,7 @@ if [[ "${CLEAN_BRANCH_NAME}" == release-* ]]; then
   # For now get the results for all versions, at some point we should ignore versions that we no longer support
   for VERSION in ${VERSIONS}
   do
+    GIT_COMMIT=$(git rev-list -n 1 ${VERSION})
     echo "Fetching BOM for ${VERSION}"
     export SCAN_BOM_FILE=${BOM_DIR}/${VERSION}-bom.json
     get_bom_from_release ${VERSION} ${SCAN_BOM_FILE}
@@ -136,6 +175,7 @@ if [[ "${CLEAN_BRANCH_NAME}" == release-* ]]; then
     echo "Fetching scan results for BOM: ${SCAN_BOM_FILE}"
     ${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE}
     ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_BOM_FILE}
-    ${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR}
+    ${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR} ${GIT_COMMIT} ${CLEAN_BRANCH_NAME} ${VERSION} ${SCAN_DATETIME} ${BUILD_NUMBER}
+    publish_results ${VERSION} ${SCAN_BOM_FILE} ${SCAN_RESULTS_DIR}
   done
 fi

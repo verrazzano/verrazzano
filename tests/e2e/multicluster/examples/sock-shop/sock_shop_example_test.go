@@ -34,6 +34,7 @@ var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
 
 // failed indicates whether any of the tests has failed
 var failed = false
+var beforeSuitePassed = false
 
 var t = framework.NewTestFramework("sock_shop")
 
@@ -58,10 +59,11 @@ var _ = t.BeforeSuite(func() {
 	Eventually(func() error {
 		return DeploySockShopApp(adminKubeconfig, sourceDir)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	beforeSuitePassed = true
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = t.Describe("In Multi-cluster, verify sock-shop", func() {
+var _ = t.Describe("In Multi-cluster, verify sock-shop", Label("f:multicluster.mc-app-lcm"), func() {
 	t.Context("Admin Cluster", func() {
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster
@@ -76,7 +78,11 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", func() {
 		// THEN expect that the app is not deployed to the admin cluster consistently for some length of time
 		t.It("Does not have application placed", func() {
 			Consistently(func() bool {
-				return VerifySockShopInCluster(adminKubeconfig, true, false, testProjectName, testNamespace)
+				result, err := VerifySockShopInCluster(adminKubeconfig, true, false, testProjectName, testNamespace)
+				if err != nil {
+					AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+				}
+				return result
 			}, consistentlyDuration, pollingInterval).Should(BeTrue())
 		})
 	})
@@ -95,7 +101,11 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", func() {
 		// THEN expect that the app is deployed to the managed cluster
 		t.It("Has application placed", func() {
 			Eventually(func() bool {
-				return VerifySockShopInCluster(managedKubeconfig, false, true, testProjectName, testNamespace)
+				result, err := VerifySockShopInCluster(managedKubeconfig, false, true, testProjectName, testNamespace)
+				if err != nil {
+					AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+				}
+				return result
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
@@ -122,13 +132,17 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", func() {
 			})
 			t.It("Does not have application placed", func() {
 				Eventually(func() bool {
-					return VerifySockShopInCluster(kubeconfig, false, false, testProjectName, testNamespace)
+					result, err := VerifySockShopInCluster(kubeconfig, false, false, testProjectName, testNamespace)
+					if err != nil {
+						AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+					}
+					return result
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 		}
 	})
 
-	t.Context("for Logging", func() {
+	t.Context("for Logging", Label("f:observability.logging.es"), func() {
 		indexName := "verrazzano-namespace-mc-sockshop"
 
 		// GIVEN an admin cluster and at least one managed cluster
@@ -145,7 +159,7 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", func() {
 	// WHEN the example application has been deployed to the admin cluster
 	// THEN expect Prometheus metrics for the app to exist in Prometheus on the admin cluster
 	// this is marked pending until VZ-3760 is fixed
-	PContext("for Prometheus Metrics", func() {
+	PContext("for Prometheus Metrics", Label("f:observability.monitoring.prom"), func() {
 
 		t.It("Verify base_jvm_uptime_seconds metrics exist for managed cluster", func() {
 			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
@@ -222,7 +236,7 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", func() {
 })
 
 var _ = t.AfterSuite(func() {
-	if failed {
+	if failed || !beforeSuitePassed {
 		err := pkg.ExecuteClusterDumpWithEnvVarConfig()
 		if err != nil {
 			return

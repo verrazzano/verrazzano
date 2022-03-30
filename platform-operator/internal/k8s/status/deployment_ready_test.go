@@ -1,12 +1,13 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package status
 
 import (
 	"testing"
 
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -32,7 +33,7 @@ func TestDeploymentsReady(t *testing.T) {
 			UnavailableReplicas: 0,
 		},
 	})
-	assert.True(t, DeploymentsReady(zap.S(), client, []types.NamespacedName{name}, 1))
+	assert.True(t, DeploymentsReady(vzlog.DefaultLogger(), client, []types.NamespacedName{name}, 1, ""))
 }
 
 // TestMultipleReplicasReady tests a deployment ready status check
@@ -53,7 +54,7 @@ func TestMultipleReplicasReady(t *testing.T) {
 			UnavailableReplicas: 0,
 		},
 	})
-	assert.True(t, DeploymentsReady(zap.S(), client, []types.NamespacedName{name}, 3))
+	assert.True(t, DeploymentsReady(vzlog.DefaultLogger(), client, []types.NamespacedName{name}, 3, ""))
 }
 
 // TestMultipleReplicasReadyAboveThreshold tests a deployment ready status check
@@ -74,7 +75,7 @@ func TestMultipleReplicasReadyAboveThreshold(t *testing.T) {
 			UnavailableReplicas: 0,
 		},
 	})
-	assert.True(t, DeploymentsReady(zap.S(), client, []types.NamespacedName{name}, 2))
+	assert.True(t, DeploymentsReady(vzlog.DefaultLogger(), client, []types.NamespacedName{name}, 2, ""))
 }
 
 // TestDeploymentsNotAvailableOrReady tests a deployment ready status check
@@ -95,7 +96,7 @@ func TestDeploymentsNotAvailableOrReady(t *testing.T) {
 			UnavailableReplicas: 0,
 		},
 	})
-	assert.False(t, DeploymentsReady(zap.S(), client, []types.NamespacedName{name}, 1))
+	assert.False(t, DeploymentsReady(vzlog.DefaultLogger(), client, []types.NamespacedName{name}, 1, ""))
 }
 
 // TestMultipleReplicasReadyBelowThreshold tests a deployment ready status check
@@ -116,7 +117,7 @@ func TestMultipleReplicasReadyBelowThreshold(t *testing.T) {
 			UnavailableReplicas: 2,
 		},
 	})
-	assert.False(t, DeploymentsReady(zap.S(), client, []types.NamespacedName{name}, 2))
+	assert.False(t, DeploymentsReady(vzlog.DefaultLogger(), client, []types.NamespacedName{name}, 2, ""))
 }
 
 // TestDeploymentsReadyDeploymentNotFound tests a deployment ready status check
@@ -126,7 +127,7 @@ func TestMultipleReplicasReadyBelowThreshold(t *testing.T) {
 func TestDeploymentsReadyDeploymentNotFound(t *testing.T) {
 	name := types.NamespacedName{Name: "foo", Namespace: "bar"}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	assert.False(t, DeploymentsReady(zap.S(), client, []types.NamespacedName{name}, 1))
+	assert.False(t, DeploymentsReady(vzlog.DefaultLogger(), client, []types.NamespacedName{name}, 1, ""))
 }
 
 // TestMultipleDeploymentsReplicasReadyBelowThreshold tests a deployment ready status check
@@ -175,7 +176,7 @@ func TestMultipleDeploymentsReplicasReadyBelowThreshold(t *testing.T) {
 			},
 		},
 	)
-	assert.False(t, DeploymentsReady(zap.S(), client, []types.NamespacedName{name1, name2, name3}, 2))
+	assert.False(t, DeploymentsReady(vzlog.DefaultLogger(), client, []types.NamespacedName{name1, name2, name3}, 2, ""))
 }
 
 // TestMultipleDeploymentsReplicasReady tests a deployment ready status check
@@ -224,5 +225,5 @@ func TestMultipleDeploymentsReplicasReady(t *testing.T) {
 			},
 		},
 	)
-	assert.True(t, DeploymentsReady(zap.S(), client, []types.NamespacedName{name1, name2, name3}, 2))
+	assert.True(t, DeploymentsReady(vzlog.DefaultLogger(), client, []types.NamespacedName{name1, name2, name3}, 2, ""))
 }

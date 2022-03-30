@@ -4,6 +4,7 @@
 package weblogicworkload
 
 import (
+	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/loggingtrait"
@@ -15,7 +16,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 const (
@@ -23,7 +23,6 @@ const (
 	shortPollingInterval = 10 * time.Second
 	longWaitTimeout      = 15 * time.Minute
 	longPollingInterval  = 20 * time.Second
-	namespace            = "weblogic-logging-trait"
 	componentsPath       = "testdata/loggingtrait/weblogicworkload/weblogic-logging-components.yaml"
 	applicationPath      = "testdata/loggingtrait/weblogicworkload/weblogic-logging-application.yaml"
 	applicationPodName   = "tododomain-adminserver"
@@ -32,19 +31,25 @@ const (
 
 var kubeConfig = os.Getenv("KUBECONFIG")
 
-var t = framework.NewTestFramework("weblogicworkload")
+var (
+	t                  = framework.NewTestFramework("weblogicworkload")
+	generatedNamespace = pkg.GenerateNamespace("weblogic-logging-trait")
+)
 
 var _ = t.BeforeSuite(func() {
 	deployWebLogicApplication()
+	beforeSuitePassed = true
 })
 
 var failed = false
+var beforeSuitePassed = false
+
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
 var _ = t.AfterSuite(func() {
-	if failed {
+	if failed || !beforeSuitePassed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 	loggingtrait.UndeployApplication(namespace, componentsPath, applicationPath, configMapName, t)
@@ -58,12 +63,6 @@ func deployWebLogicApplication() {
 	regServ := pkg.GetRequiredEnvVarOrFail("OCR_REPO")
 	regUser := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_USR")
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
-
-	// Wait for namespace to finish deletion possibly from a prior run.
-	Eventually(func() bool {
-		_, err := pkg.GetNamespace(namespace)
-		return err != nil && errors.IsNotFound(err)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
 	pkg.Log(pkg.Info, "Create namespace")
 	start := time.Now()
@@ -96,28 +95,28 @@ func deployWebLogicApplication() {
 
 	pkg.Log(pkg.Info, "Create component resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile(componentsPath)
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(componentsPath, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create application resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile(applicationPath)
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(applicationPath, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+	pkg.Log(pkg.Info, "Check application pods are running")
+	Eventually(func() bool {
+		result, err := pkg.PodsRunning(namespace, []string{"mysql", applicationPodName})
+		if err != nil {
+			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+		}
+		return result
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
-var _ = t.Describe("Test WebLogic loggingtrait application", func() {
-
-	t.Context("deployment.", func() {
-		// GIVEN the app is deployed
-		// WHEN the running pods are checked
-		// THEN the adminserver and mysql pods should be found running
-		t.It("Verify 'tododomain-adminserver' and 'mysql' pods are running", func() {
-			Eventually(func() bool {
-				return pkg.PodsRunning(namespace, []string{"mysql", applicationPodName})
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-		})
-	})
+var _ = t.Describe("Test WebLogic loggingtrait application", Label("f:app-lcm.oam",
+	"f:app-lcm.weblogic-workload",
+	"f:app-lcm.logging-trait"), func() {
 
 	t.Context("for LoggingTrait.", func() {
 		// GIVEN the app is deployed and the pods are running

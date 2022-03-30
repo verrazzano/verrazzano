@@ -21,53 +21,60 @@ import (
 )
 
 const (
-	longWaitTimeout      = 20 * time.Minute
-	longPollingInterval  = 20 * time.Second
-	shortPollingInterval = 10 * time.Second
-	shortWaitTimeout     = 5 * time.Minute
+	longWaitTimeout          = 20 * time.Minute
+	longPollingInterval      = 20 * time.Second
+	shortPollingInterval     = 10 * time.Second
+	shortWaitTimeout         = 5 * time.Minute
+	imagePullWaitTimeout     = 40 * time.Minute
+	imagePullPollingInterval = 30 * time.Second
 )
 
 var (
-	t                        = framework.NewTestFramework("helidon")
-	generatedNamespace       = pkg.GenerateNamespace("hello-helidon")
-	yamlApplier              = k8sutil.YAMLApplier{}
+	t                  = framework.NewTestFramework("helidon")
+	generatedNamespace = pkg.GenerateNamespace("hello-helidon")
+	//yamlApplier              = k8sutil.YAMLApplier{}
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
 )
 
 var _ = t.BeforeSuite(func() {
 	if !skipDeploy {
 		start := time.Now()
-		pkg.DeployHelloHelidonApplication(&yamlApplier, namespace, "")
+		pkg.DeployHelloHelidonApplication(namespace, "")
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
+
+	Eventually(func() bool {
+		return pkg.ContainerImagePullWait(namespace, expectedPodsHelloHelidon)
+	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
+	// Verify hello-helidon-deployment pod is running
+	// GIVEN OAM hello-helidon app is deployed
+	// WHEN the component and appconfig are created
+	// THEN the expected pod must be running in the test namespace
+	Eventually(helloHelidonPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
+
+	beforeSuitePassed = true
 })
 
 var failed = false
+var beforeSuitePassed = false
+
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
 var _ = t.AfterSuite(func() {
-	if failed {
+	if failed || !beforeSuitePassed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 	if !skipUndeploy {
 		start := time.Now()
-		pkg.UndeployHelloHelidonApplication(&yamlApplier, namespace)
+		pkg.UndeployHelloHelidonApplication(namespace)
 		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
 
-var _ = t.Describe("Hello Helidon OAM App test", func() {
-	// Verify hello-helidon-deployment pod is running
-	// GIVEN OAM hello-helidon app is deployed
-	// WHEN the component and appconfig are created
-	// THEN the expected pod must be running in the test namespace
-	t.Describe("hello-helidon-deployment pod", func() {
-		t.It("is running", func() {
-			Eventually(helloHelidonPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
-		})
-	})
+var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
+	"f:app-lcm.helidon-workload"), func() {
 
 	var host = ""
 	var err error
@@ -75,7 +82,7 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 	// GIVEN the Istio gateway for the hello-helidon namespace
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
-	t.It("Get host from gateway.", func() {
+	t.BeforeEach(func() {
 		Eventually(func() (string, error) {
 			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 			return host, err
@@ -86,7 +93,7 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
-	t.Describe("for Ingress.", func() {
+	t.Describe("for Ingress.", Label("f:mesh.ingress"), func() {
 		t.It("Access /greet App Url.", func() {
 			url := fmt.Sprintf("https://%s/greet", host)
 			Eventually(func() bool {
@@ -99,7 +106,7 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig without metrics-trait(using default) are created
 	// THEN the application metrics must be accessible
-	t.Describe("for Metrics.", func() {
+	t.Describe("for Metrics.", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
 		t.It("Retrieve Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
@@ -121,7 +128,8 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 		})
 	})
 
-	t.Context("Logging.", func() {
+	t.Context("Logging.", Label("f:observability.logging.es"), FlakeAttempts(5), func() {
+
 		indexName := "verrazzano-namespace-" + namespace
 
 		// GIVEN an application with logging enabled
@@ -155,7 +163,11 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 })
 
 func helloHelidonPodsRunning() bool {
-	return pkg.PodsRunning(namespace, expectedPodsHelloHelidon)
+	result, err := pkg.PodsRunning(namespace, expectedPodsHelloHelidon)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+	}
+	return result
 }
 
 func appEndpointAccessible(url string, hostname string) bool {

@@ -5,12 +5,13 @@ package deregister_test
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"os"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
@@ -28,7 +29,7 @@ var _ = t.AfterSuite(func() {})
 var _ = t.BeforeSuite(func() {})
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Multi Cluster Verify Deregister", func() {
+var _ = t.Describe("Multi Cluster Verify Deregister", Label("f:multicluster.deregister"), func() {
 	t.Context("Admin Cluster", func() {
 		t.BeforeEach(func() {
 			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
@@ -41,7 +42,7 @@ var _ = t.Describe("Multi Cluster Verify Deregister", func() {
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected external ES in admin cluster fluentd Daemonset setting")
 			} else {
 				Eventually(func() bool {
-					return pkg.AssertFluentdURLAndSecret(pkg.VmiESURL, pkg.VmiESSecret)
+					return pkg.AssertFluentdURLAndSecret(pkg.VmiESURL, pkg.VmiESInternalSecret)
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected VMI ES in admin cluster fluentd Daemonset setting")
 			}
 		})
@@ -60,7 +61,7 @@ var _ = t.Describe("Multi Cluster Verify Deregister", func() {
 
 		t.It("Fluentd should point to the correct ES", func() {
 			Eventually(func() bool {
-				return pkg.AssertFluentdURLAndSecret(pkg.VmiESURL, pkg.VmiESSecret)
+				return pkg.AssertFluentdURLAndSecret(pkg.VmiESURL, pkg.VmiESInternalSecret)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected VMI ES in managed cluster fluentd Daemonset setting")
 		})
 	})

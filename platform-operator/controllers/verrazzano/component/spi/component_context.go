@@ -7,10 +7,11 @@ package spi
 import (
 	"strings"
 
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -22,7 +23,8 @@ const (
 var _ ComponentContext = componentContext{}
 
 // NewContext creates a ComponentContext from a raw CR
-func NewContext(log *zap.SugaredLogger, c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool) (ComponentContext, error) {
+func NewContext(log vzlog.VerrazzanoLogger, c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool) (ComponentContext, error) {
+
 	// Generate the effective CR based ond the declared profile and any overrides in the user-supplied one
 	effectiveCR, err := getEffectiveCR(actualCR)
 	if err != nil {
@@ -44,7 +46,7 @@ func NewContext(log *zap.SugaredLogger, c clipkg.Client, actualCR *vzapi.Verrazz
 // profilesDir Optional override to the location of the profiles dir; if not provided, EffectiveCR == ActualCR
 func NewFakeContext(c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool, profilesDir ...string) ComponentContext {
 	effectiveCR := actualCR
-	log := zap.S()
+	log := vzlog.DefaultLogger()
 	if len(profilesDir) > 0 {
 		config.TestProfilesDir = profilesDir[0]
 		log.Debugf("Profiles location: %s", config.TestProfilesDir)
@@ -53,12 +55,12 @@ func NewFakeContext(c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool, pr
 		var err error
 		effectiveCR, err = getEffectiveCR(actualCR)
 		if err != nil {
-			log.Errorf("Unexpected error building fake context: %v", err)
+			log.Errorf("Failed, unexpected error building fake context: %v", err)
 			return nil
 		}
 	}
 	return componentContext{
-		log:         zap.S(),
+		log:         log,
 		client:      c,
 		dryRun:      dryRun,
 		cr:          actualCR,
@@ -103,7 +105,7 @@ func getEffectiveCR(actualCR *vzapi.Verrazzano) (*vzapi.Verrazzano, error) {
 
 type componentContext struct {
 	// log logger for the execution context
-	log *zap.SugaredLogger
+	log vzlog.VerrazzanoLogger
 	// client Kubernetes client
 	client clipkg.Client
 	// dryRun If true, do a dry run of operations
@@ -118,7 +120,7 @@ type componentContext struct {
 	component string
 }
 
-func (c componentContext) Log() *zap.SugaredLogger {
+func (c componentContext) Log() vzlog.VerrazzanoLogger {
 	return c.log
 }
 
@@ -150,21 +152,33 @@ func (c componentContext) Copy() ComponentContext {
 	}
 }
 
-func (c componentContext) For(comp string) ComponentContext {
+// Clone the component context, initializing the zap logger from the resource
+// logger. This makes sure that we get the
+func (c componentContext) Init(compName string) ComponentContext {
+	// Get zap logger, add "with" field for this component name
+	zapLogger := c.log.GetRootZapLogger().With("component", compName)
+	// Ensure that there is a logger for this component, inject the new zap logger
+	log := c.log.GetContext().EnsureLogger(compName, zapLogger, zapLogger)
+
+	// c.log.
 	return componentContext{
-		log:         c.log.With("component", comp),
+		log:         log,
 		client:      c.client,
 		dryRun:      c.dryRun,
 		cr:          c.cr,
 		effectiveCR: c.effectiveCR,
 		operation:   c.operation,
-		component:   comp,
+		component:   compName,
 	}
 }
 
 func (c componentContext) Operation(op string) ComponentContext {
+	// Get zap logger, add "with" field for this component operation
+	zapLogger := c.log.GetZapLogger().With("operation", op)
+	c.log.SetZapLogger(zapLogger)
+
 	return componentContext{
-		log:         c.log.With("operation", op),
+		log:         c.log,
 		client:      c.client,
 		dryRun:      c.dryRun,
 		cr:          c.cr,

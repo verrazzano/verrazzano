@@ -13,13 +13,15 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 
 	"github.com/hashicorp/go-retryablehttp"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var _ = t.Describe("rancher", func() {
+var _ = t.Describe("rancher", Label("f:infra-lcm",
+	"f:ui.console"), func() {
 	const (
 		waitTimeout     = 5 * time.Minute
 		pollingInterval = 5 * time.Second
@@ -45,7 +47,7 @@ var _ = t.Describe("rancher", func() {
 					if err != nil {
 						return err
 					}
-					rancherURL = fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
+					rancherURL = fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
 					t.Logs.Info(fmt.Sprintf("Found ingress URL: %s", rancherURL))
 					return nil
 				}, waitTimeout, pollingInterval).Should(BeNil())

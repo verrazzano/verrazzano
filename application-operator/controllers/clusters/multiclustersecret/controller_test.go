@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package multiclustersecret
@@ -6,6 +6,7 @@ package multiclustersecret
 import (
 	"context"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -14,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,7 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -208,8 +209,7 @@ func TestReconcileCreateSecretFailed(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
-	// expect an error and requeue upon failure
-	assert.NotNil(err)
+	assert.Nil(err)
 	assert.Equal(true, result.Requeue)
 }
 
@@ -251,8 +251,7 @@ func TestReconcileUpdateSecretFailed(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
-	// expect an error and requeue upon failure
-	assert.NotNil(err)
+	assert.Nil(err)
 	assert.Equal(true, result.Requeue)
 }
 
@@ -434,7 +433,25 @@ func getSampleMCSecret(ns string, name string, secretData map[string][]byte) clu
 func newSecretReconciler(c client.Client) Reconciler {
 	return Reconciler{
 		Client: c,
-		Log:    ctrl.Log.WithName("test"),
+		Log:    zap.S().With("test"),
 		Scheme: clusters.NewScheme(),
 	}
+}
+
+// TestReconcileKubeSystem tests to make sure we do not reconcile
+// Any resource that belong to the kube-system namespace
+func TestReconcileKubeSystem(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// create a request and reconcile it
+	request := clusterstest.NewRequest(vzconst.KubeSystem, "unit-test-verrazzano-helidon-workload")
+	reconciler := newSecretReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.Nil(err)
+	assert.True(result.IsZero())
 }

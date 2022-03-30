@@ -1,29 +1,35 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package multiclustercomponent
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const finalizerName = "multiclustercomponent.verrazzano.io"
+const (
+	finalizerName  = "multiclustercomponent.verrazzano.io"
+	controllerName = "multiclustercomponent"
+)
 
 // Reconciler reconciles a MultiClusterComponent object
 type Reconciler struct {
 	client.Client
-	Log          logr.Logger
+	Log          *zap.SugaredLogger
 	Scheme       *runtime.Scheme
 	AgentChannel chan clusters.StatusUpdateMessage
 }
@@ -32,20 +38,51 @@ type Reconciler struct {
 // mutates it based on the MultiClusterComponent, and updates the status of the
 // MultiClusterComponent to reflect the success or failure of the changes to the embedded resource
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	logger := r.Log.WithValues("multiclustercomponent", req.NamespacedName)
-	var mcComp clustersv1alpha1.MultiClusterComponent
-	result := reconcile.Result{}
-	ctx := context.Background()
-	err := r.fetchMultiClusterComponent(ctx, req.NamespacedName, &mcComp)
-	if err != nil {
-		return result, clusters.IgnoreNotFoundWithLog("MultiClusterComponent", err, logger)
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == constants.KubeSystem {
+		log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldController, controllerName)
+		log.Infof("Multi-cluster component resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
+		return reconcile.Result{}, nil
 	}
 
+	ctx := context.Background()
+	var mcComp clustersv1alpha1.MultiClusterComponent
+	err := r.fetchMultiClusterComponent(ctx, req.NamespacedName, &mcComp)
+	if err != nil {
+		return clusters.IgnoreNotFoundWithLog(err, zap.S())
+	}
+	log, err := clusters.GetResourceLogger("mccomponent", req.NamespacedName, &mcComp)
+	if err != nil {
+		zap.S().Errorf("Failed to create controller logger for multi-cluster component resource: %v", err)
+		return clusters.NewRequeueWithDelay(), nil
+	}
+	log.Oncef("Reconciling multi-cluster component resource %v, generation %v", req.NamespacedName, mcComp.Generation)
+
+	res, err := r.doReconcile(ctx, mcComp, log)
+	if clusters.ShouldRequeue(res) {
+		return res, nil
+	}
+	// Never return an error since it has already been logged and we don't want the
+	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
+	if err != nil {
+		return clusters.NewRequeueWithDelay(), nil
+	}
+
+	log.Oncef("Finished reconciling multi-cluster component %v", req.NamespacedName)
+
+	return ctrl.Result{}, nil
+}
+
+// doReconcile performs the reconciliation operations for the MC component
+func (r *Reconciler) doReconcile(ctx context.Context, mcComp clustersv1alpha1.MultiClusterComponent, log vzlog2.VerrazzanoLogger) (ctrl.Result, error) {
 	// delete the wrapped resource since MC is being deleted
 	if !mcComp.ObjectMeta.DeletionTimestamp.IsZero() {
-		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcComp, finalizerName, &v1alpha2.Component{}, types.NamespacedName{Namespace: mcComp.Namespace, Name: mcComp.Name})
+		err := clusters.DeleteAssociatedResource(ctx, r.Client, &mcComp, finalizerName, &v1alpha2.Component{}, types.NamespacedName{Namespace: mcComp.Namespace, Name: mcComp.Name})
 		if err != nil {
-			logger.Error(err, "Failed to delete associated component and finalizer")
+			log.Errorf("Failed to delete associated component and finalizer: %v", err)
 		}
 		return ctrl.Result{}, err
 	}
@@ -57,17 +94,17 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			// This must be done whether the resource is placed in this cluster or not, because we
 			// could be in an admin cluster and receive cluster level statuses from managed clusters,
 			// which can change our effective state
-			err = r.Status().Update(ctx, &mcComp)
+			err := r.Status().Update(ctx, &mcComp)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
 		}
 		// if this mc component is no longer placed on this cluster, remove the associated component
-		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcComp, finalizerName, &v1alpha2.Component{}, types.NamespacedName{Namespace: mcComp.Namespace, Name: mcComp.Name})
+		err := clusters.DeleteAssociatedResource(ctx, r.Client, &mcComp, finalizerName, &v1alpha2.Component{}, types.NamespacedName{Namespace: mcComp.Namespace, Name: mcComp.Name})
 		return ctrl.Result{}, err
 	}
 
-	logger.Info("MultiClusterComponent create or update with underlying component",
+	log.Debug("MultiClusterComponent create or update with underlying component",
 		"component", mcComp.Spec.Template.Metadata.Name,
 		"placement", mcComp.Spec.Placement.Clusters[0].Name)
 	opResult, err := r.createOrUpdateComponent(ctx, mcComp)

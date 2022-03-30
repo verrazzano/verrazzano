@@ -1,12 +1,22 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
+	"fmt"
+	"os"
 	"path/filepath"
 	"testing"
+
+	"go.uber.org/zap"
+
+	"sigs.k8s.io/yaml"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -518,22 +528,22 @@ func TestValidateInProgress(t *testing.T) {
 	vzOld := Verrazzano{}
 	vzNew := Verrazzano{}
 
-	vzOld.Status.State = Ready
+	vzOld.Status.State = VzStateReady
 	assert.NoError(t, ValidateInProgress(&vzOld, &vzNew))
 
-	vzOld.Status.State = Installing
+	vzOld.Status.State = VzStateInstalling
 	err := ValidateInProgress(&vzOld, &vzNew)
 	if assert.Error(t, err) {
 		assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
 	}
 
-	vzOld.Status.State = Uninstalling
+	vzOld.Status.State = VzStateUninstalling
 	err = ValidateInProgress(&vzOld, &vzNew)
 	if assert.Error(t, err) {
 		assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
 	}
 
-	vzOld.Status.State = Upgrading
+	vzOld.Status.State = VzStateUpgrading
 	err = ValidateInProgress(&vzOld, &vzNew)
 	if assert.Error(t, err) {
 		assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
@@ -584,21 +594,21 @@ func TestValidateEnable(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
 			vzNew := Verrazzano{}
-			test.vzOld.Status.State = Ready
+			test.vzOld.Status.State = VzStateReady
 			err := ValidateInProgress(&test.vzOld, &vzNew)
 			assert.NoError(t, err, "Unexpected error enabling Coherence")
 
-			test.vzOld.Status.State = Installing
+			test.vzOld.Status.State = VzStateInstalling
 			err = ValidateInProgress(&test.vzOld, &vzNew)
 			assert.NoError(t, err, "Unexpected error enabling Coherence")
 
-			test.vzOld.Status.State = Upgrading
+			test.vzOld.Status.State = VzStateUpgrading
 			err = ValidateInProgress(&test.vzOld, &vzNew)
 			if assert.Error(t, err) {
 				assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
 			}
 
-			test.vzOld.Status.State = Uninstalling
+			test.vzOld.Status.State = VzStateUninstalling
 			err = ValidateInProgress(&test.vzOld, &vzNew)
 			if assert.Error(t, err) {
 				assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
@@ -609,8 +619,8 @@ func TestValidateEnable(t *testing.T) {
 
 // TestValidateOciDnsSecretBadSecret tests that validate fails if a secret in the Verrazzano CR does not exist
 // GIVEN a Verrazzano spec containing a secret that does not exist
-// WHEN ValidateOciDNSSecret is called
-// THEN an error is returned from ValidateOciDNSSecret
+// WHEN validateOCISecrets is called
+// THEN an error is returned from validateOCISecrets
 func TestValidateOciDnsSecretBadSecret(t *testing.T) {
 	vz := Verrazzano{
 		Spec: VerrazzanoSpec{
@@ -631,16 +641,94 @@ func TestValidateOciDnsSecretBadSecret(t *testing.T) {
 	assert.NoError(t, err)
 	client := fake.NewFakeClientWithScheme(scheme)
 
-	err = ValidateOciDNSSecret(client, &vz.Spec)
+	err = validateOCISecrets(client, &vz.Spec)
 	assert.Error(t, err)
-	assert.Equal(t, "The secret \"oci-bad-secret\" must be created in the verrazzano-install namespace before installing Verrrazzano for OCI DNS", err.Error())
+	assert.Equal(t, "Secret \"oci-bad-secret\" must be created in the \"verrazzano-install\" namespace before installing Verrrazzano", err.Error())
 }
 
-// TestValidateOciDnsSecretGoodSecret tests that validate succeeds if a secret in the Verrazzano CR exists
-// GIVEN a Verrazzano spec containing a secret that exists
-// WHEN ValidateOciDNSSecret is called
-// THEN success is returned from ValidateOciDNSSecret
-func TestValidateOciDnsSecretGoodSecret(t *testing.T) {
+// TestValidateOciDnsSecretUserAuth tests validateOCISecrets
+// GIVEN a Verrazzano spec containing an OCI DNS user-auth secret that exists
+// WHEN validateOCISecrets is called
+// THEN success is returned from validateOCISecrets
+func TestValidateOciDnsSecretUserAuth(t *testing.T) {
+	runValidateOCIDNSAuthTest(t, userPrincipal)
+}
+
+// TestValidateOciDnsSecretInstancePrincipalAuth tests validateOCISecrets
+// GIVEN a Verrazzano spec containing an OCI DNS instance-principal auth secret that exists
+// WHEN validateOCISecrets is called
+// THEN success is returned from validateOCISecrets
+func TestValidateOciDnsSecretInstancePrincipalAuth(t *testing.T) {
+	runValidateOCIDNSAuthTest(t, instancePrincipal)
+}
+
+func runValidateOCIDNSAuthTest(t *testing.T, authType authenticationType) {
+	vz := Verrazzano{
+		Spec: VerrazzanoSpec{
+			Components: ComponentSpec{
+				DNS: &DNSComponent{
+					OCI: &OCI{
+						OCIConfigSecret: "oci",
+					},
+				},
+			},
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	err := AddToScheme(scheme)
+	assert.NoError(t, err)
+	err = clientgoscheme.AddToScheme(scheme)
+	assert.NoError(t, err)
+	client := fake.NewFakeClientWithScheme(scheme)
+
+	var ociConfig ociAuth
+	switch authType {
+	case userPrincipal:
+		key, err := generateTestPrivateKey()
+		assert.NoError(t, err)
+		ociConfig = ociAuth{
+			Auth: authData{
+				Region:      "us-ashburn-1",
+				Tenancy:     "my-tenancy",
+				User:        "my-user",
+				Fingerprint: "a-fingerprint",
+				AuthType:    authType,
+				Key:         string(key),
+			},
+		}
+	default:
+		ociConfig = ociAuth{
+			Auth: authData{
+				AuthType: authType,
+			},
+		}
+	}
+
+	secretData, err := yaml.Marshal(&ociConfig)
+	assert.NoError(t, err, "Error marshalling test data")
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "oci",
+			Namespace: constants.VerrazzanoInstallNamespace,
+		},
+		Data: map[string][]byte{
+			ociDNSSecretFileName: secretData,
+		},
+	}
+	err = client.Create(context.TODO(), secret)
+	assert.NoError(t, err)
+
+	err = validateOCISecrets(client, &vz.Spec)
+	assert.NoError(t, err)
+}
+
+// TestValidateOciDnsSecretNoDataKeys tests validateOCISecrets
+// GIVEN a Verrazzano spec containing an OCI DNS instance-principal auth secret that exists but has no data keys
+// WHEN validateOCISecrets is called
+// THEN an error is returned from validateOCISecrets
+func TestValidateOciDnsSecretNoDataKeys(t *testing.T) {
 	vz := Verrazzano{
 		Spec: VerrazzanoSpec{
 			Components: ComponentSpec{
@@ -669,14 +757,171 @@ func TestValidateOciDnsSecretGoodSecret(t *testing.T) {
 	err = client.Create(context.TODO(), secret)
 	assert.NoError(t, err)
 
-	err = ValidateOciDNSSecret(client, &vz.Spec)
+	err = validateOCISecrets(client, &vz.Spec)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "Secret \"oci\" for OCI DNS should have one data key, found 0")
+	}
+}
+
+// TestValidateOciDnsSecretTooManyDataKeys tests validateOCISecrets
+// GIVEN a Verrazzano spec containing an OCI DNS instance-principal auth secret that exists but has more than one data key
+// WHEN validateOCISecrets is called
+// THEN an error is returned from validateOCISecrets
+func TestValidateOciDnsSecretTooManyDataKeys(t *testing.T) {
+	vz := Verrazzano{
+		Spec: VerrazzanoSpec{
+			Components: ComponentSpec{
+				DNS: &DNSComponent{
+					OCI: &OCI{
+						OCIConfigSecret: "oci",
+					},
+				},
+			},
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	err := AddToScheme(scheme)
 	assert.NoError(t, err)
+	err = clientgoscheme.AddToScheme(scheme)
+	assert.NoError(t, err)
+	client := fake.NewFakeClientWithScheme(scheme)
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "oci",
+			Namespace: constants.VerrazzanoInstallNamespace,
+		},
+		Data: map[string][]byte{
+			ociDNSSecretFileName:        []byte("value1"),
+			ociDNSSecretFileName + "-2": []byte("value2"),
+		},
+	}
+	err = client.Create(context.TODO(), secret)
+	assert.NoError(t, err)
+
+	err = validateOCISecrets(client, &vz.Spec)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "Secret \"oci\" for OCI DNS should have one data key, found 2")
+	}
+
+}
+
+// TestValidateOciDnsSecretInvalidAPIKey tests validateOCISecrets
+// GIVEN a Verrazzano spec containing a secret that exists but with an invalid private key
+// WHEN validateOCISecrets is called
+// THEN an error returned from validateOCISecrets
+func TestValidateOciDnsSecretInvalidAPIKey(t *testing.T) {
+	vz := Verrazzano{
+		Spec: VerrazzanoSpec{
+			Components: ComponentSpec{
+				DNS: &DNSComponent{
+					OCI: &OCI{
+						OCIConfigSecret: "oci",
+					},
+				},
+			},
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	err := AddToScheme(scheme)
+	assert.NoError(t, err)
+	err = clientgoscheme.AddToScheme(scheme)
+	assert.NoError(t, err)
+	client := fake.NewFakeClientWithScheme(scheme)
+
+	assert.NoError(t, err)
+	ociConfig := ociAuth{
+		Auth: authData{
+			Region:      "us-ashburn-1",
+			Tenancy:     "my-tenancy",
+			User:        "my-user",
+			Fingerprint: "a-fingerprint",
+			AuthType:    userPrincipal,
+			Key:         "foo",
+		},
+	}
+	secretData, err := yaml.Marshal(&ociConfig)
+	assert.NoError(t, err, "Error marshalling test data")
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "oci",
+			Namespace: constants.VerrazzanoInstallNamespace,
+		},
+		Data: map[string][]byte{
+			ociDNSSecretFileName: secretData,
+		},
+	}
+	err = client.Create(context.TODO(), secret)
+	assert.NoError(t, err)
+
+	err = validateOCISecrets(client, &vz.Spec)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Private key in secret \"oci\" is either empty or not a valid key in PEM format")
+}
+
+// TestValidateOciDnsSecretInvalidAuthType tests validateOCISecrets
+// GIVEN a Verrazzano spec containing a secret that exists but with an invalid OCI Auth type
+// WHEN validateOCISecrets is called
+// THEN an error returned from validateOCISecrets
+func TestValidateOciDnsSecretInvalidAuthType(t *testing.T) {
+	vz := Verrazzano{
+		Spec: VerrazzanoSpec{
+			Components: ComponentSpec{
+				DNS: &DNSComponent{
+					OCI: &OCI{
+						OCIConfigSecret: "oci",
+					},
+				},
+			},
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	err := AddToScheme(scheme)
+	assert.NoError(t, err)
+	err = clientgoscheme.AddToScheme(scheme)
+	assert.NoError(t, err)
+	client := fake.NewFakeClientWithScheme(scheme)
+
+	key, err := generateTestPrivateKey()
+	assert.NoError(t, err)
+	ociConfig := ociAuth{
+		Auth: authData{
+			Region:      "us-ashburn-1",
+			Tenancy:     "my-tenancy",
+			User:        "my-user",
+			Fingerprint: "a-fingerprint",
+			AuthType:    "InvalidAuthType",
+			Key:         string(key),
+		},
+	}
+	secretData, err := yaml.Marshal(&ociConfig)
+	assert.NoError(t, err, "error marshalling test data")
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "oci",
+			Namespace: constants.VerrazzanoInstallNamespace,
+		},
+		Data: map[string][]byte{
+			ociDNSSecretFileName: secretData,
+		},
+	}
+	err = client.Create(context.TODO(), secret)
+	assert.NoError(t, err)
+
+	err = validateOCISecrets(client, &vz.Spec)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), fmt.Sprintf("Authtype \"InvalidAuthType\" in OCI secret must be either '%s' or '%s'", userPrincipal, instancePrincipal))
 }
 
 // TestValidateOciDnsSecretNoOci tests that validate succeeds if the DNS component is not OCI
 // GIVEN a Verrazzano spec containing a wildcard DNS component
-// WHEN ValidateOciDNSSecret is called
-// THEN success is returned from ValidateOciDNSSecret
+// WHEN validateOCISecrets is called
+// THEN success is returned from validateOCISecrets
 func TestValidateOciDnsSecretNoOci(t *testing.T) {
 	vz := Verrazzano{
 		Spec: VerrazzanoSpec{
@@ -697,8 +942,407 @@ func TestValidateOciDnsSecretNoOci(t *testing.T) {
 	assert.NoError(t, err)
 	client := fake.NewFakeClientWithScheme(scheme)
 
-	err = ValidateOciDNSSecret(client, &vz.Spec)
+	err = validateOCISecrets(client, &vz.Spec)
 	assert.NoError(t, err)
+}
+
+// TestValidateFluentdOCISecretGoodSecretWithPassphrase tests validateOCISecrets
+// GIVEN a Verrazzano spec containing a fluentd configuration with a valid Fluentd OCI secret that exists with a passphrase
+// WHEN validateOCISecrets is called
+// THEN success is returned from validateOCISecrets
+func TestValidateFluentdOCISecretGoodSecretWithPassphrase1(t *testing.T) {
+	ociConfigBytes := `
+[DEFAULT]
+user=ocid1.user.oc1..sfafasfasfsdafas
+tenancy=ocid1.tenancy.oc1..sfdasfsafas
+region=us-ashburn-1
+fingerprint=a0:bb:dd:c2:dd:e0:f1:fa:cd:d1:8a:11:bb:c0:f1:55
+key_file=/root/.oci/key
+pass_phrase=apassphrase
+`
+	runTestFluentdOCIConfig(t, ociConfigBytes)
+}
+
+// TestValidateFluentdOCISecretGoodSecretNoPassphrase tests validateOCISecrets
+// GIVEN a Verrazzano spec containing a fluentd configuration with a valid Fluentd OCI secret that exists without a passphrase
+// WHEN validateOCISecrets is called
+// THEN success is returned from validateOCISecrets
+func TestValidateFluentdOCISecretGoodSecretNoPassphrase(t *testing.T) {
+	ociConfigBytes := `
+[DEFAULT]
+user=ocid1.user.oc1..sfafasfasfsdafas
+tenancy=ocid1.tenancy.oc1..sfdasfsafas
+region=us-ashburn-1
+fingerprint=a0:bb:dd:c2:dd:e0:f1:fa:cd:d1:8a:11:bb:c0:f1:55
+key_file=/root/.oci/key
+`
+	runTestFluentdOCIConfig(t, ociConfigBytes)
+}
+
+// TestValidateFluentdOCISecretBadProfileKey tests validateOCISecrets
+// GIVEN a Verrazzano spec containing a fluentd configuration with an OCI secret with a bad profile key
+// WHEN validateOCISecrets is called
+// THEN an error is returned from validateOCISecrets
+func TestValidateFluentdOCISecretBadProfileKey(t *testing.T) {
+	ociConfigBytes := `
+[blah]
+user=ocid1.user.oc1..sfafasfasfsdafas
+tenancy=ocid1.tenancy.oc1..sfdasfsafas
+region=us-ashburn-1
+fingerprint=a0:bb:dd:c2:dd:e0:f1:fa:cd:d1:8a:11:bb:c0:f1:55
+key_file=/root/.oci/key
+`
+	runTestFluentdOCIConfig(t, ociConfigBytes, "configuration file did not contain profile: DEFAULT")
+}
+
+// TestValidateFluentdOCISecretNoProfileKey tests validateOCISecrets
+// GIVEN a Verrazzano spec containing a fluentd configuration with an OCI secret with no OCI profile key
+// WHEN validateOCISecrets is called
+// THEN an error is returned from validateOCISecrets
+func TestValidateFluentdOCISecretNoProfileKey(t *testing.T) {
+	ociConfigBytes := `
+user=ocid1.user.oc1..sfafasfasfsdafas
+tenancy=ocid1.tenancy.oc1..sfdasfsafas
+region=us-ashburn-1
+fingerprint=a0:bb:dd:c2:dd:e0:f1:fa:cd:d1:8a:11:bb:c0:f1:55
+key_file=/root/.oci/key
+`
+	runTestFluentdOCIConfig(t, ociConfigBytes, "configuration file did not contain profile: DEFAULT")
+}
+
+// TestValidateFluentdOCISecretNoProfileKey tests validateOCISecrets
+// GIVEN a Verrazzano spec containing a fluentd configuration with an OCI secret with an empty user OCID
+// WHEN validateOCISecrets is called
+// THEN an error is returned from validateOCISecrets
+func TestValidateFluentdOCISecretNoUserOCID(t *testing.T) {
+	ociConfigBytes := `
+[DEFAULT]
+user=
+tenancy=ocid1.tenancy.oc1..sfdasfsafas
+region=us-ashburn-1
+fingerprint=a0:bb:dd:c2:dd:e0:f1:fa:cd:d1:8a:11:bb:c0:f1:55
+key_file=/root/.oci/key
+`
+	runTestFluentdOCIConfig(t, ociConfigBytes, "User OCID not specified in Fluentd OCI config secret \"fluentd-oci\"")
+}
+
+// TestValidateFluentdOCISecretNoTenancyOCID tests validateOCISecrets
+// GIVEN a Verrazzano spec containing a fluentd configuration with an OCI secret with an empty tenancy OCID
+// WHEN validateOCISecrets is called
+// THEN an error is returned from validateOCISecrets
+func TestValidateFluentdOCISecretNoTenancyOCID(t *testing.T) {
+	ociConfigBytes := `
+[DEFAULT]
+user=ocid1.user.oc1..sfafasfasfsdafas
+tenancy=
+region=us-ashburn-1
+fingerprint=a0:bb:dd:c2:dd:e0:f1:fa:cd:d1:8a:11:bb:c0:f1:55
+key_file=/root/.oci/key
+`
+	runTestFluentdOCIConfig(t, ociConfigBytes, "Tenancy OCID not specified in Fluentd OCI config secret \"fluentd-oci\"")
+}
+
+// TestValidateFluentdOCISecretNoRegion tests validateOCISecrets
+// GIVEN a Verrazzano spec containing a fluentd configuration with an OCI secret with an empty region name
+// WHEN validateOCISecrets is called
+// THEN an error is returned from validateOCISecrets
+func TestValidateFluentdOCISecretNoRegion(t *testing.T) {
+	ociConfigBytes := `
+[DEFAULT]
+user=ocid1.user.oc1..sfafasfasfsdafas
+tenancy=ocid1.tenancy.oc1..sfdasfsafas
+region=
+fingerprint=a0:bb:dd:c2:dd:e0:f1:fa:cd:d1:8a:11:bb:c0:f1:55
+key_file=/root/.oci/key
+`
+	runTestFluentdOCIConfig(t, ociConfigBytes, "region can not be empty or have spaces")
+}
+
+// TestValidateFluentdOCISecretNoFingerprint tests validateOCISecrets
+// GIVEN a Verrazzano spec containing a fluentd configuration with an OCI secret with an empty key fingerprint
+// WHEN validateOCISecrets is called
+// THEN an error is returned from validateOCISecrets
+func TestValidateFluentdOCISecretNoFingerprint(t *testing.T) {
+	ociConfigBytes := `
+[DEFAULT]
+user=ocid1.user.oc1..sfafasfasfsdafas
+tenancy=ocid1.tenancy.oc1..sfdasfsafas
+region=us-ashburn-1
+fingerprint=
+key_file=/root/.oci/key
+`
+	runTestFluentdOCIConfig(t, ociConfigBytes, "Fingerprint not specified in Fluentd OCI config secret \"fluentd-oci\"")
+}
+
+func runTestFluentdOCIConfig(t *testing.T, ociConfigBytes string, errorMsg ...string) {
+	const ociSecretName = "fluentd-oci"
+	vz := Verrazzano{
+		Spec: VerrazzanoSpec{
+			Components: ComponentSpec{
+				Fluentd: &FluentdComponent{
+					OCI: &OciLoggingConfiguration{
+						APISecret: ociSecretName,
+					},
+				},
+			},
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	err := AddToScheme(scheme)
+	assert.NoError(t, err)
+	err = clientgoscheme.AddToScheme(scheme)
+	assert.NoError(t, err)
+	client := fake.NewFakeClientWithScheme(scheme)
+
+	key, err := generateTestPrivateKey()
+	assert.NoError(t, err)
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ociSecretName,
+			Namespace: constants.VerrazzanoInstallNamespace,
+		},
+		Data: map[string][]byte{
+			fluentdOCISecretConfigEntry:     []byte(ociConfigBytes),
+			fluentdOCISecretPrivateKeyEntry: key,
+		},
+	}
+	err = client.Create(context.TODO(), secret)
+	assert.NoError(t, err)
+
+	err = validateOCISecrets(client, &vz.Spec)
+	if len(errorMsg) > 0 {
+		assert.Error(t, err)
+		if err != nil {
+			assert.Contains(t, err.Error(), errorMsg[0])
+		}
+	} else {
+		assert.NoError(t, err)
+	}
+}
+
+// TestValidateFluentdOCISecretInvalidKeyFormat tests validateOCISecrets
+// GIVEN a Verrazzano spec containing a fluentd configuration with a Fluentd OCI secret with a key not in PEM format
+// WHEN validateOCISecrets is called
+// THEN an error is returned from validateOCISecrets
+func TestValidateFluentdOCISecretInvalidKeyFormat(t *testing.T) {
+	runFluentdInvalidKeyTest(t, []byte("foo"), "not a valid key")
+}
+
+// TestValidateFluentdOCISecretNoKeyData tests validateOCISecrets
+// GIVEN a Verrazzano spec containing a fluentd configuration with a Fluentd OCI secret with a empty key
+// WHEN validateOCISecrets is called
+// THEN an error is returned from validateOCISecrets
+func TestValidateFluentdOCISecretNoKeyData(t *testing.T) {
+	runFluentdInvalidKeyTest(t, []byte{}, "Private key in secret \"fluentd-oci\" is either empty or not a valid key in PEM format")
+}
+
+func runFluentdInvalidKeyTest(t *testing.T, key []byte, msgSnippet string) {
+	const ociSecretName = "fluentd-oci"
+	vz := Verrazzano{
+		Spec: VerrazzanoSpec{
+			Components: ComponentSpec{
+				Fluentd: &FluentdComponent{
+					OCI: &OciLoggingConfiguration{
+						APISecret: ociSecretName,
+					},
+				},
+			},
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	err := AddToScheme(scheme)
+	assert.NoError(t, err)
+	err = clientgoscheme.AddToScheme(scheme)
+	assert.NoError(t, err)
+	client := fake.NewFakeClientWithScheme(scheme)
+
+	ociConfigBytes := `
+[DEFAULT]
+user=my-user
+tenancy=my-tenancy
+region=us-ashburn-1
+fingerprint=a-fingerprint
+key_file=/root/.oci/key
+`
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ociSecretName,
+			Namespace: constants.VerrazzanoInstallNamespace,
+		},
+		Data: map[string][]byte{
+			fluentdOCISecretConfigEntry:     []byte(ociConfigBytes),
+			fluentdOCISecretPrivateKeyEntry: key,
+		},
+	}
+	err = client.Create(context.TODO(), secret)
+	assert.NoError(t, err)
+
+	err = validateOCISecrets(client, &vz.Spec)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), msgSnippet)
+}
+
+// TestValidateFluentdOCISecretMissingKeySection tests validateOCISecrets
+// GIVEN a Verrazzano spec containing a fluentd configuration with a Fluentd OCI secret that has a missing API key
+// WHEN validateOCISecrets is called
+// THEN an error is returned from validateOCISecrets
+func TestValidateFluentdOCISecretMissingKeySection(t *testing.T) {
+	const ociSecretName = "fluentd-oci"
+	vz := Verrazzano{
+		Spec: VerrazzanoSpec{
+			Components: ComponentSpec{
+				Fluentd: &FluentdComponent{
+					OCI: &OciLoggingConfiguration{
+						APISecret: ociSecretName,
+					},
+				},
+			},
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	err := AddToScheme(scheme)
+	assert.NoError(t, err)
+	err = clientgoscheme.AddToScheme(scheme)
+	assert.NoError(t, err)
+	client := fake.NewFakeClientWithScheme(scheme)
+
+	ociConfigBytes := `
+[DEFAULT]
+user=my-user
+tenancy=my-tenancy
+region=us-ashburn-1
+fingerprint=a-fingerprint
+key_file=/root/.oci/key
+`
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ociSecretName,
+			Namespace: constants.VerrazzanoInstallNamespace,
+		},
+		Data: map[string][]byte{
+			fluentdOCISecretConfigEntry: []byte(ociConfigBytes),
+		},
+	}
+	err = client.Create(context.TODO(), secret)
+	assert.NoError(t, err)
+
+	err = validateOCISecrets(client, &vz.Spec)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), fmt.Sprintf("Expected entry \"%s\" not found in secret \"%s\"", fluentdOCISecretPrivateKeyEntry, ociSecretName))
+}
+
+// TestValidateFluentdOCISecretMissingConfigSection tests validateOCISecrets
+// GIVEN a Verrazzano spec containing a fluentd configuration with a Fluentd OCI secret that has a missing OCI Config key
+// WHEN validateOCISecrets is called
+// THEN an error is returned from validateOCISecrets
+func TestValidateFluentdOCISecretMissingConfigSection(t *testing.T) {
+	const ociSecretName = "fluentd-oci"
+	vz := Verrazzano{
+		Spec: VerrazzanoSpec{
+			Components: ComponentSpec{
+				Fluentd: &FluentdComponent{
+					OCI: &OciLoggingConfiguration{
+						APISecret: ociSecretName,
+					},
+				},
+			},
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	err := AddToScheme(scheme)
+	assert.NoError(t, err)
+	err = clientgoscheme.AddToScheme(scheme)
+	assert.NoError(t, err)
+	client := fake.NewFakeClientWithScheme(scheme)
+
+	key, err := generateTestPrivateKey()
+	assert.NoError(t, err)
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ociSecretName,
+			Namespace: constants.VerrazzanoInstallNamespace,
+		},
+		Data: map[string][]byte{
+			fluentdOCISecretPrivateKeyEntry: key,
+		},
+	}
+	err = client.Create(context.TODO(), secret)
+	assert.NoError(t, err)
+
+	err = validateOCISecrets(client, &vz.Spec)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Did not find OCI configuration in secret \"fluentd-oci\"")
+}
+
+// TestValidateFluentdOCISecretMissingConfigSection tests validateOCISecrets
+// GIVEN a Verrazzano spec containing a fluentd configuration with a Fluentd OCI secret that does not exist
+// WHEN validateOCISecrets is called
+// THEN an error is returned from validateOCISecrets
+func TestValidateFluentdOCISecretMissingSecret(t *testing.T) {
+	const ociSecretName = "fluentd-oci"
+	vz := Verrazzano{
+		Spec: VerrazzanoSpec{
+			Components: ComponentSpec{
+				Fluentd: &FluentdComponent{
+					OCI: &OciLoggingConfiguration{
+						APISecret: ociSecretName,
+					},
+				},
+			},
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	err := AddToScheme(scheme)
+	assert.NoError(t, err)
+	err = clientgoscheme.AddToScheme(scheme)
+	assert.NoError(t, err)
+	client := fake.NewFakeClientWithScheme(scheme)
+
+	err = validateOCISecrets(client, &vz.Spec)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), fmt.Sprintf("Secret \"%s\" must be created in the \"%s\" namespace", ociSecretName, constants.VerrazzanoInstallNamespace))
+}
+
+// TestValidateFluentdOCISecretInvalidKeyPath tests validateOCISecrets
+// GIVEN a Verrazzano spec containing a fluentd configuration with a Fluentd OCI secret that an incorrect key path
+// WHEN validateOCISecrets is called
+// THEN an error is returned from validateOCISecrets
+func TestValidateFluentdOCISecretInvalidKeyPath(t *testing.T) {
+	ociConfigBytes := `
+[DEFAULT]
+user=my-user
+tenancy=my-tenancy
+region=us-ashburn-1
+fingerprint=a-fingerprint
+key_file=invalid/path/to/key
+`
+	runTestFluentdOCIConfig(t, ociConfigBytes, "Unexpected or missing value for the Fluentd OCI key file location in secret \"fluentd-oci\", should be \"/root/.oci/key\"")
+}
+
+// Test_validateSecretContents Tests validateSecretContents
+// GIVEN a call to validateSecretContents
+// WHEN the YAML bytes are not valid
+// THEN an error is returned
+func Test_validateSecretContents(t *testing.T) {
+	err := validateSecretContents("mysecret", []byte("foo"), &authData{})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "error unmarshaling JSON")
+}
+
+// Test_validateSecretContentsEmpty Tests validateSecretContents
+// GIVEN a call to validateSecretContents
+// WHEN the YAML bytes are empty
+// THEN an error is returned
+func Test_validateSecretContentsEmpty(t *testing.T) {
+	err := validateSecretContents("mysecret", []byte{}, &authData{})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Secret \"mysecret\" data is empty")
 }
 
 func newBool(v bool) *bool {
@@ -784,4 +1428,55 @@ func TestValidateProfileDevProfile(t *testing.T) {
 // THEN an error is returned
 func TestValidateProfileInvalidProfile(t *testing.T) {
 	assert.Error(t, ValidateProfile("wrong-profile"))
+}
+
+// TestValidateProfileInvalidProfile Tests cleanTempFiles()
+// GIVEN a call to cleanTempFiles
+// WHEN there are leftover validation temp files in the TMP dir
+// THEN the temp files are cleaned up properly
+func Test_cleanTempFiles(t *testing.T) {
+	assert := assert.New(t)
+
+	tmpFiles := []*os.File{}
+	for i := 1; i < 5; i++ {
+		temp, err := os.CreateTemp(os.TempDir(), validateTempFilePattern)
+		assert.NoErrorf(err, "Unable to create temp file %s for testing: %s", temp.Name(), err)
+		assert.FileExists(temp.Name())
+		tmpFiles = append(tmpFiles, temp)
+	}
+
+	err := cleanTempFiles(zap.S())
+	if assert.NoError(err) {
+		for _, tmpFile := range tmpFiles {
+			assert.NoFileExists(tmpFile.Name(), "Error, temp file %s not deleted", tmpFile.Name())
+		}
+	}
+}
+
+var testKey = []byte{}
+
+// Generate RSA for testing.
+func generateTestPrivateKey() ([]byte, error) {
+	var err error
+	if len(testKey) == 0 { // cache the test key, we only need one valid one and it can be expensive
+		testKey, err = generateTestPrivateKeyWithType("RSA PRIVATE KEY")
+	}
+	return testKey, err
+}
+
+// Generate RSA for testing with the specified type
+func generateTestPrivateKeyWithType(keyType string) ([]byte, error) {
+	key, err := rsa.GenerateKey(rand.Reader, 4096)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	// Encode private key to PKCS#1 ASN.1 PEM.
+	keyPEM := pem.EncodeToMemory(
+		&pem.Block{
+			Type:  keyType,
+			Bytes: x509.MarshalPKCS1PrivateKey(key),
+		},
+	)
+	return keyPEM, nil
 }

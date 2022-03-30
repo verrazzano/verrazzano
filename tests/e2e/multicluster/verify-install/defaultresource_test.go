@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -36,7 +37,7 @@ var _ = t.AfterSuite(func() {
 	}, waitTimeout, pollingInterval).Should(BeNil())
 })
 
-var _ = t.Describe("Multi Cluster Install Validation",
+var _ = t.Describe("Multi Cluster Install Validation", Label("f:platform-lcm.install"),
 	func() {
 		t.It("has the expected namespaces", func() {
 			kubeConfig := os.Getenv("KUBECONFIG")
@@ -52,7 +53,11 @@ var _ = t.Describe("Multi Cluster Install Validation",
 		t.Context("Expected pods are running.", func() {
 			t.It("and waiting for expected pods must be running", func() {
 				Eventually(func() bool {
-					return pkg.PodsRunning("kube-system", expectedPodsKubeSystem)
+					result, err := pkg.PodsRunning("kube-system", expectedPodsKubeSystem)
+					if err != nil {
+						AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: kube-system, error: %v", err))
+					}
+					return result
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 		})

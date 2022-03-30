@@ -5,6 +5,7 @@ package namespace
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"net/http"
 	"testing"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"go.uber.org/zap"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -39,6 +41,7 @@ import (
 )
 
 var testScheme = newScheme()
+var logger = vzlog.DefaultLogger()
 
 // newScheme creates a new scheme that includes this package's object to use for testing
 func newScheme() *runtime.Scheme {
@@ -53,7 +56,7 @@ func newTestController(c client.Client) (*NamespaceController, error) {
 		Client: c,
 		scheme: testScheme,
 	}
-	return NewNamespaceController(mgr, log.NullLogger{})
+	return NewNamespaceController(mgr, zap.S())
 }
 
 // TestReconcileNamespaceUpdate tests the Reconcile method for the following use case
@@ -110,7 +113,7 @@ func TestReconcileNamespaceUpdate(t *testing.T) {
 // WHEN the namespace can not be found
 // THEN ensure that no error is returned and the result does not indicate a requeue
 func TestReconcileNamespaceNotFound(t *testing.T) {
-	runTestReconcileGetError(t, k8serrors.NewNotFound(schema.ParseGroupResource("Namespace"), "myns"), nil)
+	runTestReconcileGetError(t, k8serrors.NewNotFound(schema.ParseGroupResource("Namespace"), "myns"), ctrl.Result{})
 }
 
 // TestReconcileNamespaceGetError tests the Reconcile method for the following use case
@@ -119,11 +122,11 @@ func TestReconcileNamespaceNotFound(t *testing.T) {
 // THEN ensure that the unexpected error is returned and the result does not indicate a requeue (controllerruntime does this)
 func TestReconcileNamespaceGetError(t *testing.T) {
 	err := fmt.Errorf("some other error getting namespace")
-	runTestReconcileGetError(t, err, err)
+	runTestReconcileGetError(t, err, ctrl.Result{Requeue: true})
 }
 
 // runTestReconcileGetError - Common test code for the namespace Get() error cases
-func runTestReconcileGetError(t *testing.T, returnErr error, expectedErr error) {
+func runTestReconcileGetError(t *testing.T, returnErr error, expectedResult ctrl.Result) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -147,8 +150,11 @@ func runTestReconcileGetError(t *testing.T, returnErr error, expectedErr error) 
 	result, err := nc.Reconcile(req)
 
 	mocker.Finish()
-	asserts.Equal(err, expectedErr)
-	asserts.Equal(ctrl.Result{}, result)
+	asserts.Nil(err)
+	asserts.Equal(expectedResult.Requeue, result.Requeue)
+	if result.Requeue {
+		asserts.Greater(result.RequeueAfter.Seconds(), time.Duration(0).Seconds())
+	}
 }
 
 // TestReconcileNamespaceDeleted tests the Reconcile method for the following use case
@@ -231,20 +237,20 @@ func TestReconcileNamespaceDeletedErrorOnUpdate(t *testing.T) {
 	asserts.NoError(err)
 
 	// Force a failure
-	expectedErr := fmt.Errorf("error updating OCI Logging")
+	returnedErr := fmt.Errorf("error updating OCI Logging")
 	removeNamespaceLoggingFunc = func(_ context.Context, _ client.Client, _ string) (bool, error) {
-		return false, expectedErr
+		return false, returnedErr
 	}
 	defer func() { removeNamespaceLoggingFunc = removeNamespaceLogging }()
 
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "myns"},
 	}
-	result, err := nc.Reconcile(req)
+	result, _ := nc.Reconcile(req)
 
 	mocker.Finish()
-	asserts.Equal(expectedErr, err)
-	asserts.True(result.IsZero())
+	asserts.True(result.Requeue)
+	asserts.Greater(result.RequeueAfter.Seconds(), time.Duration(0).Seconds())
 }
 
 // TestReconcileNamespaceDeletedNoFinalizer tests the Reconcile method for the following use case
@@ -309,7 +315,7 @@ func Test_removeFinalizer(t *testing.T) {
 	nc, err := newTestController(mock)
 	asserts.NoError(err)
 
-	result, err := nc.removeFinalizer(context.TODO(), ns)
+	result, err := nc.removeFinalizer(context.TODO(), ns, logger)
 
 	mocker.Finish()
 	asserts.NoError(err)
@@ -343,7 +349,7 @@ func Test_removeFinalizerNotPresent(t *testing.T) {
 	nc, err := newTestController(mock)
 	asserts.NoError(err)
 
-	result, err := nc.removeFinalizer(context.TODO(), ns)
+	result, err := nc.removeFinalizer(context.TODO(), ns, logger)
 
 	mocker.Finish()
 	asserts.NoError(err)
@@ -378,7 +384,7 @@ func Test_removeFinalizerErrorOnUpdate(t *testing.T) {
 			return expectedErr
 		})
 
-	result, err := nc.removeFinalizer(context.TODO(), ns)
+	result, err := nc.removeFinalizer(context.TODO(), ns, logger)
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -417,7 +423,7 @@ func Test_reconcileNamespaceErrorOnUpdate(t *testing.T) {
 			return expectedErr
 		})
 
-	err = nc.reconcileNamespace(context.TODO(), ns)
+	err = nc.reconcileNamespace(context.TODO(), ns, logger)
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -451,7 +457,7 @@ func Test_reconcileNamespace(t *testing.T) {
 	}
 	defer func() { addNamespaceLoggingFunc = addNamespaceLogging }()
 
-	err = nc.reconcileNamespace(context.TODO(), ns)
+	err = nc.reconcileNamespace(context.TODO(), ns, logger)
 
 	mocker.Finish()
 	asserts.NoError(err)
@@ -483,7 +489,7 @@ func Test_reconcileNamespaceDelete(t *testing.T) {
 	}
 	defer func() { removeNamespaceLoggingFunc = removeNamespaceLogging }()
 
-	err = nc.reconcileNamespaceDelete(context.TODO(), ns)
+	err = nc.reconcileNamespaceDelete(context.TODO(), ns, logger)
 	asserts.NoError(err)
 }
 
@@ -513,7 +519,7 @@ func Test_reconcileOCILoggingRemoveOCILogging(t *testing.T) {
 	}
 	defer func() { removeNamespaceLoggingFunc = removeNamespaceLogging }()
 
-	err = nc.reconcileOCILogging(context.TODO(), ns)
+	err = nc.reconcileOCILogging(context.TODO(), ns, logger)
 
 	mocker.Finish()
 	asserts.NoError(err)
@@ -545,7 +551,7 @@ func Test_reconcileOCILoggingRemoveOCILoggingError(t *testing.T) {
 	}
 	defer func() { removeNamespaceLoggingFunc = removeNamespaceLogging }()
 
-	err = nc.reconcileOCILogging(context.TODO(), ns)
+	err = nc.reconcileOCILogging(context.TODO(), ns, logger)
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -607,7 +613,7 @@ func runAddOCILoggingTest(t *testing.T, addLoggingResult bool) {
 		mockFluentdRestart(mock, asserts)
 	}
 
-	err = nc.reconcileOCILogging(context.TODO(), ns)
+	err = nc.reconcileOCILogging(context.TODO(), ns, logger)
 
 	mocker.Finish()
 	asserts.NoError(err)
@@ -648,7 +654,7 @@ func Test_reconcileOCILoggingFinalizerAlreadyAdded(t *testing.T) {
 	// Expect no calls to update the namespace
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
 
-	err = nc.reconcileOCILogging(context.TODO(), ns)
+	err = nc.reconcileOCILogging(context.TODO(), ns, logger)
 
 	mocker.Finish()
 	asserts.NoError(err)
@@ -688,7 +694,7 @@ func Test_reconcileOCILoggingAddOCILoggingAddFailed(t *testing.T) {
 	// Expect a call to update the namespace annotations that succeeds
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
 
-	err = nc.reconcileOCILogging(context.TODO(), ns)
+	err = nc.reconcileOCILogging(context.TODO(), ns, logger)
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -711,6 +717,29 @@ func mockFluentdRestart(mock *mocks.MockClient, asserts *assert.Assertions) {
 			asserts.Contains(ds.Spec.Template.ObjectMeta.Annotations, vzconst.VerrazzanoRestartAnnotation)
 			return nil
 		})
+}
+
+// TestReconcileKubeSystem tests to make sure we do not reconcile
+// Any resource that belong to the kube-system namespace
+func TestReconcileKubeSystem(t *testing.T) {
+	asserts := assert.New(t)
+
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	nc, err := newTestController(mock)
+	asserts.NoError(err)
+
+	// create a request and reconcile it
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{Namespace: vzconst.KubeSystem},
+	}
+	result, err := nc.Reconcile(req)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.Nil(err)
+	asserts.True(result.IsZero())
 }
 
 // Fake manager for unit testing

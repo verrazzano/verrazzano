@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package containerizedworkload
@@ -11,12 +11,12 @@ import (
 	"testing"
 
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core"
-
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -45,7 +45,7 @@ func newScheme() *runtime.Scheme {
 func newReconciler(c client.Client) Reconciler {
 	return Reconciler{
 		Client: c,
-		Log:    ctrl.Log.WithName("test"),
+		Log:    zap.S().With("test"),
 		Scheme: newScheme(),
 	}
 }
@@ -54,7 +54,7 @@ func newReconciler(c client.Client) Reconciler {
 func newRequest(namespace string, name string) ctrl.Request {
 	return ctrl.Request{
 		NamespacedName: types.NamespacedName{
-			Namespace: testNamespace,
+			Namespace: namespace,
 			Name:      name,
 		},
 	}
@@ -125,6 +125,24 @@ func TestReconcileRestart(t *testing.T) {
 	mocker.Finish()
 	assert.NoError(err)
 	assert.Equal(false, result.Requeue)
+}
+
+// TestReconcileKubeSystem tests to make sure we do not reconcile
+// Any resource that belong to the kube-system namespace
+func TestReconcileKubeSystem(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	// create a request and reconcile it
+	request := newRequest(vzconst.KubeSystem, "test-verrazzano-containerized-workload")
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.NoError(err)
+	assert.True(result.IsZero())
 }
 
 // updateObjectFromYAMLTemplate updates an object from a populated YAML template file.

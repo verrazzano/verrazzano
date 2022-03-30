@@ -6,13 +6,11 @@ package keycloak
 import (
 	"testing"
 
-	certmanager "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -66,68 +64,6 @@ func TestIsEnabled(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(fake.NewFakeClientWithScheme(k8scheme.Scheme), tt.vz, false)
 			assert.Equal(t, tt.isEnabled, kcComponent.IsEnabled(ctx))
-		})
-	}
-}
-
-func TestIsReady(t *testing.T) {
-	readySecret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      getSecretName(testVZ),
-			Namespace: ComponentNamespace,
-		},
-	}
-	scheme := k8scheme.Scheme
-	_ = certmanager.AddToScheme(scheme)
-	var tests = []struct {
-		name    string
-		c       client.Client
-		isReady bool
-	}{
-		{
-			"should not be ready when certificate not found",
-			fake.NewFakeClientWithScheme(scheme),
-			false,
-		},
-		{
-			"should not be ready when certificate has no status",
-			fake.NewFakeClientWithScheme(scheme, &certmanager.Certificate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      getSecretName(testVZ),
-					Namespace: ComponentNamespace,
-				},
-			}),
-			false,
-		},
-		{
-			"should not be ready when secret does not exists",
-			fake.NewFakeClientWithScheme(scheme),
-			false,
-		},
-		{
-			"should not be ready when certificate status is ready but statefulset is not ready",
-			fake.NewFakeClientWithScheme(scheme, readySecret),
-			false,
-		},
-		{
-			"should be ready when certificate status is ready and statefulset is ready",
-			fake.NewFakeClientWithScheme(scheme, readySecret, &appsv1.StatefulSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: ComponentNamespace,
-					Name:      ComponentName,
-				},
-				Status: appsv1.StatefulSetStatus{
-					ReadyReplicas: 1,
-				},
-			}),
-			true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.c, testVZ, false)
-			assert.Equal(t, tt.isReady, kcComponent.IsReady(ctx))
 		})
 	}
 }

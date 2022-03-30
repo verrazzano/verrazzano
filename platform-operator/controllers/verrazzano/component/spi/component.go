@@ -4,8 +4,8 @@
 package spi
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -13,7 +13,7 @@ import (
 // ComponentContext Defines the context objects required for Component operations
 type ComponentContext interface {
 	// Log returns the logger for the context
-	Log() *zap.SugaredLogger
+	Log() vzlog.VerrazzanoLogger
 	// GetClient returns the controller client for the context
 	Client() clipkg.Client
 	// ActualCR returns the actual unmerged Verrazzano resource
@@ -24,8 +24,8 @@ type ComponentContext interface {
 	IsDryRun() bool
 	// Copy returns a copy of the current context
 	Copy() ComponentContext
-	// For returns a copy of the current context with an updated logging component field
-	For(comp string) ComponentContext
+	// Init returns a copy of the current context with an updated logging component field
+	Init(comp string) ComponentContext
 	// Operation specifies the logging operation field
 	Operation(op string) ComponentContext
 	// GetOperation returns the operation object in the context

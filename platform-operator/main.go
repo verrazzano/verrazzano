@@ -5,8 +5,12 @@ package main
 
 import (
 	"flag"
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
+	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -35,7 +39,7 @@ var scheme = runtime.NewScheme()
 
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
-
+	_ = vmov1.AddToScheme(scheme)
 	_ = installv1alpha1.AddToScheme(scheme)
 	_ = clustersv1alpha1.AddToScheme(scheme)
 
@@ -45,6 +49,9 @@ func init() {
 	_ = oam.AddToScheme(scheme)
 
 	_ = vzapp.AddToScheme(scheme)
+
+	// Add cert-manager components to the scheme
+	cmapiv1.AddToScheme(scheme)
 
 	// +kubebuilder:scaffold:scheme
 }
@@ -70,6 +77,7 @@ func main() {
 	flag.StringVar(&config.VerrazzanoRootDir, "vz-root-dir", config.VerrazzanoRootDir,
 		"Specify the root directory of Verrazzano (used for development)")
 	flag.StringVar(&bomOverride, "bom-path", "", "BOM file location")
+	flag.BoolVar(&helm.Debug, "helm-debug", helm.Debug, "Add the --debug flag to helm commands")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}
@@ -161,7 +169,7 @@ func main() {
 	// Setup the validation webhook
 	if config.WebhooksEnabled {
 		log.Debug("Setting up Verrazzano webhook with manager")
-		if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr); err != nil {
+		if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr, log); err != nil {
 			log.Errorf("Failed to setup webhook with manager: %v", err)
 			os.Exit(1)
 		}

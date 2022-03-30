@@ -1,4 +1,4 @@
-// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package logging
@@ -9,8 +9,8 @@ import (
 	"os"
 
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
-	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,14 +37,14 @@ func init() {
 
 // FluentdManager is a general interface to interact with FLUENTD related resources
 type FluentdManager interface {
-	Apply(logInfo *LogInfo, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) (bool, error)
+	Apply(logInfo *LogInfo, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) error
 	Remove(logInfo *LogInfo, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) bool
 }
 
 // Fluentd is an implementation of FluentdManager.
 type Fluentd struct {
 	k8sclient.Client
-	Log                    logr.Logger
+	Log                    *zap.SugaredLogger
 	Context                context.Context
 	ParseRules             string
 	StorageVolumeName      string
@@ -63,19 +63,16 @@ type FluentdPod struct {
 
 // Apply applies FLUENTD configuration to create/update FLUENTD container, configmap, volumes and volume mounts.
 // Returns true if any changes are made; false otherwise.
-func (f *Fluentd) Apply(logInfo *LogInfo, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) (bool, error) {
-	upToDate := f.isFluentdContainerUpToDate(fluentdPod.Containers, logInfo)
-	if !upToDate {
-		err := f.ensureFluentdConfigMapExists(resource.Namespace)
-		if err != nil {
-			return false, err
-		}
-		f.ensureFluentdVolumes(fluentdPod)
-		f.ensureFluentdVolumeMountExists(fluentdPod)
-		f.ensureFluentdContainer(fluentdPod, logInfo, resource.Namespace)
-		return true, nil
+func (f *Fluentd) Apply(logInfo *LogInfo, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) error {
+	if err := f.ensureFluentdConfigMapExists(resource.Namespace); err != nil {
+		return err
 	}
-	return false, nil
+
+	f.ensureFluentdVolumes(fluentdPod)
+	f.ensureFluentdVolumeMountExists(fluentdPod)
+	f.ensureFluentdContainer(fluentdPod, logInfo, resource.Namespace)
+
+	return nil
 }
 
 // Remove removes FLUENTD container, configmap, volumes and volume mounts.
@@ -254,19 +251,6 @@ func (f *Fluentd) removeFluentdConfigMap(namespace string) bool {
 	}
 	// return true when we confirm that the configmap has been successfully deleted
 	return !(configMapExists) && err == nil
-}
-
-// isFluentdContainerUpToDate is used to determine if the FLUENTD container is in the current expected state
-func (f *Fluentd) isFluentdContainerUpToDate(containers []v1.Container, logInfo *LogInfo) bool {
-	for _, container := range containers {
-		if container.Name != FluentdStdoutSidecarName {
-			continue
-		}
-		if container.Image == logInfo.FluentdImage {
-			return true
-		}
-	}
-	return false
 }
 
 // createFluentdContainer creates the FLUENTD stdout sidecar container

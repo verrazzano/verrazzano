@@ -7,15 +7,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"reflect"
 	"strings"
+
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/gertd/go-pluralize"
-	"github.com/go-logr/logr"
 	ptypes "github.com/gogo/protobuf/types"
-	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -23,6 +26,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
+	"go.uber.org/zap"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	appsv1 "k8s.io/api/apps/v1"
@@ -45,7 +49,7 @@ const (
 	gatewayKind               = "Gateway"
 	virtualServiceAPIVersion  = "networking.istio.io/v1alpha3"
 	virtualServiceKind        = "VirtualService"
-	certificateAPIVersion     = "cert-manager.io/v1alpha2"
+	certificateAPIVersion     = "cert-manager.io/v1"
 	certificateKind           = "Certificate"
 	serviceAPIVersion         = "v1"
 	serviceKind               = "Service"
@@ -57,6 +61,7 @@ const (
 	wlProxySSLHeaderVal       = "true"
 	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
 	destinationRuleKind       = "DestinationRule"
+	controllerName            = "ingresstrait"
 )
 
 // The port names used by WebLogic operator that do not have http prefix.
@@ -69,7 +74,7 @@ var (
 // Reconciler is used to reconcile an IngressTrait object
 type Reconciler struct {
 	client.Client
-	Log    logr.Logger
+	Log    *zap.SugaredLogger
 	Scheme *runtime.Scheme
 }
 
@@ -88,23 +93,52 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=ingresstraits,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=ingresstraits/status,verbs=get;update;patch
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	var err error
-	ctx := context.Background()
-	r.Log.Info("Reconcile ingress trait", "trait", req.NamespacedName)
-	nsn := types.NamespacedName{Name: req.Name, Namespace: req.Namespace}
 
-	// Fetch the trait.
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == vzconst.KubeSystem {
+		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
+		log.Infof("Ingress trait resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
+		return reconcile.Result{}, nil
+	}
+
+	var err error
 	var trait *vzapi.IngressTrait
-	if trait, err = r.fetchTrait(ctx, nsn); err != nil {
-		return reconcile.Result{}, err
+	ctx := context.Background()
+	if trait, err = r.fetchTrait(ctx, req.NamespacedName, zap.S()); err != nil {
+		return clusters.IgnoreNotFoundWithLog(err, zap.S())
 	}
 	// If the trait no longer exists or is being deleted then return success.
 	if trait == nil || isTraitBeingDeleted(trait) {
 		return reconcile.Result{}, nil
 	}
+	log, err := clusters.GetResourceLogger("ingresstrait", req.NamespacedName, trait)
+	if err != nil {
+		zap.S().Errorf("Failed to create controller logger for ingress trait resource: %v", err)
+		return clusters.NewRequeueWithDelay(), nil
+	}
+	log.Oncef("Reconciling ingress trait resource %v, generation %v", req.NamespacedName, trait.Generation)
 
+	res, err := r.doReconcile(ctx, trait, log)
+	if clusters.ShouldRequeue(res) {
+		return res, nil
+	}
+	// Never return an error since it has already been logged and we don't want the
+	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
+	if err != nil {
+		return clusters.NewRequeueWithDelay(), nil
+	}
+
+	log.Oncef("Finished reconciling ingress trait %v", req.NamespacedName)
+
+	return ctrl.Result{}, nil
+}
+
+// doReconcile performs the reconciliation operations for the ingress trait
+func (r *Reconciler) doReconcile(ctx context.Context, trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
 	// Create or update the child resources of the trait and collect the outcomes.
-	status, result, err := r.createOrUpdateChildResources(ctx, trait)
+	status, result, err := r.createOrUpdateChildResources(ctx, trait, log)
 	if err != nil {
 		return reconcile.Result{}, err
 	} else if result.Requeue {
@@ -117,7 +151,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 // createOrUpdateChildResources creates or updates the Gateway and VirtualService resources that
 // should be used to setup ingress to the service.
-func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vzapi.IngressTrait) (*reconcileresults.ReconcileResults, ctrl.Result, error) {
+func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) (*reconcileresults.ReconcileResults, ctrl.Result, error) {
 	status := reconcileresults.ReconcileResults{}
 	rules := trait.Spec.Rules
 	// If there are no rules, create a single default rule
@@ -125,18 +159,18 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 		rules = []vzapi.IngressRule{{}}
 	}
 	for index, rule := range rules {
-		secretName := r.createOrUseGatewaySecret(ctx, trait, &status)
+		secretName := r.createOrUseGatewaySecret(ctx, trait, rule, &status, log)
 		if secretName != "" {
 			gwName, err := getGatewayName(trait)
 			if err != nil {
 				status.Errors = append(status.Errors, err)
 			} else {
 				// Must create GW before service so that external DNS sees the GW once the service is created
-				gateway := r.createOrUpdateGateway(ctx, trait, rule, gwName, secretName, &status)
+				gateway := r.createOrUpdateGateway(ctx, trait, rule, gwName, secretName, &status, log)
 
 				// Find the services associated with the trait in the application configuration.
 				var services []*corev1.Service
-				services, err = r.fetchServicesFromTrait(ctx, trait)
+				services, err = r.fetchServicesFromTrait(ctx, trait, log)
 				if err != nil {
 					return &status, reconcile.Result{}, err
 				} else if len(services) == 0 {
@@ -146,8 +180,8 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 
 				vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, index)
 				drName := fmt.Sprintf("%s-rule-%d-dr", trait.Name, index)
-				r.createOrUpdateVirtualService(ctx, trait, rule, vsName, services, gateway, &status)
-				r.createOrUpdateDestinationRule(ctx, trait, rule, drName, &status)
+				r.createOrUpdateVirtualService(ctx, trait, rule, vsName, services, gateway, &status, log)
+				r.createOrUpdateDestinationRule(ctx, trait, rule, drName, &status, log)
 			}
 		}
 	}
@@ -186,15 +220,15 @@ func isTraitBeingDeleted(trait *vzapi.IngressTrait) bool {
 
 // fetchTrait attempts to get a trait given a namespaced name.
 // Will return nil for the trait and no error if the trait does not exist.
-func (r *Reconciler) fetchTrait(ctx context.Context, nsn types.NamespacedName) (*vzapi.IngressTrait, error) {
+func (r *Reconciler) fetchTrait(ctx context.Context, nsn types.NamespacedName, log *zap.SugaredLogger) (*vzapi.IngressTrait, error) {
 	var trait vzapi.IngressTrait
-	r.Log.Info("Fetching trait", "trait", nsn)
+	log.Debugf("Fetching trait %s", nsn.Name)
 	if err := r.Get(ctx, nsn, &trait); err != nil {
 		if k8serrors.IsNotFound(err) {
-			r.Log.Info("Trait is not found", "trait", nsn)
+			log.Debugf("Trait %s is not found: %v", nsn.Name, err)
 			return nil, nil
 		}
-		r.Log.Info("Failed to fetch trait", "trait", nsn)
+		log.Debugf("Failed to fetch trait %s", nsn.Name)
 		return nil, err
 	}
 	return &trait, nil
@@ -205,13 +239,13 @@ func (r *Reconciler) fetchTrait(ctx context.Context, nsn types.NamespacedName) (
 // for example core.oam.dev/v1alpha2.ContainerizedWorkload would be converted to
 // containerizedworkloads.core.oam.dev.  Workload definitions are always found in the default
 // namespace.
-func (r *Reconciler) fetchWorkloadDefinition(ctx context.Context, workload *unstructured.Unstructured) (*v1alpha2.WorkloadDefinition, error) {
+func (r *Reconciler) fetchWorkloadDefinition(ctx context.Context, workload *unstructured.Unstructured, log vzlog.VerrazzanoLogger) (*v1alpha2.WorkloadDefinition, error) {
 	workloadAPIVer, _, _ := unstructured.NestedString(workload.Object, "apiVersion")
 	workloadKind, _, _ := unstructured.NestedString(workload.Object, "kind")
 	workloadName := convertAPIVersionAndKindToNamespacedName(workloadAPIVer, workloadKind)
 	workloadDef := v1alpha2.WorkloadDefinition{}
 	if err := r.Get(ctx, workloadName, &workloadDef); err != nil {
-		r.Log.Error(err, "Failed to fetch workload definition", "workload", workloadName)
+		log.Errorf("Failed to fetch workload %s definition: %v", workloadName, err)
 		return nil, err
 	}
 	return &workloadDef, nil
@@ -222,28 +256,28 @@ func (r *Reconciler) fetchWorkloadDefinition(ctx context.Context, workload *unst
 // Finding children is done by first looking to the workflow definition of the provided workload.
 // The workload definition contains a set of child resource types supported by the workload.
 // The namespace of the workload is then searched for child resources of the supported types.
-func (r *Reconciler) fetchWorkloadChildren(ctx context.Context, workload *unstructured.Unstructured) ([]*unstructured.Unstructured, error) {
+func (r *Reconciler) fetchWorkloadChildren(ctx context.Context, workload *unstructured.Unstructured, log vzlog.VerrazzanoLogger) ([]*unstructured.Unstructured, error) {
 	var err error
 	var workloadDefinition *v1alpha2.WorkloadDefinition
 
 	// Attempt to fetch workload definition based on the workload GVK.
-	if workloadDefinition, err = r.fetchWorkloadDefinition(ctx, workload); err != nil {
-		r.Log.Info("Workload definition not found")
+	if workloadDefinition, err = r.fetchWorkloadDefinition(ctx, workload, log); err != nil {
+		log.Debug("Workload definition not found")
 	}
 	if workloadDefinition != nil {
 		// If the workload definition is found then fetch child resources of the declared child types
 		var children []*unstructured.Unstructured
-		if children, err = r.fetchChildResourcesByAPIVersionKinds(ctx, workload.GetNamespace(), workload.GetUID(), workloadDefinition.Spec.ChildResourceKinds); err != nil {
+		if children, err = r.fetchChildResourcesByAPIVersionKinds(ctx, workload.GetNamespace(), workload.GetUID(), workloadDefinition.Spec.ChildResourceKinds, log); err != nil {
 			return nil, err
 		}
 		return children, nil
 	} else if workload.GetAPIVersion() == appsv1.SchemeGroupVersion.String() {
 		// Else if this is a native resource then use the workload itself as the child
-		r.Log.Info("Found native workload")
+		log.Debug("Found native workload")
 		return []*unstructured.Unstructured{workload}, nil
 	} else {
 		// Else return an error that the workload type is not supported by this trait.
-		r.Log.Info("Workload not supported by trait")
+		log.Debug("Workload not supported by trait")
 		return nil, fmt.Errorf("Workload not supported by trait")
 	}
 }
@@ -257,21 +291,21 @@ func (r *Reconciler) fetchWorkloadChildren(ctx context.Context, workload *unstru
 // namespace - The namespace to search for children objects
 // parentUID - The parent UID a child must have to be included in the result.
 // childResKinds - The set of resource kinds a child's resource kind must in to be included in the result.
-func (r *Reconciler) fetchChildResourcesByAPIVersionKinds(ctx context.Context, namespace string, parentUID types.UID, childResKinds []v1alpha2.ChildResourceKind) ([]*unstructured.Unstructured, error) {
+func (r *Reconciler) fetchChildResourcesByAPIVersionKinds(ctx context.Context, namespace string, parentUID types.UID, childResKinds []v1alpha2.ChildResourceKind, log vzlog.VerrazzanoLogger) ([]*unstructured.Unstructured, error) {
 	var childResources []*unstructured.Unstructured
-	r.Log.Info("Fetch child resources")
+	log.Debug("Fetch child resources")
 	for _, childResKind := range childResKinds {
 		resources := unstructured.UnstructuredList{}
 		resources.SetAPIVersion(childResKind.APIVersion)
 		resources.SetKind(childResKind.Kind + "List") // Only required by "fake" client used in tests.
 		if err := r.List(ctx, &resources, client.InNamespace(namespace), client.MatchingLabels(childResKind.Selector)); err != nil {
-			r.Log.Error(err, "Failed listing child resources")
+			log.Errorf("Failed listing child resources: %v", err)
 			return nil, err
 		}
 		for i, item := range resources.Items {
 			for _, owner := range item.GetOwnerReferences() {
 				if owner.UID == parentUID {
-					r.Log.Info(fmt.Sprintf("Found child %s.%s:%s", item.GetAPIVersion(), item.GetKind(), item.GetName()))
+					log.Debugf("Found child %s.%s:%s", item.GetAPIVersion(), item.GetKind(), item.GetName())
 					childResources = append(childResources, &resources.Items[i])
 					break
 				}
@@ -283,13 +317,13 @@ func (r *Reconciler) fetchChildResourcesByAPIVersionKinds(ctx context.Context, n
 
 // createOrUseGatewaySecret will create a certificate that will be embedded in an secret or leverage an existing secret
 // if one is configured in the ingress.
-func (r *Reconciler) createOrUseGatewaySecret(ctx context.Context, trait *vzapi.IngressTrait, status *reconcileresults.ReconcileResults) string {
+func (r *Reconciler) createOrUseGatewaySecret(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) string {
 	var secretName string
 
 	if trait.Spec.TLS != (vzapi.IngressSecurity{}) {
 		secretName = r.validateConfiguredSecret(trait, status)
 	} else {
-		secretName = r.createGatewayCertificate(ctx, trait, status)
+		secretName = r.createGatewayCertificate(ctx, trait, rule, status, log)
 	}
 
 	return secretName
@@ -300,7 +334,7 @@ func (r *Reconciler) createOrUseGatewaySecret(ctx context.Context, trait *vzapi.
 // There will be one gateway generated per application.  The generated virtual services will be routed via the
 // application-wide gateway.  This implementation addresses a known Istio traffic management issue
 // (see https://istio.io/v1.7/docs/ops/common-problems/network-issues/#404-errors-occur-when-multiple-gateways-configured-with-same-tls-certificate)
-func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.IngressTrait, status *reconcileresults.ReconcileResults) string {
+func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) string {
 	var secretName string
 	var err error
 	var certName string
@@ -308,7 +342,7 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 	//ensure trait does not specify hosts.  should be moved to ingress trait validating webhook
 	for _, rule := range trait.Spec.Rules {
 		if len(rule.Hosts) != 0 {
-			r.Log.Info("host(s) specified in the trait rules will likely not correlate to the generated certificate CN." +
+			log.Debug("Host(s) specified in the trait rules will likely not correlate to the generated certificate CN." +
 				" Please redeploy after removing the hosts or specifying a secret with the given hosts in its SAN list")
 			break
 		}
@@ -323,13 +357,13 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 	}
 	certName, err = buildCertificateNameFromAppName(types.NamespacedName{Namespace: trait.Namespace, Name: appName})
 	if err != nil {
-		r.Log.Error(err, "failed to create certificate name from ingress trait")
+		log.Errorf("Failed to create certificate name from ingress trait: %v", err)
 		status.Errors = append(status.Errors, err)
 		status.Results = append(status.Results, controllerutil.OperationResultNone)
 		return ""
 	}
 	secretName = fmt.Sprintf("%s-secret", certName)
-	certificate := &certapiv1alpha2.Certificate{
+	certificate := &certapiv1.Certificate{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       certificateKind,
 			APIVersion: certificateAPIVersion,
@@ -340,12 +374,12 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 		}}
 
 	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, certificate, func() error {
-		appDomainName, err := buildNamespacedDomainName(r, trait)
+		hosts, err := createHostsFromIngressTraitRule(r, rule, trait)
 		if err != nil {
 			return err
 		}
-		certificate.Spec = certapiv1alpha2.CertificateSpec{
-			DNSNames:   []string{fmt.Sprintf("*.%s", appDomainName)},
+		certificate.Spec = certapiv1.CertificateSpec{
+			DNSNames:   hosts,
 			SecretName: secretName,
 			IssuerRef: certv1.ObjectReference{
 				Name: verrazzanoClusterIssuer,
@@ -361,7 +395,7 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 	status.Errors = append(status.Errors, err)
 
 	if err != nil {
-		r.Log.Error(err, "failed to create or update gateway secret containing certificate")
+		log.Errorf("Failed to create or update gateway secret containing certificate: %v", err)
 		return ""
 	}
 
@@ -391,7 +425,7 @@ func (r *Reconciler) validateConfiguredSecret(trait *vzapi.IngressTrait, status 
 
 // createOrUpdateGateway creates or updates the Gateway child resource of the trait.
 // Results are added to the status object.
-func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, secretName string, status *reconcileresults.ReconcileResults) *istioclient.Gateway {
+func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, secretName string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) *istioclient.Gateway {
 	// Create a gateway populating only name metadata.
 	// This is used as default if the gateway needs to be created.
 	gateway := &istioclient.Gateway{
@@ -417,7 +451,7 @@ func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.Ing
 	status.Errors = append(status.Errors, err)
 
 	if err != nil {
-		r.Log.Error(err, "Failed to create or update gateway.")
+		log.Errorf("Failed to create or update gateway: %v", err)
 	}
 
 	return gateway
@@ -489,7 +523,7 @@ func findHost(hosts []string, newHost string) (int, bool) {
 
 // createOrUpdateVirtualService creates or updates the VirtualService child resource of the trait.
 // Results are added to the status object.
-func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, services []*corev1.Service, gateway *istioclient.Gateway, status *reconcileresults.ReconcileResults) {
+func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, services []*corev1.Service, gateway *istioclient.Gateway, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) {
 	// Create a virtual service populating only name metadata.
 	// This is used as default if the virtual service needs to be created.
 	virtualService := &istioclient.VirtualService{
@@ -510,7 +544,7 @@ func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vz
 	status.Errors = append(status.Errors, err)
 
 	if err != nil {
-		r.Log.Error(err, "Failed to create or update virtual service.")
+		log.Errorf("Failed to create or update virtual service: %v", err)
 	}
 }
 
@@ -553,7 +587,7 @@ func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualSer
 }
 
 //createOfUpdateDestinationRule creates or updates the DestinationRule.
-func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, status *reconcileresults.ReconcileResults) {
+func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) {
 	if rule.Destination.HTTPCookie != nil {
 		destinationRule := &istioclient.DestinationRule{
 			TypeMeta: metav1.TypeMeta{
@@ -574,7 +608,7 @@ func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *v
 		status.Errors = append(status.Errors, err)
 
 		if err != nil {
-			r.Log.Error(err, "Failed to create or update destination rule.")
+			log.Errorf("Failed to create or update destination rule: %v", err)
 		}
 	}
 }
@@ -845,24 +879,24 @@ func createHostsFromIngressTraitRule(cli client.Reader, rule vzapi.IngressRule, 
 // This is done by first finding the workload related to the trait.
 // Then the child resources of the workload are founds.
 // Finally those child resources are scanned to find Service resources which are returned.
-func (r *Reconciler) fetchServicesFromTrait(ctx context.Context, trait *vzapi.IngressTrait) ([]*corev1.Service, error) {
+func (r *Reconciler) fetchServicesFromTrait(ctx context.Context, trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) ([]*corev1.Service, error) {
 	var err error
 
 	// Fetch workload resource
 	var workload *unstructured.Unstructured
-	if workload, err = vznav.FetchWorkloadFromTrait(ctx, r.Client, r.Log, trait); err != nil {
+	if workload, err = vznav.FetchWorkloadFromTrait(ctx, r.Client, log, trait); err != nil || workload == nil {
 		return nil, err
 	}
 
 	// Fetch workload child resources
 	var children []*unstructured.Unstructured
-	if children, err = r.fetchWorkloadChildren(ctx, workload); err != nil {
+	if children, err = r.fetchWorkloadChildren(ctx, workload, log); err != nil {
 		return nil, err
 	}
 
 	// Find the services from within the list of unstructured child resources
 	var services []*corev1.Service
-	services, err = r.extractServicesFromUnstructuredChildren(children)
+	services, err = r.extractServicesFromUnstructuredChildren(children, log)
 	if err != nil {
 		return nil, err
 	}
@@ -874,7 +908,7 @@ func (r *Reconciler) fetchServicesFromTrait(ctx context.Context, trait *vzapi.In
 // The children array is scanned looking for Service's APIVersion and Kind,
 // If found the unstructured data is converted to a Service object and returned.
 // children - An array of unstructured children
-func (r *Reconciler) extractServicesFromUnstructuredChildren(children []*unstructured.Unstructured) ([]*corev1.Service, error) {
+func (r *Reconciler) extractServicesFromUnstructuredChildren(children []*unstructured.Unstructured, log vzlog.VerrazzanoLogger) ([]*corev1.Service, error) {
 	var services []*corev1.Service
 
 	for _, child := range children {
@@ -894,7 +928,7 @@ func (r *Reconciler) extractServicesFromUnstructuredChildren(children []*unstruc
 	}
 
 	// Log that the child service was not found and return a nil service
-	r.Log.Info("No child service found")
+	log.Debug("No child service found")
 	return services, nil
 }
 

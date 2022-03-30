@@ -4,9 +4,6 @@
 def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
-def PROXY_IMAGES_SPRINGBOOT
-def PROXY_IMAGES_TODO
-def PROXY_IMAGES_BOBSBOOKS
 
 pipeline {
     options {
@@ -105,6 +102,11 @@ pipeline {
          PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
          TEST_ENV_LABEL = "kind"
          K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
+
+         // used to generate Ginkgo test reports
+         TEST_REPORT = "test-report.xml"
+         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
+         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
     }
 
     stages {
@@ -161,21 +163,7 @@ pipeline {
                         }
                     }
                 }
-                script {
-                    try {
-                        sh """
-                            echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                        """
-                    } catch(error) {
-                        echo "OCR docker login failed, retrying after sleep"
-                        retry(4) {
-                            sleep(30)
-                            sh """
-                                echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                            """
-                        }
-                    }
-                }
+
                 sh """
                     rm -rf ${GO_REPO_PATH}/verrazzano
                     mkdir -p ${GO_REPO_PATH}/verrazzano
@@ -233,6 +221,7 @@ pipeline {
                 }
             }
         }
+
         stage('Pre-upgrade Acceptance Tests') {
             environment {
                 TEST_ENV = "KIND"
@@ -241,62 +230,44 @@ pipeline {
                 SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
 
-            parallel {
-                stage('verify-install') {
-                    steps {
-                        runGinkgoRandomize('verify-install')
-                    }
-                }
-                stage('verify-infra restapi') {
-                    steps {
-                        runGinkgoRandomize('verify-infra/restapi')
-                    }
-                }
-                stage('verify-infra oam') {
-                    steps {
-                        runGinkgoRandomize('verify-infra/oam')
-                    }
-                }
-                stage('verify-infra vmi') {
-                    steps {
-                        runGinkgoRandomize('verify-infra/vmi')
-                    }
-                }
-                stage('examples spring') {
-                    steps {
-                        runGinkgo('examples/springboot', "false", "true")
-                        script {
-                            PROXY_IMAGES_SPRINGBOOT = getProxyImageCount("springboot")
+            stages {
+                stage('Run Acceptance Tests Before Upgrade') {
+                    parallel {
+                        stage('examples spring') {
+                            steps {
+                                runGinkgoNamespace('examples/springboot', "false", "true", "springboot")
+                            }
                         }
-                    }
-                }
-                stage('examples helidon') {
-                    steps {
-                        runGinkgoNamespace('examples/helidon', "false", "true", "hello-helidon")
-                    }
-                }
-                stage('examples socks') {
-                    steps {
-                        runGinkgo('examples/socks', "false", "true")
-                    }
-                }
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-                failure {
-                    script {
-                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('pre-upgrade-tests-cluster-dump')
+                        stage('examples helidon') {
+                            steps {
+                                runGinkgoNamespace('examples/helidon', "false", "true", "hello-helidon")
+                            }
                         }
+                        // Re-enable this stage when a mechanism is in place to deploy different comp and app yamls based on VZ version
+//                         stage('examples socks') {
+//                             steps {
+//                                 runGinkgoNamespace('examples/socks', "false", "true", "sockshop")
+//                             }
+//                         }
                     }
-                }
-                success {
-                    script {
-                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('install-success-cluster-dump')
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                        failure {
+                            script {
+                                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                                    dumpK8sCluster('pre-upgrade-tests-cluster-dump')
+                                }
+                            }
+                        }
+                        success {
+                            script {
+                                if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                                    dumpK8sCluster('install-success-cluster-dump')
+                                }
+                            }
                         }
                     }
                 }
@@ -394,123 +365,7 @@ pipeline {
                 failure {
                     script {
                         if (fileExists(env.TESTS_EXECUTED_FILE)) {
-                            dumpK8sCluster('post-upgrade-failure-cluster-dump')
-                        }
-                    }
-                }
-            }
-        }
-
-        stage("Validate Apps Restarted") {
-            steps {
-                sh """
-                    echo "Application pods after upgrade:"
-                    ${TEST_SCRIPTS_DIR}/dump_pods.sh ${APP_NAMEPACES} > ${NEW_PODS_FILE}
-                    cat ${NEW_PODS_FILE}
-                """
-            }
-            post {
-                failure {
-                    script {
-                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('restart-apps-failure-cluster-dump')
-                        }
-                    }
-                }
-                success {
-                    script {
-                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('restart-apps-success-cluster-dump')
-                        }
-                    }
-                }
-            }
-        }
-
-        stage("Validate Upgrade") {
-            parallel {
-                stage("Validate BOM") {
-                    when {
-                        allOf {
-                            expression{params.RUN_BOM_VALIDATOR == true}
-                        }
-                    }
-                    environment {
-                        OCI_CLI_AUTH="instance_principal"
-                        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                        OCI_OS_BUCKET="verrazzano-builds"
-                    }
-                    steps {
-                        sh """
-                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
-                            chmod +x ${WORKSPACE}/bom-validator
-                            ${WORKSPACE}/bom-validator
-                        """
-                    }
-                }
-                stage("Validate helm istio releases removed") {
-                    steps {
-                        validateHelmIstioReleasesDeleted()
-                    }
-                }
-                stage("Validate istiocoredns uninstalled") {
-                    steps {
-                        validateIstioCoreDNSUninstall()
-                    }
-                }
-                stage("Validate springboot istio upgrade") {
-                    steps {
-                        validateProxyImageCount("springboot", PROXY_IMAGES_SPRINGBOOT)
-                    }
-                }
-                stage("Istioctl verify install") {
-                    steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            sh """
-                                istioctl verify-install
-                            """
-                        }
-                    }
-                }
-            }
-            post {
-                failure {
-                    script {
-                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('validate-upgrade-failure-cluster-dump')
-                        }
-                    }
-                }
-                success {
-                    script {
-                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('validate-upgrade-success-cluster-dump')
-                        }
-                    }
-                }
-            }
-        }
-
-        stage("Validate Apps Restarted2") {
-            steps {
-                sh """
-                    echo "Application pods after post-upgrade verify:"
-                    ${TEST_SCRIPTS_DIR}/dump_pods.sh ${APP_NAMEPACES} > ${NEW_PODS_FILE2}
-                    cat ${NEW_PODS_FILE2}
-                """
-            }
-            post {
-                failure {
-                    script {
-                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('restart-apps-failure-cluster-dump2')
-                        }
-                    }
-                }
-                success {
-                    script {
-                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('restart-apps-success-cluster-dump2')
+                            dumpK8sCluster('upgrade-failure-cluster-dump')
                         }
                     }
                 }
@@ -524,74 +379,112 @@ pipeline {
                 SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
                 SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
-            parallel {
+
+            stages {
                 stage('verify-install') {
                     steps {
                         runGinkgoRandomize('verify-install')
                     }
-                }
-                stage('verify-infra restapi') {
-                    steps {
-                        runGinkgoRandomize('verify-infra/restapi')
-                    }
-                }
-                stage('verify-infra oam') {
-                    steps {
-                        runGinkgoRandomize('verify-infra/oam')
-                    }
-                }
-                stage('verify-infra vmi') {
-                    steps {
-                        runGinkgoRandomize('verify-infra/vmi')
-                    }
-                }
-                stage('verify-upgrade post-upgrade') {
-                    steps {
-                        runGinkgoRandomize('upgrade/post-upgrade/verify')
-                    }
-                }
-                stage('examples socks') {
-                    steps {
-                        runGinkgo('examples/socks', "true", "false")
-                    }
-                }
-                stage('examples spring') {
-                    steps {
-                        runGinkgo('examples/springboot', "true", "false")
-                    }
-                }
-                stage('examples helidon') {
-                    steps {
-                        runGinkgoNamespace('examples/helidon', "true", "false", "hello-helidon")
-                    }
-                }
-                stage('examples todo') {
-                    steps {
-                        runGinkgo('examples/todo', "false", "true")
-                    }
-                }
-                stage('examples bobs-books') {
-                    steps {
-                        runGinkgo('examples/bobsbooks', "false", "true")
-                    }
-                }
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-                failure {
-                    script {
-                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('post-upgrade-failure-cluster-dump')
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                        failure {
+                            script {
+                                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                                    dumpK8sCluster('post-upgrade-install-cluster-dump')
+                                }
+                            }
                         }
                     }
                 }
-                success {
-                    script {
-                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('post-upgrade-success-cluster-dump')
+
+                stage('Run Acceptance Tests After Upgrade') {
+                    parallel {
+                        stage("Validate BOM") {
+                            when {
+                                allOf {
+                                    expression{params.RUN_BOM_VALIDATOR == true}
+                                }
+                            }
+                            environment {
+                                OCI_CLI_AUTH="instance_principal"
+                                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                                OCI_OS_BUCKET="verrazzano-builds"
+                            }
+                            steps {
+                                sh """
+                                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
+                                    chmod +x ${WORKSPACE}/bom-validator
+                                    ${WORKSPACE}/bom-validator
+                                """
+                            }
+                        }
+                        stage('verify-infra restapi') {
+                            steps {
+                                runGinkgoRandomize('verify-infra/restapi')
+                            }
+                        }
+                        stage('verify-infra oam') {
+                            steps {
+                                runGinkgoRandomize('verify-infra/oam')
+                            }
+                        }
+                        stage('verify-infra vmi') {
+                            steps {
+                                runGinkgoRandomize('verify-infra/vmi')
+                            }
+                        }
+                        stage('verify-upgrade post-upgrade') {
+                            steps {
+                                runGinkgoRandomize('upgrade/post-upgrade/verify')
+                            }
+                        }
+                        stage('examples socks') {
+                            steps {
+                                runGinkgoNamespace('examples/socks', "false", "false", "sockshop")
+                            }
+                        }
+                        stage('examples spring') {
+                            steps {
+                                runGinkgoNamespace('examples/springboot', "true", "false", "springboot")
+                            }
+                        }
+                        stage('examples helidon') {
+                            steps {
+                                runGinkgoNamespace('examples/helidon', "true", "false", "hello-helidon")
+                            }
+                        }
+                        stage('examples todo') {
+                            steps {
+                                runGinkgoNamespace('examples/todo', "false", "true", "todo-list")
+                            }
+                        }
+                        stage('examples bobs-books') {
+                            steps {
+                                runGinkgoNamespace('examples/bobsbooks', "false", "true", "bobs-books")
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                        failure {
+                            script {
+                                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                                    dumpK8sCluster('post-upgrade-failure-cluster-dump')
+                                }
+                            }
+                        }
+                        success {
+                            script {
+                                if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                                    dumpK8sCluster('post-upgrade-success-cluster-dump')
+                                }
+                            }
                         }
                     }
                 }
@@ -679,8 +572,15 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/build/resources/**,**/*-cluster-dump/**', allowEmptyArchive: true
-            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+
+            sh """
+                # Copy the generated test reports to WORKSPACE to archive them
+                mkdir -p ${TEST_REPORT_DIR}
+                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
+            """
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/build/resources/**,**/*-cluster-dump/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
             script {
                 if (params.EMIT_METRICS) {
@@ -710,9 +610,6 @@ pipeline {
         failure {
             script {
                 METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
-                if (env.BRANCH_NAME == "master" || env.BRANCH_NAME ==~ "release-*") {
-                    pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
-                }
                 if (env.BRANCH_NAME == "master" || env.BRANCH_NAME ==~ "release-*" || env.BRANCH_NAME ==~ "mark/*") {
                     slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                 }
@@ -729,7 +626,7 @@ def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+            ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
@@ -738,7 +635,7 @@ def runGinkgo(testSuitePath, skipDeploy, skipUndeploy) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy}
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy}
         """
     }
 }
@@ -747,7 +644,7 @@ def runGinkgoNamespace(testSuitePath, skipDeploy, skipUndeploy, namespace) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --namespace=${namespace}
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --namespace=${namespace}
         """
     }
 }
@@ -948,90 +845,10 @@ def listHelmReleases(customMessage) {
     """
 }
 
-def validateHelmIstioReleasesDeleted() {
-    echo "Validating helm istio releases have been removed"
-    try {
-        istiod = sh(returnStdout: true, script: 'helm list -n istio-system | grep istiod -o -m 1').trim()
-    } catch(error) {
-        istiod = ""
-    }
-    if ("" != istiod.toString()) {
-        echo "helm release istiod found in istio-system namespace after upgrade"
-        helm list -n istio-system
-        exit 1
-    }
-
-    try {
-        istio_base = sh(returnStdout: true, script: 'helm list -n istio-system | grep istio-base -o -m 1').trim()
-    } catch(error) {
-        istio_base = ""
-    }
-    if ("" != istio_base.toString()) {
-        echo "helm release istio-base found in istio-system namespace after upgrade"
-        helm list -n istio-system
-        exit 1
-    }
-
-    try {
-        istio_ingress = sh(returnStdout: true, script: 'helm list -n istio-system | grep istio-ingress -o -m 1').trim()
-    } catch(error) {
-        istio_ingress = ""
-    }
-    if ("" != istio_ingress.toString()) {
-        echo "helm release istio-ingress found in istio-system namespace after upgrade"
-        helm list -n istio-system
-        exit 1
-    }
-
-    try {
-        istio_egress = sh(returnStdout: true, script: 'helm list -n istio-system | grep istio-egress -o -m 1').trim()
-    } catch(error) {
-        istio_egress = ""
-    }
-    if ("" != istio_egress.toString()) {
-        echo "helm release istio-egress found in istio-system namespace after upgrade"
-        helm list -n istio-system
-        exit 1
-    }
-}
-
-def validateIstioCoreDNSUninstall() {
-    retries = 12
-    for(int retry=0; retry<retries; retry++) {
-        try {
-            sh(returnStdout: true, script: 'helm list -n istio-system | grep istiocoredns -o -m 1').trim()
-        } catch(error) {
-            return
-        }
-        sleep(10)
-    }
-    echo "helm release istiocoredns found in istio-system namespace after upgrade"
-    helm list -n istio-system
-    exit 1
-}
-
 def restartExampleApps() {
     sh """
         kubectl rollout restart deployment -n springboot
 
         kubectl rollout restart deployment -n hello-helidon
     """
-}
-
-def getProxyImageCount(namespace)  {
-    def count = sh(returnStdout: true, script: "kubectl get pods -n ${namespace} -o jsonpath={.items[*].spec.containers[*].image} | grep ghcr.io/verrazzano/proxyv2:1.7.3 -o | wc -l")
-    return count
-}
-
-def validateProxyImageCount(namespace, count) {
-    for(int retry=0; retry<40; retry++) {
-        upgraded_proxy_images = sh(returnStdout: true, script: "kubectl get pods -n ${namespace} -o jsonpath={.items[*].spec.containers[*].image} | grep ghcr.io/verrazzano/proxyv2:1.10 -o | wc -l")
-        if(upgraded_proxy_images == count) {
-            echo "Found all ${count} expected istio proxy images in namespace ${namespace}"
-            return
-        }
-        sleep(15)
-    }
-    echo "Incorrect number of new istio proxy images in namespace ${namespace} after upgrade, found ${upgraded_proxy_images} but expected ${count}"
-    exit 1
 }

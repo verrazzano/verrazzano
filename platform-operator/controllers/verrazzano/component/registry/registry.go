@@ -4,8 +4,8 @@
 package registry
 
 import (
-	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
@@ -49,19 +49,20 @@ func GetComponents() []spi.Component {
 func getComponents() []spi.Component {
 	if len(componentsRegistry) == 0 {
 		componentsRegistry = []spi.Component{
+			oam.NewComponent(),
+			weblogic.NewComponent(),
+			appoper.NewComponent(),
+			istio.NewComponent(),
 			nginx.NewComponent(),
 			certmanager.NewComponent(),
 			externaldns.NewComponent(),
 			rancher.NewComponent(),
 			verrazzano.NewComponent(),
+			authproxy.NewComponent(),
 			coherence.NewComponent(),
-			weblogic.NewComponent(),
-			oam.NewComponent(),
-			appoper.NewComponent(),
 			mysql.NewComponent(),
 			keycloak.NewComponent(),
 			kiali.NewComponent(),
-			istio.NewComponent(),
 		}
 	}
 	return componentsRegistry
@@ -103,12 +104,12 @@ func checkDependencies(c spi.Component, context spi.ComponentContext, visited ma
 	log := context.Log()
 	log.Debugf("Checking %s dependencies", compName)
 	if _, wasVisited := visited[compName]; wasVisited {
-		return stateMap, fmt.Errorf("Illegal state, dependency cycle found for %s", c.Name())
+		return stateMap, context.Log().ErrorfNewErr("Failed, illegal state, dependency cycle found for %s", c.Name())
 	}
 	visited[compName] = true
 	for _, dependencyName := range c.GetDependencies() {
 		if compName == dependencyName {
-			return stateMap, fmt.Errorf("Illegal state, dependency cycle found for %s", c.Name())
+			return stateMap, context.Log().ErrorfNewErr("Failed, illegal state, dependency cycle found for %s", c.Name())
 		}
 		if _, ok := stateMap[dependencyName]; ok {
 			// dependency already checked
@@ -117,7 +118,7 @@ func checkDependencies(c spi.Component, context spi.ComponentContext, visited ma
 		}
 		found, dependency := FindComponent(dependencyName)
 		if !found {
-			return stateMap, fmt.Errorf("Illegal state, declared dependency not found for %s: %s", c.Name(), dependencyName)
+			return stateMap, context.Log().ErrorfNewErr("Failed, illegal state, declared dependency not found for %s: %s", c.Name(), dependencyName)
 		}
 		if trace, err := checkDependencies(dependency, context, visited, stateMap); err != nil {
 			return trace, err

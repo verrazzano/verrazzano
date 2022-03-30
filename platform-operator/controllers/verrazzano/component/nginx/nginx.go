@@ -6,6 +6,7 @@ package nginx
 import (
 	"context"
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -22,9 +23,6 @@ import (
 )
 
 const (
-	// ComponentNamespace is the NGINX namespace for verrazzano
-	ComponentNamespace = "ingress-nginx"
-
 	// ValuesFileOverride Name of the values file override for NGINX
 	ValuesFileOverride = "ingress-nginx-values.yaml"
 
@@ -32,12 +30,13 @@ const (
 	backendName    = "ingress-controller-ingress-nginx-defaultbackend"
 )
 
-func IsReady(context spi.ComponentContext, name string, namespace string) bool {
+func isNginxReady(context spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
-		{Name: ControllerName, Namespace: namespace},
-		{Name: backendName, Namespace: namespace},
+		{Name: ControllerName, Namespace: ComponentNamespace},
+		{Name: backendName, Namespace: ComponentNamespace},
 	}
-	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1)
+	prefix := fmt.Sprintf("Component %s", context.GetComponent())
+	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
 func AppendOverrides(context spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {

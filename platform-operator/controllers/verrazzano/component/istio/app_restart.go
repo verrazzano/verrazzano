@@ -5,30 +5,30 @@ package istio
 
 import (
 	"context"
+	"strings"
+
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"go.uber.org/zap"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"strings"
 )
 
 // StopDomainsUsingOldEnvoy stops all the WebLogic domains using Envoy 1.7.3
-func StopDomainsUsingOldEnvoy(log *zap.SugaredLogger, client clipkg.Client) error {
+func StopDomainsUsingOldEnvoy(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
 	// get all the app configs
 	appConfigs := oam.ApplicationConfigurationList{}
 	if err := client.List(context.TODO(), &appConfigs, &clipkg.ListOptions{}); err != nil {
-		log.Errorf("Error Listing appConfigs %v", err)
-		return err
+		return log.ErrorfNewErr("Failed to list appConfigs %v", err)
 	}
 
 	// Loop through the WebLogic workloads and stop the ones that need to be stopped
 	for _, appConfig := range appConfigs.Items {
-		log.Debugf("StopDomainsUsingOldEnvoy: found appConfig %s", appConfig.Name)
+		log.Debugf("StopWebLogicApps: found appConfig %s", appConfig.Name)
 		for _, wl := range appConfig.Status.Workloads {
 			if wl.Reference.Kind == vzconst.VerrazzanoWebLogicWorkloadKind {
 				if err := stopDomainIfNeeded(log, client, appConfig, wl.Reference.Name); err != nil {
@@ -41,8 +41,8 @@ func StopDomainsUsingOldEnvoy(log *zap.SugaredLogger, client clipkg.Client) erro
 }
 
 // Determine if the WebLogic operator needs to be stopped, if so then stop it
-func stopDomainIfNeeded(log *zap.SugaredLogger, client clipkg.Client, appConfig oam.ApplicationConfiguration, wlName string) error {
-	log.Debugf("stopDomainIfNeeded: Checking if domain for workload %s needs to be stopped", wlName)
+func stopDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, appConfig oam.ApplicationConfiguration, wlName string) error {
+	log.Progressf("StopWebLogicApps: checking if domain for workload %s needs to be stopped", wlName)
 
 	// Get the domain pods for this workload
 	weblogicReq, _ := labels.NewRequirement("verrazzano.io/workload-type", selection.Equals, []string{"weblogic"})
@@ -58,13 +58,13 @@ func stopDomainIfNeeded(log *zap.SugaredLogger, client clipkg.Client, appConfig 
 
 	// If any pod is using Isito 1.7.3 then stop the domain and return
 	for _, pod := range podList.Items {
-		log.Debugf("stopDomainIfNeeded: Found pod %s in namespace %s ", pod.Name, pod.Namespace)
+		log.Debugf("StopWebLogicApps: found pod %s in namespace %s ", pod.Name, pod.Namespace)
 		for _, container := range pod.Spec.Containers {
 			if strings.Contains(container.Image, "proxyv2:1.7.3") {
-				log.Debugf("stopDomainIfNeeded: Stopping domain for workload %s ", wlName)
+				log.Progressf("StopWebLogicApps: stopping domain for workload %s ", wlName)
 				err := stopDomain(client, appConfig.Namespace, wlName)
 				if err != nil {
-					log.Errorf("Error annotating VerrazzanoWebLogicWorkload %s to stop the domain", wlName)
+					return log.ErrorfNewErr("Failed annotating VerrazzanoWebLogicWorkload %s to stop the domain: %v", wlName, err)
 				}
 				return err
 			}
@@ -90,19 +90,18 @@ func stopDomain(client clipkg.Client, wlNamespace string, wlName string) error {
 }
 
 // StartDomainsStoppedByUpgrade starts all the WebLogic domains that upgrade previously stopped
-func StartDomainsStoppedByUpgrade(log *zap.SugaredLogger, client clipkg.Client, restartVersion string) error {
-	log.Debug("StartDomainsStoppedByUpgrade: Checking if any domains need to be started")
+func StartDomainsStoppedByUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVersion string) error {
+	log.Progressf("RestartApps: checking if any domains need to be started")
 
 	// get all the app configs
 	appConfigs := oam.ApplicationConfigurationList{}
 	if err := client.List(context.TODO(), &appConfigs, &clipkg.ListOptions{}); err != nil {
-		log.Errorf("Error Listing appConfigs %v", err)
-		return err
+		return log.ErrorfNewErr("Failed to list appConfigs %v", err)
 	}
 
 	// Loop through the WebLogic workloads and start the ones that were stopped
 	for _, appConfig := range appConfigs.Items {
-		log.Debugf("StartDomainsStoppedByUpgrade: found appConfig %s", appConfig.Name)
+		log.Debugf("RestartApps: found appConfig %s", appConfig.Name)
 		for _, wl := range appConfig.Status.Workloads {
 			if wl.Reference.Kind == vzconst.VerrazzanoWebLogicWorkloadKind {
 				if err := startDomainIfNeeded(log, client, appConfig.Namespace, wl.Reference.Name, restartVersion); err != nil {
@@ -115,7 +114,7 @@ func StartDomainsStoppedByUpgrade(log *zap.SugaredLogger, client clipkg.Client, 
 }
 
 // Start the WebLogic domain if upgrade stopped it
-func startDomainIfNeeded(log *zap.SugaredLogger, client clipkg.Client, wlNamespace string, wlName string, restartVersion string) error {
+func startDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, wlNamespace string, wlName string, restartVersion string) error {
 	// Set the lifecycle annotation on the VerrazzanoWebLogicWorkload
 	var wl vzapp.VerrazzanoWebLogicWorkload
 	wl.Namespace = wlNamespace
@@ -130,7 +129,7 @@ func startDomainIfNeeded(log *zap.SugaredLogger, client clipkg.Client, wlNamespa
 		}
 		// Set the restart version also so that when the app config is modified to use that
 		// restart version, it will the same version so WebLogic will not start twice
-		log.Debugf("RestartAllApps: setting restart version for workload %s to %s ...  Old version is %s", wlName,
+		log.Debugf("RestartApps: setting restart version for workload %s to %s ...  Old version is %s", wlName,
 			restartVersion, wl.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation])
 		wl.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = restartVersion
 		return nil
@@ -139,18 +138,17 @@ func startDomainIfNeeded(log *zap.SugaredLogger, client clipkg.Client, wlNamespa
 }
 
 // RestartAllApps restarts all the applications
-func RestartAllApps(log *zap.SugaredLogger, client clipkg.Client, restartVersion string) error {
-	log.Debug("RestartAllApps: restarting all apps")
+func RestartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVersion string) error {
+	log.Progressf("RestartApps: restarting all apps")
 
 	// get all the app configs
 	appConfigs := oam.ApplicationConfigurationList{}
 	if err := client.List(context.TODO(), &appConfigs, &clipkg.ListOptions{}); err != nil {
-		log.Errorf("Error Listing appConfigs %v", err)
-		return err
+		return log.ErrorfNewErr("Failed to listing appConfigs %v", err)
 	}
 
 	for _, appConfig := range appConfigs.Items {
-		log.Debugf("RestartAllApps: found appConfig %s", appConfig.Name)
+		log.Debugf("RestartApps: found appConfig %s", appConfig.Name)
 
 		// Set the update the restart version
 		var ac oam.ApplicationConfiguration
@@ -160,7 +158,7 @@ func RestartAllApps(log *zap.SugaredLogger, client clipkg.Client, restartVersion
 			if ac.ObjectMeta.Annotations == nil {
 				ac.ObjectMeta.Annotations = make(map[string]string)
 			}
-			log.Debugf("RestartAllApps: setting restart version for appconfig %s to %s ...  Old version is %s", appConfig.Name,
+			log.Progressf("RestartApps: setting restart version for appconfig %s to %s ...  Old version is %s", appConfig.Name,
 				restartVersion, ac.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation])
 			ac.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = restartVersion
 			return nil

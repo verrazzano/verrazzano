@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package cohworkload
@@ -7,11 +7,13 @@ import (
 	"context"
 	"fmt"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"strings"
 	"testing"
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	"go.uber.org/zap"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -1152,9 +1154,8 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
-	assert.Error(err)
-	assert.Equal("An error has occurred", err.Error())
-	assert.Equal(false, result.Requeue)
+	assert.Nil(err)
+	assert.True(result.Requeue)
 }
 
 // TestReconcileWorkloadNotFound tests reconciling a VerrazzanoCoherenceWorkload when the workload
@@ -1209,8 +1210,8 @@ func TestReconcileFetchWorkloadError(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
-	assert.Equal("An error has occurred", err.Error())
-	assert.Equal(false, result.Requeue)
+	assert.Nil(err)
+	assert.True(result.Requeue)
 }
 
 // TestCreateUpdateDestinationRuleCreate tests creation of a destination rule
@@ -1265,7 +1266,7 @@ func TestCreateUpdateDestinationRuleCreate(t *testing.T) {
 	namespaceLabels["istio-injection"] = "enabled"
 	workloadLabels := make(map[string]string)
 	workloadLabels["app.oam.dev/name"] = "test-app"
-	err := reconciler.createOrUpdateDestinationRule(context.Background(), ctrl.Log, "test-namespace", namespaceLabels, workloadLabels)
+	err := reconciler.createOrUpdateDestinationRule(context.Background(), vzlog.DefaultLogger(), "test-namespace", namespaceLabels, workloadLabels)
 	mocker.Finish()
 	assert.NoError(err)
 }
@@ -1327,7 +1328,7 @@ func TestCreateUpdateDestinationRuleUpdate(t *testing.T) {
 	namespaceLabels["istio-injection"] = "enabled"
 	workloadLabels := make(map[string]string)
 	workloadLabels["app.oam.dev/name"] = "test-app"
-	err := reconciler.createOrUpdateDestinationRule(context.Background(), ctrl.Log, "test-namespace", namespaceLabels, workloadLabels)
+	err := reconciler.createOrUpdateDestinationRule(context.Background(), vzlog.DefaultLogger(), "test-namespace", namespaceLabels, workloadLabels)
 	mocker.Finish()
 	assert.NoError(err)
 }
@@ -1343,7 +1344,7 @@ func TestCreateUpdateDestinationRuleNoOamLabel(t *testing.T) {
 	namespaceLabels := make(map[string]string)
 	namespaceLabels["istio-injection"] = "enabled"
 	workloadLabels := make(map[string]string)
-	err := reconciler.createOrUpdateDestinationRule(context.Background(), ctrl.Log, "test-namespace", namespaceLabels, workloadLabels)
+	err := reconciler.createOrUpdateDestinationRule(context.Background(), vzlog.DefaultLogger(), "test-namespace", namespaceLabels, workloadLabels)
 	assert.Equal("OAM app name label missing from metadata, unable to generate destination rule name", err.Error())
 }
 
@@ -1357,7 +1358,7 @@ func TestCreateUpdateDestinationRuleNoLabel(t *testing.T) {
 	reconciler := Reconciler{}
 	namespaceLabels := make(map[string]string)
 	workloadLabels := make(map[string]string)
-	err := reconciler.createOrUpdateDestinationRule(context.Background(), ctrl.Log, "test-namespace", namespaceLabels, workloadLabels)
+	err := reconciler.createOrUpdateDestinationRule(context.Background(), vzlog.DefaultLogger(), "test-namespace", namespaceLabels, workloadLabels)
 	assert.NoError(err)
 }
 
@@ -1375,7 +1376,7 @@ func newReconciler(c client.Client) Reconciler {
 	metricsReconciler := &metricstrait.Reconciler{Client: c, Scheme: scheme, Scraper: "verrazzano-system/vmi-system-prometheus-0"}
 	return Reconciler{
 		Client:  c,
-		Log:     ctrl.Log.WithName("test"),
+		Log:     zap.S().With("test"),
 		Scheme:  scheme,
 		Metrics: metricsReconciler,
 	}
@@ -1537,4 +1538,22 @@ func TestReconcileRestart(t *testing.T) {
 	mocker.Finish()
 	assert.NoError(err)
 	assert.Equal(false, result.Requeue)
+}
+
+// TestReconcileKubeSystem tests to make sure we do not reconcile
+// Any resource that belong to the kube-system namespace
+func TestReconcileKubeSystem(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// create a request and reconcile it
+	request := newRequest(vzconst.KubeSystem, "unit-test-verrazzano-helidon-workload")
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.Nil(err)
+	assert.True(result.IsZero())
 }

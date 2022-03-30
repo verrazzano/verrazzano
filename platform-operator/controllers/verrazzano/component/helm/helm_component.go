@@ -12,14 +12,14 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
+	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-
-	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -59,9 +59,6 @@ type HelmComponent struct {
 	// AppendOverridesFunc is an optional function get additional override values
 	AppendOverridesFunc appendOverridesSig
 
-	// ReadyStatusFunc is an optional function override to do deeper checks on a component's ready state
-	ReadyStatusFunc readyStatusFuncSig
-
 	// ResolveNamespaceFunc is an optional function to process the namespace name
 	ResolveNamespaceFunc resolveNamespaceSig
 
@@ -96,7 +93,7 @@ type preInstallFuncSig func(context spi.ComponentContext, releaseName string, na
 type postInstallFuncSig func(context spi.ComponentContext, releaseName string, namespace string) error
 
 // preUpgradeFuncSig is the signature for the optional preUgrade function
-type preUpgradeFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) error
+type preUpgradeFuncSig func(log vzlog.VerrazzanoLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) error
 
 // appendOverridesSig is an optional function called to generate additional overrides.
 type appendOverridesSig func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error)
@@ -105,19 +102,16 @@ type appendOverridesSig func(context spi.ComponentContext, releaseName string, n
 type resolveNamespaceSig func(ns string) string
 
 // upgradeFuncSig is a function needed for unit test override
-type upgradeFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error)
-
-// readyStatusFuncSig describes the function signature for doing deeper checks on a component's ready state
-type readyStatusFuncSig func(context spi.ComponentContext, releaseName string, namespace string) bool
+type upgradeFuncSig func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error)
 
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = helm.Upgrade
 
-func setUpgradeFunc(f upgradeFuncSig) {
+func SetUpgradeFunc(f upgradeFuncSig) {
 	upgradeFunc = f
 }
 
-func setDefaultUpgradeFunc() {
+func SetDefaultUpgradeFunc() {
 	upgradeFunc = helm.Upgrade
 }
 
@@ -157,23 +151,34 @@ func (h HelmComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
 	return installed, nil
 }
 
-// IsReady Indicates whether or not a component is available and ready
+// IsReady Indicates whether a component is available and ready
 func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 	if context.IsDryRun() {
 		context.Log().Debugf("IsReady() dry run for %s", h.ReleaseName)
 		return true
 	}
+
+	// Does the Helm installed app_version number match the chart?
+	chartInfo, err := helmcli.GetChartInfo(h.ChartDir)
+	if err != nil {
+		return false
+	}
+	releaseAppVersion, err := helmcli.GetReleaseAppVersion(h.ReleaseName, h.ChartNamespace)
+	if err != nil {
+		return false
+	}
+	if chartInfo.AppVersion != releaseAppVersion {
+		return false
+	}
+
 	ns := h.resolveNamespace(context.EffectiveCR().Namespace)
 	if deployed, _ := helm.IsReleaseDeployed(h.ReleaseName, ns); deployed {
-		if h.ReadyStatusFunc != nil {
-			return h.ReadyStatusFunc(context, h.ReleaseName, ns)
-		}
 		return true
 	}
 	return false
 }
 
-// IsEnabled Indicates whether or not a component is enabled for installation
+// IsEnabled Indicates whether a component is enabled for installation
 func (h HelmComponent) IsEnabled(context spi.ComponentContext) bool {
 	return true
 }
@@ -210,7 +215,6 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 	}
 
 	// Perform an install using the helm upgrade --install command
-	context.Log().Infof("Performing installation of %s", h.ReleaseName)
 	_, _, err = upgradeFunc(context.Log(), h.ReleaseName, resolvedNamespace, h.ChartDir, h.WaitForInstall, context.IsDryRun(), overrides)
 	return err
 }
@@ -233,7 +237,8 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 	}
 
 	// If the component has any ingresses associated, those should be present
-	if !status.IngressesPresent(context.Log(), context.Client(), h.GetIngressNames(context)) {
+	prefix := fmt.Sprintf("Component %s", h.Name())
+	if !status.IngressesPresent(context.Log(), context.Client(), h.GetIngressNames(context), prefix) {
 		return ctrlerrors.RetryableError{
 			Source:    h.ReleaseName,
 			Operation: "Check if Ingresses are present",
@@ -288,28 +293,25 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	var tmpFile *os.File
 	tmpFile, err = ioutil.TempFile(os.TempDir(), "values-*.yaml")
 	if err != nil {
-		context.Log().Errorf("Failed to create temporary file: %v", err)
-		return err
+		return context.Log().ErrorfNewErr("Failed to create temporary file: %v", err)
 	}
 
 	defer os.Remove(tmpFile.Name())
 
 	if _, err = tmpFile.Write(stdout); err != nil {
-		context.Log().Errorf("Failed to write to temporary file: %v", err)
-		return err
+		return context.Log().ErrorfNewErr("Failed to write to temporary file: %v", err)
 	}
 
 	// Close the file
 	if err := tmpFile.Close(); err != nil {
-		context.Log().Errorf("Failed to close temporary file: %v", err)
-		return err
+		return context.Log().ErrorfNewErr("Failed to close temporary file: %v", err)
 	}
 
-	// Generate a list of component-specified override files if present
-	overrides.FileOverrides = append(overrides.FileOverrides, tmpFile.Name())
+	// Generate a list of override files making helm get values overrides first
+	overrides.FileOverrides = append(overrides.FileOverrides, "")
+	copy(overrides.FileOverrides[1:], overrides.FileOverrides[0:])
+	overrides.FileOverrides[0] = tmpFile.Name()
 
-	// Perform an upgrade using the helm upgrade --install command
-	context.Log().Infof("Performing upgrade of %s", h.ReleaseName)
 	_, _, err = upgradeFunc(context.Log(), h.ReleaseName, namespace, h.ChartDir, true, context.IsDryRun(), overrides)
 	return err
 }

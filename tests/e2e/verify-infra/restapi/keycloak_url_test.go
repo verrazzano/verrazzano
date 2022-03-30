@@ -8,13 +8,15 @@ import (
 	"net/http"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var _ = t.Describe("keycloak", func() {
+var _ = t.Describe("keycloak", Label("f:infra-lcm",
+	"f:ui.console"), func() {
 	const (
 		waitTimeout     = 5 * time.Minute
 		pollingInterval = 5 * time.Second
@@ -39,7 +41,7 @@ var _ = t.Describe("keycloak", func() {
 					if err != nil {
 						return err
 					}
-					keycloakURL = fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
+					keycloakURL = fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
 					pkg.Log(pkg.Info, fmt.Sprintf("Found ingress URL: %s", keycloakURL))
 					return nil
 				}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())

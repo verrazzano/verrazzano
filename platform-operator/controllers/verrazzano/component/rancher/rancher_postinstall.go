@@ -7,14 +7,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 )
 
 const (
@@ -22,7 +23,7 @@ const (
 	ensureAdminCommand   = "ensure-default-admin"
 )
 
-func createAdminSecretIfNotExists(log *zap.SugaredLogger, c client.Client) error {
+func createAdminSecretIfNotExists(log vzlog.VerrazzanoLogger, c client.Client) error {
 	_, err := common.GetAdminSecret(c)
 	if err == nil {
 		log.Debugf("Rancher Post Install: admin secret exists, skipping object creation")
@@ -32,15 +33,13 @@ func createAdminSecretIfNotExists(log *zap.SugaredLogger, c client.Client) error
 	if apierrors.IsNotFound(err) {
 		password, resetPasswordErr := resetAdminPassword(c)
 		if resetPasswordErr != nil {
-			log.Errorf("Rancher Post Install: Failed to reset admin password: %s", resetPasswordErr)
-			return resetPasswordErr
+			return log.ErrorfNewErr("Failed to reset Rancher admin password: %v", resetPasswordErr)
 		}
 		log.Debugf("Rancher Post Install: Creating new admin secret")
 		return newAdminSecret(c, password)
 	}
 
-	log.Errorf("Rancher Post Install: Error checking admin secret availability: %s", err)
-	return err
+	return log.ErrorfNewErr("Failed checking Rancher admin secret availability: %v", err)
 }
 
 // retryResetPassword retries resetting the Rancher admin password using the Rancher shell
@@ -59,13 +58,13 @@ func resetAdminPassword(c client.Client) (string, error) {
 		return "", err
 	}
 	if len(podList.Items) < 1 {
-		return "", errors.New("no Rancher pods found")
+		return "", errors.New("Failed to reset Rancher admin secret, no Rancher pods found")
 	}
 	pod := podList.Items[0]
 	// Ensure the default rancer admin user is present
 	_, stderr, err := k8sutil.ExecPod(cli, cfg, &pod, common.RancherName, []string{ensureAdminCommand})
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", stderr, err)
+		return "", fmt.Errorf("Failed execing into Rancher pod %s: %v", stderr, err)
 	}
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, &pod, common.RancherName, []string{resetPasswordCommand})
 	if err != nil {
@@ -74,7 +73,7 @@ func resetAdminPassword(c client.Client) (string, error) {
 	// Shell output may have a trailing newline
 	password := parsePasswordStdout(stdout)
 	if password == "" {
-		return "", fmt.Errorf("failed to reset Rancher admin password: %s", stderr)
+		return "", fmt.Errorf("Failed to reset Rancher admin password: %s", stderr)
 	}
 	return password, nil
 }

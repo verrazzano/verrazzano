@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 )
 
 const ns = "my_namespace"
@@ -61,7 +61,7 @@ func TestGetValues(t *testing.T) {
 	SetCmdRunner(getValuesRunner{t: t})
 	defer SetDefaultRunner()
 
-	stdout, err := GetValues(zap.S(), release, ns)
+	stdout, err := GetValues(vzlog.DefaultLogger(), release, ns)
 	assert.NoError(err, "GetValues returned an error")
 	assert.NotZero(stdout, "GetValues stdout should not be empty")
 }
@@ -86,7 +86,7 @@ func TestUpgrade(t *testing.T) {
 	})
 	defer SetDefaultRunner()
 
-	stdout, stderr, err := Upgrade(zap.S(), release, ns, chartdir, false, false, overrides)
+	stdout, stderr, err := Upgrade(vzlog.DefaultLogger(), release, ns, chartdir, false, false, overrides)
 	assert.NoError(err, "Upgrade returned an error")
 	assert.Len(stderr, 0, "Upgrade stderr should be empty")
 	assert.NotZero(stdout, "Upgrade stdout should not be empty")
@@ -114,7 +114,7 @@ func TestUpgradeCustomFileOverrides(t *testing.T) {
 	})
 	defer SetDefaultRunner()
 
-	stdout, stderr, err := Upgrade(zap.S(), release, ns, chartdir, false, false, overrides)
+	stdout, stderr, err := Upgrade(vzlog.DefaultLogger(), release, ns, chartdir, false, false, overrides)
 	assert.NoError(err, "Upgrade returned an error")
 	assert.Len(stderr, 0, "Upgrade stderr should be empty")
 	assert.NotZero(stdout, "Upgrade stdout should not be empty")
@@ -130,7 +130,7 @@ func TestUpgradeFail(t *testing.T) {
 	SetCmdRunner(badRunner{t: t})
 	defer SetDefaultRunner()
 
-	stdout, stderr, err := Upgrade(zap.S(), release, ns, "", false, false, overrides)
+	stdout, stderr, err := Upgrade(vzlog.DefaultLogger(), release, ns, "", false, false, overrides)
 	assert.Error(err, "Upgrade should have returned an error")
 	assert.Len(stdout, 0, "Upgrade stdout should be empty")
 	assert.NotZero(stderr, "Upgrade stderr should not be empty")
@@ -150,7 +150,7 @@ func TestUninstall(t *testing.T) {
 		err:    nil,
 	})
 	defer SetDefaultRunner()
-	_, _, err := Uninstall(zap.S(), "weblogic-operator", "verrazzano-system", false)
+	_, _, err := Uninstall(vzlog.DefaultLogger(), "weblogic-operator", "verrazzano-system", false)
 	assert.NoError(t, err)
 }
 
@@ -159,8 +159,8 @@ func TestUninstall(t *testing.T) {
 //  WHEN the command executes and returns an error
 //  THEN the function returns an error
 func TestUninstallError(t *testing.T) {
-	stdout := []byte{}
-	stdErr := []byte{}
+	var stdout []byte
+	var stdErr []byte
 
 	SetCmdRunner(genericTestRunner{
 		stdOut: stdout,
@@ -168,7 +168,7 @@ func TestUninstallError(t *testing.T) {
 		err:    fmt.Errorf("Unexpected uninstall error"),
 	})
 	defer SetDefaultRunner()
-	_, _, err := Uninstall(zap.S(), "weblogic-operator", "verrazzano-system", false)
+	_, _, err := Uninstall(vzlog.DefaultLogger(), "weblogic-operator", "verrazzano-system", false)
 	assert.Error(t, err)
 }
 
@@ -509,7 +509,7 @@ func Test_getChartStatusChartNotFound(t *testing.T) {
 //  WHEN Helm returns an error
 //  THEN the function returns an error
 func Test_getChartStatusUnexpectedHelmError(t *testing.T) {
-	stdout := []byte{}
+	var stdout []byte
 	stdErr := []byte("Some unknown helm status error")
 
 	SetCmdRunner(genericTestRunner{
@@ -644,4 +644,79 @@ func (r foundRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error
 	}
 	// simulate a Helm error
 	return []byte(""), []byte("error"), errors.New("helm error")
+}
+
+// Test_GetReleaseAppVersion tests the GetReleaseAppVersion function
+// GIVEN a call to GetReleaseAppVersion
+//  WHEN varying the inputs and underlying status
+//  THEN test the expected result is returned
+func Test_GetReleaseAppVersion(t *testing.T) {
+	jsonSuccess := []byte(`
+[
+  {
+    "name": "verrazzano",
+    "namespace": "verrazzano-system",
+    "app_version": "1"
+  }
+]
+`)
+
+	jsonFail := []byte(`
+[
+  {
+    "name": "unknown",
+    "namespace": "verrazzano-system",
+    "app_version": "1"
+  }
+]
+`)
+	type args struct {
+		releaseName string
+		namespace   string
+		jsonOut     []byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "Test GetReleaseAppVersion when app_version exists",
+			want: "1",
+			args: args{
+				releaseName: "verrazzano",
+				namespace:   "verrazzano-system",
+				jsonOut:     jsonSuccess,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Test GetReleaseAppVersion when app_version does not exist",
+			want: "",
+			args: args{
+				releaseName: "verrazzano",
+				namespace:   "verrazzano-system",
+				jsonOut:     jsonFail,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			SetCmdRunner(genericTestRunner{
+				stdOut: tt.args.jsonOut,
+				stdErr: []byte{},
+				err:    nil,
+			})
+			defer SetDefaultRunner()
+			got, err := GetReleaseAppVersion(tt.args.releaseName, tt.args.namespace)
+			if !tt.wantErr {
+				assert.NoError(t, err)
+				assert.Equalf(t, tt.want, got, "GetReleaseAppVersion(%v, %v)", tt.args.releaseName, tt.args.namespace)
+			} else {
+				assert.Error(t, err)
+			}
+		})
+	}
 }

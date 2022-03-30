@@ -19,6 +19,7 @@ def verrazzanoImagesBuildNumber = 0 // will be set to actual build number when t
 pipeline {
     options {
         skipDefaultCheckout true
+        disableConcurrentBuilds()
         timestamps ()
     }
 
@@ -195,24 +196,7 @@ pipeline {
                         }
                     }
                }
-               stage('OCI Private DNS tests') {
-                    steps {
-                        script {
-                            build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
-                                parameters: [
-                                    string(name: 'DNS_SCOPE', value: 'PRIVATE'),
-                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
-                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
-                                ], wait: true
-                        }
-                    }
-                }
-                stage('Kind Acceptance Tests on 1.19') {
+               stage('Kind Acceptance Tests on 1.19') {
                     steps {
                         script {
                             build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
@@ -357,6 +341,26 @@ pipeline {
                         }
                     }
                 }
+                stage('OCI Service Integration Tests') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-oci-integration-tests/${CLEAN_BRANCH_NAME}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                ], wait: true
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                TESTS_FAILED = true
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -471,8 +475,8 @@ pipeline {
 
 def isAlertingEnabled() {
     // this controls whether any alerting happens for these tests
-    if (NOTIFY_PERIODIC_FAILURES.equals("true") && (env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.equals("release-1.*"))) {
-        echo "Alert notifications enabled for master"
+    if (NOTIFY_PERIODIC_FAILURES.equals("true") && (env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-1."))) {
+        echo "Alert notifications enabled for ${env.BRANCH_NAME}"
         return true
     }
     return false

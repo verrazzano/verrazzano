@@ -12,9 +12,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -23,7 +24,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,6 +43,72 @@ var crEnabled = installv1alpha1.Verrazzano{
 		Components: installv1alpha1.ComponentSpec{
 			Istio: &installv1alpha1.IstioComponent{
 				Enabled: getBoolPtr(true),
+				Ingress: &installv1alpha1.IstioIngressSection{
+					Kubernetes: &installv1alpha1.IstioKubernetesSection{
+						CommonKubernetesSpec: installv1alpha1.CommonKubernetesSpec{
+							Replicas: 2,
+							Affinity: &v1.Affinity{
+								PodAntiAffinity: &v1.PodAntiAffinity{
+									RequiredDuringSchedulingIgnoredDuringExecution: nil,
+									PreferredDuringSchedulingIgnoredDuringExecution: []v1.WeightedPodAffinityTerm{
+										{
+											Weight: 100,
+											PodAffinityTerm: v1.PodAffinityTerm{
+												LabelSelector: &metav1.LabelSelector{
+													MatchLabels: nil,
+													MatchExpressions: []metav1.LabelSelectorRequirement{
+														{
+															Key:      "app",
+															Operator: "In",
+															Values: []string{
+																"istio-ingressgateway",
+															},
+														},
+													},
+												},
+												Namespaces:  nil,
+												TopologyKey: "kubernetes.io/hostname",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				Egress: &installv1alpha1.IstioEgressSection{
+					Kubernetes: &installv1alpha1.IstioKubernetesSection{
+						CommonKubernetesSpec: installv1alpha1.CommonKubernetesSpec{
+							Replicas: 2,
+							Affinity: &v1.Affinity{
+								PodAntiAffinity: &v1.PodAntiAffinity{
+									RequiredDuringSchedulingIgnoredDuringExecution: nil,
+									PreferredDuringSchedulingIgnoredDuringExecution: []v1.WeightedPodAffinityTerm{
+										{
+											Weight: 100,
+											PodAffinityTerm: v1.PodAffinityTerm{
+												LabelSelector: &metav1.LabelSelector{
+													MatchLabels: nil,
+													MatchExpressions: []metav1.LabelSelectorRequirement{
+														{
+															Key:      "app",
+															Operator: "In",
+															Values: []string{
+																"istio-egressgateway",
+															},
+														},
+													},
+												},
+												Namespaces:  nil,
+												TopologyKey: "kubernetes.io/hostname",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 	},
@@ -57,6 +123,72 @@ var crInstall = &installv1alpha1.Verrazzano{
 					Name:  "arg1",
 					Value: "val1",
 				}},
+				Ingress: &installv1alpha1.IstioIngressSection{
+					Kubernetes: &installv1alpha1.IstioKubernetesSection{
+						CommonKubernetesSpec: installv1alpha1.CommonKubernetesSpec{
+							Replicas: 2,
+							Affinity: &v1.Affinity{
+								PodAntiAffinity: &v1.PodAntiAffinity{
+									RequiredDuringSchedulingIgnoredDuringExecution: nil,
+									PreferredDuringSchedulingIgnoredDuringExecution: []v1.WeightedPodAffinityTerm{
+										{
+											Weight: 100,
+											PodAffinityTerm: v1.PodAffinityTerm{
+												LabelSelector: &metav1.LabelSelector{
+													MatchLabels: nil,
+													MatchExpressions: []metav1.LabelSelectorRequirement{
+														{
+															Key:      "app",
+															Operator: "In",
+															Values: []string{
+																"istio-ingressgateway",
+															},
+														},
+													},
+												},
+												Namespaces:  nil,
+												TopologyKey: "kubernetes.io/hostname",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				Egress: &installv1alpha1.IstioEgressSection{
+					Kubernetes: &installv1alpha1.IstioKubernetesSection{
+						CommonKubernetesSpec: installv1alpha1.CommonKubernetesSpec{
+							Replicas: 2,
+							Affinity: &v1.Affinity{
+								PodAntiAffinity: &v1.PodAntiAffinity{
+									RequiredDuringSchedulingIgnoredDuringExecution: nil,
+									PreferredDuringSchedulingIgnoredDuringExecution: []v1.WeightedPodAffinityTerm{
+										{
+											Weight: 100,
+											PodAffinityTerm: v1.PodAffinityTerm{
+												LabelSelector: &metav1.LabelSelector{
+													MatchLabels: nil,
+													MatchExpressions: []metav1.LabelSelectorRequirement{
+														{
+															Key:      "app",
+															Operator: "In",
+															Values: []string{
+																"istio-egressgateway",
+															},
+														},
+													},
+												},
+												Namespaces:  nil,
+												TopologyKey: "kubernetes.io/hostname",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 	},
@@ -97,7 +229,7 @@ func TestUpgrade(t *testing.T) {
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeUpgrade(log *zap.SugaredLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+func fakeUpgrade(log vzlog.VerrazzanoLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 	if len(overridesFiles) != 2 {
 		return []byte("error"), []byte(""), fmt.Errorf("incorrect number of override files: expected 2, received %v", len(overridesFiles))
 	}
@@ -131,7 +263,7 @@ func TestPostUpgrade(t *testing.T) {
 	assert.NoError(err, "PostUpgrade returned an error")
 }
 
-func fakeHelmUninstall(log *zap.SugaredLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
+func fakeHelmUninstall(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
 	if releaseName != "istiocoredns" {
 		return []byte("error"), []byte(""), fmt.Errorf("expected release name istiocoredns does not match provided release name of %v", releaseName)
 	}
@@ -145,50 +277,8 @@ func getMock(t *testing.T) *mocks.MockClient {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, deployList *appsv1.DeploymentList) error {
-			deployList.Items = []appsv1.Deployment{{}}
-			return nil
-		})
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ssList *appsv1.StatefulSetList) error {
-			ssList.Items = []appsv1.StatefulSet{{}}
-			return nil
-		})
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, dsList *appsv1.DaemonSetList) error {
-			dsList.Items = []appsv1.DaemonSet{{}}
-			return nil
-		})
-
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, deploy *appsv1.Deployment) error {
-			deploy.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			deploy.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = "some time"
-			return nil
-		}).AnyTimes()
-
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ss *appsv1.StatefulSet) error {
-			ss.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			ss.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = "some time"
-			return nil
-		}).AnyTimes()
-
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet) error {
-			ds.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			ds.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = "some time"
-			return nil
-		}).AnyTimes()
+	// Add mocks necessary for the system component restart
+	mock.AddRestartMocks()
 
 	mock.EXPECT().
 		List(gomock.Any(), &v1.SecretList{}, gomock.Not(gomock.Nil())).
@@ -264,18 +354,43 @@ func TestAppendIstioOverridesNoRegistryOverride(t *testing.T) {
 //  THEN true is returned
 func TestIsReady(t *testing.T) {
 
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: IstioNamespace,
-			Name:      IstiodDeployment,
+	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: IstioNamespace,
+				Name:      IstiodDeployment,
+			},
+			Status: appsv1.DeploymentStatus{
+				Replicas:            1,
+				ReadyReplicas:       1,
+				AvailableReplicas:   1,
+				UnavailableReplicas: 0,
+			},
 		},
-		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: IstioNamespace,
+				Name:      IstioInressgatewayDeployment,
+			},
+			Status: appsv1.DeploymentStatus{
+				Replicas:            1,
+				ReadyReplicas:       1,
+				AvailableReplicas:   1,
+				UnavailableReplicas: 0,
+			},
 		},
-	},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: IstioNamespace,
+				Name:      IstioEressgatewayDeployment,
+			},
+			Status: appsv1.DeploymentStatus{
+				Replicas:            1,
+				ReadyReplicas:       1,
+				AvailableReplicas:   1,
+				UnavailableReplicas: 0,
+			},
+		},
 	)
 	var iComp istioComponent
 	compContext := spi.NewFakeContext(fakeClient, nil, false)

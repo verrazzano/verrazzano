@@ -4,6 +4,8 @@
 package loggingtrait
 
 import (
+	"fmt"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
@@ -16,16 +18,13 @@ import (
 const (
 	shortWaitTimeout     = 10 * time.Minute
 	shortPollingInterval = 10 * time.Second
+	longWaitTimeout      = 15 * time.Minute
+	longPollingInterval  = 20 * time.Second
 )
 
-func DeployApplication(namespace string, componentsPath string, applicationPath string, t *framework.TestFramework) {
+func DeployApplication(namespace, componentsPath, applicationPath, podName string, t *framework.TestFramework) {
 	pkg.Log(pkg.Info, "Deploy test application")
 	start := time.Now()
-	// Wait for namespace to finish deletion possibly from a prior run.
-	gomega.Eventually(func() bool {
-		_, err := pkg.GetNamespace(namespace)
-		return err != nil && errors.IsNotFound(err)
-	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 
 	pkg.Log(pkg.Info, "Create namespace")
 	gomega.Eventually(func() (*v1.Namespace, error) {
@@ -37,13 +36,23 @@ func DeployApplication(namespace string, componentsPath string, applicationPath 
 
 	pkg.Log(pkg.Info, "Create component resources")
 	gomega.Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile(componentsPath)
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(componentsPath, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create application resources")
 	gomega.Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile(applicationPath)
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(applicationPath, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
+	pkg.Log(pkg.Info, fmt.Sprintf("Check pod %v is running", podName))
+	gomega.Eventually(func() bool {
+		result, err := pkg.PodsRunning(namespace, []string{podName})
+		if err != nil {
+			ginkgo.AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", podName, namespace, err))
+		}
+		return result
+	}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
@@ -51,12 +60,12 @@ func UndeployApplication(namespace string, componentsPath string, applicationPat
 	pkg.Log(pkg.Info, "Delete application")
 	start := time.Now()
 	gomega.Eventually(func() error {
-		return pkg.DeleteResourceFromFile(applicationPath)
+		return pkg.DeleteResourceFromFileInGeneratedNamespace(applicationPath, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	pkg.Log(pkg.Info, "Delete components")
 	gomega.Eventually(func() error {
-		return pkg.DeleteResourceFromFile(componentsPath)
+		return pkg.DeleteResourceFromFileInGeneratedNamespace(componentsPath, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	pkg.Log(pkg.Info, "Verify ConfigMap is Deleted")

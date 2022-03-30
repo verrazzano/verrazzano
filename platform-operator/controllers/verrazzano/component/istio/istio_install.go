@@ -9,15 +9,15 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/pkg/istio"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	os2 "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
-
-	"go.uber.org/zap"
 	istiosec "istio.io/api/security/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -40,7 +40,7 @@ const (
 )
 
 // create func vars for unit tests
-type installFuncSig func(log *zap.SugaredLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
+type installFuncSig func(log vzlog.VerrazzanoLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
 
 var installFunc installFuncSig = istio.Install
 
@@ -70,7 +70,7 @@ type installMonitorType struct {
 type installRoutineParams struct {
 	overrides     string
 	fileOverrides []string
-	log           *zap.SugaredLogger
+	log           vzlog.VerrazzanoLogger
 }
 
 //installMonitor - Represents a monitor object used by the component to monitor a background goroutine used for running
@@ -124,19 +124,19 @@ func (m *installMonitorType) run(args installRoutineParams) {
 		log := args.log
 
 		result := true
-		log.Debugf("Starting istioctl install...")
+		log.Oncef("Component Istio is running istioctl")
 		stdout, stderr, err := installFunc(log, args.overrides, args.fileOverrides...)
 		log.Debugf("istioctl stdout: %s", string(stdout))
 		if err != nil {
 			result = false
-			log.Errorf("Unexpected error %s during install, stderr: %s", err.Error(), string(stderr))
+			err = log.ErrorfNewErr("Failed calling istioctl install: %v stderr: %s", err.Error(), string(stderr))
 		}
 
 		// Clean up the temp files
 		removeTempFiles(log)
 
 		// Write result
-		log.Debugf("Completed istioctl install, result: %s", result)
+		log.Oncef("Component Istio successfully ran istioctl install, result: %s", result)
 		outputCh <- result
 	}(m.inputCh, m.resultCh)
 
@@ -206,23 +206,19 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 	if cr.Spec.Components.Istio != nil {
 		istioOperatorYaml, err := BuildIstioOperatorYaml(cr.Spec.Components.Istio)
 		if err != nil {
-			log.Errorf("Failed to Build IstioOperator YAML: %v", err)
-			return err
+			return log.ErrorfNewErr("Failed to Build IstioOperator YAML: %v", err)
 		}
 
 		// Write the overrides to a tmp file
 		userFileCR, err = ioutil.TempFile(os.TempDir(), istioTmpFileCreatePattern)
 		if err != nil {
-			log.Errorf("Failed to create temporary file for Istio install: %v", err)
-			return err
+			return log.ErrorfNewErr("Failed to create temporary file for Istio install: %v", err)
 		}
 		if _, err = userFileCR.Write([]byte(istioOperatorYaml)); err != nil {
-			log.Errorf("Failed to write to temporary file: %v", err)
-			return err
+			return log.ErrorfNewErr("Failed to write to temporary file: %v", err)
 		}
 		if err := userFileCR.Close(); err != nil {
-			log.Errorf("Failed to close temporary file: %v", err)
-			return err
+			return log.ErrorfNewErr("Failed to close temporary file: %v", err)
 		}
 		log.Debugf("Created values file from Istio install args: %s", userFileCR.Name())
 	}
@@ -255,11 +251,16 @@ func forkInstall(compContext spi.ComponentContext, monitor installMonitor, overr
 	// clone the parameters
 	overridesFilesCopy := make([]string, len(files))
 	copy(overridesFilesCopy, files)
+
+	// clone zap logger
+	clone := log.GetZapLogger().With()
+	log.SetZapLogger(clone)
+
 	monitor.run(
 		installRoutineParams{
 			overrides:     overrideStrings,
 			fileOverrides: overridesFilesCopy,
-			log:           log.With(), // clone the logger
+			log:           log,
 		},
 	)
 	return ctrlerrors.RetryableError{Source: ComponentName}
@@ -302,8 +303,7 @@ func createCertSecret(compContext spi.ComponentContext) error {
 		// Secret not found - create it
 		certScript := filepath.Join(config.GetInstallDir(), "create-istio-cert.sh")
 		if _, stderr, err := bashFunc(certScript); err != nil {
-			log.Errorf("Failed creating Istio certificate secret %s: %s", err, stderr)
-			return err
+			return log.ErrorfNewErr("Failed creating Istio certificate secret %v: %s", err, stderr)
 		}
 	}
 	return nil
@@ -343,8 +343,8 @@ func createPeerAuthentication(compContext spi.ComponentContext) error {
 	return err
 }
 
-func removeTempFiles(log *zap.SugaredLogger) {
-	if err := os2.RemoveTempFiles(log, istioTmpFileCleanPattern); err != nil {
-		log.Errorf("Unexpected error removing temp files: %s", err.Error())
+func removeTempFiles(log vzlog.VerrazzanoLogger) {
+	if err := os2.RemoveTempFiles(log.GetZapLogger(), istioTmpFileCleanPattern); err != nil {
+		log.Errorf("Unexpected error removing temp files: %v", err.Error())
 	}
 }

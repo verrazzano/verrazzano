@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package navigation
@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"testing"
 
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -14,11 +15,11 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	"go.uber.org/zap"
 	k8sapps "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -163,7 +164,7 @@ func TestGetUnstructuredChildResourcesByAPIVersionKindsPositive(t *testing.T) {
 						Name:       "test-workload-name",
 						UID:        "test-workload-uid"}}}})
 		})
-	children, err = FetchUnstructuredChildResourcesByAPIVersionKinds(ctx, cli, ctrl.Log, "test-namespace", "test-workload-uid", []oamcore.ChildResourceKind{{APIVersion: "apps/v1", Kind: "Deployment"}})
+	children, err = FetchUnstructuredChildResourcesByAPIVersionKinds(ctx, cli, vzlog.DefaultLogger(), "test-namespace", "test-workload-uid", []oamcore.ChildResourceKind{{APIVersion: "apps/v1", Kind: "Deployment"}})
 	mocker.Finish()
 	assert.NoError(err)
 	assert.Len(children, 1)
@@ -189,7 +190,7 @@ func TestFetchUnstructuredChildResourcesByAPIVersionKindsNegative(t *testing.T) 
 		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, namespace client.InNamespace, labels client.MatchingLabels) error {
 			return fmt.Errorf("test-error")
 		})
-	children, err = FetchUnstructuredChildResourcesByAPIVersionKinds(ctx, cli, ctrl.Log, "test-namespace", "test-workload-uid", []oamcore.ChildResourceKind{{APIVersion: "apps/v1", Kind: "Deployment"}})
+	children, err = FetchUnstructuredChildResourcesByAPIVersionKinds(ctx, cli, vzlog.DefaultLogger(), "test-namespace", "test-workload-uid", []oamcore.ChildResourceKind{{APIVersion: "apps/v1", Kind: "Deployment"}})
 	mocker.Finish()
 	assert.Error(err)
 	assert.Equal("test-error", err.Error())
@@ -228,7 +229,7 @@ func TestGetUnstructuredChildResourcesByDeploymentPositive(t *testing.T) {
 						Name:       "test-workload-name",
 						UID:        "wrong-workload-uid"}}}})
 		})
-	children, err = FetchUnstructuredChildResourcesByAPIVersionKinds(ctx, cli, ctrl.Log, "test-namespace", "test-workload-uid", []oamcore.ChildResourceKind{{APIVersion: "apps/v1", Kind: "Deployment"}})
+	children, err = FetchUnstructuredChildResourcesByAPIVersionKinds(ctx, cli, vzlog.DefaultLogger(), "test-namespace", "test-workload-uid", []oamcore.ChildResourceKind{{APIVersion: "apps/v1", Kind: "Deployment"}})
 	mocker.Finish()
 	assert.NoError(err)
 	assert.Len(children, 1)
@@ -254,7 +255,7 @@ func TestFetchUnstructuredByReference(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, uns *unstructured.Unstructured) error {
 			return fmt.Errorf("test-error")
 		})
-	uns, err = FetchUnstructuredByReference(ctx, cli, ctrl.Log, v1alpha1.QualifiedResourceRelation{
+	uns, err = FetchUnstructuredByReference(ctx, cli, zap.S(), v1alpha1.QualifiedResourceRelation{
 		APIVersion: "test-api/ver",
 		Kind:       "test-kind",
 		Namespace:  "test-space",
@@ -276,7 +277,7 @@ func TestFetchUnstructuredByReference(t *testing.T) {
 			uns.SetName(key.Name)
 			return nil
 		})
-	uns, err = FetchUnstructuredByReference(ctx, cli, ctrl.Log, v1alpha1.QualifiedResourceRelation{
+	uns, err = FetchUnstructuredByReference(ctx, cli, zap.S(), v1alpha1.QualifiedResourceRelation{
 		APIVersion: "test-api/ver",
 		Kind:       "test-kind",
 		Namespace:  "test-space",

@@ -6,18 +6,17 @@ package webhooks
 import (
 	"context"
 	"encoding/json"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"net/http"
 
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"go.uber.org/zap"
 	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
 	v1beta12 "k8s.io/api/admission/v1beta1"
 	"k8s.io/client-go/kubernetes"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
-
-var appConfDefLog = ctrl.Log.WithName("webhooks.appconfig-defaulter")
 
 // AppConfigDefaulterPath specifies the path of AppConfigDefaulter
 const AppConfigDefaulterPath = "/appconfig-defaulter"
@@ -35,8 +34,8 @@ type AppConfigWebhook struct {
 
 //AppConfigDefaulter supplies appconfig default values
 type AppConfigDefaulter interface {
-	Default(appConfig *oamv1.ApplicationConfiguration, dryRun bool) error
-	Cleanup(appConfig *oamv1.ApplicationConfiguration, dryRun bool) error
+	Default(appConfig *oamv1.ApplicationConfiguration, dryRun bool, log *zap.SugaredLogger) error
+	Cleanup(appConfig *oamv1.ApplicationConfiguration, dryRun bool, log *zap.SugaredLogger) error
 }
 
 // InjectDecoder injects admission.Decoder
@@ -49,12 +48,14 @@ var appconfigMarshalFunc = json.Marshal
 
 // Handle handles appconfig mutate Request
 func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
+	log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, "appconfig-defaulter")
+
 	dryRun := req.DryRun != nil && *req.DryRun
 	appConfig := &oamv1.ApplicationConfiguration{}
 	//This json can be used to curl -X POST the webhook endpoint
-	appConfDefLog.V(1).Info("admission.Request", "request", req)
-	appConfDefLog.Info("Handling appconfig default",
-		"request.Operation", req.Operation, "appconfig.Name", req.Name)
+	log.Debugw("admission.Request", "request", req)
+	log.Infow("Handling appconfig default",
+		"request.Operation", req.Operation, "request.Name", req.Name)
 
 	// if the operation is Delete then decode the old object and call the defaulter to cleanup any app conf defaults
 	if req.Operation == v1beta12.Delete {
@@ -63,15 +64,15 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 			return admission.Errored(http.StatusBadRequest, err)
 		}
 		for _, defaulter := range a.Defaulters {
-			err = defaulter.Cleanup(appConfig, dryRun)
+			err = defaulter.Cleanup(appConfig, dryRun, log)
 			if err != nil {
 				return admission.Errored(http.StatusInternalServerError, err)
 			}
 		}
 		if !dryRun {
-			err = a.cleanupAppConfig(appConfig)
+			err = a.cleanupAppConfig(appConfig, log)
 			if err != nil {
-				appConfDefLog.Error(err, "error cleaning up app config", "appconfig.Name", req.Name)
+				log.Errorf("Failed cleaning up app config %s: %v", req.Name, err)
 			}
 		}
 		return admission.Allowed("cleaned up appconfig default")
@@ -83,7 +84,7 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 	}
 	//mutate the fields in appConfig
 	for _, defaulter := range a.Defaulters {
-		err = defaulter.Default(appConfig, dryRun)
+		err = defaulter.Default(appConfig, dryRun, log)
 		if err != nil {
 			return admission.Errored(http.StatusInternalServerError, err)
 		}
@@ -96,12 +97,12 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 }
 
 // cleanupAppConfig cleans up the generated certificates and secrets associated with the given app config
-func (a *AppConfigWebhook) cleanupAppConfig(appConfig *oamv1.ApplicationConfiguration) (err error) {
+func (a *AppConfigWebhook) cleanupAppConfig(appConfig *oamv1.ApplicationConfiguration, log *zap.SugaredLogger) (err error) {
 	// Fixup Istio Authorization policies within a project
 	ap := &AuthorizationPolicy{
 		Client:      a.Client,
 		KubeClient:  a.KubeClient,
 		IstioClient: a.IstioClient,
 	}
-	return ap.cleanupAuthorizationPoliciesForProjects(appConfig.Namespace, appConfig.Name)
+	return ap.cleanupAuthorizationPoliciesForProjects(appConfig.Namespace, appConfig.Name, log)
 }
