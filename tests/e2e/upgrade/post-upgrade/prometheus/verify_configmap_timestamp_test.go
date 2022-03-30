@@ -19,7 +19,7 @@ import (
 var waitTimeout = 15 * time.Minute
 var shortPollingInterval = 10 * time.Second
 
-var t = framework.NewTestFramework("pre-upgrade")
+var t = framework.NewTestFramework("post-upgrade")
 
 var failed = false
 
