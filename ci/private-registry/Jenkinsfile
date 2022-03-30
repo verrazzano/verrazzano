@@ -120,6 +120,15 @@ pipeline {
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
 
         K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
+        TEST_ENV = "KIND"
+        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+
+        // used to generate Ginkgo test reports
+        TEST_REPORT = "test-report.xml"
+        GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
+        TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
     }
 
     stages {
@@ -263,12 +272,6 @@ pipeline {
             }
         }
         stage('Acceptance Tests') {
-            environment {
-                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
-            }
-
             stages {
                 stage('Prepare AT environment') {
                     environment {
@@ -308,10 +311,6 @@ pipeline {
                     }
                 }
                 stage('Run Acceptance Tests') {
-                    environment {
-                        TEST_ENV = "KIND"
-                    }
-
                     stages {
                         stage('verify-install') {
                             steps {
@@ -610,6 +609,7 @@ pipeline {
             """
         }
         cleanup {
+            emitJobMetrics()
             deleteDir()
         }
     }
@@ -771,4 +771,14 @@ def listHelmReleases(customMessage) {
         helm list -A
         echo "-----------------------------------------------------"
     """
+}
+
+def emitJobMetrics() {
+    env.JOB_STATUS = "${currentBuild.currentResult}".trim()
+    long duration = "${currentBuild.duration}" as long;
+    env.DURATION = (duration/1000)
+    long timeInMillis = "${currentBuild.timeInMillis}" as long;
+    long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
+    env.TIME_WAITING = ((startTimeInMillis-timeInMillis)/1000)
+    runGinkgoRandomize('jobmetrics')
 }
