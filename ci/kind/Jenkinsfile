@@ -111,7 +111,11 @@ pipeline {
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "kind"
+        TEST_ENV = "KIND"
         K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
+        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
 
         // used to generate Ginkgo test reports
         TEST_REPORT = "test-report.xml"
@@ -193,12 +197,6 @@ pipeline {
         }
 
         stage('Acceptance Tests') {
-            environment {
-                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
-            }
-
             stages {
                 stage('Prepare AT environment') {
                     environment {
@@ -258,7 +256,6 @@ pipeline {
 
                 stage('Verify Install') {
                     environment {
-                        TEST_ENV = "KIND"
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
                     }
                     steps {
@@ -273,9 +270,6 @@ pipeline {
                 }
 
                 stage('Run Acceptance Tests Infra') {
-                    environment {
-                        TEST_ENV = "KIND"
-                    }
                     parallel {
                         stage('verify-scripts') {
                             steps {
@@ -345,9 +339,6 @@ pipeline {
                 }
 
                 stage('Run Acceptance Tests Deployments') {
-                    environment {
-                        TEST_ENV = "KIND"
-                    }
                     parallel {
                         stage('istio authorization policy') {
                             environment {
@@ -577,6 +568,7 @@ pipeline {
         }
         cleanup {
             metricBuildDuration()
+            emitJobMetrics()
             deleteDir()
         }
     }
@@ -802,4 +794,14 @@ def setDisplayName() {
          }
     }
     echo "End setDisplayName"
+}
+
+def emitJobMetrics() {
+    env.JOB_STATUS = "${currentBuild.currentResult}".trim()
+    long duration = "${currentBuild.duration}" as long;
+    env.DURATION = (duration/1000)
+    long timeInMillis = "${currentBuild.timeInMillis}" as long;
+    long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
+    env.TIME_WAITING = ((startTimeInMillis-timeInMillis)/1000)
+    runGinkgoRandomize('jobmetrics')
 }
