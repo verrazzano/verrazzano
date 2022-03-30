@@ -731,6 +731,7 @@ pipeline {
         }
         cleanup {
             metricBuildDuration()
+            emitJobMetrics()
             deleteDir()
         }
     }
@@ -1547,4 +1548,14 @@ def runConsoleTests() {
         export CONSOLE_APP_COMP="${SAMPLE_APP_COMPONENT}"
         KUBECONFIG=${ADMIN_KUBECONFIG} RUN_APP_TESTS=true ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh
    """
+}
+
+def emitJobMetrics() {
+    env.JOB_STATUS = "${currentBuild.currentResult}".trim()
+    long duration = "${currentBuild.duration}" as long;
+    env.DURATION = (duration/1000)
+    long timeInMillis = "${currentBuild.timeInMillis}" as long;
+    long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
+    env.TIME_WAITING = ((startTimeInMillis-timeInMillis)/1000)
+    runGinkgo('jobmetrics')
 }

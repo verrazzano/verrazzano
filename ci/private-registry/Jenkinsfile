@@ -118,8 +118,11 @@ pipeline {
 
         // used to emit metrics
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
-
         K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
+        TEST_ENV = "KIND"
+        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
 
         // used to generate Ginkgo test reports
         TEST_REPORT = "test-report.xml"
@@ -313,10 +316,6 @@ pipeline {
                     }
                 }
                 stage('Run Acceptance Tests') {
-                    environment {
-                        TEST_ENV = "KIND"
-                    }
-
                     stages {
                         stage('verify-install') {
                             steps {
@@ -620,6 +619,7 @@ pipeline {
             """
         }
         cleanup {
+            emitJobMetrics()
             deleteDir()
         }
     }
@@ -783,3 +783,12 @@ def listHelmReleases(customMessage) {
     """
 }
 
+def emitJobMetrics() {
+    env.JOB_STATUS = "${currentBuild.currentResult}".trim()
+    long duration = "${currentBuild.duration}" as long;
+    env.DURATION = (duration/1000)
+    long timeInMillis = "${currentBuild.timeInMillis}" as long;
+    long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
+    env.TIME_WAITING = ((startTimeInMillis-timeInMillis)/1000)
+    runGinkgo('jobmetrics')
+}

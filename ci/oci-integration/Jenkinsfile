@@ -146,6 +146,9 @@ pipeline {
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "${TEST_ENV}"
+        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
 
         // used to generate Ginkgo test reports
         TEST_REPORT = "test-report.xml"
@@ -379,12 +382,6 @@ pipeline {
                         }
 
                         stage('Verify Install') {
-                            environment {
-                                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-                                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-                                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
-                            }
-
                             steps {
                                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                                     sh """
@@ -401,10 +398,6 @@ pipeline {
                                 NS_LOG_ID="${OKE_NS_LOG_ID}"
 
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/oci-logging-oke"
-
-                                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-                                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-                                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
                             }
                             steps {
                                 script {
@@ -604,12 +597,6 @@ pipeline {
                         }
 
                         stage('Verify Install') {
-                            environment {
-                                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-                                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-                                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
-                            }
-
                             steps {
                                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                                     sh """
@@ -626,10 +613,6 @@ pipeline {
                                 NS_LOG_ID="${KIND_NS_LOG_ID}"
 
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/oci-logging-kind"
-
-                                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-                                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-                                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
                             }
                             steps {
                                 script {
@@ -693,6 +676,7 @@ pipeline {
        }
        cleanup {
            metricBuildDuration()
+           emitJobMetrics()
            deleteDir()
        }
     }
@@ -823,4 +807,14 @@ def setDisplayName() {
          }
     }
     echo "End setDisplayName"
+}
+
+def emitJobMetrics() {
+    env.JOB_STATUS = "${currentBuild.currentResult}".trim()
+    long duration = "${currentBuild.duration}" as long;
+    env.DURATION = (duration/1000)
+    long timeInMillis = "${currentBuild.timeInMillis}" as long;
+    long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
+    env.TIME_WAITING = ((startTimeInMillis-timeInMillis)/1000)
+    runGinkgo('jobmetrics')
 }

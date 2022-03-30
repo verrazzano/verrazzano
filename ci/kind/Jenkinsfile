@@ -113,16 +113,14 @@ pipeline {
         TEST_ENV_LABEL = "kind"
         TEST_ENV = "KIND"
         K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
+        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
 
         // used to generate Ginkgo test reports
         TEST_REPORT = "test-report.xml"
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
-
-        // used to push to sauron gateway
-        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
     }
 
     stages {
