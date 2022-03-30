@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/onsi/ginkgo/v2"
 	"html/template"
 	"net/http"
 	"os"
@@ -30,12 +29,12 @@ const (
 func GetOpenSearchSystemIndex(name string) string {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		Log(Error, fmt.Sprintf("Failed to get default kubeconfig path: %v", err))
 		return ""
 	}
 	dataStreamVersion, err := IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
 	if err != nil {
-		ginkgo.Fail(err.Error())
+		Log(Error, fmt.Sprintf("Failed to check for Verrazzano version: %v", err))
 		return ""
 	}
 	if dataStreamVersion {
@@ -50,12 +49,12 @@ func GetOpenSearchSystemIndex(name string) string {
 func GetOpenSearchAppIndex(namespace string) string {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		Log(Error, fmt.Sprintf("Failed to get default kubeconfig path: %v", err))
 		return ""
 	}
 	dataStreamVersion, err := IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
 	if err != nil {
-		ginkgo.Fail(err.Error())
+		Log(Error, fmt.Sprintf("Failed to check for Verrazzano version: %v", err))
 		return ""
 	}
 	if dataStreamVersion {
