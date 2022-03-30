@@ -229,32 +229,26 @@ pipeline {
                 }
             }
         }
-
-        stage('Pre-upgrade Acceptance Tests') {
-
-            stages {
-                stage('examples helidon') {
-                    steps {
-                        runGinkgoNamespace('examples/helidon', "false", "true", "hello-helidon")
+        stage('Pre-upgrade examples helidon') {
+            steps {
+                runGinkgoNamespace('examples/helidon', "false", "true", "hello-helidon")
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+                failure {
+                    script {
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('pre-upgrade-tests-cluster-dump')
+                        }
                     }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                        failure {
-                            script {
-                                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                                    dumpK8sCluster('pre-upgrade-tests-cluster-dump')
-                                }
-                            }
-                        }
-                        success {
-                            script {
-                                if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                                    dumpK8sCluster('install-success-cluster-dump')
-                                }
-                            }
+                }
+                success {
+                    script {
+                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('install-success-cluster-dump')
                         }
                     }
                 }
