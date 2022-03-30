@@ -18,8 +18,13 @@ type ComponentInfoImpl struct {
 	ComponentName           string
 	MinVersion              string
 	Dependencies            []string
-	IngressNames            []types.NamespacedName
 	SupportsOperatorInstall bool
+	// Ingress names associated with the component
+	IngressNames []types.NamespacedName
+	// Certificates associated with the component
+	Certificates []types.NamespacedName
+	// JSONName is the josn name of the verrazzano component in CRD
+	JSONName string
 }
 
 var _ ComponentInfo = &ComponentInfoImpl{}
@@ -78,4 +83,12 @@ func (d *ComponentInfoImpl) Name() string {
 
 func (d *ComponentInfoImpl) GetDependencies() []string {
 	return d.Dependencies
+}
+
+func (d *ComponentInfoImpl) GetCertificateNames(context ComponentContext) []types.NamespacedName {
+	return d.Certificates
+}
+
+func (d *ComponentInfoImpl) GetJSONName() string {
+	return d.JSONName
 }

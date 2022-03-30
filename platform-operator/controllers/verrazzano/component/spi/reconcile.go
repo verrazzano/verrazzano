@@ -40,7 +40,7 @@ func Reconcile(compContext ComponentContext, comp Component) error {
 	}
 
 	switch componentStatus.State {
-	case vzapi.Ready:
+	case vzapi.CompStateReady:
 		// For delete, we should look at the VZ resource delete timestamp and shift into Quiescing/Uninstalling state
 		compLog.Oncef("component %s is ready", compName)
 		//if compInternal != nil {
@@ -50,8 +50,8 @@ func Reconcile(compContext ComponentContext, comp Component) error {
 		//	}
 		//}
 		return nil
-	case vzapi.Disabled:
-		if !comp.IsEnabled(compContext) {
+	case vzapi.CompStateDisabled:
+		if !comp.IsEnabled(compContext.EffectiveCR()) {
 			compLog.Oncef("component %s is disabled, skipping install", compName)
 			// User has disabled component in Verrazzano CR, don't install
 			return nil
@@ -62,14 +62,14 @@ func Reconcile(compContext ComponentContext, comp Component) error {
 				comp.Name(), comp.GetMinVerrazzanoVersion())
 			return nil
 		}
-		if err := updateComponentStatus(compContext, "PreInstall started", vzapi.PreInstall); err != nil {
+		if err := updateComponentStatus(compContext, "PreInstall started", vzapi.CondPreInstall); err != nil {
 			return err
 		}
 		return ctrlerrors.RetryableError{
 			Source:    comp.Name(),
 			Operation: compContext.GetOperation(),
 		}
-	case vzapi.PreInstalling:
+	case vzapi.CompStatePreInstalling:
 		compLog.Debugf("PreInstalling component %s", comp.Name())
 		// Can't do the dependency check here at present, introduces a cycle with the registry
 		if !ComponentDependenciesMet(comp, compContext) {
@@ -91,7 +91,7 @@ func Reconcile(compContext ComponentContext, comp Component) error {
 				return err
 			}
 		}
-		if err := updateComponentStatus(compContext, "Install started", vzapi.InstallStarted); err != nil {
+		if err := updateComponentStatus(compContext, "Install started", vzapi.CondInstallStarted); err != nil {
 			return err
 		}
 		// Install started requeue to check status
@@ -99,7 +99,7 @@ func Reconcile(compContext ComponentContext, comp Component) error {
 			Source:    comp.Name(),
 			Operation: compContext.GetOperation(),
 		}
-	case vzapi.Installing:
+	case vzapi.CompStateInstalling:
 		// For delete, we should look at the VZ resource delete timestamp and shift into Quiescing/Uninstalling state
 		// If component is enabled -- need to replicate scripts' config merging logic here
 		// If component is in deployed state, continue
@@ -111,7 +111,7 @@ func Reconcile(compContext ComponentContext, comp Component) error {
 				}
 			}
 			compLog.Oncef("Component %s successfully installed", compName)
-			if err := updateComponentStatus(compContext, "Install complete", vzapi.InstallComplete); err != nil {
+			if err := updateComponentStatus(compContext, "Install complete", vzapi.CondInstallComplete); err != nil {
 				return err
 			}
 			// Don't requeue because of this component, it is done install

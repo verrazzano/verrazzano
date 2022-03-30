@@ -6,6 +6,7 @@ package context
 import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -19,14 +20,16 @@ type VerrazzanoContext struct {
 	DryRun bool
 	// ActualCR is the CR passed to top level Reconcile.  It represents the desired Verrazzano state in the cluster
 	ActualCR *vzapi.Verrazzano
+	Registry spi.ComponentRegistry
 }
 
 // NewVerrazzanoContext creates a VerrazzanoContext
-func NewVerrazzanoContext(log vzlog.VerrazzanoLogger, c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool) (VerrazzanoContext, error) {
+func NewVerrazzanoContext(log vzlog.VerrazzanoLogger, c clipkg.Client, actualCR *vzapi.Verrazzano, registry spi.ComponentRegistry, dryRun bool) (VerrazzanoContext, error) {
 	return VerrazzanoContext{
 		Log:      log,
 		Client:   c,
 		DryRun:   dryRun,
 		ActualCR: actualCR,
+		Registry: registry,
 	}, nil
 }

@@ -45,16 +45,15 @@ func NewComponent() spi.Component {
 				ComponentName:           ComponentName,
 				SupportsOperatorInstall: true,
 				Dependencies:            []string{istio.ComponentName},
+				JSONName:                ComponentJSONName,
 			},
 			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "mysql-values.yaml"),
 			AppendOverridesFunc:     appendMySQLOverrides,
-			Dependencies:            []string{istio.ComponentName},
 		},
 	}
 }

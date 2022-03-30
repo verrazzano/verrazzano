@@ -34,22 +34,24 @@ type authProxyComponent struct {
 }
 
 // Verify that AuthProxyComponent implements Component
-var _ spi.Component = authProxyComponent{}
+var _ spi.Component = &authProxyComponent{}
 
 // NewComponent returns a new authProxyComponent component
 func NewComponent() spi.Component {
-	return authProxyComponent{
+	return &authProxyComponent{
 		helm.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				JSONName:                ComponentJSONName,
+				SupportsOperatorInstall: true,
+				Dependencies:            []string{verrazzano.ComponentName},
+			},
 			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetHelmChartsDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
 			AppendOverridesFunc:     AppendOverrides,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
-			Dependencies:            []string{verrazzano.ComponentName},
 		},
 	}
 }

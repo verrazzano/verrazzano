@@ -10,7 +10,6 @@ import (
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
@@ -56,9 +55,9 @@ func NewComponent() spi.Component {
 				ComponentName:           ComponentName,
 				SupportsOperatorInstall: true,
 				Dependencies:            []string{istio.ComponentName, nginx.ComponentName},
+				JSONName:                ComponentJSONName,
 			},
 			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetHelmChartsDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,

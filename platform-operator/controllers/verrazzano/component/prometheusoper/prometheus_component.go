@@ -30,25 +30,27 @@ type prometheusComponent struct {
 }
 
 func NewComponent() spi.Component {
-	return prometheusComponent{
+	return &prometheusComponent{
 		helm.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				JSONName:                ComponentJSONName,
+				SupportsOperatorInstall: true,
+				Dependencies:            []string{certmanager.ComponentName},
+			},
 			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), chartName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0].name",
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-values.yaml"),
-			Dependencies:            []string{certmanager.ComponentName},
 		},
 	}
 }
 
 // IsEnabled returns true if the Prometheus Operator is enabled or if the component is not specified
 // in the Verrazzano CR.
-func (c prometheusComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+func (c *prometheusComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	comp := effectiveCR.Spec.Components.PrometheusOperator
 	if comp == nil || comp.Enabled == nil {
 		return true
@@ -57,7 +59,7 @@ func (c prometheusComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 }
 
 // IsReady checks if the Prometheus Operator deployment is ready
-func (c prometheusComponent) IsReady(ctx spi.ComponentContext) bool {
+func (c *prometheusComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
 		return isPrometheusOperatorReady(ctx)
 	}
@@ -65,6 +67,6 @@ func (c prometheusComponent) IsReady(ctx spi.ComponentContext) bool {
 }
 
 // PreInstall updates resources necessary for the Prometheus Operator Component installation
-func (c prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
+func (c *prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preInstall(ctx)
 }

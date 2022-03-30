@@ -19,7 +19,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"path/filepath"
 )
 
 // ComponentName is the name of the component
@@ -46,9 +45,10 @@ func NewComponent() spi.Component {
 			ComponentInfoImpl: spi.ComponentInfoImpl{
 				ComponentName:           ComponentName,
 				SupportsOperatorInstall: true,
+				JSONName:                ComponentJSONName,
+				Dependencies:            []string{},
 			},
 			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), "cert-manager"),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
@@ -56,7 +56,6 @@ func NewComponent() spi.Component {
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "cert-manager-values.yaml"),
 			AppendOverridesFunc:     AppendOverrides,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_0_0,
-			Dependencies:            []string{},
 		},
 	}
 }

@@ -100,7 +100,7 @@ func TestInstall(t *testing.T) {
 		return helmcli.ChartStatusDeployed, nil
 	})
 	defer helmcli.SetDefaultChartStateFunction()
-	err := NewComponent().Install(ctx)
+	err := NewComponent().(spi.ComponentInternal).Install(ctx)
 	assert.NoError(t, err)
 }
 
@@ -118,18 +118,18 @@ func TestPostInstall(t *testing.T) {
 	vzComp := NewComponent()
 
 	// PostInstall will fail because the expected VZ ingresses are not present in cluster
-	err := vzComp.PostInstall(ctx)
+	err := vzComp.(spi.ComponentInternal).PostInstall(ctx)
 	assert.IsType(t, spi2.RetryableError{}, err)
 
 	// now get all the ingresses for VZ and add them to the fake K8S and ensure that PostInstall succeeds
 	// when all the ingresses are present in the cluster
-	vzIngressNames := vzComp.(verrazzanoComponent).GetIngressNames(ctx)
+	vzIngressNames := vzComp.(spi.ComponentInfo).GetIngressNames(ctx)
 	for _, ingressName := range vzIngressNames {
 		client.Create(context.TODO(), &v1.Ingress{
 			ObjectMeta: metav1.ObjectMeta{Name: ingressName.Name, Namespace: ingressName.Namespace},
 		})
 	}
-	for _, certName := range vzComp.(verrazzanoComponent).GetCertificateNames(ctx) {
+	for _, certName := range vzComp.(spi.ComponentInfo).GetCertificateNames(ctx) {
 		time := metav1.Now()
 		client.Create(context.TODO(), &certv1.Certificate{
 			ObjectMeta: metav1.ObjectMeta{Name: certName.Name, Namespace: certName.Namespace},
@@ -140,7 +140,7 @@ func TestPostInstall(t *testing.T) {
 			},
 		})
 	}
-	err = vzComp.PostInstall(ctx)
+	err = vzComp.(spi.ComponentInternal).PostInstall(ctx)
 	assert.NoError(t, err)
 }
 
@@ -169,7 +169,7 @@ func TestPostInstallCertsNotReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{Name: ingressName.Name, Namespace: ingressName.Namespace},
 		})
 	}
-	for _, certName := range vzComp.(verrazzanoComponent).GetCertificateNames(ctx) {
+	for _, certName := range vzComp.(spi.ComponentInfo).GetCertificateNames(ctx) {
 		time := metav1.Now()
 		client.Create(context.TODO(), &certv1.Certificate{
 			ObjectMeta: metav1.ObjectMeta{Name: certName.Name, Namespace: certName.Namespace},
@@ -180,7 +180,7 @@ func TestPostInstallCertsNotReady(t *testing.T) {
 			},
 		})
 	}
-	err = vzComp.PostInstall(ctx)
+	err = vzComp.(spi.ComponentInternal).PostInstall(ctx)
 
 	expectedErr := spi2.RetryableError{
 		Source:    vzComp.Name(),

@@ -42,15 +42,14 @@ func NewComponent() spi.Component {
 				ComponentName:           ComponentName,
 				Dependencies:            []string{oam.ComponentName, istio.ComponentName},
 				SupportsOperatorInstall: true,
+				JSONName:                ComponentJSONName,
 			},
 			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetHelmChartsDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			AppendOverridesFunc:     AppendApplicationOperatorOverrides,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
-			Dependencies:            []string{oam.ComponentName, istio.ComponentName},
 		},
 	}
 }

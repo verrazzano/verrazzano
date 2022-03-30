@@ -11,6 +11,7 @@ import (
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -30,9 +31,6 @@ type HelmComponent struct {
 
 	// ReleaseName is the helm chart release name
 	ReleaseName string
-
-	// JSONName is the josn name of the verrazzano component in CRD
-	JSONName string
 
 	// ChartDir is the helm chart directory
 	ChartDir string
@@ -79,12 +77,6 @@ type HelmComponent struct {
 
 	// The minimum required Verrazzano version.
 	MinVerrazzanoVersion string
-
-	// Ingress names associated with the component
-	IngressNames []types.NamespacedName
-
-	// Certificates associated with the component
-	Certificates []types.NamespacedName
 }
 
 // Verify that HelmComponent implements Component
@@ -126,32 +118,32 @@ func SetDefaultUpgradeFunc() {
 var UpgradePrehooksEnabled = true
 
 // Name returns the component name
-func (h HelmComponent) Name() string {
+func (h *HelmComponent) Name() string {
 	return h.ReleaseName
 }
 
 // GetJsonName returns the josn name of the verrazzano component in CRD
-func (h HelmComponent) GetJSONName() string {
+func (h *HelmComponent) GetJSONName() string {
 	return h.JSONName
 }
 
 // GetDependencies returns the Dependencies of this component
-func (h HelmComponent) GetDependencies() []string {
+func (h *HelmComponent) GetDependencies() []string {
 	return h.Dependencies
 }
 
 // IsOperatorInstallSupported Returns true if the component supports direct install via the operator
-func (h HelmComponent) IsOperatorInstallSupported() bool {
+func (h *HelmComponent) IsOperatorInstallSupported() bool {
 	return h.SupportsOperatorInstall
 }
 
 // GetCertificateNames returns the list of expected certificates used by this component
-func (h HelmComponent) GetCertificateNames(_ spi.ComponentContext) []types.NamespacedName {
+func (h *HelmComponent) GetCertificateNames(_ spi.ComponentContext) []types.NamespacedName {
 	return h.Certificates
 }
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by this component
-func (h HelmComponent) GetMinVerrazzanoVersion() string {
+func (h *HelmComponent) GetMinVerrazzanoVersion() string {
 	if len(h.MinVerrazzanoVersion) == 0 {
 		return constants.VerrazzanoVersion1_0_0
 	}
@@ -201,13 +193,17 @@ func (h *HelmComponent) IsEnabled(_ *vzapi.Verrazzano) bool {
 	return true
 }
 
+func (h *HelmComponent) Reconcile(ctx spi.ComponentContext) error {
+	return nil
+}
+
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (h HelmComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+func (h *HelmComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	return nil
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (h HelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (h *HelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	return nil
 }
 

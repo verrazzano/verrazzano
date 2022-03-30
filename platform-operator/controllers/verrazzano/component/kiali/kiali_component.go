@@ -47,7 +47,7 @@ func NewComponent() spi.Component {
 			ComponentInfoImpl: spi.ComponentInfoImpl{
 				ComponentName:           ComponentName,
 				SupportsOperatorInstall: true,
-				Dependencies:            []string{nginx.ComponentName},
+				Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
 				MinVersion:              constants.VerrazzanoVersion1_1_0,
 				IngressNames: []types.NamespacedName{
 					{
@@ -55,18 +55,17 @@ func NewComponent() spi.Component {
 						Name:      constants.KialiIngress,
 					},
 				},
+				JSONName:     ComponentJSONName,
+				Certificates: certificates,
 			},
 			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), kialiOverridesFile),
-			Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
 			AppendOverridesFunc:     AppendOverrides,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_1_0,
-			Certificates:            certificates,
 		},
 	}
 }

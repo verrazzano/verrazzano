@@ -32,6 +32,10 @@ var getComponentsFn = getComponents
 
 var componentsRegistry []spi.Component
 
+func NewRegistry() spi.ComponentRegistry {
+	return &VzComponentRegistry{}
+}
+
 // OverrideGetComponentsFn Allows overriding the set of registry components for testing purposes
 func OverrideGetComponentsFn(fnType GetCompoentsFnType) {
 	getComponentsFn = fnType

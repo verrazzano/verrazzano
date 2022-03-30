@@ -33,15 +33,15 @@ func NewComponent() spi.Component {
 			ComponentInfoImpl: spi.ComponentInfoImpl{
 				ComponentName:           ComponentName,
 				SupportsOperatorInstall: true,
+				JSONName:                ComponentJSONName,
+				Dependencies:            []string{},
 			},
 			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "coherence-values.yaml"),
-			Dependencies:            []string{},
 		},
 	}
 }

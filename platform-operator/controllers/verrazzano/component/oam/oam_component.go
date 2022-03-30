@@ -35,15 +35,15 @@ func NewComponent() spi.Component {
 			ComponentInfoImpl: spi.ComponentInfoImpl{
 				ComponentName:           ComponentName,
 				SupportsOperatorInstall: true,
+				JSONName:                ComponentJSONName,
+				Dependencies:            []string{},
 			},
 			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "oam-kubernetes-runtime-values.yaml"),
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
-			Dependencies:            []string{},
 		},
 	}
 }

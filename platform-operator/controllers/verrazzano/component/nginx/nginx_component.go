@@ -46,9 +46,9 @@ func NewComponent() spi.Component {
 				ComponentName:           ComponentName,
 				SupportsOperatorInstall: true,
 				Dependencies:            []string{istio.ComponentName},
+				JSONName:                ComponentJSONName,
 			},
 			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), "ingress-nginx"), // Note name is different than release name
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
@@ -57,7 +57,6 @@ func NewComponent() spi.Component {
 			PreInstallFunc:          PreInstall,
 			AppendOverridesFunc:     AppendOverrides,
 			PostInstallFunc:         PostInstall,
-			Dependencies:            []string{istio.ComponentName},
 		},
 	}
 }
@@ -80,7 +79,7 @@ func (c *nginxComponent) IsReady(ctx spi.ComponentContext) bool {
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c *nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Block all changes for now, particularly around storage changes
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
@@ -105,14 +104,14 @@ func (c nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	return nil
 }
 
-func (c nginxComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
+func (c *nginxComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
 	if vz != nil && vz.Spec.Components.Ingress != nil {
 		return vz.Spec.Components.Ingress.NGINXInstallArgs
 	}
 	return nil
 }
 
-func (c nginxComponent) getPorts(vz *vzapi.Verrazzano) []corev1.ServicePort {
+func (c *nginxComponent) getPorts(vz *vzapi.Verrazzano) []corev1.ServicePort {
 	if vz != nil && vz.Spec.Components.Ingress != nil {
 		return vz.Spec.Components.Ingress.Ports
 	}
@@ -120,6 +119,6 @@ func (c nginxComponent) getPorts(vz *vzapi.Verrazzano) []corev1.ServicePort {
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (c nginxComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+func (c *nginxComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	return k8s.ValidateForExternalIPSWithNodePort(&vz.Spec, c.Name())
 }

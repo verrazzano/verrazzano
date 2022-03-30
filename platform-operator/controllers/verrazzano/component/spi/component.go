@@ -42,10 +42,6 @@ type ComponentInfo interface {
 	Name() string
 	// GetDependencies returns the dependencies of this component
 	GetDependencies() []string
-	// IsReady Indicates whether or not a component is available and ready
-	IsReady(context ComponentContext) bool
-	// IsEnabled Indicates whether or a component is enabled for installation
-	IsEnabled(effectiveCR *vzapi.Verrazzano) bool
 	// GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
 	GetMinVerrazzanoVersion() string
 	// GetIngressNames returns a list of names of the ingresses associated with the component
@@ -54,31 +50,6 @@ type ComponentInfo interface {
 	GetCertificateNames(context ComponentContext) []types.NamespacedName
 	// GetJsonName returns the josn name of the verrazzano component in CRD
 	GetJSONName() string
-}
-// ComponentInstaller interface defines installs operations for components that support it
-type ComponentInstaller interface {
-	// IsInstalled Indicates whether or not the component is installed
-	IsInstalled(context ComponentContext) (bool, error)
-	// PreInstall allows components to perform any pre-processing required prior to initial install
-	PreInstall(context ComponentContext) error
-	// Install performs the initial install of a component
-	Install(context ComponentContext) error
-	// PostInstall allows components to perform any post-processing required after initial install
-	PostInstall(context ComponentContext) error
-	// IsOperatorInstallSupported Returns true if the component supports install directly via the platform operator
-	// - scaffolding while we move components from the scripts to the operator
-	IsOperatorInstallSupported() bool
-}
-
-
-// ComponentUpgrader interface defines upgrade operations for components that support it
-type ComponentUpgrader interface {
-	// PreUpgrade allows components to perform any pre-processing required prior to upgrading
-	PreUpgrade(context ComponentContext) error
-	// Upgrade will upgrade the Verrazzano component specified in the CR.Version field
-	Upgrade(context ComponentContext) error
-	// PostUpgrade allows components to perform any post-processing required after upgrading
-	PostUpgrade(context ComponentContext) error
 }
 
 // ComponentValidator interface defines validation operations for components that support it
@@ -95,9 +66,21 @@ type ComponentValidator interface {
 // Component interface defines the methods implemented by components
 type Component interface {
 	ComponentInfo
-	ComponentInstaller
 	ComponentUpgrader // This should move to ComponentInternal once Upgrade moves to the Reconcile method/op
 	ComponentValidator
+
+	// IsOperatorInstallSupported Returns true if the component supports install directly via the platform operator
+	// - scaffolding while we move components from the scripts to the operator
+	IsOperatorInstallSupported() bool
+
+	// IsInstalled Indicates whether or not the component is installed
+	IsInstalled(context ComponentContext) (bool, error)
+
+	// IsReady Indicates whether or not a component is available and ready
+	IsReady(context ComponentContext) bool
+
+	// IsEnabled Indicates whether or a component is enabled for installation
+	IsEnabled(effectiveCR *vzapi.Verrazzano) bool
 
 	Reconcile(ctx ComponentContext) error
 }

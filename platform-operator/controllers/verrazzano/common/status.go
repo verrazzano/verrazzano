@@ -6,21 +6,21 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
-func CheckConditionType(currentCondition vzapi.ConditionType) vzapi.StateType {
+func CheckConditionType(currentCondition vzapi.ConditionType) vzapi.CompStateType {
 	switch currentCondition {
-	case vzapi.PreInstall:
-		return vzapi.PreInstalling
-	case vzapi.InstallStarted:
-		return vzapi.Installing
-	case vzapi.UninstallStarted:
-		return vzapi.Uninstalling
-	case vzapi.UpgradeStarted:
-		return vzapi.Upgrading
-	case vzapi.UninstallComplete:
-		return vzapi.Ready
-	case vzapi.InstallFailed, vzapi.UpgradeFailed, vzapi.UninstallFailed:
-		return vzapi.Failed
+	case vzapi.CondPreInstall:
+		return vzapi.CompStatePreInstalling
+	case vzapi.CondInstallStarted:
+		return vzapi.CompStateInstalling
+	case vzapi.CondUninstallStarted:
+		return vzapi.CompStateUninstalling
+	case vzapi.CondUpgradeStarted:
+		return vzapi.CompStateUpgrading
+	case vzapi.CondUpgradeComplete:
+		return vzapi.CompStateReady
+	case vzapi.CondInstallFailed, vzapi.CondUpgradeFailed, vzapi.CondUninstallFailed:
+		return vzapi.CompStateFailed
 	}
 	// Return ready for vzapi.InstallComplete, vzapi.UpgradeComplete
-	return vzapi.Ready
+	return vzapi.CompStateReady
 }

@@ -4,6 +4,7 @@
 package rancher
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -21,7 +22,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 )
 
 // ComponentName is the name of the component
@@ -48,23 +48,22 @@ func NewComponent() spi.Component {
 				ComponentName:           ComponentName,
 				Dependencies:            []string{nginx.ComponentName, certmanager.ComponentName},
 				SupportsOperatorInstall: true,
+				Certificates:            certificates,
 				IngressNames: []types.NamespacedName{
 					{
 						Namespace: common.CattleSystem,
 						Name:      constants.RancherIngress,
 					},
 				},
+				JSONName: ComponentJSONName,
 			},
 			ReleaseName:             common.RancherName,
-			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), common.RancherName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
 			AppendOverridesFunc:     AppendOverrides,
-			Certificates:            certificates,
-			Dependencies:            []string{nginx.ComponentName, certmanager.ComponentName},
 		},
 	}
 }

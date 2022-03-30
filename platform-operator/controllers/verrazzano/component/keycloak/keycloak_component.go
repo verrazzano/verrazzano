@@ -53,32 +53,24 @@ func NewComponent() spi.Component {
 		helm.HelmComponent{
 			ComponentInfoImpl: spi.ComponentInfoImpl{
 				ComponentName:           ComponentName,
-				Dependencies:            []string{istio.ComponentName},
+				Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
 				SupportsOperatorInstall: true,
+				Certificates:            certificates,
 				IngressNames: []types.NamespacedName{
 					{
 						Namespace: ComponentNamespace,
 						Name:      constants.KeycloakIngress,
 					},
 				},
+				JSONName: ComponentJSONName,
 			},
 			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			//  Check on Image Pull Key
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
-			Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
-			SupportsOperatorInstall: true,
-			AppendOverridesFunc:     AppendKeycloakOverrides,
-			Certificates:            certificates,
-			IngressNames: []types.NamespacedName{
-				{
-					Namespace: ComponentNamespace,
-					Name:      constants.KeycloakIngress,
-				},
-			},
+			ValuesFile:          filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
+			AppendOverridesFunc: AppendKeycloakOverrides,
 		},
 	}
 }
@@ -209,8 +201,4 @@ func (c *KeycloakComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.Install
 		return vz.Spec.Components.Keycloak.KeycloakInstallArgs
 	}
 	return nil
-}
-
-func (c *KeycloakComponent) Reconcile(ctx spi.ComponentContext) error {
-	return spi.Reconcile(ctx, c)
 }

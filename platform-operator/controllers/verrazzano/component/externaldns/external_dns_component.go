@@ -9,8 +9,6 @@ import (
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"path/filepath"
-
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -36,6 +34,7 @@ func NewComponent() spi.Component {
 				ComponentName:           ComponentName,
 				SupportsOperatorInstall: true,
 				MinVersion:              constants.VerrazzanoVersion1_0_0,
+				Dependencies:            []string{},
 			},
 			ReleaseName:             ComponentName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
@@ -45,7 +44,6 @@ func NewComponent() spi.Component {
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "external-dns-values.yaml"),
 			AppendOverridesFunc:     AppendOverrides,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_0_0,
-			Dependencies:            []string{},
 		},
 	}
 }

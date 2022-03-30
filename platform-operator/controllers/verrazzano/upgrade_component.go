@@ -10,7 +10,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -48,14 +47,14 @@ type componentUpgradeContext struct {
 
 // upgradeComponents will upgrade the components as required
 func (r *Reconciler) upgradeComponents(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, tracker *upgradeTracker) (ctrl.Result, error) {
-	spiCtx, err := spi.NewContext(log, r, cr, r.DryRun)
+	spiCtx, err := spi.NewContext(log, r, cr, r.Registry, r.DryRun)
 	if err != nil {
 		return newRequeueWithDelay(), err
 	}
 
 	// Loop through all of the Verrazzano components and upgrade each one.
 	// Don't move to the next component until the current one has been succcessfully upgraded
-	for _, comp := range registry.GetComponents() {
+	for _, comp := range r.Registry.GetComponents() {
 		upgradeContext := tracker.getComponentUpgradeContext(comp.Name())
 		result, err := r.upgradeSingleComponent(spiCtx, upgradeContext, comp)
 		if err != nil || result.Requeue {

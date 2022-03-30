@@ -4,6 +4,12 @@
 package registry
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheusoper"
+	appsv1 "k8s.io/api/apps/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -32,16 +38,6 @@ const (
 	profileDir = "../../../manifests/profiles"
 )
 
-type fooComponent struct {
-	helmcomp.HelmComponent
-}
-
-func (f fooComponent) Reconcile(ctx spi.ComponentContext) error {
-	return nil
-}
-
-var _ spi.Component = &fooComponent{}
-
 // TestGetComponents tests getting the components
 // GIVEN a component
 //  WHEN I call GetComponents
@@ -50,20 +46,22 @@ func TestGetComponents(t *testing.T) {
 	assert := assert.New(t)
 	comps := VzComponentRegistry{}.GetComponents()
 
-	assert.Len(comps, 13, "Wrong number of components")
-	assert.Equal(comps[0].Name(), istio.ComponentName)
-	assert.Equal(comps[1].Name(), nginx.ComponentName)
-	assert.Equal(comps[2].Name(), certmanager.ComponentName)
-	assert.Equal(comps[3].Name(), externaldns.ComponentName)
-	assert.Equal(comps[4].Name(), rancher.ComponentName)
-	assert.Equal(comps[5].Name(), verrazzano.ComponentName)
-	assert.Equal(comps[6].Name(), coherence.ComponentName)
-	assert.Equal(comps[7].Name(), weblogic.ComponentName)
-	assert.Equal(comps[8].Name(), oam.ComponentName)
-	assert.Equal(comps[9].Name(), appoper.ComponentName)
-	assert.Equal(comps[10].Name(), mysql.ComponentName)
-	assert.Equal(comps[11].Name(), keycloak.ComponentName)
-	assert.Equal(comps[12].Name(), kiali.ComponentName)
+	assert.Len(comps, 15, "Wrong number of components")
+	assert.Equal(comps[0].Name(), oam.ComponentName)
+	assert.Equal(comps[1].Name(), weblogic.ComponentName)
+	assert.Equal(comps[2].Name(), appoper.ComponentName)
+	assert.Equal(comps[3].Name(), istio.ComponentName)
+	assert.Equal(comps[4].Name(), nginx.ComponentName)
+	assert.Equal(comps[5].Name(), certmanager.ComponentName)
+	assert.Equal(comps[6].Name(), externaldns.ComponentName)
+	assert.Equal(comps[7].Name(), rancher.ComponentName)
+	assert.Equal(comps[8].Name(), verrazzano.ComponentName)
+	assert.Equal(comps[9].Name(), authproxy.ComponentName)
+	assert.Equal(comps[10].Name(), coherence.ComponentName)
+	assert.Equal(comps[11].Name(), mysql.ComponentName)
+	assert.Equal(comps[12].Name(), keycloak.ComponentName)
+	assert.Equal(comps[13].Name(), kiali.ComponentName)
+	assert.Equal(comps[14].Name(), prometheusoper.ComponentName)
 }
 
 // TestFindComponent tests FindComponent
@@ -90,4 +88,475 @@ func TestRegistryDependencies(t *testing.T) {
 		_, err := spi.CheckDependencies(comp, fakeContext, make(map[string]bool), make(map[string]bool))
 		assert.NoError(t, err)
 	}
+}
+
+// TestComponentDependenciesMet tests ComponentDependenciesMet
+// GIVEN a component
+//  WHEN I call ComponentDependenciesMet for it
+//  THEN the true is returned if all depdencies are met
+func TestComponentDependenciesMet(t *testing.T) {
+	var comp spi.Component
+	comp = &fakeHelmComponent{
+		HelmComponent: helmcomp.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				Dependencies: []string{istio.ComponentName},
+			},
+			ReleaseName:    "foo",
+			ChartDir:       "chartDir",
+			ChartNamespace: "bar",
+		},
+	}
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "istio-system",
+				Name:      "istiod",
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "istio-system",
+				Name:      "istio-ingressgateway",
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "istio-system",
+				Name:      "istio-egressgateway",
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		},
+	)
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+	ready := spi.ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "default"}}, false))
+	assert.True(t, ready)
+}
+
+// TestComponentDependenciesNotMet tests ComponentDependenciesMet
+// GIVEN a component
+//  WHEN I call ComponentDependenciesMet for it
+//  THEN the false is returned if any depdencies are not met
+func TestComponentDependenciesNotMet(t *testing.T) {
+	var comp spi.Component
+	comp = &fakeHelmComponent{
+		HelmComponent: helmcomp.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				Dependencies: []string{istio.ComponentName},
+			},
+			ReleaseName:    "foo",
+			ChartDir:       "chartDir",
+			ChartNamespace: "bar",
+		},
+	}
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "istio-system",
+			Name:      "istiod",
+		},
+		Status: appsv1.DeploymentStatus{
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   0,
+		},
+	})
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+	ready := spi.ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
+	assert.False(t, ready)
+}
+
+// TestComponentDependenciesDependencyChartNotInstalled tests ComponentDependenciesMet
+// GIVEN a component
+//  WHEN I call ComponentDependenciesMet for it
+//  THEN the false is returned if the dependent chart isn't installed
+func TestComponentDependenciesDependencyChartNotInstalled(t *testing.T) {
+	var comp spi.Component
+	comp = &fakeHelmComponent{
+		HelmComponent: helmcomp.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				Dependencies: []string{istio.ComponentName},
+			},
+			ReleaseName:    "foo",
+			ChartDir:       "chartDir",
+			ChartNamespace: "bar",
+		},
+	}
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusPendingInstall, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+	ready := spi.ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
+	assert.False(t, ready)
+}
+
+// TestComponentMultipleDependenciesPartiallyMet tests ComponentDependenciesMet
+// GIVEN a component
+//  WHEN I call ComponentDependenciesMet for it
+//  THEN the false is returned if any depdencies are not met
+func TestComponentMultipleDependenciesPartiallyMet(t *testing.T) {
+	var comp = &fakeHelmComponent{
+		HelmComponent: helmcomp.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				Dependencies: []string{istio.ComponentName, "cert-manager"},
+			},
+			ReleaseName:    "foo",
+			ChartDir:       "chartDir",
+			ChartNamespace: "bar",
+		},
+	}
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "istio-system",
+			Name:      "istiod",
+		},
+		Status: appsv1.DeploymentStatus{
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   0,
+		},
+	})
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+	ready := spi.ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
+	assert.False(t, ready)
+}
+
+// TestComponentMultipleDependenciesMet tests ComponentDependenciesMet
+// GIVEN a component
+//  WHEN I call ComponentDependenciesMet for it
+//  THEN the true is returned if all depdencies are met
+func TestComponentMultipleDependenciesMet(t *testing.T) {
+	var comp = &fakeHelmComponent{
+		HelmComponent: helmcomp.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				Dependencies: []string{istio.ComponentName, "cert-manager"},
+			},
+			ReleaseName:    "foo",
+			ChartDir:       "chartDir",
+			ChartNamespace: "bar",
+		},
+	}
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+		newReadyDeployment("istiod", "istio-system"),
+		newReadyDeployment("istio-ingressgateway", "istio-system"),
+		newReadyDeployment("istio-egressgateway", "istio-system"),
+		newReadyDeployment("cert-manager", "cert-manager"),
+		newReadyDeployment("cert-manager-cainjector", "cert-manager"),
+		newReadyDeployment("cert-manager-webhook", "cert-manager"))
+
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+
+	helm.SetChartInfoFunction(func(chartDir string) (helm.ChartInfo, error) {
+		return helm.ChartInfo{
+			AppVersion: "1.0",
+		}, nil
+	})
+	defer helm.SetDefaultChartInfoFunction()
+
+	helm.SetReleaseAppVersionFunction(func(releaseName string, namespace string) (string, error) {
+		return "1.0", nil
+	})
+	defer helm.SetDefaultReleaseAppVersionFunction()
+
+	ready := spi.ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
+	assert.True(t, ready)
+}
+
+// TestComponentDependenciesCycle tests ComponentDependenciesMet
+// GIVEN a component
+//  WHEN I call ComponentDependenciesMet for it
+//  THEN it returns false if there's a cycle in the dependencies
+func TestComponentDependenciesCycle(t *testing.T) {
+	var comp = &fakeHelmComponent{
+		HelmComponent: helmcomp.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				Dependencies: []string{"istiod", "cert-manager", "istiod"},
+			},
+			ReleaseName:    "foo",
+			ChartDir:       "chartDir",
+			ChartNamespace: "bar",
+		},
+	}
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+		newReadyDeployment("istiod", "istio-system"),
+		newReadyDeployment("cert-manager", "cert-manager"),
+		newReadyDeployment("cert-manager-cainjector", "cert-manager"),
+		newReadyDeployment("cert-manager-webhook", "cert-manager"))
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+	ready := spi.ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
+	assert.False(t, ready)
+}
+
+// TestComponentDependenciesCycles tests ComponentDependenciesMet
+// GIVEN a registry of components with dependencies, and some with cycles
+//  WHEN I call ComponentDependenciesMet for it
+//  THEN it returns false if there's a cycle in the dependencies
+func TestComponentDependenciesCycles(t *testing.T) {
+	// directCycle -> fake1, directCycle
+	directCycle := fakeComponent{name: "directCycle", dependencies: []string{"fake1", "directCycle"}}
+	// indirectCycle1 -> fake3 -> fake2 -> indirectCycle1
+	indirectCycle1 := fakeComponent{name: "indirectCycle1", dependencies: []string{"fake3"}}
+	// indirectCycle2 -> fake4 -> fake3 -> fake2 -> indirectCycle -> fake3
+	indirectCycle2 := fakeComponent{name: "indirectCycle2", dependencies: []string{"fake4"}}
+	nocycles := fakeComponent{name: "nocycles", dependencies: []string{"fake6", "fake5"}}
+	noDependencies := fakeComponent{name: "fake1"}
+	OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			noDependencies,
+			// fake2 -> indirectCycle1 -> fake3 -> fake2 -> indirectCycle1
+			fakeComponent{name: "fake2", dependencies: []string{"indirectCycle1", "fake1"}},
+			// fake3 -> fake2 -> indirectCycle1 -> fake3
+			fakeComponent{name: "fake3", dependencies: []string{"fake2"}},
+			fakeComponent{name: "fake4", dependencies: []string{"fake3"}},
+			fakeComponent{name: "fake5", dependencies: []string{"fake1"}},
+			fakeComponent{name: "fake6", dependencies: []string{"fake5"}},
+			nocycles,
+			indirectCycle1,
+			indirectCycle2,
+		}
+	})
+	defer ResetGetComponentsFn()
+
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	assert.False(t, spi.ComponentDependenciesMet(directCycle, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, false)))
+	assert.False(t, spi.ComponentDependenciesMet(indirectCycle1, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, false)))
+	assert.False(t, spi.ComponentDependenciesMet(indirectCycle2, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, false)))
+	assert.True(t, spi.ComponentDependenciesMet(nocycles, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, false)))
+	assert.True(t, spi.ComponentDependenciesMet(noDependencies, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, false)))
+}
+
+// TestComponentDependenciesCycles tests ComponentDependenciesMet
+// GIVEN a registry of components with dependencies, and some with cycles
+//  WHEN I call ComponentDependenciesMet for it
+//  THEN it returns false if there's a cycle in the dependencies
+func Test_checkDependencies(t *testing.T) {
+	// directCycle -> fake1, directCycle
+	directCycle := fakeComponent{name: "directCycle", dependencies: []string{"fake1", "directCycle"}}
+	// indirectCycle1 -> fake3 -> fake2 -> indirectCycle1
+	indirectCycle1 := fakeComponent{name: "indirectCycle1", dependencies: []string{"fake3"}}
+	// indirectCycle2 -> fake4 -> fake3 -> fake2 -> indirectCycle -> fake3
+	indirectCycle2 := fakeComponent{name: "indirectCycle2", dependencies: []string{"fake4"}}
+	nocycles := fakeComponent{name: "nocycles", dependencies: []string{"fake6", "fake5"}}
+	noDependencies := fakeComponent{name: "fake1"}
+	OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			noDependencies,
+			// fake2 -> indirectCycle1 -> fake3 -> fake2 -> indirectCycle1
+			fakeComponent{name: "fake2", dependencies: []string{"indirectCycle1", "fake1"}},
+			// fake3 -> fake2 -> indirectCycle1 -> fake3
+			fakeComponent{name: "fake3", dependencies: []string{"fake2"}},
+			fakeComponent{name: "fake4", dependencies: []string{"fake3"}},
+			fakeComponent{name: "fake5", dependencies: []string{"fake1"}},
+			fakeComponent{name: "fake6", dependencies: []string{"fake5"}},
+			nocycles,
+			indirectCycle1,
+			indirectCycle2,
+		}
+	})
+	defer ResetGetComponentsFn()
+
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, false)
+
+	_, err := spi.CheckDependencies(directCycle, ctx, make(map[string]bool), make(map[string]bool))
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "dependency cycle found for directCycle")
+	_, err = spi.CheckDependencies(indirectCycle1, ctx, make(map[string]bool), make(map[string]bool))
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "dependency cycle found for indirectCycle1")
+	_, err = spi.CheckDependencies(indirectCycle2, ctx, make(map[string]bool), make(map[string]bool))
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "dependency cycle found for fake3")
+	dependencies, err := spi.CheckDependencies(nocycles, ctx, make(map[string]bool), make(map[string]bool))
+	assert.NoError(t, err)
+	assert.Equal(t, map[string]bool{
+		"fake6": true,
+		"fake5": true,
+		"fake1": true,
+	}, dependencies)
+
+	dependencies, err = spi.CheckDependencies(noDependencies, ctx, make(map[string]bool), make(map[string]bool))
+	assert.NoError(t, err)
+	assert.Equal(t, map[string]bool{}, dependencies)
+}
+
+// TestComponentDependenciesCycle tests ComponentDependenciesMet
+// GIVEN a component
+//  WHEN I call ComponentDependenciesMet for it
+//  THEN it returns false if there's a cycle in the dependencies
+func TestComponentDependenciesChainNoCycle(t *testing.T) {
+	chainNoCycle := fakeComponent{name: "chainNoCycle", dependencies: []string{"fake2"}}
+	repeatDepdendency := fakeComponent{name: "repeatDependency", dependencies: []string{"fake1", "fake2", "fake1"}}
+	OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			fakeComponent{name: "fake1"},
+			fakeComponent{name: "fake2", dependencies: []string{"fake1"}},
+			chainNoCycle,
+			repeatDepdendency,
+		}
+	})
+	defer ResetGetComponentsFn()
+
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+
+	// Dependency chain, no cycle
+	ready := spi.ComponentDependenciesMet(chainNoCycle, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, false))
+	assert.True(t, ready)
+
+	// Same dependency listed twice, not an error
+	ready = spi.ComponentDependenciesMet(repeatDepdendency, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, false))
+	assert.True(t, ready)
+}
+
+// TestNoComponentDependencies tests ComponentDependenciesMet
+// GIVEN a component
+//  WHEN I call ComponentDependenciesMet for it
+//  THEN it returns true if there are no dependencies
+func TestNoComponentDependencies(t *testing.T) {
+	var comp spi.Component = &fakeHelmComponent{
+		HelmComponent: helmcomp.HelmComponent{
+			ReleaseName:    "foo",
+			ChartDir:       "chartDir",
+			ChartNamespace: "bar",
+		},
+	}
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	ready := spi.ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
+	assert.True(t, ready)
+}
+
+// Create a new deployment object for testing
+func newReadyDeployment(name string, namespace string) *appsv1.Deployment {
+	return &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+		Status: appsv1.DeploymentStatus{
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   1,
+		},
+	}
+}
+
+type fakeHelmComponent struct {
+	helmcomp.HelmComponent
+}
+
+func (f *fakeHelmComponent) Reconcile(_ spi.ComponentContext) error {
+	return nil
+}
+
+var _ spi.Component = &fakeHelmComponent{}
+var _ spi.Component = &fakeComponent{}
+
+type fakeComponent struct {
+	name         string
+	dependencies []string
+	enabled      bool
+}
+
+func (f fakeComponent) Name() string {
+	return f.name
+}
+
+func (f fakeComponent) GetJSONName() string {
+	return f.name
+}
+
+func (f fakeComponent) GetDependencies() []string {
+	return f.dependencies
+}
+
+func (f fakeComponent) IsReady(_ spi.ComponentContext) bool {
+	return true
+}
+
+func (f fakeComponent) IsEnabled(_ *v1alpha1.Verrazzano) bool {
+	return f.enabled
+}
+
+func (f fakeComponent) GetMinVerrazzanoVersion() string {
+	return "1.0.0"
+}
+
+func (f fakeComponent) IsOperatorInstallSupported() bool {
+	return true
+}
+
+func (f fakeComponent) IsInstalled(_ spi.ComponentContext) (bool, error) {
+	return true, nil
+}
+
+func (f fakeComponent) PreInstall(_ spi.ComponentContext) error {
+	return nil
+}
+
+func (f fakeComponent) Install(_ spi.ComponentContext) error {
+	return nil
+}
+
+func (f fakeComponent) PostInstall(_ spi.ComponentContext) error {
+	return nil
+}
+
+func (f fakeComponent) PreUpgrade(_ spi.ComponentContext) error {
+	return nil
+}
+
+func (f fakeComponent) Upgrade(_ spi.ComponentContext) error {
+	return nil
+}
+
+func (f fakeComponent) PostUpgrade(_ spi.ComponentContext) error {
+	return nil
+}
+
+func (f fakeComponent) Reconcile(_ spi.ComponentContext) error {
+	return nil
+}
+
+func (f fakeComponent) GetIngressNames(_ spi.ComponentContext) []types.NamespacedName {
+	return []types.NamespacedName{}
+}
+
+func (f fakeComponent) ValidateInstall(_ *v1alpha1.Verrazzano) error {
+	return nil
+}
+
+func (f fakeComponent) ValidateUpdate(_ *v1alpha1.Verrazzano, _ *v1alpha1.Verrazzano) error {
+	return nil
+}
+
+func (f fakeComponent) GetCertificateNames(_ spi.ComponentContext) []types.NamespacedName {
+	return []types.NamespacedName{}
 }

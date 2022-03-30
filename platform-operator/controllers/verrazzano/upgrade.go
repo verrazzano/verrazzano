@@ -6,11 +6,9 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-
 	"k8s.io/apimachinery/pkg/selection"
 
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 
 	v1 "k8s.io/api/core/v1"
@@ -102,12 +100,12 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 
 		case vzStateWaitPostUpgradeDone:
 			log.Progress("Post-upgrade is waiting for all components to be ready")
-			spiCtx, err := spi.NewContext(log, r, cr, r.DryRun)
+			spiCtx, err := spi.NewContext(log, r, cr, r.Registry, r.DryRun)
 			if err != nil {
 				return newRequeueWithDelay(), err
 			}
 			// Check installed enabled component and make sure it is ready
-			for _, comp := range registry.GetComponents() {
+			for _, comp := range r.Registry.GetComponents() {
 				compName := comp.Name()
 				compContext := spiCtx.Init(compName).Operation(vzconst.UpgradeOperation)
 				installed, err := comp.IsInstalled(compContext)
@@ -127,7 +125,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			msg := fmt.Sprintf("Verrazzano successfully upgraded to version %s", cr.Spec.Version)
 			log.Once(msg)
 			cr.Status.Version = targetVersion
-			for _, comp := range registry.GetComponents() {
+			for _, comp := range r.Registry.GetComponents() {
 				compName := comp.Name()
 				componentStatus := cr.Status.Components[compName]
 				if componentStatus != nil {
