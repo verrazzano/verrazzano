@@ -863,6 +863,7 @@ data:
     </filter>
 
   es-output.conf: |
+    # Matches anything that Verrazzano installs
     <match kubernetes.**kube-** kubernetes.**verrazzano-system** kubernetes.**verrazzano-install** kubernetes.**cattle-** kubernetes.**rancher-** kubernetes.**fleet-** kubernetes.**ingress-nginx** kubernetes.**istio-system** kubernetes.**keycloak** kubernetes.**cert-manager**  kubernetes.**_monitoring_** kubernetes.**_metallb-** kubernetes.**_local-path-storage_** systemd.** fluentd.monitor.metrics>
       @type opensearch_data_stream
       @id out_systemd
