@@ -805,6 +805,6 @@ def emitJobMetrics() {
     env.DURATION = (duration/1000)
     long timeInMillis = "${currentBuild.timeInMillis}" as long;
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
-    env.TIME_WAITING = ((timeInMillis-startTimeInMillis)/1000)
+    env.TIME_WAITING = ((startTimeInMillis-timeInMillis)/1000)
     runGinkgo("framework/jobmetrics")
 }
