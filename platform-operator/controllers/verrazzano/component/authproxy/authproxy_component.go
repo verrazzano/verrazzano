@@ -4,7 +4,6 @@
 package authproxy
 
 import (
-	"context"
 	"fmt"
 	"path/filepath"
 
@@ -13,10 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -49,7 +45,6 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:     AppendOverrides,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
-			Dependencies:            []string{verrazzano.ComponentName},
 		},
 	}
 }
@@ -105,18 +100,11 @@ func (c authProxyComponent) PreInstall(ctx spi.ComponentContext) error {
 		return nil
 	}
 
-	// The AuthProxy helm chart was separated out of the Verrazzano helm chart in release 1.2.
-	// During an upgrade from 1.1 to 1.2, there is a period of time when AuthProxy is being un-deployed
-	// due to it being removed from the Verrazzano helm chart.  Wait for the undeploy to complete before
-	// installing the AuthProxy helm chart.  This avoids Helm errors in the log of resources being
-	// referenced by more than one chart.
-	authProxySA := corev1.ServiceAccount{}
-	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &authProxySA)
-	if (err == nil) || (err != nil && !errors.IsNotFound(err)) {
-		ctx.Log().Progressf("Component %s is waiting for pre-install conditions to be met", ComponentName)
-		return fmt.Errorf("Waiting for ServiceAccount %s to not exist", ComponentName)
-	}
-	// Continuing because expected condition of "ServiceAccount for AuthProxy not found" met
-
 	return nil
 }
+
+// PreUpgrade auth proxy component pre-upgrade processing
+func (c authProxyComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	return authProxyPreUpgrade(ctx)
+}
+

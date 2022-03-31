@@ -4,10 +4,18 @@
 package authproxy
 
 import (
+	"context"
 	"fmt"
 	"io/fs"
 	"io/ioutil"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/networking/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"os"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -195,4 +203,83 @@ func getWildcardDNS(vz *vzapi.VerrazzanoSpec) (bool, string) {
 		return true, vz.Components.DNS.Wildcard.Domain
 	}
 	return false, ""
+}
+
+// authProxyPreUpgrade contains code that is run prior to helm upgrade for the auth proxy helm chart
+func authProxyPreUpgrade(ctx spi.ComponentContext) error {
+	if err := importToHelmChart(ctx.Client()); err != nil {
+		return err
+	}
+	return nil
+}
+
+//importToHelmChart annotates any existing objects that should be managed by helm
+func importToHelmChart(cli clipkg.Client) error {
+	namespacedName := types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}
+	name := types.NamespacedName{Name: ComponentName}
+	objects := []controllerutil.Object{
+		&corev1.ServiceAccount{},
+		&corev1.Service{},
+		&appsv1.Deployment{},
+	}
+
+	noNamespaceObjects := []controllerutil.Object{
+		&rbacv1.ClusterRole{},
+		&rbacv1.ClusterRoleBinding{},
+	}
+
+	// namespaced resources
+	for _, obj := range objects {
+		if _, err := importHelmObject(cli, obj, namespacedName); err != nil {
+			return err
+		}
+	}
+
+	// additional namespaced resources managed by this helm chart
+	if _, err := importHelmObject(cli, &corev1.Service{}, types.NamespacedName{Name: "verrazzano-authproxy-elasticsearch", Namespace: ComponentNamespace}); err != nil {
+		return err
+	}
+	if _, err := importHelmObject(cli, &corev1.Secret{}, types.NamespacedName{Name: "verrazzano-authproxy-secret", Namespace: ComponentNamespace}); err != nil {
+		return err
+	}
+	if _, err := importHelmObject(cli, &corev1.ConfigMap{}, types.NamespacedName{Name: "verrazzano-authproxy-config", Namespace: ComponentNamespace}); err != nil {
+		return err
+	}
+	if _, err := importHelmObject(cli, &v1.Ingress{}, types.NamespacedName{Name: "verrazzano-ingress", Namespace: ComponentNamespace}); err != nil {
+		return err
+	}
+
+
+	// cluster resources
+	for _, obj := range noNamespaceObjects {
+		if _, err := importHelmObject(cli, obj, name); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+//importHelmObject annotates an object as being managed by the auth proxy helm chart
+func importHelmObject(cli clipkg.Client, obj controllerutil.Object, namespacedName types.NamespacedName) (controllerutil.Object, error) {
+	if err := cli.Get(context.TODO(), namespacedName, obj); err != nil {
+		if errors.IsNotFound(err) {
+			return obj, nil
+		}
+		return obj, err
+	}
+	objMerge := clipkg.MergeFrom(obj.DeepCopyObject())
+	annotations := obj.GetAnnotations()
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+	annotations["meta.helm.sh/release-name"] = ComponentName
+	annotations["meta.helm.sh/release-namespace"] = ComponentNamespace
+	obj.SetAnnotations(annotations)
+	labels := obj.GetLabels()
+	if labels == nil {
+		labels = map[string]string{}
+	}
+	labels["app.kubernetes.io/managed-by"] = "Helm"
+	obj.SetLabels(labels)
+	return obj, cli.Patch(context.TODO(), obj, objMerge)
 }
