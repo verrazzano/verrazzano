@@ -240,9 +240,9 @@ pipeline {
                                 runGinkgoNamespace('examples/helidon', "false", "true", "hello-helidon")
                             }
                         }
-                        stage('record prometheus config timestamp') {
+                        stage('pre-upgrade verify') {
                             steps {
-                                runGinkgoRandomize('upgrade/pre-upgrade/prometheus')
+                                runGinkgoRandomize('upgrade/pre-upgrade/verify')
                             }
                         }
                         // Re-enable this stage when a mechanism is in place to deploy different comp and app yamls based on VZ version
@@ -459,11 +459,6 @@ pipeline {
                         stage('examples bobs-books') {
                             steps {
                                 runGinkgoNamespace('examples/bobsbooks', "false", "true", "bobs-books")
-                            }
-                        }
-                        stage('verify prometheus config timestamp') {
-                            steps {
-                                runGinkgoRandomize('upgrade/post-upgrade/prometheus')
                             }
                         }
                     }

@@ -60,13 +60,13 @@ func recordConfigMapCreationTS() {
 	}, waitTimeout, shortPollingInterval).ShouldNot(BeEmpty())
 }
 
-var _ = t.Describe("Record timestamp test,", Label("f:pre-upgrade"), func() {
+var _ = t.Describe("Record prometheus configmap timestamp", Label("f:pre-upgrade"), func() {
 	// Verify that prometheus configmap creation timestamp is set in an Environment variable
 	// GIVEN the prometheus configmap is created
 	// WHEN the upgrade has not started and vmo pod is not restarted
 	// THEN the environment variable PROM_CONFIGMAP_CREATION_TIMESTAMP is populated
 	t.Context("check PROM_CONFIGMAP_CREATION_TIMESTAMP env variable", func() {
-		t.It("in foo namespace", func() {
+		t.It("before upgrade", func() {
 			Eventually(func() string {
 				return os.Getenv(vzconst.PromConfigMapCreationTimestamp)
 			}, waitTimeout, pollingInterval).ShouldNot(BeEmpty())

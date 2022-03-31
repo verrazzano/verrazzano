@@ -10,7 +10,7 @@ import (
 	"github.com/onsi/gomega"
 )
 
-func TestRecordConfigmapTimestamp(t *testing.T) {
+func TestVerifyPreupgrade(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Record prometheus Configmap creation timestamp.")
+	ginkgo.RunSpecs(t, "Pre-upgrade verification.")
 }
