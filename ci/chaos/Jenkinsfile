@@ -106,6 +106,10 @@ pipeline {
          PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
          TEST_ENV_LABEL = "kind"
          K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
+         TEST_ENV = "KIND"
+         SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+         SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+         SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
 
          // used to generate Ginkgo test reports
          TEST_REPORT = "test-report.xml"
@@ -226,55 +230,26 @@ pipeline {
             }
         }
 
-        stage('Pre-upgrade Acceptance Tests') {
-            environment {
-                TEST_ENV = "KIND"
-                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+        stage('Pre-upgrade examples helidon') {
+            steps {
+                runGinkgoNamespace('examples/helidon', "false", "true", "hello-helidon")
             }
-
-            stages {
-                stage('Verify Install') {
-                    steps {
-                        runGinkgoRandomize('verify-install')
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                        failure {
-                            script {
-                                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                                    dumpK8sCluster('pre-upgrade-install-cluster-dump')
-                                }
-                            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+                failure {
+                    script {
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('pre-upgrade-tests-cluster-dump')
                         }
                     }
                 }
-                stage('examples helidon') {
-                    steps {
-                        runGinkgoNamespace('examples/helidon', "false", "true", "hello-helidon")
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                        failure {
-                            script {
-                                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                                    dumpK8sCluster('pre-upgrade-tests-cluster-dump')
-                                }
-                            }
-                        }
-                        success {
-                            script {
-                                if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                                    dumpK8sCluster('install-success-cluster-dump')
-                                }
-                            }
+                success {
+                    script {
+                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('install-success-cluster-dump')
                         }
                     }
                 }
@@ -570,13 +545,6 @@ pipeline {
             when {
                 expression{params.CHAOS_TEST_TYPE != "uninstall.failed.upgrade"}
             }
-            environment {
-                TEST_ENV = "KIND"
-                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
-            }
-
             parallel {
                 stage('verify-upgrade post-upgrade') {
                     steps {
@@ -675,6 +643,7 @@ pipeline {
         }
         cleanup {
             metricBuildDuration()
+            emitJobMetrics()
             deleteDir()
         }
     }
@@ -909,4 +878,14 @@ def restartExampleApps() {
 
         kubectl rollout restart deployment -n hello-helidon
     """
+}
+
+def emitJobMetrics() {
+    env.JOB_STATUS = "${currentBuild.currentResult}".trim()
+    long duration = "${currentBuild.duration}" as long;
+    env.DURATION = (duration/1000)
+    long timeInMillis = "${currentBuild.timeInMillis}" as long;
+    long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
+    env.TIME_WAITING = ((startTimeInMillis-timeInMillis)/1000)
+    runGinkgoRandomize('jobmetrics')
 }
