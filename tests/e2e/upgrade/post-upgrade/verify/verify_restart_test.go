@@ -309,27 +309,22 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 })
 
 var _ = t.Describe("Verify prometheus configmap timestamp,", Label("f:post-upgrade"), func() {
-	var actualConfigMapCreationTimestamp string
-	var expectedConfigMapCreationTimestamp = os.Getenv(vzconst.PromConfigMapCreationTimestamp)
-
-	t.BeforeEach(func() {
+	var expectedConfigMapCreationTimestamp string
+	// Verify prometheus configmap is not deleted
+	// GIVEN upgrade has completed
+	// WHEN the vmo pod is restarted
+	// THEN the creation timestamp on prometheus configmap should be same
+	t.It("Verify prometheus configmap is not deleted on vmo restart.", func() {
 		Eventually(func() (string, error) {
 			configMap, err := pkg.GetConfigMap(vzconst.VmiPromConfigName, vzconst.VerrazzanoSystemNamespace)
 			if err != nil {
 				return "", err
 			}
 
-			actualConfigMapCreationTimestamp = configMap.CreationTimestamp.UTC().String()
+			actualConfigMapCreationTimestamp := configMap.CreationTimestamp.UTC().String()
+			expectedConfigMapCreationTimestamp = os.Getenv(vzconst.PromConfigMapCreationTimestamp)
 			return actualConfigMapCreationTimestamp, nil
-		}, twoMinutes, pollingInterval).Should(Not(BeEmpty()), "Failed to get creation timestamp of prometheus configmap")
-	})
-
-	// Verify prometheus configmap is not deleted
-	// GIVEN upgrade has completed
-	// WHEN the vmo pod is restarted
-	// THEN the creation timestamp on prometheus configmap should be same
-	t.It("Verify prometheus configmap is not deleted on vmo restart.", func() {
-		Expect(actualConfigMapCreationTimestamp).To(Equal(expectedConfigMapCreationTimestamp))
+		}, twoMinutes, pollingInterval).Should(Equal(expectedConfigMapCreationTimestamp), "Timestamp of prometehus configmap not same before and after upgrade")
 	})
 })
 
