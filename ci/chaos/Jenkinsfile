@@ -230,51 +230,26 @@ pipeline {
             }
         }
 
-        stage('Pre-upgrade Acceptance Tests') {
-
-            stages {
-            /*
-                stage('Verify Install') {
-                    steps {
-                        runGinkgoRandomize('verify-install')
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                        failure {
-                            script {
-                                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                                    dumpK8sCluster('pre-upgrade-install-cluster-dump')
-                                }
-                            }
+        stage('Pre-upgrade examples helidon') {
+            steps {
+                runGinkgoNamespace('examples/helidon', "false", "true", "hello-helidon")
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+                failure {
+                    script {
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('pre-upgrade-tests-cluster-dump')
                         }
                     }
                 }
-                */
-                stage('examples helidon') {
-                    steps {
-                        runGinkgoNamespace('examples/helidon', "false", "true", "hello-helidon")
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                        failure {
-                            script {
-                                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                                    dumpK8sCluster('pre-upgrade-tests-cluster-dump')
-                                }
-                            }
-                        }
-                        success {
-                            script {
-                                if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                                    dumpK8sCluster('install-success-cluster-dump')
-                                }
-                            }
+                success {
+                    script {
+                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('install-success-cluster-dump')
                         }
                     }
                 }
@@ -570,8 +545,6 @@ pipeline {
             when {
                 expression{params.CHAOS_TEST_TYPE != "uninstall.failed.upgrade"}
             }
-            environment {
-
             parallel {
                 stage('verify-upgrade post-upgrade') {
                     steps {
