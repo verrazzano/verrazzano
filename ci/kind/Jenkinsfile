@@ -89,7 +89,7 @@ pipeline {
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
 
-        WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
+        WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by weblogic application
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
 
         // Used for dumping cluster from inside tests
@@ -384,14 +384,14 @@ pipeline {
                                 runGinkgo('logging/helidon')
                             }
                         }
-                        stage('examples todo') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
-                            }
-                            steps {
-                                runGinkgo('examples/todo')
-                            }
-                        }
+                        //stage('examples todo') {
+                        //    environment {
+                        //        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
+                        //    }
+                        //    steps {
+                        //        runGinkgo('examples/todo')
+                        //    }
+                        //}
                         stage('examples socks') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-socks"
@@ -434,15 +434,23 @@ pipeline {
                                 runGinkgo('examples/helidonconfig')
                             }
                         }
-                        stage('examples bobs') {
+                        //stage('examples bobs') {
+                        //    environment {
+                        //        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-bobs"
+                        //    }
+                        //    when {
+                        //        expression {params.RUN_SLOW_TESTS == true}
+                        //    }
+                        //    steps {
+                        //        runGinkgo('examples/bobsbooks')
+                        //    }
+                        //}
+                        stage('weblogic workload') {
                             environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-bobs"
-                            }
-                            when {
-                                expression {params.RUN_SLOW_TESTS == true}
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-app"
                             }
                             steps {
-                                runGinkgo('examples/bobsbooks')
+                                runGinkgo('examples/weblogic')
                             }
                         }
                         stage('console ingress') {
