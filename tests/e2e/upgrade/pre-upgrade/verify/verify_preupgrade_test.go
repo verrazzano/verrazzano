@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package prometheus
+package verify
 
 import (
 	"os"
@@ -20,7 +20,7 @@ var waitTimeout = 15 * time.Minute
 var pollingInterval = 30 * time.Second
 var shortPollingInterval = 10 * time.Second
 
-var t = framework.NewTestFramework("pre-upgrade")
+var t = framework.NewTestFramework("verify")
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
