@@ -167,7 +167,7 @@ func (r *Reconciler) syncAll(ctx context.Context, vp clustersv1alpha1.Verrazzano
 	}
 
 	// Sync the network policies
-	err = r.syncNetworkPolices(ctx, &vp, log)
+	err = r.syncNetworkPolicies(ctx, &vp, log)
 	if err != nil {
 		return err
 	}
@@ -355,8 +355,8 @@ func (r *Reconciler) getDefaultRoleBindingSubjects(vp clustersv1alpha1.Verrazzan
 	return adminSubjects, monitorSubjects
 }
 
-// syncNetworkPolices syncs the NetworkPolicies specified in the project
-func (r *Reconciler) syncNetworkPolices(ctx context.Context, project *clustersv1alpha1.VerrazzanoProject, log vzlog2.VerrazzanoLogger) error {
+// syncNetworkPolicies syncs the NetworkPolicies specified in the project
+func (r *Reconciler) syncNetworkPolicies(ctx context.Context, project *clustersv1alpha1.VerrazzanoProject, log vzlog2.VerrazzanoLogger) error {
 	// Create or update policies that are in the project spec
 	// The project webhook validates that the network policies use project namespaces
 	desiredPolicySet := make(map[string]bool)

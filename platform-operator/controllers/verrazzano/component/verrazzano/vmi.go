@@ -187,7 +187,7 @@ func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 	}
 
 	// Proxy any ISM policies to the VMI
-	for _, policy := range opensearchComponent.Polices {
+	for _, policy := range opensearchComponent.Policies {
 		opensearch.Policies = append(opensearch.Policies, *policy.DeepCopy())
 	}
 

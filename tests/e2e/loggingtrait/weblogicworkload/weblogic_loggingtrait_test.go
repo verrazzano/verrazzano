@@ -5,17 +5,17 @@ package weblogicworkload
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
-	"github.com/verrazzano/verrazzano/tests/e2e/loggingtrait"
-	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+	"github.com/verrazzano/verrazzano/tests/e2e/loggingtrait"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -136,7 +136,7 @@ var _ = t.Describe("Test WebLogic loggingtrait application", Label("f:app-lcm.oa
 			Eventually(func() bool {
 				configMap, err := pkg.GetConfigMap(configMapName, namespace)
 				return (configMap != nil) && (err == nil)
-			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 	})
 })

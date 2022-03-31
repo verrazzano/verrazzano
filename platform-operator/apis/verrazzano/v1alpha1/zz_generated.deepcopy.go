@@ -419,8 +419,8 @@ func (in *ElasticsearchComponent) DeepCopyInto(out *ElasticsearchComponent) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.Polices != nil {
-		in, out := &in.Polices, &out.Polices
+	if in.Policies != nil {
+		in, out := &in.Policies, &out.Policies
 		*out = make([]vmcontrollerv1.IndexManagementPolicy, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
