@@ -568,8 +568,6 @@ pipeline {
             when {
                 expression{params.CHAOS_TEST_TYPE != "uninstall.failed.upgrade"}
             }
-            environment {
-
             parallel {
                 stage('verify-upgrade post-upgrade') {
                     steps {
