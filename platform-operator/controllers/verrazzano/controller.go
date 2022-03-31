@@ -689,15 +689,15 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 	}
 	if conditionType == installv1alpha1.CondInstallComplete {
 		cr.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(compContext)
-		if componentStatus.InstallingGeneration > 0 {
-			componentStatus.LastReconciledGeneration = componentStatus.InstallingGeneration
-			componentStatus.InstallingGeneration = 0
+		if componentStatus.ReconcilingGeneration > 0 {
+			componentStatus.LastReconciledGeneration = componentStatus.ReconcilingGeneration
+			componentStatus.ReconcilingGeneration = 0
 		} else {
 			componentStatus.LastReconciledGeneration = cr.Generation
 		}
 	} else {
-		if componentStatus.InstallingGeneration == 0 {
-			componentStatus.InstallingGeneration = cr.Generation
+		if componentStatus.ReconcilingGeneration == 0 {
+			componentStatus.ReconcilingGeneration = cr.Generation
 		}
 	}
 	componentStatus.Conditions = appendConditionIfNecessary(log, componentStatus, condition)

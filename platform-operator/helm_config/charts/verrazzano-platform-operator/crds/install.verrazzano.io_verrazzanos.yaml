@@ -5985,11 +5985,6 @@ spec:
                         - type
                         type: object
                       type: array
-                    installingGeneration:
-                      description: The generation of the last VZ resource the Component
-                        is being installed against
-                      format: int64
-                      type: integer
                     lastReconciledGeneration:
                       description: The generation of the last VZ resource the Component
                         was reconciled against
@@ -5998,6 +5993,11 @@ spec:
                     name:
                       description: Name of the component
                       type: string
+                    reconcilingGeneration:
+                      description: The generation of the last VZ resource the Component
+                        is being reconciled against
+                      format: int64
+                      type: integer
                     state:
                       description: The version of Verrazzano that is installed
                       type: string

@@ -31,9 +31,9 @@ func TestUpdate(t *testing.T) {
 	namespace := "verrazzano"
 	name := "TestUpdate"
 	lastReconciledGeneration := int64(2)
-	installingGen := int64(0)
+	reconcilingGen := int64(0)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t,
-		lastReconciledGeneration+1, installingGen, lastReconciledGeneration,
+		lastReconciledGeneration+1, reconcilingGen, lastReconciledGeneration,
 		"1.3.0", "1.3.0", namespace, name)
 	defer reset()
 	asserts.NoError(err)
@@ -51,8 +51,8 @@ func TestNoUpdateSameGeneration(t *testing.T) {
 	namespace := "verrazzano"
 	name := "TestSameGeneration"
 	lastReconciledGeneration := int64(2)
-	installingGen := int64(0)
-	asserts, vz, result, fakeCompUpdated, err := testUpdate(t, lastReconciledGeneration, installingGen, lastReconciledGeneration,
+	reconcilingGen := int64(0)
+	asserts, vz, result, fakeCompUpdated, err := testUpdate(t, lastReconciledGeneration, reconcilingGen, lastReconciledGeneration,
 		"1.3.1", "1.3.1", namespace, name)
 	defer reset()
 	asserts.NoError(err)
@@ -70,8 +70,8 @@ func TestUpdateWithUpgrade(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 	lastReconciledGeneration := int64(2)
-	installingGen := int64(0)
-	asserts, vz, result, fakeCompUpdated, err := testUpdate(t, lastReconciledGeneration+1, installingGen, lastReconciledGeneration,
+	reconcilingGen := int64(0)
+	asserts, vz, result, fakeCompUpdated, err := testUpdate(t, lastReconciledGeneration+1, reconcilingGen, lastReconciledGeneration,
 		"1.3.0", "1.2.0", namespace, name)
 	defer reset()
 	asserts.NoError(err)
@@ -89,9 +89,9 @@ func TestUpdateOnUpdate(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 	lastReconciledGeneration := int64(2)
-	installingGen := int64(3)
+	reconcilingGen := int64(3)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t,
-		installingGen+1, installingGen, lastReconciledGeneration,
+		reconcilingGen+1, reconcilingGen, lastReconciledGeneration,
 		"1.3.3", "1.3.3", namespace, name)
 	defer reset()
 	asserts.NoError(err)
@@ -111,7 +111,7 @@ func reset() {
 
 func testUpdate(t *testing.T,
 	//mocker *gomock.Controller, mock *mocks.MockClient,
-	vzCrGen, installingGen, lastReconciledGeneration int64,
+	vzCrGen, reconcilingGen, lastReconciledGeneration int64,
 	//mockStatus *mocks.MockStatusWriter,
 	specVer, statusVer, namespace, name string) (*assert.Assertions, *vzapi.Verrazzano, ctrl.Result, *bool, error) {
 	asserts := assert.New(t)
@@ -138,7 +138,7 @@ func testUpdate(t *testing.T,
 	})
 	compStatusMap := makeVerrazzanoComponentStatusMap()
 	for _, status := range compStatusMap {
-		status.InstallingGeneration = installingGen
+		status.ReconcilingGeneration = reconcilingGen
 		status.LastReconciledGeneration = lastReconciledGeneration
 	}
 	var vz *vzapi.Verrazzano

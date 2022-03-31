@@ -53,13 +53,13 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 		}
 		if checkConfigUpdated(spiCtx, componentStatus, compName) && comp.IsEnabled(compContext.EffectiveCR()) {
 			oldState := componentStatus.State
-			oldGen := componentStatus.InstallingGeneration
-			componentStatus.InstallingGeneration = 0
+			oldGen := componentStatus.ReconcilingGeneration
+			componentStatus.ReconcilingGeneration = 0
 			if err := r.updateComponentStatus(compContext, "PreInstall started", vzapi.CondPreInstall); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
 			compLog.Oncef("CR.generation: %v reset component %s state: %v generation: %v to state: %v generation: %v ",
-				spiCtx.ActualCR().Generation, compName, oldState, oldGen, componentStatus.State, componentStatus.InstallingGeneration)
+				spiCtx.ActualCR().Generation, compName, oldState, oldGen, componentStatus.State, componentStatus.ReconcilingGeneration)
 			if spiCtx.ActualCR().Status.State == vzapi.VzStateReady {
 				err = r.setInstallingState(vzctx.Log, spiCtx.ActualCR())
 				compLog.Oncef("Reset Verrazzano state to %v for generation %v", spiCtx.ActualCR().Status.State, spiCtx.ActualCR().Generation)
@@ -156,8 +156,8 @@ func checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.Compone
 	if name == mysql.ComponentName { // CR.mysql is not allowed yet
 		return false
 	}
-	if componentStatus.InstallingGeneration > 0 {
-		return ctx.ActualCR().Generation > componentStatus.InstallingGeneration
+	if componentStatus.ReconcilingGeneration > 0 {
+		return ctx.ActualCR().Generation > componentStatus.ReconcilingGeneration
 	}
 	return (componentStatus.State == vzapi.CompStateReady) &&
 		(ctx.ActualCR().Generation > componentStatus.LastReconciledGeneration)
