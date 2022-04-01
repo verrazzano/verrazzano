@@ -1155,6 +1155,7 @@ func TestUpgradeComponent(t *testing.T) {
 
 	// Set mock component expectations
 	mockComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil).AnyTimes()
+	mockComp.EXPECT().IsEnabled(gomock.Any()).Return(true).AnyTimes()
 	mockComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
 	mockComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(1)
 	mockComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(1)
@@ -1341,7 +1342,7 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 
 	// Set enabled mock component expectations
 	mockEnabledComp.EXPECT().Name().Return("EnabledComponent").AnyTimes()
-	mockEnabledComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil).AnyTimes()
+	mockEnabledComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil).Times(2)
 	mockEnabledComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
 	mockEnabledComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(1)
 	mockEnabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(1)
