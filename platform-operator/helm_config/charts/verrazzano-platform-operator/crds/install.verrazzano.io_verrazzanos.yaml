@@ -5987,15 +5987,15 @@ spec:
                       type: array
                     lastReconciledGeneration:
                       description: The generation of the last VZ resource the Component
-                        was reconciled against
+                        was successfully reconciled against
                       format: int64
                       type: integer
                     name:
                       description: Name of the component
                       type: string
                     reconcilingGeneration:
-                      description: The generation of the last VZ resource the Component
-                        is being reconciled against
+                      description: The generation of the VZ resource the Component
+                        is currently being reconciled against
                       format: int64
                       type: integer
                     state:
