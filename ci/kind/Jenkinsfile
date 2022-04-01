@@ -453,6 +453,14 @@ pipeline {
                                 runGinkgo('examples/weblogic')
                             }
                         }
+                        stage('coherence workload') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-app"
+                            }
+                            steps {
+                                runGinkgo('examples/coherence')
+                            }
+                        }
                         stage('console ingress') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console-ingress"
