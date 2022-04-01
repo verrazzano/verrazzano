@@ -433,7 +433,7 @@ func assertDashboard(url string) {
 			t.Logs.Errorf("Unexpected response length: %d", len(response))
 			return false
 		}
-		return true
+		return response[0]["login"] == "verrazzano" && response[0]["isAdmin"] == "true"
 	}
 	Eventually(searchDashboard, waitTimeout, pollingInterval).Should(BeTrue())
 }
