@@ -5,13 +5,14 @@ package rancher
 
 import (
 	"fmt"
-	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"io"
 	"net/http"
 	"os"
 	"strings"
 	"testing"
+
+	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -170,7 +171,7 @@ func TestIsReady(t *testing.T) {
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: fleetLocalSystemNamespace,
+				Namespace: FleetLocalSystemNamespace,
 				Name:      fleetAgentDeployment,
 				Labels:    map[string]string{"app": fleetAgentDeployment},
 			},
@@ -182,7 +183,7 @@ func TestIsReady(t *testing.T) {
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: fleetSystemNamespace,
+				Namespace: FleetSystemNamespace,
 				Name:      fleetControllerDeployment,
 				Labels:    map[string]string{"app": fleetControllerDeployment},
 			},
@@ -194,7 +195,7 @@ func TestIsReady(t *testing.T) {
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: fleetSystemNamespace,
+				Namespace: FleetSystemNamespace,
 				Name:      gitjobDeployment,
 				Labels:    map[string]string{"app": gitjobDeployment},
 			},
@@ -228,7 +229,7 @@ func TestIsReady(t *testing.T) {
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: fleetLocalSystemNamespace,
+				Namespace: FleetLocalSystemNamespace,
 				Name:      fleetAgentDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
@@ -238,7 +239,7 @@ func TestIsReady(t *testing.T) {
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: fleetSystemNamespace,
+				Namespace: FleetSystemNamespace,
 				Name:      fleetControllerDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
@@ -248,7 +249,7 @@ func TestIsReady(t *testing.T) {
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: fleetSystemNamespace,
+				Namespace: FleetSystemNamespace,
 				Name:      gitjobDeployment,
 			},
 			Status: appsv1.DeploymentStatus{

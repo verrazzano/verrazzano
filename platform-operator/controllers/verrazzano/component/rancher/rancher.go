@@ -20,8 +20,8 @@ const (
 	// note: VZ-5241 In Rancher 2.6.3 the agent was moved from cattle-fleet-system ns
 	// to a new cattle-fleet-local-system ns, the rancher-operator-system ns was
 	// removed, and the rancher-operator is no longer deployed
-	fleetSystemNamespace      = "cattle-fleet-system"
-	fleetLocalSystemNamespace = "cattle-fleet-local-system"
+	FleetSystemNamespace      = "cattle-fleet-system"
+	FleetLocalSystemNamespace = "cattle-fleet-local-system"
 	defaultSecretNamespace    = "cert-manager"
 	namespaceLabelKey         = "verrazzano.io/namespace"
 	rancherTLSSecretName      = "tls-ca"
@@ -86,15 +86,15 @@ func isRancherReady(ctx spi.ComponentContext) bool {
 		},
 		{
 			Name:      fleetAgentDeployment,
-			Namespace: fleetLocalSystemNamespace,
+			Namespace: FleetLocalSystemNamespace,
 		},
 		{
 			Name:      fleetControllerDeployment,
-			Namespace: fleetSystemNamespace,
+			Namespace: FleetSystemNamespace,
 		},
 		{
 			Name:      gitjobDeployment,
-			Namespace: fleetSystemNamespace,
+			Namespace: FleetSystemNamespace,
 		},
 	}
 
