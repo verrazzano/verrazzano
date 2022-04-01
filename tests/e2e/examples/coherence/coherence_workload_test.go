@@ -38,7 +38,7 @@ const (
 var (
 	t                  = framework.NewTestFramework("coherence")
 	generatedNamespace = pkg.GenerateNamespace("hello-coherence")
-	expectedPods       = []string{"hello-"}
+	expectedPods       = []string{"hello-coherence-"}
 	host               = ""
 	welcomeMessage     = "Hello Coherence"
 )
@@ -182,9 +182,40 @@ var _ = t.Describe("Validate deployment of VerrazzanoCoherenceWorkload", Label("
 			}
 		})
 	})
-	t.Context("Metrics", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
-		// Verify Prometheus scraped metrics
-		t.It("Retrieve application Prometheus scraped metrics", func() {
+
+	t.Context("Logging.", Label("f:observability.logging.es"), func() {
+		indexName := "verrazzano-namespace-" + namespace
+		t.It("Verify Elasticsearch index exists", func() {
+			Eventually(func() bool {
+				return pkg.LogIndexFound(indexName)
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index for Coherence application.")
+		})
+
+		t.It("Verify recent Elasticsearch log record exists", func() {
+			Eventually(func() bool {
+				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+					"kubernetes.labels.app_oam_dev\\/component": "hello-coherence",
+					"kubernetes.labels.app_oam_dev\\/name":      "hello-appconf",
+					"kubernetes.container_name":                 "hello-coherence",
+				})
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record.")
+		})
+
+		t.It("Verify Coherence log records", func() {
+			Eventually(func() bool {
+				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+					"kubernetes.labels.coherenceCluster":                "hello-coherence-cluster",
+					"kubernetes.labels.app_oam_dev\\/component.keyword": "hello-coherence",
+					"kubernetes.pod_name":                               "hello-coherence-0",
+					"kubernetes.container_name.keyword":                 "coherence",
+				})
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record.")
+		})
+	})
+
+	t.Context("Metrics", Label("f:observability.monitoring.prom"), func() {
+		// Verify Coherence metrics
+		t.It("Retrieve Coherence metrics", func() {
 			kubeConfig, err := k8sutil.GetKubeConfigLocation()
 			if err != nil {
 				Expect(err).To(BeNil(), fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
@@ -192,9 +223,34 @@ var _ = t.Describe("Validate deployment of VerrazzanoCoherenceWorkload", Label("
 			// Coherence metric fix available only from 1.3.0
 			if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0", kubeConfig); ok {
 				Eventually(func() bool {
-					return pkg.MetricsExist("vendor:coherence_service_messages_local", "role", "hello")
+					return pkg.MetricsExist("vendor:coherence_service_messages_local", "role", "hello-coherence")
 				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 			}
+		})
+
+		t.It("Retrieve application metrics", func() {
+			pkg.Concurrently(
+				func() {
+					Eventually(func() bool {
+						return pkg.MetricsExist("http_server_requests_seconds_count", "app_oam_dev_name", "hello-appconf")
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(func() bool {
+						return pkg.MetricsExist("process_start_time_seconds", "app_oam_dev_name", "hello-appconf")
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(func() bool {
+						return pkg.MetricsExist("jvm_memory_used_bytes", "app_oam_dev_name", "hello-appconf")
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(func() bool {
+						return pkg.MetricsExist("tomcat_sessions_created_sessions_total", "app_oam_dev_name", "hello-appconf")
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+			)
 		})
 	})
 })

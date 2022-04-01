@@ -229,13 +229,13 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 	})
 
 	t.Context("WebLogic logging", Label("f:observability.logging.es"), func() {
-		appIndexName := "verrazzano-namespace-" + namespace
+		indexName := "verrazzano-namespace-" + namespace
 		// GIVEN a WebLogic application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
 		t.It("Verify Elasticsearch index exists", func() {
 			Eventually(func() bool {
-				return pkg.LogIndexFound(appIndexName)
+				return pkg.LogIndexFound(indexName)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find log index "+appIndexName)
 		})
 		pkg.Concurrently(
@@ -245,7 +245,7 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 			func() {
 				t.It("Verify recent hellodomain-adminserver log record exists", func() {
 					Eventually(func() bool {
-						return pkg.LogRecordFound(appIndexName, time.Now().Add(-24*time.Hour), map[string]string{
+						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.weblogic_domainUID":  wlDomain,
 							"kubernetes.labels.weblogic_serverName": "AdminServer",
 							"kubernetes.pod_name":                   wlsAdminServer,
@@ -261,7 +261,7 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 			func() {
 				t.It("Verify recent hellodomain-adminserver log record exists", func() {
 					Eventually(func() bool {
-						return pkg.LogRecordFound(appIndexName, time.Now().Add(-24*time.Hour), map[string]string{
+						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.weblogic_domainUID":  wlDomain,
 							"kubernetes.labels.weblogic_serverName": "AdminServer",
 							"kubernetes.pod_name":                   wlsAdminServer,
@@ -276,7 +276,7 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 			func() {
 				t.It("Verify recent pattern-matched AdminServer log record exists", func() {
 					Eventually(func() bool {
-						return pkg.FindLog(appIndexName,
+						return pkg.FindLog(indexName,
 							[]pkg.Match{
 								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
 								{Key: "subSystem.keyword", Value: "WorkManager"},
@@ -293,7 +293,7 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 			func() {
 				t.It("Verify recent pattern-matched AdminServer log record exists", func() {
 					Eventually(func() bool {
-						return pkg.FindLog(appIndexName,
+						return pkg.FindLog(indexName,
 							[]pkg.Match{
 								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
 								{Key: "subSystem", Value: "WorkManager"},
