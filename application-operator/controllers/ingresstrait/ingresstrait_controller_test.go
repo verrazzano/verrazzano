@@ -2923,9 +2923,8 @@ func TestMutateGatewayAddTrait(t *testing.T) {
 	trait1Server := createGatewayServer(trait1Name, trait1Hosts, secretName)
 
 	const appName = "myapp"
-	const gwName = "test-space-myapp-gw"
 	gw := &istioclient.Gateway{
-		ObjectMeta: metav1.ObjectMeta{Name: gwName, Namespace: testNamespace},
+		ObjectMeta: metav1.ObjectMeta{Name: expectedAppGWName, Namespace: testNamespace},
 		Spec: istionet.Gateway{
 			Servers: []*istionet.Server{
 				trait1Server,
@@ -2990,10 +2989,9 @@ func TestMutateGatewayHostsAddRemoveTraitRule(t *testing.T) {
 	trait2Server := createGatewayServer(trait2Name, trait2Hosts, secretName)
 
 	const appName = "myapp"
-	const gwName = "test-space-myapp-gw"
 
 	gw := &istioclient.Gateway{
-		ObjectMeta: metav1.ObjectMeta{Name: gwName, Namespace: testNamespace},
+		ObjectMeta: metav1.ObjectMeta{Name: expectedAppGWName, Namespace: testNamespace},
 		Spec: istionet.Gateway{
 			Servers: []*istionet.Server{
 				trait1Server,
@@ -3027,7 +3025,7 @@ func TestMutateGatewayHostsAddRemoveTraitRule(t *testing.T) {
 	assert.NoError(err)
 
 	updatedGateway := &istioclient.Gateway{}
-	assert.NoError(reconciler.Get(context.TODO(), types.NamespacedName{Name: gwName, Namespace: testNamespace}, updatedGateway))
+	assert.NoError(reconciler.Get(context.TODO(), types.NamespacedName{Name: expectedAppGWName, Namespace: testNamespace}, updatedGateway))
 	updatedServers := updatedGateway.Spec.Servers
 	assert.Len(updatedServers, 2)
 	assert.Equal(updatedServers[0].Hosts, trait1UpdatedHosts)
@@ -3054,7 +3052,7 @@ func TestMutateGatewayHostsAddRemoveTraitRule(t *testing.T) {
 	assert.NoError(err2)
 
 	updatedGatewayRemovedRule := &istioclient.Gateway{}
-	assert.NoError(reconciler.Get(context.TODO(), types.NamespacedName{Name: gwName, Namespace: testNamespace}, updatedGatewayRemovedRule))
+	assert.NoError(reconciler.Get(context.TODO(), types.NamespacedName{Name: expectedAppGWName, Namespace: testNamespace}, updatedGatewayRemovedRule))
 	updatedServersRemovedRule := updatedGatewayRemovedRule.Spec.Servers
 	assert.Len(updatedServers, 2)
 	assert.Equal(updatedServersRemovedRule[0].Hosts, trait1Hosts)

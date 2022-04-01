@@ -562,7 +562,9 @@ func findHost(hosts []string, newHost string) (int, bool) {
 
 // createOrUpdateVirtualService creates or updates the VirtualService child resource of the trait.
 // Results are added to the status object.
-func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, allHostsForTrait []string, name string, services []*corev1.Service, gateway *istioclient.Gateway, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) {
+func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule,
+	allHostsForTrait []string, name string, services []*corev1.Service, gateway *istioclient.Gateway,
+	status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) {
 	// Create a virtual service populating only name metadata.
 	// This is used as default if the virtual service needs to be created.
 	virtualService := &istioclient.VirtualService{
