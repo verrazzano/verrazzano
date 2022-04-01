@@ -399,10 +399,6 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 		}}
 
 	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, certificate, func() error {
-		//hosts, err := createHostsFromIngressTraitRule(r, rule, trait)
-		//if err != nil {
-		//	return err
-		//}
 		certificate.Spec = certapiv1.CertificateSpec{
 			DNSNames:   hostsForTrait,
 			SecretName: secretName,
