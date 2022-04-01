@@ -29,7 +29,7 @@ const (
 	appConfiguration  = "tests/testdata/test-applications/weblogic/hello-weblogic/hello-wls-app.yaml"
 	compConfiguration = "tests/testdata/test-applications/weblogic/hello-weblogic/hello-wls-comp.yaml"
 
-	appUrl         = "hello/weblogic/greetings/message"
+	appURL         = "hello/weblogic/greetings/message"
 	welcomeMessage = "Hello WebLogic"
 
 	wlsUser        = "weblogic"
@@ -177,7 +177,7 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 		// THEN the expected returned page should contain an expected value.
 		t.It("Verify application endpoint is working", func() {
 			Eventually(func() (*pkg.HTTPResponse, error) {
-				url := fmt.Sprintf("https://%s/%s", host, appUrl)
+				url := fmt.Sprintf("https://%s/%s", host, appURL)
 				return pkg.GetWebPage(url, host)
 			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyEquals(welcomeMessage)))
 		})
@@ -236,7 +236,7 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 		t.It("Verify Elasticsearch index exists", func() {
 			Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
-			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find log index "+appIndexName)
+			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find log index "+indexName)
 		})
 		pkg.Concurrently(
 			// GIVEN a WebLogic application with logging enabled
