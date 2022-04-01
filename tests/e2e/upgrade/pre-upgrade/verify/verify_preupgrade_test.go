@@ -4,6 +4,7 @@
 package verify
 
 import (
+	"fmt"
 	"io/fs"
 	"io/ioutil"
 	"time"
@@ -51,12 +52,14 @@ func recordConfigMapCreationTS() {
 	Eventually(func() (string, error) {
 		configMap, err := pkg.GetConfigMap(vzconst.VmiPromConfigName, vzconst.VerrazzanoSystemNamespace)
 		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Failed getting configmap: %v", err))
 			return "", err
 		}
 
 		creationTimestamp := configMap.CreationTimestamp.UTC().String()
 		err = ioutil.WriteFile(vzconst.PromConfigMapCreationTimestampFilePath, []byte(creationTimestamp), fs.ModeTemporary)
 		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Failed writing to file: %v", err))
 			return "", err
 		}
 
@@ -69,7 +72,7 @@ var _ = t.Describe("Record prometheus configmap timestamp", Label("f:pre-upgrade
 	// GIVEN the prometheus configmap is created
 	// WHEN the upgrade has not started and vmo pod is not restarted
 	// THEN the file contining configmap timestamp is populated
-	t.Context("check PROM_CONFIGMAP_CREATION_TIMESTAMP env variable", func() {
+	t.Context("check prometheus configmap timestamp", func() {
 		t.It("before upgrade", func() {
 			Eventually(func() string {
 				data, err := ioutil.ReadFile(vzconst.PromConfigMapCreationTimestampFilePath)
