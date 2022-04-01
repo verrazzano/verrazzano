@@ -4,7 +4,8 @@
 package verify
 
 import (
-	"os"
+	"io/fs"
+	"io/ioutil"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
@@ -46,7 +47,6 @@ var _ = t.AfterSuite(func() {
 
 func recordConfigMapCreationTS() {
 	t.Logs.Info("Recording prometheus Cretaion timestamp")
-
 	t.Logs.Info("Get Prometheus configmap creation timestamp")
 	Eventually(func() (string, error) {
 		configMap, err := pkg.GetConfigMap(vzconst.VmiPromConfigName, vzconst.VerrazzanoSystemNamespace)
@@ -55,7 +55,11 @@ func recordConfigMapCreationTS() {
 		}
 
 		creationTimestamp := configMap.CreationTimestamp.UTC().String()
-		os.Setenv(vzconst.PromConfigMapCreationTimestamp, creationTimestamp)
+		err = ioutil.WriteFile(vzconst.PromConfigMapCreationTimestampFilePath, []byte(creationTimestamp), fs.ModeTemporary)
+		if err != nil {
+			return "", err
+		}
+
 		return creationTimestamp, nil
 	}, waitTimeout, shortPollingInterval).ShouldNot(BeEmpty())
 }
@@ -64,11 +68,15 @@ var _ = t.Describe("Record prometheus configmap timestamp", Label("f:pre-upgrade
 	// Verify that prometheus configmap creation timestamp is set in an Environment variable
 	// GIVEN the prometheus configmap is created
 	// WHEN the upgrade has not started and vmo pod is not restarted
-	// THEN the environment variable PROM_CONFIGMAP_CREATION_TIMESTAMP is populated
+	// THEN the file contining configmap timestamp is populated
 	t.Context("check PROM_CONFIGMAP_CREATION_TIMESTAMP env variable", func() {
 		t.It("before upgrade", func() {
 			Eventually(func() string {
-				return os.Getenv(vzconst.PromConfigMapCreationTimestamp)
+				data, err := ioutil.ReadFile(vzconst.PromConfigMapCreationTimestampFilePath)
+				if err != nil {
+					return ""
+				}
+				return string(data)
 			}, waitTimeout, pollingInterval).ShouldNot(BeEmpty())
 		})
 	})

@@ -5,7 +5,7 @@ package verify
 
 import (
 	"fmt"
-	"os"
+	"io/ioutil"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -309,22 +309,24 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 })
 
 var _ = t.Describe("Verify prometheus configmap timestamp,", Label("f:post-upgrade"), func() {
-	var expectedConfigMapCreationTimestamp string
 	// Verify prometheus configmap is not deleted
 	// GIVEN upgrade has completed
 	// WHEN the vmo pod is restarted
-	// THEN the creation timestamp on prometheus configmap should be same
+	// THEN the creation timestamp on prometheus configmap should be same as before.
 	t.It("Verify prometheus configmap is not deleted on vmo restart.", func() {
-		Eventually(func() (string, error) {
+		Eventually(func() (bool, error) {
 			configMap, err := pkg.GetConfigMap(vzconst.VmiPromConfigName, vzconst.VerrazzanoSystemNamespace)
 			if err != nil {
-				return "", err
+				return false, err
 			}
 
-			actualConfigMapCreationTimestamp := configMap.CreationTimestamp.UTC().String()
-			expectedConfigMapCreationTimestamp = os.Getenv(vzconst.PromConfigMapCreationTimestamp)
-			return actualConfigMapCreationTimestamp, nil
-		}, twoMinutes, pollingInterval).Should(Equal(expectedConfigMapCreationTimestamp), "Timestamp of prometehus configmap not same before and after upgrade")
+			expectedTimestamp, err := ioutil.ReadFile(vzconst.PromConfigMapCreationTimestampFilePath)
+			if err != nil {
+				return false, err
+			}
+
+			return configMap.CreationTimestamp.UTC().String() == string(expectedTimestamp), nil
+		}, twoMinutes, pollingInterval).Should(BeTrue(), "Timestamp of prometehus configmap not same before and after upgrade")
 	})
 })
 
