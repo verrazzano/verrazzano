@@ -263,6 +263,11 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 					func() { assertDashboard("Coherence%20Machines%20Summary%20Dashboard") },
 				)
 			})
+
+		t.It("Grafana should have the verrazzano user with admin privileges", func() {
+			Eventually(assertAdminRole, waitTimeout, pollingInterval).Should(BeTrue())
+
+		})
 	}
 
 	t.It("Verify the instance info endpoint URLs", Label("f:mesh.ingress"), func() {
@@ -431,6 +436,51 @@ func assertDashboard(url string) {
 		return true
 	}
 	Eventually(searchDashboard, waitTimeout, pollingInterval).Should(BeTrue())
+}
+
+func assertAdminRole() bool {
+	searchURL := fmt.Sprintf("%sapi/users", ingressURLs["vmi-system-grafana"])
+	vmiHTTPClient, err := pkg.GetVerrazzanoRetryableHTTPClient()
+	if err != nil {
+		t.Logs.Errorf("Error getting HTTP client: %v", err)
+		return false
+	}
+	vmiHTTPClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+
+	req, err := retryablehttp.NewRequest("GET", searchURL, nil)
+	if err != nil {
+		t.Logs.Errorf("Error creating HTTP request: %v", err)
+		return false
+	}
+	req.SetBasicAuth(creds.Username, creds.Password)
+	resp, err := vmiHTTPClient.Do(req)
+	if err != nil {
+		t.Logs.Errorf("Error making HTTP request: %v", err)
+		return false
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Logs.Errorf("Unexpected HTTP status code: %d", resp.StatusCode)
+		return false
+	}
+	// assert that there is a single item in response
+	defer resp.Body.Close()
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Logs.Errorf("Unable to read body from response: %v", err)
+		return false
+	}
+	var response []map[string]interface{}
+	if err := json.Unmarshal(bodyBytes, &response); err != nil {
+		t.Logs.Errorf("Error unmarshaling response body: %v", err)
+		return false
+	}
+	if len(response) != 1 {
+		t.Logs.Errorf("Unexpected response length: %d", len(response))
+		return false
+	}
+	return true
 }
 
 func assertInstanceInfoURLs() {
