@@ -93,10 +93,6 @@ var (
 
 var _ = t.BeforeSuite(func() {
 	var err error
-	kubeconfig, err = k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-	}
 	httpClient, err = pkg.GetVerrazzanoRetryableHTTPClient()
 	Expect(err).ToNot(HaveOccurred())
 
@@ -131,7 +127,10 @@ var _ = t.BeforeSuite(func() {
 var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
-
+	kubeconfig, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
 	isManagedClusterProfile := pkg.IsManagedClusterProfile()
 	if isManagedClusterProfile {
 		t.It("Elasticsearch should NOT be present", func() {
