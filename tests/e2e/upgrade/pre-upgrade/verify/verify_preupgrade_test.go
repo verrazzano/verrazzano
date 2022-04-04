@@ -57,7 +57,7 @@ func recordConfigMapCreationTS() {
 		}
 
 		creationTimestamp := configMap.CreationTimestamp.UTC().String()
-		err = ioutil.WriteFile(vzconst.PromConfigMapCreationTimestampFilePath, []byte(creationTimestamp), fs.ModeTemporary)
+		err = ioutil.WriteFile(vzconst.PromConfigMapCreationTimestampFile, []byte(creationTimestamp), fs.ModeTemporary)
 		if err != nil {
 			pkg.Log(pkg.Error, fmt.Sprintf("Failed writing to file: %v", err))
 			return "", err
@@ -75,7 +75,7 @@ var _ = t.Describe("Record prometheus configmap timestamp", Label("f:pre-upgrade
 	t.Context("check prometheus configmap timestamp", func() {
 		t.It("before upgrade", func() {
 			Eventually(func() string {
-				data, err := ioutil.ReadFile(vzconst.PromConfigMapCreationTimestampFilePath)
+				data, err := ioutil.ReadFile(vzconst.PromConfigMapCreationTimestampFile)
 				if err != nil {
 					return ""
 				}

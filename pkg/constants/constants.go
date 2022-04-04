@@ -98,5 +98,5 @@ const KubeSystem = "kube-system"
 // VmiPromConfigName - The name of the prometheus config map
 const VmiPromConfigName string = "vmi-system-prometheus-config"
 
-// PromConfigMapCreationTimestampFilePath - The path of file containing creation timestamp of prometheus config map
-const PromConfigMapCreationTimestampFilePath = "/tmp/prom-configmap-ts"
+// PromConfigMapCreationTimestampFile - The file containing creation timestamp of prometheus config map
+const PromConfigMapCreationTimestampFile = "prom-configmap-ts"

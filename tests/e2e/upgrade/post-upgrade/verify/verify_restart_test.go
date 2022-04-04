@@ -320,7 +320,7 @@ var _ = t.Describe("Verify prometheus configmap timestamp,", Label("f:post-upgra
 				return false, err
 			}
 
-			expectedTimestamp, err := ioutil.ReadFile(vzconst.PromConfigMapCreationTimestampFilePath)
+			expectedTimestamp, err := ioutil.ReadFile(vzconst.PromConfigMapCreationTimestampFile)
 			if err != nil {
 				return false, err
 			}
