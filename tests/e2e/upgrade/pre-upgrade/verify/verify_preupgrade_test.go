@@ -57,7 +57,7 @@ func recordConfigMapCreationTS() {
 		}
 
 		creationTimestamp := configMap.CreationTimestamp.UTC().String()
-		f, err := os.Create(vzconst.PromConfigMapCreationTimestampFile)
+		f, err := os.Create(fmt.Sprintf("../../%s", vzconst.PromConfigMapCreationTimestampFile))
 		if err != nil {
 			pkg.Log(pkg.Error, fmt.Sprintf("Failed creating timestamp file: %v", err))
 			return "", err
@@ -76,6 +76,7 @@ func recordConfigMapCreationTS() {
 			return "", err
 		}
 
+		pkg.Log(pkg.Info, fmt.Sprintf("Wrote configmap timestamp to : %v", f))
 		return creationTimestamp, nil
 	}, waitTimeout, shortPollingInterval).ShouldNot(BeEmpty())
 }
