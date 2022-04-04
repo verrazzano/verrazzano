@@ -68,13 +68,216 @@ func Test_certManagerComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name:    "no change",
 			old:     &vzapi.Verrazzano{},
 			new:     &vzapi.Verrazzano{},
 			wantErr: false,
+		},
+		{
+			name: "updateInvalidBothConfigured",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						CertManager: &vzapi.CertManagerComponent{
+							Certificate: vzapi.Certificate{
+								CA: vzapi.CA{
+									SecretName:               "newsecret",
+									ClusterResourceNamespace: "ns",
+								},
+								Acme: vzapi.Acme{
+									Provider:     "letsencrypt",
+									EmailAddress: "joeblow@foo.com",
+									Environment:  "staging",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "validLetsEncryptStaging",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						CertManager: &vzapi.CertManagerComponent{
+							Certificate: vzapi.Certificate{
+								Acme: vzapi.Acme{
+									Provider:     "letsencrypt",
+									EmailAddress: "joeblow@foo.com",
+									Environment:  "staging",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "validLetsEncryptProviderCaseInsensitivity",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						CertManager: &vzapi.CertManagerComponent{
+							Certificate: vzapi.Certificate{
+								Acme: vzapi.Acme{
+									Provider:     "LETSENCRYPT",
+									EmailAddress: "joeblow@foo.com",
+									Environment:  "staging",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "validLetsEncryptStagingCaseInsensitivity",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						CertManager: &vzapi.CertManagerComponent{
+							Certificate: vzapi.Certificate{
+								Acme: vzapi.Acme{
+									Provider:     vzapi.LetsEncrypt,
+									EmailAddress: "joeblow@foo.com",
+									Environment:  "STAGING",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "validLetsEncryptProdCaseInsensitivity",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						CertManager: &vzapi.CertManagerComponent{
+							Certificate: vzapi.Certificate{
+								Acme: vzapi.Acme{
+									Provider:     vzapi.LetsEncrypt,
+									EmailAddress: "joeblow@foo.com",
+									Environment:  "PRODUCTION",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "validLetsEncryptDefaultStagingEnv",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						CertManager: &vzapi.CertManagerComponent{
+							Certificate: vzapi.Certificate{
+								Acme: vzapi.Acme{
+									Provider:     vzapi.LetsEncrypt,
+									EmailAddress: "joeblow@foo.com",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "validLetsEncryptProd",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						CertManager: &vzapi.CertManagerComponent{
+							Certificate: vzapi.Certificate{
+								Acme: vzapi.Acme{
+									Provider:     "letsencrypt",
+									EmailAddress: "joeblow@foo.com",
+									Environment:  "production",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalidACMEProvider",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						CertManager: &vzapi.CertManagerComponent{
+							Certificate: vzapi.Certificate{
+								Acme: vzapi.Acme{
+									Provider:     "blah",
+									EmailAddress: "joeblow@foo.com",
+									Environment:  "production",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalidLetsEncryptEnv",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						CertManager: &vzapi.CertManagerComponent{
+							Certificate: vzapi.Certificate{
+								Acme: vzapi.Acme{
+									Provider:     "letsencrypt",
+									EmailAddress: "joeblow@foo.com",
+									Environment:  "myenv",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalidACMEEmail",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						CertManager: &vzapi.CertManagerComponent{
+							Certificate: vzapi.Certificate{
+								Acme: vzapi.Acme{
+									Provider:     "letsencrypt",
+									EmailAddress: "joeblow",
+									Environment:  "staging",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {

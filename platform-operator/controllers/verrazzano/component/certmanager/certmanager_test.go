@@ -37,9 +37,9 @@ var ca = vzapi.CA{
 
 // Default Acme object
 var acme = vzapi.Acme{
-	Provider:     "testProvider",
-	EmailAddress: "testEmail",
-	Environment:  "myenv",
+	Provider:     vzapi.LetsEncrypt,
+	EmailAddress: "testEmail@foo.com",
+	Environment:  letsEncryptStaging,
 }
 
 // Default Verrazzano object
@@ -216,16 +216,6 @@ func TestIsCertManagerNotReady(t *testing.T) {
 
 // TestIsCANil tests the isCA function
 // GIVEN a call to isCA
-// WHEN the CertManager component is nil
-// THEN an error is returned
-func TestIsCANil(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(testScheme)
-	_, err := isCA(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false))
-	assert.Error(t, err)
-}
-
-// TestIsCANil tests the isCA function
-// GIVEN a call to isCA
 // WHEN the CertManager component is populated by the profile
 // THEN true is returned
 func TestIsCANilWithProfile(t *testing.T) {
@@ -296,7 +286,7 @@ func TestCreateCAResources(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, exists)
 
-	exists, err = clusterIssuerExists(client, caClusterIssuerName)
+	exists, err = clusterIssuerExists(client, verrazzanoClusterIssuerName)
 	assert.NoError(t, err)
 	assert.True(t, exists)
 
@@ -323,7 +313,7 @@ func TestCreateCAResources(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, exists)
 
-	exists, err = clusterIssuerExists(client, caClusterIssuerName)
+	exists, err = clusterIssuerExists(client, verrazzanoClusterIssuerName)
 	assert.NoError(t, err)
 	assert.True(t, exists)
 }
@@ -416,7 +406,7 @@ func runCAUpdateTest(t *testing.T, upgrade bool) {
 	assert.NoError(t, err)
 
 	actualIssuer := &certv1.ClusterIssuer{}
-	assert.NoError(t, client.Get(context.TODO(), types.NamespacedName{Name: caClusterIssuerName}, actualIssuer))
+	assert.NoError(t, client.Get(context.TODO(), types.NamespacedName{Name: verrazzanoClusterIssuerName}, actualIssuer))
 	assert.Equal(t, expectedIssuer.Spec.CA, actualIssuer.Spec.CA)
 }
 
@@ -527,7 +517,7 @@ func runAcmeUpdateTest(t *testing.T, upgrade bool) {
 	assert.NoError(t, err)
 
 	actualIssuer, _ := createAcmeClusterIssuer(vzlog.DefaultLogger(), templateData{})
-	assert.NoError(t, client.Get(context.TODO(), types.NamespacedName{Name: caClusterIssuerName}, actualIssuer))
+	assert.NoError(t, client.Get(context.TODO(), types.NamespacedName{Name: verrazzanoClusterIssuerName}, actualIssuer))
 	assert.Equal(t, expectedIssuer.Object["spec"], actualIssuer.Object["spec"])
 }
 
