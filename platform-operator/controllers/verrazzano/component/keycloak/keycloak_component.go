@@ -6,13 +6,11 @@ package keycloak
 import (
 	"context"
 	"fmt"
-	"path/filepath"
-	"reflect"
-
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
@@ -23,6 +21,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -187,7 +186,7 @@ func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verr
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	// Reject any other edits for now
-	if !reflect.DeepEqual(c.getInstallArgs(old), c.getInstallArgs(new)) {
+	if err := common.CompareInstallArgs(c.getInstallArgs(old), c.getInstallArgs(new), nil); err != nil {
 		return fmt.Errorf("Updates to istioInstallArgs not allowed for %s", ComponentJSONName)
 	}
 	return nil

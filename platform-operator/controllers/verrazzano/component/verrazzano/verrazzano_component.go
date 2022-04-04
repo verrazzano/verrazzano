@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"reflect"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
@@ -155,7 +157,7 @@ func (c verrazzanoComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 	if err := c.checkEnabled(old, new); err != nil {
 		return err
 	}
-	if !reflect.DeepEqual(getVzInstallArgs(old), getVzInstallArgs(new)) {
+	if err := common.CompareInstallArgs(getVzInstallArgs(old), getVzInstallArgs(new), nil); err != nil {
 		return fmt.Errorf("Update to installArgs not allowed for %s", ComponentJSONName)
 	}
 	// Do not allow any updates to storage settings via the volumeClaimSpecTemplates/defaultVolumeSource

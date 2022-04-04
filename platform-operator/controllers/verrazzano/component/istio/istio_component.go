@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	k8s "github.com/verrazzano/verrazzano/platform-operator/internal/nodeport"
 	"io/ioutil"
 	"os"
@@ -142,7 +143,7 @@ func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	// Reject any other edits
-	if !reflect.DeepEqual(i.getInstallArgs(old), i.getInstallArgs(new)) {
+	if err := common.CompareInstallArgs(i.getInstallArgs(old), i.getInstallArgs(new), nil); err != nil {
 		return fmt.Errorf("Updates to installArgs not allowed for %s", ComponentJSONName)
 	}
 	if !reflect.DeepEqual(i.getIngressSettings(old), i.getIngressSettings(new)) {

@@ -5,11 +5,10 @@ package mysql
 
 import (
 	"fmt"
-	"path/filepath"
-	"reflect"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
@@ -107,7 +106,7 @@ func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 		return fmt.Errorf("Can not change persistence storage class in component: %s", ComponentJSONName)
 	}
 	// Reject any installArgs changes for now
-	if !reflect.DeepEqual(c.getInstallArgs(old), c.getInstallArgs(new)) {
+	if err := common.CompareInstallArgs(c.getInstallArgs(old), c.getInstallArgs(new), nil); err != nil {
 		return fmt.Errorf("Updates to mysqlInstallArgs not allowed for %s", ComponentJSONName)
 	}
 	return nil
