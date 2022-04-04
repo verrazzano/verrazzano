@@ -59,6 +59,8 @@ const HelmScrtType = "helm.sh/release.v1"
 // subcompIstiod is the Istiod subcomponent in the bom
 const subcompIstiod = "istiod"
 
+const ComponentInstallArgShape = `gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"`
+
 // istioComponent represents an Istio component
 type istioComponent struct {
 	// ValuesFile contains the path to the IstioOperator CR values file
@@ -143,7 +145,7 @@ func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	// Reject any other edits
-	if err := common.CompareInstallArgs(i.getInstallArgs(old), i.getInstallArgs(new), nil); err != nil {
+	if err := common.CompareInstallArgs(i.getInstallArgs(old), i.getInstallArgs(new), []string{ComponentInstallArgShape}); err != nil {
 		return fmt.Errorf("Updates to installArgs not allowed for %s", ComponentJSONName)
 	}
 	if !reflect.DeepEqual(i.getIngressSettings(old), i.getIngressSettings(new)) {

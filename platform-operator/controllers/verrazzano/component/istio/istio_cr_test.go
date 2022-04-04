@@ -12,8 +12,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
-const argShape = `gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"`
-
 var enabled = true
 
 // Prod Profile defaults for replicas and affinity
@@ -21,7 +19,7 @@ var enabled = true
 var cr1 = vzapi.IstioComponent{
 	IstioInstallArgs: []vzapi.InstallArgs{
 		{
-			Name:  argShape,
+			Name:  ComponentInstallArgShape,
 			Value: "10Mbps",
 		},
 		{
@@ -168,7 +166,7 @@ spec:
 var cr2 = vzapi.IstioComponent{
 	IstioInstallArgs: []vzapi.InstallArgs{
 		{
-			Name:  argShape,
+			Name:  ComponentInstallArgShape,
 			Value: "10Mbps",
 		},
 		{
