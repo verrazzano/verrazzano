@@ -9,8 +9,10 @@
 package mocks
 
 import (
+	"context"
 	http "net/http"
 	reflect "reflect"
+	"sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
 
 	logr "github.com/go-logr/logr"
 	gomock "github.com/golang/mock/gomock"
@@ -29,6 +31,10 @@ import (
 type MockManager struct {
 	ctrl     *gomock.Controller
 	recorder *MockManagerMockRecorder
+}
+
+func (m *MockManager) GetControllerOptions() v1alpha1.ControllerConfigurationSpec {
+	return v1alpha1.ControllerConfigurationSpec{}
 }
 
 // MockManagerMockRecorder is the mock recorder for MockManager
@@ -273,9 +279,9 @@ func (mr *MockManagerMockRecorder) SetFields(arg0 interface{}) *gomock.Call {
 }
 
 // Start mocks base method
-func (m *MockManager) Start(arg0 <-chan struct{}) error {
+func (m *MockManager) Start(ctx context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Start", arg0)
+	ret := m.ctrl.Call(m, "Start", ctx)
 	ret0, _ := ret[0].(error)
 	return ret0
 }

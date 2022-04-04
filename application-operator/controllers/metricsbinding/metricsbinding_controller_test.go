@@ -48,7 +48,7 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	manager := mocks.NewMockManager(mocker)
 	manager.EXPECT().GetConfig().Return(&rest.Config{}).AnyTimes()
 	manager.EXPECT().GetScheme().Return(scheme).AnyTimes()
-	manager.EXPECT().GetLogger().Return(log.NullLogger{}).AnyTimes()
+	manager.EXPECT().GetLogger().Return(log.NullLogSink{}).AnyTimes()
 	manager.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()
 	manager.EXPECT().Add(gomock.Any()).Return(nil).AnyTimes()
 
@@ -490,7 +490,7 @@ func TestCreateDeployment(t *testing.T) {
 	namespacedName := types.NamespacedName{Namespace: testMetricsBindingNamespace, Name: testMetricsBindingName}
 	request := ctrl.Request{NamespacedName: namespacedName}
 
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	assert.NoError(err)
@@ -535,7 +535,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	namespacedName := types.NamespacedName{Namespace: vzconst.KubeSystem, Name: testMetricsBindingName}
 	request := ctrl.Request{NamespacedName: namespacedName}
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()

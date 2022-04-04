@@ -131,7 +131,7 @@ func TestCreateVMC(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -193,7 +193,7 @@ func TestCreateVMCWithExternalES(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -254,7 +254,7 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -313,7 +313,7 @@ func TestCreateVMCNoCACert(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -386,7 +386,7 @@ scrape_configs:
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -459,7 +459,7 @@ scrape_configs:
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -522,7 +522,7 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -555,7 +555,7 @@ func TestCreateVMCSyncSvcAccountFailed(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results - there should have been an error returned for failing to sync svc account
 	mocker.Finish()
@@ -591,7 +591,7 @@ func TestCreateVMCSyncRoleBindingFailed(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results - there should have been an error returned
 	mocker.Finish()
@@ -696,7 +696,7 @@ scrape_configs:
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1181,7 +1181,7 @@ func TestRegisterClusterWithRancherOverrideRegistry(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()

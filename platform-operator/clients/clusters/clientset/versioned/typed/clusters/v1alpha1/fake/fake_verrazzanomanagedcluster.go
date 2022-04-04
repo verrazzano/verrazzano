@@ -104,7 +104,7 @@ func (c *FakeVerrazzanoManagedClusters) UpdateStatus(ctx context.Context, verraz
 // Delete takes name of the verrazzanoManagedCluster and deletes it. Returns an error if one occurs.
 func (c *FakeVerrazzanoManagedClusters) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(verrazzanomanagedclustersResource, c.ns, name), &v1alpha1.VerrazzanoManagedCluster{})
+		Invokes(testing.NewDeleteActionWithOptions(verrazzanomanagedclustersResource, c.ns, name, opts), &v1alpha1.VerrazzanoManagedCluster{})
 
 	return err
 }

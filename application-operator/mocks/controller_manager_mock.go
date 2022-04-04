@@ -9,6 +9,7 @@
 package mocks
 
 import (
+	"context"
 	logr "github.com/go-logr/logr"
 	gomock "github.com/golang/mock/gomock"
 	meta "k8s.io/apimachinery/pkg/api/meta"
@@ -19,6 +20,7 @@ import (
 	reflect "reflect"
 	cache "sigs.k8s.io/controller-runtime/pkg/cache"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
 	healthz "sigs.k8s.io/controller-runtime/pkg/healthz"
 	manager "sigs.k8s.io/controller-runtime/pkg/manager"
 	webhook "sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -28,6 +30,10 @@ import (
 type MockManager struct {
 	ctrl     *gomock.Controller
 	recorder *MockManagerMockRecorder
+}
+
+func (m *MockManager) GetControllerOptions() v1alpha1.ControllerConfigurationSpec {
+	return v1alpha1.ControllerConfigurationSpec{}
 }
 
 // MockManagerMockRecorder is the mock recorder for MockManager
@@ -272,9 +278,9 @@ func (mr *MockManagerMockRecorder) SetFields(arg0 interface{}) *gomock.Call {
 }
 
 // Start mocks base method
-func (m *MockManager) Start(arg0 <-chan struct{}) error {
+func (m *MockManager) Start(ctx context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Start", arg0)
+	ret := m.ctrl.Call(m, "Start", ctx)
 	ret0, _ := ret[0].(error)
 	return ret0
 }

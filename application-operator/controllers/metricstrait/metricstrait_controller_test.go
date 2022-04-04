@@ -61,7 +61,7 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	reconciler = Reconciler{Client: cli, Scheme: scheme, Scraper: "istio-system/prometheus"}
 	mgr.EXPECT().GetConfig().Return(&rest.Config{})
 	mgr.EXPECT().GetScheme().Return(scheme)
-	mgr.EXPECT().GetLogger().Return(log.NullLogger{})
+	mgr.EXPECT().GetLogger().Return(log.NullLogSink{})
 	mgr.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()
 	mgr.EXPECT().Add(gomock.Any()).Return(nil).AnyTimes()
 	err = reconciler.SetupWithManager(mgr)
@@ -207,7 +207,7 @@ func TestMetricsTraitCreatedForContainerizedWorkload(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -377,7 +377,7 @@ func TestMetricsTraitCreatedForVerrazzanoWorkload(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -518,7 +518,7 @@ func TestMetricsTraitCreatedForDeploymentWorkload(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -625,7 +625,7 @@ func TestMetricsTraitDeletedForContainerizedWorkload(t *testing.T) {
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -722,7 +722,7 @@ func TestMetricsTraitDeletedForContainerizedWorkloadWhenDeploymentDeleted(t *tes
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -829,7 +829,7 @@ func TestMetricsTraitDeletedForDeploymentWorkload(t *testing.T) {
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "deploymetrics", Name: "deploymetrics-deployment-trait"}}
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -856,7 +856,7 @@ func TestFetchTraitError(t *testing.T) {
 	// Create and make the request
 	reconciler := newMetricsTraitReconciler(mock)
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -908,7 +908,7 @@ func TestWorkloadFetchError(t *testing.T) {
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1040,7 +1040,7 @@ func TestDeploymentUpdateError(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1103,7 +1103,7 @@ func TestUnsupportedWorkloadType(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1301,7 +1301,7 @@ func TestNoUpdatesRequired(t *testing.T) {
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1522,7 +1522,7 @@ func TestSSLNoUpdatesRequired(t *testing.T) {
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1707,7 +1707,7 @@ func TestMetricsTraitCreatedForWLSWorkload(t *testing.T) {
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1841,7 +1841,7 @@ func TestMetricsTraitDeletedForWLSWorkload(t *testing.T) {
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1992,7 +1992,7 @@ func TestMetricsTraitCreatedForCOHWorkload(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -2161,7 +2161,7 @@ func TestMetricsTraitCreatedWithMultiplePorts(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -2341,7 +2341,7 @@ func TestMetricsTraitCreatedWithMultiplePortsAndPort(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -2447,7 +2447,7 @@ func TestMetricsTraitDeletedForCOHWorkload(t *testing.T) {
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -2677,7 +2677,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	// create a request and reconcile it
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: vzconst.KubeSystem, Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()

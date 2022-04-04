@@ -48,8 +48,10 @@ const finalizerName = "images.verrazzano.io"
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.6.4/pkg/reconcile
-func (r *ImageBuildRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.TODO()
+func (r *ImageBuildRequestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	if ctx == nil {
+		ctx = context.TODO()
+	}
 	log := zap.S().With("resource", fmt.Sprintf("%s:%s", req.Namespace, req.Name))
 
 	log.Info("Reconciler called")

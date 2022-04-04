@@ -107,7 +107,7 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	reconciler = Reconciler{Client: cli, Scheme: scheme}
 	mgr.EXPECT().GetConfig().Return(&rest.Config{})
 	mgr.EXPECT().GetScheme().Return(scheme)
-	mgr.EXPECT().GetLogger().Return(log.NullLogger{})
+	mgr.EXPECT().GetLogger().Return(log.NullLogSink{})
 	mgr.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()
 	mgr.EXPECT().Add(gomock.Any()).Return(nil).AnyTimes()
 	err = reconciler.SetupWithManager(mgr)
@@ -341,7 +341,7 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 			request := clusterstest.NewRequest(tt.fields.vpNamespace, tt.fields.vpName)
 			reconciler := newVerrazzanoProjectReconciler(mockClient)
 			vmcclient.AddToScheme(reconciler.Scheme)
-			_, err := reconciler.Reconcile(request)
+			_, err := reconciler.Reconcile(nil, request)
 
 			mocker.Finish()
 
@@ -448,7 +448,7 @@ func TestNetworkPolicies(t *testing.T) {
 	request := clusterstest.NewRequest(constants.VerrazzanoMultiClusterNamespace, vpName)
 	reconciler := newVerrazzanoProjectReconciler(mockClient)
 	vmcclient.AddToScheme(reconciler.Scheme)
-	_, err := reconciler.Reconcile(request)
+	_, err := reconciler.Reconcile(nil, request)
 	assert.NoError(err)
 
 	mocker.Finish()
@@ -479,7 +479,7 @@ func TestDeleteVerrazzanoProject(t *testing.T) {
 	// Make the request
 	request := clusterstest.NewRequest(constants.VerrazzanoMultiClusterNamespace, vpName)
 	reconciler := newVerrazzanoProjectReconciler(mockClient)
-	_, err := reconciler.Reconcile(request)
+	_, err := reconciler.Reconcile(nil, request)
 	assert.NoError(err)
 
 	mocker.Finish()
@@ -585,7 +585,7 @@ func TestDeleteVerrazzanoProjectFinalizer(t *testing.T) {
 	request := clusterstest.NewRequest(constants.VerrazzanoMultiClusterNamespace, vpName)
 	reconciler := newVerrazzanoProjectReconciler(mockClient)
 	vmcclient.AddToScheme(reconciler.Scheme)
-	_, err := reconciler.Reconcile(request)
+	_, err := reconciler.Reconcile(nil, request)
 	assert.NoError(err)
 
 	mocker.Finish()
@@ -773,7 +773,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(vzconst.KubeSystem, "unit-test-verrazzano-helidon-workload")
 	reconciler := newVerrazzanoProjectReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.Nil(err)

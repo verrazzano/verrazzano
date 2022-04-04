@@ -77,7 +77,7 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	reconciler = Reconciler{Client: cli, Scheme: scheme, Metrics: metricsReconciler}
 	mgr.EXPECT().GetConfig().Return(&rest.Config{})
 	mgr.EXPECT().GetScheme().Return(scheme)
-	mgr.EXPECT().GetLogger().Return(log.NullLogger{})
+	mgr.EXPECT().GetLogger().Return(log.NullLogSink{})
 	mgr.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()
 	mgr.EXPECT().Add(gomock.Any()).Return(nil).AnyTimes()
 	err = reconciler.SetupWithManager(mgr)
@@ -191,7 +191,7 @@ func TestReconcileCreateCoherence(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -317,7 +317,7 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -518,7 +518,7 @@ func TestReconcileCreateCoherenceWithCustomLogging(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -685,7 +685,7 @@ func TestReconcileCreateCoherenceWithCustomLoggingConfigMapExists(t *testing.T) 
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -816,7 +816,7 @@ func TestReconcileUpdateFluentdImage(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -934,7 +934,7 @@ func TestReconcileUpdateCR(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -1062,7 +1062,7 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -1151,7 +1151,7 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.Nil(err)
@@ -1179,7 +1179,7 @@ func TestReconcileWorkloadNotFound(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -1207,7 +1207,7 @@ func TestReconcileFetchWorkloadError(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.Nil(err)
@@ -1533,7 +1533,7 @@ func TestReconcileRestart(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -1551,7 +1551,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(vzconst.KubeSystem, "unit-test-verrazzano-helidon-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.Nil(err)

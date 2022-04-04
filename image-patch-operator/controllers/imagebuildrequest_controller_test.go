@@ -52,11 +52,11 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	mgr = mocks.NewMockManager(mocker)
 	cli = mocks.NewMockClient(mocker)
 	scheme = runtime.NewScheme()
-	imagesv1alpha1.AddToScheme(scheme)
+	_ = imagesv1alpha1.AddToScheme(scheme)
 	reconciler = ImageBuildRequestReconciler{Client: cli, Scheme: scheme}
 	mgr.EXPECT().GetConfig().Return(&rest.Config{})
 	mgr.EXPECT().GetScheme().Return(scheme)
-	mgr.EXPECT().GetLogger().Return(log.NullLogger{})
+	mgr.EXPECT().GetLogger().Return(log.NullLogSink{})
 	mgr.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()
 	mgr.EXPECT().Add(gomock.Any()).Return(nil).AnyTimes()
 	err = reconciler.SetupWithManager(mgr)
@@ -71,7 +71,7 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 // AND verify that the IBR environmental variables are passed to the ImageJob correctly
 func TestNewImageBuildRequest(t *testing.T) {
 	assert := asserts.New(t)
-	cli := fake.NewFakeClientWithScheme(newScheme())
+	cli := fake.NewClientBuilder().WithScheme(newScheme()).Build()
 	params := map[string]string{
 		"BASE_IMAGE":            "ghcr.io/oracle/oraclelinux:8-slim",
 		"JDK_INSTALLER":         "jdk-8u281-linux-x64.tar.gz",
@@ -91,14 +91,14 @@ func TestNewImageBuildRequest(t *testing.T) {
 	// Set test values for resource limits and requests
 	cpuValueString := "1100m"
 	memoryValueString := "1Gi"
-	os.Setenv("WIT_POD_RESOURCE_LIMIT_CPU", cpuValueString)
-	os.Setenv("WIT_POD_RESOURCE_LIMIT_MEMORY", memoryValueString)
-	os.Setenv("WIT_POD_RESOURCE_REQUEST_CPU", cpuValueString)
-	os.Setenv("WIT_POD_RESOURCE_REQUEST_MEMORY", memoryValueString)
+	_ = os.Setenv("WIT_POD_RESOURCE_LIMIT_CPU", cpuValueString)
+	_ = os.Setenv("WIT_POD_RESOURCE_LIMIT_MEMORY", memoryValueString)
+	_ = os.Setenv("WIT_POD_RESOURCE_REQUEST_CPU", cpuValueString)
+	_ = os.Setenv("WIT_POD_RESOURCE_REQUEST_MEMORY", memoryValueString)
 
 	request := newRequest("default", "cluster1")
 	reconciler := newImageBuildRequestReconciler(cli)
-	_, err := reconciler.Reconcile(request)
+	_, err := reconciler.Reconcile(nil, request)
 	assert.NoError(err)
 
 	// Verify the DryRun flag is set to false by default (this value can be changed in the helm config values.yaml file)
@@ -161,7 +161,7 @@ func TestNewImageBuildRequest(t *testing.T) {
 // THEN verify that the status of the ImageBuildRequest reflects the build is completed
 func TestIBRJobSucceeded(t *testing.T) {
 	assert := asserts.New(t)
-	cli := fake.NewFakeClientWithScheme(newScheme())
+	cli := fake.NewClientBuilder().WithScheme(newScheme()).Build()
 	params := map[string]string{
 		"IBR_NAME": "cluster1",
 	}
@@ -172,7 +172,7 @@ func TestIBRJobSucceeded(t *testing.T) {
 
 	request := newRequest("default", "cluster1")
 	reconciler := newImageBuildRequestReconciler(cli)
-	_, err := reconciler.Reconcile(request)
+	_, err := reconciler.Reconcile(nil, request)
 	assert.NoError(err)
 
 	// Testing if ImageBuildRequest status reflects that ImageJob is complete
@@ -196,7 +196,7 @@ func TestIBRJobSucceeded(t *testing.T) {
 // THEN verify that the status of the ImageBuildRequest reflects the build failed
 func TestIBRJobFailed(t *testing.T) {
 	assert := asserts.New(t)
-	cli := fake.NewFakeClientWithScheme(newScheme())
+	cli := fake.NewClientBuilder().WithScheme(newScheme()).Build()
 	params := map[string]string{
 		"IBR_NAME": "cluster1",
 	}
@@ -207,7 +207,7 @@ func TestIBRJobFailed(t *testing.T) {
 
 	request := newRequest("default", "cluster1")
 	reconciler := newImageBuildRequestReconciler(cli)
-	_, err := reconciler.Reconcile(request)
+	_, err := reconciler.Reconcile(nil, request)
 	assert.NoError(err)
 
 	// Testing if ImageBuildRequest status reflects that ImageJob failed
@@ -231,7 +231,7 @@ func TestIBRJobFailed(t *testing.T) {
 // THEN verify that the status of the ImageBuildRequest reflects that a DryRun is in progress
 func TestIBRDryRun(t *testing.T) {
 	assert := asserts.New(t)
-	cli := fake.NewFakeClientWithScheme(newScheme())
+	cli := fake.NewClientBuilder().WithScheme(newScheme()).Build()
 	params := map[string]string{
 		"IBR_NAME": "cluster1",
 	}
@@ -244,7 +244,7 @@ func TestIBRDryRun(t *testing.T) {
 
 	// Running the image job as a DryRun
 	reconciler.DryRun = true
-	_, err := reconciler.Reconcile(request)
+	_, err := reconciler.Reconcile(nil, request)
 	assert.NoError(err)
 
 	// Testing if ImageBuildRequest status reflects that ImageJob is in progress of a DryRun
@@ -267,7 +267,7 @@ func TestIBRDryRun(t *testing.T) {
 // THEN verify that the status of the ImageBuildRequest reflects the DryRun is completed
 func TestIBRDryRunJobSucceeded(t *testing.T) {
 	assert := asserts.New(t)
-	cli := fake.NewFakeClientWithScheme(newScheme())
+	cli := fake.NewClientBuilder().WithScheme(newScheme()).Build()
 	params := map[string]string{
 		"IBR_NAME": "cluster1",
 	}
@@ -281,7 +281,7 @@ func TestIBRDryRunJobSucceeded(t *testing.T) {
 
 	// Running the image job as a DryRun
 	reconciler.DryRun = true
-	_, err := reconciler.Reconcile(request)
+	_, err := reconciler.Reconcile(nil, request)
 	assert.NoError(err)
 
 	// Testing if ImageBuildRequest status reflects that ImageJob DryRun is complete
@@ -305,7 +305,7 @@ func TestIBRDryRunJobSucceeded(t *testing.T) {
 // THEN verify that the status of the ImageBuildRequest reflects the DryRun failed
 func TestIBRDryRunJobFailed(t *testing.T) {
 	assert := asserts.New(t)
-	cli := fake.NewFakeClientWithScheme(newScheme())
+	cli := fake.NewClientBuilder().WithScheme(newScheme()).Build()
 	params := map[string]string{
 		"IBR_NAME": "cluster1",
 	}
@@ -319,7 +319,7 @@ func TestIBRDryRunJobFailed(t *testing.T) {
 
 	// Running the image job as a DryRun
 	reconciler.DryRun = true
-	_, err := reconciler.Reconcile(request)
+	_, err := reconciler.Reconcile(nil, request)
 	assert.NoError(err)
 
 	// Testing if ImageBuildRequest status reflects that ImageJob DryRun failed
@@ -341,14 +341,14 @@ func TestIBRDryRunJobFailed(t *testing.T) {
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	//_ = clientgoscheme.AddToScheme(scheme)
-	core.AddToScheme(scheme)
-	k8sapps.AddToScheme(scheme)
-	imagesv1alpha1.AddToScheme(scheme)
-	k8score.AddToScheme(scheme)
-	certapiv1.AddToScheme(scheme)
-	k8net.AddToScheme(scheme)
-	istioclient.AddToScheme(scheme)
-	batchv1.AddToScheme(scheme)
+	_ = core.AddToScheme(scheme)
+	_ = k8sapps.AddToScheme(scheme)
+	_ = imagesv1alpha1.AddToScheme(scheme)
+	_ = k8score.AddToScheme(scheme)
+	_ = certapiv1.AddToScheme(scheme)
+	_ = k8net.AddToScheme(scheme)
+	_ = istioclient.AddToScheme(scheme)
+	_ = batchv1.AddToScheme(scheme)
 	return scheme
 }
 
@@ -374,11 +374,11 @@ func updateUnstructuredFromYAMLTemplate(uns *unstructured.Unstructured, template
 	if err != nil {
 		return err
 	}
-	bytes, err := yaml.YAMLToJSON([]byte(str))
+	ybytes, err := yaml.YAMLToJSON([]byte(str))
 	if err != nil {
 		return err
 	}
-	_, _, err = unstructured.UnstructuredJSONScheme.Decode(bytes, nil, uns)
+	_, _, err = unstructured.UnstructuredJSONScheme.Decode(ybytes, nil, uns)
 	if err != nil {
 		return err
 	}

@@ -70,10 +70,13 @@ var unitTesting bool
 // +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanos,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanos/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;watch;list;create;update;delete
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Get the Verrazzano resource
+	if ctx == nil {
+		ctx = context.TODO()
+	}
 	vz := &installv1alpha1.Verrazzano{}
-	if err := r.Get(context.TODO(), req.NamespacedName, vz); err != nil {
+	if err := r.Get(ctx, req.NamespacedName, vz); err != nil {
 		// If the resource is not found, that means all of the finalizers have been removed,
 		// and the Verrazzano resource has been deleted, so there is nothing left to do.
 		if errors.IsNotFound(err) {
@@ -96,7 +99,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	log.Oncef("Reconciling Verrazzano resource %v, generation %v, version %s", req.NamespacedName, vz.Generation, vz.Status.Version)
-	res, err := r.doReconcile(log, vz)
+	res, err := r.doReconcile(ctx, log, vz)
 	if vzctrl.ShouldRequeue(res) {
 		return res, nil
 	}
@@ -112,8 +115,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 }
 
 // doReconcile the Verrazzano CR
-func (r *Reconciler) doReconcile(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
-	ctx := context.TODO()
+func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 
 	// Initialize once for this Verrazzano resource when the operator starts
 	result, err := r.initForVzResource(vz, log)
@@ -141,7 +143,7 @@ func (r *Reconciler) doReconcile(log vzlog.VerrazzanoLogger, vz *installv1alpha1
 		return reconcile.Result{Requeue: true}, nil
 	}
 
-	vzctx, err := vzcontext.NewVerrazzanoContext(log, r, vz, r.DryRun)
+	vzctx, err := vzcontext.NewVerrazzanoContext(log, r.Client, vz, r.DryRun)
 	if err != nil {
 		log.Errorf("Failed to create component context: %v", err)
 		return newRequeueWithDelay(), err
@@ -786,7 +788,7 @@ func (r *Reconciler) checkComponentReadyState(vzctx vzcontext.VerrazzanoContext)
 
 	// Return false if any enabled component is not ready
 	for _, comp := range registry.GetComponents() {
-		spiCtx, err := spi.NewContext(vzctx.Log, r, vzctx.ActualCR, r.DryRun)
+		spiCtx, err := spi.NewContext(vzctx.Log, r.Client, vzctx.ActualCR, r.DryRun)
 		if err != nil {
 			spiCtx.Log().Errorf("Failed to create component context: %v", err)
 			return false, err
@@ -806,7 +808,7 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 		cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
 	}
 
-	newContext, err := spi.NewContext(log, r, cr, r.DryRun)
+	newContext, err := spi.NewContext(log, r.Client, cr, r.DryRun)
 	if err != nil {
 		return newRequeueWithDelay(), err
 	}
@@ -1201,8 +1203,8 @@ func newRequeueWithDelay() ctrl.Result {
 func (r *Reconciler) watchJobs(namespace string, name string, log vzlog.VerrazzanoLogger) error {
 
 	// Define a mapping to the Verrazzano resource
-	mapFn := handler.ToRequestsFunc(
-		func(a handler.MapObject) []reconcile.Request {
+	mapFn := handler.EnqueueRequestsFromMapFunc(
+		func(a client.Object) []reconcile.Request {
 			return []reconcile.Request{
 				{NamespacedName: types.NamespacedName{
 					Namespace: namespace,
@@ -1226,9 +1228,7 @@ func (r *Reconciler) watchJobs(namespace string, name string, log vzlog.Verrazza
 		&source.Kind{Type: &batchv1.Job{
 			ObjectMeta: metav1.ObjectMeta{Namespace: getInstallNamespace()},
 		}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: mapFn,
-		},
+		mapFn,
 		// Comment it if default predicate fun is used.
 		p)
 	if err != nil {
@@ -1243,8 +1243,8 @@ func (r *Reconciler) watchJobs(namespace string, name string, log vzlog.Verrazza
 // when a pod is created.
 func (r *Reconciler) watchPods(namespace string, name string, log vzlog.VerrazzanoLogger) error {
 	// Define a mapping to the Verrazzano resource
-	mapFn := handler.ToRequestsFunc(
-		func(a handler.MapObject) []reconcile.Request {
+	mapFn := handler.EnqueueRequestsFromMapFunc(
+		func(a client.Object) []reconcile.Request {
 			return []reconcile.Request{
 				{NamespacedName: types.NamespacedName{
 					Namespace: namespace,
@@ -1276,9 +1276,7 @@ func (r *Reconciler) watchPods(namespace string, name string, log vzlog.Verrazza
 	// Watch pods and trigger reconciles for Verrazzano resources when a pod is created
 	err := r.Controller.Watch(
 		&source.Kind{Type: &corev1.Pod{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: mapFn,
-		},
+		mapFn,
 		predicateFunc)
 	if err != nil {
 		return err
