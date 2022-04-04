@@ -78,6 +78,7 @@ func verrazzanoInstallerCRD() (*apiextv1.CustomResourceDefinition, error) {
 
 var (
 	httpClient             *retryablehttp.Client
+	kubeconfig             string
 	creds                  *pkg.UsernamePassword
 	vmiCRD                 *apiextv1.CustomResourceDefinition
 	vzCRD                  *apiextv1.CustomResourceDefinition
@@ -92,7 +93,10 @@ var (
 
 var _ = t.BeforeSuite(func() {
 	var err error
-
+	kubeconfig, err = k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
 	httpClient, err = pkg.GetVerrazzanoRetryableHTTPClient()
 	Expect(err).ToNot(HaveOccurred())
 
@@ -264,9 +268,8 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 				)
 			})
 
-		t.It("Grafana should have the verrazzano user with admin privileges", func() {
+		t.ItMinimumVersion("Grafana should have the verrazzano user with admin privileges", "1.3.0", kubeconfig, func() {
 			Eventually(assertAdminRole, waitTimeout, pollingInterval).Should(BeTrue())
-
 		})
 	}
 
