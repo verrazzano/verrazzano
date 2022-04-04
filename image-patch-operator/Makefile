@@ -43,6 +43,8 @@ ifndef RELEASE_BRANCH
 	RELEASE_BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 endif
 
+CRD_OPTIONS ?= "crd"
+
 DIST_DIR:=dist
 K8S_NAMESPACE:=default
 WATCH_NAMESPACE:=
