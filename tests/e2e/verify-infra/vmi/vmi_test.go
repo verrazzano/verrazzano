@@ -482,7 +482,7 @@ func assertAdminRole() bool {
 		return false
 	}
 	t.Logs.Infof("Grafana users: %s", response)
-	return response[0]["login"] == "verrazzano" && response[0]["isAdmin"] == "true"
+	return response[0]["login"] == "verrazzano" && response[0]["isAdmin"] == true
 }
 
 func assertInstanceInfoURLs() {
