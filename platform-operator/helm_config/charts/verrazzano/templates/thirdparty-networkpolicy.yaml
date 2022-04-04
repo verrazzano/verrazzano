@@ -129,7 +129,7 @@ spec:
     - from:
         - podSelector:
             matchLabels:
-              app: vmi-system-kiali
+              app: kiali
       ports:
         - port: 9090
           protocol: TCP
