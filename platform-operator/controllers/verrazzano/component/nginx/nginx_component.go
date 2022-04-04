@@ -5,11 +5,13 @@ package nginx
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"path/filepath"
+	"reflect"
+
 	k8s "github.com/verrazzano/verrazzano/platform-operator/internal/nodeport"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
-	"path/filepath"
-	"reflect"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 
@@ -29,6 +31,8 @@ const ComponentNamespace = "ingress-nginx"
 
 // ComponentJSONName is the josn name of the verrazzano component in CRD
 const ComponentJSONName = "ingress"
+
+const ComponentInstallArgShape = `controller.service.annotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"`
 
 // nginxComponent represents an Nginx component
 type nginxComponent struct {
@@ -81,7 +85,8 @@ func (c nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	if !reflect.DeepEqual(c.getInstallArgs(old), c.getInstallArgs(new)) {
+	// It throws error if anything other than oci-load-balancer-shape has been changed
+	if err := common.CompareInstallArgs(c.getInstallArgs(old), c.getInstallArgs(new), []string{ComponentInstallArgShape}); err != nil {
 		return fmt.Errorf("Updates to nginxInstallArgs not allowed for %s", ComponentJSONName)
 	}
 	if !reflect.DeepEqual(c.getPorts(old), c.getPorts(new)) {
