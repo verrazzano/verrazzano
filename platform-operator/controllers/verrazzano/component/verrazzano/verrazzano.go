@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	v1 "k8s.io/api/networking/v1"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -210,6 +211,9 @@ func verrazzanoPreUpgrade(ctx spi.ComponentContext, namespace string) error {
 		return err
 	}
 	if err := importToHelmChart(ctx.Client()); err != nil {
+		return err
+	}
+	if err := exportFromHelmChart(ctx.Client()); err != nil {
 		return err
 	}
 	if err := ensureVMISecret(ctx.Client()); err != nil {
@@ -510,16 +514,20 @@ func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) 
 		return ctx.Log().ErrorfNewErr("Failed in Elasticsearch post upgrade: error getting the Elasticsearch cluster health: %v", err)
 	}
 	ctx.Log().Debugf("Elasticsearch Post Upgrade: Output of the health of the Elasticsearch cluster %s", string(output))
-	// If the data node count is seen as 1 then the node is considered as single node cluster
-	if strings.Contains(string(output), `"number_of_data_nodes":1,`) {
-		// Login to Elasticsearch and update index settings for single data node elasticsearch cluster
-		putCmd := execCommand("kubectl", "exec", pod.Name, "-n", namespace, "-c", containerName, "--", "sh", "-c",
-			fmt.Sprintf(`curl -v -XPUT -d '{"index":{"auto_expand_replicas":"0-1"}}' --header 'Content-Type: application/json' -s -k --fail http://localhost:%d/%s/_settings`, httpPort, indexPattern))
-		_, err = putCmd.Output()
-		if err != nil {
-			return ctx.Log().ErrorfNewErr("Failed in Elasticsearch post-upgrade: Error logging into Elasticsearch: %v", err)
+	if ctx.EffectiveCR().Spec.DefaultVolumeSource != nil && ctx.EffectiveCR().Spec.DefaultVolumeSource != nil {
+		ctx.Log().Infof("Skipping Elasticsearch health check due to lack of configured persistence")
+	} else {
+		// If the data node count is seen as 1 then the node is considered as single node cluster
+		if strings.Contains(string(output), `"number_of_data_nodes":1,`) {
+			// Login to Elasticsearch and update index settings for single data node elasticsearch cluster
+			putCmd := execCommand("kubectl", "exec", pod.Name, "-n", namespace, "-c", containerName, "--", "sh", "-c",
+				fmt.Sprintf(`curl -v -XPUT -d '{"index":{"auto_expand_replicas":"0-1"}}' --header 'Content-Type: application/json' -s -k --fail http://localhost:%d/%s/_settings`, httpPort, indexPattern))
+			_, err = putCmd.Output()
+			if err != nil {
+				return ctx.Log().ErrorfNewErr("Failed in Elasticsearch post-upgrade: Error logging into Elasticsearch: %v", err)
+			}
+			ctx.Log().Debug("Elasticsearch Post Upgrade: Successfully updated Elasticsearch index settings")
 		}
-		ctx.Log().Debug("Elasticsearch Post Upgrade: Successfully updated Elasticsearch index settings")
 	}
 	ctx.Log().Debug("Elasticsearch Post Upgrade: Completed successfully")
 	return nil
@@ -590,6 +598,51 @@ func importToHelmChart(cli clipkg.Client) error {
 		}
 	}
 
+	for _, obj := range noNamespaceObjects {
+		if _, err := importHelmObject(cli, obj, name); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+//exportFromHelmChart annotates any existing objects that should be managed by another helm component
+func exportFromHelmChart(cli clipkg.Client) error {
+	namespacedName := types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}
+	name := types.NamespacedName{Name: ComponentName}
+	objects := []controllerutil.Object{
+		&corev1.ServiceAccount{},
+		&corev1.Service{},
+		&appsv1.Deployment{},
+	}
+
+	noNamespaceObjects := []controllerutil.Object{
+		&rbacv1.ClusterRole{},
+		&rbacv1.ClusterRoleBinding{},
+	}
+
+	// namespaced resources
+	for _, obj := range objects {
+		if _, err := importHelmObject(cli, obj, namespacedName); err != nil {
+			return err
+		}
+	}
+
+	// additional namespaced resources managed by this helm chart
+	if _, err := importHelmObject(cli, &corev1.Service{}, types.NamespacedName{Name: "verrazzano-authproxy-elasticsearch", Namespace: ComponentNamespace}); err != nil {
+		return err
+	}
+	if _, err := importHelmObject(cli, &corev1.Secret{}, types.NamespacedName{Name: "verrazzano-authproxy-secret", Namespace: ComponentNamespace}); err != nil {
+		return err
+	}
+	if _, err := importHelmObject(cli, &corev1.ConfigMap{}, types.NamespacedName{Name: "verrazzano-authproxy-config", Namespace: ComponentNamespace}); err != nil {
+		return err
+	}
+	if _, err := importHelmObject(cli, &v1.Ingress{}, types.NamespacedName{Name: "verrazzano-ingress", Namespace: ComponentNamespace}); err != nil {
+		return err
+	}
+
+	// cluster resources
 	for _, obj := range noNamespaceObjects {
 		if _, err := importHelmObject(cli, obj, name); err != nil {
 			return err

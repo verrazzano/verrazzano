@@ -102,9 +102,3 @@ func (c authProxyComponent) PreInstall(ctx spi.ComponentContext) error {
 
 	return nil
 }
-
-// PreUpgrade auth proxy component pre-upgrade processing
-func (c authProxyComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	return authProxyPreUpgrade(ctx)
-}
-
