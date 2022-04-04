@@ -483,6 +483,7 @@ func assertAdminRole() bool {
 		t.Logs.Errorf("Unexpected response length: %d", len(response))
 		return false
 	}
+	t.Logs.Infof("Grafana users: %s", response)
 	return response[0]["login"] == "verrazzano" && response[0]["isAdmin"] == "true"
 }
 
