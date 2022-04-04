@@ -78,7 +78,6 @@ func verrazzanoInstallerCRD() (*apiextv1.CustomResourceDefinition, error) {
 
 var (
 	httpClient             *retryablehttp.Client
-	kubeconfig             string
 	creds                  *pkg.UsernamePassword
 	vmiCRD                 *apiextv1.CustomResourceDefinition
 	vzCRD                  *apiextv1.CustomResourceDefinition
