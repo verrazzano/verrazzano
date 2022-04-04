@@ -89,7 +89,7 @@ var _ = t.Describe("Record prometheus configmap timestamp", Label("f:pre-upgrade
 	t.Context("check prometheus configmap timestamp", func() {
 		t.It("before upgrade", func() {
 			Eventually(func() string {
-				data, err := ioutil.ReadFile(vzconst.PromConfigMapCreationTimestampFile)
+				data, err := ioutil.ReadFile(fmt.Sprintf("../../%s", vzconst.PromConfigMapCreationTimestampFile))
 				if err != nil {
 					return ""
 				}
