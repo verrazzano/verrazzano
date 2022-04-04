@@ -22,8 +22,9 @@ spec:
     insecureEdgeTerminationPolicy: Redirect
   to:
     kind: Service
-    targetPort: {{ .Values.server.port }}
     name: {{ include "kiali-server.fullname" . }}
+  port:
+    targetPort: {{ .Values.server.port }}
   {{- end }}
 ...
 {{- end }}

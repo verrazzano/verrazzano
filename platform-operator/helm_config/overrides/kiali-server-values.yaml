@@ -15,7 +15,7 @@ auth:
 istio_namespace: istio-system
 
 deployment:
-  version_label: v1.34
+  version_label: v1.42
   # The platform operator will manage the Kiali ingress
   ingress_enabled: false
   view_only_mode: true
