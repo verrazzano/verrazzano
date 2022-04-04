@@ -5,9 +5,9 @@ package nginx
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"path/filepath"
-	"reflect"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
 	k8s "github.com/verrazzano/verrazzano/platform-operator/internal/nodeport"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -89,7 +89,7 @@ func (c nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	if err := common.CompareInstallArgs(c.getInstallArgs(old), c.getInstallArgs(new), []string{ComponentInstallArgShape}); err != nil {
 		return fmt.Errorf("Updates to nginxInstallArgs not allowed for %s", ComponentJSONName)
 	}
-	if !reflect.DeepEqual(c.getPorts(old), c.getPorts(new)) {
+	if err := common.ComparePorts(c.getPorts(old), c.getPorts(new)); err != nil {
 		return fmt.Errorf("Updates to ports not allowed for %s", ComponentJSONName)
 	}
 	oldType, err := vzconfig.GetServiceType(old)

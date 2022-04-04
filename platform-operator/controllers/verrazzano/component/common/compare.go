@@ -7,17 +7,17 @@ import (
 	"fmt"
 	"reflect"
 
+	corev1 "k8s.io/api/core/v1"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
 func CompareInstallArgs(old []vzapi.InstallArgs, new []vzapi.InstallArgs, exceptions []string) error {
 	oldArgs := convertArgsToMap(old)
 	newArgs := convertArgsToMap(new)
-	if exceptions != nil {
-		for _, exception := range exceptions {
-			delete(oldArgs, exception)
-			delete(newArgs, exception)
-		}
+	for _, exception := range exceptions {
+		delete(oldArgs, exception)
+		delete(newArgs, exception)
 	}
 	if !reflect.DeepEqual(oldArgs, newArgs) {
 		return fmt.Errorf("InstallArgs has been changed")
@@ -27,10 +27,25 @@ func CompareInstallArgs(old []vzapi.InstallArgs, new []vzapi.InstallArgs, except
 
 func convertArgsToMap(args []vzapi.InstallArgs) map[string]vzapi.InstallArgs {
 	argsMap := make(map[string]vzapi.InstallArgs)
-	if args != nil {
-		for _, arg := range args {
-			argsMap[arg.Name] = arg
-		}
+	for _, arg := range args {
+		argsMap[arg.Name] = arg
 	}
 	return argsMap
+}
+
+func ComparePorts(old []corev1.ServicePort, new []corev1.ServicePort) error {
+	oldPorts := convertPortsToMap(old)
+	newPorts := convertPortsToMap(new)
+	if !reflect.DeepEqual(oldPorts, newPorts) {
+		return fmt.Errorf("ServicePort has been changed")
+	}
+	return nil
+}
+
+func convertPortsToMap(ports []corev1.ServicePort) map[int32]corev1.ServicePort {
+	portMap := make(map[int32]corev1.ServicePort)
+	for _, port := range ports {
+		portMap[port.Port] = port
+	}
+	return portMap
 }

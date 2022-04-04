@@ -4,8 +4,10 @@
 package common
 
 import (
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"testing"
+
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func TestCompareInstallArgs(t *testing.T) {
@@ -20,6 +22,12 @@ func TestCompareInstallArgs(t *testing.T) {
 			name:    "nil InstallArgs",
 			old:     nil,
 			new:     nil,
+			wantErr: false,
+		},
+		{
+			name:    "nil to empty InstallArgs",
+			old:     nil,
+			new:     []vzapi.InstallArgs{},
 			wantErr: false,
 		},
 		{
@@ -104,6 +112,89 @@ func TestCompareInstallArgs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := CompareInstallArgs(tt.old, tt.new, []string{exception}); (err != nil) != tt.wantErr {
+				t.Errorf("validateInstallArgsUpdate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestComparePorts(t *testing.T) {
+	tests := []struct {
+		name    string
+		old     []corev1.ServicePort
+		new     []corev1.ServicePort
+		wantErr bool
+	}{
+		{
+			name:    "nil Ports",
+			old:     nil,
+			new:     nil,
+			wantErr: false,
+		},
+		{
+			name:    "empty to nil Ports",
+			old:     []corev1.ServicePort{},
+			new:     nil,
+			wantErr: false,
+		},
+		{
+			name:    "empty Ports",
+			old:     []corev1.ServicePort{},
+			new:     []corev1.ServicePort{},
+			wantErr: false,
+		},
+		{
+			name: "Different order Ports",
+			old: []corev1.ServicePort{
+				{
+					Name: "a",
+					Port: 1,
+				},
+				{
+					Name: "b",
+					Port: 2,
+				},
+			},
+			new: []corev1.ServicePort{
+				{
+					Name: "b",
+					Port: 2,
+				},
+				{
+					Name: "a",
+					Port: 1,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Different Ports",
+			old: []corev1.ServicePort{
+				{
+					Name: "a",
+					Port: 1,
+				},
+				{
+					Name: "b",
+					Port: 2,
+				},
+			},
+			new: []corev1.ServicePort{
+				{
+					Name: "a",
+					Port: 1,
+				},
+				{
+					Name: "c",
+					Port: 2,
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := ComparePorts(tt.old, tt.new); (err != nil) != tt.wantErr {
 				t.Errorf("validateInstallArgsUpdate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
