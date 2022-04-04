@@ -4,7 +4,7 @@
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: platform-manifests
 platform-manifests: controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=$(CRD_PATH)
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook crd paths="./..." output:crd:artifacts:config=$(CRD_PATH)
 	# Add copyright headers to the kubebuilder generated CRDs
 	./hack/add-crd-header.sh
 	./hack/update-codegen.sh "verrazzano:v1alpha1" "verrazzano" "boilerplate.go.txt"
@@ -13,9 +13,9 @@ platform-manifests: controller-gen
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: application-manifests
 application-manifests: controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./apis/clusters/..." output:crd:artifacts:config=$(CRD_PATH)
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./apis/oam/..." output:crd:artifacts:config=$(CRD_PATH)
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./apis/app/..." output:crd:artifacts:config=$(CRD_PATH)
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role crd paths="./apis/clusters/..." output:crd:artifacts:config=$(CRD_PATH)
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role crd paths="./apis/oam/..." output:crd:artifacts:config=$(CRD_PATH)
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role crd paths="./apis/app/..." output:crd:artifacts:config=$(CRD_PATH)
 	# Add copyright headers to the kubebuilder generated CRDs
 	./hack/add-crd-header.sh
 	./hack/update-codegen.sh "clusters:v1alpha1" "clusters" "boilerplate.go.txt"
@@ -27,7 +27,7 @@ application-manifests: controller-gen
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: image-patch-manifests
 image-patch-manifests: controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./api/..." output:crd:artifacts:config=$(CRD_PATH)
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role crd paths="./api/..." output:crd:artifacts:config=$(CRD_PATH)
 	# Add copyright headers to the kubebuilder generated CRDs
 	./hack/add-crd-header.sh
 	./hack/update-codegen.sh "images:v1alpha1" "images" "boilerplate.go.txt"
