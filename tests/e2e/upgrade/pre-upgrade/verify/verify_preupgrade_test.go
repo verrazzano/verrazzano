@@ -5,8 +5,8 @@ package verify
 
 import (
 	"fmt"
-	"io/fs"
 	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
@@ -57,9 +57,22 @@ func recordConfigMapCreationTS() {
 		}
 
 		creationTimestamp := configMap.CreationTimestamp.UTC().String()
-		err = ioutil.WriteFile(vzconst.PromConfigMapCreationTimestampFile, []byte(creationTimestamp), fs.ModeTemporary)
+		f, err := os.Create(vzconst.PromConfigMapCreationTimestampFile)
 		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Failed writing to file: %v", err))
+			pkg.Log(pkg.Error, fmt.Sprintf("Failed creating timestamp file: %v", err))
+			return "", err
+		}
+		defer f.Close()
+
+		_, err = f.WriteString(creationTimestamp)
+		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Failed writing to timestamp file: %v", err))
+			return "", err
+		}
+
+		err = f.Sync()
+		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Failed saving timestamp file: %v", err))
 			return "", err
 		}
 
