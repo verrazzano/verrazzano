@@ -4257,6 +4257,12 @@ spec:
                       enabled:
                         type: boolean
                     type: object
+                  kubeStateMetrics:
+                    description: KubeStateMetrics configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   oam:
                     description: OAM configuration
                     properties:
@@ -4265,6 +4271,18 @@ spec:
                     type: object
                   prometheus:
                     description: Prometheus configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
+                  prometheusAdapter:
+                    description: PrometheusAdapter configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
+                  prometheusNodeExporter:
+                    description: PrometheusNodeExporter configuration
                     properties:
                       enabled:
                         type: boolean

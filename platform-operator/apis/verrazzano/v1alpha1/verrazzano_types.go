@@ -336,9 +336,21 @@ type ComponentSpec struct {
 	// +optional
 	Kibana *KibanaComponent `json:"kibana,omitempty"`
 
+	// KubeStateMetrics configuration
+	// +optional
+	KubeStateMetrics *KubeStateMetricsComponent `json:"kubeStateMetrics,omitempty"`
+
 	// Prometheus configuration
 	// +optional
 	Prometheus *PrometheusComponent `json:"prometheus,omitempty"`
+
+	// PrometheusAdapter configuration
+	// +optional
+	PrometheusAdapter *PrometheusAdapterComponent `json:"prometheusAdapter,omitempty"`
+
+	// PrometheusNodeExporter configuration
+	// +optional
+	PrometheusNodeExporter *PrometheusNodeExporterComponent `json:"prometheusNodeExporter,omitempty"`
 
 	// PrometheusOperator configuration
 	// +optional
@@ -380,6 +392,11 @@ type KibanaComponent struct {
 	MonitoringComponent `json:",inline"`
 }
 
+// KubeStateMetricsComponent specifies the kube-state-metrics configuration.
+type KubeStateMetricsComponent struct {
+	MonitoringComponent `json:",inline"`
+}
+
 // GrafanaComponent specifies the Grafana configuration.
 type GrafanaComponent struct {
 	MonitoringComponent `json:",inline"`
@@ -387,6 +404,16 @@ type GrafanaComponent struct {
 
 // PrometheusComponent specifies the Prometheus configuration.
 type PrometheusComponent struct {
+	MonitoringComponent `json:",inline"`
+}
+
+// PrometheusAdapterComponent specifies the Prometheus Adapter configuration.
+type PrometheusAdapterComponent struct {
+	MonitoringComponent `json:",inline"`
+}
+
+// PrometheusNodeExporterComponent specifies the Prometheus Node Exporter configuration.
+type PrometheusNodeExporterComponent struct {
 	MonitoringComponent `json:",inline"`
 }
 
