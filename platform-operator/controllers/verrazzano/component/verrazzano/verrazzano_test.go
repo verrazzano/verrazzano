@@ -83,23 +83,23 @@ func init() {
 //  THEN the Verrazzano namespace name is correctly resolved
 func TestVzResolveNamespace(t *testing.T) {
 	const defNs = vpoconst.VerrazzanoSystemNamespace
-	assert := assert.New(t)
+	a := assert.New(t)
 	ns := resolveVerrazzanoNamespace("")
-	assert.Equal(defNs, ns, "Wrong namespace resolved for Verrazzano when using empty namespace")
+	a.Equal(defNs, ns, "Wrong namespace resolved for Verrazzano when using empty namespace")
 	ns = resolveVerrazzanoNamespace("default")
-	assert.Equal(defNs, ns, "Wrong namespace resolved for Verrazzano when using default namespace")
+	a.Equal(defNs, ns, "Wrong namespace resolved for Verrazzano when using default namespace")
 	ns = resolveVerrazzanoNamespace("custom")
-	assert.Equal("custom", ns, "Wrong namespace resolved for Verrazzano when using custom namesapce")
+	a.Equal("custom", ns, "Wrong namespace resolved for Verrazzano when using custom namesapce")
 }
 
 // TestFixupFluentdDaemonset tests calls to fixupFluentdDaemonset
 func TestFixupFluentdDaemonset(t *testing.T) {
 	const defNs = vpoconst.VerrazzanoSystemNamespace
-	assert := assert.New(t)
+	a := assert.New(t)
 	scheme := runtime.NewScheme()
-	appsv1.AddToScheme(scheme)
-	corev1.AddToScheme(scheme)
-	client := fake.NewFakeClientWithScheme(scheme)
+	_ = appsv1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+	c := fake.NewClientBuilder().WithScheme(scheme).Build()
 	log := vzlog.DefaultLogger()
 
 	ns := corev1.Namespace{
@@ -107,13 +107,13 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 			Name: defNs,
 		},
 	}
-	err := client.Create(context.TODO(), &ns)
-	assert.NoError(err)
+	err := c.Create(context.TODO(), &ns)
+	a.NoError(err)
 
 	// Should return with no error since the fluentd daemonset does not exist.
 	// This is valid case when fluentd is not installed.
-	err = fixupFluentdDaemonset(log, client, defNs)
-	assert.NoError(err)
+	err = fixupFluentdDaemonset(log, c, defNs)
+	a.NoError(err)
 
 	// Create a fluentd daemonset for test purposes
 	daemonSet := appsv1.DaemonSet{
@@ -143,20 +143,20 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 			},
 		},
 	}
-	err = client.Create(context.TODO(), &daemonSet)
-	assert.NoError(err)
+	err = c.Create(context.TODO(), &daemonSet)
+	a.NoError(err)
 
 	// should return error that fluentd container is missing
-	err = fixupFluentdDaemonset(log, client, defNs)
-	assert.Contains(err.Error(), "fluentd container not found in fluentd daemonset: fluentd")
+	err = fixupFluentdDaemonset(log, c, defNs)
+	a.Contains(err.Error(), "fluentd container not found in fluentd daemonset: fluentd")
 
 	daemonSet.Spec.Template.Spec.Containers[0].Name = "fluentd"
-	err = client.Update(context.TODO(), &daemonSet)
-	assert.NoError(err)
+	err = c.Update(context.TODO(), &daemonSet)
+	a.NoError(err)
 
 	// should return no error since the env variables don't need fixing up
-	err = fixupFluentdDaemonset(log, client, defNs)
-	assert.NoError(err)
+	err = fixupFluentdDaemonset(log, c, defNs)
+	a.NoError(err)
 
 	// create a secret with needed keys
 	data := make(map[string][]byte)
@@ -169,8 +169,8 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 		},
 		Data: data,
 	}
-	err = client.Create(context.TODO(), &secret)
-	assert.NoError(err)
+	err = c.Create(context.TODO(), &secret)
+	a.NoError(err)
 
 	// Update env variables to use ValueFrom instead of Value
 	clusterNameRef := corev1.EnvVarSource{
@@ -193,22 +193,22 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 	daemonSet.Spec.Template.Spec.Containers[0].Env[0].ValueFrom = &clusterNameRef
 	daemonSet.Spec.Template.Spec.Containers[0].Env[1].Value = ""
 	daemonSet.Spec.Template.Spec.Containers[0].Env[1].ValueFrom = &esURLRef
-	err = client.Update(context.TODO(), &daemonSet)
-	assert.NoError(err)
+	err = c.Update(context.TODO(), &daemonSet)
+	a.NoError(err)
 
 	// should return no error
-	err = fixupFluentdDaemonset(log, client, defNs)
-	assert.NoError(err)
+	err = fixupFluentdDaemonset(log, c, defNs)
+	a.NoError(err)
 
 	// env variables should be fixed up to use Value instead of ValueFrom
 	fluentdNamespacedName := types.NamespacedName{Name: globalconst.FluentdDaemonSetName, Namespace: defNs}
 	updatedDaemonSet := appsv1.DaemonSet{}
-	err = client.Get(context.TODO(), fluentdNamespacedName, &updatedDaemonSet)
-	assert.NoError(err)
-	assert.Equal("managed1", updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[0].Value)
-	assert.Nil(updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[0].ValueFrom)
-	assert.Equal("some-url", updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[1].Value)
-	assert.Nil(updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[1].ValueFrom)
+	err = c.Get(context.TODO(), fluentdNamespacedName, &updatedDaemonSet)
+	a.NoError(err)
+	a.Equal("managed1", updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[0].Value)
+	a.Nil(updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[0].ValueFrom)
+	a.Equal("some-url", updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[1].Value)
+	a.Nil(updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[1].ValueFrom)
 }
 
 // Test_appendCustomImageOverrides tests the appendCustomImageOverrides function
@@ -216,20 +216,20 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 //  WHEN I call with no extra kvs
 //  THEN the correct KeyValue objects are returned and no error occurs
 func Test_appendCustomImageOverrides(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
 	kvs, err := appendCustomImageOverrides([]bom.KeyValue{})
 
-	assert.NoError(err)
-	assert.Len(kvs, 2)
-	assert.Contains(kvs, bom.KeyValue{
+	a.NoError(err)
+	a.Len(kvs, 2)
+	a.Contains(kvs, bom.KeyValue{
 		Key:   "monitoringOperator.prometheusInitImage",
 		Value: "ghcr.io/oracle/oraclelinux:7-slim",
 	})
-	assert.Contains(kvs, bom.KeyValue{
+	a.Contains(kvs, bom.KeyValue{
 		Key:   "monitoringOperator.esInitImage",
 		Value: "ghcr.io/oracle/oraclelinux:7.8",
 	})
@@ -316,7 +316,7 @@ func Test_appendVerrazzanoValues(t *testing.T) {
 	defer resetWriteFileFunc()
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert := assert.New(t)
+			a := assert.New(t)
 
 			t.Log(test.description)
 
@@ -328,15 +328,15 @@ func Test_appendVerrazzanoValues(t *testing.T) {
 				if test.expectedErr != nil {
 					return test.expectedErr
 				}
-				assert.Equal([]byte(test.expectedYAML), data)
+				a.Equal([]byte(test.expectedYAML), data)
 				return nil
 			}
 
 			err := appendVerrazzanoValues(fakeContext, &values)
 			if test.expectedErr != nil {
-				assert.Error(err)
+				a.Error(err)
 			} else {
-				assert.NoError(err)
+				a.NoError(err)
 			}
 
 			//outdata, err := yaml.Marshal(&values)
@@ -344,11 +344,11 @@ func Test_appendVerrazzanoValues(t *testing.T) {
 			//ioutil.WriteFile(fmt.Sprintf("%s/%s.yaml", os.TempDir(), test.name), outdata, fs.FileMode(0664))
 
 			data, err := ioutil.ReadFile(test.expectedYAML)
-			assert.NoError(err, "Error reading expected values yaml file %s", test.expectedYAML)
+			a.NoError(err, "Error reading expected values yaml file %s", test.expectedYAML)
 			expectedValues := verrazzanoValues{}
 			err = yaml.Unmarshal(data, &expectedValues)
-			assert.NoError(err)
-			assert.Equal(expectedValues, values)
+			a.NoError(err)
+			a.Equal(expectedValues, values)
 		})
 	}
 }
@@ -492,7 +492,7 @@ func Test_appendVMIValues(t *testing.T) {
 	defer resetWriteFileFunc()
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert := assert.New(t)
+			a := assert.New(t)
 
 			t.Log(test.description)
 
@@ -504,22 +504,22 @@ func Test_appendVMIValues(t *testing.T) {
 				if test.expectedErr != nil {
 					return test.expectedErr
 				}
-				assert.Equal([]byte(test.expectedYAML), data)
+				a.Equal([]byte(test.expectedYAML), data)
 				return nil
 			}
 
 			storageOverride, err := findStorageOverride(fakeContext.EffectiveCR())
-			assert.NoError(err)
+			a.NoError(err)
 
 			keyValues := appendVMIOverrides(fakeContext.EffectiveCR(), &values, storageOverride, []bom.KeyValue{})
-			assert.Equal(test.expectedHelmOverrides, keyValues, "Install args did not match")
+			a.Equal(test.expectedHelmOverrides, keyValues, "Install args did not match")
 
 			data, err := ioutil.ReadFile(test.expectedYAML)
-			assert.NoError(err, "Error reading expected values yaml file %s", test.expectedYAML)
+			a.NoError(err, "Error reading expected values yaml file %s", test.expectedYAML)
 			expectedValues := verrazzanoValues{}
 			err = yaml.Unmarshal(data, &expectedValues)
-			assert.NoError(err)
-			assert.Equal(expectedValues, values)
+			a.NoError(err)
+			a.Equal(expectedValues, values)
 		})
 	}
 }
@@ -734,7 +734,7 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 	defer resetWriteFileFunc()
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert := assert.New(t)
+			a := assert.New(t)
 			t.Log(test.description)
 
 			fakeClient := createFakeClientWithIngress()
@@ -745,10 +745,10 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 					return test.expectedErr
 				}
 				if err := ioutil.WriteFile(filename, data, perm); err != nil {
-					assert.Failf("Failure writing file %s: %s", filename, err)
+					a.Failf("Failure writing file %s: %s", filename, err)
 					return err
 				}
-				assert.FileExists(filename)
+				a.FileExists(filename)
 
 				// Unmarshal the VZ expected and actual data into verrazzanoValues structs
 				// and do a deep-equals comparison using the asserts package
@@ -756,28 +756,28 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 				// Unmarshal the actual generated helm values from code under test
 				actualValues := verrazzanoValues{}
 				err := yaml.Unmarshal(data, &actualValues)
-				assert.NoError(err)
+				a.NoError(err)
 
 				// read in the expected results data from a file and unmarshal it into a values object
 				expectedData, err := ioutil.ReadFile(test.expectedYAML)
-				assert.NoError(err, "Error reading expected values yaml file %s", test.expectedYAML)
+				a.NoError(err, "Error reading expected values yaml file %s", test.expectedYAML)
 				expectedValues := verrazzanoValues{}
 				err = yaml.Unmarshal(expectedData, &expectedValues)
-				assert.NoError(err)
+				a.NoError(err)
 
 				// Compare the actual and expected values objects
-				assert.Equal(expectedValues, actualValues)
+				a.Equal(expectedValues, actualValues)
 				return nil
 			}
 
 			kvs := []bom.KeyValue{}
 			kvs, err := appendVerrazzanoOverrides(fakeContext, "", "", "", kvs)
 			if test.expectedErr != nil {
-				assert.Error(err)
-				assert.Equal([]bom.KeyValue{}, kvs)
+				a.Error(err)
+				a.Equal([]bom.KeyValue{}, kvs)
 				return
 			}
-			assert.NoError(err)
+			a.NoError(err)
 
 			actualNumKvs := len(kvs)
 			//t.Logf("Num kvs: %d", actualNumKvs)
@@ -786,12 +786,12 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 				// default is 11, 2 file override + 1 custom image overrides + 8 ES
 				expectedNumKvs = 11
 			}
-			assert.Equal(expectedNumKvs, actualNumKvs)
+			a.Equal(expectedNumKvs, actualNumKvs)
 			// Check Temp file
-			assert.True(kvs[0].IsFile, "Expected generated verrazzano overrides first in list of helm args")
+			a.True(kvs[0].IsFile, "Expected generated verrazzano overrides first in list of helm args")
 			tempFilePath := kvs[0].Value
 			_, err = os.Stat(tempFilePath)
-			assert.NoError(err, "Unexpected error checking for temp file %s: %s", tempFilePath, err)
+			a.NoError(err, "Unexpected error checking for temp file %s: %s", tempFilePath, err)
 			cleanTempFiles(fakeContext)
 		})
 	}
@@ -934,23 +934,23 @@ func Test_findStorageOverride(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert := assert.New(t)
+			a := assert.New(t)
 
-			fakeContext := spi.NewFakeContext(fake.NewFakeClientWithScheme(testScheme), &test.actualCR, false, profileDir)
+			fakeContext := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &test.actualCR, false, profileDir)
 
 			override, err := findStorageOverride(fakeContext.EffectiveCR())
 			if test.expectedErr {
-				assert.Error(err)
+				a.Error(err)
 			} else {
-				assert.NoError(err)
+				a.NoError(err)
 			}
 			if test.expectedOverride != nil {
 				if override == nil {
-					assert.FailNow("Expected returned override to not be nil")
+					a.FailNow("Expected returned override to not be nil")
 				}
-				assert.Equal(*test.expectedOverride, *override)
+				a.Equal(*test.expectedOverride, *override)
 			} else {
-				assert.Nil(override)
+				a.Nil(override)
 			}
 		})
 	}
@@ -963,12 +963,11 @@ func Test_loggingPreInstall(t *testing.T) {
 	//  THEN no error is returned and the secret has been copied
 	trueValue := true
 	secretName := "my-es-secret" //nolint:gosec //#gosec G101
-	client := fake.NewFakeClientWithScheme(testScheme,
-		&corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Namespace: vpoconst.VerrazzanoInstallNamespace, Name: secretName},
-		},
-	)
-	ctx := spi.NewFakeContext(client,
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Namespace: vpoconst.VerrazzanoInstallNamespace, Name: secretName},
+	}).Build()
+
+	ctx := spi.NewFakeContext(c,
 		&vzapi.Verrazzano{
 			Spec: vzapi.VerrazzanoSpec{
 				Components: vzapi.ComponentSpec{
@@ -985,19 +984,19 @@ func Test_loggingPreInstall(t *testing.T) {
 	assert.NoError(t, err)
 
 	secret := &corev1.Secret{}
-	err = client.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: ComponentNamespace}, secret)
+	err = c.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: ComponentNamespace}, secret)
 	assert.NoError(t, err)
 
 	// GIVEN a Verrazzano component
 	//  WHEN I call loggingPreInstall with fluentd overrides for OCI logging, including an OCI API secret name
 	//  THEN no error is returned and the secret has been copied
 	secretName = "my-oci-api-secret" //nolint:gosec //#gosec G101
-	client = fake.NewFakeClientWithScheme(testScheme,
+	cs := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Namespace: vpoconst.VerrazzanoInstallNamespace, Name: secretName},
 		},
-	)
-	ctx = spi.NewFakeContext(client,
+	).Build()
+	ctx = spi.NewFakeContext(cs,
 		&vzapi.Verrazzano{
 			Spec: vzapi.VerrazzanoSpec{
 				Components: vzapi.ComponentSpec{
@@ -1014,7 +1013,7 @@ func Test_loggingPreInstall(t *testing.T) {
 	err = loggingPreInstall(ctx)
 	assert.NoError(t, err)
 
-	err = client.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: ComponentNamespace}, secret)
+	err = cs.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: ComponentNamespace}, secret)
 	assert.NoError(t, err)
 }
 
@@ -1024,8 +1023,8 @@ func Test_loggingPreInstall(t *testing.T) {
 //  THEN an error is returned
 func Test_loggingPreInstallSecretNotFound(t *testing.T) {
 	trueValue := true
-	client := fake.NewFakeClientWithScheme(testScheme)
-	ctx := spi.NewFakeContext(client,
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(c,
 		&vzapi.Verrazzano{
 			Spec: vzapi.VerrazzanoSpec{
 				Components: vzapi.ComponentSpec{
@@ -1048,8 +1047,8 @@ func Test_loggingPreInstallSecretNotFound(t *testing.T) {
 //  THEN no error is returned
 func Test_loggingPreInstallFluentdNotEnabled(t *testing.T) {
 	falseValue := false
-	client := fake.NewFakeClientWithScheme(testScheme)
-	ctx := spi.NewFakeContext(client,
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(c,
 		&vzapi.Verrazzano{
 			Spec: vzapi.VerrazzanoSpec{
 				Components: vzapi.ComponentSpec{
@@ -1065,7 +1064,8 @@ func Test_loggingPreInstallFluentdNotEnabled(t *testing.T) {
 }
 
 func createFakeClientWithIngress() client.Client {
-	fakeClient := fake.NewFakeClientWithScheme(testScheme,
+
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{Name: vpoconst.NGINXControllerServiceName, Namespace: globalconst.IngressNamespace},
 			Spec: corev1.ServiceSpec{
@@ -1079,51 +1079,51 @@ func createFakeClientWithIngress() client.Client {
 				},
 			},
 		},
-	)
+	).Build()
 	return fakeClient
 }
 
 // Test_fixupElasticSearchReplicaCount tests the fixupElasticSearchReplicaCount function.
 func Test_fixupElasticSearchReplicaCount(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	// GIVEN an Elasticsearch pod with a http port
 	//  WHEN fixupElasticSearchReplicaCount is called
 	//  THEN a command should be executed to get the cluster health information
 	//   AND a command should be executed to update the cluster index settings
 	//   AND no error should be returned
-	context, err := createFakeComponentContext()
-	assert.NoError(err, "Failed to create fake component context.")
-	createElasticsearchPod(context.Client(), "http")
+	ctx, err := createFakeComponentContext()
+	a.NoError(err, "Failed to create fake component context.")
+	createElasticsearchPod(ctx.Client(), "http")
 	execCommand = fakeExecCommand
-	fakeExecScenarioNames = []string{"fixupElasticSearchReplicaCount/get", "fixupElasticSearchReplicaCount/put"} //nolint,ineffassign
-	fakeExecScenarioIndex = 0                                                                                    //nolint,ineffassign
-	err = fixupElasticSearchReplicaCount(context, "verrazzano-system")
-	assert.NoError(err, "Failed to fixup Elasticsearch index template")
+	fakeExecScenarioNames = []string{"fixupElasticSearchReplicaCount/get", "fixupElasticSearchReplicaCount/put"} //nolint
+	fakeExecScenarioIndex = 0                                                                                    //nolint
+	err = fixupElasticSearchReplicaCount(ctx, "verrazzano-system")
+	a.NoError(err, "Failed to fixup Elasticsearch index template")
 
 	// GIVEN an Elasticsearch pod with no http port
 	//  WHEN fixupElasticSearchReplicaCount is called
 	//  THEN an error should be returned
 	//   AND no commands should be invoked
-	fakeExecScenarioNames = []string{} //nolint,ineffassign
-	fakeExecScenarioIndex = 0          //nolint,ineffassign
-	context, err = createFakeComponentContext()
-	assert.NoError(err, "Failed to create fake component context.")
-	createElasticsearchPod(context.Client(), "tcp")
-	err = fixupElasticSearchReplicaCount(context, "verrazzano-system")
-	assert.Error(err, "Error should be returned if there is no http port for elasticsearch pods")
+	fakeExecScenarioNames = []string{} //nolint
+	fakeExecScenarioIndex = 0          //nolint
+	ctx, err = createFakeComponentContext()
+	a.NoError(err, "Failed to create fake component context.")
+	createElasticsearchPod(ctx.Client(), "tcp")
+	err = fixupElasticSearchReplicaCount(ctx, "verrazzano-system")
+	a.Error(err, "Error should be returned if there is no http port for elasticsearch pods")
 
 	// GIVEN a Verrazzano resource with version 1.1.0 in the status
 	//  WHEN fixupElasticSearchReplicaCount is called
 	//  THEN no error should be returned
 	//   AND no commands should be invoked
-	fakeExecScenarioNames = []string{} //nolint,ineffassign
-	fakeExecScenarioIndex = 0          //nolint,ineffassign
-	context, err = createFakeComponentContext()
-	assert.NoError(err, "Unexpected error")
-	context.ActualCR().Status.Version = "1.1.0"
-	err = fixupElasticSearchReplicaCount(context, "verrazzano-system")
-	assert.NoError(err, "No error should be returned if the source version is 1.1.0 or later")
+	fakeExecScenarioNames = []string{} //nolint
+	fakeExecScenarioIndex = 0          //nolint
+	ctx, err = createFakeComponentContext()
+	a.NoError(err, "Unexpected error")
+	ctx.ActualCR().Status.Version = "1.1.0"
+	err = fixupElasticSearchReplicaCount(ctx, "verrazzano-system")
+	a.NoError(err, "No error should be returned if the source version is 1.1.0 or later")
 
 	// GIVEN a Verrazzano resource with Elasticsearch disabled
 	//  WHEN fixupElasticSearchReplicaCount is called
@@ -1132,16 +1132,16 @@ func Test_fixupElasticSearchReplicaCount(t *testing.T) {
 	fakeExecScenarioNames = []string{}
 	fakeExecScenarioIndex = 0
 	falseValue := false
-	context, err = createFakeComponentContext()
-	assert.NoError(err, "Unexpected error")
-	context.EffectiveCR().Spec.Components.Elasticsearch.Enabled = &falseValue
-	err = fixupElasticSearchReplicaCount(context, "verrazzano-system")
-	assert.NoError(err, "No error should be returned if the elasticsearch is not enabled")
+	ctx, err = createFakeComponentContext()
+	a.NoError(err, "Unexpected error")
+	ctx.EffectiveCR().Spec.Components.Elasticsearch.Enabled = &falseValue
+	err = fixupElasticSearchReplicaCount(ctx, "verrazzano-system")
+	a.NoError(err, "No error should be returned if the elasticsearch is not enabled")
 }
 
 // Test_getNamedContainerPortOfContainer tests the getNamedContainerPortOfContainer function.
 func Test_getNamedContainerPortOfContainer(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 	// Create a simple pod
 	pod := newPod()
 
@@ -1149,27 +1149,27 @@ func Test_getNamedContainerPortOfContainer(t *testing.T) {
 	//  WHEN getNamedContainerPortOfContainer is invoked for test-ready-container-name
 	//  THEN return the port number for the container port named test-ready-port-name
 	port, err := getNamedContainerPortOfContainer(*pod, "test-ready-container-name", "test-ready-port-name")
-	assert.NoError(err, "Failed to find container port")
-	assert.Equal(int32(42), port, "Expected to find valid named container port")
+	a.NoError(err, "Failed to find container port")
+	a.Equal(int32(42), port, "Expected to find valid named container port")
 
 	// GIVEN a pod with a ready and unready container
 	//  WHEN getNamedContainerPortOfContainer is invoked for a invalid container name
 	//  THEN an error should be returned
 	_, err = getNamedContainerPortOfContainer(*pod, "wrong-container-name", "test-port-name")
-	assert.Error(err, "Error should be returned when the specified container name does not exist")
+	a.Error(err, "Error should be returned when the specified container name does not exist")
 
 	// GIVEN a pod with a ready container named test-ready-container-name
 	//  WHEN getNamedContainerPortOfContainer is invoked for the ready container but wrong port name
 	//  THEN an error should be returned
 	_, err = getNamedContainerPortOfContainer(*pod, "test-ready-container-name", "wrong-port-name")
-	assert.Error(err, "Error should be returned when the specified container port name does not exist")
+	a.Error(err, "Error should be returned when the specified container port name does not exist")
 }
 
 // Test_getPodsWithReadyContainer tests the getPodsWithReadyContainer function.
 func Test_getPodsWithReadyContainer(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 	ctx, err := createFakeComponentContext()
-	assert.NoError(err, "Failed to create fake component context.")
+	a.NoError(err, "Failed to create fake component context.")
 
 	podTemplate := `---
 apiVersion: v1
@@ -1200,10 +1200,10 @@ status:
 		"test_label_value":     "test_ready_label_value",
 		"test_container_ready": "true",
 	}
-	assert.NoError(createResourceFromTemplate(ctx.Client(), &corev1.Pod{}, podTemplate, readyPodParams), "Failed to create test pod.")
+	a.NoError(createResourceFromTemplate(ctx.Client(), &corev1.Pod{}, podTemplate, readyPodParams), "Failed to create test pod.")
 	pods, err := getPodsWithReadyContainer(ctx.Client(), "test_container_name", client.InNamespace("test_namespace_name"), client.MatchingLabels{"test_label_name": "test_ready_label_value"})
-	assert.NoError(err, "Unexpected error")
-	assert.Len(pods, 1, "Expected to find one pod with a ready container")
+	a.NoError(err, "Unexpected error")
+	a.Len(pods, 1, "Expected to find one pod with a ready container")
 
 	// GIVEN a pod with an unready container
 	//  WHEN getPodsWithReadyContainer is invoked
@@ -1214,47 +1214,47 @@ status:
 		"test_label_value":     "test_unready_label_value",
 		"test_container_ready": "false",
 	}
-	assert.NoError(createResourceFromTemplate(ctx.Client(), &corev1.Pod{}, podTemplate, unreadyPodParams), "Failed to create test pod.")
+	a.NoError(createResourceFromTemplate(ctx.Client(), &corev1.Pod{}, podTemplate, unreadyPodParams), "Failed to create test pod.")
 	pods, err = getPodsWithReadyContainer(ctx.Client(), "test_container_name", client.InNamespace("test_namespace_name"), client.MatchingLabels{"test-label-name": "test_unready_label_value"})
-	assert.NoError(err, "Unexpected error")
-	assert.Len(pods, 0, "Expected not to find and pods with a ready container")
+	a.NoError(err, "Unexpected error")
+	a.Len(pods, 0, "Expected not to find and pods with a ready container")
 }
 
 // Test_waitForPodsWithReadyContainer tests the waitForPodsWithReadyContainer function.
 func Test_waitForPodsWithReadyContainer(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	// GIVEN a pod with a ready container
 	//  WHEN waitForPodsWithReadyContainer is invoked for the container
 	//  THEN expect the ready pod to be returned
-	context, err := createFakeComponentContext()
-	createPod(context.Client())
-	assert.NoError(err, "Failed to create fake component context.")
-	pods, err := waitForPodsWithReadyContainer(context.Client(), 1*time.Nanosecond, 5*time.Nanosecond, "test-ready-container-name", client.InNamespace("test-namespace-name"), client.MatchingLabels{"test-label-name": "test-label-value"})
-	assert.NoError(err, "Unexpected error finding pods with ready container")
-	assert.Len(pods, 1, "Expected to find one pod with a ready container")
+	ctx, err := createFakeComponentContext()
+	createPod(ctx.Client())
+	a.NoError(err, "Failed to create fake component context.")
+	pods, err := waitForPodsWithReadyContainer(ctx.Client(), 1*time.Nanosecond, 5*time.Nanosecond, "test-ready-container-name", client.InNamespace("test-namespace-name"), client.MatchingLabels{"test-label-name": "test-label-value"})
+	a.NoError(err, "Unexpected error finding pods with ready container")
+	a.Len(pods, 1, "Expected to find one pod with a ready container")
 
 	// GIVEN a pod with a ready container
 	//  WHEN waitForPodsWithReadyContainer is invoked for a container that will never be ready
 	//  THEN expect no pods to eventually be returned
-	context, err = createFakeComponentContext()
-	assert.NoError(err, "Failed to create fake component context.")
-	pods, err = waitForPodsWithReadyContainer(context.Client(), 1*time.Nanosecond, 2*time.Nanosecond, "test-unready-container-name", client.InNamespace("test-namespace-name"), client.MatchingLabels{"test-label-name": "test-label-value"})
-	assert.NoError(err, "Unexpected error finding pods with ready container")
-	assert.Len(pods, 0, "Expected to find no pods with a ready container")
+	ctx, err = createFakeComponentContext()
+	a.NoError(err, "Failed to create fake component context.")
+	pods, err = waitForPodsWithReadyContainer(ctx.Client(), 1*time.Nanosecond, 2*time.Nanosecond, "test-unready-container-name", client.InNamespace("test-namespace-name"), client.MatchingLabels{"test-label-name": "test-label-value"})
+	a.NoError(err, "Unexpected error finding pods with ready container")
+	a.Len(pods, 0, "Expected to find no pods with a ready container")
 }
 
 // newFakeRuntimeScheme creates a new fake scheme
 func newFakeRuntimeScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	appsv1.AddToScheme(scheme)
-	corev1.AddToScheme(scheme)
+	_ = appsv1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
 	return scheme
 }
 
 // createFakeComponentContext creates a fake component context
 func createFakeComponentContext() (spi.ComponentContext, error) {
-	client := fake.NewFakeClientWithScheme(newFakeRuntimeScheme())
+	c := fake.NewClientBuilder().WithScheme(newFakeRuntimeScheme()).Build()
 
 	vzTemplate := `---
 apiVersion: install.verrazzano.io/v1alpha1
@@ -1276,7 +1276,7 @@ status:
 		return nil, err
 	}
 
-	return spi.NewFakeContext(client, &vzObject, false), nil
+	return spi.NewFakeContext(c, &vzObject, false), nil
 }
 
 // createPod creates a k8s pod
@@ -1391,21 +1391,21 @@ func fakeExecCommand(command string, args ...string) *exec.Cmd {
 // When this test is invoked normally no TEST_FAKE_EXEC_SCENARIO is present
 // so no assertions are made and therefore passes.
 func TestFakeExecHandler(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 	scenario, found := os.LookupEnv("TEST_FAKE_EXEC_SCENARIO")
 	if found {
 		switch scenario {
 		case "fixupElasticSearchReplicaCount/get":
-			assert.Equal(`curl -v -XGET -s -k --fail http://localhost:42/_cluster/health`,
+			a.Equal(`curl -v -XGET -s -k --fail http://localhost:42/_cluster/health`,
 				os.Args[13], "Expected curl command to be correct.")
 			fmt.Print(`"number_of_data_nodes":1,`)
 		case "fixupElasticSearchReplicaCount/put":
 			fmt.Println(scenario)
 			fmt.Println(strings.Join(os.Args, " "))
-			assert.Equal(`curl -v -XPUT -d '{"index":{"auto_expand_replicas":"0-1"}}' --header 'Content-Type: application/json' -s -k --fail http://localhost:42/verrazzano-*/_settings`,
+			a.Equal(`curl -v -XPUT -d '{"index":{"auto_expand_replicas":"0-1"}}' --header 'Content-Type: application/json' -s -k --fail http://localhost:42/verrazzano-*/_settings`,
 				os.Args[13], "Expected curl command to be correct.")
 		default:
-			assert.Fail("Unknown test scenario provided in environment variable TEST_FAKE_EXEC_SCENARIO: %s", scenario)
+			a.Fail("Unknown test scenario provided in environment variable TEST_FAKE_EXEC_SCENARIO: %s", scenario)
 		}
 	}
 }
@@ -1438,11 +1438,11 @@ func updateUnstructuredFromYAMLTemplate(uns *unstructured.Unstructured, template
 	if err != nil {
 		return err
 	}
-	bytes, err := yaml.YAMLToJSON([]byte(str))
+	ybytes, err := yaml.YAMLToJSON([]byte(str))
 	if err != nil {
 		return err
 	}
-	_, _, err = unstructured.UnstructuredJSONScheme.Decode(bytes, nil, uns)
+	_, _, err = unstructured.UnstructuredJSONScheme.Decode(ybytes, nil, uns)
 	if err != nil {
 		return err
 	}
@@ -1451,7 +1451,7 @@ func updateUnstructuredFromYAMLTemplate(uns *unstructured.Unstructured, template
 
 // createResourceFromTemplate builds a resource by merging the data with the template and then
 // stores the resource using the provided client.
-func createResourceFromTemplate(cli client.Client, obj runtime.Object, template string, data interface{}) error {
+func createResourceFromTemplate(cli client.Client, obj client.Object, template string, data interface{}) error {
 	if err := createObjectFromTemplate(obj, template, data); err != nil {
 		return err
 	}
@@ -1486,7 +1486,7 @@ func TestImportHelmObject(t *testing.T) {
 		},
 	}
 
-	c := fake.NewFakeClientWithScheme(testScheme, obj)
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(obj).Build()
 	_, err := importHelmObject(c, obj, namespacedName)
 	assert.NoError(t, err)
 	assert.Equal(t, obj.Annotations["meta.helm.sh/release-name"], ComponentName)
@@ -1499,7 +1499,7 @@ func TestImportHelmObject(t *testing.T) {
 //  WHEN I call isVerrazzanoReady when it is installed and the deployment availability criteria are met, but the secret is not found
 //  THEN false is returned
 func TestIsReadySecretNotReady(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(testScheme, &appsv1.Deployment{
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      vmoDeployment,
@@ -1509,8 +1509,8 @@ func TestIsReadySecretNotReady(t *testing.T) {
 			Replicas:          1,
 			UpdatedReplicas:   1,
 		},
-	})
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	}).Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
 	assert.False(t, isVerrazzanoReady(ctx))
 }
 
@@ -1519,8 +1519,8 @@ func TestIsReadySecretNotReady(t *testing.T) {
 //  WHEN I call isVerrazzanoReady when it is not installed
 //  THEN false is returned
 func TestIsReadyChartNotInstalled(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(testScheme)
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
 	assert.False(t, isVerrazzanoReady(ctx))
 }
 
@@ -1529,19 +1529,18 @@ func TestIsReadyChartNotInstalled(t *testing.T) {
 //  WHEN I call isVerrazzanoReady when all requirements are met
 //  THEN false is returned
 func TestIsReady(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(testScheme,
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      verrazzanoConsoleDeployment,
-				Labels:    map[string]string{"app": verrazzanoConsoleDeployment},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      verrazzanoConsoleDeployment,
+			Labels:    map[string]string{"app": verrazzanoConsoleDeployment},
 		},
+		Status: appsv1.DeploymentStatus{
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   1,
+		},
+	},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
@@ -1659,7 +1658,7 @@ func TestIsReady(t *testing.T) {
 		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
 			Namespace: ComponentNamespace}},
-	)
+	).Build()
 
 	vz := &vzapi.Verrazzano{}
 	vz.Spec.Components = vzapi.ComponentSpec{
@@ -1680,7 +1679,7 @@ func TestIsReady(t *testing.T) {
 			},
 		},
 	}
-	ctx := spi.NewFakeContext(client, vz, false)
+	ctx := spi.NewFakeContext(c, vz, false)
 	assert.True(t, isVerrazzanoReady(ctx))
 }
 
@@ -1689,22 +1688,21 @@ func TestIsReady(t *testing.T) {
 //  WHEN I call isVerrazzanoReady when the Verrazzano console deployment is not available
 //  THEN false is returned
 func TestIsReadyDeploymentNotAvailable(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(testScheme,
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      verrazzanoConsoleDeployment,
-			},
-			Status: appsv1.DeploymentStatus{
-				Replicas:          1,
-				AvailableReplicas: 1,
-				UpdatedReplicas:   0,
-			},
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      verrazzanoConsoleDeployment,
 		},
+		Status: appsv1.DeploymentStatus{
+			Replicas:          1,
+			AvailableReplicas: 1,
+			UpdatedReplicas:   0,
+		},
+	},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
 			Namespace: ComponentNamespace}},
-	)
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	).Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
 	assert.False(t, isVerrazzanoReady(ctx))
 }
 
@@ -1717,10 +1715,9 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	client := fake.NewFakeClientWithScheme(testScheme,
-		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
-			Namespace: ComponentNamespace}},
-	)
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
+		Namespace: ComponentNamespace}},
+	).Build()
 	vz := &vzapi.Verrazzano{}
 	falseValue := false
 	vz.Spec.Components = vzapi.ComponentSpec{
@@ -1731,6 +1728,6 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 		Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 	}
-	ctx := spi.NewFakeContext(client, vz, false)
+	ctx := spi.NewFakeContext(c, vz, false)
 	assert.True(t, isVerrazzanoReady(ctx))
 }

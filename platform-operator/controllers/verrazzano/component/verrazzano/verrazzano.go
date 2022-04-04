@@ -599,14 +599,14 @@ func importToHelmChart(cli clipkg.Client) error {
 }
 
 //importHelmObject annotates an object as being managed by the verrazzano helm chart
-func importHelmObject(cli clipkg.Client, obj controllerutil.Object, namespacedName types.NamespacedName) (controllerutil.Object, error) {
+func importHelmObject(cli clipkg.Client, obj clipkg.Object, namespacedName types.NamespacedName) (clipkg.Object, error) {
 	if err := cli.Get(context.TODO(), namespacedName, obj); err != nil {
 		if errors.IsNotFound(err) {
 			return obj, nil
 		}
 		return obj, err
 	}
-	objMerge := clipkg.MergeFrom(obj.DeepCopyObject())
+	objMerge := clipkg.MergeFrom(obj.DeepCopyObject().(clipkg.Object))
 	annotations := obj.GetAnnotations()
 	if annotations == nil {
 		annotations = map[string]string{}

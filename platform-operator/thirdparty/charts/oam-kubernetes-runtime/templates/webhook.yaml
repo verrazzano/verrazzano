@@ -20,9 +20,10 @@ webhooks:
         name: {{ template "oam-kubernetes-runtime.name" . }}-webhook
         path: /validating-core-oam-dev-v1alpha2-applicationconfigurations
       caBundle: "{{.Values.certificate.caBundle}}"
-    admissionReviewVersions: ["v1beta1"]
+    admissionReviewVersions: ["v1"]
     failurePolicy: Fail
     timeoutSeconds: 5
+    sideEffects: None
   - name: "validate.component.core.oam.dev"
     clientConfig:
       service:
@@ -37,14 +38,13 @@ webhooks:
         resources:   ["components"]
         scope:       "Namespaced"
     admissionReviewVersions:
-      - v1beta1
       - v1
     failurePolicy: Fail
     timeoutSeconds: 5
     matchPolicy: Exact
     sideEffects: None
 ---
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   name: {{ include "oam-kubernetes-runtime.fullname" . }}
@@ -64,9 +64,10 @@ webhooks:
         operations:  ["CREATE", "UPDATE"]
         resources:   ["applicationconfigurations"]
         scope:       "Namespaced"
-    admissionReviewVersions: ["v1beta1"]
+    admissionReviewVersions: ["v1"]
     failurePolicy: Fail
     timeoutSeconds: 5
+    sideEffects: Unknown
   - name: "mutate.component.core.oam.dev"
     clientConfig:
       service:
@@ -85,7 +86,6 @@ webhooks:
     sideEffects: None
     matchPolicy: Exact
     admissionReviewVersions:
-      - v1beta1
       - v1
 ---
 apiVersion: v1

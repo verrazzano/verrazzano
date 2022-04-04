@@ -115,7 +115,7 @@ func manifestsDashboardsCoherenceAlertsDashboardJson() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "manifests/dashboards/coherence/alerts-dashboard.json", size: 32795, mode: os.FileMode(420), modTime: time.Unix(1646174971, 0)}
+	info := bindataFileInfo{name: "manifests/dashboards/coherence/alerts-dashboard.json", size: 32795, mode: os.FileMode(420), modTime: time.Unix(1647457998, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -135,7 +135,7 @@ func manifestsDashboardsCoherenceCacheDetailsDashboardJson() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "manifests/dashboards/coherence/cache-details-dashboard.json", size: 51246, mode: os.FileMode(420), modTime: time.Unix(1646174971, 0)}
+	info := bindataFileInfo{name: "manifests/dashboards/coherence/cache-details-dashboard.json", size: 51246, mode: os.FileMode(420), modTime: time.Unix(1647457998, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -155,7 +155,7 @@ func manifestsDashboardsCoherenceCachesSummaryDashboardJson() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "manifests/dashboards/coherence/caches-summary-dashboard.json", size: 16633, mode: os.FileMode(420), modTime: time.Unix(1646174971, 0)}
+	info := bindataFileInfo{name: "manifests/dashboards/coherence/caches-summary-dashboard.json", size: 16633, mode: os.FileMode(420), modTime: time.Unix(1647457998, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -175,7 +175,7 @@ func manifestsDashboardsCoherenceCoherenceDashboardMainJson() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "manifests/dashboards/coherence/coherence-dashboard-main.json", size: 76239, mode: os.FileMode(420), modTime: time.Unix(1646174971, 0)}
+	info := bindataFileInfo{name: "manifests/dashboards/coherence/coherence-dashboard-main.json", size: 76239, mode: os.FileMode(420), modTime: time.Unix(1647457998, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -195,7 +195,7 @@ func manifestsDashboardsCoherenceElasticDataSummaryDashboardJson() (*asset, erro
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "manifests/dashboards/coherence/elastic-data-summary-dashboard.json", size: 20006, mode: os.FileMode(420), modTime: time.Unix(1646174971, 0)}
+	info := bindataFileInfo{name: "manifests/dashboards/coherence/elastic-data-summary-dashboard.json", size: 20006, mode: os.FileMode(420), modTime: time.Unix(1647457998, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -215,7 +215,7 @@ func manifestsDashboardsCoherenceFederationDetailsDashboardJson() (*asset, error
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "manifests/dashboards/coherence/federation-details-dashboard.json", size: 38136, mode: os.FileMode(420), modTime: time.Unix(1646174971, 0)}
+	info := bindataFileInfo{name: "manifests/dashboards/coherence/federation-details-dashboard.json", size: 38136, mode: os.FileMode(420), modTime: time.Unix(1647457998, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -235,7 +235,7 @@ func manifestsDashboardsCoherenceFederationSummaryDashboardJson() (*asset, error
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "manifests/dashboards/coherence/federation-summary-dashboard.json", size: 40668, mode: os.FileMode(420), modTime: time.Unix(1646174971, 0)}
+	info := bindataFileInfo{name: "manifests/dashboards/coherence/federation-summary-dashboard.json", size: 40668, mode: os.FileMode(420), modTime: time.Unix(1647457998, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -255,7 +255,7 @@ func manifestsDashboardsCoherenceHttpServersSummaryDashboardJson() (*asset, erro
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "manifests/dashboards/coherence/http-servers-summary-dashboard.json", size: 14654, mode: os.FileMode(420), modTime: time.Unix(1646174971, 0)}
+	info := bindataFileInfo{name: "manifests/dashboards/coherence/http-servers-summary-dashboard.json", size: 14654, mode: os.FileMode(420), modTime: time.Unix(1647457998, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -275,7 +275,7 @@ func manifestsDashboardsCoherenceKubernetesSummaryDashboardJson() (*asset, error
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "manifests/dashboards/coherence/kubernetes-summary-dashboard.json", size: 10452, mode: os.FileMode(420), modTime: time.Unix(1646174971, 0)}
+	info := bindataFileInfo{name: "manifests/dashboards/coherence/kubernetes-summary-dashboard.json", size: 10452, mode: os.FileMode(420), modTime: time.Unix(1647457998, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -295,7 +295,7 @@ func manifestsDashboardsCoherenceMachinesSummaryDashboardJson() (*asset, error) 
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "manifests/dashboards/coherence/machines-summary-dashboard.json", size: 14876, mode: os.FileMode(420), modTime: time.Unix(1646174971, 0)}
+	info := bindataFileInfo{name: "manifests/dashboards/coherence/machines-summary-dashboard.json", size: 14876, mode: os.FileMode(420), modTime: time.Unix(1647457998, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -315,7 +315,7 @@ func manifestsDashboardsCoherenceMemberDetailsDashboardJson() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "manifests/dashboards/coherence/member-details-dashboard.json", size: 41294, mode: os.FileMode(420), modTime: time.Unix(1646174971, 0)}
+	info := bindataFileInfo{name: "manifests/dashboards/coherence/member-details-dashboard.json", size: 41294, mode: os.FileMode(420), modTime: time.Unix(1647457998, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -335,7 +335,7 @@ func manifestsDashboardsCoherenceMembersSummaryDashboardJson() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "manifests/dashboards/coherence/members-summary-dashboard.json", size: 30652, mode: os.FileMode(420), modTime: time.Unix(1646174971, 0)}
+	info := bindataFileInfo{name: "manifests/dashboards/coherence/members-summary-dashboard.json", size: 30652, mode: os.FileMode(420), modTime: time.Unix(1647457998, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -355,7 +355,7 @@ func manifestsDashboardsCoherencePersistenceSummaryDashboardJson() (*asset, erro
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "manifests/dashboards/coherence/persistence-summary-dashboard.json", size: 21317, mode: os.FileMode(420), modTime: time.Unix(1646174971, 0)}
+	info := bindataFileInfo{name: "manifests/dashboards/coherence/persistence-summary-dashboard.json", size: 21317, mode: os.FileMode(420), modTime: time.Unix(1647457998, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -375,7 +375,7 @@ func manifestsDashboardsCoherenceProxyServerDetailDashboardJson() (*asset, error
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "manifests/dashboards/coherence/proxy-server-detail-dashboard.json", size: 25468, mode: os.FileMode(420), modTime: time.Unix(1646174971, 0)}
+	info := bindataFileInfo{name: "manifests/dashboards/coherence/proxy-server-detail-dashboard.json", size: 25468, mode: os.FileMode(420), modTime: time.Unix(1647457998, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -395,7 +395,7 @@ func manifestsDashboardsCoherenceProxyServersSummaryDashboardJson() (*asset, err
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "manifests/dashboards/coherence/proxy-servers-summary-dashboard.json", size: 25135, mode: os.FileMode(420), modTime: time.Unix(1646174971, 0)}
+	info := bindataFileInfo{name: "manifests/dashboards/coherence/proxy-servers-summary-dashboard.json", size: 25135, mode: os.FileMode(420), modTime: time.Unix(1647457998, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -415,7 +415,7 @@ func manifestsDashboardsCoherenceServiceDetailsDashboardJson() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "manifests/dashboards/coherence/service-details-dashboard.json", size: 50589, mode: os.FileMode(420), modTime: time.Unix(1646174971, 0)}
+	info := bindataFileInfo{name: "manifests/dashboards/coherence/service-details-dashboard.json", size: 50589, mode: os.FileMode(420), modTime: time.Unix(1647457998, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -435,7 +435,7 @@ func manifestsDashboardsCoherenceServicesSummaryDashboardJson() (*asset, error) 
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "manifests/dashboards/coherence/services-summary-dashboard.json", size: 31424, mode: os.FileMode(420), modTime: time.Unix(1646174971, 0)}
+	info := bindataFileInfo{name: "manifests/dashboards/coherence/services-summary-dashboard.json", size: 31424, mode: os.FileMode(420), modTime: time.Unix(1647457998, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -455,7 +455,7 @@ func manifestsDashboardsHelidonHelidon_dashboardJson() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "manifests/dashboards/helidon/helidon_dashboard.json", size: 28595, mode: os.FileMode(420), modTime: time.Unix(1646174971, 0)}
+	info := bindataFileInfo{name: "manifests/dashboards/helidon/helidon_dashboard.json", size: 28595, mode: os.FileMode(420), modTime: time.Unix(1647457998, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -475,7 +475,7 @@ func manifestsDashboardsSystemSystem_dashboardJson() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "manifests/dashboards/system/system_dashboard.json", size: 155189, mode: os.FileMode(420), modTime: time.Unix(1646174971, 0)}
+	info := bindataFileInfo{name: "manifests/dashboards/system/system_dashboard.json", size: 155189, mode: os.FileMode(420), modTime: time.Unix(1647457998, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -495,7 +495,7 @@ func manifestsDashboardsVmi_dashboard_providerYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "manifests/dashboards/vmi_dashboard_provider.yml", size: 365, mode: os.FileMode(420), modTime: time.Unix(1646174971, 0)}
+	info := bindataFileInfo{name: "manifests/dashboards/vmi_dashboard_provider.yml", size: 365, mode: os.FileMode(420), modTime: time.Unix(1647457998, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -515,7 +515,7 @@ func manifestsDashboardsWeblogicWeblogic_dashboardJson() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "manifests/dashboards/weblogic/weblogic_dashboard.json", size: 100819, mode: os.FileMode(420), modTime: time.Unix(1646240198, 0)}
+	info := bindataFileInfo{name: "manifests/dashboards/weblogic/weblogic_dashboard.json", size: 100819, mode: os.FileMode(420), modTime: time.Unix(1647457998, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }

@@ -10,10 +10,11 @@ package mocks
 
 import (
 	context "context"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	runtime "k8s.io/apimachinery/pkg/runtime"
 	types "k8s.io/apimachinery/pkg/types"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -22,6 +23,15 @@ import (
 type MockClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockClientMockRecorder
+}
+
+// Scheme is the mock runtime scheme
+func (m *MockClient) Scheme() *runtime.Scheme {
+	return runtime.NewScheme()
+}
+// RESTMapper is the mock RESTMapper
+func (m *MockClient) RESTMapper() meta.RESTMapper {
+	return meta.FirstHitRESTMapper{}.MultiRESTMapper
 }
 
 // MockClientMockRecorder is the mock recorder for MockClient
@@ -42,7 +52,7 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 }
 
 // Create mocks base method
-func (m *MockClient) Create(arg0 context.Context, arg1 runtime.Object, arg2 ...client.CreateOption) error {
+func (m *MockClient) Create(arg0 context.Context, arg1 client.Object, arg2 ...client.CreateOption) error {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
@@ -61,7 +71,7 @@ func (mr *MockClientMockRecorder) Create(arg0, arg1 interface{}, arg2 ...interfa
 }
 
 // Delete mocks base method
-func (m *MockClient) Delete(arg0 context.Context, arg1 runtime.Object, arg2 ...client.DeleteOption) error {
+func (m *MockClient) Delete(arg0 context.Context, arg1 client.Object, arg2 ...client.DeleteOption) error {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
@@ -80,7 +90,7 @@ func (mr *MockClientMockRecorder) Delete(arg0, arg1 interface{}, arg2 ...interfa
 }
 
 // DeleteAllOf mocks base method
-func (m *MockClient) DeleteAllOf(arg0 context.Context, arg1 runtime.Object, arg2 ...client.DeleteAllOfOption) error {
+func (m *MockClient) DeleteAllOf(arg0 context.Context, arg1 client.Object, arg2 ...client.DeleteAllOfOption) error {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
@@ -99,7 +109,7 @@ func (mr *MockClientMockRecorder) DeleteAllOf(arg0, arg1 interface{}, arg2 ...in
 }
 
 // Get mocks base method
-func (m *MockClient) Get(arg0 context.Context, arg1 types.NamespacedName, arg2 runtime.Object) error {
+func (m *MockClient) Get(arg0 context.Context, arg1 types.NamespacedName, arg2 client.Object) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
@@ -113,7 +123,7 @@ func (mr *MockClientMockRecorder) Get(arg0, arg1, arg2 interface{}) *gomock.Call
 }
 
 // List mocks base method
-func (m *MockClient) List(arg0 context.Context, arg1 runtime.Object, arg2 ...client.ListOption) error {
+func (m *MockClient) List(arg0 context.Context, arg1 client.ObjectList, arg2 ...client.ListOption) error {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
@@ -132,7 +142,7 @@ func (mr *MockClientMockRecorder) List(arg0, arg1 interface{}, arg2 ...interface
 }
 
 // Patch mocks base method
-func (m *MockClient) Patch(arg0 context.Context, arg1 runtime.Object, arg2 client.Patch, arg3 ...client.PatchOption) error {
+func (m *MockClient) Patch(arg0 context.Context, arg1 client.Object, arg2 client.Patch, arg3 ...client.PatchOption) error {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1, arg2}
 	for _, a := range arg3 {
@@ -165,7 +175,7 @@ func (mr *MockClientMockRecorder) Status() *gomock.Call {
 }
 
 // Update mocks base method
-func (m *MockClient) Update(arg0 context.Context, arg1 runtime.Object, arg2 ...client.UpdateOption) error {
+func (m *MockClient) Update(arg0 context.Context, arg1 client.Object, arg2 ...client.UpdateOption) error {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
@@ -207,7 +217,7 @@ func (m *MockStatusWriter) EXPECT() *MockStatusWriterMockRecorder {
 }
 
 // Patch mocks base method
-func (m *MockStatusWriter) Patch(arg0 context.Context, arg1 runtime.Object, arg2 client.Patch, arg3 ...client.PatchOption) error {
+func (m *MockStatusWriter) Patch(arg0 context.Context, arg1 client.Object, arg2 client.Patch, arg3 ...client.PatchOption) error {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1, arg2}
 	for _, a := range arg3 {
@@ -226,7 +236,7 @@ func (mr *MockStatusWriterMockRecorder) Patch(arg0, arg1, arg2 interface{}, arg3
 }
 
 // Update mocks base method
-func (m *MockStatusWriter) Update(arg0 context.Context, arg1 runtime.Object, arg2 ...client.UpdateOption) error {
+func (m *MockStatusWriter) Update(arg0 context.Context, arg1 client.Object, arg2 ...client.UpdateOption) error {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {

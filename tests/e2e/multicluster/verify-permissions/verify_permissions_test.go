@@ -62,7 +62,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 	//			Be able to update the status of MultiClusterXXX resources in the admin cluster
 	t.Context("In Admin Cluster, verify mc resources and their status updates.", func() {
 		t.BeforeEach(func() {
-			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
+			_ = os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
 		})
 
 		t.It("Verify mc config map", func() {
@@ -125,7 +125,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 
 	t.Context("In the Managed Cluster, check for ", func() {
 		t.BeforeEach(func() {
-			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("MANAGED_KUBECONFIG"))
+			_ = os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("MANAGED_KUBECONFIG"))
 		})
 
 		t.It("the expected mc and underlying configmap", func() {
@@ -162,7 +162,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 	// VZ-2336:  NOT be able to update or delete any MultiClusterXXX resources in the admin cluster
 	t.Context("Managed Cluster", func() {
 		t.BeforeEach(func() {
-			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("MANAGED_ACCESS_KUBECONFIG"))
+			_ = os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("MANAGED_ACCESS_KUBECONFIG"))
 		})
 
 		t.It("can access MultiClusterConfigMap but not modify it on admin", func() {
@@ -340,7 +340,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 })
 
 // updateObject updates a resource using the provided object
-func updateObject(object runtime.Object) error {
+func updateObject(object client.Object) error {
 	clustersClient, err := getClustersClient()
 	if err != nil {
 		return err
@@ -354,7 +354,7 @@ func updateObject(object runtime.Object) error {
 }
 
 // deleteObject deletes the given object
-func deleteObject(object runtime.Object) error {
+func deleteObject(object client.Object) error {
 	clustersClient, err := getClustersClient()
 	if err != nil {
 		return err
@@ -366,7 +366,7 @@ func deleteObject(object runtime.Object) error {
 func deployTestResources() {
 	pkg.Log(pkg.Info, "Deploying MC Resources")
 
-	os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
+	_ = os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
 	start := time.Now()
 	// create the test projects
 	pkg.Log(pkg.Info, "Creating test projects")
@@ -422,7 +422,7 @@ func deployTestResources() {
 func undeployTestResources() {
 	pkg.Log(pkg.Info, "Undeploying MC Resources")
 
-	os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
+	_ = os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
 
 	// delete a MC config map
 	pkg.Log(pkg.Info, "Deleting MC config map")
@@ -545,16 +545,16 @@ func findConfigMap(namespace, name string) (bool, error) {
 }
 
 // listResource returns a list of resources based on the object type and namespace
-func listResource(namespace string, object runtime.Object) error {
+func listResource(namespace string, objectList client.ObjectList) error {
 	clustersClient, err := getClustersClient()
 	if err != nil {
 		return err
 	}
-	return clustersClient.List(context.TODO(), object, &client.ListOptions{Namespace: namespace})
+	return clustersClient.List(context.TODO(), objectList, &client.ListOptions{Namespace: namespace})
 }
 
 // getMultiClusterResource returns a multi cluster resource based the provided multi cluster object's type and namespace
-func getMultiClusterResource(namespace, name string, object runtime.Object) error {
+func getMultiClusterResource(namespace, name string, object client.Object) error {
 	clustersClient, err := getClustersClient()
 	if err != nil {
 		return err

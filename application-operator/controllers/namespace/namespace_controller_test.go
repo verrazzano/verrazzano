@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"net/http"
+	"sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
 	"testing"
 	"time"
 
@@ -101,7 +102,7 @@ func TestReconcileNamespaceUpdate(t *testing.T) {
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "myns"},
 	}
-	result, err := nc.Reconcile(req)
+	result, err := nc.Reconcile(nil, req)
 
 	mocker.Finish()
 	asserts.NoError(err)
@@ -147,7 +148,7 @@ func runTestReconcileGetError(t *testing.T, returnErr error, expectedResult ctrl
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "myns"},
 	}
-	result, err := nc.Reconcile(req)
+	result, err := nc.Reconcile(nil, req)
 
 	mocker.Finish()
 	asserts.Nil(err)
@@ -201,7 +202,7 @@ func TestReconcileNamespaceDeleted(t *testing.T) {
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "myns"},
 	}
-	result, err := nc.Reconcile(req)
+	result, err := nc.Reconcile(nil, req)
 
 	mocker.Finish()
 	asserts.NoError(err)
@@ -246,7 +247,7 @@ func TestReconcileNamespaceDeletedErrorOnUpdate(t *testing.T) {
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "myns"},
 	}
-	result, _ := nc.Reconcile(req)
+	result, _ := nc.Reconcile(nil, req)
 
 	mocker.Finish()
 	asserts.True(result.Requeue)
@@ -282,7 +283,7 @@ func TestReconcileNamespaceDeletedNoFinalizer(t *testing.T) {
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "myns"},
 	}
-	result, err := nc.Reconcile(req)
+	result, err := nc.Reconcile(nil, req)
 
 	mocker.Finish()
 	asserts.NoError(err)
@@ -734,7 +735,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: vzconst.KubeSystem},
 	}
-	result, err := nc.Reconcile(req)
+	result, err := nc.Reconcile(nil, req)
 
 	// Validate the results
 	mocker.Finish()
@@ -746,6 +747,14 @@ func TestReconcileKubeSystem(t *testing.T) {
 type fakeManager struct {
 	client.Client
 	scheme *runtime.Scheme
+}
+
+func (f fakeManager) Start(ctx context.Context) error {
+	return nil
+}
+
+func (f fakeManager) GetControllerOptions() v1alpha1.ControllerConfigurationSpec {
+	return v1alpha1.ControllerConfigurationSpec{}
 }
 
 func (f fakeManager) Add(_ manager.Runnable) error {
@@ -769,10 +778,6 @@ func (f fakeManager) AddHealthzCheck(_ string, _ healthz.Checker) error {
 }
 
 func (f fakeManager) AddReadyzCheck(_ string, _ healthz.Checker) error {
-	return nil
-}
-
-func (f fakeManager) Start(_ <-chan struct{}) error {
 	return nil
 }
 
@@ -813,7 +818,7 @@ func (f fakeManager) GetWebhookServer() *webhook.Server {
 }
 
 func (f fakeManager) GetLogger() logr.Logger {
-	return log.NullLogger{}
+	return log.Log
 }
 
 var _ ctrl.Manager = fakeManager{}
