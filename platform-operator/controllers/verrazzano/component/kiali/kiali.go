@@ -132,7 +132,7 @@ func createOrUpdateAuthPolicy(ctx spi.ComponentContext) error {
 		authPol.Spec = securityv1beta1.AuthorizationPolicy{
 			Selector: &istiov1beta1.WorkloadSelector{
 				MatchLabels: map[string]string{
-					"app": kialiSystemName,
+					"app": "kiali",
 				},
 			},
 			Action: securityv1beta1.AuthorizationPolicy_ALLOW,
