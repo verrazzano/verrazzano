@@ -65,6 +65,7 @@ pipeline {
         DOCKER_PLATFORM_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
         DOCKER_PLATFORM_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
         GOPATH = '/home/opc/go'
+        GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
         DOCKER_EMAIL = credentials('github-packages-email')
         DOCKER_REPO = 'ghcr.io'
@@ -85,7 +86,7 @@ pipeline {
         INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind.yaml"
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
-        TEST_SCRIPTS_DIR = "${WORKSPACE}/tests/e2e/config/scripts"
+        TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
@@ -93,7 +94,7 @@ pipeline {
 
         // Used for dumping cluster from inside tests
         DUMP_KUBECONFIG="${KUBECONFIG}"
-        DUMP_COMMAND="${WORKSPACE}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
+        DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
 
         VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
@@ -176,6 +177,11 @@ pipeline {
                         }
                     }
                 }
+                sh """
+                    rm -rf ${GO_REPO_PATH}/verrazzano
+                    mkdir -p ${GO_REPO_PATH}/verrazzano
+                    tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
+                """
 
                 script {
                     def props = readProperties file: '.verrazzano-development-version'
@@ -203,7 +209,8 @@ pipeline {
                     }
                     steps {
                         sh """
-                            ${WORKSPACE}/ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
+                            cd ${GO_REPO_PATH}/verrazzano
+                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
                         """
                     }
                     post {
@@ -291,17 +298,9 @@ pipeline {
                                 runGinkgo('examples/springboot')
                             }
                         }
-                        stage('examples helidon 1') {
+                        stage('examples helidon') {
                             environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-1"
-                            }
-                            steps {
-                                runGinkgo('examples/helidon')
-                            }
-                        }
-                        stage('examples helidon 2') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-2"
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
                             }
                             steps {
                                 runGinkgo('examples/helidon')
@@ -368,13 +367,20 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }
+
+            sh """
+                # Copy the generated test reports to WORKSPACE to archive them
+                mkdir -p ${TEST_REPORT_DIR}
+                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
+            """
             archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/Screenshot*.png,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
                     withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
                         sh """
-                            ${WORKSPACE}/ci/scripts/dashboard/emit_metrics.sh "${WORKSPACE}/tests/e2e" "${PROMETHEUS_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
+                            ${GO_REPO_PATH}/verrazzano/ci/scripts/dashboard/emit_metrics.sh "${GO_REPO_PATH}/verrazzano/tests/e2e" "${PROMETHEUS_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
                         """
                     }
                 }
@@ -411,7 +417,7 @@ def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
             if [ ! -z "${kubeConfig}" ]; then
                 export KUBECONFIG="${kubeConfig}"
             fi
-            cd ${WORKSPACE}/tests/e2e
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
@@ -420,7 +426,7 @@ def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
 def runSocksVariant(variant) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
             sh """
-                cd ${WORKSPACE}/tests/e2e
+                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                 SOCKS_SHOP_VARIANT=${variant} ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}"  examples/socks/...
             """
         }
@@ -429,7 +435,7 @@ def runSocksVariant(variant) {
 def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
-            cd ${WORKSPACE}/tests/e2e
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
@@ -437,13 +443,13 @@ def runGinkgo(testSuitePath) {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${WORKSPACE}/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
+        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
     """
 }
 
 def dumpVerrazzanoSystemPods() {
     sh """
-        cd ${WORKSPACE}/platform-operator
+        cd ${GO_REPO_PATH}/verrazzano/platform-operator
         export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-system-pods.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -m "verrazzano system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
         export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-system-certs.log"
@@ -457,7 +463,7 @@ def dumpVerrazzanoSystemPods() {
 
 def dumpCattleSystemPods() {
     sh """
-        cd ${WORKSPACE}/platform-operator
+        cd ${GO_REPO_PATH}/verrazzano/platform-operator
         export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/cattle-system-pods.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -m "cattle system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
         export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/rancher.log"
@@ -467,7 +473,7 @@ def dumpCattleSystemPods() {
 
 def dumpNginxIngressControllerLogs() {
     sh """
-        cd ${WORKSPACE}/platform-operator
+        cd ${GO_REPO_PATH}/verrazzano/platform-operator
         export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/nginx-ingress-controller.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -c controller -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
@@ -511,7 +517,7 @@ def dumpOamKubernetesRuntimeLogs() {
 
 def dumpVerrazzanoApiLogs() {
     sh """
-        cd ${WORKSPACE}/platform-operator
+        cd ${GO_REPO_PATH}/verrazzano/platform-operator
         export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-authproxy.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-authproxy-*" -m "verrazzano api" -c verrazzano-authproxy -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
@@ -528,7 +534,7 @@ def getEffectiveDumpOnSuccess() {
 
 def deleteCluster() {
     sh """
-        cd ${WORKSPACE}/platform-operator
+        cd ${GO_REPO_PATH}/verrazzano/platform-operator
         make delete-cluster
         if [ -f ${POST_DUMP_FAILED_FILE} ]; then
           echo "Failures seen during dumping of artifacts, treat post as failed"
