@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package prometheusoper
+package operator
 
 import (
 	"testing"
@@ -11,7 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 )
 
-const profilesRelativePath = "../../../../manifests/profiles"
+const profilesRelativePath = "../../../../../manifests/profiles"
 
 // TestIsEnabled tests the IsEnabled function for the Prometheus Operator component
 func TestIsEnabled(t *testing.T) {
