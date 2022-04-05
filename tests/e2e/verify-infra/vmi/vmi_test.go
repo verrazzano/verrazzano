@@ -267,7 +267,16 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 			})
 
 		t.ItMinimumVersion("Grafana should have the verrazzano user with admin privileges", "1.3.0", kubeconfig, func() {
-			Eventually(assertAdminRole, waitTimeout, pollingInterval).Should(BeTrue())
+			vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfig)
+			if err != nil {
+				t.Logs.Errorf("Error getting Verrazzano resource: %v", err)
+				Fail(err.Error())
+			}
+			if vz.Spec.Version != "" {
+				t.Logs.Info("Skipping test because Verrazzano has been upgraded %s")
+			} else {
+				Eventually(assertAdminRole, waitTimeout, pollingInterval).Should(BeTrue())
+			}
 		})
 	}
 
