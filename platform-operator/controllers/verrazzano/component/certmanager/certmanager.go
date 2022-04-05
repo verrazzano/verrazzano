@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
+	passwords "github.com/verrazzano/verrazzano/pkg/security"
 )
 
 const (
@@ -447,7 +448,7 @@ func createOrUpdateCAResources(compContext spi.ComponentContext) error {
 		if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &certObject, func() error {
 			certObject.Spec = certv1.CertificateSpec{
 				SecretName: vzCertCA.SecretName,
-				CommonName: caCertCommonName,
+				CommonName: fmt.Sprintf("%s-%s", caCertCommonName, passwords.GeneratePassword(10),
 				IsCA:       true,
 				IssuerRef: certmetav1.ObjectReference{
 					Name: issuer.Name,
