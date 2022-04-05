@@ -12,7 +12,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
-func CompareInstallArgs(old []vzapi.InstallArgs, new []vzapi.InstallArgs, exceptions []string) error {
+func CompareInstallArgs(old []vzapi.InstallArgs, new []vzapi.InstallArgs, exceptions ...string) error {
 	oldArgs := convertArgsToMap(old)
 	newArgs := convertArgsToMap(new)
 	for _, exception := range exceptions {

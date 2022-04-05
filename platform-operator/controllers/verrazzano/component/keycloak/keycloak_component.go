@@ -186,7 +186,7 @@ func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verr
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	// Reject any other edits for now
-	if err := common.CompareInstallArgs(c.getInstallArgs(old), c.getInstallArgs(new), nil); err != nil {
+	if err := common.CompareInstallArgs(c.getInstallArgs(old), c.getInstallArgs(new)); err != nil {
 		return fmt.Errorf("Updates to istioInstallArgs not allowed for %s", ComponentJSONName)
 	}
 	return nil

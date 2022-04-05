@@ -106,7 +106,7 @@ func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 		return fmt.Errorf("Can not change persistence storage class in component: %s", ComponentJSONName)
 	}
 	// Reject any installArgs changes for now
-	if err := common.CompareInstallArgs(c.getInstallArgs(old), c.getInstallArgs(new), nil); err != nil {
+	if err := common.CompareInstallArgs(c.getInstallArgs(old), c.getInstallArgs(new)); err != nil {
 		return fmt.Errorf("Updates to mysqlInstallArgs not allowed for %s", ComponentJSONName)
 	}
 	return nil
