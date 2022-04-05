@@ -40,6 +40,9 @@ const (
 	verrazzanoBackupScrtName   = "verrazzano-backup"
 	objectstoreAccessKey       = "object_store_access_key"
 	objectstoreAccessSecretKey = "object_store_secret_key"
+
+	// Grafana admin secret data
+	grafanaScrtName = "grafana-admin"
 )
 
 // ComponentJSONName is the josn name of the verrazzano component in CRD
