@@ -356,6 +356,10 @@ type ComponentSpec struct {
 	// +optional
 	PrometheusOperator *PrometheusOperatorComponent `json:"prometheusOperator,omitempty"`
 
+	// PrometheusPushgateway configuration
+	// +optional
+	PrometheusPushgateway *PrometheusPushgatewayComponent `json:"prometheusPushgateway,omitempty"`
+
 	// Rancher configuration
 	// +optional
 	Rancher *RancherComponent `json:"rancher,omitempty"`
@@ -421,6 +425,11 @@ type PrometheusNodeExporterComponent struct {
 type PrometheusOperatorComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// PrometheusPushgatewayComponent specifies the Prometheus Pushgateway configuration.
+type PrometheusPushgatewayComponent struct {
+	MonitoringComponent `json:",inline"`
 }
 
 // CertManagerComponent specifies the core CertManagerComponent config.

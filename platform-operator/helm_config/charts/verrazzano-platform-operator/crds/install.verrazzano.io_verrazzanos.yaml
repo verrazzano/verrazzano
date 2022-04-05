@@ -4293,6 +4293,12 @@ spec:
                       enabled:
                         type: boolean
                     type: object
+                  prometheusPushgateway:
+                    description: PrometheusPushgateway configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   rancher:
                     description: Rancher configuration
                     properties:
