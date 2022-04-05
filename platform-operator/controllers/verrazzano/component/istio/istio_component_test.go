@@ -25,7 +25,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 
-	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -294,12 +293,6 @@ func getMock(t *testing.T) *mocks.MockClient {
 	mock.EXPECT().
 		Delete(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, secret *v1.Secret) error {
-			return nil
-		}).Times(2)
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *oam.ApplicationConfigurationList, opts ...client.ListOption) error {
 			return nil
 		}).Times(2)
 
