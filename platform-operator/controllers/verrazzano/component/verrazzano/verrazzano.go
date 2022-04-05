@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"io/ioutil"
 	v1 "k8s.io/api/networking/v1"
 	"os/exec"
@@ -593,23 +594,28 @@ func importToHelmChart(cli clipkg.Client) error {
 	}
 
 	for _, obj := range objects {
-		if _, err := importHelmObject(cli, obj, namespacedName); err != nil {
+		if _, err := associateHelmObjectToThisRelease(cli, obj, namespacedName); err != nil {
 			return err
 		}
 	}
 
 	for _, obj := range noNamespaceObjects {
-		if _, err := importHelmObject(cli, obj, name); err != nil {
+		if _, err := associateHelmObjectToThisRelease(cli, obj, name); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-//exportFromHelmChart annotates any existing objects that should be managed by another helm component
+//exportFromHelmChart annotates any existing objects that should be managed by another helm component, e.g.
+// the resources associated with the authproxy which historically were associated with the Verrazzano chart.
 func exportFromHelmChart(cli clipkg.Client) error {
-	namespacedName := types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}
-	name := types.NamespacedName{Name: ComponentName}
+	// The authproxy resources can not be managed by the authproxy component since the upgrade path may be from a
+	// version that does not define the authproxy as a top level component and therefore PreUpgrade is not invoked
+	// on the authproxy component (in that case the authproxy upgrade is skipped)
+	authproxyReleaseName := types.NamespacedName{Name: authproxy.ComponentName, Namespace: authproxy.ComponentNamespace}
+	namespacedName := authproxyReleaseName
+	name := types.NamespacedName{Name: authproxy.ComponentName}
 	objects := []controllerutil.Object{
 		&corev1.ServiceAccount{},
 		&corev1.Service{},
@@ -623,36 +629,41 @@ func exportFromHelmChart(cli clipkg.Client) error {
 
 	// namespaced resources
 	for _, obj := range objects {
-		if _, err := importHelmObject(cli, obj, namespacedName); err != nil {
+		if _, err := associateHelmObject(cli, obj, authproxyReleaseName, namespacedName, true); err != nil {
 			return err
 		}
 	}
 
 	// additional namespaced resources managed by this helm chart
-	if _, err := importHelmObject(cli, &corev1.Service{}, types.NamespacedName{Name: "verrazzano-authproxy-elasticsearch", Namespace: ComponentNamespace}); err != nil {
+	if _, err := associateHelmObject(cli, &corev1.Service{}, authproxyReleaseName, types.NamespacedName{Name: "verrazzano-authproxy-elasticsearch", Namespace: authproxy.ComponentNamespace}, true); err != nil {
 		return err
 	}
-	if _, err := importHelmObject(cli, &corev1.Secret{}, types.NamespacedName{Name: "verrazzano-authproxy-secret", Namespace: ComponentNamespace}); err != nil {
+	if _, err := associateHelmObject(cli, &corev1.Secret{}, authproxyReleaseName, types.NamespacedName{Name: "verrazzano-authproxy-secret", Namespace: authproxy.ComponentNamespace}, true); err != nil {
 		return err
 	}
-	if _, err := importHelmObject(cli, &corev1.ConfigMap{}, types.NamespacedName{Name: "verrazzano-authproxy-config", Namespace: ComponentNamespace}); err != nil {
+	if _, err := associateHelmObject(cli, &corev1.ConfigMap{}, authproxyReleaseName, types.NamespacedName{Name: "verrazzano-authproxy-config", Namespace: authproxy.ComponentNamespace}, true); err != nil {
 		return err
 	}
-	if _, err := importHelmObject(cli, &v1.Ingress{}, types.NamespacedName{Name: "verrazzano-ingress", Namespace: ComponentNamespace}); err != nil {
+	if _, err := associateHelmObject(cli, &v1.Ingress{}, authproxyReleaseName, types.NamespacedName{Name: "verrazzano-ingress", Namespace: authproxy.ComponentNamespace}, true); err != nil {
 		return err
 	}
 
 	// cluster resources
 	for _, obj := range noNamespaceObjects {
-		if _, err := importHelmObject(cli, obj, name); err != nil {
+		if _, err := associateHelmObject(cli, obj, authproxyReleaseName, name, true); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-//importHelmObject annotates an object as being managed by the verrazzano helm chart
-func importHelmObject(cli clipkg.Client, obj controllerutil.Object, namespacedName types.NamespacedName) (controllerutil.Object, error) {
+//associateHelmObjectToThisRelease annotates an object as being managed by the verrazzano helm chart
+func associateHelmObjectToThisRelease(cli clipkg.Client, obj controllerutil.Object, namespacedName types.NamespacedName) (controllerutil.Object, error) {
+	return associateHelmObject(cli, obj, types.NamespacedName{Name: ComponentName, Namespace: globalconst.VerrazzanoSystemNamespace}, namespacedName, false)
+}
+
+//associateHelmObject annotates an object as being managed by the specified release helm chart
+func associateHelmObject(cli clipkg.Client, obj controllerutil.Object, releaseName types.NamespacedName, namespacedName types.NamespacedName, keepResource bool) (controllerutil.Object, error) {
 	if err := cli.Get(context.TODO(), namespacedName, obj); err != nil {
 		if errors.IsNotFound(err) {
 			return obj, nil
@@ -664,8 +675,11 @@ func importHelmObject(cli clipkg.Client, obj controllerutil.Object, namespacedNa
 	if annotations == nil {
 		annotations = map[string]string{}
 	}
-	annotations["meta.helm.sh/release-name"] = ComponentName
-	annotations["meta.helm.sh/release-namespace"] = globalconst.VerrazzanoSystemNamespace
+	annotations["meta.helm.sh/release-name"] = releaseName.Name
+	annotations["meta.helm.sh/release-namespace"] = releaseName.Namespace
+	if keepResource {
+		annotations["helm.sh/resource-policy"] = "keep"
+	}
 	obj.SetAnnotations(annotations)
 	labels := obj.GetLabels()
 	if labels == nil {

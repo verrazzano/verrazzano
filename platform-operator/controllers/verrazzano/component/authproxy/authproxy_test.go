@@ -6,6 +6,7 @@ package authproxy
 import (
 	"io/fs"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"strings"
 	"testing"
@@ -237,6 +238,33 @@ func TestAppendOverrides(t *testing.T) {
 			"Found unexpected temp file remaining: %s", file.Name())
 	}
 
+}
+
+// TestRemoveResourcePolicyAnnotation tests the removeResourcePolicyAnnotation function
+// GIVEN a call to removeResourcePolicyAnnotation
+//  WHEN I call with a object that is annotated with the resource policy annotation
+//  THEN the annotation is removed
+func TestRemoveResourcePolicyAnnotation(t *testing.T) {
+	namespacedName := types.NamespacedName{
+		Name:      ComponentName,
+		Namespace: ComponentNamespace,
+	}
+	obj := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
+			Annotations: map[string]string{"meta.helm.sh/release-name": ComponentName, "meta.helm.sh/release-namespace": ComponentNamespace,
+				"helm.sh/resource-policy": "keep"},
+		},
+	}
+
+	c := fake.NewFakeClientWithScheme(testScheme, obj)
+	_, err := removeResourcePolicyAnnotation(c, obj, namespacedName)
+	assert.NoError(t, err)
+	assert.Equal(t, ComponentName, obj.Annotations["meta.helm.sh/release-name"])
+	assert.Equal(t, globalconst.VerrazzanoSystemNamespace, obj.Annotations["meta.helm.sh/release-namespace"])
+	_, ok := obj.Annotations["helm.sh/resource-policy"]
+	assert.False(t, ok)
 }
 
 func createFakeClientWithIngress() client.Client {

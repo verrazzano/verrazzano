@@ -90,6 +90,11 @@ func (c authProxyComponent) GetIngressNames(ctx spi.ComponentContext) []types.Na
 func (c authProxyComponent) PreInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debug("AuthProxy pre-install")
 
+	err := authproxyPreHelmOps(ctx)
+	if err != nil {
+		return err
+	}
+
 	// Temporary work around for installer bug of calling pre-install after a component is installed
 	installed, err := c.IsInstalled(ctx)
 	if err != nil {
@@ -101,4 +106,9 @@ func (c authProxyComponent) PreInstall(ctx spi.ComponentContext) error {
 	}
 
 	return nil
+}
+
+// PreUpgrade performs any required pre upgrade operations
+func (c authProxyComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	return authproxyPreHelmOps(ctx)
 }
