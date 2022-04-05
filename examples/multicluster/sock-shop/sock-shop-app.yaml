@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: clusters.verrazzano.io/v1alpha1
 kind: MultiClusterApplicationConfiguration
@@ -31,7 +31,9 @@ spec:
                 metadata:
                   name: carts-metrics
                 spec:
-                  port: 7001
+                  ports:
+                    - port: 7001
+                    - port: 9612
         - componentName: catalog-component
           traits:
             - trait:
@@ -50,7 +52,9 @@ spec:
                 metadata:
                   name: catalog-metrics
                 spec:
-                  port: 7001
+                  ports:
+                    - port: 7001
+                    - port: 9612
         - componentName: orders-component
           traits:
             - trait:
@@ -69,7 +73,9 @@ spec:
                 metadata:
                   name: orders-metrics
                 spec:
-                  port: 7001
+                  ports:
+                    - port: 7001
+                    - port: 9612
         - componentName: payment-component
           traits:
             - trait:
@@ -88,7 +94,9 @@ spec:
                 metadata:
                   name: payment-metrics
                 spec:
-                  port: 7001
+                  ports:
+                    - port: 7001
+                    - port: 9612
         - componentName: shipping-component
           traits:
             - trait:
@@ -107,7 +115,9 @@ spec:
                 metadata:
                   name: shipping-metrics
                 spec:
-                  port: 7001
+                  ports:
+                    - port: 7001
+                    - port: 9612
         - componentName: users-component
           traits:
             - trait:
@@ -134,7 +144,9 @@ spec:
                 metadata:
                   name: users-metrics
                 spec:
-                  port: 7001
+                  ports:
+                    - port: 7001
+                    - port: 9612
   placement:
     clusters:
       - name: managed1

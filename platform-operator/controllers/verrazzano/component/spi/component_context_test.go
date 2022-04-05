@@ -3,6 +3,7 @@
 package spi
 
 import (
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
@@ -30,7 +31,7 @@ func init() {
 
 	_ = istioclinet.AddToScheme(testScheme)
 	_ = istioclisec.AddToScheme(testScheme)
-
+	_ = certv1.AddToScheme(testScheme)
 	// +kubebuilder:scaffold:testScheme
 }
 
@@ -108,6 +109,12 @@ func TestContextProfilesMerge(t *testing.T) {
 			description:  "Tests prod profile with Elasticsearch installArg and persistence overrides",
 			actualCR:     prodElasticSearchOverrides,
 			expectedYAML: prodElasticSearchOveridesMerged,
+		},
+		{
+			name:         "TestProdProfileElasticsearchStorageArgs",
+			description:  "Tests prod profile with Elasticsearch storage installArgs",
+			actualCR:     prodElasticSearchStorageArgs,
+			expectedYAML: prodElasticSearchStorageMerged,
 		},
 		{
 			name:         "TestProdProfileIngressIstioOverrides",

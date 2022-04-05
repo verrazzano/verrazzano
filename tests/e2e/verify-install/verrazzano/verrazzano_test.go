@@ -4,11 +4,14 @@
 package verrazzano_test
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	appsv1 "k8s.io/api/apps/v1"
@@ -32,11 +35,15 @@ var _ = t.AfterEach(func() {})
 
 var _ = t.BeforeSuite(func() {
 	var err error
-	isMinVersion110, err = pkg.IsVerrazzanoMinVersion("1.1.0")
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
+	isMinVersion110, err = pkg.IsVerrazzanoMinVersion("1.1.0", kubeconfigPath)
 	if err != nil {
 		Fail(err.Error())
 	}
-	isMinVersion120, err = pkg.IsVerrazzanoMinVersion("1.2.0")
+	isMinVersion120, err = pkg.IsVerrazzanoMinVersion("1.2.0", kubeconfigPath)
 	if err != nil {
 		Fail(err.Error())
 	}
@@ -380,7 +387,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 					return pkg.DoesDeploymentExist(constants.VerrazzanoSystemNamespace, "verrazzano-authproxy")
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			} else {
-				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.1.0")
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
 			}
 		})
 
@@ -388,7 +395,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 			if isMinVersion110 {
 				validateCorrectNumberOfPodsRunning("verrazzano-authproxy", constants.VerrazzanoSystemNamespace)
 			} else {
-				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.1.0")
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
 			}
 		})
 
@@ -412,7 +419,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 					Expect(len(affinity.PodAntiAffinity.PreferredDuringSchedulingIgnoredDuringExecution)).To(Equal(1))
 				}
 			} else {
-				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.2.0")
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.2.0")
 			}
 		})
 	})
@@ -424,7 +431,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 					return pkg.DoesDeploymentExist(constants.IstioSystemNamespace, "istio-ingressgateway")
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			} else {
-				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.1.0")
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
 			}
 		})
 
@@ -432,7 +439,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 			if isMinVersion110 {
 				validateCorrectNumberOfPodsRunning("istio-ingressgateway", constants.IstioSystemNamespace)
 			} else {
-				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.1.0")
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
 			}
 		})
 
@@ -440,7 +447,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 			if isMinVersion120 {
 				validateIstioGatewayAffinity("istio-ingressgateway", constants.IstioSystemNamespace)
 			} else {
-				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.2.0")
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.2.0")
 			}
 		})
 	})
@@ -452,7 +459,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 					return pkg.DoesDeploymentExist(constants.IstioSystemNamespace, "istio-egressgateway")
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			} else {
-				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.1.0")
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
 			}
 		})
 
@@ -460,7 +467,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 			if isMinVersion110 {
 				validateCorrectNumberOfPodsRunning("istio-egressgateway", constants.IstioSystemNamespace)
 			} else {
-				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.1.0")
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
 			}
 		})
 
@@ -468,10 +475,17 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 			if isMinVersion120 {
 				validateIstioGatewayAffinity("istio-egressgateway", constants.IstioSystemNamespace)
 			} else {
-				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.2.0")
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.2.0")
 			}
 		})
 	})
+
+	t.Describe("service resources in verrazzano-system", Label("f:platform-lcm.install"), func() {
+		t.It("have expected Istio port names", func() {
+			validateVerrazzanoSystemServicePorts()
+		})
+	})
+
 })
 
 func validateIstioGatewayAffinity(gwName string, gwNamespace string) error {
@@ -520,5 +534,42 @@ func validateCorrectNumberOfPodsRunning(deployName string, nameSpace string) err
 		}
 		return runningPods == *expectedPods
 	}, waitTimeout, pollingInterval).Should(BeTrue())
+	return nil
+}
+
+// Validate the verrazzano-system service ports to make sure they follow Istio conventions for
+// naming ports.  Ports should have the prefix of "http-" or "https-" or be equal to "http" or "https".
+func validateVerrazzanoSystemServicePorts() error {
+	// Get the list of verrazzano-system services
+	var services *corev1.ServiceList
+	Eventually(func() (*corev1.ServiceList, error) {
+		var err error
+		services, err = pkg.ListServices(constants.VerrazzanoSystemNamespace)
+		return services, err
+	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
+	exceptions := []string{
+		"coherence-operator-webhook",
+		"internal-weblogic-operator-svc",
+	}
+	for _, service := range services.Items {
+		for _, port := range service.Spec.Ports {
+			checkName := true
+			for _, exception := range exceptions {
+				if service.Name == exception {
+					checkName = false
+					break
+				}
+			}
+			if checkName {
+				hasPrefix := false
+				if strings.Compare(port.Name, "http") == 0 || strings.Compare(port.Name, "https") == 0 ||
+					strings.HasPrefix(port.Name, "http-") || strings.HasPrefix(port.Name, "https-") {
+					hasPrefix = true
+				}
+				Expect(hasPrefix).Should(BeTrue(), fmt.Sprintf("Service \"%s\" port name \"%s\" is not a valid port name", service.Name, port.Name))
+			}
+		}
+	}
 	return nil
 }

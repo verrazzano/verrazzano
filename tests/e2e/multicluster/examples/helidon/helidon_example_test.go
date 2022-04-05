@@ -5,11 +5,12 @@ package mchelidon
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -175,7 +176,7 @@ var _ = t.Describe("In Multi-cluster, verify hello-helidon", Label("f:multiclust
 	t.Context("for Prometheus Metrics", Label("f:observability.monitoring.prom"), func() {
 
 		t.It("Verify base_jvm_uptime_seconds metrics exist for managed cluster", func() {
-			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
+			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
 			Eventually(func() bool {
 				m := make(map[string]string)
 				m["app"] = testApp
@@ -185,7 +186,7 @@ var _ = t.Describe("In Multi-cluster, verify hello-helidon", Label("f:multiclust
 		})
 
 		t.It("Verify DNE base_jvm_uptime_seconds metrics does not exist for managed cluster", func() {
-			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
+			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
 			Eventually(func() bool {
 				m := make(map[string]string)
 				m["cluster"] = testNamespace
@@ -195,7 +196,7 @@ var _ = t.Describe("In Multi-cluster, verify hello-helidon", Label("f:multiclust
 		})
 
 		t.It("Verify vendor_requests_count_total metrics exist for managed cluster", func() {
-			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
+			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
 			Eventually(func() bool {
 				m := make(map[string]string)
 				m["app"] = testApp
@@ -205,7 +206,7 @@ var _ = t.Describe("In Multi-cluster, verify hello-helidon", Label("f:multiclust
 		})
 
 		t.It("Verify container_cpu_cfs_periods_total metrics exist for managed cluster", func() {
-			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
+			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
 			Eventually(func() bool {
 				m := make(map[string]string)
 				m["namespace"] = testNamespace

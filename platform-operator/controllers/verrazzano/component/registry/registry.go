@@ -9,13 +9,13 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheusoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
@@ -63,6 +63,7 @@ func getComponents() []spi.Component {
 			mysql.NewComponent(),
 			keycloak.NewComponent(),
 			kiali.NewComponent(),
+			prometheusoper.NewComponent(),
 		}
 	}
 	return componentsRegistry
@@ -74,7 +75,7 @@ func FindComponent(releaseName string) (bool, spi.Component) {
 			return true, comp
 		}
 	}
-	return false, &helm.HelmComponent{}
+	return false, nil
 }
 
 // ComponentDependenciesMet Checks if the declared dependencies for the component are ready and available

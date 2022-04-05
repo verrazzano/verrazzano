@@ -53,52 +53,6 @@ spec:
               components:
                 description: Core specifies core Verrazzano configuration
                 properties:
-                  alertmanager:
-                    description: Alertmanager configuration
-                    properties:
-                      alertmanagerConfigMap:
-                        description: Location of the Alertmanager ConfigMap
-                        properties:
-                          name:
-                            description: Name of a resource
-                            type: string
-                          namespace:
-                            description: Namespace of a resource
-                            type: string
-                        required:
-                        - name
-                        - namespace
-                        type: object
-                      enabled:
-                        type: boolean
-                      receiverTemplateConfigMap:
-                        description: Location of the Alertmanager receiver template
-                          ConfigMap
-                        properties:
-                          name:
-                            description: Name of a resource
-                            type: string
-                          namespace:
-                            description: Namespace of a resource
-                            type: string
-                        required:
-                        - name
-                        - namespace
-                        type: object
-                      ruleConfigMap:
-                        description: Location of the Prometheus rule ConfigMap
-                        properties:
-                          name:
-                            description: Name of a resource
-                            type: string
-                          namespace:
-                            description: Namespace of a resource
-                            type: string
-                        required:
-                        - name
-                        - namespace
-                        type: object
-                    type: object
                   applicationOperator:
                     description: ApplicationOperator configuration
                     properties:
@@ -925,6 +879,47 @@ spec:
                               type: array
                           required:
                           - name
+                          type: object
+                        type: array
+                      policies:
+                        items:
+                          description: IndexManagementPolicy Defines a policy for
+                            managing indices
+                          properties:
+                            indexPattern:
+                              description: Index pattern the policy will be matched
+                                to
+                              type: string
+                            minIndexAge:
+                              description: Minimum age of an index before it is automatically
+                                deleted
+                              pattern: ^[0-9]+(d|h|m|s|ms|micros|nanos)$
+                              type: string
+                            policyName:
+                              description: Name of the policy
+                              type: string
+                            rollover:
+                              description: RolloverPolicy Settings for Index Management
+                                rollover
+                              properties:
+                                minDocCount:
+                                  description: Minimum count of documents in an index
+                                    before it is rolled over
+                                  type: integer
+                                minIndexAge:
+                                  description: Minimum age of an index before it is
+                                    rolled over
+                                  pattern: ^[0-9]+(d|h|m|s|ms|micros|nanos)$
+                                  type: string
+                                minSize:
+                                  description: Minimum size of an index before it
+                                    is rolled over e.g., 20mb, 5gb, etc.
+                                  pattern: ^[0-9]+(b|kb|mb|gb|tb|pb)$
+                                  type: string
+                              type: object
+                          required:
+                          - indexPattern
+                          - policyName
                           type: object
                         type: array
                     type: object
@@ -4274,6 +4269,12 @@ spec:
                       enabled:
                         type: boolean
                     type: object
+                  prometheusOperator:
+                    description: PrometheusOperator configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   rancher:
                     description: Rancher configuration
                     properties:
@@ -5984,9 +5985,19 @@ spec:
                         - type
                         type: object
                       type: array
+                    lastReconciledGeneration:
+                      description: The generation of the last VZ resource the Component
+                        was successfully reconciled against
+                      format: int64
+                      type: integer
                     name:
                       description: Name of the component
                       type: string
+                    reconcilingGeneration:
+                      description: The generation of the VZ resource the Component
+                        is currently being reconciled against
+                      format: int64
+                      type: integer
                     state:
                       description: The version of Verrazzano that is installed
                       type: string

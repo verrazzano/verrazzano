@@ -46,11 +46,11 @@ var _ = BeforeSuite(func() {
 		deployBobsBooksExample(namespace)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
-	pkg.Log(pkg.Info, "Container image pull check")
+	t.Logs.Info("Container image pull check")
 	Eventually(func() bool {
 		return pkg.ContainerImagePullWait(namespace, expectedPods)
 	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
-	pkg.Log(pkg.Info, "Bobs Books Application expected pods running check.")
+	t.Logs.Info("Bobs Books Application expected pods running check.")
 	Eventually(func() bool {
 		result, err := pkg.PodsRunning(namespace, expectedPods)
 		if err != nil {
@@ -83,7 +83,7 @@ var _ = t.AfterSuite(func() {
 })
 
 func deployBobsBooksExample(namespace string) {
-	pkg.Log(pkg.Info, "Deploy BobsBooks example")
+	t.Logs.Info("Deploy BobsBooks example")
 	wlsUser := "weblogic"
 	wlsPass := pkg.GetRequiredEnvVarOrFail("WEBLOGIC_PSW")
 	dbPass := pkg.GetRequiredEnvVarOrFail("DATABASE_PSW")
@@ -92,7 +92,7 @@ func deployBobsBooksExample(namespace string) {
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
 
 	start := time.Now()
-	pkg.Log(pkg.Info, "Create namespace")
+	t.Logs.Info("Create namespace")
 	Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
@@ -100,34 +100,34 @@ func deployBobsBooksExample(namespace string) {
 		return pkg.CreateNamespace(namespace, nsLabels)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create Docker repository secret")
+	t.Logs.Info("Create Docker repository secret")
 	Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateDockerSecret(namespace, "bobs-books-repo-credentials", regServ, regUser, regPass)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create Bobbys front end WebLogic credentials secret")
+	t.Logs.Info("Create Bobbys front end WebLogic credentials secret")
 	Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateCredentialsSecret(namespace, "bobbys-front-end-weblogic-credentials", wlsUser, wlsPass, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create Bobs Bookstore WebLogic credentials secret")
+	t.Logs.Info("Create Bobs Bookstore WebLogic credentials secret")
 	Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateCredentialsSecret(namespace, "bobs-bookstore-weblogic-credentials", wlsUser, wlsPass, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create database credentials secret")
+	t.Logs.Info("Create database credentials secret")
 	Eventually(func() (*v1.Secret, error) {
 		m := map[string]string{"password": dbPass, "username": wlsUser, "url": "jdbc:mysql://mysql:3306/books"}
 		return pkg.CreateCredentialsSecretFromMap(namespace, "mysql-credentials", m, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	// Note: creating the app config first to verify that default metrics traits are created properly if the app config exists before the components
-	pkg.Log(pkg.Info, "Create application resources")
+	t.Logs.Info("Create application resources")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/bobs-books/bobs-books-app.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Create component resources")
+	t.Logs.Info("Create component resources")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/bobs-books/bobs-books-comp.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval, "Failed to create Bobs Books component resources").ShouldNot(HaveOccurred())
@@ -135,35 +135,35 @@ func deployBobsBooksExample(namespace string) {
 }
 
 func undeployBobsBooksExample() {
-	pkg.Log(pkg.Info, "Undeploy BobsBooks example")
-	pkg.Log(pkg.Info, "Delete application")
+	t.Logs.Info("Undeploy BobsBooks example")
+	t.Logs.Info("Delete application")
 	start := time.Now()
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/bobs-books/bobs-books-app.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Delete components")
+	t.Logs.Info("Delete components")
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/bobs-books/bobs-books-comp.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Wait for pods to terminate")
+	t.Logs.Info("Wait for pods to terminate")
 	Eventually(func() bool {
 		podsTerminated, _ := pkg.PodsNotRunning(namespace, expectedPods)
 		return podsTerminated
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
-	pkg.Log(pkg.Info, "Delete namespace")
+	t.Logs.Info("Delete namespace")
 	Eventually(func() error {
 		return pkg.DeleteNamespace(namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Wait for namespace finalizer to be removed")
+	t.Logs.Info("Wait for namespace finalizer to be removed")
 	Eventually(func() bool {
 		return pkg.CheckNamespaceFinalizerRemoved(namespace)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
-	pkg.Log(pkg.Info, "Wait for namespace deletion")
+	t.Logs.Info("Wait for namespace deletion")
 	Eventually(func() bool {
 		_, err := pkg.GetNamespace(namespace)
 		return err != nil && errors.IsNotFound(err)

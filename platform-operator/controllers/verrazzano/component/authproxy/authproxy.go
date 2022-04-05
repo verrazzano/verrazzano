@@ -8,15 +8,15 @@ import (
 	"io/fs"
 	"io/ioutil"
 	"os"
-
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	"k8s.io/apimachinery/pkg/types"
+	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/yaml"
 )
 
@@ -40,16 +40,18 @@ func resetWriteFileFunc() {
 // isAuthProxyReady checks if the AuthProxy deployment is ready
 func isAuthProxyReady(ctx spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
-		{Name: ComponentName, Namespace: ComponentNamespace},
+		{
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
+		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
 // AppendOverrides builds the set of verrazzano-authproxy overrides for the helm install
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	effectiveCR := ctx.EffectiveCR()
-
 	// Overrides object to store any user overrides
 	overrides := authProxyValues{}
 
@@ -64,6 +66,19 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		return nil, err
 	}
 	overrides.Config.DNSSuffix = dnsSuffix
+
+	ingressType, err := vzconfig.GetServiceType(effectiveCR)
+	if err != nil {
+		return nil, err
+	}
+	switch ingressType {
+	case vzapi.NodePort:
+		for _, ports := range effectiveCR.Spec.Components.Ingress.Ports {
+			if ports.Port == 443 {
+				dnsSuffix = fmt.Sprintf("%s:%s", dnsSuffix, strconv.Itoa(int(ports.NodePort)))
+			}
+		}
+	}
 
 	overrides.Proxy = &proxyValues{
 		OidcProviderHost:          fmt.Sprintf("keycloak.%s.%s", overrides.Config.EnvName, dnsSuffix),

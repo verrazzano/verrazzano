@@ -48,6 +48,11 @@ CA_SECRET_FILE=${MANAGED_CLUSTER_NAME}.yaml
 TLS_SECRET=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret ${MANAGED_CLUSTER_ENV}-secret -o json | jq -r '.data."ca.crt"')
 if [ ! -z "${TLS_SECRET%%*( )}" ] && [ "null" != "${TLS_SECRET}" ] ; then
   CA_CERT=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret ${MANAGED_CLUSTER_ENV}-secret -o json | jq -r '.data."ca.crt"' | base64 --decode)
+else
+  TLS_SECRET=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret verrazzano-tls -o json | jq -r '.data."ca.crt"')
+  if [ ! -z "${TLS_SECRET%%*( )}" ] && [ "null" != "${TLS_SECRET}" ] ; then
+    CA_CERT=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret verrazzano-tls -o json | jq -r '.data."ca.crt"' | base64 --decode)
+  fi
 fi
 
 if [ ! -z "${CA_CERT}" ] ; then

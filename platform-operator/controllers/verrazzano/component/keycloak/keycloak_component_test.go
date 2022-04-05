@@ -6,6 +6,8 @@ package keycloak
 import (
 	"testing"
 
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -20,6 +22,10 @@ import (
 
 var kcComponent = NewComponent()
 
+// TestIsEnabled tests the Keycloak IsEnabled call
+// GIVEN a Keycloak component
+//  WHEN I call IsEnabled
+//  THEN true is returned unless Keycloak is explicitly disabled
 func TestIsEnabled(t *testing.T) {
 	disabled := false
 	var tests = []struct {
@@ -63,11 +69,15 @@ func TestIsEnabled(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(fake.NewFakeClientWithScheme(k8scheme.Scheme), tt.vz, false)
-			assert.Equal(t, tt.isEnabled, kcComponent.IsEnabled(ctx))
+			assert.Equal(t, tt.isEnabled, kcComponent.IsEnabled(ctx.EffectiveCR()))
 		})
 	}
 }
 
+// TestPreinstall tests the Keycloak PreInstall call
+// GIVEN a Keycloak component
+//  WHEN I call PreInstall
+//  THEN an error is returned unless the post-install validation criteria are met
 func TestPreinstall(t *testing.T) {
 	vzSecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -122,4 +132,99 @@ func TestPreinstall(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestKeycloakComponent_ValidateUpdate tests the Keycloak ValidateUpdate call
+// GIVEN a Keycloak component
+//  WHEN I call ValidateUpdate
+//  THEN an error is returned if the validation is expected to fail
+func TestKeycloakComponent_ValidateUpdate(t *testing.T) {
+	disabled := false
+	tests := []struct {
+		name    string
+		old     *vzapi.Verrazzano
+		new     *vzapi.Verrazzano
+		wantErr bool
+	}{
+		{
+			name: "enable",
+			old: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Keycloak: &vzapi.KeycloakComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			new:     &vzapi.Verrazzano{},
+			wantErr: false,
+		},
+		{
+			name: "disable",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Keycloak: &vzapi.KeycloakComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "disable",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Keycloak: &vzapi.KeycloakComponent{
+							KeycloakInstallArgs: []vzapi.InstallArgs{{Name: "foo", Value: "bar"}},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name:    "no change",
+			old:     &vzapi.Verrazzano{},
+			new:     &vzapi.Verrazzano{},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewComponent()
+			if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+// TestKeycloakComponent_GetCertificateNames tests the Keycloak GetCertificateNames call
+// GIVEN a Keycloak component
+//  WHEN I call GetCertificateNames
+//  THEN the correct number of certificate names are returned based on what is enabled
+func TestKeycloakComponent_GetCertificateNames(t *testing.T) {
+	enabled := true
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			EnvironmentName: "myenv",
+			Components: vzapi.ComponentSpec{
+				Keycloak: &vzapi.KeycloakComponent{
+					Enabled: &enabled,
+				},
+			},
+		},
+	}
+
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	ctx := spi.NewFakeContext(client, vz, false)
+	names := NewComponent().GetCertificateNames(ctx)
+	assert.Len(t, names, 1)
+	assert.Equal(t, types.NamespacedName{Name: keycloakCertificateName, Namespace: ComponentNamespace}, names[0])
 }

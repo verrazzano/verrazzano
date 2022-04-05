@@ -5,17 +5,17 @@ package weblogicworkload
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
-	"github.com/verrazzano/verrazzano/tests/e2e/loggingtrait"
-	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+	"github.com/verrazzano/verrazzano/tests/e2e/loggingtrait"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -56,7 +56,7 @@ var _ = t.AfterSuite(func() {
 })
 
 func deployWebLogicApplication() {
-	pkg.Log(pkg.Info, "Deploy test application")
+	t.Logs.Info("Deploy test application")
 	wlsUser := "weblogic"
 	wlsPass := pkg.GetRequiredEnvVarOrFail("WEBLOGIC_PSW")
 	dbPass := pkg.GetRequiredEnvVarOrFail("DATABASE_PSW")
@@ -64,7 +64,7 @@ func deployWebLogicApplication() {
 	regUser := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_USR")
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
 
-	pkg.Log(pkg.Info, "Create namespace")
+	t.Logs.Info("Create namespace")
 	start := time.Now()
 	Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
@@ -73,37 +73,37 @@ func deployWebLogicApplication() {
 		return pkg.CreateNamespace(namespace, nsLabels)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create Docker repository secret")
+	t.Logs.Info("Create Docker repository secret")
 	Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateDockerSecret(namespace, "tododomain-repo-credentials", regServ, regUser, regPass)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create WebLogic credentials secret")
+	t.Logs.Info("Create WebLogic credentials secret")
 	Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateCredentialsSecret(namespace, "tododomain-weblogic-credentials", wlsUser, wlsPass, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create database credentials secret")
+	t.Logs.Info("Create database credentials secret")
 	Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateCredentialsSecret(namespace, "tododomain-jdbc-tododb", wlsUser, dbPass, map[string]string{"weblogic.domainUID": "cidomain"})
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create encryption credentials secret")
+	t.Logs.Info("Create encryption credentials secret")
 	Eventually(func() (*v1.Secret, error) {
 		return pkg.CreatePasswordSecret(namespace, "tododomain-runtime-encrypt-secret", wlsPass, map[string]string{"weblogic.domainUID": "cidomain"})
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create component resources")
+	t.Logs.Info("Create component resources")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(componentsPath, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Create application resources")
+	t.Logs.Info("Create application resources")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(applicationPath, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Check application pods are running")
+	t.Logs.Info("Check application pods are running")
 	Eventually(func() bool {
 		result, err := pkg.PodsRunning(namespace, []string{"mysql", applicationPodName})
 		if err != nil {
@@ -136,7 +136,7 @@ var _ = t.Describe("Test WebLogic loggingtrait application", Label("f:app-lcm.oa
 			Eventually(func() bool {
 				configMap, err := pkg.GetConfigMap(configMapName, namespace)
 				return (configMap != nil) && (err == nil)
-			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 	})
 })

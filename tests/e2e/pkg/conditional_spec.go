@@ -1,10 +1,12 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package pkg
 
 import (
 	"fmt"
+
 	"github.com/onsi/ginkgo/v2"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 )
 
 // ConditionalCheckFunc Test function for conditional specs
@@ -27,6 +29,11 @@ func ConditionalSpec(description string, skipMessage string, condition Condition
 // MinVersionSpec Executes the specified test spec/func when the Verrazzano version meets the minimum specified version
 func MinVersionSpec(description string, minVersion string, specFunc interface{}) {
 	ConditionalSpec(description, fmt.Sprintf("Min version not met: %s", minVersion), func() (bool, error) {
-		return IsVerrazzanoMinVersion(minVersion)
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			Log(Error, fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+			return false, err
+		}
+		return IsVerrazzanoMinVersion(minVersion, kubeconfigPath)
 	}, specFunc)
 }

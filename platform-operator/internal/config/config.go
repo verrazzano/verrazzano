@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package config
@@ -12,7 +12,6 @@ import (
 const (
 	rootDir                      = "/verrazzano"
 	platformDirSuffix            = "/platform-operator"
-	manifestsDirSuffix           = "/platform-operator/manifests"
 	profilesDirSuffix            = "/platform-operator/manifests/profiles"
 	installDirSuffix             = "/platform-operator/scripts/install"
 	thirdPartyDirSuffix          = "/platform-operator/thirdparty/charts"
@@ -21,6 +20,8 @@ const (
 	helmChartsDirSuffix          = "/platform-operator/helm_config/charts"
 	helmVzChartsDirSuffix        = "/platform-operator/helm_config/charts/verrazzano"
 	helmAppOpChartsDirSuffix     = "/platform-operator/helm_config/charts/verrazzano-application-operator"
+	helmKialiChartsDirSuffix     = "/platform-operator/thirdparty/charts/kiali-server"
+	helmOamChartsDirSuffix       = "/platform-operator/thirdparty/charts/oam-kubernetes-runtime"
 	helmOverridesDirSuffix       = "/platform-operator/helm_config/overrides"
 )
 
@@ -120,6 +121,22 @@ func GetHelmAppOpChartsDir() string {
 	return filepath.Join(instance.VerrazzanoRootDir, helmAppOpChartsDirSuffix)
 }
 
+// GetHelmKialiChartsDir returns the Kiali helm charts dir
+func GetHelmKialiChartsDir() string {
+	if TestHelmConfigDir != "" {
+		return filepath.Join(TestHelmConfigDir, "/charts/kiali-server")
+	}
+	return filepath.Join(instance.VerrazzanoRootDir, helmKialiChartsDirSuffix)
+}
+
+// GetHelmOamChartsDir returns the oam-kubernetes-runtime helm charts dir
+func GetHelmOamChartsDir() string {
+	if TestHelmConfigDir != "" {
+		return filepath.Join(TestHelmConfigDir, "/charts/oam-kubernetes-runtime")
+	}
+	return filepath.Join(instance.VerrazzanoRootDir, helmOamChartsDirSuffix)
+}
+
 // GetHelmOverridesDir returns the helm overrides dir
 func GetHelmOverridesDir() string {
 	if TestHelmConfigDir != "" {
@@ -170,11 +187,6 @@ func GetDefaultBOMFilePath() string {
 		return bomFilePathOverride
 	}
 	return filepath.Join(GetPlatformDir(), defaultBomFilename)
-}
-
-// GetManifestsDir() return the manifests dir
-func GetManifestsDir() string {
-	return filepath.Join(instance.VerrazzanoRootDir, manifestsDirSuffix)
 }
 
 func GetInjectedSystemNamespaces() []string {

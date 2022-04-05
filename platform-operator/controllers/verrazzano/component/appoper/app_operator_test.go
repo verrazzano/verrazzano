@@ -4,19 +4,22 @@
 package appoper
 
 import (
+	"context"
 	"os"
 	"testing"
 
+	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
+	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 )
 
 const testBomFilePath = "../../testdata/test_bom.json"
@@ -32,14 +35,17 @@ func TestAppendAppOperatorOverrides(t *testing.T) {
 
 	const expectedFluentdImage = "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20210517195222-f345ec2"
 	const expectedIstioProxyImage = "ghcr.io/verrazzano/proxyv2:1.7.3"
+	const expectedWeblogicMonitoringExporterImage = "ghcr.io/oracle/weblogic-monitoring-exporter:2.0.4"
 
 	kvs, err := AppendApplicationOperatorOverrides(nil, "", "", "", nil)
 	assert.NoError(err, "AppendApplicationOperatorOverrides returned an error ")
-	assert.Len(kvs, 2, "AppendApplicationOperatorOverrides returned an unexpected number of Key:Value pairs")
+	assert.Len(kvs, 3, "AppendApplicationOperatorOverrides returned an unexpected number of Key:Value pairs")
 	assert.Equalf("fluentdImage", kvs[0].Key, "Did not get expected fluentdImage Key")
 	assert.Equalf(expectedFluentdImage, kvs[0].Value, "Did not get expected fluentdImage Value")
 	assert.Equalf("istioProxyImage", kvs[1].Key, "Did not get expected istioProxyImage Key")
 	assert.Equalf(expectedIstioProxyImage, kvs[1].Value, "Did not get expected istioProxyImage Value")
+	assert.Equalf("weblogicMonitoringExporterImage", kvs[2].Key, "Did not get expected weblogicMonitoringExporterImage Key")
+	assert.Equalf(expectedWeblogicMonitoringExporterImage, kvs[2].Value, "Did not get expected weblogicMonitoringExporterImage Value")
 
 	customImage := "myreg.io/myrepo/v8o/verrazzano-application-operator-dev:local-20210707002801-b7449154"
 	os.Setenv(constants.VerrazzanoAppOperatorImageEnvVar, customImage)
@@ -47,13 +53,15 @@ func TestAppendAppOperatorOverrides(t *testing.T) {
 
 	kvs, err = AppendApplicationOperatorOverrides(nil, "", "", "", nil)
 	assert.NoError(err, "AppendApplicationOperatorOverrides returned an error ")
-	assert.Len(kvs, 3, "AppendApplicationOperatorOverrides returned wrong number of Key:Value pairs")
+	assert.Len(kvs, 4, "AppendApplicationOperatorOverrides returned wrong number of Key:Value pairs")
 	assert.Equalf("image", kvs[0].Key, "Did not get expected image Key")
 	assert.Equalf(customImage, kvs[0].Value, "Did not get expected image Value")
 	assert.Equalf("fluentdImage", kvs[1].Key, "Did not get expected fluentdImage Key")
 	assert.Equalf(expectedFluentdImage, kvs[1].Value, "Did not get expected fluentdImage Value")
 	assert.Equalf("istioProxyImage", kvs[2].Key, "Did not get expected istioProxyImage Key")
 	assert.Equalf(expectedIstioProxyImage, kvs[2].Value, "Did not get expected istioProxyImage Value")
+	assert.Equalf("weblogicMonitoringExporterImage", kvs[3].Key, "Did not get expected weblogicMonitoringExporterImage Key")
+	assert.Equalf(expectedWeblogicMonitoringExporterImage, kvs[3].Value, "Did not get expected weblogicMonitoringExporterImage Value")
 }
 
 // TestIsApplicationOperatorReady tests the isApplicationOperatorReady function
@@ -66,12 +74,12 @@ func TestIsApplicationOperatorReady(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: constants.VerrazzanoSystemNamespace,
 			Name:      "verrazzano-application-operator",
+			Labels:    map[string]string{"app": ComponentName},
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   1,
 		},
 	})
 	assert.True(t, isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, false)))
@@ -89,41 +97,120 @@ func TestIsApplicationOperatorNotReady(t *testing.T) {
 			Name:      "verrazzano-application-operator",
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       0,
-			AvailableReplicas:   0,
-			UnavailableReplicas: 1,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   0,
 		},
 	})
 	assert.False(t, isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
-//  TestIsApplyCRDYamlValid tests the ApplyCRDYaml function
-//  GIVEN a call to ApplyCRDYaml
-//  WHEN the yaml is valid
-//  THEN no error is returned
-func TestIsApplyCRDYamlValid(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	config.TestHelmConfigDir = "../../../../helm_config"
-	assert.Nil(t, ApplyCRDYaml(nil, fakeClient, "", "", ""))
+// TestLabelAnnotateTraitDefinitions tests the labelAnnotateTraitDefinitions function
+// GIVEN a call to labelAnnotateTraitDefinitions
+// WHEN trait definitions do not have expected Helm label/annotations
+// THEN the trait definitions are updated with the expected Helm label/annotations
+func TestLabelAnnotateTraitDefinitions(t *testing.T) {
+	scheme := runtime.NewScheme()
+	oam.AddToScheme(scheme)
+
+	fakeClient := fake.NewFakeClientWithScheme(scheme,
+		&oamv1alpha2.TraitDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "ingresstraits.oam.verrazzano.io",
+			},
+		},
+		&oamv1alpha2.TraitDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "loggingtraits.oam.verrazzano.io",
+			},
+		},
+		&oamv1alpha2.TraitDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "metricstraits.oam.verrazzano.io",
+			},
+		},
+	)
+	assert.NoError(t, labelAnnotateTraitDefinitions(fakeClient))
+	trait := oamv1alpha2.TraitDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "ingresstraits.oam.verrazzano.io"}, &trait))
+	checkTraitDefinition(t, &trait)
+	trait = oamv1alpha2.TraitDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "loggingtraits.oam.verrazzano.io"}, &trait))
+	checkTraitDefinition(t, &trait)
+	trait = oamv1alpha2.TraitDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "metricstraits.oam.verrazzano.io"}, &trait))
+	checkTraitDefinition(t, &trait)
 }
 
-//  TestIsApplyCRDYamlInvalidPath tests the ApplyCRDYaml function
-//  GIVEN a call to ApplyCRDYaml
-//  WHEN the path is invalid
-//  THEN an appropriate error is returned
-func TestIsApplyCRDYamlInvalidPath(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	config.TestHelmConfigDir = "./testdata"
-	assert.Error(t, ApplyCRDYaml(nil, fakeClient, "", "", ""))
+// TestLabelAnnotateWorkloadDefinitions tests the labelAnnotateWorkloadDefinitions function
+// GIVEN a call to labelAnnotateWorkloadDefinitions
+// WHEN workload definitions do not have expected Helm label/annotations
+// THEN the workload definitions are updated with the expected Helm label/annotations
+func TestLabelAnnotateWorkloadDefinitions(t *testing.T) {
+	scheme := runtime.NewScheme()
+	oam.AddToScheme(scheme)
+
+	fakeClient := fake.NewFakeClientWithScheme(scheme,
+		&oamv1alpha2.WorkloadDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "coherences.coherence.oracle.com",
+			},
+		},
+		&oamv1alpha2.WorkloadDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "deployments.apps",
+			},
+		},
+		&oamv1alpha2.WorkloadDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "domains.weblogic.oracle",
+			},
+		},
+		&oamv1alpha2.WorkloadDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "verrazzanocoherenceworkloads.oam.verrazzano.io",
+			},
+		},
+		&oamv1alpha2.WorkloadDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "verrazzanohelidonworkloads.oam.verrazzano.io",
+			},
+		},
+		&oamv1alpha2.WorkloadDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "verrazzanoweblogicworkloads.oam.verrazzano.io",
+			},
+		},
+	)
+	assert.NoError(t, labelAnnotateWorkloadDefinitions(fakeClient))
+	workload := oamv1alpha2.WorkloadDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "coherences.coherence.oracle.com"}, &workload))
+	checkWorkloadDefinition(t, &workload)
+	workload = oamv1alpha2.WorkloadDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "deployments.apps"}, &workload))
+	checkWorkloadDefinition(t, &workload)
+	workload = oamv1alpha2.WorkloadDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "domains.weblogic.oracle"}, &workload))
+	checkWorkloadDefinition(t, &workload)
+	workload = oamv1alpha2.WorkloadDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "verrazzanocoherenceworkloads.oam.verrazzano.io"}, &workload))
+	checkWorkloadDefinition(t, &workload)
+	workload = oamv1alpha2.WorkloadDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "verrazzanohelidonworkloads.oam.verrazzano.io"}, &workload))
+	checkWorkloadDefinition(t, &workload)
+	workload = oamv1alpha2.WorkloadDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "verrazzanoweblogicworkloads.oam.verrazzano.io"}, &workload))
+	checkWorkloadDefinition(t, &workload)
 }
 
-//  TestIsApplyCRDYamlInvalidChart tests the ApplyCRDYaml function
-//  GIVEN a call to ApplyCRDYaml
-//  WHEN the yaml is invalid
-//  THEN an appropriate error is returned
-func TestIsApplyCRDYamlInvalidChart(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	config.TestHelmConfigDir = "invalidPath"
-	assert.Error(t, ApplyCRDYaml(nil, fakeClient, "", "", ""))
+func checkTraitDefinition(t *testing.T, trait *oamv1alpha2.TraitDefinition) {
+	assert.Contains(t, trait.Labels[helmManagedByLabel], "Helm")
+	assert.Contains(t, trait.Annotations[helmReleaseNameAnnotation], ComponentName)
+	assert.Contains(t, trait.Annotations[helmReleaseNamespaceAnnotation], ComponentNamespace)
+}
+
+func checkWorkloadDefinition(t *testing.T, trait *oamv1alpha2.WorkloadDefinition) {
+	assert.Contains(t, trait.Labels[helmManagedByLabel], "Helm")
+	assert.Contains(t, trait.Annotations[helmReleaseNameAnnotation], ComponentName)
+	assert.Contains(t, trait.Annotations[helmReleaseNamespaceAnnotation], ComponentNamespace)
 }

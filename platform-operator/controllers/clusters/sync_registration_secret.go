@@ -10,7 +10,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	clusterapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
 	k8net "k8s.io/api/networking/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -88,7 +87,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	}
 
 	// Get the CA bundle needed to connect to the admin keycloak
-	adminCaBundle, err := r.getAdminCaBundle(getTLSSecretName(&vzList))
+	adminCaBundle, err := r.getAdminCaBundle()
 	if err != nil {
 		return err
 	}
@@ -198,9 +197,9 @@ func (r *VerrazzanoManagedClusterReconciler) getSecret(namespace string, secretN
 }
 
 // Get the CA bundle used by verrazzano ingress and the optional rancher-ca-additional secret
-func (r *VerrazzanoManagedClusterReconciler) getAdminCaBundle(secretName string) ([]byte, error) {
+func (r *VerrazzanoManagedClusterReconciler) getAdminCaBundle() ([]byte, error) {
 	var caBundle []byte
-	secret, err := r.getSecret(constants.VerrazzanoSystemNamespace, secretName, true)
+	secret, err := r.getSecret(constants.VerrazzanoSystemNamespace, "verrazzano-tls", true)
 	if err != nil {
 		return nil, err
 	}
@@ -229,18 +228,4 @@ func (r *VerrazzanoManagedClusterReconciler) getKeycloakURL() (string, error) {
 		return "", fmt.Errorf("unable to fetch ingress %s/%s, %v", "keycloak", "keycloak", err)
 	}
 	return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host), nil
-}
-
-// getTLSSecretName returns expected TLS secret name
-func getTLSSecretName(vzList *vzapi.VerrazzanoList) string {
-	return fmt.Sprintf("%s-secret", getEnvironmentName(vzList.Items[0].Spec.EnvironmentName))
-}
-
-// getEnvironmentName returns the name of the Verrazzano install environment
-func getEnvironmentName(envName string) string {
-	if envName == "" {
-		return vpoconstants.DefaultEnvironmentName
-	}
-
-	return envName
 }

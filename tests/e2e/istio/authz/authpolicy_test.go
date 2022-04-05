@@ -70,29 +70,29 @@ var _ = t.AfterSuite(func() {
 })
 
 func deployFooApplication() {
-	pkg.Log(pkg.Info, "Deploy Auth Policy Application in foo namespace")
+	t.Logs.Info("Deploy Auth Policy Application in foo namespace")
 
-	pkg.Log(pkg.Info, "Create namespace")
+	t.Logs.Info("Create namespace")
 	Eventually(func() (*v1.Namespace, error) {
 		return pkg.CreateNamespace(fooNamespace, map[string]string{"verrazzano-managed": "true", "istio-injection": "enabled"})
 	}, waitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create AuthPolicy App resources")
+	t.Logs.Info("Create AuthPolicy App resources")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/istio-securitytest-app.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Create Sleep Component")
+	t.Logs.Info("Create Sleep Component")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/sleep-comp.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Create Backend Component")
+	t.Logs.Info("Create Backend Component")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/springboot-backend.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Create Frontend Component")
+	t.Logs.Info("Create Frontend Component")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/springboot-frontend.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
@@ -100,29 +100,29 @@ func deployFooApplication() {
 }
 
 func deployBarApplication() {
-	pkg.Log(pkg.Info, "Deploy Auth Policy Application in bar namespace")
+	t.Logs.Info("Deploy Auth Policy Application in bar namespace")
 
-	pkg.Log(pkg.Info, "Create namespace")
+	t.Logs.Info("Create namespace")
 	Eventually(func() (*v1.Namespace, error) {
 		return pkg.CreateNamespace(barNamespace, map[string]string{"verrazzano-managed": "true", "istio-injection": "enabled"})
 	}, waitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create AuthPolicy App resources")
+	t.Logs.Info("Create AuthPolicy App resources")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/istio-securitytest-app.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Create Sleep Component")
+	t.Logs.Info("Create Sleep Component")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/sleep-comp.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Create Backend Component")
+	t.Logs.Info("Create Backend Component")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/springboot-backend.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Create Frontend Component")
+	t.Logs.Info("Create Frontend Component")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/springboot-frontend.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
@@ -130,29 +130,29 @@ func deployBarApplication() {
 }
 
 func deployNoIstioApplication() {
-	pkg.Log(pkg.Info, "Deploy Auth Policy Application in NoIstio namespace")
+	t.Logs.Info("Deploy Auth Policy Application in NoIstio namespace")
 
-	pkg.Log(pkg.Info, "Create namespace")
+	t.Logs.Info("Create namespace")
 	Eventually(func() (*v1.Namespace, error) {
 		return pkg.CreateNamespace(noIstioNamespace, map[string]string{"verrazzano-managed": "true"})
 	}, waitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create AuthPolicy App resources")
+	t.Logs.Info("Create AuthPolicy App resources")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/istio-securitytest-app.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Create Sleep Component")
+	t.Logs.Info("Create Sleep Component")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/sleep-comp.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Create Backend Component")
+	t.Logs.Info("Create Backend Component")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/springboot-backend.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Create Frontend Component")
+	t.Logs.Info("Create Frontend Component")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/springboot-frontend.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
@@ -160,13 +160,14 @@ func deployNoIstioApplication() {
 }
 
 func undeployFooApplication() {
-	pkg.Log(pkg.Info, "Undeploy Auth Policy Application in foo namespace")
-	pkg.Log(pkg.Info, "Delete application")
+	t.Logs.Info("Undeploy Auth Policy Application in foo namespace")
+
+	t.Logs.Info("Delete application")
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/foo/istio-securitytest-app.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Delete components")
+	t.Logs.Info("Delete components")
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/foo/sleep-comp.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
@@ -183,7 +184,7 @@ func undeployFooApplication() {
 		return pkg.PodsNotRunning(fooNamespace, expectedPodsFoo)
 	}, waitTimeout, shortPollingInterval).Should(BeTrue(), fmt.Sprintf("Pods in namespace %s stuck terminating!", fooNamespace))
 
-	pkg.Log(pkg.Info, "Delete namespace")
+	t.Logs.Info("Delete namespace")
 	Eventually(func() error {
 		return pkg.DeleteNamespace(fooNamespace)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
@@ -195,13 +196,14 @@ func undeployFooApplication() {
 }
 
 func undeployBarApplication() {
-	pkg.Log(pkg.Info, "Undeploy Auth Policy Application in bar namespace")
-	pkg.Log(pkg.Info, "Delete application")
+	t.Logs.Info("Undeploy Auth Policy Application in bar namespace")
+
+	t.Logs.Info("Delete application")
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/bar/istio-securitytest-app.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Delete components")
+	t.Logs.Info("Delete components")
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/bar/sleep-comp.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
@@ -218,7 +220,7 @@ func undeployBarApplication() {
 		return pkg.PodsNotRunning(barNamespace, expectedPodsBar)
 	}, waitTimeout, shortPollingInterval).Should(BeTrue(), fmt.Sprintf("Pods in namespace %s stuck terminating!", barNamespace))
 
-	pkg.Log(pkg.Info, "Delete namespace")
+	t.Logs.Info("Delete namespace")
 	Eventually(func() error {
 		return pkg.DeleteNamespace(barNamespace)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
@@ -230,13 +232,14 @@ func undeployBarApplication() {
 }
 
 func undeployNoIstioApplication() {
-	pkg.Log(pkg.Info, "Undeploy Auth Policy Application in noistio namespace")
-	pkg.Log(pkg.Info, "Delete application")
+	t.Logs.Info("Undeploy Auth Policy Application in noistio namespace")
+
+	t.Logs.Info("Delete application")
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/istio-securitytest-app.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Delete components")
+	t.Logs.Info("Delete components")
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/sleep-comp.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
@@ -253,7 +256,7 @@ func undeployNoIstioApplication() {
 		return pkg.PodsNotRunning(noIstioNamespace, expectedPodsBar)
 	}, waitTimeout, shortPollingInterval).Should(BeTrue(), fmt.Sprintf("Pods in namespace %s stuck terminating!", noIstioNamespace))
 
-	pkg.Log(pkg.Info, "Delete namespace")
+	t.Logs.Info("Delete namespace")
 	Eventually(func() error {
 		return pkg.DeleteNamespace(noIstioNamespace)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
@@ -322,7 +325,7 @@ var _ = t.Describe("AuthPolicy test,", Label("f:security.authpol",
 	// THEN the application endpoint must be accessible
 	t.It("Verify welcome page of Foo Spring Boot FrontEnd is working.", func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
-			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", fooHost))
+			t.Logs.Infof("Ingress: %s", fooHost)
 			url := fmt.Sprintf("https://%s/", fooHost)
 			return pkg.GetWebPage(url, fooHost)
 		}, waitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("Greetings from Verrazzano Enterprise Container Platform")))
@@ -334,7 +337,7 @@ var _ = t.Describe("AuthPolicy test,", Label("f:security.authpol",
 	// THEN the application endpoint must be accessible
 	t.It("Verify welcome page of Bar Spring Boot FrontEnd is working.", func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
-			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", barHost))
+			t.Logs.Infof("Ingress: %s", barHost)
 			url := fmt.Sprintf("https://%s/", barHost)
 			return pkg.GetWebPage(url, barHost)
 		}, waitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("Greetings from Verrazzano Enterprise Container Platform")))
@@ -346,7 +349,7 @@ var _ = t.Describe("AuthPolicy test,", Label("f:security.authpol",
 	// THEN the application endpoint must be accessible
 	t.It("Verify welcome page of NoIstio Spring Boot FrontEnd is working.", func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
-			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", noIstioHost))
+			t.Logs.Infof("Ingress: %s", noIstioHost)
 			url := fmt.Sprintf("https://%s/", noIstioHost)
 			return pkg.GetWebPage(url, noIstioHost)
 		}, waitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("Greetings from Verrazzano Enterprise Container Platform")))
@@ -359,7 +362,7 @@ var _ = t.Describe("AuthPolicy test,", Label("f:security.authpol",
 	// the http code is returned in the response body and captured in content
 	t.It("Verify Foo Frontend can call Foo Backend.", func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
-			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", fooHost))
+			t.Logs.Infof("Ingress: %s", fooHost)
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.foo:8080/", fooHost)
 			return pkg.GetWebPage(url, fooHost)
 		}, waitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyEquals("200")))
@@ -372,7 +375,7 @@ var _ = t.Describe("AuthPolicy test,", Label("f:security.authpol",
 	// the http code is returned in the response body and captured in content
 	t.It("Verify Bar Frontend can call Bar Backend.", func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
-			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", barHost))
+			t.Logs.Infof("Ingress: %s", barHost)
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.bar:8080/", barHost)
 			return pkg.GetWebPage(url, barHost)
 		}, waitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyEquals("200")))
@@ -385,7 +388,7 @@ var _ = t.Describe("AuthPolicy test,", Label("f:security.authpol",
 	// the http code is returned in the response body and captured in content
 	t.It("Verify Foo Frontend canNOT call Bar Backend.", func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
-			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", fooHost))
+			t.Logs.Infof("Ingress: %s", fooHost)
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.bar:8080/", fooHost)
 			return pkg.GetWebPage(url, fooHost)
 		}, waitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyEquals("403")))
@@ -398,7 +401,7 @@ var _ = t.Describe("AuthPolicy test,", Label("f:security.authpol",
 	// the http code is returned in the response body and captured in content
 	t.It("Verify Bar Frontend canNOT call Foo Backend.", func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
-			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", barHost))
+			t.Logs.Infof("Ingress: %s", barHost)
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.foo:8080/", barHost)
 			return pkg.GetWebPage(url, barHost)
 		}, waitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyEquals("403")))
@@ -411,7 +414,7 @@ var _ = t.Describe("AuthPolicy test,", Label("f:security.authpol",
 	// the http code is returned in the response body and captured in content
 	t.It("Verify Bar Frontend can call NoIstio Backend.", func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
-			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", barHost))
+			t.Logs.Infof("Ingress: %s", barHost)
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.noistio:8080/", barHost)
 			return pkg.GetWebPage(url, barHost)
 		}, waitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyEquals("200")))
@@ -428,16 +431,16 @@ var _ = t.Describe("AuthPolicy test,", Label("f:security.authpol",
 		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() bool {
-			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", noIstioHost))
+			t.Logs.Infof("Ingress: %s", noIstioHost)
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.bar:8080/", noIstioHost)
 			client, err := pkg.GetVerrazzanoNoRetryHTTPClient(kubeconfigPath)
 			if err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf("Failed to get client: %v", err))
+				t.Logs.Errorf("Failed to get client: %v", err)
 				return false
 			}
 			req, err := http.NewRequest("GET", url, nil)
 			if err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf("Failed to create http request: %v", err))
+				t.Logs.Errorf("Failed to create http request: %v", err)
 				return false
 			}
 			req.Host = noIstioHost
@@ -449,7 +452,7 @@ var _ = t.Describe("AuthPolicy test,", Label("f:security.authpol",
 			resp, err := client.Do(req)
 			if err != nil {
 				// could be a transient network error so log it and let the Eventually retry
-				pkg.Log(pkg.Error, fmt.Sprintf("Failed to do http request: %v", err))
+				t.Logs.Errorf("Failed to do http request: %v", err)
 				return false
 			}
 			return resp.StatusCode == 500

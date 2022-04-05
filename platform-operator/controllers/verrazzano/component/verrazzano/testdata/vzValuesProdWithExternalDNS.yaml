@@ -15,3 +15,5 @@ rancher:
   enabled: true
 verrazzanoOperator:
   enabled: true
+prometheusOperator:
+  enabled: true

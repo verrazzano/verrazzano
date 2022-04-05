@@ -55,7 +55,7 @@ spec:
                 items:
                   - key: ca.crt
                     path: default-ca-bundle
-                name:  {{ .Values.config.envName }}-secret
+                name:  verrazzano-tls
                 optional: true
             - secret:
                 name: verrazzano-cluster-registration
@@ -116,7 +116,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   ports:
-  - name: api
+  - name: http-api
     port: {{ .Values.port }}
     protocol: TCP
     targetPort: {{ .Values.port }}
@@ -130,7 +130,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   ports:
-    - name: auth-proxy
+    - name: http-authproxy
       port: {{ .Values.port }}
       protocol: TCP
       targetPort: {{ .Values.port }}

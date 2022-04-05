@@ -50,4 +50,4 @@ spec:
   tls:
     - hosts:
         - verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
-      secretName: {{ .Values.config.envName }}-secret
+      secretName: verrazzano-tls

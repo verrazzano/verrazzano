@@ -81,6 +81,7 @@ pipeline {
                                 booleanParam(name: 'TEST_RUN', value: params.TEST_RUN),
                                 string(name: 'TARGET_VERSION', value: VERRAZZANO_DEV_VERSION),
                                 string(name: 'IMAGES_TO_PUBLISH_OBJECT_STORE_FILE', value: IMAGES_TO_PUBLISH_OBJECT_STORE_FILE),
+                                booleanParam(name: 'COPY_PRODUCT_ZIP_FROM_PERIODIC', value: true),
                                 booleanParam(name: 'IGNORE_PRE_RELEASE_VALIDATION_FAILURES', value: params.IGNORE_PRE_RELEASE_VALIDATION_FAILURES)
                         ], wait: true
             }

@@ -6,11 +6,12 @@ package install
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -48,16 +49,16 @@ var _ = t.Describe("Verify Verrazzano install scripts.", Label("f:platform-lcm.i
 func validateConsoleUrlsCluster(kubeconfig string) bool {
 	consoleUrls, err := getConsoleURLsFromResource(kubeconfig)
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("There is an error getting console URLs from the installed Verrazzano resource - %v", err))
+		t.Logs.Errorf("There is an error getting console URLs from the installed Verrazzano resource - %v", err)
 		return false
 	}
 	expectedConsoleUrls, err := getExpectedConsoleURLs(kubeconfig)
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("There is an error getting console URLs from ingress resources - %v", err))
+		t.Logs.Errorf("There is an error getting console URLs from ingress resources - %v", err)
 		return false
 	}
-	pkg.Log(pkg.Info, fmt.Sprintf("Expected URLs based on ingresses: %v", expectedConsoleUrls))
-	pkg.Log(pkg.Info, fmt.Sprintf("Actual URLs in Verrazzano resource: %v", consoleUrls))
+	t.Logs.Infof("Expected URLs based on ingresses: %v", expectedConsoleUrls)
+	t.Logs.Infof("Actual URLs in Verrazzano resource: %v", consoleUrls)
 
 	return pkg.SlicesContainSameStrings(consoleUrls, expectedConsoleUrls)
 }
@@ -134,7 +135,7 @@ func isConsoleIngressHost(ingressHost string) bool {
 // isConsoleURLExpected - Returns true in VZ < 1.1.1. For VZ >= 1.1.1, returns false only if explicitly disabled
 // in the CR or when managed cluster profile is used
 func isConsoleURLExpected(kubeconfigPath string) (bool, error) {
-	isAtleastVz111, err := pkg.IsVerrazzanoMinVersion("1.1.1")
+	isAtleastVz111, err := pkg.IsVerrazzanoMinVersion("1.1.1", kubeconfigPath)
 	if err != nil {
 		return false, err
 	}

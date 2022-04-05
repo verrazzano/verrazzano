@@ -9,14 +9,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"io"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
 
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
@@ -26,7 +28,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -52,6 +53,13 @@ const (
 
 	clusterResourceNamespaceKey = "clusterResourceNamespace"
 )
+
+// Template for ClusterIssuer for looking up Acme certificates for controllerutil.CreateOrUpdate
+const clusterIssuerLookupTemplate = `
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: verrazzano-cluster-issuer`
 
 // Template for ClusterIssuer for Acme certificates
 const clusterIssuerTemplate = `
@@ -125,57 +133,20 @@ func setBashFunc(f bashFuncSig) {
 	bashFunc = f
 }
 
-// PreInstall runs before cert-manager components are installed
-// The cert-manager namespace is created
-// The cert-manager manifest is patched if needed and applied to create necessary CRDs
-func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error {
-	// If it is a dry-run, do nothing
-	if compContext.IsDryRun() {
-		compContext.Log().Debug("cert-manager PreInstall dry run")
-		return nil
-	}
-
-	// create cert-manager namespace
-	compContext.Log().Debug("Adding label needed by network policies to cert-manager namespace")
-	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ComponentNamespace}}
-	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &ns, func() error {
-		return nil
-	}); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to create or update the cert-manager namespace: %v", err)
-	}
-
-	// Apply the cert-manager manifest, patching if needed
-	compContext.Log().Debug("Applying cert-manager crds")
-	err := c.applyManifest(compContext)
-	if err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to apply the cert-manager manifest: %v", err)
-	}
-	return nil
-}
-
-// PostInstall applies necessary cert-manager resources after the install has occurred
-// In the case of an Acme cert, we install Acme resources
-// In the case of a CA cert, we install CA resources
-func (c certManagerComponent) PostInstall(compContext spi.ComponentContext) error {
-	// If it is a dry-run, do nothing
-	if compContext.IsDryRun() {
-		compContext.Log().Debug("cert-manager PostInstall dry run")
-		return nil
-	}
-
+func (c certManagerComponent) createOrUpdateClusterIssuer(compContext spi.ComponentContext) error {
 	isCAValue, err := isCA(compContext)
 	if err != nil {
 		return compContext.Log().ErrorfNewErr("Failed to verify the config type: %v", err)
 	}
 	if !isCAValue {
 		// Create resources needed for Acme certificates
-		err := createAcmeResources(compContext)
+		err := createOrUpdateAcmeResources(compContext)
 		if err != nil {
 			return compContext.Log().ErrorfNewErr("Failed creating Acme resources: %v", err)
 		}
 	} else {
 		// Create resources needed for CA certificates
-		err := createCAResources(compContext)
+		err := createOrUpdateCAResources(compContext)
 		if err != nil {
 			return compContext.Log().ErrorfNewErr("Failed creating CA resources: %v", err)
 		}
@@ -239,12 +210,21 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 // isCertManagerReady checks the state of the expected cert-manager deployments and returns true if they are in a ready state
 func isCertManagerReady(context spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
-		{Name: certManagerDeploymentName, Namespace: ComponentNamespace},
-		{Name: cainjectorDeploymentName, Namespace: ComponentNamespace},
-		{Name: webhookDeploymentName, Namespace: ComponentNamespace},
+		{
+			Name:      certManagerDeploymentName,
+			Namespace: ComponentNamespace,
+		},
+		{
+			Name:      cainjectorDeploymentName,
+			Namespace: ComponentNamespace,
+		},
+		{
+			Name:      webhookDeploymentName,
+			Namespace: ComponentNamespace,
+		},
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
-	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1, prefix)
+	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
 //writeCRD writes out CertManager CRD manifests with OCI DNS specifications added
@@ -341,8 +321,30 @@ func isLetsEncryptStaging(compContext spi.ComponentContext) bool {
 	return acmeEnvironment != "" && acmeEnvironment != "production"
 }
 
-// createAcmeResources creates all of the post install resources necessary for cert-manager
-func createAcmeResources(compContext spi.ComponentContext) error {
+// createOrUpdateAcmeResources creates all of the post install resources necessary for cert-manager
+func createOrUpdateAcmeResources(compContext spi.ComponentContext) error {
+	// Create a lookup object
+	getCIObject, err := createAcmeCusterIssuerLookupObject(compContext.Log())
+	if err != nil {
+		return err
+	}
+	// Update or create the unstructured object
+	compContext.Log().Debug("Applying ClusterIssuer with OCI DNS")
+	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), getCIObject, func() error {
+		ciObject, err := createACMEIssuerObject(compContext)
+		if err != nil {
+			return err
+		}
+		getCIObject.Object["spec"] = ciObject.Object["spec"]
+		return nil
+	}); err != nil {
+		return compContext.Log().ErrorfNewErr("Failed to create or update the ClusterIssuer: %v", err)
+	}
+	// TODO: renew all certificates if operation == controllerutil.OperationResultUpdated
+	return nil
+}
+
+func createACMEIssuerObject(compContext spi.ComponentContext) (*unstructured.Unstructured, error) {
 	// Initialize Acme variables for the cluster issuer
 	var ociDNSConfigSecret string
 	var ociDNSZoneName string
@@ -352,13 +354,13 @@ func createAcmeResources(compContext spi.ComponentContext) error {
 		ociDNSConfigSecret = vzDNS.OCI.OCIConfigSecret
 		ociDNSZoneName = vzDNS.OCI.DNSZoneName
 	}
-	emailAddress := vzCertAcme.EmailAddress
-
 	// Verify that the secret exists
 	secret := v1.Secret{}
 	if err := compContext.Client().Get(context.TODO(), client.ObjectKey{Name: ociDNSConfigSecret, Namespace: ComponentNamespace}, &secret); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to retrieve the OCI DNS config secret: %v", err)
+		return nil, compContext.Log().ErrorfNewErr("Failed to retrieve the OCI DNS config secret: %v", err)
 	}
+
+	emailAddress := vzCertAcme.EmailAddress
 
 	// Verify the acme environment and set the server
 	acmeServer := letsEncryptProd
@@ -367,7 +369,6 @@ func createAcmeResources(compContext spi.ComponentContext) error {
 	}
 
 	// Create the buffer and the cluster issuer data struct
-	var buff bytes.Buffer
 	clusterIssuerData := templateData{
 		Email:       emailAddress,
 		Server:      acmeServer,
@@ -375,35 +376,41 @@ func createAcmeResources(compContext spi.ComponentContext) error {
 		OCIZoneName: ociDNSZoneName,
 	}
 
+	ciObject, err := createAcmeClusterIssuer(compContext.Log(), clusterIssuerData)
+	return ciObject, err
+}
+
+func createAcmeClusterIssuer(log vzlog.VerrazzanoLogger, clusterIssuerData templateData) (*unstructured.Unstructured, error) {
+	var buff bytes.Buffer
 	// Parse the template string and create the template object
 	template, err := template.New("clusterIssuer").Parse(clusterIssuerTemplate)
 	if err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to parse the ClusterIssuer yaml template: %v", err)
+		return nil, log.ErrorfNewErr("Failed to parse the ClusterIssuer yaml template: %v", err)
 	}
 
 	// Execute the template object with the given data
 	err = template.Execute(&buff, &clusterIssuerData)
 	if err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to execute the ClusterIssuer template: %v", err)
+		return nil, log.ErrorfNewErr("Failed to execute the ClusterIssuer template: %v", err)
 	}
 
 	// Create an unstructured object from the template output
 	ciObject := &unstructured.Unstructured{Object: map[string]interface{}{}}
 	if err := yaml.Unmarshal(buff.Bytes(), ciObject); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to unmarshal yaml: %v", err)
+		return nil, log.ErrorfNewErr("Failed to unmarshal yaml: %v", err)
 	}
-
-	// Update or create the unstructured object
-	compContext.Log().Debug("Applying ClusterIssuer with OCI DNS")
-	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), ciObject, func() error {
-		return nil
-	}); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to create or update the ClusterIssuer: %v", err)
-	}
-	return nil
+	return ciObject, nil
 }
 
-func createCAResources(compContext spi.ComponentContext) error {
+func createAcmeCusterIssuerLookupObject(log vzlog.VerrazzanoLogger) (*unstructured.Unstructured, error) {
+	ciObject := &unstructured.Unstructured{Object: map[string]interface{}{}}
+	if err := yaml.Unmarshal([]byte(clusterIssuerLookupTemplate), ciObject); err != nil {
+		return nil, log.ErrorfNewErr("Failed to unmarshal yaml: %v", err)
+	}
+	return ciObject, nil
+
+}
+func createOrUpdateCAResources(compContext spi.ComponentContext) error {
 	vzCertCA := compContext.EffectiveCR().Spec.Components.CertManager.Certificate.CA
 
 	// if the CA cert secret does not exist, create the Issuer and Certificate resources
@@ -417,14 +424,13 @@ func createCAResources(compContext spi.ComponentContext) error {
 				Name:      caSelfSignedIssuerName,
 				Namespace: vzCertCA.ClusterResourceNamespace,
 			},
-			Spec: certv1.IssuerSpec{
+		}
+		if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &issuer, func() error {
+			issuer.Spec = certv1.IssuerSpec{
 				IssuerConfig: certv1.IssuerConfig{
 					SelfSigned: &certv1.SelfSignedIssuer{},
 				},
-			},
-			Status: certv1.IssuerStatus{},
-		}
-		if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &issuer, func() error {
+			}
 			return nil
 		}); err != nil {
 			return compContext.Log().ErrorfNewErr("Failed to create or update the Issuer: %v", err)
@@ -437,7 +443,9 @@ func createCAResources(compContext spi.ComponentContext) error {
 				Name:      caCertificateName,
 				Namespace: vzCertCA.ClusterResourceNamespace,
 			},
-			Spec: certv1.CertificateSpec{
+		}
+		if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &certObject, func() error {
+			certObject.Spec = certv1.CertificateSpec{
 				SecretName: vzCertCA.SecretName,
 				CommonName: caCertCommonName,
 				IsCA:       true,
@@ -445,9 +453,7 @@ func createCAResources(compContext spi.ComponentContext) error {
 					Name: issuer.Name,
 					Kind: issuer.Kind,
 				},
-			},
-		}
-		if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &certObject, func() error {
+			}
 			return nil
 		}); err != nil {
 			return compContext.Log().ErrorfNewErr("Failed to create or update the Certificate: %v", err)
@@ -460,15 +466,15 @@ func createCAResources(compContext spi.ComponentContext) error {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: caClusterIssuerName,
 		},
-		Spec: certv1.IssuerSpec{
+	}
+	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &clusterIssuer, func() error {
+		clusterIssuer.Spec = certv1.IssuerSpec{
 			IssuerConfig: certv1.IssuerConfig{
 				CA: &certv1.CAIssuer{
 					SecretName: vzCertCA.SecretName,
 				},
 			},
-		},
-	}
-	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &clusterIssuer, func() error {
+		}
 		return nil
 	}); err != nil {
 		return compContext.Log().ErrorfNewErr("Failed to create or update the ClusterIssuer: %v", err)

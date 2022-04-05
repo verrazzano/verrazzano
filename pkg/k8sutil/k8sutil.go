@@ -8,6 +8,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+
 	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioClient "istio.io/client-go/pkg/clientset/versioned"
 	v1 "k8s.io/api/core/v1"
@@ -19,8 +24,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/client-go/util/homedir"
-	"os"
-	"path/filepath"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
@@ -42,6 +45,19 @@ var ClientConfig ClientConfigFunc = func() (*restclient.Config, kubernetes.Inter
 		return nil, nil, err
 	}
 	return cfg, c, nil
+}
+
+// fakeClient is for unit testing
+var fakeClient kubernetes.Interface
+
+// SetFakeClient for unit tests
+func SetFakeClient(client kubernetes.Interface) {
+	fakeClient = client
+}
+
+// ClearFakeClient for unit tests
+func ClearFakeClient() {
+	fakeClient = nil
 }
 
 // GetKubeConfigLocation Helper function to obtain the default kubeConfig location
@@ -91,7 +107,13 @@ func GetKubernetesClientset() (*kubernetes.Clientset, error) {
 	if err != nil {
 		return clientset, err
 	}
-	clientset, err = kubernetes.NewForConfig(config)
+	return GetKubernetesClientsetWithConfig(config)
+}
+
+// GetKubernetesClientsetWithConfig returns the Kubernetes clientset for the given configuration
+func GetKubernetesClientsetWithConfig(config *rest.Config) (*kubernetes.Clientset, error) {
+	var clientset *kubernetes.Clientset
+	clientset, err := kubernetes.NewForConfig(config)
 	return clientset, err
 }
 
@@ -207,4 +229,23 @@ func ExecPod(client kubernetes.Interface, cfg *rest.Config, pod *v1.Pod, contain
 	}
 
 	return stdout.String(), stderr.String(), nil
+}
+
+// GetGoClient returns a go-client
+func GetGoClient(log vzlog.VerrazzanoLogger) (kubernetes.Interface, error) {
+	if fakeClient != nil {
+		return fakeClient, nil
+	}
+	config, err := controllerruntime.GetConfig()
+	if err != nil {
+		log.Errorf("Failed to get kubeconfig: %v", err)
+		return nil, err
+	}
+
+	kubeClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		log.Errorf("Failed to get clientset: %v", err)
+		return nil, err
+	}
+	return kubeClient, err
 }

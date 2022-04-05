@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -24,6 +26,9 @@ const ComponentName = "verrazzano-authproxy"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoSystemNamespace
 
+// ComponentJSONName is the josn name of the verrazzano component in CRD
+const ComponentJSONName = "authProxy"
+
 type authProxyComponent struct {
 	helm.HelmComponent
 }
@@ -36,6 +41,7 @@ func NewComponent() spi.Component {
 	return authProxyComponent{
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
+			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetHelmChartsDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
@@ -49,12 +55,21 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled authProxyComponent-specific enabled check for installation
-func (c authProxyComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	comp := ctx.EffectiveCR().Spec.Components.AuthProxy
+func (c authProxyComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+	comp := effectiveCR.Spec.Components.AuthProxy
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
 	return *comp.Enabled
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c authProxyComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	// Do not allow any changes except to enable the component post-install
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	return nil
 }
 
 // IsReady component check

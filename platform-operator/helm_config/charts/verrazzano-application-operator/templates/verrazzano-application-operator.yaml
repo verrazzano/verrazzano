@@ -296,7 +296,7 @@ metadata:
     app: {{ .Values.name }}
 spec:
   ports:
-    - name: webhook
+    - name: https-webhook
       port: 443
       targetPort: 9443
   selector:
@@ -323,6 +323,10 @@ spec:
         - name: {{ .Values.name }}
           image: {{ .Values.image }}
           imagePullPolicy: {{ .Values.imagePullPolicy }}
+          ports:
+            - containerPort: 9443
+              name: https-webhook
+              protocol: TCP
           args:
             - --zap-log-level={{ .Values.logLevel }}
           startupProbe:
@@ -346,6 +350,8 @@ spec:
               value: {{ .Values.fluentdImage }}
             - name: ISTIO_PROXY_IMAGE
               value: {{ .Values.istioProxyImage }}
+            - name: WEBLOGIC_MONITORING_EXPORTER_IMAGE
+              value: {{ .Values.weblogicMonitoringExporterImage }}
       volumes:
         - name: webhook-certs
           emptyDir: {}
@@ -759,11 +765,13 @@ spec:
           source_labels:
             - name
           target_label: webapp
+      {{`{{ if index .namespace.metadata.labels "istio-injection" }}`}}
+      {{`{{ if eq (index .namespace.metadata.labels "istio-injection" ) "enabled" }}`}}
       scheme: https
-      {{`{{ if eq ( index .namespace.metadata.labels "istio-injection" ) "enabled" }}`}}
       tls_config:
         ca_file: /etc/istio-certs/root-cert.pem
         cert_file: /etc/istio-certs/cert-chain.pem
         insecure_skip_verify: true
         key_file: /etc/istio-certs/key.pem
+      {{`{{ end }}`}}
       {{`{{ end }}`}}

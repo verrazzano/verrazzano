@@ -306,15 +306,8 @@ pipeline {
         }
     }
     post {
-        always{
-            sh """
-                # Copy the generated test reports to WORKSPACE to archive them
-                mkdir -p ${TEST_REPORT_DIR}
-                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
-            """
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/${TEST_REPORT}", allowEmptyArchive: true
-            junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
+        cleanup {
+            emitJobMetrics()
         }
     }
 }
@@ -353,3 +346,12 @@ def runSocksVariant(variant) {
     }
 }
 
+def emitJobMetrics() {
+    env.JOB_STATUS = "${currentBuild.currentResult}".trim()
+    long duration = "${currentBuild.duration}" as long;
+    env.DURATION = (duration/1000)
+    long timeInMillis = "${currentBuild.timeInMillis}" as long;
+    long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
+    env.TIME_WAITING = ((startTimeInMillis-timeInMillis)/1000)
+    runGinkgoRandomize('jobmetrics')
+}

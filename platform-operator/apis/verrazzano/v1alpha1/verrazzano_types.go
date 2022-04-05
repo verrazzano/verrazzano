@@ -4,6 +4,7 @@
 package v1alpha1
 
 import (
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -162,6 +163,10 @@ type ComponentStatusDetails struct {
 	State CompStateType `json:"state,omitempty"`
 	// The version of Verrazzano that is installed
 	Version string `json:"version,omitempty"`
+	// The generation of the last VZ resource the Component was successfully reconciled against
+	LastReconciledGeneration int64 `json:"lastReconciledGeneration,omitempty"`
+	// The generation of the VZ resource the Component is currently being reconciled against
+	ReconcilingGeneration int64 `json:"reconcilingGeneration,omitempty"`
 }
 
 // ConditionType identifies the condition of the install/uninstall/upgrade which can be checked with kubectl wait
@@ -191,6 +196,9 @@ const (
 
 	// CondUpgradeStarted means that an upgrade has been started.
 	CondUpgradeStarted ConditionType = "UpgradeStarted"
+
+	// CondUpgradePaused means that an upgrade has been paused awaiting a VZ version update.
+	CondUpgradePaused ConditionType = "UpgradePaused"
 
 	// CondUpgradeFailed means the upgrade has failed during execution.
 	CondUpgradeFailed ConditionType = "UpgradeFailed"
@@ -225,6 +233,9 @@ const (
 
 	// VzStateUpgrading is the state when an upgrade is in progress
 	VzStateUpgrading VzStateType = "Upgrading"
+
+	// VzStatePaused is the state when an upgrade is paused due to version mismatch
+	VzStatePaused VzStateType = "Paused"
 
 	// VzStateReady is the state when a Verrazzano resource can perform an uninstall or upgrade
 	VzStateReady VzStateType = "Ready"
@@ -271,10 +282,6 @@ type ComponentSpec struct {
 	// CoherenceOperator configuration
 	// +optional
 	CoherenceOperator *CoherenceOperatorComponent `json:"coherenceOperator,omitempty"`
-
-	// Alertmanager configuration
-	// +optional
-	Alertmanager *AlertmanagerComponent `json:"alertmanager,omitempty"`
 
 	// ApplicationOperator configuration
 	// +optional
@@ -333,6 +340,10 @@ type ComponentSpec struct {
 	// +optional
 	Prometheus *PrometheusComponent `json:"prometheus,omitempty"`
 
+	// PrometheusOperator configuration
+	// +optional
+	PrometheusOperator *PrometheusOperatorComponent `json:"prometheusOperator,omitempty"`
+
 	// Rancher configuration
 	// +optional
 	Rancher *RancherComponent `json:"rancher,omitempty"`
@@ -360,7 +371,8 @@ type ElasticsearchComponent struct {
 	// +optional
 	// +patchMergeKey=name
 	// +patchStrategy=merge,retainKeys
-	ESInstallArgs []InstallArgs `json:"installArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
+	ESInstallArgs []InstallArgs                 `json:"installArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
+	Policies      []vmov1.IndexManagementPolicy `json:"policies,omitempty"`
 }
 
 // KibanaComponent specifies the Kibana configuration.
@@ -378,6 +390,12 @@ type PrometheusComponent struct {
 	MonitoringComponent `json:",inline"`
 }
 
+// PrometheusOperatorComponent specifies the Prometheus Operator configuration
+type PrometheusOperatorComponent struct {
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
 // CertManagerComponent specifies the core CertManagerComponent config.
 type CertManagerComponent struct {
 	// Certificate used for an install
@@ -392,21 +410,6 @@ type CertManagerComponent struct {
 type CoherenceOperatorComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-}
-
-// AlertmanagerComponent specifies the Alertmanager configuration
-type AlertmanagerComponent struct {
-	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
-	// Location of the Alertmanager ConfigMap
-	// +optional
-	AlertmanagerConfigMap *NamespaceName `json:"alertmanagerConfigMap,omitempty"`
-	// Location of the Prometheus rule ConfigMap
-	// +optional
-	RuleConfigMap *NamespaceName `json:"ruleConfigMap,omitempty"`
-	// Location of the Alertmanager receiver template ConfigMap
-	// +optional
-	ReceiverTemplateConfigMap *NamespaceName `json:"receiverTemplateConfigMap,omitempty"`
 }
 
 // ApplicationOperatorComponent specifies the Application Operator configuration
@@ -591,14 +594,6 @@ type InstallArgs struct {
 	// +optional
 	// +patchStrategy=replace
 	ValueList []string `json:"valueList,omitempty" patchStrategy:"replace"`
-}
-
-// NamespaceName Identifies a Namespace and Name pair for a resource
-type NamespaceName struct {
-	// Namespace of a resource
-	Namespace string `json:"namespace"`
-	// Name of a resource
-	Name string `json:"name"`
 }
 
 // VolumeMount defines a hostPath type Volume mount

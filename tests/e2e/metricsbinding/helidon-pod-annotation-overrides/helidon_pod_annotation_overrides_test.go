@@ -4,7 +4,6 @@
 package helidonpodannotation
 
 import (
-	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -40,13 +39,13 @@ var (
 
 var _ = clusterDump.BeforeSuite(func() {
 	start := time.Now()
-	metricsbinding.DeployApplication(namespace, yamlPath, applicationPodPrefix)
+	metricsbinding.DeployApplication(namespace, yamlPath, applicationPodPrefix, true, *t)
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
 var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
 var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
-	metricsbinding.UndeployApplication(namespace, yamlPath, namespace+promConfigJobName)
+	metricsbinding.UndeployApplication(namespace, yamlPath, namespace+promConfigJobName, *t)
 })
 
 var _ = t.AfterEach(func() {})
@@ -66,17 +65,17 @@ var _ = t.Describe("Verify", Label("f:app-lcm.poko"), func() {
 			Eventually(func() bool {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+					t.Logs.Errorf("Error getting kubeconfig, error: %v", err)
 					return false
 				}
 				clientset, err := pkg.GetKubernetesClientsetForCluster(kubeconfigPath)
 				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error creating clientset from kubeconfig, error: %v", err))
+					t.Logs.Errorf("Error creating clientset from kubeconfig, error: %v", err)
 					return false
 				}
 				pods, err := pkg.ListPodsInCluster(namespace, clientset)
 				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error listing pods in the namespace hello-helidon-namespace, error: %v", err))
+					t.Logs.Errorf("Error listing pods in the namespace hello-helidon-namespace, error: %v", err)
 					return false
 				}
 				podItems := pods.Items

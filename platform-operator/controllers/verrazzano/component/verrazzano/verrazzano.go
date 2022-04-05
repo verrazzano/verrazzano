@@ -18,8 +18,10 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -88,24 +90,39 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 	// First, check deployments
 	var deployments []types.NamespacedName
 	if vzconfig.IsConsoleEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments, types.NamespacedName{
-			Name: verrazzanoConsoleDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
+		deployments = append(deployments,
+			types.NamespacedName{
+				Name:      verrazzanoConsoleDeployment,
+				Namespace: ComponentNamespace,
+			})
 	}
 	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments, types.NamespacedName{
-			Name: vmoDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
+		deployments = append(deployments,
+			types.NamespacedName{
+				Name:      vmoDeployment,
+				Namespace: ComponentNamespace,
+			})
 	}
 	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments, types.NamespacedName{
-			Name: grafanaDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
+		deployments = append(deployments,
+			types.NamespacedName{
+				Name:      grafanaDeployment,
+				Namespace: ComponentNamespace,
+			})
 	}
 	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments, types.NamespacedName{
-			Name: kibanaDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
+		deployments = append(deployments,
+			types.NamespacedName{
+				Name:      kibanaDeployment,
+				Namespace: ComponentNamespace,
+			})
 	}
 	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments, types.NamespacedName{
-			Name: prometheusDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
+		deployments = append(deployments,
+			types.NamespacedName{
+				Name:      prometheusDeployment,
+				Namespace: ComponentNamespace,
+			})
 	}
 	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
 		if ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
@@ -114,23 +131,29 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 				if args.Name == "nodes.data.replicas" {
 					replicas, _ := strconv.Atoi(args.Value)
 					for i := 0; replicas > 0 && i < replicas; i++ {
-						deployments = append(deployments, types.NamespacedName{
-							Name: fmt.Sprintf("%s-%d", esDataDeployment, i), Namespace: globalconst.VerrazzanoSystemNamespace})
+						deployments = append(deployments,
+							types.NamespacedName{
+								Name:      fmt.Sprintf("%s-%d", esDataDeployment, i),
+								Namespace: ComponentNamespace,
+							})
 					}
 					continue
 				}
 				if args.Name == "nodes.ingest.replicas" {
 					replicas, _ := strconv.Atoi(args.Value)
 					if replicas > 0 {
-						deployments = append(deployments, types.NamespacedName{
-							Name: esIngestDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
+						deployments = append(deployments,
+							types.NamespacedName{
+								Name:      esIngestDeployment,
+								Namespace: ComponentNamespace,
+							})
 					}
 				}
 			}
 		}
 	}
 
-	if !status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
+	if !status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
 		return false
 	}
 
@@ -143,9 +166,12 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 					var statefulsets []types.NamespacedName
 					replicas, _ := strconv.Atoi(args.Value)
 					if replicas > 0 {
-						statefulsets = append(statefulsets, types.NamespacedName{
-							Name: esMasterStatefulset, Namespace: globalconst.VerrazzanoSystemNamespace})
-						if !status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsets, 1, prefix) {
+						statefulsets = append(statefulsets,
+							types.NamespacedName{
+								Name:      esMasterStatefulset,
+								Namespace: ComponentNamespace,
+							})
+						if !status.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulsets, 1, prefix) {
 							return false
 						}
 					}
@@ -158,14 +184,20 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 	// Finally, check daemonsets
 	var daemonsets []types.NamespacedName
 	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
-		daemonsets = append(daemonsets, types.NamespacedName{
-			Name: nodeExporterDaemonset, Namespace: globalconst.VerrazzanoMonitoringNamespace})
+		daemonsets = append(daemonsets,
+			types.NamespacedName{
+				Name:      nodeExporterDaemonset,
+				Namespace: globalconst.VerrazzanoMonitoringNamespace,
+			})
 	}
 	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) && getProfile(ctx.EffectiveCR()) != vzapi.ManagedCluster {
-		daemonsets = append(daemonsets, types.NamespacedName{
-			Name: fluentDaemonset, Namespace: globalconst.VerrazzanoSystemNamespace})
+		daemonsets = append(daemonsets,
+			types.NamespacedName{
+				Name:      fluentDaemonset,
+				Namespace: ComponentNamespace,
+			})
 	}
-	if !status.DaemonSetsReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {
+	if !status.DaemonSetsAreReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {
 		return false
 	}
 
@@ -173,14 +205,17 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 }
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart
-func verrazzanoPreUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, _ string, namespace string, _ string) error {
-	if err := importToHelmChart(client); err != nil {
+func verrazzanoPreUpgrade(ctx spi.ComponentContext, namespace string) error {
+	if err := common.ApplyCRDYaml(ctx, config.GetHelmVzChartsDir()); err != nil {
 		return err
 	}
-	if err := ensureVMISecret(client); err != nil {
-
+	if err := importToHelmChart(ctx.Client()); err != nil {
+		return err
 	}
-	return fixupFluentdDaemonset(log, client, namespace)
+	if err := ensureVMISecret(ctx.Client()); err != nil {
+		return err
+	}
+	return fixupFluentdDaemonset(ctx.Log(), ctx.Client(), namespace)
 }
 
 func findStorageOverride(effectiveCR *vzapi.Verrazzano) (*resourceRequestValues, error) {

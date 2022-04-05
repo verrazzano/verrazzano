@@ -531,22 +531,23 @@ func TestValidateInProgress(t *testing.T) {
 	vzOld.Status.State = VzStateReady
 	assert.NoError(t, ValidateInProgress(&vzOld, &vzNew))
 
+	vzOld.Status.State = VzStatePaused
+	assert.NoError(t, ValidateInProgress(&vzOld, &vzNew))
+
 	vzOld.Status.State = VzStateInstalling
 	err := ValidateInProgress(&vzOld, &vzNew)
-	if assert.Error(t, err) {
-		assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
-	}
+	assert.NoError(t, err)
 
 	vzOld.Status.State = VzStateUninstalling
 	err = ValidateInProgress(&vzOld, &vzNew)
 	if assert.Error(t, err) {
-		assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
+		assert.Equal(t, ValidateInProgressError, err.Error())
 	}
 
 	vzOld.Status.State = VzStateUpgrading
 	err = ValidateInProgress(&vzOld, &vzNew)
 	if assert.Error(t, err) {
-		assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
+		assert.Equal(t, ValidateInProgressError, err.Error())
 	}
 }
 
@@ -602,16 +603,20 @@ func TestValidateEnable(t *testing.T) {
 			err = ValidateInProgress(&test.vzOld, &vzNew)
 			assert.NoError(t, err, "Unexpected error enabling Coherence")
 
+			test.vzOld.Status.State = VzStatePaused
+			err = ValidateInProgress(&test.vzOld, &vzNew)
+			assert.NoError(t, err, "Unexpected error enabling Coherence")
+
 			test.vzOld.Status.State = VzStateUpgrading
 			err = ValidateInProgress(&test.vzOld, &vzNew)
 			if assert.Error(t, err) {
-				assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
+				assert.Equal(t, ValidateInProgressError, err.Error())
 			}
 
 			test.vzOld.Status.State = VzStateUninstalling
 			err = ValidateInProgress(&test.vzOld, &vzNew)
 			if assert.Error(t, err) {
-				assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
+				assert.Equal(t, ValidateInProgressError, err.Error())
 			}
 		})
 	}

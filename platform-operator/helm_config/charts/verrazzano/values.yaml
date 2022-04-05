@@ -65,7 +65,7 @@ monitoringOperator:
   defaultSimpleCompReplicas: 1
   defaultPrometheusReplicas: 1
   alertManagerImage: "noimage"
-  esWaitTargetVersion: 7.6.1
+  esWaitTargetVersion: 1.2.3
   oidcAuthEnabled: true
   RequestMemory: 48Mi
 
@@ -136,3 +136,6 @@ kubernetes:
 
 externaldns:
   enabled: false
+
+prometheusOperator:
+  enabled: true

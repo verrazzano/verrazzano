@@ -6,7 +6,6 @@ package vzinstance
 import (
 	"context"
 	"fmt"
-
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
@@ -19,6 +18,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"go.uber.org/zap"
 	networkingv1 "k8s.io/api/networking/v1"
+	"strconv"
 )
 
 // GetInstanceInfo returns the instance info for the local install.
@@ -64,20 +64,35 @@ func getComponentIngressURL(ingresses []networkingv1.Ingress, compContext spi.Co
 	}
 	for _, compIngressName := range comp.GetIngressNames(compContext) {
 		if compIngressName.Name == ingressName {
-			return getSystemIngressURL(ingresses, compIngressName.Namespace, compIngressName.Name)
+			return getSystemIngressURL(ingresses, compContext, compIngressName.Namespace, compIngressName.Name)
 		}
 	}
 	zap.S().Debugf("No ingress %s found for component %s", ingressName, componentName)
 	return nil
 }
 
-func getSystemIngressURL(ingresses []networkingv1.Ingress, namespace string, name string) *string {
+func getSystemIngressURL(ingresses []networkingv1.Ingress, compContext spi.ComponentContext, namespace string, name string) *string {
 	var ingress = findIngress(ingresses, namespace, name)
+	var url string
 	if ingress == nil {
 		zap.S().Debugf("No ingress found for %s/%s", namespace, name)
 		return nil
 	}
-	url := fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
+	cr := compContext.EffectiveCR()
+	ingressType, err := vzconfig.GetServiceType(cr)
+	if err != nil {
+		return nil
+	}
+	switch ingressType {
+	case v1alpha1.LoadBalancer:
+		url = fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
+	case v1alpha1.NodePort:
+		for _, ports := range cr.Spec.Components.Ingress.Ports {
+			if ports.Port == 443 {
+				url = fmt.Sprintf("https://%s:%s", ingress.Spec.Rules[0].Host, strconv.Itoa(int(ports.NodePort)))
+			}
+		}
+	}
 	return &url
 }
 

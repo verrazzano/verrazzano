@@ -1,5 +1,6 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package nginx
 
 import (
@@ -16,8 +17,6 @@ import (
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
-
-const profilesRelativePath = "../../../../manifests/profiles"
 
 var crEnabled = vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
@@ -129,24 +128,24 @@ func TestIsNGINXReady(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      ControllerName,
+			Labels:    map[string]string{"app.kubernetes.io/component": "controller"},
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   1,
 		},
 	},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      backendName,
+				Labels:    map[string]string{"app.kubernetes.io/component": "default-backend"},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 	)
@@ -164,10 +163,9 @@ func TestIsNGINXNotReady(t *testing.T) {
 			Name:      ControllerName,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       0,
-			AvailableReplicas:   0,
-			UnavailableReplicas: 1,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   0,
 		},
 	},
 		&appsv1.Deployment{
@@ -176,10 +174,9 @@ func TestIsNGINXNotReady(t *testing.T) {
 				Name:      backendName,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       0,
-				AvailableReplicas:   0,
-				UnavailableReplicas: 1,
+				AvailableReplicas: 0,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 	)
@@ -284,7 +281,7 @@ func TestNewComponent(t *testing.T) {
 //  WHEN The Nginx component is nil
 //  THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(&vzapi.Verrazzano{}))
 }
 
 // TestIsEnabledNilNginx tests the IsEnabled function
@@ -294,7 +291,7 @@ func TestIsEnabledNilComponent(t *testing.T) {
 func TestIsEnabledNilNginx(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Ingress = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(&cr))
 }
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
@@ -304,7 +301,7 @@ func TestIsEnabledNilNginx(t *testing.T) {
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Ingress.Enabled = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(&cr))
 }
 
 // TestIsEnabledExplicit tests the IsEnabled function
@@ -314,7 +311,7 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Ingress.Enabled = getBoolPtr(true)
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(&cr))
 }
 
 // TestIsDisableExplicit tests the IsEnabled function
@@ -324,7 +321,7 @@ func TestIsEnabledExplicit(t *testing.T) {
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Ingress.Enabled = getBoolPtr(false)
-	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.False(t, NewComponent().IsEnabled(&cr))
 }
 
 func getBoolPtr(b bool) *bool {

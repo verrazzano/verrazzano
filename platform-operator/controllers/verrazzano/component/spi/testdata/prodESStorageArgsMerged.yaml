@@ -1,0 +1,115 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+metadata:
+  name: "prod-es-override"
+spec:
+  profile: "prod"
+  environmentName: "prodenv"
+  components:
+    applicationOperator:
+      enabled: true
+    authProxy:
+      enabled: true
+      kubernetes:
+        replicas: 2
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                podAffinityTerm:
+                  labelSelector:
+                    matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - verrazzano-authproxy
+                  topologyKey: kubernetes.io/hostname
+    certManager:
+      enabled: true
+      certificate:
+        ca:
+          secretName: "verrazzano-ca-certificate-secret"
+          clusterResourceNamespace: "cert-manager"
+    coherenceOperator:
+      enabled: true
+    console:
+      enabled: true
+    dns:
+      wildcard:
+        domain: "nip.io"
+    elasticsearch:
+      enabled: true
+      installArgs:
+        - name: nodes.master.replicas
+          value: "3"
+        - name: nodes.master.requests.memory
+          value: "3G"
+        - name: nodes.master.requests.storage
+          value: "100Gi"
+        - name: nodes.ingest.replicas
+          value: "6"
+        - name: nodes.ingest.requests.memory
+          value: "32G"
+        - name: nodes.data.replicas
+          value: "6"
+        - name: nodes.data.requests.memory
+          value: "32G"
+        - name: nodes.data.requests.storage
+          value: "150Gi"
+    fluentd:
+      enabled: true
+      elasticsearchURL: "http://verrazzano-authproxy-elasticsearch:8775"
+      elasticsearchSecret: verrazzano-es-internal
+    grafana:
+      enabled: true
+    ingress:
+      enabled: true
+      type: LoadBalancer
+    istio:
+      enabled: true
+      ingress:
+        kubernetes:
+          replicas: 2
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                        - key: app
+                          operator: In
+                          values:
+                            - istio-ingressgateway
+                    topologyKey: kubernetes.io/hostname
+      egress:
+        kubernetes:
+          replicas: 2
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                        - key: app
+                          operator: In
+                          values:
+                            - istio-egressgateway
+                    topologyKey: kubernetes.io/hostname
+    kiali:
+      enabled: true
+    keycloak:
+      enabled: true
+    kibana:
+      enabled: true
+    oam:
+      enabled: true
+    prometheus:
+      enabled: true
+    rancher:
+      enabled: true
+    verrazzano:
+      enabled: true
+    weblogicOperator:
+      enabled: true

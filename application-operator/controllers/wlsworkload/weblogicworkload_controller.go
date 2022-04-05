@@ -4,17 +4,20 @@
 package wlsworkload
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
-	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"math/big"
 	"os"
 	"reflect"
 	"strconv"
 	"strings"
+	"text/template"
+
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
@@ -61,8 +64,9 @@ const (
 	controllerName                        = "weblogicworkload"
 )
 
-const defaultMonitoringExporterData = `
+const defaultMonitoringExporterTemplate = `
   {
+    {{.ImageSetting}}"imagePullPolicy": "IfNotPresent",
     "configuration": {
       "domainQualifier": true,
       "metricsNameSnakeCase": true,
@@ -169,10 +173,14 @@ const defaultMonitoringExporterData = `
            }
         }
       ]
-    },
-    "imagePullPolicy": "IfNotPresent"
+    }
   }
 `
+
+type defaultMonitoringExporterTemplateData struct {
+	ImageSetting string
+}
+
 const defaultWDTConfigMapData = `
   {
     "resources": {
@@ -196,6 +204,8 @@ var specConfigurationWDTConfigMap = []string{specField, "configuration", "model"
 var specMonitoringExporterFields = []string{specField, "monitoringExporter"}
 var specRestartVersionFields = []string{specField, "restartVersion"}
 var specServerStartPolicyFields = []string{specField, "serverStartPolicy"}
+var specLogHomeFields = []string{specField, "logHome"}
+var specLogHomeEnabledFields = []string{specField, "logHomeEnabled"}
 
 // this struct allows us to extract information from the unstructured WebLogic spec
 // so we can interface with the FLUENTD code
@@ -496,21 +506,45 @@ func (r *Reconciler) addLogging(ctx context.Context, log vzlog.VerrazzanoLogger,
 		return errors.New("expected to find metadata name in WebLogic spec")
 	}
 
+	// get the existing logHome setting - if it's set we use it otherwise we'll generate a logs location
+	// using an emptydir volume
+	volumeMountPath := scratchVolMountPath
+	volumeName := storageVolumeName
+	foundVolumeMount := false
+	logHome, _, _ := unstructured.NestedString(weblogic.Object, specLogHomeFields...)
+	if logHome != "" {
+		// find the existing volume mount for the logHome - the Fluentd volume mount needs to match
+		for _, mount := range extracted.VolumeMounts {
+			if strings.HasPrefix(logHome, mount.MountPath) {
+				volumeMountPath = mount.MountPath
+				volumeName = mount.Name
+				foundVolumeMount = true
+				break
+			}
+		}
+
+		if !foundVolumeMount {
+			// user specified logHome but it's not on any volume, Fluentd sidecar won't be able to collect logs
+			log.Info("Unable to find a volume mount for domain logHome, log collection will not work")
+		}
+	}
+	_, logHomeEnabledSet, _ := unstructured.NestedBool(weblogic.Object, specLogHomeEnabledFields...)
+
 	// fluentdPod starts with what's in the spec and we add in the FLUENTD things when Apply is
 	// called on the fluentdManager
 	fluentdPod := &logging.FluentdPod{
 		Containers:   extracted.Containers,
 		Volumes:      extracted.Volumes,
 		VolumeMounts: extracted.VolumeMounts,
-		LogPath:      getWLSLogPath(name),
-		HandlerEnv:   getWlsSpecificContainerEnv(name),
+		LogPath:      getWLSLogPath(logHome, name),
+		HandlerEnv:   getWlsSpecificContainerEnv(logHome, name),
 	}
 	fluentdManager := &logging.Fluentd{Context: ctx,
 		Log:                    zap.S(),
 		Client:                 r.Client,
 		ParseRules:             WlsFluentdParsingRules,
-		StorageVolumeName:      storageVolumeName,
-		StorageVolumeMountPath: scratchVolMountPath,
+		StorageVolumeName:      volumeName,
+		StorageVolumeMountPath: volumeMountPath,
 		WorkloadType:           workloadType,
 	}
 
@@ -547,16 +581,21 @@ func (r *Reconciler) addLogging(ctx context.Context, log vzlog.VerrazzanoLogger,
 		return err
 	}
 
-	// logHome and logHomeEnabled fields need to be set to turn on logging
-	err = unstructured.SetNestedField(weblogic.Object, getWLSLogHome(name), specField, "logHome")
-	if err != nil {
-		log.Errorf("Failed to set logHome: %v", err)
-		return err
+	// set logHome if it was not already specified in the domain spec
+	if logHome == "" {
+		err = unstructured.SetNestedField(weblogic.Object, getWLSLogHome(name), specLogHomeFields...)
+		if err != nil {
+			log.Errorf("Failed to set logHome: %v", err)
+			return err
+		}
 	}
-	err = unstructured.SetNestedField(weblogic.Object, true, specField, "logHomeEnabled")
-	if err != nil {
-		log.Errorf("Failed to set logHomeEnabled: %v", err)
-		return err
+	// set logHomeEnabled if it was not already specified in the domain spec
+	if !logHomeEnabledSet {
+		err = unstructured.SetNestedField(weblogic.Object, true, specLogHomeEnabledFields...)
+		if err != nil {
+			log.Errorf("Failed to set logHomeEnabled: %v", err)
+			return err
+		}
 	}
 
 	return nil
@@ -748,6 +787,9 @@ func (r *Reconciler) CreateOrUpdateWDTConfigMap(ctx context.Context, log vzlog.V
 			if err != nil {
 				return err
 			}
+			if configMap.Data == nil {
+				configMap.Data = map[string]string{}
+			}
 			configMap.Data[webLogicPluginConfigYamlKey] = string(bytes)
 			err = r.Client.Update(ctx, configMap)
 			if err != nil {
@@ -863,9 +905,32 @@ func addDefaultMonitoringExporter(weblogic *unstructured.Unstructured) error {
 }
 
 func getDefaultMonitoringExporter() (interface{}, error) {
-	bytes := []byte(defaultMonitoringExporterData)
+	// get ImageSetting
+	imageSetting := ""
+	if value := os.Getenv("WEBLOGIC_MONITORING_EXPORTER_IMAGE"); len(value) > 0 {
+		imageSetting = fmt.Sprintf("\"image\": \"%s\",\n    ", value)
+	}
+
+	// Create the buffer and the cluster issuer data struct
+	templateData := defaultMonitoringExporterTemplateData{
+		ImageSetting: imageSetting,
+	}
+
+	// Parse the template string and create the template object
+	template, err := template.New("defaultMonitoringExporter").Parse(defaultMonitoringExporterTemplate)
+	if err != nil {
+		return nil, err
+	}
+
+	// Execute the template object with the given data
+	var buff bytes.Buffer
+	err = template.Execute(&buff, &templateData)
+	if err != nil {
+		return nil, err
+	}
+
 	var monitoringExporter map[string]interface{}
-	json.Unmarshal(bytes, &monitoringExporter)
+	json.Unmarshal(buff.Bytes(), &monitoringExporter)
 	result, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&monitoringExporter)
 	if err != nil {
 		return nil, err

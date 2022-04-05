@@ -39,11 +39,10 @@ spec:
                 port: 8080
               serviceMonitor:
                 enabled: true
-# these additional metrics ports are commented out here and elsewhere until VZ-3760 is fixed
-#            - name: metrics
-#              port: 9612
-#              serviceMonitor:
-#                enabled: true
+            - name: metrics
+              port: 9612
+              serviceMonitor:
+                enabled: true
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
@@ -76,10 +75,10 @@ spec:
             metrics:
               enabled: true
           ports:
-#            - name: metrics
-#              port: 9612
-#              serviceMonitor:
-#                enabled: true
+            - name: metrics
+              port: 9612
+              serviceMonitor:
+                enabled: true
             - name: http
               port: 8080
               service:
@@ -127,10 +126,10 @@ spec:
                 port: 8080
               serviceMonitor:
                 enabled: true
-#            - name: metrics
-#              port: 9612
-#              serviceMonitor:
-#                enabled: true
+            - name: metrics
+              port: 9612
+              serviceMonitor:
+                enabled: true
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
@@ -174,10 +173,10 @@ spec:
                 port: 8080
               serviceMonitor:
                 enabled: true
-#            - name: metrics
-#              port: 9612
-#              serviceMonitor:
-#                enabled: true
+            - name: metrics
+              port: 9612
+              serviceMonitor:
+                enabled: true
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
@@ -221,10 +220,10 @@ spec:
               port: 1408
               service:
                 name: shipping
-#            - name: metrics
-#              port: 9612
-#              serviceMonitor:
-#                enabled: true
+            - name: metrics
+              port: 9612
+              serviceMonitor:
+                enabled: true
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
@@ -264,7 +263,7 @@ spec:
                 port: 8080
               serviceMonitor:
                 enabled: true
-#            - name: metrics
-#              port: 9612
-#              serviceMonitor:
-#                enabled: true
+            - name: metrics
+              port: 9612
+              serviceMonitor:
+                enabled: true

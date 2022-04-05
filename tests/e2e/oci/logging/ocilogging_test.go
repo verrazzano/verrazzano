@@ -208,7 +208,7 @@ func getLogIdentifiersFromVZCustomResource() (string, string, error) {
 // namespace is specified, only log records in the namespace are matched, otherwise search for all log records
 // in the Log object identified by the compartment id, log group id, and log id.
 func getLogRecordsFromOCI(client *loggingsearch.LogSearchClient, compartmentID, logGroupID, logID, namespace string) (*loggingsearch.SearchLogsResponse, error) {
-	pkg.Log(pkg.Info, "Checking for recent log records")
+	t.Logs.Info("Checking for recent log records")
 
 	var query string
 	if namespace == "" {
@@ -228,15 +228,15 @@ func getLogRecordsFromOCI(client *loggingsearch.LogSearchClient, compartmentID, 
 		SearchQuery: &query,
 	}
 
-	pkg.Log(pkg.Debug, fmt.Sprintf("Running log search query: %s", query))
+	t.Logs.Debugf("Running log search query: %s", query)
 	logs, err := client.SearchLogs(context.Background(), loggingsearch.SearchLogsRequest{SearchLogsDetails: search})
 	if err != nil {
 		return nil, err
 	}
 
-	pkg.Log(pkg.Debug, fmt.Sprintf("Found %d log records", *logs.Summary.ResultCount))
+	t.Logs.Debugf("Found %d log records", *logs.Summary.ResultCount)
 	if *logs.Summary.ResultCount > 0 {
-		pkg.Log(pkg.Debug, fmt.Sprintf("Last record: %s", logs.Results[0].String()))
+		t.Logs.Debugf("Last record: %s", logs.Results[0].String())
 	}
 
 	return &logs, nil
@@ -250,10 +250,10 @@ func getLogSearchClient(region string) (loggingsearch.LogSearchClient, error) {
 	var err error
 
 	if region != "" {
-		pkg.Log(pkg.Info, fmt.Sprintf("Using OCI SDK instance principal provider with region: %s", region))
+		t.Logs.Infof("Using OCI SDK instance principal provider with region: %s", region)
 		provider, err = auth.InstancePrincipalConfigurationProviderForRegion(common.StringToRegion(region))
 	} else {
-		pkg.Log(pkg.Info, "Using OCI SDK default provider")
+		t.Logs.Info("Using OCI SDK default provider")
 		provider = common.DefaultConfigProvider()
 	}
 

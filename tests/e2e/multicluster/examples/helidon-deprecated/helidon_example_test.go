@@ -5,11 +5,12 @@ package mchelidon
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -185,7 +186,7 @@ var _ = t.Describe("Multi-cluster verify hello-helidon", func() {
 	// THEN expect Prometheus metrics for the app to exist in Prometheus on the admin cluster
 	t.Context("Metrics", func() {
 		t.It("Verify Prometheus metrics exist on admin cluster", func() {
-			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
+			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
 			Eventually(func() bool {
 				var m = map[string]string{clusterNameMetricsLabel: clusterName}
 				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", m, adminKubeconfig)
