@@ -126,7 +126,9 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	return kvs, nil
 }
 
-// authproxyPreHelmOps performs any operations required prior to the upgrade
+// authproxyPreHelmOps ensures the authproxy associated resources are managed its helm install/upgrade executions by
+// ensuring the resource policy of "keep" is removed (if it remains then helm is unable to delete these resources and
+// they will become orphaned)
 func authproxyPreHelmOps(ctx spi.ComponentContext) error {
 	return reassociateResources(ctx.Client())
 }
@@ -135,8 +137,7 @@ func authproxyPreHelmOps(ctx spi.ComponentContext) error {
 // annotation is removed to ensure that helm manages the lifecycle of the resources (the resource policy annotation is
 // added to ensure the resources are disassociated from the VZ chart which used to manage these resources)
 func reassociateResources(cli clipkg.Client) error {
-	authproxyReleaseName := types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}
-	namespacedName := authproxyReleaseName
+	namespacedName := types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}
 	name := types.NamespacedName{Name: ComponentName}
 	objects := []controllerutil.Object{
 		&corev1.ServiceAccount{},
