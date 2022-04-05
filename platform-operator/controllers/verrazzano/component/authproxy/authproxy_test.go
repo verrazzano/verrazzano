@@ -57,7 +57,7 @@ func TestIsAuthProxyReady(t *testing.T) {
 	}{
 		{
 			name: "Test IsReady when AuthProxy is successfully deployed",
-			client: fake.NewFakeClientWithScheme(testScheme,
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				&appsv1.Deployment{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
@@ -69,12 +69,12 @@ func TestIsAuthProxyReady(t *testing.T) {
 						Replicas:          1,
 						UpdatedReplicas:   1,
 					},
-				}),
+				}).Build(),
 			expectTrue: true,
 		},
 		{
 			name: "Test IsReady when AuthProxy deployment is not ready",
-			client: fake.NewFakeClientWithScheme(testScheme,
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				&appsv1.Deployment{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
@@ -85,12 +85,12 @@ func TestIsAuthProxyReady(t *testing.T) {
 						Replicas:          1,
 						UpdatedReplicas:   0,
 					},
-				}),
+				}).Build(),
 			expectTrue: false,
 		},
 		{
 			name:       "Test IsReady when AuthProxy deployment does not exist",
-			client:     fake.NewFakeClientWithScheme(testScheme),
+			client:     fake.NewClientBuilder().WithScheme(testScheme).Build(),
 			expectTrue: false,
 		},
 	}
@@ -258,7 +258,7 @@ func TestRemoveResourcePolicyAnnotation(t *testing.T) {
 		},
 	}
 
-	c := fake.NewFakeClientWithScheme(testScheme, obj)
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(obj).Build()
 	_, err := removeResourcePolicyAnnotation(c, obj, namespacedName)
 	assert.NoError(t, err)
 	assert.Equal(t, ComponentName, obj.Annotations["meta.helm.sh/release-name"])
@@ -268,7 +268,7 @@ func TestRemoveResourcePolicyAnnotation(t *testing.T) {
 }
 
 func createFakeClientWithIngress() client.Client {
-	fakeClient := fake.NewFakeClientWithScheme(testScheme,
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{Name: vpoconst.NGINXControllerServiceName, Namespace: globalconst.IngressNamespace},
 			Spec: corev1.ServiceSpec{
@@ -282,7 +282,7 @@ func createFakeClientWithIngress() client.Client {
 				},
 			},
 		},
-	)
+	).Build()
 	return fakeClient
 }
 

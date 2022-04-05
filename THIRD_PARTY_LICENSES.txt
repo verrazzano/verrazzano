@@ -9,8 +9,8 @@ Copyright (c) 2021, Oracle and/or its affiliates.
 Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 Copyright (C) 2021, Oracle and/or its affiliates.
-Copyright (C) 2022, Oracle and/or its affiliates.
 Copyright (C) 2021, 2022, Oracle and/or its affiliates.
+Copyright (C) 2022, Oracle and/or its affiliates.
 echo '// Copyright (C) 2022, Oracle and/or its affiliates.' | cat - generated_assets.go > tmp && mv tmp generated_assets.go
 Copyright 2020, Oracle Corporation and/or its affiliates.
 Copyright (c) 2015-2021 Bitnami
@@ -2814,5 +2814,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: de03643fd5fb2b724bff2ff4dfe8cbc2
+
+License file based on go.mod with md5 sum: c0168719399ce097d947bd64812786d1
 

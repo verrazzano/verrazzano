@@ -187,14 +187,14 @@ func reassociateResources(cli clipkg.Client) error {
 }
 
 // removeResourcePolicyAnnotation removes the resource policy annotation to allow the resource to be managed by helm
-func removeResourcePolicyAnnotation(cli clipkg.Client, obj controllerutil.Object, namespacedName types.NamespacedName) (controllerutil.Object, error) {
+func removeResourcePolicyAnnotation(cli clipkg.Client, obj clipkg.Object, namespacedName types.NamespacedName) (clipkg.Object, error) {
 	if err := cli.Get(context.TODO(), namespacedName, obj); err != nil {
 		if errors.IsNotFound(err) {
 			return obj, nil
 		}
 		return obj, err
 	}
-	objMerge := clipkg.MergeFrom(obj.DeepCopyObject())
+	objMerge := clipkg.MergeFrom(obj)
 	annotations := obj.GetAnnotations()
 	if annotations == nil {
 		return obj, nil

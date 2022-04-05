@@ -86,7 +86,7 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	mgr = mocks.NewMockManager(mocker)
 	cli = mocks.NewMockClient(mocker)
 	scheme = runtime.NewScheme()
-	vzapi.AddToScheme(scheme)
+	_ = vzapi.AddToScheme(scheme)
 	reconciler = Reconciler{Client: cli, Scheme: scheme}
 	mgr.EXPECT().GetConfig().Return(&rest.Config{})
 	mgr.EXPECT().GetScheme().Return(scheme)
@@ -523,7 +523,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 			workload.SetKind("VerrazzanoCoherenceWorkload")
 			workload.SetNamespace(name.Namespace)
 			workload.SetName(name.Name)
-			unstructured.SetNestedMap(workload.Object, containedResource, "spec", "template")
+			_ = unstructured.SetNestedMap(workload.Object, containedResource, "spec", "template")
 			return nil
 		})
 	// Expect a call to get the contained Coherence resource
@@ -1280,13 +1280,9 @@ func TestGetTraitFailurePropagated(t *testing.T) {
 		Return(fmt.Errorf("test-error")).
 		AnyTimes()
 	reconciler := newIngressTraitReconciler(mock)
-<<<<<<< HEAD
 	request := newRequest(testNamespace, testName)
-	result, err := reconciler.Reconcile(request)
-=======
-	request := newRequest("test-space", "test-name")
 	result, err := reconciler.Reconcile(nil, request)
->>>>>>> c8a98385 (VZ-5560 Update to go 17 and go.mod dependencies)
+
 	mocker.Finish()
 	assert.Nil(err)
 	assert.Equal(true, result.Requeue)
@@ -1305,13 +1301,8 @@ func TestGetNotFoundResource(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testName}, gomock.Any()).
 		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "oam.verrazzano.io", Resource: traitKind}, testName))
 	reconciler := newIngressTraitReconciler(mock)
-<<<<<<< HEAD
 	request := newRequest(testNamespace, testName)
-	result, err := reconciler.Reconcile(request)
-=======
-	request := newRequest("test-space", "test-name")
 	result, err := reconciler.Reconcile(nil, request)
->>>>>>> c8a98385 (VZ-5560 Update to go 17 and go.mod dependencies)
 	mocker.Finish()
 	assert.NoError(err)
 	assert.Equal(false, result.Requeue)
@@ -1829,8 +1820,8 @@ func TestExtractServicesOnlyOneService(t *testing.T) {
 	children := []*unstructured.Unstructured{&u}
 	var extractedServices []*k8score.Service
 	reconciler := Reconciler{}
-	log := vzlog.DefaultLogger()
-	extractedServices, err = reconciler.extractServicesFromUnstructuredChildren(children, log)
+	l := vzlog.DefaultLogger()
+	extractedServices, err = reconciler.extractServicesFromUnstructuredChildren(children, l)
 	assert.NoError(err)
 	assert.NotNil(extractedServices)
 	assert.Equal(len(extractedServices), 1)
@@ -1844,7 +1835,7 @@ func TestExtractServicesMultipleServices(t *testing.T) {
 	assert := asserts.New(t)
 
 	workload := &unstructured.Unstructured{}
-	updateUnstructuredFromYAMLTemplate(workload, "test/templates/wls_domain_instance.yaml", nil)
+	_ = updateUnstructuredFromYAMLTemplate(workload, "test/templates/wls_domain_instance.yaml", nil)
 
 	var service1ID types.UID = "test-service-1"
 	u1, err := newUnstructuredService(service1ID, clusterIPNone, 8001)
@@ -1861,8 +1852,8 @@ func TestExtractServicesMultipleServices(t *testing.T) {
 	children := []*unstructured.Unstructured{&u1, &u2, &u3}
 	var extractedServices []*k8score.Service
 	reconciler := Reconciler{}
-	log := vzlog.DefaultLogger()
-	extractedServices, err = reconciler.extractServicesFromUnstructuredChildren(children, log)
+	l := vzlog.DefaultLogger()
+	extractedServices, err = reconciler.extractServicesFromUnstructuredChildren(children, l)
 	assert.NoError(err)
 	assert.NotNil(extractedServices)
 	assert.Equal(len(extractedServices), 3)
@@ -1877,7 +1868,7 @@ func TestExtractServicesMultipleServices(t *testing.T) {
 // THEN verify gateway and virtual service are created correctly.
 func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 	assert := asserts.New(t)
-	cli := fake.NewFakeClientWithScheme(newScheme())
+	cli := fake.NewClientBuilder().WithScheme(newScheme()).Build()
 	params := map[string]string{
 		"NAMESPACE_NAME":      "test-namespace",
 		"APPCONF_NAME":        "test-appconf",
@@ -1977,7 +1968,7 @@ func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 // THEN verify the correct gateway and virtual services are created.
 func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
 	assert := asserts.New(t)
-	cli := fake.NewFakeClientWithScheme(newScheme())
+	cli := fake.NewClientBuilder().WithScheme(newScheme()).Build()
 	params := map[string]string{
 		"NAMESPACE_NAME":      "test-namespace",
 		"APPCONF_NAME":        "test-appconf",
@@ -2078,7 +2069,7 @@ func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
 // THEN verify the correct gateway and virtual services are created.
 func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 	assert := asserts.New(t)
-	cli := fake.NewFakeClientWithScheme(newScheme())
+	cli := fake.NewClientBuilder().WithScheme(newScheme()).Build()
 	params := map[string]string{
 		"NAMESPACE_NAME":      "test-namespace",
 		"APPCONF_NAME":        "test-appconf",
@@ -2183,7 +2174,7 @@ func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 // THEN verify the correct gateway and virtual services are created.
 func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination(t *testing.T) {
 	assert := asserts.New(t)
-	cli := fake.NewFakeClientWithScheme(newScheme())
+	cli := fake.NewClientBuilder().WithScheme(newScheme()).Build()
 	params := map[string]string{
 		"NAMESPACE_NAME":        "test-namespace",
 		"APPCONF_NAME":          "test-appconf",
@@ -2314,7 +2305,7 @@ func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination
 // THEN verity that the expected gateway and virtual services are created.
 func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.T) {
 	assert := asserts.New(t)
-	cli := fake.NewFakeClientWithScheme(newScheme())
+	cli := fake.NewClientBuilder().WithScheme(newScheme()).Build()
 	params := map[string]string{
 		"NAMESPACE_NAME":      "test-namespace",
 		"APPCONF_NAME":        "test-appconf",
@@ -2428,25 +2419,25 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	//_ = clientgoscheme.AddToScheme(scheme)
-	core.AddToScheme(scheme)
-	k8sapps.AddToScheme(scheme)
-	vzapi.AddToScheme(scheme)
-	k8score.AddToScheme(scheme)
-	certapiv1.AddToScheme(scheme)
-	k8net.AddToScheme(scheme)
-	istioclient.AddToScheme(scheme)
-	v1alpha2.SchemeBuilder.AddToScheme(scheme)
+	_ = core.AddToScheme(scheme)
+	_ = k8sapps.AddToScheme(scheme)
+	_ = vzapi.AddToScheme(scheme)
+	_ = k8score.AddToScheme(scheme)
+	_ = certapiv1.AddToScheme(scheme)
+	_ = k8net.AddToScheme(scheme)
+	_ = istioclient.AddToScheme(scheme)
+	_ = v1alpha2.SchemeBuilder.AddToScheme(scheme)
 	return scheme
 }
 
 // newIngressTraitReconciler creates a new reconciler for testing
 // c - The Kerberos client to inject into the reconciler
 func newIngressTraitReconciler(c client.Client) Reconciler {
-	log := zap.S().With("test")
+	l := zap.S().With("test")
 	scheme := newScheme()
 	reconciler := Reconciler{
 		Client: c,
-		Log:    log,
+		Log:    l,
 		Scheme: scheme}
 	return reconciler
 }
@@ -2464,12 +2455,12 @@ func newRequest(namespace string, name string) ctrl.Request {
 // convertToUnstructured converts an object to an Unstructured version
 // object - The object to convert to Unstructured
 func convertToUnstructured(object interface{}) (unstructured.Unstructured, error) {
-	bytes, err := json.Marshal(object)
+	jbytes, err := json.Marshal(object)
 	if err != nil {
 		return unstructured.Unstructured{}, err
 	}
 	var u map[string]interface{}
-	json.Unmarshal(bytes, &u)
+	_ = json.Unmarshal(jbytes, &u)
 	return unstructured.Unstructured{Object: u}, nil
 }
 
@@ -2578,11 +2569,11 @@ func updateUnstructuredFromYAMLTemplate(uns *unstructured.Unstructured, template
 	if err != nil {
 		return err
 	}
-	bytes, err := yaml.YAMLToJSON([]byte(str))
+	ybytes, err := yaml.YAMLToJSON([]byte(str))
 	if err != nil {
 		return err
 	}
-	_, _, err = unstructured.UnstructuredJSONScheme.Decode(bytes, nil, uns)
+	_, _, err = unstructured.UnstructuredJSONScheme.Decode(ybytes, nil, uns)
 	if err != nil {
 		return err
 	}
@@ -2655,7 +2646,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookie(t *test
 			workload.SetKind("VerrazzanoCoherenceWorkload")
 			workload.SetNamespace(name.Namespace)
 			workload.SetName(name.Name)
-			unstructured.SetNestedMap(workload.Object, containedResource, "spec", "template")
+			_ = unstructured.SetNestedMap(workload.Object, containedResource, "spec", "template")
 			return nil
 		})
 	// Expect a call to get the contained Coherence resource
@@ -3297,8 +3288,8 @@ func getIngressTraitResourceExpectations(mock *mocks.MockClient) {
 		})
 }
 
-func createReconcilerWithFake(initObjs ...runtime.Object) Reconciler {
-	cli := fake.NewFakeClientWithScheme(newScheme(), initObjs...)
+func createReconcilerWithFake(initObjs ...client.Object) Reconciler {
+	cli := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(initObjs...).Build()
 	reconciler := newIngressTraitReconciler(cli)
 	return reconciler
 }
