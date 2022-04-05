@@ -6,6 +6,7 @@ package loggingtrait
 import (
 	"context"
 	"encoding/json"
+	"github.com/go-logr/logr"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"testing"
@@ -28,7 +29,6 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	"k8s.io/apimachinery/pkg/runtime"
 	restclient "k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -51,7 +51,7 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	reconciler = LoggingTraitReconciler{Client: cli, Scheme: scheme}
 	mgr.EXPECT().GetConfig().Return(&restclient.Config{})
 	mgr.EXPECT().GetScheme().Return(scheme)
-	mgr.EXPECT().GetLogger().Return(log.NullLogSink{})
+	mgr.EXPECT().GetLogger().Return(logr.Logger{})
 	mgr.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()
 	mgr.EXPECT().Add(gomock.Any()).Return(nil).AnyTimes()
 	err = reconciler.SetupWithManager(mgr)
