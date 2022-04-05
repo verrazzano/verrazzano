@@ -9,14 +9,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"io"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/security/password"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -32,7 +34,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
-	passwords "github.com/verrazzano/verrazzano/pkg/security"
 )
 
 const (
@@ -445,10 +446,14 @@ func createOrUpdateCAResources(compContext spi.ComponentContext) error {
 				Namespace: vzCertCA.ClusterResourceNamespace,
 			},
 		}
+		commonNameSuffix, err := password.GeneratePassword(10)
+		if err != nil {
+			return compContext.Log().ErrorfNewErr("Failed to generate CA common name suffix: %v", err)
+		}
 		if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &certObject, func() error {
 			certObject.Spec = certv1.CertificateSpec{
 				SecretName: vzCertCA.SecretName,
-				CommonName: fmt.Sprintf("%s-%s", caCertCommonName, passwords.GeneratePassword(10),
+				CommonName: fmt.Sprintf("%s-%s", caCertCommonName, commonNameSuffix),
 				IsCA:       true,
 				IssuerRef: certmetav1.ObjectReference{
 					Name: issuer.Name,
