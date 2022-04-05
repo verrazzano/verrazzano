@@ -5,6 +5,7 @@ package metricsbinding
 
 import (
 	"context"
+	"github.com/go-logr/logr"
 	"os"
 	"strings"
 	"testing"
@@ -29,7 +30,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // TestReconcilerSetupWithManager test the creation of the metrics trait reconciler.
@@ -48,7 +48,7 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	manager := mocks.NewMockManager(mocker)
 	manager.EXPECT().GetConfig().Return(&rest.Config{}).AnyTimes()
 	manager.EXPECT().GetScheme().Return(scheme).AnyTimes()
-	manager.EXPECT().GetLogger().Return(log.NullLogSink{}).AnyTimes()
+	manager.EXPECT().GetLogger().Return(logr.Logger{}).AnyTimes()
 	manager.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()
 	manager.EXPECT().Add(gomock.Any()).Return(nil).AnyTimes()
 
