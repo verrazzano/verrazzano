@@ -309,7 +309,7 @@ func TestCreateCAResources(t *testing.T) {
 			Namespace: localvz.Spec.Components.CertManager.Certificate.CA.ClusterResourceNamespace,
 		},
 	}
-	client = fake.NewFakeClientWithScheme(testScheme, &secret)
+	client = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&secret).Build()
 
 	err = createOrUpdateCAResources(spi.NewFakeContext(client, localvz, false, profileDir))
 	assert.NoError(t, err)
@@ -362,7 +362,7 @@ func certificateExists(client clipkg.Client, name string, namespace string) (boo
 func TestPostInstallCA(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
-	client := fake.NewFakeClientWithScheme(testScheme)
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	err := fakeComponent.PostInstall(spi.NewFakeContext(client, localvz, false))
 	assert.NoError(t, err)
 }
@@ -404,7 +404,7 @@ func runCAUpdateTest(t *testing.T, upgrade bool) {
 		},
 	}
 
-	client := fake.NewFakeClientWithScheme(testScheme, localvz)
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(localvz).Build()
 	ctx := spi.NewFakeContext(client, updatedVZ, false)
 
 	var err error
@@ -427,7 +427,7 @@ func runCAUpdateTest(t *testing.T, upgrade bool) {
 func TestPostInstallAcme(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
-	client := fake.NewFakeClientWithScheme(testScheme)
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	// set OCI DNS secret value and create secret
 	localvz.Spec.Components.DNS = &vzapi.DNSComponent{
 		OCI: &vzapi.OCI{
@@ -515,7 +515,7 @@ func runAcmeUpdateTest(t *testing.T, upgrade bool) {
 		OCIZoneName: newOCI.DNSZoneName,
 	})
 
-	client := fake.NewFakeClientWithScheme(testScheme, localvz, oldSecret, newSecret, existingIssuer)
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(localvz, oldSecret, newSecret, existingIssuer).Build()
 	ctx := spi.NewFakeContext(client, updatedVz, false)
 
 	var err error
