@@ -23,7 +23,7 @@ const ComponentNamespace = constants.VerrazzanoMonitoringNamespace
 // ComponentJSONName is the json name of the component in the CRD
 const ComponentJSONName = "prometheusOperator"
 
-const chartName = "kube-prometheus-stack"
+const chartDir = "prometheus-community/kube-prometheus-stack"
 
 type prometheusComponent struct {
 	helm.HelmComponent
@@ -34,7 +34,7 @@ func NewComponent() spi.Component {
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
 			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetThirdPartyDir(), chartName),
+			ChartDir:                filepath.Join(config.GetThirdPartyDir(), chartDir),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
