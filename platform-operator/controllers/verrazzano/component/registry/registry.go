@@ -50,9 +50,9 @@ func getComponents() []spi.Component {
 	if len(componentsRegistry) == 0 {
 		componentsRegistry = []spi.Component{
 			oam.NewComponent(),
-			weblogic.NewComponent(),
 			appoper.NewComponent(),
 			istio.NewComponent(),
+			weblogic.NewComponent(),
 			nginx.NewComponent(),
 			certmanager.NewComponent(),
 			externaldns.NewComponent(),
