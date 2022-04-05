@@ -582,7 +582,7 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "change-fluentd-oci",
@@ -598,7 +598,7 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "change-fluentd-es-secret",
@@ -612,7 +612,7 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "change-fluentd-es-url",
@@ -626,7 +626,7 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "change-fluentd-extravolume",
@@ -640,6 +640,20 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
+			wantErr: false,
+		},
+		{
+			name: "invalid-fluentd-extravolume",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Fluentd: &vzapi.FluentdComponent{
+							ExtraVolumeMounts: []vzapi.VolumeMount{{Source: "/root/.oci"}},
+						},
+					},
+				},
+			},
 			wantErr: true,
 		},
 	}
@@ -649,6 +663,49 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 			err := c.ValidateUpdate(tt.old, tt.new)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidateFluentd(t *testing.T) {
+	tests := []struct {
+		name    string
+		vz      *vzapi.Verrazzano
+		wantErr bool
+	}{{
+		name:    "default",
+		vz:      &vzapi.Verrazzano{},
+		wantErr: false,
+	}, {
+		name: "/var/log",
+		vz: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					Fluentd: &vzapi.FluentdComponent{
+						ExtraVolumeMounts: []vzapi.VolumeMount{{Source: "/var/log"}},
+					},
+				},
+			},
+		},
+		wantErr: true,
+	}, {
+		name: "/var_log",
+		vz: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					Fluentd: &vzapi.FluentdComponent{
+						ExtraVolumeMounts: []vzapi.VolumeMount{{Source: "/var/log", Destination: "/home/var_log"}},
+					},
+				},
+			},
+		},
+		wantErr: false,
+	}}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := validateFluentd(tt.vz); (err != nil) != tt.wantErr {
+				t.Errorf("validateFluentd() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

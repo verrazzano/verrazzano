@@ -767,6 +767,7 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 
 				// Compare the actual and expected values objects
 				assert.Equal(expectedValues, actualValues)
+				assert.Equal(HashSum(expectedValues), HashSum(actualValues))
 				return nil
 			}
 
@@ -1758,4 +1759,25 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 	}
 	ctx := spi.NewFakeContext(client, vz, false)
 	assert.True(t, isVerrazzanoReady(ctx))
+}
+
+func TestConfigHashSum(t *testing.T) {
+	defaultAppLogID := "test-defaultAppLogId"
+	systemLogID := "test-systemLogId"
+	apiSec := "test-my-apiSec"
+	b := true
+	f1 := vzapi.FluentdComponent{
+		OCI: &vzapi.OciLoggingConfiguration{DefaultAppLogID: defaultAppLogID,
+			SystemLogID: systemLogID, APISecret: apiSec,
+		}}
+	f2 := vzapi.FluentdComponent{OCI: &vzapi.OciLoggingConfiguration{
+		APISecret:       apiSec,
+		DefaultAppLogID: defaultAppLogID,
+		SystemLogID:     systemLogID,
+	}}
+	assert.Equal(t, HashSum(f1), HashSum(f2))
+	f1.Enabled = &b
+	assert.NotEqual(t, HashSum(f1), HashSum(f2))
+	f2.Enabled = &b
+	assert.Equal(t, HashSum(f1), HashSum(f2))
 }
