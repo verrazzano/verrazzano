@@ -47,7 +47,7 @@ const (
 // newScheme creates a new scheme that includes this package's object to use for testing
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	oamcore.AddToScheme(scheme)
+	_ = oamcore.AddToScheme(scheme)
 	return scheme
 }
 
@@ -83,7 +83,7 @@ func newAppConfig() *oamv1.ApplicationConfiguration {
 
 func TestReconcileApplicationConfigurationNotFound(t *testing.T) {
 	assert := asserts.New(t)
-	oamcore.AddToScheme(k8scheme.Scheme)
+	_ = oamcore.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	reconciler := newReconciler(c)
@@ -95,7 +95,7 @@ func TestReconcileApplicationConfigurationNotFound(t *testing.T) {
 
 func TestReconcileNoRestartVersion(t *testing.T) {
 	assert := asserts.New(t)
-	oamcore.AddToScheme(k8scheme.Scheme)
+	_ = oamcore.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	reconciler := newReconciler(c)
@@ -110,7 +110,7 @@ func TestReconcileNoRestartVersion(t *testing.T) {
 
 func TestReconcileRestartVersion(t *testing.T) {
 	assert := asserts.New(t)
-	oamcore.AddToScheme(k8scheme.Scheme)
+	_ = oamcore.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	reconciler := newReconciler(c)
@@ -130,7 +130,7 @@ func TestReconcileRestartVersion(t *testing.T) {
 
 func TestReconcileEmptyRestartVersion(t *testing.T) {
 	assert := asserts.New(t)
-	oamcore.AddToScheme(k8scheme.Scheme)
+	_ = oamcore.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	reconciler := newReconciler(c)

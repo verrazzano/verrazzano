@@ -37,7 +37,7 @@ const (
 // newScheme creates a new scheme that includes this package's object to use for testing
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	oamcore.AddToScheme(scheme)
+	_ = oamcore.AddToScheme(scheme)
 	return scheme
 }
 

@@ -40,15 +40,15 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	assert := asserts.New(t)
 
 	scheme := newScheme()
-	vzapi.AddToScheme(scheme)
-	client := fake.NewFakeClientWithScheme(scheme)
+	_ = vzapi.AddToScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 	reconciler := newReconciler(client)
 
 	mocker := gomock.NewController(t)
 	manager := mocks.NewMockManager(mocker)
 	manager.EXPECT().GetConfig().Return(&rest.Config{}).AnyTimes()
 	manager.EXPECT().GetScheme().Return(scheme).AnyTimes()
-	manager.EXPECT().GetLogger().Return(logr.Logger{}).AnyTimes()
+	manager.EXPECT().GetLogger().Return(logr.Discard()).AnyTimes()
 	manager.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()
 	manager.EXPECT().Add(gomock.Any()).Return(nil).AnyTimes()
 
