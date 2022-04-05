@@ -10,6 +10,6 @@ import (
 
 // HelmManagedResource provides an object type and name for a resource managed within a helm chart
 type HelmManagedResource struct {
-	Obj controllerutil.Object
+	Obj            controllerutil.Object
 	NamespacedName types.NamespacedName
 }
