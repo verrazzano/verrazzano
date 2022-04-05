@@ -6,6 +6,7 @@ package authproxy
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"io/fs"
 	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
@@ -126,6 +127,17 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	return kvs, nil
 }
 
+// GetHelmManagedResources returns a list of extra resource types and their namespaced names that are managed by the
+// authproxy helm chart
+func GetHelmManagedResources() []common.HelmManagedResource {
+	return []common.HelmManagedResource{
+		{&corev1.Service{}, types.NamespacedName{Name: "verrazzano-authproxy-elasticsearch", Namespace: ComponentNamespace}},
+		{&corev1.Secret{}, types.NamespacedName{Name: "verrazzano-authproxy-secret", Namespace: ComponentNamespace}},
+		{&corev1.ConfigMap{}, types.NamespacedName{Name: "verrazzano-authproxy-config", Namespace: ComponentNamespace}},
+		{&v1.Ingress{}, types.NamespacedName{Name: "verrazzano-ingress", Namespace: ComponentNamespace}},
+	}
+}
+
 // authproxyPreHelmOps ensures the authproxy associated resources are managed its helm install/upgrade executions by
 // ensuring the resource policy of "keep" is removed (if it remains then helm is unable to delete these resources and
 // they will become orphaned)
@@ -158,17 +170,11 @@ func reassociateResources(cli clipkg.Client) error {
 	}
 
 	// additional namespaced resources managed by this helm chart
-	if _, err := removeResourcePolicyAnnotation(cli, &corev1.Service{}, types.NamespacedName{Name: "verrazzano-authproxy-elasticsearch", Namespace: ComponentNamespace}); err != nil {
-		return err
-	}
-	if _, err := removeResourcePolicyAnnotation(cli, &corev1.Secret{}, types.NamespacedName{Name: "verrazzano-authproxy-secret", Namespace: ComponentNamespace}); err != nil {
-		return err
-	}
-	if _, err := removeResourcePolicyAnnotation(cli, &corev1.ConfigMap{}, types.NamespacedName{Name: "verrazzano-authproxy-config", Namespace: ComponentNamespace}); err != nil {
-		return err
-	}
-	if _, err := removeResourcePolicyAnnotation(cli, &v1.Ingress{}, types.NamespacedName{Name: "verrazzano-ingress", Namespace: ComponentNamespace}); err != nil {
-		return err
+	authProxyResources := GetHelmManagedResources()
+	for _, managedResoure := range authProxyResources {
+		if _, err := removeResourcePolicyAnnotation(cli, managedResoure.Obj, managedResoure.NamespacedName); err != nil {
+			return err
+		}
 	}
 
 	// cluster resources

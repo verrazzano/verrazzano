@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"io/ioutil"
-	v1 "k8s.io/api/networking/v1"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -634,18 +633,11 @@ func exportFromHelmChart(cli clipkg.Client) error {
 		}
 	}
 
-	// additional namespaced resources managed by this helm chart
-	if _, err := associateHelmObject(cli, &corev1.Service{}, authproxyReleaseName, types.NamespacedName{Name: "verrazzano-authproxy-elasticsearch", Namespace: authproxy.ComponentNamespace}, true); err != nil {
-		return err
-	}
-	if _, err := associateHelmObject(cli, &corev1.Secret{}, authproxyReleaseName, types.NamespacedName{Name: "verrazzano-authproxy-secret", Namespace: authproxy.ComponentNamespace}, true); err != nil {
-		return err
-	}
-	if _, err := associateHelmObject(cli, &corev1.ConfigMap{}, authproxyReleaseName, types.NamespacedName{Name: "verrazzano-authproxy-config", Namespace: authproxy.ComponentNamespace}, true); err != nil {
-		return err
-	}
-	if _, err := associateHelmObject(cli, &v1.Ingress{}, authproxyReleaseName, types.NamespacedName{Name: "verrazzano-ingress", Namespace: authproxy.ComponentNamespace}, true); err != nil {
-		return err
+	authproxyManagedResources := authproxy.GetHelmManagedResources()
+	for _, managedResource := range authproxyManagedResources {
+		if _, err := associateHelmObject(cli, managedResource.Obj, authproxyReleaseName, managedResource.NamespacedName, true); err != nil {
+			return err
+		}
 	}
 
 	// cluster resources
