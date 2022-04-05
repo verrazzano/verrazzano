@@ -510,7 +510,7 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "change-ingress-replicas",

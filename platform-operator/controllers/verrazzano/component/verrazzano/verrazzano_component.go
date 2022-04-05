@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	"reflect"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
@@ -157,9 +155,7 @@ func (c verrazzanoComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 	if err := c.checkEnabled(old, new); err != nil {
 		return err
 	}
-	if err := common.CompareInstallArgs(getVzInstallArgs(old), getVzInstallArgs(new), nil); err != nil {
-		return fmt.Errorf("Update to installArgs not allowed for %s", ComponentJSONName)
-	}
+	// Reject any other edits except InstallArgs
 	// Do not allow any updates to storage settings via the volumeClaimSpecTemplates/defaultVolumeSource
 	if err := compareStorageOverrides(old, new); err != nil {
 		return err
@@ -258,13 +254,6 @@ func getFluentdEsSecret(fluentd *vzapi.FluentdComponent) string {
 		return fluentd.ElasticsearchSecret
 	}
 	return ""
-}
-
-func getVzInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
-	if vz != nil && vz.Spec.Components.Verrazzano != nil {
-		return vz.Spec.Components.Verrazzano.InstallArgs
-	}
-	return nil
 }
 
 // GetIngressNames - gets the names of the ingresses associated with this component

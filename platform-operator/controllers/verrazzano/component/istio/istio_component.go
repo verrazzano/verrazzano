@@ -6,13 +6,13 @@ package istio
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	k8s "github.com/verrazzano/verrazzano/platform-operator/internal/nodeport"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
+
+	k8s "github.com/verrazzano/verrazzano/platform-operator/internal/nodeport"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
@@ -58,8 +58,6 @@ const HelmScrtType = "helm.sh/release.v1"
 
 // subcompIstiod is the Istiod subcomponent in the bom
 const subcompIstiod = "istiod"
-
-const ComponentInstallArgShape = `gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"`
 
 // istioComponent represents an Istio component
 type istioComponent struct {
@@ -144,10 +142,7 @@ func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	if i.IsEnabled(old) && !i.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	// Reject any other edits
-	if err := common.CompareInstallArgs(i.getInstallArgs(old), i.getInstallArgs(new), []string{ComponentInstallArgShape}); err != nil {
-		return fmt.Errorf("Updates to installArgs not allowed for %s", ComponentJSONName)
-	}
+	// Reject any other edits except IstioInstallArgs
 	if !reflect.DeepEqual(i.getIngressSettings(old), i.getIngressSettings(new)) {
 		return fmt.Errorf("Updates to ingress not allowed for %s", ComponentJSONName)
 	}
@@ -167,13 +162,6 @@ func (i istioComponent) getIngressSettings(vz *vzapi.Verrazzano) *vzapi.IstioIng
 func (i istioComponent) getEgressSettings(vz *vzapi.Verrazzano) *vzapi.IstioEgressSection {
 	if vz != nil && vz.Spec.Components.Istio != nil {
 		return vz.Spec.Components.Istio.Egress
-	}
-	return nil
-}
-
-func (i istioComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
-	if vz != nil && vz.Spec.Components.Istio != nil {
-		return vz.Spec.Components.Istio.IstioInstallArgs
 	}
 	return nil
 }

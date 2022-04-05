@@ -32,8 +32,6 @@ const ComponentNamespace = "ingress-nginx"
 // ComponentJSONName is the josn name of the verrazzano component in CRD
 const ComponentJSONName = "ingress"
 
-const ComponentInstallArgShape = `controller.service.annotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"`
-
 // nginxComponent represents an Nginx component
 type nginxComponent struct {
 	helm.HelmComponent
@@ -85,10 +83,7 @@ func (c nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	// It throws error if anything other than oci-load-balancer-shape has been changed
-	if err := common.CompareInstallArgs(c.getInstallArgs(old), c.getInstallArgs(new), []string{ComponentInstallArgShape}); err != nil {
-		return fmt.Errorf("Updates to nginxInstallArgs not allowed for %s", ComponentJSONName)
-	}
+	// Reject any other edits except NGINXInstallArgs
 	if err := common.ComparePorts(c.getPorts(old), c.getPorts(new)); err != nil {
 		return fmt.Errorf("Updates to ports not allowed for %s", ComponentJSONName)
 	}
@@ -102,13 +97,6 @@ func (c nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	}
 	if oldType != newType {
 		return fmt.Errorf("Updates to service type not allowed for %s", ComponentJSONName)
-	}
-	return nil
-}
-
-func (c nginxComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
-	if vz != nil && vz.Spec.Components.Ingress != nil {
-		return vz.Spec.Components.Ingress.NGINXInstallArgs
 	}
 	return nil
 }
