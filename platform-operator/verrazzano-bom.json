@@ -102,12 +102,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.10.4-2",
+              "tag": "1.11.4",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.10.4-2",
+              "tag": "1.11.4",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -197,13 +197,13 @@
             },
             {
               "image": "verrazzano-monitoring-operator-jenkins",
-              "tag": "1.3.0-20220404222117-528ac5e",
+              "tag": "1.3.0-20220405160701-5af6a40",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
             {
               "image": "proxyv2",
-              "tag": "1.10.4-2",
+              "tag": "1.11.4",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {

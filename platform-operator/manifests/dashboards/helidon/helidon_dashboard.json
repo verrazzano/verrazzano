@@ -16,8 +16,7 @@
   "editable": true,
   "gnetId": 12853,
   "graphTooltip": 0,
-  "id": 20,
-  "iteration": 1615567657492,
+  "iteration": 1649078542279,
   "links": [],
   "panels": [
     {
@@ -30,6 +29,10 @@
         "#FADE2A"
       ],
       "datasource": null,
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "format": "none",
       "gauge": {
         "maxValue": 100,
@@ -61,7 +64,6 @@
       "maxDataPoints": 100,
       "nullPointMode": "connected",
       "nullText": null,
-      "options": {},
       "postfix": "",
       "postfixFontSize": "50%",
       "prefix": "",
@@ -84,7 +86,10 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "up{job=\"$serviceID\", instance=\"$instance\"}",
+          "exemplar": true,
+          "expr": "up{job=\"$serviceID\", instance=\"$instance\",verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
+          "legendFormat": "",
           "refId": "A"
         }
       ],
@@ -119,6 +124,10 @@
       ],
       "datasource": "Prometheus",
       "description": " base_jvm_uptime_seconds Displays the uptime of the JVM in milliseconds.",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "format": "s",
       "gauge": {
         "maxValue": 100,
@@ -150,7 +159,6 @@
       "maxDataPoints": 100,
       "nullPointMode": "connected",
       "nullText": null,
-      "options": {},
       "pluginVersion": "6.5.2",
       "postfix": "",
       "postfixFontSize": "50%",
@@ -174,7 +182,10 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "base_jvm_uptime_seconds{instance=\"$instance\", job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "base_jvm_uptime_seconds{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
+          "legendFormat": "",
           "refId": "A"
         }
       ],
@@ -201,6 +212,12 @@
       "dashes": false,
       "datasource": "Prometheus",
       "description": "base_gc_total Displays the total number of collections that have occurred. This attribute lists -1 if the collection count is undefined for this collector.",
+      "fieldConfig": {
+        "defaults": {
+          "links": []
+        },
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -226,10 +243,10 @@
       "links": [],
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "6.5.2",
+      "pluginVersion": "7.5.11",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -239,7 +256,9 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "base_gc_total{instance=\"$instance\", job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "base_gc_total{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "{{ name }}",
           "refId": "A"
@@ -294,6 +313,12 @@
       "dashes": false,
       "datasource": "Prometheus",
       "description": "base_gc_time_seconds Displays the approximate accumulated collection elapsed time in seconds. This attribute displays -1 if the collection elapsed time is undefined for this collector. The JVM implementation may use a high resolution timer to measure the elapsed time. This attribute may display the same value even if the collection count has been incremented if the collection elapsed time is very short.",
+      "fieldConfig": {
+        "defaults": {
+          "links": []
+        },
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -320,10 +345,10 @@
       "links": [],
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "6.5.2",
+      "pluginVersion": "7.5.11",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -333,7 +358,9 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "base_gc_time_seconds{instance=\"$instance\", job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "base_gc_time_seconds{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
           "legendFormat": "{{ name }}",
           "refId": "A"
         }
@@ -386,6 +413,12 @@
       "dashes": false,
       "datasource": "Prometheus",
       "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "links": []
+        },
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -411,9 +444,10 @@
       "links": [],
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
+      "pluginVersion": "7.5.11",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -423,7 +457,9 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "base_cpu_systemLoadAverage{instance=\"$instance\",job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "base_cpu_systemLoadAverage{instance=\"$instance\",job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "CPU load",
           "refId": "A"
@@ -476,6 +512,12 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "links": []
+        },
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -504,9 +546,10 @@
       "links": [],
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
+      "pluginVersion": "7.5.11",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -516,19 +559,25 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "base_memory_usedHeap_bytes{instance=\"$instance\",job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "base_memory_usedHeap_bytes{instance=\"$instance\",job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "Used Heap",
           "refId": "A"
         },
         {
-          "expr": "base_memory_committedHeap_bytes{instance=\"$instance\", job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "base_memory_committedHeap_bytes{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\", }",
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "Commited Heap",
           "refId": "C"
         },
         {
-          "expr": "base_memory_maxHeap_bytes{instance=\"$instance\", job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "base_memory_maxHeap_bytes{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "Max Heap",
           "refId": "B"
@@ -581,6 +630,12 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "links": []
+        },
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -607,9 +662,10 @@
       "links": [],
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
+      "pluginVersion": "7.5.11",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -619,7 +675,9 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "base_thread_count{instance=\"$instance\",job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "base_thread_count{instance=\"$instance\",job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "Thread Count",
           "refId": "A"
@@ -677,6 +735,10 @@
       ],
       "datasource": "Prometheus",
       "description": "base_classloader_loadedClasses_count Displays the number of classes that are currently loaded in the JVM.",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "format": "none",
       "gauge": {
         "maxValue": 100,
@@ -708,7 +770,6 @@
       "maxDataPoints": 100,
       "nullPointMode": "connected",
       "nullText": null,
-      "options": {},
       "pluginVersion": "6.5.2",
       "postfix": "",
       "postfixFontSize": "50%",
@@ -732,7 +793,10 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "base_classloader_loadedClasses_count{instance=\"$instance\", job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "base_classloader_loadedClasses_count{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
+          "legendFormat": "",
           "refId": "A"
         }
       ],
@@ -762,6 +826,10 @@
       ],
       "datasource": "Prometheus",
       "description": "base_classloader_loadedClasses_total_total Displays the total number of classes that have been loaded since the JVM has started execution.",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "format": "none",
       "gauge": {
         "maxValue": 100,
@@ -793,7 +861,6 @@
       "maxDataPoints": 100,
       "nullPointMode": "connected",
       "nullText": null,
-      "options": {},
       "pluginVersion": "6.5.2",
       "postfix": "",
       "postfixFontSize": "50%",
@@ -817,7 +884,10 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "base_classloader_loadedClasses_total_total{instance=\"$instance\", job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "base_classloader_loadedClasses_total_total{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
+          "legendFormat": "",
           "refId": "A"
         }
       ],
@@ -847,6 +917,10 @@
       ],
       "datasource": "Prometheus",
       "description": "base_classloader_unloadedClasses_total_total Displays the total number of classes unloaded since the JVM has started execution.",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "format": "none",
       "gauge": {
         "maxValue": 100,
@@ -878,7 +952,6 @@
       "maxDataPoints": 100,
       "nullPointMode": "connected",
       "nullText": null,
-      "options": {},
       "pluginVersion": "6.5.2",
       "postfix": "",
       "postfixFontSize": "50%",
@@ -902,7 +975,10 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "base_classloader_unloadedClasses_total_total{instance=\"$instance\", job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "base_classloader_unloadedClasses_total_total{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
+          "legendFormat": "",
           "refId": "A"
         }
       ],
@@ -929,6 +1005,12 @@
       "dashes": false,
       "datasource": "Prometheus",
       "description": "vendor_requests_meter_rate_per_second",
+      "fieldConfig": {
+        "defaults": {
+          "links": []
+        },
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -954,10 +1036,10 @@
       "links": [],
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "6.5.2",
+      "pluginVersion": "7.5.11",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -967,7 +1049,9 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "vendor_requests_meter_rate_per_second{instance=\"$instance\", job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "vendor_requests_meter_rate_per_second{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "",
           "refId": "A"
@@ -1022,6 +1106,12 @@
       "dashes": false,
       "datasource": "Prometheus",
       "description": "vendor_grpc_requests_meter_rate_per_second",
+      "fieldConfig": {
+        "defaults": {
+          "links": []
+        },
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -1047,10 +1137,10 @@
       "links": [],
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "6.5.2",
+      "pluginVersion": "7.5.11",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1060,7 +1150,9 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "vendor_grpc_requests_meter_rate_per_second{instance=\"$instance\", job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "vendor_grpc_requests_meter_rate_per_second{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "",
           "refId": "A"
@@ -1109,7 +1201,7 @@
     }
   ],
   "refresh": "",
-  "schemaVersion": 20,
+  "schemaVersion": 27,
   "style": "dark",
   "tags": [],
   "templating": {
@@ -1117,19 +1209,24 @@
       {
         "allValue": null,
         "current": {
-          "selected": false,
-          "text": "None",
-          "value": ""
+          "selected": true,
+          "text": "managed1",
+          "value": "managed1"
         },
         "datasource": "Prometheus",
         "definition": "label_values(verrazzano_cluster)",
+        "description": null,
+        "error": null,
         "hide": 0,
         "includeAll": true,
         "label": "Verrazzano Cluster",
         "multi": false,
         "name": "vzcluster",
         "options": [],
-        "query": "label_values(verrazzano_cluster)",
+        "query": {
+          "query": "label_values(verrazzano_cluster)",
+          "refId": "Prometheus-vzcluster-Variable-Query"
+        },
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -1143,18 +1240,25 @@
       {
         "allValue": null,
         "current": {
-          "text": "hello-helidon-appconf_default_hello-helidon_hello-helidon-component",
-          "value": "hello-helidon-appconf_default_hello-helidon_hello-helidon-component"
+          "isNone": true,
+          "selected": false,
+          "text": "None",
+          "value": ""
         },
         "datasource": "Prometheus",
         "definition": "label_values(base_classloader_loadedClasses_count{verrazzano_cluster=~\"$vzcluster\"}, job)",
+        "description": null,
+        "error": null,
         "hide": 0,
         "includeAll": false,
         "label": "ServiceID",
         "multi": false,
         "name": "serviceID",
         "options": [],
-        "query": "label_values(base_classloader_loadedClasses_count{verrazzano_cluster=~\"$vzcluster\"}, job)",
+        "query": {
+          "query": "label_values(base_classloader_loadedClasses_count{verrazzano_cluster=~\"$vzcluster\"}, job)",
+          "refId": "Prometheus-serviceID-Variable-Query"
+        },
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -1168,18 +1272,25 @@
       {
         "allValue": null,
         "current": {
-          "text": "10.244.0.48:8080",
-          "value": "10.244.0.48:8080"
+          "isNone": true,
+          "selected": false,
+          "text": "None",
+          "value": ""
         },
         "datasource": "Prometheus",
         "definition": "label_values(base_classloader_loadedClasses_count{verrazzano_cluster=~\"$vzcluster\",job=\"$serviceID\"}, instance)",
+        "description": null,
+        "error": null,
         "hide": 0,
         "includeAll": false,
         "label": null,
         "multi": false,
         "name": "instance",
         "options": [],
-        "query": "label_values(base_classloader_loadedClasses_count{verrazzano_cluster=~\"$vzcluster\",job=\"$serviceID\"}, instance)",
+        "query": {
+          "query": "label_values(base_classloader_loadedClasses_count{verrazzano_cluster=~\"$vzcluster\",job=\"$serviceID\"}, instance)",
+          "refId": "Prometheus-instance-Variable-Query"
+        },
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -1224,5 +1335,5 @@
   "timezone": "",
   "title": "Helidon Monitoring Dashboard",
   "uid": "TkcxbEtWz",
-  "version": 8
+  "version": 1
 }
