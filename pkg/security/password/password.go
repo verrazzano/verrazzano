@@ -23,8 +23,9 @@ func GeneratePassword(length int) (string, error) {
 	return GeneratePasswordUsingMode(length, modeAlphaNum)
 }
 
-//GeneratePassword will generate a password of length
-func GeneratePasswordAlphaLower(length int) (string, error) {
+//GenerateRandomAlphaLower will generate a lower-case alpha string of length
+//Should be used only for generating semi-unique, non-cryptographic, non-secret strings -- NOT passwords!
+func GenerateRandomAlphaLower(length int) (string, error) {
 	return GeneratePasswordUsingMode(length, modeAlphaLower)
 }
 
@@ -61,7 +62,7 @@ func makeAlphaNumeric(input string) (string, error) {
 	return reg.ReplaceAllString(input, ""), nil
 }
 
-// makeAlphaLower removes all non-lower-case-alpha characters
+// makeAlphaLower removes all special characters and numbers from a string, and lowercases the result
 func makeAlphaLower(input string) (string, error) {
 	// Make a Regex to say we only want letters
 	reg, err := regexp.Compile("[^a-zA-Z]+")
