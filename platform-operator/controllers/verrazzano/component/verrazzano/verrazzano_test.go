@@ -764,7 +764,7 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 				expectedValues := verrazzanoValues{}
 				err = yaml.Unmarshal(expectedData, &expectedValues)
 				assert.NoError(err)
-
+				assert.Equal(expectedValues.Logging.ConfigHash, HashSum(fakeContext.EffectiveCR().Spec.Components.Fluentd))
 				// Compare the actual and expected values objects
 				assert.Equal(expectedValues, actualValues)
 				assert.Equal(HashSum(expectedValues), HashSum(actualValues))

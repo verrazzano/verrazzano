@@ -669,6 +669,8 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 }
 
 func TestValidateFluentd(t *testing.T) {
+	varlog := "/var/log"
+	homevar := "/home/var_log"
 	tests := []struct {
 		name    string
 		vz      *vzapi.Verrazzano
@@ -678,24 +680,24 @@ func TestValidateFluentd(t *testing.T) {
 		vz:      &vzapi.Verrazzano{},
 		wantErr: false,
 	}, {
-		name: "/var/log",
+		name: varlog,
 		vz: &vzapi.Verrazzano{
 			Spec: vzapi.VerrazzanoSpec{
 				Components: vzapi.ComponentSpec{
 					Fluentd: &vzapi.FluentdComponent{
-						ExtraVolumeMounts: []vzapi.VolumeMount{{Source: "/var/log"}},
+						ExtraVolumeMounts: []vzapi.VolumeMount{{Source: varlog}},
 					},
 				},
 			},
 		},
 		wantErr: true,
 	}, {
-		name: "/var_log",
+		name: homevar,
 		vz: &vzapi.Verrazzano{
 			Spec: vzapi.VerrazzanoSpec{
 				Components: vzapi.ComponentSpec{
 					Fluentd: &vzapi.FluentdComponent{
-						ExtraVolumeMounts: []vzapi.VolumeMount{{Source: "/var/log", Destination: "/home/var_log"}},
+						ExtraVolumeMounts: []vzapi.VolumeMount{{Source: varlog, Destination: homevar}},
 					},
 				},
 			},
