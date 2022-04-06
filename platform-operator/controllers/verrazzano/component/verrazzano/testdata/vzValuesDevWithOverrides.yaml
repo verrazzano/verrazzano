@@ -20,3 +20,5 @@ prometheusOperator:
   enabled: false
 prometheusAdapter:
   enabled: false
+kubeStateMetrics:
+  enabled: false

@@ -6,6 +6,7 @@ package registry
 import (
 	"testing"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/kubestatemetrics"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 
 	"github.com/stretchr/testify/assert"
@@ -51,7 +52,7 @@ func TestGetComponents(t *testing.T) {
 	a := assert.New(t)
 	comps := GetComponents()
 
-	a.Len(comps, 16, "Wrong number of components")
+	a.Len(comps, 17, "Wrong number of components")
 	a.Equal(comps[0].Name(), oam.ComponentName)
 	a.Equal(comps[1].Name(), appoper.ComponentName)
 	a.Equal(comps[2].Name(), istio.ComponentName)
@@ -68,6 +69,7 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[13].Name(), kiali.ComponentName)
 	a.Equal(comps[14].Name(), promoperator.ComponentName)
 	a.Equal(comps[15].Name(), promadapter.ComponentName)
+	a.Equal(comps[16].Name(), kubestatemetrics.ComponentName)
 }
 
 // TestFindComponent tests FindComponent
