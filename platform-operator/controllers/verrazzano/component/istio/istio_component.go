@@ -142,10 +142,7 @@ func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	if i.IsEnabled(old) && !i.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	// Reject any other edits
-	if !reflect.DeepEqual(i.getInstallArgs(old), i.getInstallArgs(new)) {
-		return fmt.Errorf("Updates to installArgs not allowed for %s", ComponentJSONName)
-	}
+	// Reject any other edits except IstioInstallArgs
 	if !reflect.DeepEqual(i.getIngressSettings(old), i.getIngressSettings(new)) {
 		return fmt.Errorf("Updates to ingress not allowed for %s", ComponentJSONName)
 	}
@@ -165,13 +162,6 @@ func (i istioComponent) getIngressSettings(vz *vzapi.Verrazzano) *vzapi.IstioIng
 func (i istioComponent) getEgressSettings(vz *vzapi.Verrazzano) *vzapi.IstioEgressSection {
 	if vz != nil && vz.Spec.Components.Istio != nil {
 		return vz.Spec.Components.Istio.Egress
-	}
-	return nil
-}
-
-func (i istioComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
-	if vz != nil && vz.Spec.Components.Istio != nil {
-		return vz.Spec.Components.Istio.IstioInstallArgs
 	}
 	return nil
 }
