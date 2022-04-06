@@ -115,13 +115,6 @@ type grafanaValues struct {
 	Requests *resourceRequestValues `json:"requests,omitempty"`
 }
 
-type voValues struct {
-	Name           string `json:"name,omitempty"`
-	Enabled        bool   `json:"enabled"` // Always write
-	APIServerRealm string `json:"apiServerRealm,omitempty"`
-	RequestMemory  string `json:"RequestMemory,omitempty"` // not a typo, the chart uses RequestMemory
-}
-
 type vmoValues struct {
 	Name                      string `json:"name,omitempty"`
 	Enabled                   bool   `json:"enabled"` // Always write
