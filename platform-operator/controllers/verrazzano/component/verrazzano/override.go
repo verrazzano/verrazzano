@@ -137,7 +137,6 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *verrazzanoValue
 	overrides.Keycloak = &keycloakValues{Enabled: vzconfig.IsKeycloakEnabled(effectiveCR)}
 	overrides.Rancher = &rancherValues{Enabled: vzconfig.IsRancherEnabled(effectiveCR)}
 	overrides.Console = &consoleValues{Enabled: vzconfig.IsConsoleEnabled(effectiveCR)}
-	overrides.VerrazzanoOperator = &voValues{Enabled: vzconfig.IsVMOEnabled(effectiveCR)}
 	overrides.MonitoringOperator = &vmoValues{Enabled: vzconfig.IsVMOEnabled(effectiveCR)}
 	overrides.PrometheusOperator = &prometheusOperatorValues{Enabled: vzconfig.IsPrometheusOperatorEnabled(effectiveCR)}
 	return nil

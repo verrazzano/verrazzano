@@ -27,7 +27,6 @@ type verrazzanoValues struct {
 	Kiali              *kialiValues               `json:"kiali,omitempty"`
 	Keycloak           *keycloakValues            `json:"keycloak,omitempty"`
 	Rancher            *rancherValues             `json:"rancher,omitempty"`
-	VerrazzanoOperator *voValues                  `json:"verrazzanoOperator,omitempty"`
 	MonitoringOperator *vmoValues                 `json:"monitoringOperator,omitempty"`
 	Logging            *loggingValues             `json:"logging,omitempty"`
 	Fluentd            *fluentdValues             `json:"fluentd,omitempty"`

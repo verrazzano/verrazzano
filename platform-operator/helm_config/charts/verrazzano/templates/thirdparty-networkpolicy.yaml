@@ -178,7 +178,7 @@ spec:
   policyTypes:
     - Ingress
 {{- end }}
-{{- if .Values.verrazzanoOperator.enabled }}
+{{- if .Values.nodeExporter.enabled }}
 ---
 # Network policy for Node Exporter
 # Ingress: allow connect from Prometheus to scrape metrics
