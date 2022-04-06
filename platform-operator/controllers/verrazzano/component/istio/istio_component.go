@@ -6,12 +6,13 @@ package istio
 import (
 	"context"
 	"fmt"
-	k8s "github.com/verrazzano/verrazzano/platform-operator/internal/nodeport"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
+
+	k8s "github.com/verrazzano/verrazzano/platform-operator/internal/nodeport"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
@@ -258,22 +259,6 @@ func (i istioComponent) PostUpgrade(context spi.ComponentContext) error {
 		return err
 	}
 
-	// Generate a restart version that will not change for this Verrazzano version
-	// Valid labels cannot contain + sign
-	restartVersion := context.EffectiveCR().Spec.Version + "-upgrade"
-	restartVersion = strings.ReplaceAll(restartVersion, "+", "-")
-
-	// Start WebLogic domains that were shutdown
-	context.Log().Infof("Starting WebLogic domains that were stopped pre-upgrade")
-	if err := StartDomainsStoppedByUpgrade(context.Log(), context.Client(), restartVersion); err != nil {
-		return err
-	}
-
-	// Restart all other apps
-	context.Log().Infof("Restarting all applications so they can get the new Envoy sidecar")
-	if err := RestartAllApps(context.Log(), context.Client(), restartVersion); err != nil {
-		return err
-	}
 	return nil
 }
 

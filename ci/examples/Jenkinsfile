@@ -271,8 +271,6 @@ pipeline {
                 }
 
                 stage('Run Acceptance Tests Deployments') {
-                    environment {
-                    }
                     parallel {
                         stage('examples todo') {
                             environment {

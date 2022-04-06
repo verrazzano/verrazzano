@@ -5,6 +5,7 @@ package verrazzano
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"path/filepath"
 	"reflect"
 
@@ -40,6 +41,9 @@ const (
 	verrazzanoBackupScrtName   = "verrazzano-backup"
 	objectstoreAccessKey       = "object_store_access_key"
 	objectstoreAccessSecretKey = "object_store_secret_key"
+
+	// Grafana admin secret data
+	grafanaScrtName = "grafana-admin"
 )
 
 // ComponentJSONName is the josn name of the verrazzano component in CRD
@@ -61,7 +65,7 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:     appendVerrazzanoOverrides,
 			ImagePullSecretKeyname:  vzImagePullSecretKeyName,
 			SupportsOperatorInstall: true,
-			Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
+			Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName, authproxy.ComponentName},
 		},
 	}
 }
