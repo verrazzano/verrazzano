@@ -89,8 +89,8 @@ pipeline {
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
 
-        WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
-        DATABASE_PSW = credentials('todo-mysql-password') // required by console ingress test
+        WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
+        DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
 
         // Used for dumping cluster from inside tests
         DUMP_KUBECONFIG="${KUBECONFIG}"
@@ -384,28 +384,65 @@ pipeline {
                                 runGinkgo('logging/helidon')
                             }
                         }
-                        stage('examples helidon') {
+                        stage('examples todo') {
                             environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
+                            }
+                            steps {
+                                runGinkgo('examples/todo')
+                            }
+                        }
+                        stage('examples socks') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-socks"
+                            }
+                            steps {
+                                runSocksVariant('helidon')
+                                runSocksVariant('micronaut')
+                                runSocksVariant('spring')
+                            }
+                        }
+                        stage('examples spring') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-spring"
+                            }
+                            steps {
+                                runGinkgo('examples/springboot')
+                            }
+                        }
+                        stage('examples helidon 1') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-1"
                             }
                             steps {
                                 runGinkgo('examples/helidon')
                             }
                         }
-                        stage('weblogic workload') {
+                        stage('examples helidon 2') {
                             environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-app"
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-2"
                             }
                             steps {
-                                runGinkgo('workloads/weblogic')
+                                runGinkgo('examples/helidon')
                             }
                         }
-                        stage('coherence workload') {
+                        stage('examples helidon-config') {
                             environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-app"
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-config"
                             }
                             steps {
-                                runGinkgo('workloads/coherence')
+                                runGinkgo('examples/helidonconfig')
+                            }
+                        }
+                        stage('examples bobs') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-bobs"
+                            }
+                            when {
+                                expression {params.RUN_SLOW_TESTS == true}
+                            }
+                            steps {
+                                runGinkgo('examples/bobsbooks')
                             }
                         }
                         stage('console ingress') {
