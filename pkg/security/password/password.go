@@ -13,19 +13,39 @@ import (
 
 const mask = "******"
 
+const (
+	modeAlphaNum   = iota
+	modeAlphaLower = iota
+)
+
 //GeneratePassword will generate a password of length
 func GeneratePassword(length int) (string, error) {
+	return GeneratePasswordUsingMode(length, modeAlphaNum)
+}
+
+//GeneratePassword will generate a password of length
+func GeneratePasswordAlphaLower(length int) (string, error) {
+	return GeneratePasswordUsingMode(length, modeAlphaLower)
+}
+
+//GeneratePasswordUsingMode will generate a password of length with mode
+func GeneratePasswordUsingMode(length int, mode int) (string, error) {
 	if length < 1 {
 		return "", fmt.Errorf("cannot create password of length %d", length)
 	}
 	// Enlarge buffer so plenty of room is left when special characters are stripped out
-	b := make([]byte, length*3)
+	b := make([]byte, length*4)
 	_, err := rand.Read(b)
 	if err != nil {
 		return "", err
 	}
 	pw := b64.StdEncoding.EncodeToString(b)
-	pw, err = makeAlphaNumeric(pw)
+	if mode == modeAlphaNum {
+		pw, err = makeAlphaNumeric(pw)
+	}
+	else {
+		pw, err = makeAlphaLower(pw)
+	}
 	if err != nil {
 		return "", err
 	}
@@ -40,6 +60,16 @@ func makeAlphaNumeric(input string) (string, error) {
 		return "", err
 	}
 	return reg.ReplaceAllString(input, ""), nil
+}
+
+// makeAlphaLower removes all non-lower-case-alpha characters
+func makeAlphaLower(input string) (string, error) {
+	// Make a Regex to say we only want letters
+	reg, err := regexp.Compile("[^a-zA-Z]+")
+	if err != nil {
+		return "", err
+	}
+	return strings.ToLower(reg.ReplaceAllString(input, "")), nil
 }
 
 //MaskFunction creates a function intended to mask passwords which are substrings in other strings
