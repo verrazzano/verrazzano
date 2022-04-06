@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
+
 	"k8s.io/apimachinery/pkg/selection"
 
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -41,6 +43,9 @@ const (
 
 	// vzStateUpgradeDone is the state when upgrade is done
 	vzStateUpgradeDone VerrazzanoUpgradeState = "vzUpgradeDone"
+
+	// vzStateRestartApps is the state when the apps are being restarted
+	vzStateRestartApps VerrazzanoUpgradeState = "vzRestartApps"
 
 	// vzStateEnd is the terminal state
 	vzStateEnd VerrazzanoUpgradeState = "vzStateEnd"
@@ -121,16 +126,26 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 				log.Oncef("Component %s is ready after post-upgrade", compName)
 
 			}
+			tracker.vzState = vzStateRestartApps
+
+		case vzStateRestartApps:
+			log.Once("Doing Verrazzano post-upgrade application restarts if needed")
+			err := istio.RestartApps(log, r, cr.Generation)
+			if err != nil {
+				log.Errorf("Error running Verrazzano post-upgrade application restarts")
+				return newRequeueWithDelay(), err
+			}
 			tracker.vzState = vzStateUpgradeDone
 
 		case vzStateUpgradeDone:
 			msg := fmt.Sprintf("Verrazzano successfully upgraded to version %s", cr.Spec.Version)
 			log.Once(msg)
 			cr.Status.Version = targetVersion
+			effectiveCR, _ := transform.GetEffectiveCR(cr)
 			for _, comp := range registry.GetComponents() {
 				compName := comp.Name()
 				componentStatus := cr.Status.Components[compName]
-				if componentStatus != nil {
+				if componentStatus != nil && (effectiveCR != nil && comp.IsEnabled(effectiveCR)) {
 					log.Oncef("Component %s has been upgraded from generation %v to %v %v", compName, componentStatus.LastReconciledGeneration, cr.Generation, componentStatus.State)
 					componentStatus.LastReconciledGeneration = cr.Generation
 				}
