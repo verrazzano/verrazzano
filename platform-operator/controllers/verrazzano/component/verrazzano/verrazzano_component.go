@@ -209,7 +209,7 @@ func validateFluentd(vz *vzapi.Verrazzano) error {
 			}
 			for _, existing := range existingFluentdMountPaths {
 				if mountPath == existing {
-					return fmt.Errorf("invalid Fluentd extra-volume mountPath %s; %v are not allowed", mountPath, existingFluentdMountPaths)
+					return fmt.Errorf("duplicate mount path found: %s; Fluentd by default has mount paths: %v", mountPath, existingFluentdMountPaths)
 				}
 			}
 		}
