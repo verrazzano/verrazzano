@@ -446,7 +446,6 @@ func createOrUpdateCAResources(compContext spi.ComponentContext) error {
 				Namespace: vzCertCA.ClusterResourceNamespace,
 			},
 		}
-
 		commonNameSuffix, err := password.GenerateRandomAlphaLower(8)
 		if err != nil {
 			return compContext.Log().ErrorfNewErr("Failed to generate CA common name suffix: %v", err)
