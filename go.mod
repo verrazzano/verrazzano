@@ -10,7 +10,6 @@ require (
 	github.com/crossplane/crossplane-runtime v0.10.0
 	github.com/crossplane/oam-kubernetes-runtime v0.3.2
 	github.com/gertd/go-pluralize v0.1.7
-	github.com/go-bindata/go-bindata/v3 v3.1.3 // indirect
 	github.com/go-logr/logr v0.4.0
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/mock v1.4.4
@@ -30,7 +29,6 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220324154616-c5e6f9e0fead
 	go.uber.org/zap v1.16.0
-	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83 // indirect
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
 	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2 // indirect
 	golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d // indirect
