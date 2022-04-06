@@ -28,6 +28,7 @@ type verrazzanoValues struct {
 	Keycloak           *keycloakValues            `json:"keycloak,omitempty"`
 	Rancher            *rancherValues             `json:"rancher,omitempty"`
 	MonitoringOperator *vmoValues                 `json:"monitoringOperator,omitempty"`
+	NodeExporter       *nodeExporterValues        `json:"nodeExporter,omitempty"`
 	Logging            *loggingValues             `json:"logging,omitempty"`
 	Fluentd            *fluentdValues             `json:"fluentd,omitempty"`
 	Console            *consoleValues             `json:"console,omitempty"`
@@ -125,6 +126,10 @@ type vmoValues struct {
 	EsWaitTargetVersion       string `json:"esWaitTargetVersion,omitempty"`
 	OidcAuthEnabled           bool   `json:"oidcAuthEnabled,omitempty"`
 	RequestMemory             string `json:"RequestMemory,omitempty"`
+}
+
+type nodeExporterValues struct {
+	Enabled bool `json:"enabled"` // Always write
 }
 
 type loggingValues struct {
