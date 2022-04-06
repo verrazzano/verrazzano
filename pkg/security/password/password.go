@@ -14,8 +14,8 @@ import (
 const mask = "******"
 
 const (
-	modeAlphaNum   = iota
-	modeAlphaLower = iota
+	modeAlphaNum   = 0
+	modeAlphaLower = 1
 )
 
 //GeneratePassword will generate a password of length
@@ -42,8 +42,7 @@ func GeneratePasswordUsingMode(length int, mode int) (string, error) {
 	pw := b64.StdEncoding.EncodeToString(b)
 	if mode == modeAlphaNum {
 		pw, err = makeAlphaNumeric(pw)
-	}
-	else {
+	} else {
 		pw, err = makeAlphaLower(pw)
 	}
 	if err != nil {
