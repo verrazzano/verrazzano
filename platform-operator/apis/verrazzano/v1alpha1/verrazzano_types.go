@@ -336,13 +336,29 @@ type ComponentSpec struct {
 	// +optional
 	Kibana *KibanaComponent `json:"kibana,omitempty"`
 
+	// KubeStateMetrics configuration
+	// +optional
+	KubeStateMetrics *KubeStateMetricsComponent `json:"kubeStateMetrics,omitempty"`
+
 	// Prometheus configuration
 	// +optional
 	Prometheus *PrometheusComponent `json:"prometheus,omitempty"`
 
+	// PrometheusAdapter configuration
+	// +optional
+	PrometheusAdapter *PrometheusAdapterComponent `json:"prometheusAdapter,omitempty"`
+
+	// PrometheusNodeExporter configuration
+	// +optional
+	PrometheusNodeExporter *PrometheusNodeExporterComponent `json:"prometheusNodeExporter,omitempty"`
+
 	// PrometheusOperator configuration
 	// +optional
 	PrometheusOperator *PrometheusOperatorComponent `json:"prometheusOperator,omitempty"`
+
+	// PrometheusPushgateway configuration
+	// +optional
+	PrometheusPushgateway *PrometheusPushgatewayComponent `json:"prometheusPushgateway,omitempty"`
 
 	// Rancher configuration
 	// +optional
@@ -380,6 +396,11 @@ type KibanaComponent struct {
 	MonitoringComponent `json:",inline"`
 }
 
+// KubeStateMetricsComponent specifies the kube-state-metrics configuration.
+type KubeStateMetricsComponent struct {
+	MonitoringComponent `json:",inline"`
+}
+
 // GrafanaComponent specifies the Grafana configuration.
 type GrafanaComponent struct {
 	MonitoringComponent `json:",inline"`
@@ -390,10 +411,25 @@ type PrometheusComponent struct {
 	MonitoringComponent `json:",inline"`
 }
 
+// PrometheusAdapterComponent specifies the Prometheus Adapter configuration.
+type PrometheusAdapterComponent struct {
+	MonitoringComponent `json:",inline"`
+}
+
+// PrometheusNodeExporterComponent specifies the Prometheus Node Exporter configuration.
+type PrometheusNodeExporterComponent struct {
+	MonitoringComponent `json:",inline"`
+}
+
 // PrometheusOperatorComponent specifies the Prometheus Operator configuration
 type PrometheusOperatorComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// PrometheusPushgatewayComponent specifies the Prometheus Pushgateway configuration.
+type PrometheusPushgatewayComponent struct {
+	MonitoringComponent `json:",inline"`
 }
 
 // CertManagerComponent specifies the core CertManagerComponent config.
