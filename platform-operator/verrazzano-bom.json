@@ -22,19 +22,21 @@
       "name": "ingress-nginx",
       "subcomponents": [
         {
-          "repository": "verrazzano",
           "name": "ingress-controller",
           "images": [
             {
-              "image": "nginx-ingress-controller",
-              "tag": "0.46.0-20220316222923-c2764d860",
-              "helmFullImageKey": "controller.image.repository",
+              "registry": "k8s.gcr.io/ingress-nginx",
+              "image": "controller",
+              "tag": "v1.1.1",
+              "HelmRegKey": "controller.image.registry",
+              "helmImageKey": "controller.image.image",
               "helmTagKey": "controller.image.tag"
             },
             {
-              "image": "nginx-ingress-default-backend",
-              "tag": "0.46.0-20220316222923-c2764d860",
-              "helmFullImageKey": "defaultBackend.image.repository",
+              "registry": "k8s.gcr.io",
+              "image": "defaultbackend-amd64",
+              "tag": "1.5",
+              "helmImageKey": "defaultBackend.image.image",
               "helmTagKey": "defaultBackend.image.tag"
             }
           ]
