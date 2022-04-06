@@ -6,6 +6,7 @@ package rancher
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/types"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -18,8 +19,10 @@ import (
 )
 
 const (
-	resetPasswordCommand = "reset-password"
-	ensureAdminCommand   = "ensure-default-admin"
+	resetPasswordCommand   = "reset-password"
+	ensureAdminCommand     = "ensure-default-admin"
+	CattleSystem           = "cattle-system"
+	RancherBootstrapSecret = "bootstrap-secret"
 )
 
 func createAdminSecretIfNotExists(log vzlog.VerrazzanoLogger, c client.Client) error {
@@ -39,6 +42,25 @@ func createAdminSecretIfNotExists(log vzlog.VerrazzanoLogger, c client.Client) e
 	}
 
 	return log.ErrorfNewErr("Failed checking Rancher admin secret availability: %v", err)
+}
+
+func removeBootstrapSecretIfExists(log vzlog.VerrazzanoLogger, c client.Client) error {
+	secret := &v1.Secret{}
+	nsName := types.NamespacedName{
+		Namespace: CattleSystem,
+		Name:      RancherBootstrapSecret}
+
+	// check if the secret exists
+	if err := c.Get(context.TODO(), nsName, secret); err != nil {
+		// if it does not, there is nothing to do and no error, so just return
+		return nil
+	}
+	if err := c.Delete(context.TODO(), secret); err != nil {
+		return err
+	}
+	log.Debugf("Deleted Rancher bootstrap secret")
+	// worked fine, return nil
+	return nil
 }
 
 // retryResetPassword retries resetting the Rancher admin password using the Rancher shell
