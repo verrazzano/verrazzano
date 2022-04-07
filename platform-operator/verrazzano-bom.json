@@ -50,13 +50,13 @@
           "images": [
             {
               "image": "cert-manager-controller-jenkins",
-              "tag": "v1.7.1-20220211001",
+              "tag": "v1.7.1-20220407001",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
-              "image": "cert-manager-acmesolver-jenkins",
-              "tag": "v1.7.1-20220211001",
+              "image": "cert-manager-controller-jenkins",
+              "tag": "acmesolver-v1.7.1",
               "helmFullImageKey": "extraArgs[0]=--acme-http01-solver-image"
             },
             {
