@@ -139,6 +139,7 @@ type loggingValues struct {
 	Name                string `json:"name,omitempty"`
 	ElasticsearchURL    string `json:"elasticsearchURL,omitempty"`
 	ElasticsearchSecret string `json:"elasticsearchSecret,omitempty"`
+	ConfigHash          string `json:"configHash,omitempty"`
 }
 
 type fluentdValues struct {

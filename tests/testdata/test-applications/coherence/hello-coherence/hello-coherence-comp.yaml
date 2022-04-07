@@ -4,7 +4,7 @@
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
-  name: hello
+  name: hello-coherence
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -12,9 +12,12 @@ spec:
     spec:
       template:
         metadata:
-          name: hello
+          name: hello-coherence
         spec:
-          cluster: HelloCoherence
+          labels:
+            app: hello-coh
+            version: v1
+          cluster: hello-coherence-cluster
           replicas: 1
           image: ghcr.io/verrazzano/coherence-app:1.0.0-1-20220319111617-b157b52a
           imagePullPolicy: IfNotPresent
@@ -27,7 +30,9 @@ spec:
               - "--coherence.server.startup-timeout=5m"
           jvm:
             memory:
-              heapSize: 2g
+              heapSize: 1g
+            args:
+              - "-Dcoherence.k8s.operator.health.wait.dcs=false"
           coherence:
             logLevel: 9
             metrics:

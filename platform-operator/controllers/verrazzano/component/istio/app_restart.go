@@ -5,6 +5,7 @@ package istio
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,6 +19,26 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
+
+// RestartApps restarts all the applications that have old Istio sidecars.
+// It also restarts WebLogic domains that were stopped in Istio pre-upgrade
+func RestartApps(log vzlog.VerrazzanoLogger, client clipkg.Client, generation int64) error {
+	// Generate a restart version that will not change for this Verrazzano version
+	restartVersion := "upgrade-" + strconv.Itoa(int(generation))
+
+	// Start WebLogic domains that were shutdown
+	log.Infof("Starting WebLogic domains that were stopped pre-upgrade")
+	if err := StartDomainsStoppedByUpgrade(log, client, restartVersion); err != nil {
+		return err
+	}
+
+	// Restart all other apps
+	log.Infof("Restarting all applications so they can get the new Envoy sidecar")
+	if err := RestartAllApps(log, client, restartVersion); err != nil {
+		return err
+	}
+	return nil
+}
 
 // StopDomainsUsingOldEnvoy stops all the WebLogic domains using Envoy 1.7.3
 func StopDomainsUsingOldEnvoy(log vzlog.VerrazzanoLogger, client clipkg.Client) error {

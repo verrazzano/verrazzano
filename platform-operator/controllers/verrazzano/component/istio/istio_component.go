@@ -6,12 +6,13 @@ package istio
 import (
 	"context"
 	"fmt"
-	k8s "github.com/verrazzano/verrazzano/platform-operator/internal/nodeport"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
+
+	k8s "github.com/verrazzano/verrazzano/platform-operator/internal/nodeport"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
@@ -141,10 +142,7 @@ func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	if i.IsEnabled(old) && !i.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	// Reject any other edits
-	if !reflect.DeepEqual(i.getInstallArgs(old), i.getInstallArgs(new)) {
-		return fmt.Errorf("Updates to installArgs not allowed for %s", ComponentJSONName)
-	}
+	// Reject any other edits except IstioInstallArgs
 	if !reflect.DeepEqual(i.getIngressSettings(old), i.getIngressSettings(new)) {
 		return fmt.Errorf("Updates to ingress not allowed for %s", ComponentJSONName)
 	}
@@ -164,13 +162,6 @@ func (i istioComponent) getIngressSettings(vz *vzapi.Verrazzano) *vzapi.IstioIng
 func (i istioComponent) getEgressSettings(vz *vzapi.Verrazzano) *vzapi.IstioEgressSection {
 	if vz != nil && vz.Spec.Components.Istio != nil {
 		return vz.Spec.Components.Istio.Egress
-	}
-	return nil
-}
-
-func (i istioComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
-	if vz != nil && vz.Spec.Components.Istio != nil {
-		return vz.Spec.Components.Istio.IstioInstallArgs
 	}
 	return nil
 }
@@ -258,22 +249,6 @@ func (i istioComponent) PostUpgrade(context spi.ComponentContext) error {
 		return err
 	}
 
-	// Generate a restart version that will not change for this Verrazzano version
-	// Valid labels cannot contain + sign
-	restartVersion := context.EffectiveCR().Spec.Version + "-upgrade"
-	restartVersion = strings.ReplaceAll(restartVersion, "+", "-")
-
-	// Start WebLogic domains that were shutdown
-	context.Log().Infof("Starting WebLogic domains that were stopped pre-upgrade")
-	if err := StartDomainsStoppedByUpgrade(context.Log(), context.Client(), restartVersion); err != nil {
-		return err
-	}
-
-	// Restart all other apps
-	context.Log().Infof("Restarting all applications so they can get the new Envoy sidecar")
-	if err := RestartAllApps(context.Log(), context.Client(), restartVersion); err != nil {
-		return err
-	}
 	return nil
 }
 
