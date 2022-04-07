@@ -39,3 +39,5 @@ verrazzanoOperator:
   enabled: false
 prometheusOperator:
   enabled: false
+prometheusAdapter:
+  enabled: false
