@@ -137,31 +137,31 @@ func TestContextProfilesMerge(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert := assert.New(t)
+			a := assert.New(t)
 
 			t.Log(test.description)
 
 			// Load the expected merged result into a VZ CR
 			expectedVZ, err := loadExpectedMergeResult(test.expectedYAML)
-			assert.NoError(err)
-			assert.NotNil(expectedVZ)
+			a.NoError(err)
+			a.NotNil(expectedVZ)
 
 			// Create the context with the effective CR
 			log := vzlog.DefaultLogger()
-			context, err := NewContext(log, fake.NewFakeClientWithScheme(testScheme), &test.actualCR, false)
+			context, err := NewContext(log, fake.NewClientBuilder().WithScheme(testScheme).Build(), &test.actualCR, false)
 			// Assert the error expectations
 			if test.expectedErr {
-				assert.Error(err)
+				a.Error(err)
 			} else {
-				assert.NoError(err)
+				a.NoError(err)
 			}
 
-			assert.NotNil(context, "Context was nil")
-			assert.NotNil(context.ActualCR(), "Actual CR was nil")
-			assert.Equal(test.actualCR, *context.ActualCR(), "Actual CR unexpectedly modified")
-			assert.NotNil(context.EffectiveCR(), "Effective CR was nil")
-			assert.Equal(vzapi.VerrazzanoStatus{}, context.EffectiveCR().Status, "Effective CR status not empty")
-			assert.Equal(expectedVZ, context.EffectiveCR(), "Effective CR did not match expected results")
+			a.NotNil(context, "Context was nil")
+			a.NotNil(context.ActualCR(), "Actual CR was nil")
+			a.Equal(test.actualCR, *context.ActualCR(), "Actual CR unexpectedly modified")
+			a.NotNil(context.EffectiveCR(), "Effective CR was nil")
+			a.Equal(vzapi.VerrazzanoStatus{}, context.EffectiveCR().Status, "Effective CR status not empty")
+			a.Equal(expectedVZ, context.EffectiveCR(), "Effective CR did not match expected results")
 		})
 	}
 }

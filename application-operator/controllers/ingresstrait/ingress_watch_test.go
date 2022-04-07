@@ -28,10 +28,10 @@ func Test_isConsoleIngressUpdated(t *testing.T) {
 	asserts := assert.New(t)
 
 	scheme := runtime.NewScheme()
-	corev1.AddToScheme(scheme)
-	vzapi.AddToScheme(scheme)
-	vzoam.AddToScheme(scheme)
-	client := fake.NewFakeClientWithScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+	_ = vzapi.AddToScheme(scheme)
+	_ = vzoam.AddToScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	r := newIngressTraitReconciler(client)
 
@@ -92,20 +92,20 @@ func Test_createIngressTraitReconcileRequests(t *testing.T) {
 	asserts := assert.New(t)
 
 	scheme := runtime.NewScheme()
-	corev1.AddToScheme(scheme)
-	vzapi.AddToScheme(scheme)
-	vzoam.AddToScheme(scheme)
-	client := fake.NewFakeClientWithScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+	_ = vzapi.AddToScheme(scheme)
+	_ = vzoam.AddToScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	reconciler := newIngressTraitReconciler(client)
 
 	asserts.Len(reconciler.createIngressTraitReconcileRequests(), 0)
 
-	client.Create(context.TODO(), &vzoam.IngressTrait{ObjectMeta: metav1.ObjectMeta{Name: "trait1", Namespace: "traitns1"}})
-	client.Create(context.TODO(), &vzoam.IngressTrait{ObjectMeta: metav1.ObjectMeta{Name: "trait2", Namespace: "traitns1"}})
-	client.Create(context.TODO(), &vzoam.IngressTrait{ObjectMeta: metav1.ObjectMeta{Name: "trait1", Namespace: "traitns2"}})
-	client.Create(context.TODO(), &vzoam.IngressTrait{ObjectMeta: metav1.ObjectMeta{Name: "trait1", Namespace: "traitns3"}})
-	client.Create(context.TODO(), &vzoam.IngressTrait{ObjectMeta: metav1.ObjectMeta{Name: "trait2", Namespace: "traitns3"}})
+	_ = client.Create(context.TODO(), &vzoam.IngressTrait{ObjectMeta: metav1.ObjectMeta{Name: "trait1", Namespace: "traitns1"}})
+	_ = client.Create(context.TODO(), &vzoam.IngressTrait{ObjectMeta: metav1.ObjectMeta{Name: "trait2", Namespace: "traitns1"}})
+	_ = client.Create(context.TODO(), &vzoam.IngressTrait{ObjectMeta: metav1.ObjectMeta{Name: "trait1", Namespace: "traitns2"}})
+	_ = client.Create(context.TODO(), &vzoam.IngressTrait{ObjectMeta: metav1.ObjectMeta{Name: "trait1", Namespace: "traitns3"}})
+	_ = client.Create(context.TODO(), &vzoam.IngressTrait{ObjectMeta: metav1.ObjectMeta{Name: "trait2", Namespace: "traitns3"}})
 
 	expectedRequests := []reconcile.Request{
 		{NamespacedName: types.NamespacedName{Name: "trait1", Namespace: "traitns1"}},

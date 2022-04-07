@@ -111,8 +111,8 @@ func TestReconcileRestart(t *testing.T) {
 		})
 	// expect a call to update the deployment
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Deployment{})).
-		DoAndReturn(func(ctx context.Context, deploy *appsv1.Deployment) error {
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Deployment{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, deploy *appsv1.Deployment, opts ...client.UpdateOption) error {
 			assert.Equal(testRestartVersion, deploy.Spec.Template.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation])
 			return nil
 		})

@@ -99,11 +99,11 @@ func newAdmissionRequest(op admissionv1.Operation, obj interface{}) admission.Re
 // This is a test utility function used by other multi-cluster resource validation tests.
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	v1alpha12.AddToScheme(scheme)
+	_ = v1alpha12.AddToScheme(scheme)
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Version: "v1",
 	}, &corev1.Secret{}, &corev1.SecretList{})
-	v1alpha1.AddToScheme(scheme)
+	_ = v1alpha1.AddToScheme(scheme)
 	return scheme
 }
 

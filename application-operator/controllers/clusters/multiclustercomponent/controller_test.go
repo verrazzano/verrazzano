@@ -25,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -52,7 +51,7 @@ func TestComponentReconcilerSetupWithManager(t *testing.T) {
 	scheme = runtime.NewScheme()
 	_ = clustersv1alpha1.AddToScheme(scheme)
 	reconciler = Reconciler{Client: cli, Scheme: scheme}
-	mgr.EXPECT().GetConfig().Return(&rest.Config{})
+	mgr.EXPECT().GetControllerOptions().AnyTimes()
 	mgr.EXPECT().GetScheme().Return(scheme)
 	mgr.EXPECT().GetLogger().Return(logr.Discard())
 	mgr.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()
@@ -93,7 +92,7 @@ func TestReconcileCreateComponent(t *testing.T) {
 
 	// expect a call to create the OAM component
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, c *v1alpha2.Component, opts ...client.CreateOption) error {
 			assertComponentValid(assert, c, mcCompSample)
 			return nil
@@ -101,7 +100,7 @@ func TestReconcileCreateComponent(t *testing.T) {
 
 	// expect a call to update the resource with a finalizer
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, component *clustersv1alpha1.MultiClusterComponent, opts ...client.UpdateOption) error {
 			assert.True(len(component.ObjectMeta.Finalizers) == 1, "Wrong number of finalizers")
 			assert.Equal(finalizerName, component.ObjectMeta.Finalizers[0], "wrong finalizer")
@@ -154,7 +153,7 @@ func TestReconcileUpdateComponent(t *testing.T) {
 
 	// expect a call to update the OAM component with the new component workload data
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, c *v1alpha2.Component, opts ...client.CreateOption) error {
 			assertComponentValid(assert, c, mcCompSample)
 			return nil
@@ -203,7 +202,7 @@ func TestReconcileCreateComponentFailed(t *testing.T) {
 
 	// expect a call to create the OAM component and fail the call
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, c *v1alpha2.Component, opts ...client.CreateOption) error {
 			return errors.NewBadRequest("will not create it")
 		})
@@ -255,8 +254,8 @@ func TestReconcileUpdateComponentFailed(t *testing.T) {
 
 	// expect a call to update the OAM component and fail the call
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, c *v1alpha2.Component, opts ...client.CreateOption) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, c *v1alpha2.Component, opts ...client.UpdateOption) error {
 			return errors.NewBadRequest("will not update it")
 		})
 
@@ -316,7 +315,7 @@ func TestReconcilePlacementInDifferentCluster(t *testing.T) {
 
 	// expect a call to update the resource with no finalizers
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, mcComponent *clustersv1alpha1.MultiClusterComponent, opts ...client.UpdateOption) error {
 			assert.True(len(mcComponent.Finalizers) == 0, "Wrong number of finalizers")
 			return nil
@@ -385,8 +384,8 @@ func doExpectStatusUpdateFailed(cli *mocks.MockClient, mockStatusWriter *mocks.M
 
 	// the status update should be to failure status/conditions on the MultiClusterComponent
 	mockStatusWriter.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterComponent{})).
-		DoAndReturn(func(ctx context.Context, mcComp *clustersv1alpha1.MultiClusterComponent) error {
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterComponent{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, mcComp *clustersv1alpha1.MultiClusterComponent, opts ...client.UpdateOption) error {
 			clusterstest.AssertMultiClusterResourceStatus(assert, mcComp.Status,
 				clustersv1alpha1.Failed, clustersv1alpha1.DeployFailed, v1.ConditionTrue)
 			return nil
@@ -403,8 +402,8 @@ func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mock
 
 	// the status update should be to success status/conditions on the MultiClusterComponent
 	mockStatusWriter.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterComponent{})).
-		DoAndReturn(func(ctx context.Context, mcComp *clustersv1alpha1.MultiClusterComponent) error {
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterComponent{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, mcComp *clustersv1alpha1.MultiClusterComponent, opts ...client.UpdateOption) error {
 			clusterstest.AssertMultiClusterResourceStatus(assert, mcComp.Status,
 				clustersv1alpha1.Succeeded, clustersv1alpha1.DeployComplete, v1.ConditionTrue)
 			return nil

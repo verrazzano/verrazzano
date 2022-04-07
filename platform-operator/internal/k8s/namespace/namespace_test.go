@@ -63,8 +63,8 @@ func TestCreateAndLabelNamespace(t *testing.T) {
 		})
 
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace) error {
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.CreateOption) error {
 			asserts.Equal("testns", ns.Name)
 			asserts.Equal(createVZAndIstioLabels("testns"), ns.Labels)
 			return nil
@@ -89,8 +89,8 @@ func TestCreateAndLabelNamespaceIstioInjection(t *testing.T) {
 		})
 
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace) error {
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.CreateOption) error {
 			asserts.Equal("testns", ns.Name)
 			asserts.Equal(istioLabels, ns.Labels)
 			return nil
@@ -115,8 +115,8 @@ func TestCreateAndLabelNamespaceVzManaged(t *testing.T) {
 		})
 
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace) error {
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.CreateOption) error {
 			asserts.Equal("testns", ns.Name)
 			asserts.Equal(createVzLabels("testns"), ns.Labels)
 			return nil
@@ -141,8 +141,8 @@ func TestCreateAndLabelNamespaceReturnsError(t *testing.T) {
 		})
 
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace) error {
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.CreateOption) error {
 			return fmt.Errorf("UnexpectedError")
 		})
 
@@ -211,8 +211,8 @@ func runNamespaceTest(t *testing.T, namespace string, expectedLabels map[string]
 		})
 
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace) error {
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.CreateOption) error {
 			asserts.Equal(namespace, ns.Name)
 			asserts.Equal(expectedLabels, ns.Labels)
 			return nil

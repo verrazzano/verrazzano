@@ -29,9 +29,9 @@ func newGeneratorWorkloadWebhook() GeneratorWorkloadWebhook {
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Version: "v1",
 	}, &corev1.Pod{}, &appsv1.Deployment{}, &appsv1.ReplicaSet{}, &appsv1.StatefulSet{}, &corev1.Namespace{})
-	vzapp.AddToScheme(scheme)
+	_ = vzapp.AddToScheme(scheme)
 	decoder, _ := admission.NewDecoder(scheme)
-	cli := ctrlfake.NewFakeClientWithScheme(scheme)
+	cli := ctrlfake.NewClientBuilder().WithScheme(scheme).Build()
 	v := GeneratorWorkloadWebhook{
 		Client:     cli,
 		Decoder:    decoder,

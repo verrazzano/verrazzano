@@ -142,10 +142,10 @@ var _ installMonitor = &fakeMonitor{}
 //  WHEN I call IsOperatorInstallSupported
 //  THEN true is returned
 func TestIsOperatorInstallSupported(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	b := comp.IsOperatorInstallSupported()
-	assert.True(b, "IsOperatorInstallSupported returned the wrong value")
+	a.True(b, "IsOperatorInstallSupported returned the wrong value")
 }
 
 // TestIsInstalled tests if the component is installed
@@ -153,12 +153,12 @@ func TestIsOperatorInstallSupported(t *testing.T) {
 //  WHEN I call IsInstalled
 //  THEN true is returned
 func TestIsInstalled(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	istio.SetCmdRunner(fakeIstioInstalledRunner{})
 	b, err := comp.IsInstalled(spi.NewFakeContext(getIsInstalledMock(t), installCR, false))
-	assert.NoError(err, "IsInstalled returned an error")
-	assert.True(b, "IsInstalled returned false")
+	a.NoError(err, "IsInstalled returned an error")
+	a.True(b, "IsInstalled returned false")
 }
 
 func getIsInstalledMock(t *testing.T) *mocks.MockClient {
@@ -177,12 +177,12 @@ func getIsInstalledMock(t *testing.T) *mocks.MockClient {
 //  WHEN I call IsInstalled
 //  THEN false is returned
 func TestIsNotInstalled(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	istio.SetCmdRunner(fakeIstioInstalledRunner{})
 	b, err := comp.IsInstalled(spi.NewFakeContext(getIsNotInstalledMock(t), installCR, false))
-	assert.NoError(err, "IsInstalled returned an error")
-	assert.False(b, "IsInstalled returned true")
+	a.NoError(err, "IsInstalled returned an error")
+	a.False(b, "IsInstalled returned true")
 }
 
 func getIsNotInstalledMock(t *testing.T) *mocks.MockClient {
@@ -201,7 +201,7 @@ func getIsNotInstalledMock(t *testing.T) *mocks.MockClient {
 //  WHEN I call Install
 //  THEN the install starts a new attempt and returns a RetryableError to requeue
 func TestInstall(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	comp := istioComponent{
 		ValuesFile: "test-values-file.yaml",
@@ -220,7 +220,7 @@ func TestInstall(t *testing.T) {
 	setBashFunc(fakeBash)
 
 	err := comp.Install(spi.NewFakeContext(getIstioInstallMock(t), installCR, false))
-	assert.Equal(expectedErr, err, "Upgrade returned an unexpected error")
+	a.Equal(expectedErr, err, "Upgrade returned an unexpected error")
 }
 
 // TestBackgroundInstallCompletedSuccessfully tests the component install
@@ -228,14 +228,14 @@ func TestInstall(t *testing.T) {
 //  WHEN when the monitor goroutine failed to successfully complete
 //  THEN the Install() method returns nil without calling the forkInstall function
 func TestBackgroundInstallCompletedSuccessfully(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	comp := istioComponent{
 		ValuesFile: "test-values-file.yaml",
 	}
 
 	forkInstallFunc = func(_ spi.ComponentContext, _ installMonitor, _ string, _ []string) error {
-		assert.Fail("Unexpected call to forkInstall() function")
+		a.Fail("Unexpected call to forkInstall() function")
 		return nil
 	}
 	defer func() { forkInstallFunc = forkInstall }()
@@ -247,7 +247,7 @@ func TestBackgroundInstallCompletedSuccessfully(t *testing.T) {
 
 	comp.monitor = &fakeMonitor{result: true, running: true}
 	err := comp.Install(spi.NewFakeContext(getIstioInstallMock(t), installCR, false))
-	assert.NoError(err)
+	a.NoError(err)
 }
 
 // TestBackgroundInstallRetryOnFailure tests the component install
@@ -255,7 +255,7 @@ func TestBackgroundInstallCompletedSuccessfully(t *testing.T) {
 //  WHEN when the monitor goroutine failed to successfully complete
 //  THEN the Install() method calls the forkInstall function and returns a retry error
 func TestBackgroundInstallRetryOnFailure(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	comp := istioComponent{
 		ValuesFile: "test-values-file.yaml",
@@ -277,8 +277,8 @@ func TestBackgroundInstallRetryOnFailure(t *testing.T) {
 	comp.monitor = &fakeMonitor{result: false, running: true}
 
 	err := comp.Install(spi.NewFakeContext(getIstioInstallMock(t), installCR, false))
-	assert.True(forkFuncCalled)
-	assert.Equal(expectedErr, err)
+	a.True(forkFuncCalled)
+	a.Equal(expectedErr, err)
 }
 
 // Test_forkInstallSuccess tests the forkInstall function
@@ -286,7 +286,7 @@ func TestBackgroundInstallRetryOnFailure(t *testing.T) {
 //  WHEN when the monitor install successfully runs istioctl install
 //  THEN retryerrors are returned until the goroutine completes, and sends a success message
 func Test_forkInstallSuccess(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	comp := istioComponent{
 		ValuesFile: "test-values-file.yaml",
@@ -299,8 +299,8 @@ func Test_forkInstallSuccess(t *testing.T) {
 	expectedOverridesString := "myoverride=true"
 
 	setInstallFunc(func(log vzlog.VerrazzanoLogger, overridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
-		assert.Equal(expectedOverridesFiles, overridesFiles, "Did not get expected override files")
-		assert.Equal(expectedOverridesString, overridesString)
+		a.Equal(expectedOverridesFiles, overridesFiles, "Did not get expected override files")
+		a.Equal(expectedOverridesString, overridesString)
 		return []byte(""), []byte(""), nil
 	})
 	defer func() { installFunc = istio.Install }()
@@ -309,7 +309,7 @@ func Test_forkInstallSuccess(t *testing.T) {
 
 	var monitor installMonitor = &installMonitorType{}
 	err := forkInstall(spi.NewFakeContext(getIstioInstallMock(t), installCR, false), monitor, expectedOverridesString, expectedOverridesFiles)
-	assert.Equal(spi2.RetryableError{Source: ComponentName}, err)
+	a.Equal(spi2.RetryableError{Source: ComponentName}, err)
 	for i := 0; i < 100; i++ {
 		result, retryError := monitor.checkResult()
 		if retryError != nil {
@@ -317,11 +317,11 @@ func Test_forkInstallSuccess(t *testing.T) {
 			time.Sleep(100 * time.Millisecond)
 			continue
 		}
-		assert.True(result)
-		assert.Nil(retryError)
+		a.True(result)
+		a.Nil(retryError)
 		return
 	}
-	assert.Fail("Did not detect completion in time")
+	a.Fail("Did not detect completion in time")
 }
 
 // Test_forkInstallFailure tests the forkInstall function
@@ -329,7 +329,7 @@ func Test_forkInstallSuccess(t *testing.T) {
 //  WHEN when the monitor install unsuccessfully runs istioctl install
 //  THEN retryerrors are returned until the goroutine completes, and sends a failure message when istioctl fails
 func Test_forkInstallFailure(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	comp := istioComponent{
 		ValuesFile: "test-values-file.yaml",
@@ -348,7 +348,7 @@ func Test_forkInstallFailure(t *testing.T) {
 
 	var monitor installMonitor = &installMonitorType{}
 	err := forkInstall(spi.NewFakeContext(getIstioInstallMock(t), installCR, false), monitor, "myoverride=true", []string{comp.ValuesFile, "istio-overrides.yaml"})
-	assert.Equal(spi2.RetryableError{Source: ComponentName}, err)
+	a.Equal(spi2.RetryableError{Source: ComponentName}, err)
 	for i := 0; i < 100; i++ {
 		result, retryError := monitor.checkResult()
 		if retryError != nil {
@@ -356,11 +356,11 @@ func Test_forkInstallFailure(t *testing.T) {
 			time.Sleep(100 * time.Millisecond)
 			continue
 		}
-		assert.False(result)
-		assert.Nil(retryError)
+		a.False(result)
+		a.Nil(retryError)
 		return
 	}
-	assert.Fail("Did not detect completion in time")
+	a.Fail("Did not detect completion in time")
 }
 
 func getIstioInstallMock(t *testing.T) *mocks.MockClient {
@@ -369,11 +369,11 @@ func getIstioInstallMock(t *testing.T) *mocks.MockClient {
 
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.DefaultNamespace, Name: constants.GlobalImagePullSecName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: constants.DefaultNamespace, Resource: "Secret"}, constants.GlobalImagePullSecName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.DefaultNamespace, Resource: "Secret"}, constants.GlobalImagePullSecName)).AnyTimes()
 
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: IstioNamespace, Name: constants.GlobalImagePullSecName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: IstioNamespace, Resource: "Secret"}, constants.GlobalImagePullSecName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: IstioNamespace, Resource: "Secret"}, constants.GlobalImagePullSecName)).AnyTimes()
 
 	return mock
 }
@@ -383,11 +383,11 @@ func getIstioInstallMock(t *testing.T) *mocks.MockClient {
 //  WHEN I call createCertSecret
 //  THEN the bash function is called to create the secret
 func TestCreateCertSecret(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	setBashFunc(fakeBash)
 	err := createCertSecret(spi.NewFakeContext(createCertSecretMock(t), installCR, false))
-	assert.NoError(err, "createCertSecret returned an error")
+	a.NoError(err, "createCertSecret returned an error")
 }
 
 func createCertSecretMock(t *testing.T) *mocks.MockClient {
@@ -396,7 +396,7 @@ func createCertSecretMock(t *testing.T) *mocks.MockClient {
 
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.DefaultNamespace, Name: constants.GlobalImagePullSecName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: constants.DefaultNamespace, Resource: "Secret"}, constants.GlobalImagePullSecName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.DefaultNamespace, Resource: "Secret"}, constants.GlobalImagePullSecName)).AnyTimes()
 
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: IstioNamespace, Name: IstioCertSecret}, gomock.Not(gomock.Nil())).
@@ -410,11 +410,11 @@ func createCertSecretMock(t *testing.T) *mocks.MockClient {
 //  WHEN I call createPeerAuthentication
 //  THEN the PeerAuthentication resource is created with STRICT MTLS
 func TestCreatePeerAuthentication(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	setBashFunc(fakeBash)
 	err := createPeerAuthentication(spi.NewFakeContext(createPeerAuthenticationMock(t), installCR, false))
-	assert.NoError(err, "createPeerAuthentication returned an error")
+	a.NoError(err, "createPeerAuthentication returned an error")
 }
 
 func createPeerAuthenticationMock(t *testing.T) *mocks.MockClient {
@@ -427,7 +427,7 @@ func createPeerAuthenticationMock(t *testing.T) *mocks.MockClient {
 
 	// Expect a call to create the PeerAuthentication
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, peer *istioclisec.PeerAuthentication, opts ...client.CreateOption) error {
 			if peer.Spec.Mtls.Mode != istiosec.PeerAuthentication_MutualTLS_STRICT {
 				return errors.NewBadRequest("MTLS should be STRICT")
@@ -443,11 +443,11 @@ func createPeerAuthenticationMock(t *testing.T) *mocks.MockClient {
 //  WHEN I call labelNamespace
 //  THEN the namespace is labelled
 func TestLabelNamespace(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	setBashFunc(fakeBash)
 	err := labelNamespace(spi.NewFakeContext(labelNamespaceMock(t), installCR, false))
-	assert.NoError(err, "labelNamespace returned an error")
+	a.NoError(err, "labelNamespace returned an error")
 }
 
 func labelNamespaceMock(t *testing.T) *mocks.MockClient {
@@ -460,7 +460,7 @@ func labelNamespaceMock(t *testing.T) *mocks.MockClient {
 
 	// Expect a call to create the NameSpace
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.CreateOption) error {
 			if ns.ObjectMeta.Labels == nil {
 				ns.ObjectMeta.Labels["verrazzano.io/namespace"] = IstioNamespace

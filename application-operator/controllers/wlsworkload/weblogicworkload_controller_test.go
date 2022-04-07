@@ -35,7 +35,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
@@ -152,7 +151,7 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	scheme = runtime.NewScheme()
 	_ = vzapi.AddToScheme(scheme)
 	reconciler = Reconciler{Client: cli, Scheme: scheme}
-	mgr.EXPECT().GetConfig().Return(&rest.Config{})
+	mgr.EXPECT().GetControllerOptions().AnyTimes()
 	mgr.EXPECT().GetScheme().Return(scheme)
 	mgr.EXPECT().GetLogger().Return(logr.Discard())
 	mgr.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()
@@ -220,8 +219,8 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 		})
 	// no WDT config maps found, so expect a call to create a WDT config map
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap) error {
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
 			bytes, _ := yaml.JSONToYAML([]byte(defaultWDTConfigMapData))
 			assert.Equal(string(bytes), configMap.Data[webLogicPluginConfigYamlKey])
 			assert.Equal(weblogicDomainName, configMap.ObjectMeta.Labels[webLogicDomainUIDLabel])
@@ -248,7 +247,7 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 		})
 	// expect a call to create the WebLogic domain CR
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
 			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
 			assert.Equal(weblogicKind, u.GetKind())
@@ -279,7 +278,7 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 
 	// Expect a call to update the status of the Verrazzano resource to update components
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, wl *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
 			return nil
 		})
@@ -352,8 +351,8 @@ func TestReconcileCreateWebLogicDomainWithMonitoringExporter(t *testing.T) {
 		})
 	// no WDT config maps found, so expect a call to create a WDT config map
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap) error {
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
 			bytes, _ := yaml.JSONToYAML([]byte(defaultWDTConfigMapData))
 			assert.Equal(string(bytes), configMap.Data[webLogicPluginConfigYamlKey])
 			return nil
@@ -379,7 +378,7 @@ func TestReconcileCreateWebLogicDomainWithMonitoringExporter(t *testing.T) {
 		})
 	// expect a call to create the WebLogic domain CR
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
 			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
 			assert.Equal(weblogicKind, u.GetKind())
@@ -407,7 +406,7 @@ func TestReconcileCreateWebLogicDomainWithMonitoringExporter(t *testing.T) {
 
 	// Expect a call to update the status of the Verrazzano resource to update components
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, wl *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
 			return nil
 		})
@@ -441,8 +440,8 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
 		constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
 
-	os.Setenv("WEBLOGIC_MONITORING_EXPORTER_IMAGE", "my-weblogic-monitoring-exporter:a")
-	defer os.Unsetenv("WEBLOGIC_MONITORING_EXPORTER_IMAGE")
+	_ = os.Setenv("WEBLOGIC_MONITORING_EXPORTER_IMAGE", "my-weblogic-monitoring-exporter:a")
+	defer func() { _ = os.Unsetenv("WEBLOGIC_MONITORING_EXPORTER_IMAGE") }()
 
 	// set the Fluentd image which is obtained via env then reset at end of test
 	initialDefaultFluentdImage := logging.DefaultFluentdImage
@@ -490,8 +489,8 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 		})
 	// no WDT config maps found, so expect a call to create a WDT config map
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap) error {
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
 			bytes, _ := yaml.JSONToYAML([]byte(defaultWDTConfigMapData))
 			assert.Equal(string(bytes), configMap.Data[webLogicPluginConfigYamlKey])
 			return nil
@@ -517,7 +516,7 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 		})
 	// expect a call to create the WebLogic domain CR
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
 			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
 			assert.Equal(weblogicKind, u.GetKind())
@@ -550,7 +549,7 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 
 	// Expect a call to update the status of the Verrazzano resource to update components
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, wl *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
 			//		asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
 			return nil
@@ -666,8 +665,8 @@ func TestReconcileCreateWebLogicDomainWithCustomLogging(t *testing.T) {
 	}
 	// expect a call to create the custom logging config map
 	cli.EXPECT().
-		Create(gomock.Any(), customLoggingConfigMap).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap) error {
+		Create(gomock.Any(), customLoggingConfigMap, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
 			return nil
 		})
 	// no config maps found, so expect a call to create a config map with our parsing rules
@@ -685,8 +684,8 @@ func TestReconcileCreateWebLogicDomainWithCustomLogging(t *testing.T) {
 		})
 	// no WDT config maps found, so expect a call to create a WDT config map
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap) error {
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
 			bytes, _ := yaml.JSONToYAML([]byte(defaultWDTConfigMapData))
 			assert.Equal(string(bytes), configMap.Data[webLogicPluginConfigYamlKey])
 			return nil
@@ -733,7 +732,7 @@ func TestReconcileCreateWebLogicDomainWithCustomLogging(t *testing.T) {
 		})
 	// expect a call to create the WebLogic domain CR
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
 			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
 			assert.Equal(weblogicKind, u.GetKind())
@@ -764,7 +763,7 @@ func TestReconcileCreateWebLogicDomainWithCustomLogging(t *testing.T) {
 
 	// Expect a call to update the status of the Verrazzano resource to update components
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, wl *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
 			//		asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
 			return nil
@@ -799,8 +798,8 @@ func TestReconcileCreateWebLogicDomainWithCustomLoggingConfigMapExists(t *testin
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
 		constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
 
-	os.Setenv("WEBLOGIC_MONITORING_EXPORTER_IMAGE", "")
-	defer os.Unsetenv("WEBLOGIC_MONITORING_EXPORTER_IMAGE")
+	_ = os.Setenv("WEBLOGIC_MONITORING_EXPORTER_IMAGE", "")
+	defer func() { _ = os.Unsetenv("WEBLOGIC_MONITORING_EXPORTER_IMAGE") }()
 
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
@@ -871,8 +870,8 @@ func TestReconcileCreateWebLogicDomainWithCustomLoggingConfigMapExists(t *testin
 		})
 	// no WDT config maps found, so expect a call to create a WDT config map
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap) error {
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
 			bytes, _ := yaml.JSONToYAML([]byte(defaultWDTConfigMapData))
 			assert.Equal(string(bytes), configMap.Data[webLogicPluginConfigYamlKey])
 			return nil
@@ -916,7 +915,7 @@ func TestReconcileCreateWebLogicDomainWithCustomLoggingConfigMapExists(t *testin
 		})
 	// expect a call to create the WebLogic domain CR
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
 			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
 			assert.Equal(weblogicKind, u.GetKind())
@@ -947,7 +946,7 @@ func TestReconcileCreateWebLogicDomainWithCustomLoggingConfigMapExists(t *testin
 
 	// Expect a call to update the status of the Verrazzano resource to update components
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, wl *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
 			//		asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
 			return nil
@@ -1039,8 +1038,8 @@ func TestReconcileCreateWebLogicDomainWithWDTConfigMap(t *testing.T) {
 		})
 	// WDT config map found, so expect a call to update a WDT config map
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.UpdateOption) error {
 			bytes, _ := yaml.JSONToYAML([]byte(defaultWDTConfigMapData))
 			assert.Equal(string(bytes), configMap.Data[webLogicPluginConfigYamlKey])
 			return nil
@@ -1054,7 +1053,7 @@ func TestReconcileCreateWebLogicDomainWithWDTConfigMap(t *testing.T) {
 		})
 	// expect a call to create the WebLogic domain CR
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
 			validateWDTConfigMap(u, t)
 			return nil
@@ -1065,7 +1064,7 @@ func TestReconcileCreateWebLogicDomainWithWDTConfigMap(t *testing.T) {
 
 	// Expect a call to update the status of the Verrazzano resource to update components
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, wl *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
 			return nil
 		})
@@ -1146,8 +1145,8 @@ func TestReconcileUpdateFluentdImage(t *testing.T) {
 		})
 	// no WDT config maps found, so expect a call to create a WDT config map
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap) error {
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
 			bytes, _ := yaml.JSONToYAML([]byte(defaultWDTConfigMapData))
 			assert.Equal(string(bytes), configMap.Data[webLogicPluginConfigYamlKey])
 			return nil
@@ -1164,8 +1163,8 @@ func TestReconcileUpdateFluentdImage(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured) error {
 			// set the old Fluentd image on the returned obj
 			containers, _, _ := unstructured.NestedSlice(u.Object, "spec", "serverPod", "containers")
-			unstructured.SetNestedField(containers[0].(map[string]interface{}), "unit-test-image:existing", "image")
-			unstructured.SetNestedSlice(u.Object, containers, "spec", "serverPod", "containers")
+			_ = unstructured.SetNestedField(containers[0].(map[string]interface{}), "unit-test-image:existing", "image")
+			_ = unstructured.SetNestedSlice(u.Object, containers, "spec", "serverPod", "containers")
 			// return nil error because the VerrazzanoWebLogicWorkload CR exists
 			return nil
 		})
@@ -1178,7 +1177,7 @@ func TestReconcileUpdateFluentdImage(t *testing.T) {
 		}).Times(2)
 	// expect a call to create the WebLogic domain CR
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
 			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
 			assert.Equal(weblogicKind, u.GetKind())
@@ -1206,8 +1205,8 @@ func TestReconcileUpdateFluentdImage(t *testing.T) {
 	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
 	// expect a call to update the status upgrade version
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
 			return nil
 		})
 
@@ -1282,8 +1281,8 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 		})
 	// no WDT config maps found, so expect a call to create a WDT config map
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap) error {
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
 			bytes, _ := yaml.JSONToYAML([]byte(defaultWDTConfigMapData))
 			assert.Equal(string(bytes), configMap.Data[webLogicPluginConfigYamlKey])
 			return nil
@@ -1309,7 +1308,7 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 		})
 	// expect a call to create the WebLogic domain CR and return a BadRequest error
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
 			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
 			assert.Equal(weblogicKind, u.GetKind())
@@ -1455,7 +1454,7 @@ func TestCreateDestinationRuleCreate(t *testing.T) {
 
 	// Expect a call to create the destinationRule and return success
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, dr *istioclient.DestinationRule, opts ...client.CreateOption) error {
 			assert.Equal(destinationRuleKind, dr.Kind)
 			assert.Equal(destinationRuleAPIVersion, dr.APIVersion)
@@ -1468,9 +1467,9 @@ func TestCreateDestinationRuleCreate(t *testing.T) {
 		})
 
 	scheme := runtime.NewScheme()
-	istioclient.AddToScheme(scheme)
-	core.AddToScheme(scheme)
-	vzapi.AddToScheme(scheme)
+	_ = istioclient.AddToScheme(scheme)
+	_ = core.AddToScheme(scheme)
+	_ = vzapi.AddToScheme(scheme)
 	reconciler := Reconciler{Client: cli, Scheme: scheme}
 
 	namespaceLabels := make(map[string]string)
@@ -1503,9 +1502,9 @@ func TestCreateDestinationRuleNoCreate(t *testing.T) {
 		})
 
 	scheme := runtime.NewScheme()
-	istioclient.AddToScheme(scheme)
-	core.AddToScheme(scheme)
-	vzapi.AddToScheme(scheme)
+	_ = istioclient.AddToScheme(scheme)
+	_ = core.AddToScheme(scheme)
+	_ = vzapi.AddToScheme(scheme)
 	reconciler := Reconciler{Client: cli, Scheme: scheme}
 
 	namespaceLabels := make(map[string]string)
@@ -1574,7 +1573,7 @@ func TestCreateRuntimeEncryptionSecretCreate(t *testing.T) {
 
 	// Expect a call to create the secret and return success
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
 			assert.Equal("Secret", secret.Kind)
 			assert.Equal("v1", secret.APIVersion)
@@ -1586,8 +1585,8 @@ func TestCreateRuntimeEncryptionSecretCreate(t *testing.T) {
 		})
 
 	scheme := runtime.NewScheme()
-	core.AddToScheme(scheme)
-	vzapi.AddToScheme(scheme)
+	_ = core.AddToScheme(scheme)
+	_ = vzapi.AddToScheme(scheme)
 	reconciler := Reconciler{Client: cli, Scheme: scheme}
 
 	workloadLabels := make(map[string]string)
@@ -1618,8 +1617,8 @@ func TestCreateRuntimeEncryptionSecretNoCreate(t *testing.T) {
 		})
 
 	scheme := runtime.NewScheme()
-	core.AddToScheme(scheme)
-	vzapi.AddToScheme(scheme)
+	_ = core.AddToScheme(scheme)
+	_ = vzapi.AddToScheme(scheme)
 	reconciler := Reconciler{Client: cli, Scheme: scheme}
 
 	workloadLabels := make(map[string]string)
@@ -1683,8 +1682,8 @@ func TestIstioDisabled(t *testing.T) {
 // newScheme creates a new scheme that includes this package's object to use for testing
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	core.AddToScheme(scheme)
-	vzapi.AddToScheme(scheme)
+	_ = core.AddToScheme(scheme)
+	_ = vzapi.AddToScheme(scheme)
 	return scheme
 }
 
@@ -1864,8 +1863,8 @@ func TestReconcileRestart(t *testing.T) {
 		})
 	// no WDT config maps found, so expect a call to create a WDT config map
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap) error {
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
 			bytes, _ := yaml.JSONToYAML([]byte(defaultWDTConfigMapData))
 			assert.Equal(string(bytes), configMap.Data[webLogicPluginConfigYamlKey])
 			return nil
@@ -1882,8 +1881,8 @@ func TestReconcileRestart(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured) error {
 			// set the old Fluentd image on the returned obj
 			containers, _, _ := unstructured.NestedSlice(u.Object, "spec", "serverPod", "containers")
-			unstructured.SetNestedField(containers[0].(map[string]interface{}), "unit-test-image:existing", "image")
-			unstructured.SetNestedSlice(u.Object, containers, "spec", "serverPod", "containers")
+			_ = unstructured.SetNestedField(containers[0].(map[string]interface{}), "unit-test-image:existing", "image")
+			_ = unstructured.SetNestedSlice(u.Object, containers, "spec", "serverPod", "containers")
 			// return nil error because the VerrazzanoWebLogicWorkload CR StatefulSet exists
 			return nil
 		})
@@ -1896,8 +1895,8 @@ func TestReconcileRestart(t *testing.T) {
 		}).Times(2)
 	// expect a call to create the WebLogic domain CR
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.UpdateOption) error {
 			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
 			assert.Equal(weblogicKind, u.GetKind())
 
@@ -1925,7 +1924,7 @@ func TestReconcileRestart(t *testing.T) {
 
 	// Expect a call to update the status of the Verrazzano resource to update components
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, wl *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
 			//		asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
 			return nil
@@ -2007,8 +2006,8 @@ func TestReconcileStopDomain(t *testing.T) {
 		})
 	// no WDT config maps found, so expect a call to create a WDT config map
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap) error {
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
 			bytes, _ := yaml.JSONToYAML([]byte(defaultWDTConfigMapData))
 			assert.Equal(string(bytes), configMap.Data[webLogicPluginConfigYamlKey])
 			return nil
@@ -2025,8 +2024,8 @@ func TestReconcileStopDomain(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured) error {
 			// set the old Fluentd image on the returned obj
 			containers, _, _ := unstructured.NestedSlice(u.Object, "spec", "serverPod", "containers")
-			unstructured.SetNestedField(containers[0].(map[string]interface{}), "unit-test-image:existing", "image")
-			unstructured.SetNestedSlice(u.Object, containers, "spec", "serverPod", "containers")
+			_ = unstructured.SetNestedField(containers[0].(map[string]interface{}), "unit-test-image:existing", "image")
+			_ = unstructured.SetNestedSlice(u.Object, containers, "spec", "serverPod", "containers")
 			// return nil error because the VerrazzanoWebLogicWorkload CR StatefulSet exists
 			return nil
 		})
@@ -2039,7 +2038,7 @@ func TestReconcileStopDomain(t *testing.T) {
 		}).Times(2)
 	// expect a call to update the WebLogic domain CR
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
 			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
 			assert.Equal(weblogicKind, u.GetKind())
@@ -2058,7 +2057,7 @@ func TestReconcileStopDomain(t *testing.T) {
 
 	// Expect a call to update the status of the Verrazzano resource to update components
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, wl *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
 			assert.Equal(vzconst.LifecycleActionStop, wl.Status.LastLifecycleAction)
 			return nil
@@ -2139,8 +2138,8 @@ func TestReconcileStartDomain(t *testing.T) {
 		})
 	// no WDT config maps found, so expect a call to create a WDT config map
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap) error {
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
 			bytes, _ := yaml.JSONToYAML([]byte(defaultWDTConfigMapData))
 			assert.Equal(string(bytes), configMap.Data[webLogicPluginConfigYamlKey])
 			return nil
@@ -2157,8 +2156,8 @@ func TestReconcileStartDomain(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured) error {
 			// set the old Fluentd image on the returned obj
 			containers, _, _ := unstructured.NestedSlice(u.Object, "spec", "serverPod", "containers")
-			unstructured.SetNestedField(containers[0].(map[string]interface{}), "unit-test-image:existing", "image")
-			unstructured.SetNestedSlice(u.Object, containers, "spec", "serverPod", "containers")
+			_ = unstructured.SetNestedField(containers[0].(map[string]interface{}), "unit-test-image:existing", "image")
+			_ = unstructured.SetNestedSlice(u.Object, containers, "spec", "serverPod", "containers")
 			// return nil error because the VerrazzanoWebLogicWorkload CR StatefulSet exists
 			return nil
 		})
@@ -2171,7 +2170,7 @@ func TestReconcileStartDomain(t *testing.T) {
 		}).Times(2)
 	// expect a call to update the WebLogic domain CR
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
 			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
 			assert.Equal(weblogicKind, u.GetKind())
@@ -2188,7 +2187,7 @@ func TestReconcileStartDomain(t *testing.T) {
 
 	// Expect a call to update the status of the Verrazzano resource to update components
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, wl *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
 			assert.Equal(vzconst.LifecycleActionStart, wl.Status.LastLifecycleAction)
 			return nil
@@ -2280,8 +2279,8 @@ func TestReconcileUserProvidedLogHome(t *testing.T) {
 		})
 	// no WDT config maps found, so expect a call to create a WDT config map
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap) error {
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
 			bytes, _ := yaml.JSONToYAML([]byte(defaultWDTConfigMapData))
 			assert.Equal(string(bytes), configMap.Data[webLogicPluginConfigYamlKey])
 			return nil
@@ -2307,7 +2306,7 @@ func TestReconcileUserProvidedLogHome(t *testing.T) {
 		})
 	// expect a call to create the WebLogic domain CR
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
 			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
 			assert.Equal(weblogicKind, u.GetKind())
@@ -2360,7 +2359,7 @@ func TestReconcileUserProvidedLogHome(t *testing.T) {
 
 	// expect a call to update the status of the Verrazzano resource to update components
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, wl *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
 			return nil
 		})

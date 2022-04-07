@@ -83,7 +83,7 @@ func TestReconcileNamespaceUpdate(t *testing.T) {
 
 	// Expect a call to update the namespace that succeeds
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.UpdateOption) error {
 			return nil
 		})
@@ -140,7 +140,7 @@ func runTestReconcileGetError(t *testing.T, returnErr error, expectedResult ctrl
 		})
 
 	// Expect no call to update the namespace
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 
 	nc, err := newTestController(mock)
 	asserts.NoError(err)
@@ -185,7 +185,7 @@ func TestReconcileNamespaceDeleted(t *testing.T) {
 
 	// Expect a call to update the namespace that succeeds
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.UpdateOption) error {
 			asserts.NotContainsf(ns.Finalizers, namespaceControllerFinalizer, "Finalizer not removed: ", ns.Finalizers)
 			return nil
@@ -232,7 +232,7 @@ func TestReconcileNamespaceDeletedErrorOnUpdate(t *testing.T) {
 		})
 
 	// Expect no call to update the namespace
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 
 	nc, err := newTestController(mock)
 	asserts.NoError(err)
@@ -301,7 +301,7 @@ func Test_removeFinalizer(t *testing.T) {
 
 	// Expect a call to update the namespace that succeeds
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.UpdateOption) error {
 			return nil
 		})
@@ -335,7 +335,7 @@ func Test_removeFinalizerNotPresent(t *testing.T) {
 
 	// Expect a call to update the namespace that succeeds
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.UpdateOption) error {
 			return nil
 		})
@@ -380,7 +380,7 @@ func Test_removeFinalizerErrorOnUpdate(t *testing.T) {
 	// Expect a call to update the namespace that fails
 	expectedErr := fmt.Errorf("error updating namespace")
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.UpdateOption) error {
 			return expectedErr
 		})
@@ -419,7 +419,7 @@ func Test_reconcileNamespaceErrorOnUpdate(t *testing.T) {
 
 	// Expect a call to update the namespace that fails
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.UpdateOption) error {
 			return expectedErr
 		})
@@ -603,7 +603,7 @@ func runAddOCILoggingTest(t *testing.T, addLoggingResult bool) {
 
 	// Expect a call to update the namespace annotations that succeeds
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.UpdateOption) error {
 			return nil
 		})
@@ -713,7 +713,7 @@ func mockFluentdRestart(mock *mocks.MockClient, asserts *assert.Assertions) {
 			return nil
 		})
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet, opts ...client.UpdateOption) error {
 			asserts.Contains(ds.Spec.Template.ObjectMeta.Annotations, vzconst.VerrazzanoRestartAnnotation)
 			return nil

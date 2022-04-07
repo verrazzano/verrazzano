@@ -73,6 +73,7 @@ spec:
   acme:
     email: {{.Email}}
     server: "{{.Server}}"
+    preferredChain: ""
     privateKeySecretRef:
       name: verrazzano-cert-acme-secret
     solvers:

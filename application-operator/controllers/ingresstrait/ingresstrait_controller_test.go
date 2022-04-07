@@ -43,7 +43,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -88,7 +87,7 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	scheme = runtime.NewScheme()
 	_ = vzapi.AddToScheme(scheme)
 	reconciler = Reconciler{Client: cli, Scheme: scheme}
-	mgr.EXPECT().GetConfig().Return(&rest.Config{})
+	mgr.EXPECT().GetControllerOptions().AnyTimes()
 	mgr.EXPECT().GetScheme().Return(scheme)
 	mgr.EXPECT().GetLogger().Return(logr.Discard())
 	mgr.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()
@@ -151,19 +150,19 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 		})
 	// Expect a call to create the Gateway resource and return success
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, gateway *istioclient.Gateway, opts ...client.CreateOption) error {
 			return nil
 		})
 	// Expect a call to create the VirtualService resource and return success
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, virtualservice *istioclient.VirtualService, opts ...client.CreateOption) error {
 			return nil
 		})
 	// Expect a call to update the status of the IngressTrait.
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait, opts ...client.UpdateOption) error {
 			assert.Len(trait.Status.Conditions, 1)
 			assert.Len(trait.Status.Resources, 3)
@@ -221,7 +220,7 @@ func TestSuccessfullyCreateNewIngressWithCertSecret(t *testing.T) {
 
 	// Expect a call to create the ingress/gateway resource and return success
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, gateway *istioclient.Gateway, opts ...client.CreateOption) error {
 			assert.Equal(istionet.ServerTLSSettings_SIMPLE, gateway.Spec.Servers[0].Tls.Mode, "Wrong Tls Mode")
 			assert.Equal("cert-secret", gateway.Spec.Servers[0].Tls.CredentialName, "Wrong secret name")
@@ -323,8 +322,8 @@ func TestSuccessfullyUpdateIngressWithCertSecret(t *testing.T) {
 		})
 	// Expect a call to create the ingress/gateway resource and return success
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, gateway *istioclient.Gateway, opts ...client.CreateOption) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, gateway *istioclient.Gateway, opts ...client.UpdateOption) error {
 			assert.Equal(istionet.ServerTLSSettings_SIMPLE, gateway.Spec.Servers[0].Tls.Mode, "Wrong Tls Mode")
 			assert.Equal("cert-secret", gateway.Spec.Servers[0].Tls.CredentialName, "Wrong secret name")
 			assert.Len(gateway.Spec.Servers, 1)
@@ -402,7 +401,7 @@ func TestFailureCreateNewIngressWithSecretNoHosts(t *testing.T) {
 	getMockStatusWriterExpectations(mock, mockStatus)
 	// Expect a call to update the status of the ingress trait.  The status is checked for the expected error condition.
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait, opts ...client.UpdateOption) error {
 			assert.Len(trait.Status.Conditions, 1)
 			assert.Equal("all rules must specify at least one host when a secret is specified for TLS transport", trait.Status.Conditions[0].Message, "Unexpected error message")
@@ -454,7 +453,7 @@ func TestFailureCreateGatewayCertNoAppName(t *testing.T) {
 	getMockStatusWriterExpectations(mock, mockStatus)
 	// Expect a call to update the status of the ingress trait.  The status is checked for the expected error condition.
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait, opts ...client.UpdateOption) error {
 			assert.Len(trait.Status.Conditions, 1)
 			assert.Equal("failed to obtain app name from ingress trait", trait.Status.Conditions[0].Message, "Unexpected error message")
@@ -589,6 +588,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 			}
 			return nil
 		})
+
 	createCertSuccessExpectations(mock)
 	getGatewayForTraitNotFoundExpectations(mock)
 	createIngressResourceSuccessExpectations(mock)
@@ -628,11 +628,10 @@ func TestFailureToGetWorkload(t *testing.T) {
 	getIngressTraitResourceExpectations(mock)
 	createCertSuccessExpectations(mock)
 	appCertificateExpectations(mock)
-
 	getGatewayForTraitNotFoundExpectations(mock)
 	// Expect a call to create the gateway and return success
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, gateway *istioclient.Gateway, opts ...client.CreateOption) error {
 			return nil
 		})
@@ -674,6 +673,7 @@ func TestFailureToGetWorkloadDefinition(t *testing.T) {
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
+
 	getIngressTraitResourceExpectations(mock)
 	createCertSuccessExpectations(mock)
 	appCertificateExpectations(mock)
@@ -681,7 +681,7 @@ func TestFailureToGetWorkloadDefinition(t *testing.T) {
 
 	// Expect a call to create the gateway and return success
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, gateway *istioclient.Gateway, opts ...client.CreateOption) error {
 			return nil
 		})
@@ -745,6 +745,7 @@ func TestFailureToUpdateStatus(t *testing.T) {
 			}
 			return nil
 		})
+
 	createCertSuccessExpectations(mock)
 	getGatewayForTraitNotFoundExpectations(mock)
 	createIngressResourceSuccessExpectations(mock)
@@ -758,7 +759,7 @@ func TestFailureToUpdateStatus(t *testing.T) {
 	mock.EXPECT().Status().Return(mockStatus)
 	// Expect a call to update the status of the ingress trait.
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait, opts ...client.UpdateOption) error {
 			return k8serrors.NewApplyConflict([]metav1.StatusCause{{Type: "test-cause-type", Message: "test-cause-message", Field: "test-cause-field"}}, "test-error-message")
 		})
@@ -2427,6 +2428,7 @@ func newScheme() *runtime.Scheme {
 	_ = k8net.AddToScheme(scheme)
 	_ = istioclient.AddToScheme(scheme)
 	_ = v1alpha2.SchemeBuilder.AddToScheme(scheme)
+
 	return scheme
 }
 
@@ -2727,14 +2729,14 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookie(t *test
 
 	// Expect a call to create the DestinationRule resource and return success
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, destinationrule *istioclient.DestinationRule, opts ...client.CreateOption) error {
 			assert.Equal("test-service.test-space.svc.local", destinationrule.Spec.Host)
 			return nil
 		})
 	// Expect a call to update the status of the ingress trait.
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait, opts ...client.UpdateOption) error {
 			assert.Len(trait.Status.Conditions, 1)
 			assert.Len(trait.Status.Resources, 4)
