@@ -764,9 +764,10 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 				expectedValues := verrazzanoValues{}
 				err = yaml.Unmarshal(expectedData, &expectedValues)
 				assert.NoError(err)
-
+				assert.Equal(expectedValues.Logging.ConfigHash, HashSum(fakeContext.EffectiveCR().Spec.Components.Fluentd))
 				// Compare the actual and expected values objects
 				assert.Equal(expectedValues, actualValues)
+				assert.Equal(HashSum(expectedValues), HashSum(actualValues))
 				return nil
 			}
 
@@ -1470,11 +1471,11 @@ func createObjectFromTemplate(obj runtime.Object, template string, data interfac
 	return runtime.DefaultUnstructuredConverter.FromUnstructured(uns.Object, obj)
 }
 
-// TestImportHelmObject tests labelling/annotating objects that will be imported to a helm chart
+// TestAssociateHelmObjectToThisRelease tests labelling/annotating objects that will be imported to a helm chart
 // GIVEN an unmanaged object
-//  WHEN I call importHelmObject
+//  WHEN I call associateHelmObjectToThisRelease
 //  THEN the object is managed by helm
-func TestImportHelmObject(t *testing.T) {
+func TestAssociateHelmObjectToThisRelease(t *testing.T) {
 	namespacedName := types.NamespacedName{
 		Name:      ComponentName,
 		Namespace: ComponentNamespace,
@@ -1487,11 +1488,36 @@ func TestImportHelmObject(t *testing.T) {
 	}
 
 	c := fake.NewFakeClientWithScheme(testScheme, obj)
-	_, err := importHelmObject(c, obj, namespacedName)
+	_, err := associateHelmObjectToThisRelease(c, obj, namespacedName)
 	assert.NoError(t, err)
 	assert.Equal(t, obj.Annotations["meta.helm.sh/release-name"], ComponentName)
 	assert.Equal(t, obj.Annotations["meta.helm.sh/release-namespace"], globalconst.VerrazzanoSystemNamespace)
 	assert.Equal(t, obj.Labels["app.kubernetes.io/managed-by"], "Helm")
+}
+
+// TestAssociateHelmObjectAndKeep tests labelling/annotating objects that will be associated to a helm chart
+// GIVEN an unmanaged object
+//  WHEN I call associateHelmObject with keep set to true
+//  THEN the object is managed by helm and is labeled with a resource policy of "keep"
+func TestAssociateHelmObjectAndKeep(t *testing.T) {
+	namespacedName := types.NamespacedName{
+		Name:      ComponentName,
+		Namespace: ComponentNamespace,
+	}
+	obj := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
+		},
+	}
+
+	c := fake.NewFakeClientWithScheme(testScheme, obj)
+	_, err := associateHelmObject(c, obj, namespacedName, namespacedName, true)
+	assert.NoError(t, err)
+	assert.Equal(t, ComponentName, obj.Annotations["meta.helm.sh/release-name"])
+	assert.Equal(t, globalconst.VerrazzanoSystemNamespace, obj.Annotations["meta.helm.sh/release-namespace"])
+	assert.Equal(t, "keep", obj.Annotations["helm.sh/resource-policy"])
+	assert.Equal(t, "Helm", obj.Labels["app.kubernetes.io/managed-by"])
 }
 
 // TestIsReadySecretNotReady tests the Verrazzano isVerrazzanoReady call
@@ -1733,4 +1759,25 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 	}
 	ctx := spi.NewFakeContext(client, vz, false)
 	assert.True(t, isVerrazzanoReady(ctx))
+}
+
+func TestConfigHashSum(t *testing.T) {
+	defaultAppLogID := "test-defaultAppLogId"
+	systemLogID := "test-systemLogId"
+	apiSec := "test-my-apiSec"
+	b := true
+	f1 := vzapi.FluentdComponent{
+		OCI: &vzapi.OciLoggingConfiguration{DefaultAppLogID: defaultAppLogID,
+			SystemLogID: systemLogID, APISecret: apiSec,
+		}}
+	f2 := vzapi.FluentdComponent{OCI: &vzapi.OciLoggingConfiguration{
+		APISecret:       apiSec,
+		DefaultAppLogID: defaultAppLogID,
+		SystemLogID:     systemLogID,
+	}}
+	assert.Equal(t, HashSum(f1), HashSum(f2))
+	f1.Enabled = &b
+	assert.NotEqual(t, HashSum(f1), HashSum(f2))
+	f2.Enabled = &b
+	assert.Equal(t, HashSum(f1), HashSum(f2))
 }

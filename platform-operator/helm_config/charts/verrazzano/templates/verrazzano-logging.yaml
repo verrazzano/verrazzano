@@ -1105,6 +1105,12 @@ spec:
                   optional: true
             - name: CA_FILE
               value: /fluentd/cacerts/all-ca-certs.pem
+            - name: CONFIG_HASH
+{{- if .Values.logging.configHash }}
+              value: {{ .Values.logging.configHash }}
+{{- else }}
+              value: none
+{{- end }}
           image: {{ .Values.logging.fluentdImage }}
           imagePullPolicy: IfNotPresent
           name: {{ .Values.logging.name }}

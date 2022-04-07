@@ -7,10 +7,9 @@ metadata:
   name: hello-appconf
   annotations:
     version: v1.0.0
-    description: "Sample application to validate deployment of VerrazzanoCoherenceWorkload"
 spec:
   components:
-    - componentName: hello
+    - componentName: hello-coherence
       traits:
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
@@ -30,4 +29,5 @@ spec:
             spec:
               ports:
                 - port: 8080
+                  path: "/actuator/prometheus"
                 - port: 9612
