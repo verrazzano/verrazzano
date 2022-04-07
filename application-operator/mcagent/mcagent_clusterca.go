@@ -20,7 +20,7 @@ const clusterRegistrationSecret = "verrazzano-cluster-registration"
 
 // Synchronize Secret objects to the local cluster
 func (s *Syncer) syncClusterCAs() error {
-	// Get the CA certificate secret from the admin cluster
+	// Get the cluster CA secret from the admin cluster
 	adminCASecret := corev1.Secret{}
 	err := s.AdminClient.Get(s.Context, client.ObjectKey{
 		Namespace: clusterSecretsNamespace,
@@ -30,7 +30,7 @@ func (s *Syncer) syncClusterCAs() error {
 		return err
 	}
 
-	// Get the local registration secret
+	// Get the local cluster registration secret
 	registrationSecret := corev1.Secret{}
 	err = s.LocalClient.Get(s.Context, client.ObjectKey{
 		Namespace: clusterSecretsNamespace,
@@ -40,8 +40,8 @@ func (s *Syncer) syncClusterCAs() error {
 		return err
 	}
 
-	// update the registration secret if the certs are different
-	if bytes.Compare(registrationSecret.Data["ca-bundle"], adminCASecret.Data["ca.crt"]) != 0 {
+	// Update the local cluster registration secret if the admin CA certs are different
+	if !bytes.Equal(registrationSecret.Data["ca-bundle"], adminCASecret.Data["ca.crt"]) {
 		newSecret := corev1.Secret{}
 		newSecret.Name = registrationSecret.Name
 		newSecret.Namespace = registrationSecret.Namespace
