@@ -11,6 +11,8 @@ import (
 
 func Test_certManagerComponent_ValidateUpdate(t *testing.T) {
 	disabled := false
+	const emailAddress = "joeblow@foo.com"
+	const secretName = "newsecret"
 	var tests = []struct {
 		name    string
 		old     *vzapi.Verrazzano
@@ -60,7 +62,7 @@ func Test_certManagerComponent_ValidateUpdate(t *testing.T) {
 						CertManager: &vzapi.CertManagerComponent{
 							Certificate: vzapi.Certificate{
 								CA: vzapi.CA{
-									SecretName:               "newsecret",
+									SecretName:               secretName,
 									ClusterResourceNamespace: "ns",
 								},
 							},
@@ -85,12 +87,12 @@ func Test_certManagerComponent_ValidateUpdate(t *testing.T) {
 						CertManager: &vzapi.CertManagerComponent{
 							Certificate: vzapi.Certificate{
 								CA: vzapi.CA{
-									SecretName:               "newsecret",
+									SecretName:               secretName,
 									ClusterResourceNamespace: "ns",
 								},
 								Acme: vzapi.Acme{
-									Provider:     "letsencrypt",
-									EmailAddress: "joeblow@foo.com",
+									Provider:     vzapi.LetsEncrypt,
+									EmailAddress: emailAddress,
 									Environment:  "staging",
 								},
 							},
@@ -109,8 +111,8 @@ func Test_certManagerComponent_ValidateUpdate(t *testing.T) {
 						CertManager: &vzapi.CertManagerComponent{
 							Certificate: vzapi.Certificate{
 								Acme: vzapi.Acme{
-									Provider:     "letsencrypt",
-									EmailAddress: "joeblow@foo.com",
+									Provider:     vzapi.LetsEncrypt,
+									EmailAddress: emailAddress,
 									Environment:  "staging",
 								},
 							},
@@ -130,8 +132,8 @@ func Test_certManagerComponent_ValidateUpdate(t *testing.T) {
 							Certificate: vzapi.Certificate{
 								Acme: vzapi.Acme{
 									Provider:     "LETSENCRYPT",
-									EmailAddress: "joeblow@foo.com",
-									Environment:  "staging",
+									EmailAddress: emailAddress,
+									Environment:  letsEncryptStaging,
 								},
 							},
 						},
@@ -150,7 +152,7 @@ func Test_certManagerComponent_ValidateUpdate(t *testing.T) {
 							Certificate: vzapi.Certificate{
 								Acme: vzapi.Acme{
 									Provider:     vzapi.LetsEncrypt,
-									EmailAddress: "joeblow@foo.com",
+									EmailAddress: emailAddress,
 									Environment:  "STAGING",
 								},
 							},
@@ -170,7 +172,7 @@ func Test_certManagerComponent_ValidateUpdate(t *testing.T) {
 							Certificate: vzapi.Certificate{
 								Acme: vzapi.Acme{
 									Provider:     vzapi.LetsEncrypt,
-									EmailAddress: "joeblow@foo.com",
+									EmailAddress: emailAddress,
 									Environment:  "PRODUCTION",
 								},
 							},
@@ -190,7 +192,7 @@ func Test_certManagerComponent_ValidateUpdate(t *testing.T) {
 							Certificate: vzapi.Certificate{
 								Acme: vzapi.Acme{
 									Provider:     vzapi.LetsEncrypt,
-									EmailAddress: "joeblow@foo.com",
+									EmailAddress: emailAddress,
 								},
 							},
 						},
@@ -208,9 +210,9 @@ func Test_certManagerComponent_ValidateUpdate(t *testing.T) {
 						CertManager: &vzapi.CertManagerComponent{
 							Certificate: vzapi.Certificate{
 								Acme: vzapi.Acme{
-									Provider:     "letsencrypt",
-									EmailAddress: "joeblow@foo.com",
-									Environment:  "production",
+									Provider:     vzapi.LetsEncrypt,
+									EmailAddress: emailAddress,
+									Environment:  letsencryptProduction,
 								},
 							},
 						},
@@ -229,8 +231,8 @@ func Test_certManagerComponent_ValidateUpdate(t *testing.T) {
 							Certificate: vzapi.Certificate{
 								Acme: vzapi.Acme{
 									Provider:     "blah",
-									EmailAddress: "joeblow@foo.com",
-									Environment:  "production",
+									EmailAddress: emailAddress,
+									Environment:  letsencryptProduction,
 								},
 							},
 						},
@@ -248,8 +250,8 @@ func Test_certManagerComponent_ValidateUpdate(t *testing.T) {
 						CertManager: &vzapi.CertManagerComponent{
 							Certificate: vzapi.Certificate{
 								Acme: vzapi.Acme{
-									Provider:     "letsencrypt",
-									EmailAddress: "joeblow@foo.com",
+									Provider:     vzapi.LetsEncrypt,
+									EmailAddress: emailAddress,
 									Environment:  "myenv",
 								},
 							},
@@ -268,9 +270,9 @@ func Test_certManagerComponent_ValidateUpdate(t *testing.T) {
 						CertManager: &vzapi.CertManagerComponent{
 							Certificate: vzapi.Certificate{
 								Acme: vzapi.Acme{
-									Provider:     "letsencrypt",
+									Provider:     vzapi.LetsEncrypt,
 									EmailAddress: "joeblow",
-									Environment:  "staging",
+									Environment:  letsEncryptStaging,
 								},
 							},
 						},

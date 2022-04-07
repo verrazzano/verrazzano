@@ -503,7 +503,7 @@ func runAcmeUpdateTest(t *testing.T, upgrade bool) {
 
 	expectedIssuer, _ := createAcmeClusterIssuer(vzlog.DefaultLogger(), templateData{
 		Email:       newAcme.EmailAddress,
-		Server:      letsEncryptProd,
+		Server:      letsEncryptProdEndpoint,
 		SecretName:  newOCI.OCIConfigSecret,
 		OCIZoneName: newOCI.DNSZoneName,
 	})

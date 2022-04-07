@@ -57,11 +57,11 @@ const (
 
 	clusterResourceNamespaceKey = "clusterResourceNamespace"
 
-	// Valid Let's Encrypt values
-	letsencryptProduction = "production"
-	letsEncryptStaging    = "staging"
-	letsEncryptProd       = "https://acme-v02.api.letsencrypt.org/directory"
-	letsEncryptStage      = "https://acme-staging-v02.api.letsencrypt.org/directory"
+	// Valid Let's Encrypt environment values
+	letsencryptProduction    = "production"
+	letsEncryptStaging       = "staging"
+	letsEncryptProdEndpoint  = "https://acme-v02.api.letsencrypt.org/directory"
+	letsEncryptStageEndpoint = "https://acme-staging-v02.api.letsencrypt.org/directory"
 )
 
 // Template for ClusterIssuer for looking up Acme certificates for controllerutil.CreateOrUpdate
@@ -443,9 +443,9 @@ func createACMEIssuerObject(compContext spi.ComponentContext) (*unstructured.Uns
 	emailAddress := vzCertAcme.EmailAddress
 
 	// Verify the acme environment and set the server
-	acmeServer := letsEncryptProd
+	acmeServer := letsEncryptProdEndpoint
 	if isLetsEncryptStaging(compContext) {
-		acmeServer = letsEncryptStage
+		acmeServer = letsEncryptStageEndpoint
 	}
 
 	// Create the buffer and the cluster issuer data struct
