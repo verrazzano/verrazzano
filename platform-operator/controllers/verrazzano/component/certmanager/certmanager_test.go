@@ -8,6 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"testing"
 
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
@@ -274,8 +275,9 @@ func TestCreateCAResources(t *testing.T) {
 
 	client := fake.NewFakeClientWithScheme(testScheme)
 
-	err := createOrUpdateCAResources(spi.NewFakeContext(client, localvz, false, profileDir))
+	opResult, err := createOrUpdateCAResources(spi.NewFakeContext(client, localvz, false, profileDir))
 	assert.NoError(t, err)
+	assert.Equal(t, controllerutil.OperationResultCreated, opResult)
 
 	// validate that the Issuer, Certificate, and ClusterIssuer were created
 	exists, err := issuerExists(client, caSelfSignedIssuerName, localvz.Spec.Components.CertManager.Certificate.CA.ClusterResourceNamespace)
@@ -301,8 +303,9 @@ func TestCreateCAResources(t *testing.T) {
 	}
 	client = fake.NewFakeClientWithScheme(testScheme, &secret)
 
-	err = createOrUpdateCAResources(spi.NewFakeContext(client, localvz, false, profileDir))
+	opResult, err = createOrUpdateCAResources(spi.NewFakeContext(client, localvz, false, profileDir))
 	assert.NoError(t, err)
+	assert.Equal(t, controllerutil.OperationResultCreated, opResult)
 
 	// validate that only the ClusterIssuer was created
 	exists, err = issuerExists(client, caSelfSignedIssuerName, localvz.Spec.Components.CertManager.Certificate.CA.ClusterResourceNamespace)

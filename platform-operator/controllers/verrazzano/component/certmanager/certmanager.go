@@ -46,8 +46,8 @@ const (
 	cainjectorDeploymentName  = "cert-manager-cainjector"
 	webhookDeploymentName     = "cert-manager-webhook"
 
-	caSelfSignedIssuerName = "verrazzano-selfsigned-issuer"
-	caCertificateName      = "verrazzano-ca-certificate"
+	caSelfSignedIssuerName      = "verrazzano-selfsigned-issuer"
+	caCertificateName           = "verrazzano-ca-certificate"
 	caCertCommonName            = "verrazzano-root-ca"
 	verrazzanoClusterIssuerName = "verrazzano-cluster-issuer"
 
@@ -126,10 +126,10 @@ var ociDNSSnippet = strings.Split(`ocidns:
 // Template data for ClusterIssuer
 type templateData struct {
 	ClusterIssuerName string
-	Email       string
-	Server      string
-	SecretName  string
-	OCIZoneName string
+	Email             string
+	Server            string
+	SecretName        string
+	OCIZoneName       string
 }
 
 // CertIssuerType identifies the certificate issuer type
@@ -149,7 +149,7 @@ func (c certManagerComponent) createOrUpdateClusterIssuer(compContext spi.Compon
 	if err != nil {
 		return compContext.Log().ErrorfNewErr("Failed to verify the config type: %v", err)
 	}
-	opResult := controllerutil.OperationResultNone
+	var opResult controllerutil.OperationResult
 	if !isCAValue {
 		// Create resources needed for Acme certificates
 		if opResult, err = createOrUpdateAcmeResources(compContext); err != nil {
@@ -182,12 +182,13 @@ func renewAllSystemCertificates(cli client.Client, log vzlog.VerrazzanoLogger) e
 	// Updating the status field only works using the UpdateStatus call via the CertManager typed client interface
 	cfg := controllerruntime.GetConfigOrDie()
 	cmclientv1 := cmclient.NewForConfigOrDie(cfg).CertmanagerV1()
-	for _, currentCert := range certList.Items {
+	for index, currentCert := range certList.Items {
 		if currentCert.Spec.IssuerRef.Name != verrazzanoClusterIssuerName {
 			log.Infof("Certificate %s/%s not issued by the Verrazzano cluster issuer, skipping", currentCert.Namespace, currentCert.Name)
 			continue
 		}
-		if err := renewCertificate(ctx, cmclientv1, log, &currentCert); err != nil {
+		//cert :=
+		if err := renewCertificate(ctx, cmclientv1, log, &certList.Items[index]); err != nil {
 			return err
 		}
 	}
@@ -450,10 +451,10 @@ func createACMEIssuerObject(compContext spi.ComponentContext) (*unstructured.Uns
 	// Create the buffer and the cluster issuer data struct
 	clusterIssuerData := templateData{
 		ClusterIssuerName: verrazzanoClusterIssuerName,
-		Email:       emailAddress,
-		Server:      acmeServer,
-		SecretName:  ociDNSConfigSecret,
-		OCIZoneName: ociDNSZoneName,
+		Email:             emailAddress,
+		Server:            acmeServer,
+		SecretName:        ociDNSConfigSecret,
+		OCIZoneName:       ociDNSZoneName,
 	}
 
 	ciObject, err := createAcmeClusterIssuer(compContext.Log(), clusterIssuerData)
@@ -555,7 +556,7 @@ func createOrUpdateCAResources(compContext spi.ComponentContext) (controllerutil
 	}
 
 	var issuerUpdateErr error
-	opResult := controllerutil.OperationResultNone
+	var opResult controllerutil.OperationResult
 	if opResult, issuerUpdateErr = controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &clusterIssuer, func() error {
 		clusterIssuer.Spec = certv1.IssuerSpec{
 			IssuerConfig: certv1.IssuerConfig{
