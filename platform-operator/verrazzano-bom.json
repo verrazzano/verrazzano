@@ -435,7 +435,12 @@
               "helmTagKey": "prometheusOperator.image.tag"
             }
           ]
-        },
+        }
+      ]
+    },
+    {
+      "name": "prometheus-adapter",
+      "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "prometheus-adapter",
