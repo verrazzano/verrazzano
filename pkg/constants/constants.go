@@ -99,4 +99,5 @@ const FluentdDaemonSetName = "fluentd"
 const KubeSystem = "kube-system"
 
 //DefaultVerrazzanoCASecretName Default self-signed CA secret name
+//#nosec
 const DefaultVerrazzanoCASecretName = "verrazzano-ca-certificate-secret"
