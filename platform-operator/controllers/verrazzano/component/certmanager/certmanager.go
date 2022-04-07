@@ -201,7 +201,6 @@ func renewAllSystemCertificates(cli client.Client, log vzlog.VerrazzanoLogger) e
 			log.Infof("Certificate %s/%s not issued by the Verrazzano cluster issuer, skipping", currentCert.Namespace, currentCert.Name)
 			continue
 		}
-		//cert :=
 		if err := renewCertificate(ctx, cmclientv1, log, &certList.Items[index]); err != nil {
 			return err
 		}
@@ -214,12 +213,39 @@ func renewCertificate(ctx context.Context, cmclientv1 v12.CertmanagerV1Interface
 	// it should only do an update we don't want to accidentally create a updateCert
 	log.Infof("Updating certificate %s/%s", updateCert.Namespace, updateCert.Name)
 
+	// If there are any failed certificate requests, they will block a renewal attempt; delete those
+	if err := cleanupFailedCertificateRequests(ctx, cmclientv1, log, updateCert); err != nil {
+		return err
+	}
+
 	// Set the certificate Issuing condition type to True, per guidance by the CertManager team
 	cmutil.SetCertificateCondition(updateCert, certv1.CertificateConditionIssuing, certmetav1.ConditionTrue,
 		"VerrazzanoUpdate", "Re-issue updated Verrazzano certificates from new ClusterIssuer")
 	// Updating the Status field isn't working with
 	if _, err := cmclientv1.Certificates(updateCert.Namespace).UpdateStatus(ctx, updateCert, metav1.UpdateOptions{}); err != nil {
 		return err
+	}
+	return nil
+}
+
+//cleanupFailedCertificateRequests Delete any failed certificate requests associated with a certificate
+func cleanupFailedCertificateRequests(ctx context.Context, cmclientv1 v12.CertmanagerV1Interface, log vzlog.VerrazzanoLogger, updateCert *certv1.Certificate) error {
+	crNamespaceClient := cmclientv1.CertificateRequests(updateCert.Namespace)
+	list, err := crNamespaceClient.List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	for _, cr := range list.Items {
+		for _, cond := range cr.Status.Conditions {
+			if cond.Type == certv1.CertificateRequestConditionReady && cond.Status == certmetav1.ConditionFalse && cond.Reason == certv1.CertificateRequestReasonFailed {
+				log.Infof("Deleting failed certificate request %s/%s", cr.Namespace, cr.Name)
+				// certificate request is in a failed state, delete it
+				if err := crNamespaceClient.Delete(ctx, cr.Name, metav1.DeleteOptions{}); err != nil {
+					log.Errorf("Unable to delete failed certificate request %s/%s: %s", cr.Namespace, cr.Name, err.Error())
+					return err
+				}
+			}
+		}
 	}
 	return nil
 }
