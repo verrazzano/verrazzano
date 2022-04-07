@@ -8,8 +8,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"net/http"
-	"strconv"
-	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -31,16 +29,15 @@ const (
 	appConfiguration  = "tests/testdata/test-applications/coherence/hello-coherence/hello-coherence-app.yaml"
 	compConfiguration = "tests/testdata/test-applications/coherence/hello-coherence/hello-coherence-comp.yaml"
 
-	httpGetEndPoint  = "hello/coherence"
-	httpPostEndPoint = "hello/postMessage"
+	appEndPoint      = "catalogue"
+	expectedResponse = "A perfect example of a swivel chair trained calf"
 )
 
 var (
 	t                  = framework.NewTestFramework("coherence")
 	generatedNamespace = pkg.GenerateNamespace("hello-coherence")
-	expectedPods       = []string{"hello-coherence-"}
+	expectedPods       = []string{"hello-coh-"}
 	host               = ""
-	welcomeMessage     = "Hello Coherence"
 )
 
 var _ = BeforeSuite(func() {
@@ -88,6 +85,80 @@ var _ = t.AfterSuite(func() {
 	if !skipUndeploy {
 		undeployCoherenceApp()
 	}
+})
+
+var _ = t.Describe("Validate deployment of VerrazzanoCoherenceWorkload", Label("f:app-lcm.oam", "f:app-lcm.coherence-workload"), func() {
+
+	t.Context("Ingress", Label("f:mesh.ingress"), func() {
+		// Verify the application endpoints
+		t.It("Verify '/catalogue' UI endpoint is working", func() {
+			Eventually(func() (*pkg.HTTPResponse, error) {
+				url := fmt.Sprintf("https://%s/%s", host, appEndPoint)
+				return pkg.GetWebPage(url, host)
+			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains(expectedResponse)))
+		})
+	})
+
+	t.Context("Logging.", Label("f:observability.logging.es"), func() {
+		indexName := "verrazzano-namespace-" + namespace
+		t.It("Verify Elasticsearch index exists", func() {
+			Eventually(func() bool {
+				return pkg.LogIndexFound(indexName)
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index for Coherence application.")
+		})
+
+		t.It("Verify recent Elasticsearch log record exists", func() {
+			Eventually(func() bool {
+				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+					"kubernetes.labels.app_oam_dev\\/component": "hello-coherence",
+					"kubernetes.labels.app_oam_dev\\/name":      "hello-appconf",
+					"kubernetes.container_name":                 "hello-coherence",
+				})
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record.")
+		})
+
+		t.It("Verify Coherence log records", func() {
+			Eventually(func() bool {
+				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+					"kubernetes.labels.coherenceCluster":                "HelloCoherence",
+					"kubernetes.labels.app_oam_dev\\/component.keyword": "hello-coherence",
+					"kubernetes.pod_name":                               "hello-coh-0",
+					"kubernetes.container_name.keyword":                 "coherence",
+				})
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record.")
+		})
+	})
+
+	t.Context("Metrics", Label("f:observability.monitoring.prom"), func() {
+		// Verify Coherence metrics
+		t.It("Retrieve Coherence metrics", func() {
+			kubeConfig, err := k8sutil.GetKubeConfigLocation()
+			if err != nil {
+				Expect(err).To(BeNil(), fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+			}
+			// Coherence metric fix available only from 1.3.0
+			if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0", kubeConfig); ok {
+				Eventually(func() bool {
+					return pkg.MetricsExist("vendor:coherence_service_messages_local", "role", "HelloCoherenceRole")
+				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+			}
+		})
+
+		t.It("Retrieve application metrics", func() {
+			pkg.Concurrently(
+				func() {
+					Eventually(func() bool {
+						return pkg.MetricsExist("base_jvm_uptime_seconds", "app_oam_dev_name", "hello-appconf")
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(func() bool {
+						return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", "hello-appconf")
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+			)
+		})
+	})
 })
 
 func deployCoherenceApp(namespace string) {
@@ -148,109 +219,3 @@ func undeployCoherenceApp() {
 
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 }
-
-var _ = t.Describe("Validate deployment of VerrazzanoCoherenceWorkload", Label("f:app-lcm.oam", "f:app-lcm.coherence-workload"), func() {
-
-	t.Context("Ingress", Label("f:mesh.ingress"), func() {
-
-		// Verify the application endpoints
-		t.It("Verify application endpoints", func() {
-			Eventually(func() (*pkg.HTTPResponse, error) {
-				url := fmt.Sprintf("https://%s/%s", host, httpGetEndPoint)
-				return pkg.GetWebPage(url, host)
-			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyEquals(welcomeMessage)))
-
-			msg := "This is test message "
-			url := fmt.Sprintf("https://%s/%s", host, httpPostEndPoint)
-			for i := 0; i < 3; i++ {
-				resp, err := pkg.PostWithHostHeader(url, "application/json", host, strings.NewReader(msg+strconv.Itoa(i)))
-				if err != nil {
-					Fail(fmt.Sprintf("There is an error posting a message, err: %v", host))
-				}
-				Expect(resp.StatusCode == http.StatusCreated).To(BeTrue(), fmt.Sprintf("HTTP response code %v is not 201", resp.StatusCode))
-			}
-
-			url = fmt.Sprintf("https://%s/%s", host, httpGetEndPoint)
-			resp, err := pkg.GetWebPage(url, host)
-			if err != nil {
-				Fail(fmt.Sprintf("There is an error accessing the application, err: %v", err))
-			}
-			Expect(resp.StatusCode == http.StatusOK).To(BeTrue(), fmt.Sprintf("HTTP response code %v is not 200", resp.StatusCode))
-			for i := 0; i < 3; i++ {
-				Expect(strings.Contains(string(resp.Body), msg+strconv.Itoa(i))).To(BeTrue(),
-					fmt.Sprintf("The response doesn't contain the expected message %s", msg+strconv.Itoa(i)))
-			}
-		})
-	})
-
-	t.Context("Logging.", Label("f:observability.logging.es"), func() {
-		indexName := "verrazzano-namespace-" + namespace
-		t.It("Verify Elasticsearch index exists", func() {
-			Eventually(func() bool {
-				return pkg.LogIndexFound(indexName)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index for Coherence application.")
-		})
-
-		t.It("Verify recent Elasticsearch log record exists", func() {
-			Eventually(func() bool {
-				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"kubernetes.labels.app_oam_dev\\/component": "hello-coherence",
-					"kubernetes.labels.app_oam_dev\\/name":      "hello-appconf",
-					"kubernetes.container_name":                 "hello-coherence",
-				})
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record.")
-		})
-
-		t.It("Verify Coherence log records", func() {
-			Eventually(func() bool {
-				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"kubernetes.labels.coherenceCluster":                "hello-coherence-cluster",
-					"kubernetes.labels.app_oam_dev\\/component.keyword": "hello-coherence",
-					"kubernetes.pod_name":                               "hello-coherence-0",
-					"kubernetes.container_name.keyword":                 "coherence",
-				})
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record.")
-		})
-	})
-
-	t.Context("Metrics", Label("f:observability.monitoring.prom"), func() {
-		// Verify Coherence metrics
-		t.It("Retrieve Coherence metrics", func() {
-			kubeConfig, err := k8sutil.GetKubeConfigLocation()
-			if err != nil {
-				Expect(err).To(BeNil(), fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-			}
-			// Coherence metric fix available only from 1.3.0
-			if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0", kubeConfig); ok {
-				Eventually(func() bool {
-					return pkg.MetricsExist("vendor:coherence_service_messages_local", "role", "hello-coherence")
-				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-			}
-		})
-
-		t.It("Retrieve application metrics", func() {
-			pkg.Concurrently(
-				func() {
-					Eventually(func() bool {
-						return pkg.MetricsExist("http_server_requests_seconds_count", "app_oam_dev_name", "hello-appconf")
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(func() bool {
-						return pkg.MetricsExist("process_start_time_seconds", "app_oam_dev_name", "hello-appconf")
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(func() bool {
-						return pkg.MetricsExist("jvm_memory_used_bytes", "app_oam_dev_name", "hello-appconf")
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(func() bool {
-						return pkg.MetricsExist("tomcat_sessions_created_sessions_total", "app_oam_dev_name", "hello-appconf")
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-				},
-			)
-		})
-	})
-})
