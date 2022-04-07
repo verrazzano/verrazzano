@@ -23,20 +23,19 @@
       "subcomponents": [
         {
           "name": "ingress-controller",
+          "registry": "k8s.gcr.io",
           "images": [
             {
-              "registry": "k8s.gcr.io/ingress-nginx",
+              "repository" : "ingress-nginx",
               "image": "controller",
               "tag": "v1.1.1",
-              "HelmRegKey": "controller.image.registry",
-              "helmImageKey": "controller.image.image",
+              "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
-              "registry": "k8s.gcr.io",
               "image": "defaultbackend-amd64",
               "tag": "1.5",
-              "helmImageKey": "defaultBackend.image.image",
+              "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
           ]
