@@ -5,6 +5,8 @@ package certmanager
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"k8s.io/apimachinery/pkg/runtime"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -159,7 +161,7 @@ func TestAppendCertManagerOverrides(t *testing.T) {
 func TestAppendCertManagerOverridesWithInstallArgs(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
-	defer func() { getClientFunc = GetCoreV1Client }()
+	defer func() { getClientFunc = k8sutil.GetCoreV1Client }()
 	getClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA)
 	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
@@ -236,7 +238,7 @@ func TestIsCATrue(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
 
-	defer func() { getClientFunc = GetCoreV1Client }()
+	defer func() { getClientFunc = k8sutil.GetCoreV1Client }()
 	getClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA)
 
 	client := fake.NewFakeClientWithScheme(testScheme)
@@ -245,8 +247,8 @@ func TestIsCATrue(t *testing.T) {
 	assert.True(t, isCAValue)
 }
 
-func createClientFunc(caConfig vzapi.CA) func() (corev1.CoreV1Interface, error) {
-	return func() (corev1.CoreV1Interface, error) {
+func createClientFunc(caConfig vzapi.CA) getCoreV1ClientFuncType {
+	return func(...vzlog.VerrazzanoLogger) (corev1.CoreV1Interface, error) {
 		secret := &v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: caConfig.SecretName, Namespace: caConfig.ClusterResourceNamespace}}
 		return k8sfake.NewSimpleClientset(secret).CoreV1(), nil
 	}
@@ -332,6 +334,15 @@ func TestCreateCAResources(t *testing.T) {
 	exists, err = clusterIssuerExists(client, verrazzanoClusterIssuerName)
 	assert.NoError(t, err)
 	assert.True(t, exists)
+}
+
+// TestRenewAllCertificatesNoCertsPresent tests the renewAllSystemCertificates function (code coverage mainly)
+// GIVEN a call to renewAllSystemCertificates
+//  WHEN No certs are found
+//  THEN no error is returned
+func TestRenewAllCertificatesNoCertsPresent(t *testing.T) {
+	client := fake.NewFakeClientWithScheme(testScheme)
+	assert.NoError(t, renewAllSystemCertificates(client, vzlog.DefaultLogger()))
 }
 
 // issuerExists returns true if the Issuer with the name and namespace exists.

@@ -5,12 +5,19 @@ package certmanager
 
 import (
 	"context"
+	cmutil "github.com/jetstack/cert-manager/pkg/api/util"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	certv1fake "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/fake"
+	certv1client "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -319,13 +326,15 @@ func Test_certManagerComponent_ValidateUpdate(t *testing.T) {
 		},
 	}
 
-	defer func() { getClientFunc = GetCoreV1Client }()
+	defer func() { getClientFunc = k8sutil.GetCoreV1Client }()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewComponent()
-			clientset := createFakeClient(tt.caSecret)
-			getClientFunc = func() (v1.CoreV1Interface, error) {
-				return clientset.CoreV1(), nil
+			getClientFunc = func(log ...vzlog.VerrazzanoLogger) (v1.CoreV1Interface, error) {
+				if tt.caSecret != nil {
+					return createFakeClient(tt.caSecret).CoreV1(), nil
+				}
+				return createFakeClient().CoreV1(), nil
 			}
 			if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
@@ -342,7 +351,7 @@ func TestPostInstallCA(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
 
-	defer func() { getClientFunc = GetCoreV1Client }()
+	defer func() { getClientFunc = k8sutil.GetCoreV1Client }()
 	getClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA)
 
 	client := fake.NewFakeClientWithScheme(testScheme)
@@ -377,7 +386,7 @@ func runCAUpdateTest(t *testing.T, upgrade bool) {
 	}
 	updatedVZ.Spec.Components.CertManager.Certificate.CA = newCA
 
-	defer func() { getClientFunc = GetCoreV1Client }()
+	defer func() { getClientFunc = k8sutil.GetCoreV1Client }()
 	getClientFunc = createClientFunc(updatedVZ.Spec.Components.CertManager.Certificate.CA)
 
 	expectedIssuer := &certv1.ClusterIssuer{
@@ -517,6 +526,151 @@ func runAcmeUpdateTest(t *testing.T, upgrade bool) {
 	assert.Equal(t, expectedIssuer.Object["spec"], actualIssuer.Object["spec"])
 }
 
+// TestClusterIssuerUpdated tests the createOrUpdateClusterIssuer function
+// GIVEN a call to createOrUpdateClusterIssuer
+// WHEN the ClusterIssuer is updated and there are existing certificates with failed and successful CertificateRequests
+// THEN the Cert status is updated to request a renewal, and any failed CertificateRequests are cleaned up beforehand
+func TestClusterIssuerUpdated(t *testing.T) {
+	asserts := assert.New(t)
+
+	localvz := vz.DeepCopy()
+	localvz.Spec.Components.CertManager.Certificate.Acme = acme
+	// set OCI DNS secret value and create secret
+	oci := &vzapi.OCI{
+		OCIConfigSecret: "ociDNSSecret",
+		DNSZoneName:     "example.dns.io",
+	}
+	localvz.Spec.Components.DNS = &vzapi.DNSComponent{
+		OCI: oci,
+	}
+
+	// The existing cluster issuer that will be updated
+	existingClusterIssuer := &certv1.ClusterIssuer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: verrazzanoClusterIssuerName,
+		},
+		Spec: certv1.IssuerSpec{
+			IssuerConfig: certv1.IssuerConfig{
+				CA: &certv1.CAIssuer{
+					SecretName: ca.SecretName,
+				},
+			},
+		},
+	}
+
+	// The a certificate that we expect to be renewed
+	certificate := &certv1.Certificate{
+		ObjectMeta: metav1.ObjectMeta{Name: "mycert", Namespace: "certns"},
+		Spec: certv1.CertificateSpec{
+			IssuerRef: cmmeta.ObjectReference{
+				Name: verrazzanoClusterIssuerName,
+			},
+		},
+		Status: certv1.CertificateStatus{},
+	}
+
+	// A certificate request for the above cert that was successful
+	certificateRequest1 := &certv1.CertificateRequest{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foorequest1",
+			Namespace: certificate.Namespace,
+			Annotations: map[string]string{
+				certRequestNameAnnotation: certificate.Name,
+			},
+		},
+		Status: certv1.CertificateRequestStatus{
+			Conditions: []certv1.CertificateRequestCondition{
+				{Type: certv1.CertificateRequestConditionReady, Status: cmmeta.ConditionTrue, Reason: certv1.CertificateRequestReasonIssued},
+			},
+		},
+	}
+
+	// A certificate request for the above cert that is in a failed state; this should be deleted (or it will block an Issuing request)
+	certificateRequest2 := &certv1.CertificateRequest{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foorequest2",
+			Namespace: certificate.Namespace,
+			Annotations: map[string]string{
+				certRequestNameAnnotation: certificate.Name,
+			},
+		},
+		Status: certv1.CertificateRequestStatus{
+			Conditions: []certv1.CertificateRequestCondition{
+				{Type: certv1.CertificateRequestConditionReady, Status: cmmeta.ConditionFalse, Reason: certv1.CertificateRequestReasonFailed},
+			},
+		},
+	}
+
+	// An unrelated certificate request, for different certificate; this should be untouched
+	otherCertRequest := &certv1.CertificateRequest{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "barrequest",
+			Namespace: certificate.Namespace,
+			Annotations: map[string]string{
+				certRequestNameAnnotation: "someothercert",
+			},
+		},
+		Status: certv1.CertificateRequestStatus{
+			Conditions: []certv1.CertificateRequestCondition{
+				{Type: certv1.CertificateRequestConditionReady, Status: cmmeta.ConditionFalse, Reason: certv1.CertificateRequestReasonFailed},
+			},
+		},
+	}
+
+	// The OCI DNS secret is expected to be present for this configuration
+	ociSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ociDNSSecret",
+			Namespace: ComponentNamespace,
+		},
+	}
+
+	// Fake controllerruntime client and ComponentContext for the call
+	client := fake.NewFakeClientWithScheme(testScheme, existingClusterIssuer, certificate, ociSecret)
+	ctx := spi.NewFakeContext(client, localvz, false)
+
+	// Fake Go client for the CertManager clientset
+	cmClient := certv1fake.NewSimpleClientset(certificate, certificateRequest1, certificateRequest2, otherCertRequest)
+
+	defer func() { getCMClientFunc = k8sutil.GetCertManagerClientset }()
+	getCMClientFunc = func(...string) (certv1client.CertmanagerV1Interface, error) {
+		return cmClient.CertmanagerV1(), nil
+	}
+
+	// create the component and issue the call
+	component := NewComponent().(certManagerComponent)
+	asserts.NoError(component.createOrUpdateClusterIssuer(ctx))
+
+	// Verify the certificate status has an Issuing condition; this informs CertManager to renew the certificate
+	updatedCert, err := cmClient.CertmanagerV1().Certificates(certificate.Namespace).Get(context.TODO(), certificate.Name, metav1.GetOptions{})
+	asserts.NoError(err)
+	asserts.True(cmutil.CertificateHasCondition(updatedCert, certv1.CertificateCondition{
+		Type:   certv1.CertificateConditionIssuing,
+		Status: cmmeta.ConditionTrue,
+	}))
+
+	// Verify the successful CertificateRequest was NOT deleted
+	certReq1, err := cmClient.CertmanagerV1().CertificateRequests(certificate.Namespace).Get(context.TODO(), certificateRequest1.Name, metav1.GetOptions{})
+	asserts.NoError(err)
+	asserts.NotNil(certReq1)
+
+	// Verify the failed CertificateRequest for the target certificate WAS deleted
+	certReq2, err := cmClient.CertmanagerV1().CertificateRequests(certificate.Namespace).Get(context.TODO(), certificateRequest2.Name, metav1.GetOptions{})
+	asserts.Error(err)
+	asserts.True(errors.IsNotFound(err))
+	asserts.Nil(certReq2)
+
+	// Verify the unrelated CertificateRequest was NOT deleted
+	otherReq, err := cmClient.CertmanagerV1().CertificateRequests(certificate.Namespace).Get(context.TODO(), otherCertRequest.Name, metav1.GetOptions{})
+	asserts.NoError(err)
+	asserts.NotNil(otherReq)
+
+}
+
+// TestDryRun tests the behavior when DryRun is enabled, mainly for code coverage
+// GIVEN a call to PostInstall/PostUpgrade/PreInstall
+//  WHEN the ComponentContext has DryRun set to true
+//  THEN no error is returned
 func TestDryRun(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(testScheme)
 	ctx := spi.NewFakeContext(client, vz, true)
@@ -526,9 +680,6 @@ func TestDryRun(t *testing.T) {
 	assert.NoError(t, fakeComponent.PostUpgrade(ctx))
 }
 
-func createFakeClient(testSecret *corev1.Secret) *k8sfake.Clientset {
-	if testSecret != nil {
-		return k8sfake.NewSimpleClientset(testSecret)
-	}
-	return k8sfake.NewSimpleClientset()
+func createFakeClient(objs ...runtime.Object) *k8sfake.Clientset {
+	return k8sfake.NewSimpleClientset(objs...)
 }

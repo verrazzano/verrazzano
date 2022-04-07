@@ -8,6 +8,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	cmclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
+	certv1client "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os"
 	"path/filepath"
 
@@ -117,6 +120,15 @@ func GetKubernetesClientsetWithConfig(config *rest.Config) (*kubernetes.Clientse
 	return clientset, err
 }
 
+//GetCoreV1Client Returns the CoreV1Interface
+func GetCoreV1Client(log ...vzlog.VerrazzanoLogger) (corev1.CoreV1Interface, error) {
+	goClient, err := GetGoClient(log...)
+	if err != nil {
+		return nil, err
+	}
+	return goClient.CoreV1(), nil
+}
+
 // GetIstioClientset returns the clientset object for Istio
 func GetIstioClientset() (*istioClient.Clientset, error) {
 	kubeConfigLoc, err := GetKubeConfigLocation()
@@ -135,6 +147,22 @@ func GetIstioClientsetInCluster(kubeconfigPath string) (*istioClient.Clientset, 
 	}
 	cs, err = istioClient.NewForConfig(kubeConfig)
 	return cs, err
+}
+
+//GetCertManagerClientset Get a CertManager clientset object
+func GetCertManagerClientset(kubeconfigPath ...string) (certv1client.CertmanagerV1Interface, error) {
+	// Updating the status field only works using the UpdateStatus call via the CertManager typed client interface
+	var cfg *rest.Config
+	var err error
+	if len(kubeconfigPath) > 0 {
+		cfg, err = GetKubeConfigGivenPath(kubeconfigPath[0])
+	} else {
+		cfg, err = GetKubeConfig()
+	}
+	if err != nil {
+		return nil, err
+	}
+	return cmclient.NewForConfigOrDie(cfg).CertmanagerV1(), nil
 }
 
 // GetHostnameFromGateway returns the host name from the application gateway that was
