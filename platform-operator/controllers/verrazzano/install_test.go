@@ -208,8 +208,8 @@ func TestNoUpdateSameGeneration(t *testing.T) {
 
 	// The mocks are added to accomodate the expected calls to List instance when component is Ready
 	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList, opts ...client.ListOption) error {
 			ingressList.Items = []networkingv1.Ingress{}
 			return nil
 		}).AnyTimes()

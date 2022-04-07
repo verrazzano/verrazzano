@@ -36,7 +36,7 @@ func TestIsPrometheusOperatorReady(t *testing.T) {
 			// WHEN we call isPrometheusOperatorReady
 			// THEN the call returns true
 			name: "Test IsReady when Prometheus Operator is successfully deployed",
-			client: fake.NewFakeClientWithScheme(testScheme,
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				&appsv1.Deployment{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
@@ -47,7 +47,7 @@ func TestIsPrometheusOperatorReady(t *testing.T) {
 						Replicas:          1,
 						UpdatedReplicas:   1,
 					},
-				}),
+				}).Build(),
 			expectTrue: true,
 		},
 		{
@@ -55,7 +55,7 @@ func TestIsPrometheusOperatorReady(t *testing.T) {
 			// WHEN we call isPrometheusOperatorReady
 			// THEN the call returns false
 			name: "Test IsReady when Prometheus Operator deployment is not ready",
-			client: fake.NewFakeClientWithScheme(testScheme,
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				&appsv1.Deployment{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
@@ -66,7 +66,7 @@ func TestIsPrometheusOperatorReady(t *testing.T) {
 						Replicas:          1,
 						UpdatedReplicas:   0,
 					},
-				}),
+				}).Build(),
 			expectTrue: false,
 		},
 		{
@@ -74,7 +74,7 @@ func TestIsPrometheusOperatorReady(t *testing.T) {
 			// WHEN we call isPrometheusOperatorReady
 			// THEN the call returns false
 			name:       "Test IsReady when Prometheus Operator deployment does not exist",
-			client:     fake.NewFakeClientWithScheme(testScheme),
+			client:     fake.NewClientBuilder().WithScheme(testScheme).Build(),
 			expectTrue: false,
 		},
 	}

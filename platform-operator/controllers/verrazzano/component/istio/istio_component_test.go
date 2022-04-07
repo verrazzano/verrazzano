@@ -206,8 +206,8 @@ const testBomFilePath = "../../testdata/test_bom.json"
 //  WHEN I call Name
 //  THEN the correct Verrazzano name is returned
 func TestGetName(t *testing.T) {
-	assert := assert.New(t)
-	assert.Equal("istio", comp.Name(), "Wrong component name")
+	a := assert.New(t)
+	a.Equal("istio", comp.Name(), "Wrong component name")
 }
 
 // TestUpgrade tests the component upgrade
@@ -215,7 +215,7 @@ func TestGetName(t *testing.T) {
 //  WHEN I call Upgrade
 //  THEN the upgrade returns success and passes the correct values to the upgrade function
 func TestUpgrade(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	comp := istioComponent{
 		ValuesFile:               "test-values-file.yaml",
@@ -228,7 +228,7 @@ func TestUpgrade(t *testing.T) {
 	defer SetDefaultIstioUpgradeFunction()
 
 	err := comp.Upgrade(spi.NewFakeContext(getMock(t), crInstall, false))
-	assert.NoError(err, "Upgrade returned an error")
+	a.NoError(err, "Upgrade returned an error")
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
@@ -253,7 +253,7 @@ func fakeUpgrade(log vzlog.VerrazzanoLogger, imageOverridesString string, overri
 }
 
 func TestPostUpgrade(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	comp := istioComponent{}
 
@@ -267,7 +267,7 @@ func TestPostUpgrade(t *testing.T) {
 	SetHelmUninstallFunction(fakeHelmUninstall)
 	SetDefaultHelmUninstallFunction()
 	err := comp.PostUpgrade(spi.NewFakeContext(getMock(t), crInstall, false))
-	assert.NoError(err, "PostUpgrade returned an error")
+	a.NoError(err, "PostUpgrade returned an error")
 }
 
 func fakeHelmUninstall(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
@@ -285,23 +285,23 @@ func getMock(t *testing.T) *mocks.MockClient {
 	mock := mocks.NewMockClient(mocker)
 
 	mock.EXPECT().
-		List(gomock.Any(), &v1.SecretList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, secretList *v1.SecretList, options *client.ListOptions) error {
+		List(gomock.Any(), &v1.SecretList{}, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secretList *v1.SecretList, options ...client.ListOption) error {
 			secretList.Items = []v1.Secret{{Type: HelmScrtType}, {Type: "generic"}, {Type: HelmScrtType}}
 			return nil
-		})
+		}).AnyTimes()
 
 	mock.EXPECT().
-		Delete(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, secret *v1.Secret) error {
+		Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *v1.Secret, opts ...client.DeleteOption) error {
 			return nil
-		}).Times(2)
+		}).AnyTimes()
 
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *oam.ApplicationConfigurationList, opts ...client.ListOption) error {
 			return nil
-		}).Times(2)
+		}).AnyTimes()
 
 	return mock
 }
@@ -316,26 +316,26 @@ func (r fakeRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error)
 //  WHEN I call AppendIstioOverrides
 //  THEN the Istio global.hub helm override is added to the provided array/slice.
 func TestAppendIstioOverrides(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 
-	os.Setenv(constants.RegistryOverrideEnvVar, "myreg.io")
-	defer os.Unsetenv(constants.RegistryOverrideEnvVar)
+	_ = os.Setenv(constants.RegistryOverrideEnvVar, "myreg.io")
+	defer func() { _ = os.Unsetenv(constants.RegistryOverrideEnvVar) }()
 
 	kvs, err := AppendIstioOverrides(nil, "istiod", "", "", nil)
-	assert.NoError(err, "AppendIstioOverrides returned an error ")
-	assert.Len(kvs, 1, "AppendIstioOverrides returned wrong number of Key:Value pairs")
-	assert.Equal(istioGlobalHubKey, kvs[0].Key)
-	assert.Equal("myreg.io/verrazzano", kvs[0].Value)
+	a.NoError(err, "AppendIstioOverrides returned an error ")
+	a.Len(kvs, 1, "AppendIstioOverrides returned wrong number of Key:Value pairs")
+	a.Equal(istioGlobalHubKey, kvs[0].Key)
+	a.Equal("myreg.io/verrazzano", kvs[0].Value)
 
-	os.Setenv(constants.ImageRepoOverrideEnvVar, "myrepo")
-	defer os.Unsetenv(constants.ImageRepoOverrideEnvVar)
+	_ = os.Setenv(constants.ImageRepoOverrideEnvVar, "myrepo")
+	defer func() { _ = os.Unsetenv(constants.ImageRepoOverrideEnvVar) }()
 	kvs, err = AppendIstioOverrides(nil, "istiod", "", "", nil)
-	assert.NoError(err, "AppendIstioOverrides returned an error ")
-	assert.Len(kvs, 1, "AppendIstioOverrides returned wrong number of Key:Value pairs")
-	assert.Equal(istioGlobalHubKey, kvs[0].Key)
-	assert.Equal("myreg.io/myrepo/verrazzano", kvs[0].Value)
+	a.NoError(err, "AppendIstioOverrides returned an error ")
+	a.Len(kvs, 1, "AppendIstioOverrides returned wrong number of Key:Value pairs")
+	a.Equal(istioGlobalHubKey, kvs[0].Key)
+	a.Equal("myreg.io/myrepo/verrazzano", kvs[0].Value)
 }
 
 // TestAppendIstioOverridesNoRegistryOverride tests the Istio override for the global hub when no registry override is specified
@@ -343,13 +343,13 @@ func TestAppendIstioOverrides(t *testing.T) {
 //  WHEN I call AppendIstioOverrides
 //  THEN no overrides are added to the provided array/slice
 func TestAppendIstioOverridesNoRegistryOverride(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 
 	kvs, err := AppendIstioOverrides(nil, "istiod", "", "", nil)
-	assert.NoError(err, "AppendIstioOverrides returned an error ")
-	assert.Len(kvs, 0, "AppendIstioOverrides returned wrong number of Key:Value pairs")
+	a.NoError(err, "AppendIstioOverrides returned an error ")
+	a.Len(kvs, 0, "AppendIstioOverrides returned wrong number of Key:Value pairs")
 }
 
 // TestIsReady tests the IsReady function
@@ -358,7 +358,7 @@ func TestAppendIstioOverridesNoRegistryOverride(t *testing.T) {
 //  THEN true is returned
 func TestIsReady(t *testing.T) {
 
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: IstioNamespace,
@@ -395,7 +395,7 @@ func TestIsReady(t *testing.T) {
 				UpdatedReplicas:   1,
 			},
 		},
-	)
+	).Build()
 	var iComp istioComponent
 	compContext := spi.NewFakeContext(fakeClient, nil, false)
 	assert.True(t, iComp.IsReady(compContext))

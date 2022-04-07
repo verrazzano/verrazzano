@@ -456,7 +456,6 @@ spec:
 // WHEN BuildIstioOperatorYaml is called
 // THEN ensure that the result is correct.
 func TestBuildIstioOperatorYaml(t *testing.T) {
-	const indent = 2
 
 	tests := []struct {
 		testName string
@@ -481,10 +480,10 @@ func TestBuildIstioOperatorYaml(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
-			assert := assert.New(t)
+			a := assert.New(t)
 			s, err := BuildIstioOperatorYaml(test.value)
-			assert.NoError(err, s, "error merging yamls")
-			assert.YAMLEq(test.expected, s, "Result does not match expected value")
+			a.NoError(err, s, "error merging yamls")
+			a.YAMLEq(test.expected, s, "Result does not match expected value")
 		})
 	}
 }

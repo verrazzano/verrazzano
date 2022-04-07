@@ -6,10 +6,9 @@ package navigation
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/conversion"
@@ -75,9 +74,18 @@ func FetchUnstructuredChildResourcesByAPIVersionKinds(ctx context.Context, cli c
 		resources := unstructured.UnstructuredList{}
 		resources.SetAPIVersion(childResKind.APIVersion)
 		resources.SetKind(childResKind.Kind)
-		if err := cli.List(ctx, &resources, client.InNamespace(namespace), client.MatchingLabels(childResKind.Selector)); err != nil {
-			log.Errorf("Failed listing children: %v", err)
-			return nil, err
+		if childResKind.Selector != nil {
+			options := []client.ListOption{client.InNamespace(namespace), client.MatchingLabels(childResKind.Selector)}
+			if err := cli.List(ctx, &resources, options...); err != nil {
+				log.Errorf("Failed listing children: %v", err)
+				return nil, err
+			}
+		} else {
+			options := []client.ListOption{client.InNamespace(namespace)}
+			if err := cli.List(ctx, &resources, options...); err != nil {
+				log.Errorf("Failed listing children: %v", err)
+				return nil, err
+			}
 		}
 		for i, item := range resources.Items {
 			// The Kubernetes Deployment Case where Workload is the Child

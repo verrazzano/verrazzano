@@ -532,7 +532,8 @@ func resourceExists(ctx context.Context, r client.Reader, apiVersion string, kin
 	resources := unstructured.UnstructuredList{}
 	resources.SetAPIVersion(apiVersion)
 	resources.SetKind(kind)
-	err := r.List(ctx, &resources, client.InNamespace(namespace), client.MatchingFields{"metadata.name": name})
+	options := []client.ListOption{client.InNamespace(namespace), client.MatchingFields{"metadata.name": name}}
+	err := r.List(ctx, &resources, options...)
 	return len(resources.Items) != 0, err
 }
 

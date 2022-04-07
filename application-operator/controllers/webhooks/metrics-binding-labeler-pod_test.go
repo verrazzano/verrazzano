@@ -27,14 +27,14 @@ func newLabelerPodWebhook() LabelerPodWebhook {
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Version: "v1",
 	}, &corev1.Namespace{}, &corev1.Pod{}, &appsv1.Deployment{}, &appsv1.ReplicaSet{}, &appsv1.StatefulSet{})
-	vzapp.AddToScheme(scheme)
+	_ = vzapp.AddToScheme(scheme)
 	decoder, _ := admission.NewDecoder(scheme)
-	cli := ctrlfake.NewFakeClientWithScheme(scheme)
+	cli := ctrlfake.NewClientBuilder().WithScheme(scheme).Build()
 	v := LabelerPodWebhook{
 		Client:        cli,
 		DynamicClient: fake.NewSimpleDynamicClient(runtime.NewScheme()),
 	}
-	v.InjectDecoder(decoder)
+	_ = v.InjectDecoder(decoder)
 	return v
 }
 

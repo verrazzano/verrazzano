@@ -22,7 +22,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -67,7 +66,7 @@ func TestPreUpgrade(t *testing.T) {
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
 	config.TestHelmConfigDir = "../../../../helm_config"
-	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewFakeClientWithScheme(testScheme), &vzapi.Verrazzano{}, false))
+	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vzapi.Verrazzano{}, false))
 	assert.NoError(t, err)
 }
 
@@ -76,8 +75,8 @@ func TestPreUpgrade(t *testing.T) {
 //  WHEN I call PreInstall when dependencies are met
 //  THEN no error is returned
 func TestPreInstall(t *testing.T) {
-	client := createPreInstallTestClient()
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	c := createPreInstallTestClient()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
 	err := NewComponent().PreInstall(ctx)
 	assert.NoError(t, err)
 }
@@ -87,8 +86,8 @@ func TestPreInstall(t *testing.T) {
 //  WHEN I call Install when dependencies are met
 //  THEN no error is returned
 func TestInstall(t *testing.T) {
-	client := createPreInstallTestClient()
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{
+	c := createPreInstallTestClient()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: dnsComponents,
 		},
@@ -109,8 +108,8 @@ func TestInstall(t *testing.T) {
 //  WHEN I call PostInstall
 //  THEN no error is returned
 func TestPostInstall(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(testScheme)
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: dnsComponents,
 		},
@@ -125,13 +124,13 @@ func TestPostInstall(t *testing.T) {
 	// when all the ingresses are present in the cluster
 	vzIngressNames := vzComp.(verrazzanoComponent).GetIngressNames(ctx)
 	for _, ingressName := range vzIngressNames {
-		client.Create(context.TODO(), &v1.Ingress{
+		_ = c.Create(context.TODO(), &v1.Ingress{
 			ObjectMeta: metav1.ObjectMeta{Name: ingressName.Name, Namespace: ingressName.Namespace},
 		})
 	}
 	for _, certName := range vzComp.(verrazzanoComponent).GetCertificateNames(ctx) {
 		time := metav1.Now()
-		client.Create(context.TODO(), &certv1.Certificate{
+		_ = c.Create(context.TODO(), &certv1.Certificate{
 			ObjectMeta: metav1.ObjectMeta{Name: certName.Name, Namespace: certName.Namespace},
 			Status: certv1.CertificateStatus{
 				Conditions: []certv1.CertificateCondition{
@@ -149,8 +148,8 @@ func TestPostInstall(t *testing.T) {
 //  WHEN I call PostInstall and the certificates aren't ready
 //  THEN a retryable error is returned
 func TestPostInstallCertsNotReady(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(testScheme)
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: dnsComponents,
 		},
@@ -165,13 +164,13 @@ func TestPostInstallCertsNotReady(t *testing.T) {
 	// when all the ingresses are present in the cluster
 	vzIngressNames := vzComp.(verrazzanoComponent).GetIngressNames(ctx)
 	for _, ingressName := range vzIngressNames {
-		client.Create(context.TODO(), &v1.Ingress{
+		_ = c.Create(context.TODO(), &v1.Ingress{
 			ObjectMeta: metav1.ObjectMeta{Name: ingressName.Name, Namespace: ingressName.Namespace},
 		})
 	}
 	for _, certName := range vzComp.(verrazzanoComponent).GetCertificateNames(ctx) {
 		time := metav1.Now()
-		client.Create(context.TODO(), &certv1.Certificate{
+		_ = c.Create(context.TODO(), &certv1.Certificate{
 			ObjectMeta: metav1.ObjectMeta{Name: certName.Name, Namespace: certName.Namespace},
 			Status: certv1.CertificateStatus{
 				Conditions: []certv1.CertificateCondition{
@@ -210,8 +209,8 @@ func TestGetCertificateNames(t *testing.T) {
 			},
 		},
 	}
-	client := fake.NewFakeClientWithScheme(testScheme)
-	ctx := spi.NewFakeContext(client, &vz, false)
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(c, &vz, false)
 	vzComp := NewComponent()
 
 	certNames := vzComp.GetCertificateNames(ctx)
@@ -232,8 +231,8 @@ func TestGetCertificateNames(t *testing.T) {
 //  WHEN I call Upgrade
 //  THEN no error is returned
 func TestUpgrade(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(testScheme)
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Version:    "v1.2.0",
 			Components: dnsComponents,
@@ -258,8 +257,8 @@ func TestUpgrade(t *testing.T) {
 //  WHEN I call PostUpgrade
 //  THEN no error is returned
 func TestPostUpgrade(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(testScheme)
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Version:    "v1.2.0",
 			Components: dnsComponents,
@@ -270,11 +269,11 @@ func TestPostUpgrade(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func createPreInstallTestClient(extraObjs ...runtime.Object) client.Client {
-	objs := []runtime.Object{}
+func createPreInstallTestClient(extraObjs ...client.Object) client.Client {
+	objs := []client.Object{}
 	objs = append(objs, extraObjs...)
-	client := fake.NewFakeClientWithScheme(testScheme, objs...)
-	return client
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(objs...).Build()
+	return c
 }
 
 // TestIsEnabledNilVerrazzano tests the IsEnabled function

@@ -51,6 +51,8 @@ func TestAppConfigReconcilerSetupWithManager(t *testing.T) {
 	scheme = runtime.NewScheme()
 	_ = clustersv1alpha1.AddToScheme(scheme)
 	reconciler = Reconciler{Client: cli, Scheme: scheme}
+	mgr.EXPECT().GetControllerOptions().AnyTimes()
+	mgr.EXPECT().GetScheme().Return(scheme)
 	mgr.EXPECT().GetLogger().Return(logr.Discard())
 	mgr.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()
 	mgr.EXPECT().Add(gomock.Any()).Return(nil).AnyTimes()
@@ -98,7 +100,7 @@ func TestReconcileCreateAppConfig(t *testing.T) {
 
 	// expect a call to update the resource with a finalizer
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, appConfig *clustersv1alpha1.MultiClusterApplicationConfiguration, opts ...client.UpdateOption) error {
 			assert.True(len(appConfig.ObjectMeta.Finalizers) == 1, "Wrong number of finalizers")
 			assert.Equal(finalizerName, appConfig.ObjectMeta.Finalizers[0], "wrong finalizer")
@@ -151,7 +153,7 @@ func TestReconcileUpdateAppConfig(t *testing.T) {
 
 	// expect a call to update the OAM app config with the new app config data
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, app *v1alpha2.ApplicationConfiguration, opts ...client.CreateOption) error {
 			assertAppConfigValid(assert, app, mcAppConfigSample)
 			return nil
@@ -250,7 +252,7 @@ func TestReconcileUpdateAppConfigFailed(t *testing.T) {
 
 	// expect a call to update the OAM app config and fail the call
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, c *v1alpha2.ApplicationConfiguration, opts ...client.CreateOption) error {
 			return errors.NewBadRequest("will not update it")
 		})
@@ -342,7 +344,7 @@ func TestReconcilePlacementInDifferentCluster(t *testing.T) {
 
 	// expect a call to update the resource with no finalizers
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration, opts ...client.UpdateOption) error {
 			assert.True(len(mcAppConfig.Finalizers) == 0, "Wrong number of finalizers")
 			return nil
@@ -380,8 +382,8 @@ func doExpectStatusUpdateFailed(cli *mocks.MockClient, mockStatusWriter *mocks.M
 
 	// the status update should be to failure status/conditions on the MultiClusterApplicationConfiguration
 	mockStatusWriter.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterApplicationConfiguration{})).
-		DoAndReturn(func(ctx context.Context, mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration) error {
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterApplicationConfiguration{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration, options ...client.UpdateOption) error {
 			clusterstest.AssertMultiClusterResourceStatus(assert, mcAppConfig.Status, clustersv1alpha1.Failed, clustersv1alpha1.DeployFailed, v1.ConditionTrue)
 			return nil
 		})
@@ -398,8 +400,8 @@ func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mock
 
 	// the status update should be to success status/conditions on the MultiClusterApplicationConfiguration
 	mockStatusWriter.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterApplicationConfiguration{})).
-		DoAndReturn(func(ctx context.Context, mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration) error {
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterApplicationConfiguration{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration, options ...client.UpdateOption) error {
 			clusterstest.AssertMultiClusterResourceStatus(assert, mcAppConfig.Status, clustersv1alpha1.Succeeded, clustersv1alpha1.DeployComplete, v1.ConditionTrue)
 			return nil
 		})
