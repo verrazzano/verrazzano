@@ -103,9 +103,9 @@ func (s *Syncer) syncLocalClusterCA() error {
 		newSecret.Annotations = adminVMCCASecret.Annotations
 		newSecret.Data = adminVMCCASecret.Data
 		newSecret.Data["cacrt"] = localCASecret.Data["ca.crt"]
-		_, err = controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &newSecret, func() error { return nil })
+		_, err = controllerutil.CreateOrUpdate(s.Context, s.AdminClient, &newSecret, func() error { return nil })
 		if err != nil {
-			s.Log.Errorw(fmt.Sprintf("Failed syncing admin CA certificate: %v", err),
+			s.Log.Errorw(fmt.Sprintf("Failed syncing local CA certificate: %v", err),
 				"Secret", adminVMCCASecret.Name)
 		}
 	}
