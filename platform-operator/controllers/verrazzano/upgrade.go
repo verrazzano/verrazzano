@@ -44,6 +44,9 @@ const (
 	// vzStateUpgradeDone is the state when upgrade is done
 	vzStateUpgradeDone VerrazzanoUpgradeState = "vzUpgradeDone"
 
+	// vzStateRestartApps is the state when the apps are being restarted
+	vzStateRestartApps VerrazzanoUpgradeState = "vzRestartApps"
+
 	// vzStateEnd is the terminal state
 	vzStateEnd VerrazzanoUpgradeState = "vzStateEnd"
 )
@@ -122,6 +125,15 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 				}
 				log.Oncef("Component %s is ready after post-upgrade", compName)
 
+			}
+			tracker.vzState = vzStateRestartApps
+
+		case vzStateRestartApps:
+			log.Once("Doing Verrazzano post-upgrade application restarts if needed")
+			err := istio.RestartApps(log, r, cr.Generation)
+			if err != nil {
+				log.Errorf("Error running Verrazzano post-upgrade application restarts")
+				return newRequeueWithDelay(), err
 			}
 			tracker.vzState = vzStateUpgradeDone
 

@@ -54,6 +54,7 @@ Get the EXTERNAL_IP address of the istio-ingressgateway service.
 
 Access the application
 
+    $ curl -X POST -k -H "Content-Type: application/json" -d '{"Sample message"}' https://${HOST}/hello/postMessage --resolve ${HOST}:443:${ADDRESS}
     $ curl -sk https://${HOST}/hello/coherence --resolve ${HOST}:443:${ADDRESS}
 
 If you are using nip.io, then you do not need to include --resolve.
