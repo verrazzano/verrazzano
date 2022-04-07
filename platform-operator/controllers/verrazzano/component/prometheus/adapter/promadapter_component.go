@@ -38,7 +38,7 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
-			ImagePullSecretKeyname:  "global.imagePullSecrets[0].name",
+			ImagePullSecretKeyname:  "image.pullSecrets[0]",
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-adapter-values.yaml"),
 			Dependencies:            []string{},
 		},
