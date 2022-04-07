@@ -232,19 +232,27 @@ func ExecPod(client kubernetes.Interface, cfg *rest.Config, pod *v1.Pod, contain
 }
 
 // GetGoClient returns a go-client
-func GetGoClient(log vzlog.VerrazzanoLogger) (kubernetes.Interface, error) {
+func GetGoClient(log ...vzlog.VerrazzanoLogger) (kubernetes.Interface, error) {
+	var logger vzlog.VerrazzanoLogger
+	if len(log) > 0 {
+		logger = log[0]
+	}
 	if fakeClient != nil {
 		return fakeClient, nil
 	}
 	config, err := controllerruntime.GetConfig()
 	if err != nil {
-		log.Errorf("Failed to get kubeconfig: %v", err)
+		if logger != nil {
+			logger.Errorf("Failed to get kubeconfig: %v", err)
+		}
 		return nil, err
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		log.Errorf("Failed to get clientset: %v", err)
+		if logger != nil {
+			logger.Errorf("Failed to get clientset: %v", err)
+		}
 		return nil, err
 	}
 	return kubeClient, err

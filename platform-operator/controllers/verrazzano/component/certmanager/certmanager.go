@@ -11,7 +11,9 @@ import (
 	"fmt"
 	cmclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
 	v12 "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"io"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"net/mail"
 	"os"
 	"path/filepath"
@@ -142,6 +144,18 @@ var bashFunc bashFuncSig = vzos.RunBash
 
 func setBashFunc(f bashFuncSig) {
 	bashFunc = f
+}
+
+type getClientFuncType func() (corev1.CoreV1Interface, error)
+
+var getClientFunc getClientFuncType = GetCoreV1Client
+
+func GetCoreV1Client() (corev1.CoreV1Interface, error) {
+	goClient, err := k8sutil.GetGoClient()
+	if err != nil {
+		return nil, err
+	}
+	return goClient.CoreV1(), nil
 }
 
 func (c certManagerComponent) createOrUpdateClusterIssuer(compContext spi.ComponentContext) error {
@@ -372,6 +386,9 @@ func validateConfiguration(cr *vzapi.Verrazzano) (isCA bool, err error) {
 		return false, errors.New("Certificate object Acme and CA cannot be simultaneously populated")
 	}
 	if caNotEmpty {
+		if err := validateCAConfiguration(components.CertManager.Certificate.CA); err != nil {
+			return true, err
+		}
 		return true, nil
 	} else if acmeNotEmpty {
 		if err := validateAcmeConfiguration(components.CertManager.Certificate.Acme); err != nil {
@@ -380,6 +397,21 @@ func validateConfiguration(cr *vzapi.Verrazzano) (isCA bool, err error) {
 		return false, nil
 	}
 	return false, errors.New("Either Acme or CA certificate authorities must be configured")
+}
+
+func validateCAConfiguration(ca vzapi.CA) error {
+	if ca.SecretName == constants.DefaultVerrazzanoCASecretName && ca.ClusterResourceNamespace == ComponentNamespace {
+		// if it's the default self-signed config the secret won't exist until created by CertManager
+		return nil
+	}
+
+	// Otherwise validate the config exists
+	v1Client, err := getClientFunc()
+	if err != nil {
+		return err
+	}
+	_, err = v1Client.Secrets(ca.ClusterResourceNamespace).Get(context.Background(), ca.SecretName, metav1.GetOptions{})
+	return err
 }
 
 //validateAcmeConfiguration Validate the ACME/LetsEncrypt values

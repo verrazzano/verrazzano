@@ -47,6 +47,9 @@ const VerrazzanoSystemNamespace = "verrazzano-system"
 // VerrazzanoMultiClusterNamespace is the multi-cluster namespace for Verrazzano
 const VerrazzanoMultiClusterNamespace = "verrazzano-mc"
 
+// CertManagerNamespace - the keycloak namespace
+const CertManagerNamespace = "cert-manager"
+
 // KeycloakNamespace - the keycloak namespace
 const KeycloakNamespace = "keycloak"
 
@@ -94,3 +97,6 @@ const FluentdDaemonSetName = "fluentd"
 
 // KubeSystem - The name of the kube-system namespace
 const KubeSystem = "kube-system"
+
+//DefaultVerrazzanoCASecretName Default self-signed CA secret name
+const DefaultVerrazzanoCASecretName = "verrazzano-ca-certificate-secret"

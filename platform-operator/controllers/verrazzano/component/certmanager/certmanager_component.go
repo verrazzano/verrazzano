@@ -6,6 +6,7 @@ package certmanager
 import (
 	"context"
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
@@ -23,7 +24,7 @@ import (
 const ComponentName = "cert-manager"
 
 // ComponentNamespace is the namespace of the component
-const ComponentNamespace = "cert-manager"
+const ComponentNamespace = vzconst.CertManagerNamespace
 
 // ComponentJSONName is the josn name of the verrazzano component in CRD
 const ComponentJSONName = "certManager"

@@ -8,6 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"testing"
 
@@ -20,6 +21,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -159,6 +161,8 @@ func TestAppendCertManagerOverrides(t *testing.T) {
 func TestAppendCertManagerOverridesWithInstallArgs(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
+	defer func() { getClientFunc = GetCoreV1Client }()
+	getClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA)
 	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 1)
@@ -233,10 +237,21 @@ func TestIsCANilWithProfile(t *testing.T) {
 func TestIsCATrue(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
+
+	defer func() { getClientFunc = GetCoreV1Client }()
+	getClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA)
+
 	client := fake.NewFakeClientWithScheme(testScheme)
 	isCAValue, err := isCA(spi.NewFakeContext(client, localvz, false, profileDir))
 	assert.Nil(t, err)
 	assert.True(t, isCAValue)
+}
+
+func createClientFunc(caConfig vzapi.CA) func() (corev1.CoreV1Interface, error) {
+	return func() (corev1.CoreV1Interface, error) {
+		secret := &v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: caConfig.SecretName, Namespace: caConfig.ClusterResourceNamespace}}
+		return k8sfake.NewSimpleClientset(secret).CoreV1(), nil
+	}
 }
 
 // TestIsCANilFalse tests the isCA function
@@ -355,6 +370,10 @@ func certificateExists(client clipkg.Client, name string, namespace string) (boo
 func TestPostInstallCA(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
+
+	defer func() { getClientFunc = GetCoreV1Client }()
+	getClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA)
+
 	client := fake.NewFakeClientWithScheme(testScheme)
 	err := fakeComponent.PostInstall(spi.NewFakeContext(client, localvz, false))
 	assert.NoError(t, err)
@@ -386,6 +405,9 @@ func runCAUpdateTest(t *testing.T, upgrade bool) {
 		ClusterResourceNamespace: "newnamespace",
 	}
 	updatedVZ.Spec.Components.CertManager.Certificate.CA = newCA
+
+	defer func() { getClientFunc = GetCoreV1Client }()
+	getClientFunc = createClientFunc(updatedVZ.Spec.Components.CertManager.Certificate.CA)
 
 	expectedIssuer := &certv1.ClusterIssuer{
 		Spec: certv1.IssuerSpec{
