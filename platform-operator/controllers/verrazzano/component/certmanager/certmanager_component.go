@@ -132,11 +132,3 @@ func (c certManagerComponent) PostUpgrade(compContext spi.ComponentContext) erro
 	}
 	return c.createOrUpdateClusterIssuer(compContext)
 }
-
-func (c certManagerComponent) getCertificateSettings(vz *vzapi.Verrazzano) vzapi.Certificate {
-	var certSettings vzapi.Certificate
-	if vz.Spec.Components.CertManager != nil {
-		certSettings = vz.Spec.Components.CertManager.Certificate
-	}
-	return certSettings
-}

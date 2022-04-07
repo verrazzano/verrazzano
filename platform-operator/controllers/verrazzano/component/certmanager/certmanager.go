@@ -549,6 +549,7 @@ func createAcmeCusterIssuerLookupObject(log vzlog.VerrazzanoLogger) (*unstructur
 	return ciObject, nil
 
 }
+
 func createOrUpdateCAResources(compContext spi.ComponentContext) (controllerutil.OperationResult, error) {
 	vzCertCA := compContext.EffectiveCR().Spec.Components.CertManager.Certificate.CA
 
