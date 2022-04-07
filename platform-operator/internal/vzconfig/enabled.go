@@ -138,3 +138,11 @@ func IsKubeStateMetricsEnabled(vz *vzapi.Verrazzano) bool {
 	}
 	return true
 }
+
+// IsPrometheusPushgatewayEnabled returns false only if the Prometheus Operator is explicitly disabled in the CR
+func IsPrometheusPushgatewayEnabled(vz *vzapi.Verrazzano) bool {
+	if vz != nil && vz.Spec.Components.PrometheusPushgateway != nil && vz.Spec.Components.PrometheusPushgateway.Enabled != nil {
+		return *vz.Spec.Components.PrometheusPushgateway.Enabled
+	}
+	return true
+}

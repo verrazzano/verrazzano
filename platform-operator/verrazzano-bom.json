@@ -501,6 +501,23 @@
           ]
         }
       ]
+    },
+    {
+      "name": "prometheus-pushgateway",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "prometheus-pushgateway",
+          "images": [
+            {
+              "image": "prometheus-pushgateway",
+              "tag": "v1.4.2",
+              "helmFullImageKey": "prometheusPushgateway.image.repository",
+              "helmTagKey": "prometheusPushgateway.image.tag"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
