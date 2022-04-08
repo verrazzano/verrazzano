@@ -10,7 +10,6 @@ import (
 	"github.com/onsi/gomega"
 )
 
-
 func TestMultiClusterCoherenceApplication(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "Test Suite to validate the support for VerrazzanoCoherenceWorkload in multi-cluster environment")

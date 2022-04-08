@@ -70,10 +70,9 @@ func VerifyMCResources(kubeConfig string, isAdminCluster bool, placedInThisClust
 	if isAdminCluster || placedInThisCluster {
 		// always expect MC resources on admin cluster - otherwise expect them only if placed here
 		return mcAppConfExists && compExists
-	} else {
-		// don't expect either
-		return !mcAppConfExists && !compExists
 	}
+	// don't expect either
+	return !mcAppConfExists && !compExists
 }
 
 // VerifyAppResourcesInCluster verifies that the app resources are either present or absent
@@ -87,13 +86,11 @@ func VerifyAppResourcesInCluster(kubeConfig string, isAdminCluster bool, placedI
 
 	if placedInThisCluster {
 		return projectExists && podsRunning, nil
-	} else {
-		if isAdminCluster {
-			return projectExists && !podsRunning, nil
-		} else {
-			return !podsRunning && !projectExists, nil
-		}
 	}
+	if isAdminCluster {
+		return projectExists && !podsRunning, nil
+	}
+	return !podsRunning && !projectExists, nil
 }
 
 // VerifyDeleteOnAdminCluster verifies that the app resources have been deleted from the admin

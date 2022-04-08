@@ -1,4 +1,4 @@
-package mccoherence
+package mcweblogic
 
 import (
 	. "github.com/onsi/ginkgo/v2"
@@ -54,10 +54,10 @@ const (
 	pendingSendBytes = "envoy_cluster_http2_pending_send_bytes"
 	receivedBytes    = "istio_tcp_received_bytes_total"
 
-	// metric labels
+	// various labels
 	k8sLabelDomainUID     = "kubernetes.labels.weblogic_domainUID"
 	k8sLabelWLServerName  = "kubernetes.labels.weblogic_serverName"
-	k8sLabelPodName       = "kubernetes.pod_name"
+	k8sPodName            = "kubernetes.pod_name"
 	k8sLabelContainerName = "kubernetes.container_name"
 	labelDomainName       = "weblogic_domainName"
 	labelPodName          = "pod_name"
@@ -71,6 +71,7 @@ const (
 )
 
 var (
+	indexName         = "verrazzano-namespace-" + appNamespace
 	appComp           = []string{"hello-domain"}
 	appPod            = []string{"hellodomain-adminserver"}
 	clusterName       = os.Getenv("MANAGED_CLUSTER_NAME")
@@ -78,7 +79,6 @@ var (
 	managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
 	failed            = false
 	beforeSuitePassed = false
-	indexName         = "verrazzano-namespace-" + appNamespace
 )
 
 var t = framework.NewTestFramework("mcweblogic")
@@ -225,7 +225,7 @@ var _ = t.Describe("In Multi-cluster, verify WebLogic application", Label("f:mul
 		// THEN the domain.servers.status.health.overallHeath fields should be ok
 		t.It("Verify 'hello-domain' overall health is ok", func() {
 			Eventually(func() bool {
-				domain, err := weblogic.GetDomainInCluster(appNamespace, "hello-domain", managedKubeconfig)
+				domain, err := weblogic.GetDomainInCluster(appNamespace, componentName, managedKubeconfig)
 				if err != nil {
 					return false
 				}
@@ -280,7 +280,7 @@ var _ = t.Describe("In Multi-cluster, verify WebLogic application", Label("f:mul
 				return pkg.LogRecordFoundInCluster(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					k8sLabelDomainUID:     wlDomain,
 					k8sLabelWLServerName:  adminServer,
-					k8sLabelPodName:       adminServerPod,
+					k8sPodName:            adminServerPod,
 					k8sLabelContainerName: wlServer,
 				}, adminKubeconfig)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
