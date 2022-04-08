@@ -10,28 +10,29 @@ spec:
     metadata:
       annotations:
         version: v1.0.0
-        description: "Coherence application"
     spec:
       components:
         - componentName: hello-coherence
           traits:
             - trait:
                 apiVersion: oam.verrazzano.io/v1alpha1
-                kind: MetricsTrait
-                spec:
-                  ports:
-                    - port: 8080
-                      path: "/actuator/prometheus"
-                    - port: 9612
-                  scraper: verrazzano-system/vmi-system-prometheus-0
-            - trait:
-                apiVersion: oam.verrazzano.io/v1alpha1
                 kind: IngressTrait
+                metadata:
+                  name: hellocoh-ingress
                 spec:
                   rules:
                     - paths:
-                        - path: "/"
+                        - path: "/catalogue"
                           pathType: Prefix
+            - trait:
+                apiVersion: oam.verrazzano.io/v1alpha1
+                kind: MetricsTrait
+                metadata:
+                  name: hellocoh-metrics
+                spec:
+                  ports:
+                    - port: 7001
+                    - port: 9612
   placement:
     clusters:
       - name: managed1
