@@ -583,6 +583,8 @@ github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220323165853-5c
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220323165853-5c7fda9eb29b/go.mod h1:mzM50LGL8/NihjnqxF9JWyKBMBSGQ/UL8NLkqF5zGVQ=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220324154616-c5e6f9e0fead h1:jTmfreFSIQSGI3kU8Odmy75OMz/XmRM7dVXW7wxnUfg=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220324154616-c5e6f9e0fead/go.mod h1:mzM50LGL8/NihjnqxF9JWyKBMBSGQ/UL8NLkqF5zGVQ=
+github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220407201706-9381f0488474 h1:sRk5Drc0/XP+naY5awXfcGl+sSYSFWHkDijNwFuAQnY=
+github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220407201706-9381f0488474/go.mod h1:N1UZDnQC6tFwZSLBwMGi7U3whH47VdxXYv3rKk9qlV8=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
 github.com/xlab/handysort v0.0.0-20150421192137-fb3537ed64a1/go.mod h1:QcJo0QPSfTONNIgpN5RA8prR7fF8nkF6cTWTcNerRO8=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
