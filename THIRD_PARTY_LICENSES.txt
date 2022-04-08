@@ -958,6 +958,7 @@ Copyright 2014 The Prometheus Authors
 Copyright 2021 The Prometheus Authors
 Copyright 2016 The Prometheus Authors
 Copyright 2020 The Prometheus Authors
+Copyright 2022 The Prometheus Authors
 Copyright (c) 2013, The Prometheus Authors
 -------- Notices
 Prometheus instrumentation library for Go applications
@@ -1026,6 +1027,7 @@ Copyright 2018 The Prometheus Authors
 Copyright 2014-2015 The Prometheus Authors
 Copyright 2019 The Prometheus Authors
 Copyright 2017 The Prometheus Authors
+Copyright 2021 The Prometheus Authors
 Copyright 2020 The Prometheus Authors
 Copyright 2014 Prometheus Team
 Copyright 2017 Prometheus Team
@@ -2813,4 +2815,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: 2cb750828d02eddc6de72180bffd3fd6
+License file based on go.mod with md5 sum: b34b2b1fc728b1993d3f9b92aa0fa278
