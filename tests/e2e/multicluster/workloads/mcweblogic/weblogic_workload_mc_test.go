@@ -160,7 +160,7 @@ var _ = t.Describe("In Multi-cluster, verify WebLogic application", Label("f:mul
 			Consistently(func() bool {
 				result, err := multicluster.VerifyAppResourcesInCluster(adminKubeconfig, true, false, projectName, appNamespace, appPod)
 				if err != nil {
-					AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", appNamespace, err))
+					AbortSuite(fmt.Sprintf("Verification of application resources failed for admin cluster, error: %v", err))
 				}
 				return result
 			}, consistentlyDuration, pollingInterval).Should(BeTrue())
@@ -183,7 +183,7 @@ var _ = t.Describe("In Multi-cluster, verify WebLogic application", Label("f:mul
 			Eventually(func() bool {
 				result, err := multicluster.VerifyAppResourcesInCluster(managedKubeconfig, false, true, projectName, appNamespace, appPod)
 				if err != nil {
-					AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", appNamespace, err))
+					AbortSuite(fmt.Sprintf("Verification of application resources failed for managed cluster, error: %v", err))
 				}
 				return result
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
@@ -214,7 +214,7 @@ var _ = t.Describe("In Multi-cluster, verify WebLogic application", Label("f:mul
 				Eventually(func() bool {
 					result, err := multicluster.VerifyAppResourcesInCluster(kubeconfig, false, false, projectName, appNamespace, appPod)
 					if err != nil {
-						AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", appNamespace, err))
+						AbortSuite(fmt.Sprintf("Verification of application resources failed for the cluster with kubeconfig: %v, error: %v", kubeconfig, err))
 					}
 					return result
 				}, waitTimeout, pollingInterval).Should(BeTrue())

@@ -30,10 +30,12 @@ const (
 	longPollingInterval  = 20 * time.Second
 
 	// application specific constants
-	appNamespace     = "mc-hello-coherence"
-	appConfigName    = "hello-appconf"
-	projectName      = "hello-coherence"
-	componentName    = "hello-coherence"
+	helloCoherence = "hello-coherence"
+	appNamespace   = "mc-hello-coherence"
+	appConfigName  = "hello-appconf"
+	projectName    = helloCoherence
+	componentName  = helloCoherence
+
 	cohClusterName   = "HelloCoherence"
 	podName          = "hello-coh-0"
 	containerName    = "coherence"
@@ -67,7 +69,7 @@ const (
 
 var (
 	indexName         = "verrazzano-namespace-" + appNamespace
-	appComp           = []string{"hello-coherence"}
+	appComp           = []string{helloCoherence}
 	appPod            = []string{"hello-coh-"}
 	clusterName       = os.Getenv("MANAGED_CLUSTER_NAME")
 	adminKubeconfig   = os.Getenv("ADMIN_KUBECONFIG")
@@ -135,7 +137,7 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 			Consistently(func() bool {
 				result, err := multicluster.VerifyAppResourcesInCluster(adminKubeconfig, true, false, projectName, appNamespace, appPod)
 				if err != nil {
-					AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", appNamespace, err))
+					AbortSuite(fmt.Sprintf("Verification of application resources failed for admin cluster, error: %v", err))
 				}
 				return result
 			}, consistentlyDuration, pollingInterval).Should(BeTrue())
@@ -158,7 +160,7 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 			Eventually(func() bool {
 				result, err := multicluster.VerifyAppResourcesInCluster(managedKubeconfig, false, true, projectName, appNamespace, appPod)
 				if err != nil {
-					AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", appNamespace, err))
+					AbortSuite(fmt.Sprintf("Verification of application resources failed for managed cluster, error: %v", err))
 				}
 				return result
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
@@ -189,7 +191,7 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 				Eventually(func() bool {
 					result, err := multicluster.VerifyAppResourcesInCluster(kubeconfig, false, false, projectName, appNamespace, appPod)
 					if err != nil {
-						AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", appNamespace, err))
+						AbortSuite(fmt.Sprintf("Verification of application resources failed for the cluster with kubeconfig: %v, error: %v", kubeconfig, err))
 					}
 					return result
 				}, waitTimeout, pollingInterval).Should(BeTrue())
