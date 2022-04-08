@@ -87,7 +87,7 @@ func Test_nginxComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name:    "no change",
