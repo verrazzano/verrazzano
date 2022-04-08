@@ -40,8 +40,6 @@ func WhenPrometheusAdapterInstalledIt(description string, f interface{}) {
 	}
 }
 
-var _ = t.AfterEach(func() {})
-
 var _ = t.Describe("Prometheus Adapter", Label("f:platform-lcm.install"), func() {
 	t.Context("after successful installation", func() {
 		// GIVEN the Prometheus Adapter is installed
