@@ -4,15 +4,16 @@
 package istio
 
 import (
+	"testing"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
-const argShape = `gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"`
+const ComponentInstallArgShape = `gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"`
 
 var enabled = true
 
@@ -21,7 +22,7 @@ var enabled = true
 var cr1 = vzapi.IstioComponent{
 	IstioInstallArgs: []vzapi.InstallArgs{
 		{
-			Name:  argShape,
+			Name:  ComponentInstallArgShape,
 			Value: "10Mbps",
 		},
 		{
@@ -168,7 +169,7 @@ spec:
 var cr2 = vzapi.IstioComponent{
 	IstioInstallArgs: []vzapi.InstallArgs{
 		{
-			Name:  argShape,
+			Name:  ComponentInstallArgShape,
 			Value: "10Mbps",
 		},
 		{

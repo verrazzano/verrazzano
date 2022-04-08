@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 apiVersion: core.oam.dev/v1alpha2
@@ -12,40 +12,33 @@ spec:
     spec:
       template:
         metadata:
-          name: hello-coherence
+          name: hello-coh
         spec:
           labels:
             app: hello-coh
             version: v1
-          cluster: hello-coherence-cluster
+          cluster: HelloCoherence
+          role: HelloCoherenceRole
           replicas: 1
-          image: ghcr.io/verrazzano/coherence-app:1.0.0-1-20220319111617-b157b52a
+          image: ghcr.io/oracle/coherence-helidon-sockshop-catalog:1.0.0
           imagePullPolicy: IfNotPresent
           application:
-            type: spring
-            springBootFatJar: /coherence-spring-boot.jar
-            main: io.verrazzano.coherence.hello.HelloApplication
-            args:
-              - "--port=8080"
-              - "--coherence.server.startup-timeout=5m"
+            type: helidon
           jvm:
             memory:
-              heapSize: 1g
-            args:
-              - "-Dcoherence.k8s.operator.health.wait.dcs=false"
+              heapSize: 2g
           coherence:
             logLevel: 9
             metrics:
               enabled: true
           ports:
-            - name: http
-              port: 8080
-              service:
-                name: hello
-                port: 8080
-              serviceMonitor:
-                enabled: true
             - name: metrics
               port: 9612
+              serviceMonitor:
+                enabled: true
+            - name: http
+              port: 7001
+              service:
+                port: 7001
               serviceMonitor:
                 enabled: true
