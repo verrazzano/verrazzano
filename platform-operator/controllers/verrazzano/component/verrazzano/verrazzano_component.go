@@ -10,6 +10,7 @@ import (
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -40,6 +41,9 @@ const (
 	verrazzanoBackupScrtName   = "verrazzano-backup"
 	objectstoreAccessKey       = "object_store_access_key"
 	objectstoreAccessSecretKey = "object_store_secret_key"
+
+	// Grafana admin secret data
+	grafanaScrtName = "grafana-admin"
 )
 
 // ComponentJSONName is the josn name of the verrazzano component in CRD
@@ -61,7 +65,7 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:     appendVerrazzanoOverrides,
 			ImagePullSecretKeyname:  vzImagePullSecretKeyName,
 			SupportsOperatorInstall: true,
-			Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
+			Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName, authproxy.ComponentName},
 		},
 	}
 }
@@ -155,15 +159,20 @@ func (c verrazzanoComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 	if err := c.checkEnabled(old, new); err != nil {
 		return err
 	}
-	if !reflect.DeepEqual(getVzInstallArgs(old), getVzInstallArgs(new)) {
-		return fmt.Errorf("Update to installArgs not allowed for %s", ComponentJSONName)
-	}
+	// Reject any other edits except InstallArgs
 	// Do not allow any updates to storage settings via the volumeClaimSpecTemplates/defaultVolumeSource
 	if err := compareStorageOverrides(old, new); err != nil {
 		return err
 	}
-	// Do not allow Fluentd changes for now
-	if err := compareFluentd(old, new); err != nil {
+	if err := validateFluentd(new); err != nil {
+		return err
+	}
+	return nil
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (c verrazzanoComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	if err := validateFluentd(vz); err != nil {
 		return err
 	}
 	return nil
@@ -185,24 +194,25 @@ func compareStorageOverrides(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error
 	return nil
 }
 
-func compareFluentd(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	// Do not allow fluentd to be disabled
-	if vzconfig.IsFluentdEnabled(old) && !vzconfig.IsFluentdEnabled(new) {
-		return fmt.Errorf("Disabling component fluentd is not allowed")
-	}
-	// Do not allow any other changes to fluentd for now
-	oldFD := old.Spec.Components.Fluentd
-	newFD := new.Spec.Components.Fluentd
-	compName := "fluentd"
-	if !reflect.DeepEqual(getFluentdOCI(oldFD), getFluentdOCI(newFD)) {
-		return fmt.Errorf("Updates to OCI configuration not allowed for %s", compName)
-	}
-	if getFluentdEsURL(oldFD) != getFluentdEsURL(newFD) ||
-		getFluentdEsSecret(oldFD) != getFluentdEsSecret(newFD) {
-		return fmt.Errorf("Updates to Elasticsearch/Opensearch configuration not allowed for %s", compName)
-	}
-	if !reflect.DeepEqual(getFluentdExtraVolumeMounts(oldFD), getFluentdExtraVolumeMounts(newFD)) {
-		return fmt.Errorf("Updates to extraVolumeMounts not allowed for %s", compName)
+// existing Fluentd mount paths can be found at platform-operator/helm_config/charts/verrazzano/templates/verrazzano-logging.yaml
+var existingFluentdMountPaths = [7]string{
+	"/fluentd/cacerts", "/fluentd/secret", "/fluentd/etc",
+	"/root/.oci", "/var/log", "/var/lib", "/run/log/journal"}
+
+func validateFluentd(vz *vzapi.Verrazzano) error {
+	fluentd := vz.Spec.Components.Fluentd
+	if fluentd != nil && len(fluentd.ExtraVolumeMounts) > 0 {
+		for _, vm := range fluentd.ExtraVolumeMounts {
+			mountPath := vm.Source
+			if vm.Destination != "" {
+				mountPath = vm.Destination
+			}
+			for _, existing := range existingFluentdMountPaths {
+				if mountPath == existing {
+					return fmt.Errorf("duplicate mount path found: %s; Fluentd by default has mount paths: %v", mountPath, existingFluentdMountPaths)
+				}
+			}
+		}
 	}
 	return nil
 }
@@ -226,41 +236,6 @@ func (c verrazzanoComponent) checkEnabled(old *vzapi.Verrazzano, new *vzapi.Verr
 	}
 	if vzconfig.IsKibanaEnabled(old) && !vzconfig.IsKibanaEnabled(new) {
 		return fmt.Errorf("Disabling component kibana not allowed")
-	}
-	return nil
-}
-
-func getFluentdExtraVolumeMounts(fluentd *vzapi.FluentdComponent) []vzapi.VolumeMount {
-	if fluentd != nil {
-		return fluentd.ExtraVolumeMounts
-	}
-	return nil
-}
-
-func getFluentdOCI(fluentd *vzapi.FluentdComponent) *vzapi.OciLoggingConfiguration {
-	if fluentd != nil {
-		return fluentd.OCI
-	}
-	return nil
-}
-
-func getFluentdEsURL(fluentd *vzapi.FluentdComponent) string {
-	if fluentd != nil {
-		return fluentd.ElasticsearchURL
-	}
-	return ""
-}
-
-func getFluentdEsSecret(fluentd *vzapi.FluentdComponent) string {
-	if fluentd != nil {
-		return fluentd.ElasticsearchSecret
-	}
-	return ""
-}
-
-func getVzInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
-	if vz != nil && vz.Spec.Components.Verrazzano != nil {
-		return vz.Spec.Components.Verrazzano.InstallArgs
 	}
 	return nil
 }

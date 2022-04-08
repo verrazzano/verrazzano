@@ -5,7 +5,9 @@ package verrazzano
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"io/ioutil"
 	"os/exec"
 	"strconv"
@@ -34,6 +36,7 @@ import (
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/yaml"
 )
 
 // ComponentName is the name of the component
@@ -212,7 +215,13 @@ func verrazzanoPreUpgrade(ctx spi.ComponentContext, namespace string) error {
 	if err := importToHelmChart(ctx.Client()); err != nil {
 		return err
 	}
+	if err := exportFromHelmChart(ctx.Client()); err != nil {
+		return err
+	}
 	if err := ensureVMISecret(ctx.Client()); err != nil {
+		return err
+	}
+	if err := ensureGrafanaAdminSecret(ctx.Client()); err != nil {
 		return err
 	}
 	return fixupFluentdDaemonset(ctx.Log(), ctx.Client(), namespace)
@@ -510,16 +519,20 @@ func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) 
 		return ctx.Log().ErrorfNewErr("Failed in Elasticsearch post upgrade: error getting the Elasticsearch cluster health: %v", err)
 	}
 	ctx.Log().Debugf("Elasticsearch Post Upgrade: Output of the health of the Elasticsearch cluster %s", string(output))
-	// If the data node count is seen as 1 then the node is considered as single node cluster
-	if strings.Contains(string(output), `"number_of_data_nodes":1,`) {
-		// Login to Elasticsearch and update index settings for single data node elasticsearch cluster
-		putCmd := execCommand("kubectl", "exec", pod.Name, "-n", namespace, "-c", containerName, "--", "sh", "-c",
-			fmt.Sprintf(`curl -v -XPUT -d '{"index":{"auto_expand_replicas":"0-1"}}' --header 'Content-Type: application/json' -s -k --fail http://localhost:%d/%s/_settings`, httpPort, indexPattern))
-		_, err = putCmd.Output()
-		if err != nil {
-			return ctx.Log().ErrorfNewErr("Failed in Elasticsearch post-upgrade: Error logging into Elasticsearch: %v", err)
+	if ctx.EffectiveCR().Spec.DefaultVolumeSource != nil && ctx.EffectiveCR().Spec.DefaultVolumeSource.EmptyDir != nil {
+		ctx.Log().Infof("Skipping Elasticsearch health check due to lack of configured persistence")
+	} else {
+		// If the data node count is seen as 1 then the node is considered as single node cluster
+		if strings.Contains(string(output), `"number_of_data_nodes":1,`) {
+			// Login to Elasticsearch and update index settings for single data node elasticsearch cluster
+			putCmd := execCommand("kubectl", "exec", pod.Name, "-n", namespace, "-c", containerName, "--", "sh", "-c",
+				fmt.Sprintf(`curl -v -XPUT -d '{"index":{"auto_expand_replicas":"0-1"}}' --header 'Content-Type: application/json' -s -k --fail http://localhost:%d/%s/_settings`, httpPort, indexPattern))
+			_, err = putCmd.Output()
+			if err != nil {
+				return ctx.Log().ErrorfNewErr("Failed in Elasticsearch post-upgrade: Error logging into Elasticsearch: %v", err)
+			}
+			ctx.Log().Debug("Elasticsearch Post Upgrade: Successfully updated Elasticsearch index settings")
 		}
-		ctx.Log().Debug("Elasticsearch Post Upgrade: Successfully updated Elasticsearch index settings")
 	}
 	ctx.Log().Debug("Elasticsearch Post Upgrade: Completed successfully")
 	return nil
@@ -585,21 +598,69 @@ func importToHelmChart(cli clipkg.Client) error {
 	}
 
 	for _, obj := range objects {
-		if _, err := importHelmObject(cli, obj, namespacedName); err != nil {
+		if _, err := associateHelmObjectToThisRelease(cli, obj, namespacedName); err != nil {
 			return err
 		}
 	}
 
 	for _, obj := range noNamespaceObjects {
-		if _, err := importHelmObject(cli, obj, name); err != nil {
+		if _, err := associateHelmObjectToThisRelease(cli, obj, name); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-//importHelmObject annotates an object as being managed by the verrazzano helm chart
-func importHelmObject(cli clipkg.Client, obj controllerutil.Object, namespacedName types.NamespacedName) (controllerutil.Object, error) {
+//exportFromHelmChart annotates any existing objects that should be managed by another helm component, e.g.
+// the resources associated with the authproxy which historically were associated with the Verrazzano chart.
+func exportFromHelmChart(cli clipkg.Client) error {
+	// The authproxy resources can not be managed by the authproxy component since the upgrade path may be from a
+	// version that does not define the authproxy as a top level component and therefore PreUpgrade is not invoked
+	// on the authproxy component (in that case the authproxy upgrade is skipped)
+	authproxyReleaseName := types.NamespacedName{Name: authproxy.ComponentName, Namespace: authproxy.ComponentNamespace}
+	namespacedName := authproxyReleaseName
+	name := types.NamespacedName{Name: authproxy.ComponentName}
+	objects := []controllerutil.Object{
+		&corev1.ServiceAccount{},
+		&corev1.Service{},
+		&appsv1.Deployment{},
+	}
+
+	noNamespaceObjects := []controllerutil.Object{
+		&rbacv1.ClusterRole{},
+		&rbacv1.ClusterRoleBinding{},
+	}
+
+	// namespaced resources
+	for _, obj := range objects {
+		if _, err := associateHelmObject(cli, obj, authproxyReleaseName, namespacedName, true); err != nil {
+			return err
+		}
+	}
+
+	authproxyManagedResources := authproxy.GetHelmManagedResources()
+	for _, managedResource := range authproxyManagedResources {
+		if _, err := associateHelmObject(cli, managedResource.Obj, authproxyReleaseName, managedResource.NamespacedName, true); err != nil {
+			return err
+		}
+	}
+
+	// cluster resources
+	for _, obj := range noNamespaceObjects {
+		if _, err := associateHelmObject(cli, obj, authproxyReleaseName, name, true); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+//associateHelmObjectToThisRelease annotates an object as being managed by the verrazzano helm chart
+func associateHelmObjectToThisRelease(cli clipkg.Client, obj controllerutil.Object, namespacedName types.NamespacedName) (controllerutil.Object, error) {
+	return associateHelmObject(cli, obj, types.NamespacedName{Name: ComponentName, Namespace: globalconst.VerrazzanoSystemNamespace}, namespacedName, false)
+}
+
+//associateHelmObject annotates an object as being managed by the specified release helm chart
+func associateHelmObject(cli clipkg.Client, obj controllerutil.Object, releaseName types.NamespacedName, namespacedName types.NamespacedName, keepResource bool) (controllerutil.Object, error) {
 	if err := cli.Get(context.TODO(), namespacedName, obj); err != nil {
 		if errors.IsNotFound(err) {
 			return obj, nil
@@ -611,8 +672,11 @@ func importHelmObject(cli clipkg.Client, obj controllerutil.Object, namespacedNa
 	if annotations == nil {
 		annotations = map[string]string{}
 	}
-	annotations["meta.helm.sh/release-name"] = ComponentName
-	annotations["meta.helm.sh/release-namespace"] = globalconst.VerrazzanoSystemNamespace
+	annotations["meta.helm.sh/release-name"] = releaseName.Name
+	annotations["meta.helm.sh/release-namespace"] = releaseName.Namespace
+	if keepResource {
+		annotations["helm.sh/resource-policy"] = "keep"
+	}
 	obj.SetAnnotations(annotations)
 	labels := obj.GetLabels()
 	if labels == nil {
@@ -630,4 +694,14 @@ func getProfile(vz *vzapi.Verrazzano) vzapi.ProfileType {
 		profile = vzapi.Prod
 	}
 	return profile
+}
+
+// HashSum returns the hash sum of the config object
+func HashSum(config interface{}) string {
+	sha := sha256.New()
+	if data, err := yaml.Marshal(config); err == nil {
+		sha.Write(data)
+		return fmt.Sprintf("%x", sha.Sum(nil))
+	}
+	return ""
 }

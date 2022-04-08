@@ -1,28 +1,8 @@
-## Coherence Application
+## Verrazzano Coherence Workload
 
-Sample Coherence application, for testing the VerrazzanoCoherenceWorkload.
+This directory contains sample Open Application Model (OAM) resources for testing the VerrazzanoCoherenceWorkload.
 
-## Requires
-
-[Maven](https://maven.apache.org/download.cgi)
-
-## Steps to build the application
-Use maven to build the Spring Boot uber jar.
-
-    $ cd <application root directory>
-    $ mvn clean install
-
-## Create a Docker image
-The Dockerfile provided in this example uses an Oracle Linux image as the base image, which doesn't include the Java Development Kit (JDK).
-The Dockerfile expects `openjdk-<version>_linux-x64_bin.tar.gz` in the project root directory, which is available on the [OpenJDK General-Availability Releases](https://jdk.java.net/archive/) page.
-Please check the exact version of the JDK from the Dockerfile and install accordingly.
-
-    $ cd <project root directory>
-    $ mvn clean package
-    $ docker build -t <container registry>/<image>:<version> .
-    $ docker image push <image registry>/<image>:<version>
-
-## Deploy the sample application to Verrazzano
+## Deploy the Product Catalog Service from Coherence Helidon Sockshop sample to Verrazzano
 
 Create a namespace for the sample application and add a label identifying the namespace as managed by Verrazzano. To run this application in the default namespace, skip creating the namespace and do not specify the namespace in all the kubectl commands below.
 
@@ -52,12 +32,13 @@ Get the EXTERNAL_IP address of the istio-ingressgateway service.
            -n hello-coherence \
            -o jsonpath='{.items[0].spec.servers[0].hosts[0]}')
 
-Access the application
+As a basic validation, perform an HTTP GET against /catalogue/size endpoint
 
-    $ curl -sk https://${HOST}/hello/coherence --resolve ${HOST}:443:${ADDRESS}
+    $ curl -sk https://${HOST}/catalogue/size --resolve ${HOST}:443:${ADDRESS}
+
+which should return JSON response: {"size":9}
 
 If you are using nip.io, then you do not need to include --resolve.
-
 
 Undeploy the application
 To undeploy the application, delete the OAM resources for the sample

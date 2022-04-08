@@ -244,7 +244,7 @@ func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzano
 
 	fluentd := effectiveCR.Spec.Components.Fluentd
 	if fluentd != nil {
-		overrides.Logging = &loggingValues{}
+		overrides.Logging = &loggingValues{ConfigHash: HashSum(fluentd)}
 		if len(fluentd.ElasticsearchURL) > 0 {
 			overrides.Logging.ElasticsearchURL = fluentd.ElasticsearchURL
 		}

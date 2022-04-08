@@ -4,8 +4,12 @@
 package jobmetrics
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"os"
+	"strconv"
+
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+
+	. "github.com/onsi/ginkgo/v2"
 )
 
 var t = framework.NewTestFramework("jobmetrics")
@@ -15,8 +19,18 @@ var _ = t.AfterEach(func() {})
 // Send job metrics data using Jenkins environment variables
 var _ = t.Describe("Emit job metrics", func() {
 	t.It("at the end of each job", func() {
-		t.Metrics = t.Metrics.With("job_duration_seconds", os.Getenv("DURATION")).
+		jobDuration, err := strconv.Atoi(os.Getenv("DURATION"))
+		if err != nil {
+			t.Logs.Errorf("Error parsing job duration from environment variable: %v", err)
+			Fail(err.Error())
+		}
+		timeWaiting, err := strconv.Atoi(os.Getenv("TIME_WAITING"))
+		if err != nil {
+			t.Logs.Errorf("Error parsing time waiting from environment variable: %v", err)
+			Fail(err.Error())
+		}
+		t.Metrics = t.Metrics.With("job_duration_millis", jobDuration).
 			With("job_status", os.Getenv("JOB_STATUS")).
-			With("job_time_waiting_seconds", os.Getenv("TIME_WAITING"))
+			With("job_time_waiting_millis", timeWaiting)
 	})
 })
