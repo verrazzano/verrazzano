@@ -523,7 +523,12 @@ pipeline {
                     parallel {
                         stage ('Examples Helidon') {
                             steps {
-                                runGinkgo("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/examples-helidon")
+                                testHelidonExample("multicluster/examples/helidon")
+                            }
+                        }
+                        stage ('Examples Helidon Deprecated') {
+                            steps {
+                                testHelidonExample("multicluster/examples/helidon-deprecated")
                             }
                         }
                         stage ('Delete Deployed App NS') {
@@ -533,18 +538,14 @@ pipeline {
                                 }
                             }
                         }
-                    }
-                }
-                stage ('Workloads') {
-                    parallel {
-                        stage ('WebLogic workload') {
+                        stage ('Examples Sock Shop') {
                             steps {
-                                runGinkgo("multicluster/workloads/mcweblogic", "${TEST_DUMP_ROOT}/weblogic-workload")
+                                testSockExample("multicluster/examples/sock-shop")
                             }
                         }
-                        stage ('Coherence workload') {
+                        stage('Examples Todo List') {
                             steps {
-                                runGinkgo("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload")
+                                testTodoExample("multicluster/examples/todo-list")
                             }
                         }
                     }
@@ -1041,8 +1042,8 @@ def verifyManagedClusterPermissions() {
     }
 }
 
-// Run ginkgo test suites
-def runGinkgo(testSuitePath, clusterDumpDirectory) {
+// Test the multicluster Helidon example
+def testHelidonExample(testSuitePath) {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         sh """
@@ -1051,8 +1052,40 @@ def runGinkgo(testSuitePath, clusterDumpDirectory) {
             export CLUSTER_COUNT=$clusterCount
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-            export DUMP_DIRECTORY="${clusterDumpDirectory}"
+            export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
             ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+        """
+    }
+}
+
+// Test the multicluster sock-shop example
+def testSockExample(testSuitePath) {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        sh """
+            export MANAGED_CLUSTER_NAME="managed1"
+            export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+            export CLUSTER_COUNT=$clusterCount
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+            export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-sock"
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+        """
+    }
+}
+
+// Test the multicluster todo-list example
+def testTodoExample(testSuitePath) {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        sh """
+            export MANAGED_CLUSTER_NAME="managed1"
+            export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+            export CLUSTER_COUNT=$clusterCount
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+            export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
+            ginkgo -v -keepGoing --noColor ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
         """
     }
 }
