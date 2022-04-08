@@ -28,6 +28,11 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
+const (
+	testDNSDomain  = "example.dns.io"
+	testOCIDNSName = "ociDNS"
+)
+
 func Test_certManagerComponent_ValidateUpdate(t *testing.T) {
 	disabled := false
 	const emailAddress = "joeblow@foo.com"
@@ -426,13 +431,13 @@ func TestPostInstallAcme(t *testing.T) {
 	// set OCI DNS secret value and create secret
 	localvz.Spec.Components.DNS = &vzapi.DNSComponent{
 		OCI: &vzapi.OCI{
-			OCIConfigSecret: "ociDNSSecret",
-			DNSZoneName:     "example.dns.io",
+			OCIConfigSecret: testOCIDNSName,
+			DNSZoneName:     testDNSDomain,
 		},
 	}
 	client.Create(context.TODO(), &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "ociDNSSecret",
+			Name:      testOCIDNSName,
 			Namespace: ComponentNamespace,
 		},
 	})
@@ -461,8 +466,8 @@ func runAcmeUpdateTest(t *testing.T, upgrade bool) {
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
 	// set OCI DNS secret value and create secret
 	oci := &vzapi.OCI{
-		OCIConfigSecret: "ociDNSSecret",
-		DNSZoneName:     "example.dns.io",
+		OCIConfigSecret: testOCIDNSName,
+		DNSZoneName:     testDNSDomain,
 	}
 	localvz.Spec.Components.DNS = &vzapi.DNSComponent{
 		OCI: oci,
@@ -470,7 +475,7 @@ func runAcmeUpdateTest(t *testing.T, upgrade bool) {
 
 	oldSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "ociDNSSecret",
+			Name:      testOCIDNSName,
 			Namespace: ComponentNamespace,
 		},
 	}
@@ -515,7 +520,7 @@ func runAcmeUpdateTest(t *testing.T, upgrade bool) {
 
 	var err error
 	if upgrade {
-		err = fakeComponent.PostInstall(ctx)
+		err = fakeComponent.PostUpgrade(ctx)
 	} else {
 		err = fakeComponent.PostInstall(ctx)
 	}
@@ -537,8 +542,8 @@ func TestClusterIssuerUpdated(t *testing.T) {
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
 	// set OCI DNS secret value and create secret
 	oci := &vzapi.OCI{
-		OCIConfigSecret: "ociDNSSecret",
-		DNSZoneName:     "example.dns.io",
+		OCIConfigSecret: testOCIDNSName,
+		DNSZoneName:     testDNSDomain,
 	}
 	localvz.Spec.Components.DNS = &vzapi.DNSComponent{
 		OCI: oci,
@@ -620,7 +625,7 @@ func TestClusterIssuerUpdated(t *testing.T) {
 	// The OCI DNS secret is expected to be present for this configuration
 	ociSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "ociDNSSecret",
+			Name:      testOCIDNSName,
 			Namespace: ComponentNamespace,
 		},
 	}
