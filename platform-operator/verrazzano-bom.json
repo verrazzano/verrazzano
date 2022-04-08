@@ -357,7 +357,7 @@
           "images": [
             {
               "image": "kiali",
-              "tag": "v1.34.1-1",
+              "tag": "v1.42.0",
               "helmFullImageKey": "deployment.image_name",
               "helmTagKey": "deployment.image_version"
             }
