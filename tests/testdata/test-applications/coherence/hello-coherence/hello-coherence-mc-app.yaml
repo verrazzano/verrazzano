@@ -1,0 +1,38 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: clusters.verrazzano.io/v1alpha1
+kind: MultiClusterApplicationConfiguration
+metadata:
+  name: hello-appconf
+spec:
+  template:
+    metadata:
+      annotations:
+        version: v1.0.0
+        description: "Coherence application"
+    spec:
+      components:
+        - componentName: hello-coherence
+          traits:
+            - trait:
+                apiVersion: oam.verrazzano.io/v1alpha1
+                kind: MetricsTrait
+                spec:
+                  ports:
+                    - port: 8080
+                      path: "/actuator/prometheus"
+                    - port: 9612
+                  scraper: verrazzano-system/vmi-system-prometheus-0
+            - trait:
+                apiVersion: oam.verrazzano.io/v1alpha1
+                kind: IngressTrait
+                spec:
+                  rules:
+                    - paths:
+                        - path: "/"
+                          pathType: Prefix
+  placement:
+    clusters:
+      - name: managed1
+

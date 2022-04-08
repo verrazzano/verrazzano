@@ -1,0 +1,16 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: clusters.verrazzano.io/v1alpha1
+kind: VerrazzanoProject
+metadata:
+  name: hello-wls
+  namespace: verrazzano-mc
+spec:
+  template:
+    namespaces:
+      - metadata:
+          name: mc-hello-wls
+  placement:
+    clusters:
+      - name: managed1
