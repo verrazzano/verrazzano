@@ -1,14 +1,14 @@
-{{- if .Values.cainjector.enabled }}
+{{- if .Values.startupapicheck.enabled }}
 {{- if .Values.global.podSecurityPolicy.enabled }}
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
-  name: {{ template "cainjector.fullname" . }}
+  name: {{ template "startupapicheck.fullname" . }}
   labels:
-    app: {{ include "cainjector.name" . }}
-    app.kubernetes.io/name: {{ include "cainjector.name" . }}
+    app: {{ include "startupapicheck.name" . }}
+    app.kubernetes.io/name: {{ include "startupapicheck.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/component: "cainjector"
+    app.kubernetes.io/component: "startupapicheck"
     {{- include "labels" . | nindent 4 }}
   annotations:
     seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'docker/default'
@@ -17,16 +17,16 @@ metadata:
     apparmor.security.beta.kubernetes.io/allowedProfileNames: 'runtime/default'
     apparmor.security.beta.kubernetes.io/defaultProfileName:  'runtime/default'
     {{- end }}
+    {{- with .Values.startupapicheck.rbac.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   privileged: false
   allowPrivilegeEscalation: false
   allowedCapabilities: []  # default set of capabilities are implicitly allowed
   volumes:
-  - 'configMap'
-  - 'emptyDir'
   - 'projected'
   - 'secret'
-  - 'downwardAPI'
   hostNetwork: false
   hostIPC: false
   hostPID: false
