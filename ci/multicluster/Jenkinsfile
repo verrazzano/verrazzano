@@ -540,7 +540,7 @@ pipeline {
                         }
                         stage ('Examples Sock Shop') {
                             steps {
-                                runGinkgo("multicluster/examples/sock-shop", ${TEST_DUMP_ROOT}/examples-sock)
+                                runGinkgo("multicluster/examples/sock-shop", "${TEST_DUMP_ROOT}/examples-sock")
                             }
                         }
                         stage('Examples Todo List') {
