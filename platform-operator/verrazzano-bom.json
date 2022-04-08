@@ -437,6 +437,23 @@
           ]
         }
       ]
+    },
+    {
+      "name": "prometheus-adapter",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "prometheus-adapter",
+          "images": [
+            {
+              "image": "prometheus-adapter",
+              "tag": "v0.9.1-2",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
