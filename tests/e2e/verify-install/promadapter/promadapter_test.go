@@ -44,12 +44,18 @@ var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("Prometheus Adapter", Label("f:platform-lcm.install"), func() {
 	t.Context("after successful installation", func() {
+		// GIVEN the Prometheus Adapter is installed
+		// WHEN we check to make sure the namespace exists
+		// THEN we successfully find the namespace
 		WhenPrometheusAdapterInstalledIt("should have a verrazzano-monitoring namespace", func() {
 			Eventually(func() (bool, error) {
 				return pkg.DoesNamespaceExist(verrazzanoMonitoringNamespace)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
+		// GIVEN the Prometheus Adapter is installed
+		// WHEN we check to make sure the pods are running
+		// THEN we successfully find the running pods
 		WhenPrometheusAdapterInstalledIt("should have a running pod", func() {
 			prometheusAdapterPodsRunning := func() bool {
 				result, err := pkg.PodsRunning(verrazzanoMonitoringNamespace, []string{prometheusAdapterPod})
