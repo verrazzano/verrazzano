@@ -18,3 +18,5 @@ NodeExporter:
   enabled: true
 prometheusOperator:
   enabled: true
+prometheusAdapter:
+  enabled: true

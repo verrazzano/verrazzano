@@ -140,6 +140,7 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *verrazzanoValue
 	overrides.NodeExporter = &nodeExporterValues{Enabled: vzconfig.IsVMOEnabled(effectiveCR)}
 	overrides.MonitoringOperator = &vmoValues{Enabled: vzconfig.IsVMOEnabled(effectiveCR)}
 	overrides.PrometheusOperator = &prometheusOperatorValues{Enabled: vzconfig.IsPrometheusOperatorEnabled(effectiveCR)}
+	overrides.PrometheusAdapter = &prometheusAdapterValues{Enabled: vzconfig.IsPrometheusAdapterEnabled(effectiveCR)}
 	return nil
 }
 
@@ -244,7 +245,7 @@ func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzano
 
 	fluentd := effectiveCR.Spec.Components.Fluentd
 	if fluentd != nil {
-		overrides.Logging = &loggingValues{}
+		overrides.Logging = &loggingValues{ConfigHash: HashSum(fluentd)}
 		if len(fluentd.ElasticsearchURL) > 0 {
 			overrides.Logging.ElasticsearchURL = fluentd.ElasticsearchURL
 		}

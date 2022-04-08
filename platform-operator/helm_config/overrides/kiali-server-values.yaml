@@ -1,4 +1,4 @@
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 # NOTE: The image you're looking for isn't here. The mysql and linux images now come from
@@ -15,7 +15,7 @@ auth:
 istio_namespace: istio-system
 
 deployment:
-  version_label: v1.34
+  version_label: v1.42
   # The platform operator will manage the Kiali ingress
   ingress_enabled: false
   view_only_mode: true
