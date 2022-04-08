@@ -152,7 +152,7 @@ func (c certManagerComponent) createOrUpdateClusterIssuer(compContext spi.Compon
 	}
 	if opResult == controllerutil.OperationResultUpdated {
 		// If the ClusterIssuer has been updated, request a renewal of all system certificates
-		compContext.Log().Infof("ClusterIssuer updated, renewing system certificates")
+		compContext.Log().Oncef("ClusterIssuer updated, renewing system certificates")
 		if err := renewAllSystemCertificates(compContext.Client(), compContext.Log()); err != nil {
 			compContext.Log().Errorf("Error requesting certificate renewal: %s", err.Error())
 			return err

@@ -170,7 +170,7 @@ func renewAllSystemCertificates(cli client.Client, log vzlog.VerrazzanoLogger) e
 	}
 	for index, currentCert := range certList.Items {
 		if currentCert.Spec.IssuerRef.Name != verrazzanoClusterIssuerName {
-			log.Infof("Certificate %s/%s not issued by the Verrazzano cluster issuer, skipping", currentCert.Namespace, currentCert.Name)
+			log.Debugw("Certificate %s/%s not issued by the Verrazzano cluster issuer, skipping", currentCert.Namespace, currentCert.Name)
 			continue
 		}
 		if err := renewCertificate(ctx, cmClient, log, &certList.Items[index]); err != nil {
@@ -183,7 +183,7 @@ func renewAllSystemCertificates(cli client.Client, log vzlog.VerrazzanoLogger) e
 func renewCertificate(ctx context.Context, cmclientv1 certv1client.CertmanagerV1Interface, log vzlog.VerrazzanoLogger, updateCert *certv1.Certificate) error {
 	// Update the certificate status to start a renewal; avoid using controllerruntime.CreateOrUpdate(), while
 	// it should only do an update we don't want to accidentally create a updateCert
-	log.Infof("Updating certificate %s/%s", updateCert.Namespace, updateCert.Name)
+	log.Oncef("Updating certificate %s/%s", updateCert.Namespace, updateCert.Name)
 
 	// If there are any failed certificate requests, they will block a renewal attempt; delete those
 	if err := cleanupFailedCertificateRequests(ctx, cmclientv1, log, updateCert); err != nil {
