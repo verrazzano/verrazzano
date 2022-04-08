@@ -161,6 +161,43 @@ func TestGetIngressExternalIP(t *testing.T) {
 	assert.Equal(t, expectedIP, ip)
 }
 
+// TestGetIngressExternalIP tests the GetIngressIP function
+// GIVEN a call to GetIngressIP
+//  WHEN the VZ config Ingress is a LB type the service spec has an ExternalIP and the LoadBalancerStatus has an IP
+//  THEN the ExternalIP and no error are returned
+func TestGetIngressExternalAndLoadBalancerIP(t *testing.T) {
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Ingress: &vzapi.IngressNginxComponent{
+					Type: vzapi.LoadBalancer,
+				},
+			},
+		},
+	}
+	const external = "11.22.33.44"
+	const lb = "11.22.33.55"
+	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: globalconst.IngressNamespace,
+			Name:      vpoconst.NGINXControllerServiceName,
+		},
+		Spec: corev1.ServiceSpec{
+			ExternalIPs: []string{external},
+		},
+		Status: corev1.ServiceStatus{
+			LoadBalancer: corev1.LoadBalancerStatus{
+				Ingress: []corev1.LoadBalancerIngress{
+					{IP: lb},
+				},
+			},
+		},
+	})
+	ip, err := GetIngressIP(fakeClient, vz)
+	assert.NoError(t, err)
+	assert.Equal(t, external, ip)
+}
+
 // TestGetIngressNodePortIP tests the GetIngressIP function
 // GIVEN a call to GetIngressIP
 //  WHEN the VZ config Ingress is a NodePort type
@@ -221,32 +258,82 @@ func TestGetIngressLoadBalancerNoAddressFound(t *testing.T) {
 //  WHEN the VZ config Ingress is a LB type with a valid IP found and no DNS is configured
 //  THEN the default wildcard domain for the LB service is returned
 func TestGetDNSSuffixDefaultWildCardLoadBalancer(t *testing.T) {
-	vz := &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Ingress: &vzapi.IngressNginxComponent{
-					Type: vzapi.LoadBalancer,
-				},
-			},
+	const external = "11.22.33.44"
+	const lb = "11.22.33.55"
+	tests := []struct {
+		name       string
+		lbIP       string
+		externalIP string
+		want       string
+		wantErr    bool
+	}{
+		{
+			name:       "external",
+			lbIP:       "",
+			externalIP: external,
+			want:       external + ".nip.io",
+		},
+		{
+			name:       "lb",
+			lbIP:       lb,
+			externalIP: "",
+			want:       lb + ".nip.io",
+		},
+		{
+			name:       "both external and lb",
+			lbIP:       lb,
+			externalIP: external,
+			want:       external + ".nip.io",
+		},
+		{
+			name:       "no ip",
+			lbIP:       "",
+			externalIP: "",
+			wantErr:    true,
 		},
 	}
-	const expectedIP = "11.22.33.44"
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: globalconst.IngressNamespace,
-			Name:      vpoconst.NGINXControllerServiceName,
-		},
-		Status: corev1.ServiceStatus{
-			LoadBalancer: corev1.LoadBalancerStatus{
-				Ingress: []corev1.LoadBalancerIngress{
-					{IP: expectedIP},
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vz := &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Ingress: &vzapi.IngressNginxComponent{
+							Type: vzapi.LoadBalancer,
+						},
+					},
 				},
-			},
-		},
-	})
-	dnsDomain, err := GetDNSSuffix(fakeClient, vz)
-	assert.NoError(t, err)
-	assert.Equal(t, fmt.Sprintf("%s.nip.io", expectedIP), dnsDomain)
+			}
+			svc := &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: globalconst.IngressNamespace,
+					Name:      vpoconst.NGINXControllerServiceName,
+				},
+			}
+			if tt.externalIP != "" {
+				svc.Spec = corev1.ServiceSpec{
+					ExternalIPs: []string{tt.externalIP},
+				}
+			}
+			if tt.lbIP != "" {
+				svc.Status = corev1.ServiceStatus{
+					LoadBalancer: corev1.LoadBalancerStatus{
+						Ingress: []corev1.LoadBalancerIngress{
+							{IP: tt.lbIP},
+						},
+					},
+				}
+			}
+			fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, svc)
+			got, err := GetDNSSuffix(fakeClient, vz)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetDNSSuffix() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("GetDNSSuffix() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
 
 // TestGetDNSSuffixWildCardLoadBalancer tests the GetDNSSuffix function
@@ -313,40 +400,47 @@ func TestGetDNSSuffixOCIDNS(t *testing.T) {
 //  WHEN the VZ config Ingress has External DNS configured
 //  THEN the correct External DNS domain is returned
 func TestGetDNSSuffixExternalDNS(t *testing.T) {
-	vz := &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				DNS: &vzapi.DNSComponent{
-					External: &vzapi.External{
-						Suffix: "mydomain.com",
-					},
-				},
-			},
+	tests := []struct {
+		name    string
+		suffix  string
+		want    string
+		wantErr bool
+	}{
+		{
+			name:    "correct suffix",
+			suffix:  "mydomain.com",
+			want:    "mydomain.com",
+			wantErr: false,
+		},
+		{
+			name:    "empty suffix",
+			suffix:  "",
+			wantErr: true,
 		},
 	}
-	dnsDomain, err := GetDNSSuffix(fake.NewFakeClientWithScheme(k8scheme.Scheme), vz)
-	assert.NoError(t, err)
-	assert.Equal(t, "mydomain.com", dnsDomain)
-}
-
-// TestGetDNSSuffixNoSuffix tests the GetDNSSuffix function
-// GIVEN a call to GetDNSSuffix
-//  WHEN the VZ config Ingress has External DNS configured with an empty domain
-//  THEN an error is returned
-func TestGetDNSSuffixNoSuffix(t *testing.T) {
-	vz := &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				DNS: &vzapi.DNSComponent{
-					External: &vzapi.External{
-						Suffix: "",
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vz := &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						DNS: &vzapi.DNSComponent{
+							External: &vzapi.External{
+								Suffix: tt.suffix,
+							},
+						},
 					},
 				},
-			},
-		},
+			}
+			got, err := GetDNSSuffix(fake.NewFakeClientWithScheme(k8scheme.Scheme), vz)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetDNSSuffix() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("GetDNSSuffix() got = %v, want %v", got, tt.want)
+			}
+		})
 	}
-	_, err := GetDNSSuffix(fake.NewFakeClientWithScheme(k8scheme.Scheme), vz)
-	assert.Error(t, err)
 }
 
 // TestGetEnvName tests the GetEnvName function

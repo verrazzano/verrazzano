@@ -5,6 +5,7 @@ package vzconfig
 import (
 	"context"
 	"fmt"
+
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -92,12 +93,12 @@ func GetIngressIP(client client.Client, vz *vzapi.Verrazzano) (string, error) {
 		if err := client.Get(context.TODO(), types.NamespacedName{Name: vpoconst.NGINXControllerServiceName, Namespace: globalconst.IngressNamespace}, &svc); err != nil {
 			return "", err
 		}
-		// Test for IP from status, if that is not present then assume an on premises installation and use the externalIPs hint
-		if len(svc.Status.LoadBalancer.Ingress) > 0 {
-			ingressIP = svc.Status.LoadBalancer.Ingress[0].IP
-		} else if len(svc.Spec.ExternalIPs) > 0 {
+		// If externalIPs exists, use it; else use IP from status
+		if len(svc.Spec.ExternalIPs) > 0 {
 			// In case of OLCNE, the Status.LoadBalancer.Ingress field will be empty, so use the external IP if present
 			ingressIP = svc.Spec.ExternalIPs[0]
+		} else if len(svc.Status.LoadBalancer.Ingress) > 0 {
+			ingressIP = svc.Status.LoadBalancer.Ingress[0].IP
 		} else {
 			return "", fmt.Errorf("No IP found for LoadBalancer service type")
 		}
