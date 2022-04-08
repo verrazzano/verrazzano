@@ -26,6 +26,8 @@ func (s *Syncer) syncClusterCAs() error {
 // Synchronize the admin cluster CA cert -- update local copy if admin CA changes
 func (s *Syncer) syncAdminClusterCA() error {
 
+	s.Log.Info("Syncing AdminClusterCA ...")
+
 	// Get the cluster CA secret from the admin cluster
 	adminCASecret := corev1.Secret{}
 	err := s.AdminClient.Get(s.Context, client.ObjectKey{
@@ -35,6 +37,7 @@ func (s *Syncer) syncAdminClusterCA() error {
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
+	s.Log.Info("Got admin cluster CA secret")
 
 	// Get the local cluster registration secret
 	registrationSecret := corev1.Secret{}
@@ -45,9 +48,11 @@ func (s *Syncer) syncAdminClusterCA() error {
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
+	s.Log.Info("Got local cluster registration secret")
 
 	// Update the local cluster registration secret if the admin CA certs are different
 	if !bytes.Equal(registrationSecret.Data["ca-bundle"], adminCASecret.Data["ca.crt"]) {
+		s.Log.Info("CAs are different -- updating")
 		newSecret := corev1.Secret{}
 		newSecret.Name = registrationSecret.Name
 		newSecret.Namespace = registrationSecret.Namespace
@@ -60,6 +65,9 @@ func (s *Syncer) syncAdminClusterCA() error {
 			s.Log.Errorw(fmt.Sprintf("Failed syncing admin CA certificate: %v", err),
 				"Secret", registrationSecret.Name)
 		}
+		s.Log.Info("Updated local cluster registration secret")
+	} else {
+		s.Log.Info("CAs are the same -- not updating")
 	}
 
 	return nil
@@ -67,6 +75,8 @@ func (s *Syncer) syncAdminClusterCA() error {
 
 // Synchronize the local cluster CA cert -- update admin copy if local CA changes
 func (s *Syncer) syncLocalClusterCA() error {
+
+	s.Log.Info("Syncing LocalClusterCA ...")
 
 	// Get the local cluster CA secret
 	localCASecret := corev1.Secret{}
@@ -77,6 +87,7 @@ func (s *Syncer) syncLocalClusterCA() error {
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
+	s.Log.Info("Got local cluster CA secret")
 
 	// Get the managed cluster CA secret from the admin cluster
 	vmcName := client.ObjectKey{Name: s.ManagedClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
@@ -85,6 +96,7 @@ func (s *Syncer) syncLocalClusterCA() error {
 	if err != nil {
 		return err
 	}
+	s.Log.Info("Got VMC from admin cluster")
 	adminVMCCASecret := corev1.Secret{}
 	err = s.AdminClient.Get(s.Context, client.ObjectKey{
 		Namespace: constants.VerrazzanoMultiClusterNamespace,
@@ -93,9 +105,11 @@ func (s *Syncer) syncLocalClusterCA() error {
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
+	s.Log.Info("Got VMC CA secret from admin cluster")
 
 	// Update the VMC cluster CA secret if the local CA is different
 	if !bytes.Equal(adminVMCCASecret.Data["cacrt"], localCASecret.Data["ca.crt"]) {
+		s.Log.Info("CAs are different -- updating")
 		newSecret := corev1.Secret{}
 		newSecret.Name = adminVMCCASecret.Name
 		newSecret.Namespace = adminVMCCASecret.Namespace
@@ -108,6 +122,9 @@ func (s *Syncer) syncLocalClusterCA() error {
 			s.Log.Errorw(fmt.Sprintf("Failed syncing local CA certificate: %v", err),
 				"Secret", adminVMCCASecret.Name)
 		}
+		s.Log.Info("Updated VMC cluster CA secret on admin cluster")
+	} else {
+		s.Log.Info("CAs are the same -- not updating")
 	}
 
 	return nil
