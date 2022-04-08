@@ -637,7 +637,7 @@ func TestClusterIssuerUpdated(t *testing.T) {
 	// Fake Go client for the CertManager clientset
 	cmClient := certv1fake.NewSimpleClientset(certificate, certificateRequest1, certificateRequest2, otherCertRequest)
 
-	defer func() { getCMClientFunc = k8sutil.GetCertManagerClientset }()
+	defer func() { getCMClientFunc = GetCertManagerClientset }()
 	getCMClientFunc = func(...string) (certv1client.CertmanagerV1Interface, error) {
 		return cmClient.CertmanagerV1(), nil
 	}
