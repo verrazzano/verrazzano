@@ -18,8 +18,14 @@ import (
 
 // Synchronize Secret objects to the local cluster
 func (s *Syncer) syncClusterCAs() error {
-	s.syncAdminClusterCA()
-	s.syncLocalClusterCA()
+	err := s.syncAdminClusterCA()
+	if err != nil {
+		s.Log.Errorf("Error syncing Admin Cluster CA: %v", err)
+	}
+	err = s.syncLocalClusterCA()
+	if err != nil {
+		s.Log.Errorf("Error syncing Local Cluster CA: %v", err)
+	}
 	return nil
 }
 
@@ -53,6 +59,8 @@ func (s *Syncer) syncAdminClusterCA() error {
 	// Update the local cluster registration secret if the admin CA certs are different
 	if !bytes.Equal(registrationSecret.Data["ca-bundle"], adminCASecret.Data["ca.crt"]) {
 		s.Log.Info("CAs are different -- updating")
+		s.Log.Info("Local registration Secret: %v", registrationSecret.Data["ca-bundle"])
+		s.Log.Info("Admin CA Secret: %v", adminCASecret.Data["ca.crt"])
 		newSecret := corev1.Secret{}
 		newSecret.Name = registrationSecret.Name
 		newSecret.Namespace = registrationSecret.Namespace
@@ -110,6 +118,8 @@ func (s *Syncer) syncLocalClusterCA() error {
 	// Update the VMC cluster CA secret if the local CA is different
 	if !bytes.Equal(adminVMCCASecret.Data["cacrt"], localCASecret.Data["ca.crt"]) {
 		s.Log.Info("CAs are different -- updating")
+		s.Log.Info("VMC CA Secret: %v", adminVMCCASecret.Data["cacrt"])
+		s.Log.Info("Local CA Secret: %v", localCASecret.Data["ca.crt"])
 		newSecret := corev1.Secret{}
 		newSecret.Name = adminVMCCASecret.Name
 		newSecret.Namespace = adminVMCCASecret.Namespace
