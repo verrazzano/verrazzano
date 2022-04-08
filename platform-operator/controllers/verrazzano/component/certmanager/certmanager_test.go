@@ -336,13 +336,14 @@ func TestCreateCAResources(t *testing.T) {
 	assert.True(t, exists)
 }
 
-// TestRenewAllCertificatesNoCertsPresent tests the renewAllSystemCertificates function (code coverage mainly)
-// GIVEN a call to renewAllSystemCertificates
+// TestRenewAllCertificatesNoCertsPresent tests the checkRenewAllCertificates function (code coverage mainly)
+// GIVEN a call to checkRenewAllCertificates
 //  WHEN No certs are found
 //  THEN no error is returned
 func TestRenewAllCertificatesNoCertsPresent(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(testScheme)
-	assert.NoError(t, renewAllSystemCertificates(client, vzlog.DefaultLogger()))
+	fakeContext := spi.NewFakeContext(client, vz, false)
+	assert.NoError(t, checkRenewAllCertificates(fakeContext, true))
 }
 
 // issuerExists returns true if the Issuer with the name and namespace exists.
