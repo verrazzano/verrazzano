@@ -378,12 +378,12 @@ pipeline {
                                         runGinkgoKeepGoing('logging/helidon')
                                     }
                                 }
-                                stage('examples todo') {
+                                stage('weblogic workload') {
                                     environment {
-                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
                                     }
                                     steps {
-                                        runGinkgoFailFast('examples/todo')
+                                        runGinkgoFailFast('workloads/weblogic')
                                     }
                                 }
                                 stage('examples socks') {
@@ -418,15 +418,15 @@ pipeline {
                                         runGinkgoKeepGoing('examples/helidonconfig')
                                     }
                                 }
-                                stage('examples bobs') {
+                                stage('coherence workload') {
                                     environment {
-                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-bobs"
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
                                     }
                                     when {
                                         expression {params.RUN_SLOW_TESTS == true}
                                     }
                                     steps {
-                                        runGinkgoKeepGoing('examples/bobsbooks')
+                                        runGinkgoKeepGoing('workloads/coherence')
                                     }
                                 }
                                 stage('console ingress') {
