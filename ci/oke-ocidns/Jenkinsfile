@@ -791,7 +791,6 @@ def dumpGenericSpringbootObjects() {
 }
 
 def dumpGenericSpringbootLogs() {
-    dumpVerrazzanoOperatorLogs()
     dumpVerrazzanoApiLogs()
     sh """
         export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-springboot.log"
@@ -811,7 +810,6 @@ def dumpSockObjects() {
 }
 
 def dumpSockLogs() {
-    dumpVerrazzanoOperatorLogs()
     dumpVerrazzanoApiLogs()
 }
 
