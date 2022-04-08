@@ -116,6 +116,7 @@ require (
 	sigs.k8s.io/kustomize/api v0.10.1 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.13.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
+	github.com/emicklei/go-restful v2.9.5+incompatible // indirect
 )
 
 replace (
