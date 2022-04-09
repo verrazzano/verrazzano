@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaegertracing/jaeger-operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
@@ -53,7 +54,7 @@ func TestGetComponents(t *testing.T) {
 	a := assert.New(t)
 	comps := GetComponents()
 
-	a.Len(comps, 19, "Wrong number of components")
+	a.Len(comps, 20, "Wrong number of components")
 	a.Equal(comps[0].Name(), oam.ComponentName)
 	a.Equal(comps[1].Name(), appoper.ComponentName)
 	a.Equal(comps[2].Name(), istio.ComponentName)
@@ -73,6 +74,7 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[16].Name(), kubestatemetrics.ComponentName)
 	a.Equal(comps[17].Name(), pushgateway.ComponentName)
 	a.Equal(comps[18].Name(), promnodeexporter.ComponentName)
+	a.Equal(comps[19].Name(), jaegeroperator.ComponentName)
 }
 
 // TestFindComponent tests FindComponent

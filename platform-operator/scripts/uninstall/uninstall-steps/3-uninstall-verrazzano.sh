@@ -193,6 +193,16 @@ function delete_prometheus_pushgateway {
 }
 
 action "Deleting Prometheus Pushgateway " delete_prometheus_pushgateway || exit 1
+function delete_jaeger_operator {
+  log "Uninstall the Jaeger operator"
+  if helm status jaeger-operator --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
+    if ! helm uninstall jaeger-operator --namespace "${VERRAZZANO_MONITORING_NS}" ; then
+      error "Failed to uninstall the Jaeger operator."
+    fi
+  fi
+}
+
+action "Deleting Jaeger operator " delete_jaeger_operator || exit 1
 action "Deleting Prometheus adapter " delete_prometheus_adapter || exit 1
 action "Deleting kube-state-metrics " delete_kube_state_metrics || exit 1
 action "Deleting Prometheus node-exporter " delete_prometheus_node_exporter || exit 1

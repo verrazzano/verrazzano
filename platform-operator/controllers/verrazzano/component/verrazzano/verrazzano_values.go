@@ -43,6 +43,7 @@ type verrazzanoValues struct {
 	KubeStateMetrics       *kubeStateMetricsValues       `json:"kubeStateMetrics,omitempty"`
 	PrometheusPushgateway  *prometheusPushgatewayValues  `json:"prometheusPushgateway,omitempty"`
 	PrometheusNodeExporter *prometheusNodeExporterValues `json:"prometheusNodeExporter,omitempty"`
+	JaegerOperator         *jaegerOperatorValues         `json:"jaegerOperator,omitempty"`
 }
 
 type subject struct {
@@ -226,5 +227,9 @@ type prometheusPushgatewayValues struct {
 }
 
 type prometheusNodeExporterValues struct {
+	Enabled bool `json:"enabled"` // Always write
+}
+
+type jaegerOperatorValues struct {
 	Enabled bool `json:"enabled"` // Always write
 }

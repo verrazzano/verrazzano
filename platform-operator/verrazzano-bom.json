@@ -537,6 +537,23 @@
           ]
         }
       ]
+    },
+    {
+      "name": "jaeger-operator",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "jaeger-operator",
+          "images": [
+            {
+              "image": "jaeger-operator",
+              "tag": "1.32.0",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

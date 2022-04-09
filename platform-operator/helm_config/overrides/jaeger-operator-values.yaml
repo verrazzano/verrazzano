@@ -1,0 +1,18 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+rbac:
+  # Specifies whether RBAC resources should be created
+  create: true
+  pspEnabled: false
+  clusterRole: true
+
+extraEnv:
+  - name: "JAEGER-AGENT-IMAGE"
+    value: "ghcr.io/verrazzano/jaeger-agent"
+  - name: "JAEGER-QUERY-IMAGE"
+    value: "ghcr.io/verrazzano/jaeger-query"
+  - name: "JAEGER-COLLECTOR-IMAGE"
+    value: "ghcr.io/verrazzano/jaeger-collector"
+  - name: "JAEGER-INGESTER-IMAGE"
+    value: "ghcr.io/verrazzano/jaeger-ingester"
