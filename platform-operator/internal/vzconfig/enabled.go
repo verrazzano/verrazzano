@@ -122,3 +122,11 @@ func IsPrometheusOperatorEnabled(vz *vzapi.Verrazzano) bool {
 	}
 	return true
 }
+
+// IsPrometheusAdapterEnabled returns false only if the Prometheus Adapter is explicitly disabled in the CR
+func IsPrometheusAdapterEnabled(vz *vzapi.Verrazzano) bool {
+	if vz != nil && vz.Spec.Components.PrometheusAdapter != nil && vz.Spec.Components.PrometheusAdapter.Enabled != nil {
+		return *vz.Spec.Components.PrometheusAdapter.Enabled
+	}
+	return true
+}

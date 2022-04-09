@@ -7,13 +7,9 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	k8s "github.com/verrazzano/verrazzano/platform-operator/internal/nodeport"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	corev1 "k8s.io/api/core/v1"
-
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
@@ -83,10 +79,7 @@ func (c nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	// Reject any other edits except NGINXInstallArgs
-	if err := common.ComparePorts(c.getPorts(old), c.getPorts(new)); err != nil {
-		return fmt.Errorf("Updates to ports not allowed for %s", ComponentJSONName)
-	}
+	// Reject service type change
 	oldType, err := vzconfig.GetServiceType(old)
 	if err != nil {
 		return err
@@ -97,13 +90,6 @@ func (c nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	}
 	if oldType != newType {
 		return fmt.Errorf("Updates to service type not allowed for %s", ComponentJSONName)
-	}
-	return nil
-}
-
-func (c nginxComponent) getPorts(vz *vzapi.Verrazzano) []corev1.ServicePort {
-	if vz != nil && vz.Spec.Components.Ingress != nil {
-		return vz.Spec.Components.Ingress.Ports
 	}
 	return nil
 }
