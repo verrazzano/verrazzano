@@ -11,6 +11,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	cmutil "github.com/jetstack/cert-manager/pkg/api/util"
 	cmclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
@@ -26,7 +27,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	cmutil "github.com/jetstack/cert-manager/pkg/api/util"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	certv1client "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
@@ -69,6 +69,11 @@ const (
 	letsEncryptStageEndpoint = "https://acme-staging-v02.api.letsencrypt.org/directory"
 
 	certRequestNameAnnotation = "cert-manager.io/certificate-name"
+)
+
+var (
+	letsEncryptProductionCACommonNames = []string{"R3", "E1", "R4", "E2"}
+	letsEncryptStagingCACommonNames    = []string{"(STAGING) Artificial Apricot R3", "(STAGING) Bogus Broccoli X2", "(STAGING) Ersatz Edamame E1"}
 )
 
 // Template for ClusterIssuer for looking up Acme certificates for controllerutil.CreateOrUpdate
@@ -680,11 +685,12 @@ func findIssuerCommonName(certificate vzapi.Certificate, isCAValue bool) ([]stri
 	return getACMEIssuerName(certificate.Acme)
 }
 
+//getACMEIssuerName Let's encrypt certificates are published, and the intermediate signing CA CNs are well-known
 func getACMEIssuerName(acme vzapi.Acme) ([]string, error) {
 	if isLetsEncryptProductionEnv(acme) {
-		return []string{"R3", "R4", "E1", "E2"}, nil
+		return letsEncryptProductionCACommonNames, nil
 	}
-	return []string{"(STAGING) Artificial Apricot R3", "(STAGING) Bogus Broccoli X2", "(STAGING) Ersatz Edamame E1"}, nil
+	return letsEncryptStagingCACommonNames, nil
 }
 
 func extractCACommonName(ca vzapi.CA) ([]string, error) {
