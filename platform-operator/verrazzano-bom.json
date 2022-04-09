@@ -233,8 +233,10 @@
               "helmFullImageKey": "monitoringOperator.configReloaderImage"
             },
             {
-              "image": "nginx-ingress-controller",
-              "tag": "0.46.0-20220301064424-ee602c1aa",
+              "registry" : "k8s.gcr.io",
+              "repository" : "ingress-nginx",
+              "image": "controller",
+              "tag": "v1.1.1",
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
             },
             {
@@ -249,8 +251,10 @@
               "helmTagKey": "console.imageVersion"
             },
             {
-              "image": "nginx-ingress-controller",
-              "tag": "0.46.0-20220301064424-ee602c1aa",
+              "registry" : "k8s.gcr.io",
+              "repository" : "ingress-nginx",
+              "image": "controller",
+              "tag": "v1.1.1",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
             }
