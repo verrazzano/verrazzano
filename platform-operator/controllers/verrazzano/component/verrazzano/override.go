@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -112,19 +111,6 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *verrazzanoValue
 	if externalDNSEnabled := vzconfig.IsExternalDNSEnabled(effectiveCR); externalDNSEnabled {
 		overrides.Externaldns = &externalDNSValues{
 			Enabled: externalDNSEnabled,
-		}
-	}
-
-	ingressType, err := vzconfig.GetServiceType(effectiveCR)
-	if err != nil {
-		return nil
-	}
-	switch ingressType {
-	case vzapi.NodePort:
-		for _, ports := range effectiveCR.Spec.Components.Ingress.Ports {
-			if ports.Port == 443 {
-				dnsSuffix = fmt.Sprintf("%s:%s", dnsSuffix, strconv.Itoa(int(ports.NodePort)))
-			}
 		}
 	}
 
