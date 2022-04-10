@@ -100,7 +100,7 @@ func GetIngressIP(client client.Client, vz *vzapi.Verrazzano) (string, error) {
 		} else if len(svc.Status.LoadBalancer.Ingress) > 0 {
 			ingressIP = svc.Status.LoadBalancer.Ingress[0].IP
 		} else {
-			return "", fmt.Errorf("No IP found for LoadBalancer service type")
+			return "", fmt.Errorf("No IP found for service %v with type %v", svc.Name, serviceType)
 		}
 	}
 	return ingressIP, nil
