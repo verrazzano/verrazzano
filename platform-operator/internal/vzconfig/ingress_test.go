@@ -268,6 +268,24 @@ func TestGetDNSSuffix(t *testing.T) {
 			serviceType: vzapi.LoadBalancer,
 			wantErr:     true,
 		},
+		{
+			name:        "nodeport without external ip",
+			serviceType: vzapi.NodePort,
+			wantErr:     true,
+		},
+		{
+			name:        "nodeport with external ip",
+			serviceType: vzapi.NodePort,
+			externalIP:  testExternalIP,
+			want:        testExternalIP + ".nip.io",
+		},
+		{
+			name:              "nodeport with external dns and external ip",
+			serviceType:       vzapi.NodePort,
+			dnsExternalSuffix: testDomain,
+			externalIP:        testExternalIP,
+			want:              testDomain,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
