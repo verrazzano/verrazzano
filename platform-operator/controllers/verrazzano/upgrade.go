@@ -130,7 +130,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 
 		case vzStateRestartApps:
 			log.Once("Doing Verrazzano post-upgrade application restarts if needed")
-			err := istio.RestartApps(log, r, cr.Generation)
+			err := istio.RestartApps(log, r.Client, cr.Generation)
 			if err != nil {
 				log.Errorf("Error running Verrazzano post-upgrade application restarts")
 				return newRequeueWithDelay(), err
