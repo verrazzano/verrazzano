@@ -259,11 +259,11 @@ func TestRemoveResourcePolicyAnnotation(t *testing.T) {
 	}
 
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(obj).Build()
-	_, err := removeResourcePolicyAnnotation(c, obj, namespacedName)
+	res, err := removeResourcePolicyAnnotation(c, obj, namespacedName)
 	assert.NoError(t, err)
-	assert.Equal(t, ComponentName, obj.Annotations["meta.helm.sh/release-name"])
-	assert.Equal(t, globalconst.VerrazzanoSystemNamespace, obj.Annotations["meta.helm.sh/release-namespace"])
-	_, ok := obj.Annotations["helm.sh/resource-policy"]
+	assert.Equal(t, ComponentName, res.GetAnnotations()["meta.helm.sh/release-name"])
+	assert.Equal(t, globalconst.VerrazzanoSystemNamespace, res.GetAnnotations()["meta.helm.sh/release-namespace"])
+	_, ok := res.GetAnnotations()["helm.sh/resource-policy"]
 	assert.False(t, ok)
 }
 

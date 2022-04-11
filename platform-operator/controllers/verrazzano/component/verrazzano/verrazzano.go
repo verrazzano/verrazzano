@@ -35,7 +35,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
 )
 
@@ -655,7 +654,7 @@ func exportFromHelmChart(cli clipkg.Client) error {
 }
 
 //associateHelmObjectToThisRelease annotates an object as being managed by the verrazzano helm chart
-func associateHelmObjectToThisRelease(cli clipkg.Client, obj clipkg.Object, namespacedName types.NamespacedName) (controllerutil.Object, error) {
+func associateHelmObjectToThisRelease(cli clipkg.Client, obj clipkg.Object, namespacedName types.NamespacedName) (clipkg.Object, error) {
 	return associateHelmObject(cli, obj, types.NamespacedName{Name: ComponentName, Namespace: globalconst.VerrazzanoSystemNamespace}, namespacedName, false)
 }
 
@@ -667,7 +666,7 @@ func associateHelmObject(cli clipkg.Client, obj clipkg.Object, releaseName types
 		}
 		return obj, err
 	}
-	objMerge := clipkg.MergeFrom(obj)
+
 	annotations := obj.GetAnnotations()
 	if annotations == nil {
 		annotations = map[string]string{}
@@ -684,7 +683,8 @@ func associateHelmObject(cli clipkg.Client, obj clipkg.Object, releaseName types
 	}
 	labels["app.kubernetes.io/managed-by"] = "Helm"
 	obj.SetLabels(labels)
-	return obj, cli.Patch(context.TODO(), obj, objMerge)
+	err := cli.Update(context.TODO(), obj)
+	return obj, err
 }
 
 // GetProfile Returns the configured profile name, or "prod" if not specified in the configuration

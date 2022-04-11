@@ -194,14 +194,14 @@ func removeResourcePolicyAnnotation(cli clipkg.Client, obj clipkg.Object, namesp
 		}
 		return obj, err
 	}
-	objMerge := clipkg.MergeFrom(obj)
 	annotations := obj.GetAnnotations()
 	if annotations == nil {
 		return obj, nil
 	}
 	delete(annotations, "helm.sh/resource-policy")
 	obj.SetAnnotations(annotations)
-	return obj, cli.Patch(context.TODO(), obj, objMerge)
+	err := cli.Update(context.TODO(), obj)
+	return obj, err
 }
 
 // loadImageSettings loads the override values for the image name and version

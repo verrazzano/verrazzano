@@ -219,17 +219,8 @@ func TestIsCertManagerNotReady(t *testing.T) {
 	assert.False(t, isCertManagerReady(spi.NewFakeContext(client, nil, false)))
 }
 
-// TestIsCANil tests the isCA function
+// TestIsCANilWithProfile tests the isCA function
 // GIVEN a call to isCA
-// WHEN the CertManager component is nil
-// THEN an error is returned
-func TestIsCANil(t *testing.T) {
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	_, err := isCA(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false))
-	assert.Error(t, err)
-}
-
-
 // WHEN the CertManager component is populated by the profile
 // THEN true is returned
 func TestIsCANilWithProfile(t *testing.T) {
@@ -246,7 +237,7 @@ func TestIsCANilWithProfile(t *testing.T) {
 func TestIsCATrue(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
-  
+
 	defer func() { getClientFunc = k8sutil.GetCoreV1Client }()
 	getClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA, "vz-cn")
 
@@ -356,7 +347,7 @@ func TestCreateCAResources(t *testing.T) {
 //  WHEN No certs are found
 //  THEN no error is returned
 func TestRenewAllCertificatesNoCertsPresent(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(testScheme)
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	fakeContext := spi.NewFakeContext(client, vz, false)
 	assert.NoError(t, checkRenewAllCertificates(fakeContext, true))
 }
@@ -387,7 +378,6 @@ func certificateExists(client clipkg.Client, name string, namespace string) (boo
 	}
 	return true, nil
 }
-
 
 // fakeBash verifies that the correct parameter values are passed to upgrade
 func fakeBash(_ ...string) (string, string, error) {
