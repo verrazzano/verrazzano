@@ -18,7 +18,7 @@ import (
 	"context"
 )
 
-const deploymentName = "kube-state-metrics-kube-p-operator"
+const deploymentName = "kube-state-metrics"
 
 // isDeploymentReady checks if the kube-state-metrics deployment is ready
 func isDeploymentReady(ctx spi.ComponentContext) bool {
