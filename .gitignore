@@ -49,3 +49,8 @@ tests/e2e/**/*.test
 **/.DS_Store
 **/.vscode
 ATTRIBUTION-HELPER-DEPS
+
+tests/testdata/test-applications/weblogic/hello-weblogic/setup/imagetool.zip
+tests/testdata/test-applications/weblogic/hello-weblogic/setup/imagetool/
+tests/testdata/test-applications/weblogic/hello-weblogic/setup/wdt_archive.zip
+tests/testdata/test-applications/weblogic/hello-weblogic/setup/weblogic-deploy.zip
