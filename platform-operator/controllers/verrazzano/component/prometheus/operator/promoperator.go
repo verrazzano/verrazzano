@@ -54,7 +54,7 @@ func preInstall(ctx spi.ComponentContext) error {
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Append custom images from the subcomponents in the bom
 	ctx.Log().Debug("Appending the image overrides for the Prometheus Operator components")
-	subcomponents := []string{"prometheus-config-reloader"}
+	subcomponents := []string{"prometheus-config-reloader", "alertmanager"}
 	kvs, err := appendCustomImageOverrides(ctx, kvs, subcomponents)
 	if err != nil {
 		return kvs, err
