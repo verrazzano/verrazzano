@@ -65,12 +65,12 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	if err != nil {
 		return kvs, ctx.Log().ErrorNewErr("Failed to get the bom file for the Prometheus Operator image overrides: ", err)
 	}
-	bomImage, err := bomFile.GetSubcomponentImages("alertmanager")
+	images, err := bomFile.GetImageNameList("alertmanager")
 	if err != nil {
 		return kvs, ctx.Log().ErrorNewErr("Failed to get the image from the bom for the Prometheus Operator image overrides: ", err)
 	}
-	if len(bomImage) > 0 {
-		kvs = append(kvs, bom.KeyValue{Key: "prometheusOperator.alertmanagerDefaultBaseImage", Value: "ghcr.io/verrazzano/" + bomImage[0].ImageName + ":" + bomImage[0].ImageTag})
+	if len(images) > 0 {
+		kvs = append(kvs, bom.KeyValue{Key: "prometheusOperator.alertmanagerDefaultBaseImage", Value: images[0]})
 	}
 
 	return kvs, nil
