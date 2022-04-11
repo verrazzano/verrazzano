@@ -199,6 +199,10 @@ func checkRenewAllCertificates(compContext spi.ComponentContext, isCAConfig bool
 		return err
 	}
 	for index, currentCert := range certList.Items {
+		if currentCert.Name == caCertificateName {
+			log.Oncef("Skip renewal of CA certificate")
+			continue
+		}
 		if currentCert.Spec.IssuerRef.Name != verrazzanoClusterIssuerName {
 			log.Oncef("Certificate %s/%s not issued by the Verrazzano cluster issuer, skipping", currentCert.Namespace, currentCert.Name)
 			continue
