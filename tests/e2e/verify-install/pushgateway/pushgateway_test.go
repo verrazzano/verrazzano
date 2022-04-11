@@ -40,8 +40,6 @@ func WhenPrometheusPushgatewayInstalledIt(description string, f interface{}) {
 	}
 }
 
-var _ = t.AfterEach(func() {})
-
 var _ = t.Describe("Prometheus Pushgateway", Label("f:platform-lcm.install"), func() {
 	t.Context("after successful installation", func() {
 		WhenPrometheusPushgatewayInstalledIt("should have a verrazzano-monitoring namespace", func() {
@@ -60,6 +58,5 @@ var _ = t.Describe("Prometheus Pushgateway", Label("f:platform-lcm.install"), fu
 			}
 			Eventually(prometheusOperatorPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})
-		//TODO: Check if service monitor required for pushgateway is also present
 	})
 })
