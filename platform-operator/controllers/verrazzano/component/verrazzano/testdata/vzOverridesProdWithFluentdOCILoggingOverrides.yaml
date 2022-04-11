@@ -31,7 +31,7 @@ prometheus:
   enabled: true
 rancher:
   enabled: true
-verrazzanoOperator:
+nodeExporter:
   enabled: true
 prometheusOperator:
   enabled: true

@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os"
 	"path/filepath"
 
@@ -115,6 +116,15 @@ func GetKubernetesClientsetWithConfig(config *rest.Config) (*kubernetes.Clientse
 	var clientset *kubernetes.Clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	return clientset, err
+}
+
+//GetCoreV1Client Returns the CoreV1Interface
+func GetCoreV1Client(log ...vzlog.VerrazzanoLogger) (corev1.CoreV1Interface, error) {
+	goClient, err := GetGoClient(log...)
+	if err != nil {
+		return nil, err
+	}
+	return goClient.CoreV1(), nil
 }
 
 // GetIstioClientset returns the clientset object for Istio
@@ -232,19 +242,27 @@ func ExecPod(client kubernetes.Interface, cfg *rest.Config, pod *v1.Pod, contain
 }
 
 // GetGoClient returns a go-client
-func GetGoClient(log vzlog.VerrazzanoLogger) (kubernetes.Interface, error) {
+func GetGoClient(log ...vzlog.VerrazzanoLogger) (kubernetes.Interface, error) {
+	var logger vzlog.VerrazzanoLogger
+	if len(log) > 0 {
+		logger = log[0]
+	}
 	if fakeClient != nil {
 		return fakeClient, nil
 	}
 	config, err := controllerruntime.GetConfig()
 	if err != nil {
-		log.Errorf("Failed to get kubeconfig: %v", err)
+		if logger != nil {
+			logger.Errorf("Failed to get kubeconfig: %v", err)
+		}
 		return nil, err
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		log.Errorf("Failed to get clientset: %v", err)
+		if logger != nil {
+			logger.Errorf("Failed to get clientset: %v", err)
+		}
 		return nil, err
 	}
 	return kubeClient, err

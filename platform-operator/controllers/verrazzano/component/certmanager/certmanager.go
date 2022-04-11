@@ -7,23 +7,33 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
+	cmutil "github.com/jetstack/cert-manager/pkg/api/util"
+	cmclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"io"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"net/mail"
 	"os"
 	"path/filepath"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 	"strings"
 	"text/template"
 
-	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/security/password"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	certv1client "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
+	"github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -41,19 +51,29 @@ const (
 	cainjectorDeploymentName  = "cert-manager-cainjector"
 	webhookDeploymentName     = "cert-manager-webhook"
 
-	letsEncryptProd  = "https://acme-v02.api.letsencrypt.org/directory"
-	letsEncryptStage = "https://acme-staging-v02.api.letsencrypt.org/directory"
-
-	caSelfSignedIssuerName = "verrazzano-selfsigned-issuer"
-	caCertificateName      = "verrazzano-ca-certificate"
-	caCertCommonName       = "verrazzano-root-ca"
-	caClusterIssuerName    = "verrazzano-cluster-issuer"
+	caSelfSignedIssuerName      = "verrazzano-selfsigned-issuer"
+	caCertificateName           = "verrazzano-ca-certificate"
+	caCertCommonName            = "verrazzano-root-ca"
+	verrazzanoClusterIssuerName = "verrazzano-cluster-issuer"
 
 	crdDirectory  = "/cert-manager/"
 	crdInputFile  = "cert-manager.crds.yaml"
 	crdOutputFile = "output.crd.yaml"
 
 	clusterResourceNamespaceKey = "clusterResourceNamespace"
+
+	// Valid Let's Encrypt environment values
+	letsencryptProduction    = "production"
+	letsEncryptStaging       = "staging"
+	letsEncryptProdEndpoint  = "https://acme-v02.api.letsencrypt.org/directory"
+	letsEncryptStageEndpoint = "https://acme-staging-v02.api.letsencrypt.org/directory"
+
+	certRequestNameAnnotation = "cert-manager.io/certificate-name"
+)
+
+var (
+	letsEncryptProductionCACommonNames = []string{"R3", "E1", "R4", "E2"}
+	letsEncryptStagingCACommonNames    = []string{"(STAGING) Artificial Apricot R3", "(STAGING) Bogus Broccoli X2", "(STAGING) Ersatz Edamame E1"}
 )
 
 // Template for ClusterIssuer for looking up Acme certificates for controllerutil.CreateOrUpdate
@@ -68,7 +88,7 @@ const clusterIssuerTemplate = `
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
-  name: verrazzano-cluster-issuer
+  name: {{.ClusterIssuerName}}
 spec:
   acme:
     email: {{.Email}}
@@ -118,10 +138,11 @@ var ociDNSSnippet = strings.Split(`ocidns:
 
 // Template data for ClusterIssuer
 type templateData struct {
-	Email       string
-	Server      string
-	SecretName  string
-	OCIZoneName string
+	ClusterIssuerName string
+	Email             string
+	Server            string
+	SecretName        string
+	OCIZoneName       string
 }
 
 // CertIssuerType identifies the certificate issuer type
@@ -136,22 +157,138 @@ func setBashFunc(f bashFuncSig) {
 	bashFunc = f
 }
 
-func (c certManagerComponent) createOrUpdateClusterIssuer(compContext spi.ComponentContext) error {
-	isCAValue, err := isCA(compContext)
+type getCoreV1ClientFuncType func(log ...vzlog.VerrazzanoLogger) (corev1.CoreV1Interface, error)
+
+var getClientFunc getCoreV1ClientFuncType = k8sutil.GetCoreV1Client
+
+type getCertManagerClientFuncType func() (certv1client.CertmanagerV1Interface, error)
+
+var getCMClientFunc getCertManagerClientFuncType = GetCertManagerClientset
+
+//GetCertManagerClientset Get a CertManager clientset object
+func GetCertManagerClientset() (certv1client.CertmanagerV1Interface, error) {
+	cfg, err := controllerruntime.GetConfig()
 	if err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to verify the config type: %v", err)
+		return nil, err
 	}
-	if !isCAValue {
-		// Create resources needed for Acme certificates
-		err := createOrUpdateAcmeResources(compContext)
-		if err != nil {
-			return compContext.Log().ErrorfNewErr("Failed creating Acme resources: %v", err)
+	clientset, err := cmclient.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return clientset.CertmanagerV1(), nil
+}
+
+// checkRenewAllCertificates Update the status field for each certificate generated by the Verrazzano ClusterIssuer
+func checkRenewAllCertificates(compContext spi.ComponentContext, isCAConfig bool) error {
+	cli := compContext.Client()
+	log := compContext.Log()
+
+	certList := certv1.CertificateList{}
+	ctx := context.TODO()
+	if err := cli.List(ctx, &certList); err != nil {
+		return err
+	}
+	if len(certList.Items) == 0 {
+		return nil
+	}
+	cmClient, err := getCMClientFunc()
+	if err != nil {
+		return err
+	}
+	// Obtain the CA Common Name for comparison
+	issuerCNs, err := findIssuerCommonName(compContext.EffectiveCR().Spec.Components.CertManager.Certificate, isCAConfig)
+	if err != nil {
+		return err
+	}
+	// Compare the Issuer CN of all leaf certs in the system with the currently configured Issuer CN
+	if err := updateCerts(ctx, log, cmClient, issuerCNs, certList); err != nil {
+		return err
+	}
+	return nil
+}
+
+//updateCerts Loop through the certs, and issue a renew request if necessary
+func updateCerts(ctx context.Context, log vzlog.VerrazzanoLogger, cmClient certv1client.CertmanagerV1Interface, issuerCNs []string, certList certv1.CertificateList) error {
+	for index, currentCert := range certList.Items {
+		if currentCert.Name == caCertificateName {
+			log.Oncef("Skip renewal of CA certificate")
+			continue
 		}
-	} else {
-		// Create resources needed for CA certificates
-		err := createOrUpdateCAResources(compContext)
+		if currentCert.Spec.IssuerRef.Name != verrazzanoClusterIssuerName {
+			log.Oncef("Certificate %s/%s not issued by the Verrazzano cluster issuer, skipping", currentCert.Namespace, currentCert.Name)
+			continue
+		}
+		// Get the common name from the cert and update if it doesn't match the issuer CN
+		certIssuerCN, err := getCertIssuerCommonName(currentCert)
 		if err != nil {
-			return compContext.Log().ErrorfNewErr("Failed creating CA resources: %v", err)
+			return err
+		}
+		if !vzstring.SliceContainsString(issuerCNs, certIssuerCN) {
+			// If the issuerRef CN is not in the set of configured issuers, we need to renew the existing certs
+			if err := renewCertificate(ctx, cmClient, log, &certList.Items[index]); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+//getCertIssuerCommonName Gets the CN of the current issuer from the specified Cert secret
+func getCertIssuerCommonName(currentCert certv1.Certificate) (string, error) {
+	secret, err := getSecret(currentCert.Namespace, currentCert.Spec.SecretName)
+	if err != nil {
+		return "", err
+	}
+	certIssuerCN, err := extractCommonNameFromCertSecret(secret)
+	if err != nil {
+		return "", err
+	}
+	return certIssuerCN, nil
+}
+
+//renewCertificate Requests a new certificate by updating the status of the Certificate object to "Issuing"
+func renewCertificate(ctx context.Context, cmclientv1 certv1client.CertmanagerV1Interface, log vzlog.VerrazzanoLogger, updateCert *certv1.Certificate) error {
+	// Update the certificate status to start a renewal; avoid using controllerruntime.CreateOrUpdate(), while
+	// it should only do an update we don't want to accidentally create a updateCert
+	log.Oncef("Updating certificate %s/%s", updateCert.Namespace, updateCert.Name)
+
+	// If there are any failed certificate requests, they will block a renewal attempt; delete those
+	if err := cleanupFailedCertificateRequests(ctx, cmclientv1, log, updateCert); err != nil {
+		return err
+	}
+
+	// Set the certificate Issuing condition type to True, per guidance by the CertManager team
+	cmutil.SetCertificateCondition(updateCert, certv1.CertificateConditionIssuing, certmetav1.ConditionTrue,
+		"VerrazzanoUpdate", "Re-issue updated Verrazzano certificates from new ClusterIssuer")
+	// Updating the status field only works using the UpdateStatus call via the CertManager typed client interface
+	if _, err := cmclientv1.Certificates(updateCert.Namespace).UpdateStatus(ctx, updateCert, metav1.UpdateOptions{}); err != nil {
+		return err
+	}
+	return nil
+}
+
+//cleanupFailedCertificateRequests Delete any failed certificate requests associated with a certificate
+func cleanupFailedCertificateRequests(ctx context.Context, cmclientv1 certv1client.CertmanagerV1Interface, log vzlog.VerrazzanoLogger, updateCert *certv1.Certificate) error {
+	crNamespaceClient := cmclientv1.CertificateRequests(updateCert.Namespace)
+	list, err := crNamespaceClient.List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	for _, cr := range list.Items {
+		forCertificate, ok := cr.Annotations[certRequestNameAnnotation]
+		if !ok || forCertificate != updateCert.Name {
+			log.Debugf("Skipping certificate request %s/s", cr.Namespace, cr.Name)
+			continue
+		}
+		for _, cond := range cr.Status.Conditions {
+			if cond.Type == certv1.CertificateRequestConditionReady && cond.Status == certmetav1.ConditionFalse && cond.Reason == certv1.CertificateRequestReasonFailed {
+				log.Debugf("Deleting failed certificate request %s/%s", cr.Namespace, cr.Name)
+				// certificate request is in a failed state, delete it
+				if err := crNamespaceClient.Delete(ctx, cr.Name, metav1.DeleteOptions{}); err != nil {
+					log.Errorf("Unable to delete failed certificate request %s/%s: %s", cr.Namespace, cr.Name, err.Error())
+					return err
+				}
+			}
 		}
 	}
 	return nil
@@ -300,9 +437,17 @@ func createSnippetWithPadding(padding string) []byte {
 
 // Check if cert-type is CA, if not it is assumed to be Acme
 func isCA(compContext spi.ComponentContext) (bool, error) {
-	components := compContext.EffectiveCR().Spec.Components
+	return validateConfiguration(compContext.EffectiveCR())
+}
+
+// validateConfiguration Checks if the configuration is valid and is a CA configuration
+// - returns true if it is a CA configuration, false if not
+// - returns an error if both CA and ACME settings are configured
+func validateConfiguration(cr *vzapi.Verrazzano) (isCA bool, err error) {
+	components := cr.Spec.Components
 	if components.CertManager == nil {
-		return false, errors.New("CertManager object is nil")
+		// Is default CA configuration
+		return true, nil
 	}
 	// Check if Ca or Acme is empty
 	caNotEmpty := components.CertManager.Certificate.CA != vzapi.CA{}
@@ -311,29 +456,85 @@ func isCA(compContext spi.ComponentContext) (bool, error) {
 		return false, errors.New("Certificate object Acme and CA cannot be simultaneously populated")
 	}
 	if caNotEmpty {
+		if err := validateCAConfiguration(components.CertManager.Certificate.CA); err != nil {
+			return true, err
+		}
 		return true, nil
 	} else if acmeNotEmpty {
+		if err := validateAcmeConfiguration(components.CertManager.Certificate.Acme); err != nil {
+			return false, err
+		}
 		return false, nil
-	} else {
-		return false, errors.New("Either Acme or CA certificate authorities must be configured")
 	}
+	return false, errors.New("Either Acme or CA certificate authorities must be configured")
+}
+
+func validateCAConfiguration(ca vzapi.CA) error {
+	if ca.SecretName == constants.DefaultVerrazzanoCASecretName && ca.ClusterResourceNamespace == ComponentNamespace {
+		// if it's the default self-signed config the secret won't exist until created by CertManager
+		return nil
+	}
+	// Otherwise validate the config exists
+	_, err := getCASecret(ca)
+	return err
+}
+
+func getCASecret(ca vzapi.CA) (*v1.Secret, error) {
+	name := ca.SecretName
+	namespace := ca.ClusterResourceNamespace
+	return getSecret(namespace, name)
+}
+
+func getSecret(namespace string, name string) (*v1.Secret, error) {
+	v1Client, err := getClientFunc()
+	if err != nil {
+		return nil, err
+	}
+	return v1Client.Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+//validateAcmeConfiguration Validate the ACME/LetsEncrypt values
+func validateAcmeConfiguration(acme vzapi.Acme) error {
+	if !isLetsEncryptProvider(acme) {
+		return fmt.Errorf("Invalid ACME certificate provider %v", acme.Provider)
+	}
+	if len(acme.Environment) > 0 && !isLetsEncryptProductionEnv(acme) && !isLetsEncryptStagingEnv(acme) {
+		return fmt.Errorf("Invalid Let's Encrypt environment: %s", acme.Environment)
+	}
+	if _, err := mail.ParseAddress(acme.EmailAddress); err != nil {
+		return err
+	}
+	return nil
+}
+
+func isLetsEncryptProvider(acme vzapi.Acme) bool {
+	return strings.ToLower(string(acme.Provider)) == strings.ToLower(string(vzapi.LetsEncrypt))
+}
+
+func isLetsEncryptStagingEnv(acme vzapi.Acme) bool {
+	return strings.ToLower(acme.Environment) == letsEncryptStaging
+}
+
+func isLetsEncryptProductionEnv(acme vzapi.Acme) bool {
+	return strings.ToLower(acme.Environment) == letsencryptProduction
 }
 
 func isLetsEncryptStaging(compContext spi.ComponentContext) bool {
 	acmeEnvironment := compContext.EffectiveCR().Spec.Components.CertManager.Certificate.Acme.Environment
-	return acmeEnvironment != "" && acmeEnvironment != "production"
+	return acmeEnvironment != "" && strings.ToLower(acmeEnvironment) != "production"
 }
 
 // createOrUpdateAcmeResources creates all of the post install resources necessary for cert-manager
-func createOrUpdateAcmeResources(compContext spi.ComponentContext) error {
+func createOrUpdateAcmeResources(compContext spi.ComponentContext) (opResult controllerutil.OperationResult, err error) {
+	opResult = controllerutil.OperationResultNone
 	// Create a lookup object
 	getCIObject, err := createAcmeCusterIssuerLookupObject(compContext.Log())
 	if err != nil {
-		return err
+		return opResult, err
 	}
 	// Update or create the unstructured object
 	compContext.Log().Debug("Applying ClusterIssuer with OCI DNS")
-	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), getCIObject, func() error {
+	if opResult, err = controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), getCIObject, func() error {
 		ciObject, err := createACMEIssuerObject(compContext)
 		if err != nil {
 			return err
@@ -341,10 +542,9 @@ func createOrUpdateAcmeResources(compContext spi.ComponentContext) error {
 		getCIObject.Object["spec"] = ciObject.Object["spec"]
 		return nil
 	}); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to create or update the ClusterIssuer: %v", err)
+		return opResult, compContext.Log().ErrorfNewErr("Failed to create or update the ClusterIssuer: %v", err)
 	}
-	// TODO: renew all certificates if operation == controllerutil.OperationResultUpdated
-	return nil
+	return opResult, nil
 }
 
 func createACMEIssuerObject(compContext spi.ComponentContext) (*unstructured.Unstructured, error) {
@@ -366,17 +566,18 @@ func createACMEIssuerObject(compContext spi.ComponentContext) (*unstructured.Uns
 	emailAddress := vzCertAcme.EmailAddress
 
 	// Verify the acme environment and set the server
-	acmeServer := letsEncryptProd
+	acmeServer := letsEncryptProdEndpoint
 	if isLetsEncryptStaging(compContext) {
-		acmeServer = letsEncryptStage
+		acmeServer = letsEncryptStageEndpoint
 	}
 
 	// Create the buffer and the cluster issuer data struct
 	clusterIssuerData := templateData{
-		Email:       emailAddress,
-		Server:      acmeServer,
-		SecretName:  ociDNSConfigSecret,
-		OCIZoneName: ociDNSZoneName,
+		ClusterIssuerName: verrazzanoClusterIssuerName,
+		Email:             emailAddress,
+		Server:            acmeServer,
+		SecretName:        ociDNSConfigSecret,
+		OCIZoneName:       ociDNSZoneName,
 	}
 
 	ciObject, err := createAcmeClusterIssuer(compContext.Log(), clusterIssuerData)
@@ -413,7 +614,8 @@ func createAcmeCusterIssuerLookupObject(log vzlog.VerrazzanoLogger) (*unstructur
 	return ciObject, nil
 
 }
-func createOrUpdateCAResources(compContext spi.ComponentContext) error {
+
+func createOrUpdateCAResources(compContext spi.ComponentContext) (controllerutil.OperationResult, error) {
 	vzCertCA := compContext.EffectiveCR().Spec.Components.CertManager.Certificate.CA
 
 	// if the CA cert secret does not exist, create the Issuer and Certificate resources
@@ -436,7 +638,8 @@ func createOrUpdateCAResources(compContext spi.ComponentContext) error {
 			}
 			return nil
 		}); err != nil {
-			return compContext.Log().ErrorfNewErr("Failed to create or update the Issuer: %v", err)
+			return controllerutil.OperationResultNone,
+				compContext.Log().ErrorfNewErr("Failed to create or update the Issuer: %v", err)
 		}
 
 		// Create the certificate resource for CA cert
@@ -449,7 +652,8 @@ func createOrUpdateCAResources(compContext spi.ComponentContext) error {
 		}
 		commonNameSuffix, err := password.GenerateRandomAlphaLower(8)
 		if err != nil {
-			return compContext.Log().ErrorfNewErr("Failed to generate CA common name suffix: %v", err)
+			return controllerutil.OperationResultNone,
+				compContext.Log().ErrorfNewErr("Failed to generate CA common name suffix: %v", err)
 		}
 		if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &certObject, func() error {
 			certObject.Spec = certv1.CertificateSpec{
@@ -463,7 +667,7 @@ func createOrUpdateCAResources(compContext spi.ComponentContext) error {
 			}
 			return nil
 		}); err != nil {
-			return compContext.Log().ErrorfNewErr("Failed to create or update the Certificate: %v", err)
+			return controllerutil.OperationResultNone, compContext.Log().ErrorfNewErr("Failed to create or update the Certificate: %v", err)
 		}
 	}
 
@@ -471,10 +675,13 @@ func createOrUpdateCAResources(compContext spi.ComponentContext) error {
 	compContext.Log().Debug("Applying ClusterIssuer")
 	clusterIssuer := certv1.ClusterIssuer{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: caClusterIssuerName,
+			Name: verrazzanoClusterIssuerName,
 		},
 	}
-	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &clusterIssuer, func() error {
+
+	var issuerUpdateErr error
+	var opResult controllerutil.OperationResult
+	if opResult, issuerUpdateErr = controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &clusterIssuer, func() error {
 		clusterIssuer.Spec = certv1.IssuerSpec{
 			IssuerConfig: certv1.IssuerConfig{
 				CA: &certv1.CAIssuer{
@@ -483,8 +690,57 @@ func createOrUpdateCAResources(compContext spi.ComponentContext) error {
 			},
 		}
 		return nil
-	}); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to create or update the ClusterIssuer: %v", err)
+	}); issuerUpdateErr != nil {
+		return opResult, compContext.Log().ErrorfNewErr("Failed to create or update the ClusterIssuer: %v", issuerUpdateErr)
 	}
-	return nil
+	return opResult, nil
+}
+
+func findIssuerCommonName(certificate vzapi.Certificate, isCAValue bool) ([]string, error) {
+	if isCAValue {
+		return extractCACommonName(certificate.CA)
+	}
+	return getACMEIssuerName(certificate.Acme)
+}
+
+//getACMEIssuerName Let's encrypt certificates are published, and the intermediate signing CA CNs are well-known
+func getACMEIssuerName(acme vzapi.Acme) ([]string, error) {
+	if isLetsEncryptProductionEnv(acme) {
+		return letsEncryptProductionCACommonNames, nil
+	}
+	return letsEncryptStagingCACommonNames, nil
+}
+
+func extractCACommonName(ca vzapi.CA) ([]string, error) {
+	secret, err := getCASecret(ca)
+	if err != nil {
+		return []string{}, err
+	}
+	certCN, err := extractCommonNameFromCertSecret(secret)
+	return []string{certCN}, err
+}
+
+func extractCommonNameFromCertSecret(secret *v1.Secret) (string, error) {
+	certBytes, found := secret.Data[v1.TLSCertKey]
+	if !found {
+		return "", fmt.Errorf("No Certificate data found in secret %s/%s", secret.Namespace, secret.Name)
+	}
+	leafCACertBytes := []byte{}
+	for {
+		block, rest := pem.Decode(certBytes)
+		if block == nil {
+			break
+		}
+		if block.Type == "CERTIFICATE" {
+			// we're only interested in the leaf cert for the CA, as it is the issuing authority in the cluster
+			leafCACertBytes = block.Bytes
+			break
+		}
+		certBytes = rest
+	}
+	cert, err := x509.ParseCertificate(leafCACertBytes)
+	if err != nil {
+		return "", err
+	}
+	return cert.Issuer.CommonName, nil
 }
