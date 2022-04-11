@@ -37,7 +37,9 @@ security:
     subject-0:
       kind: Group
       name: group-of-monitors
-verrazzanoOperator:
+nodeExporter:
   enabled: true
 prometheusOperator:
+  enabled: true
+prometheusAdapter:
   enabled: true

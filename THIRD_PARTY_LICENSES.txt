@@ -224,6 +224,7 @@ Copyright 2019 The Kubernetes Authors.
 Copyright (C) 2022, Oracle and/or its affiliates.
 Copyright (c) 2022, Oracle and/or its affiliates.
 Copyright (C) 2021, Oracle and/or its affiliates.
+Copyright (C) 2021, 2022, Oracle and/or its affiliates.
 Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 
 -------- Dependencies Summary
@@ -3123,4 +3124,4 @@ Creative Commons may be contacted at creativecommons.org.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: a36431aec7bfce7bb092fa5200353ef4
+License file based on go.mod with md5 sum: 0ec9960fcf9ec7bc3f866b2ba6500f49

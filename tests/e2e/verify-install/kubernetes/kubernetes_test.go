@@ -108,9 +108,6 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			t.Entry("Check weblogic-operator deployment", "weblogic-operator", pkg.IsWebLogicOperatorEnabled(kubeconfigPath)),
 			t.Entry("Check coherence-operator deployment", "coherence-operator", pkg.IsCoherenceOperatorEnabled(kubeconfigPath)),
 		}
-		if isMinVersion1_3_0, _ := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath); !isMinVersion1_3_0 {
-			componentsArgs = append(componentsArgs, t.Entry("includes verrazzano-operator", "verrazzano-operator", true))
-		}
 
 		t.DescribeTable("Verrazzano components are deployed,",
 			componentsArgs...,
@@ -227,12 +224,6 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 				},
 			}
 
-			if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath); !ok {
-				assertions = append(assertions, func() {
-					Eventually(func() bool { return checkPodsRunning("verrazzano-system", []string{"verrazzano-operator"}) }, waitTimeout, pollingInterval).
-						Should(BeTrue())
-				})
-			}
 			pkg.Concurrently(
 				assertions...,
 			)

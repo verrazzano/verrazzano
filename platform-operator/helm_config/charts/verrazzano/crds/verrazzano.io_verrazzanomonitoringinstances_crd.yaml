@@ -105,6 +105,8 @@ spec:
                       properties:
                         javaOpts:
                           type: string
+                        name:
+                          type: string
                         replicas:
                           format: int32
                           type: integer
@@ -131,6 +133,10 @@ spec:
                               pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                               type: string
                           type: object
+                        roles:
+                          items:
+                            type: string
+                          type: array
                         storage:
                           description: Storage details
                           properties:
@@ -153,51 +159,7 @@ spec:
                       properties:
                         javaOpts:
                           type: string
-                        replicas:
-                          format: int32
-                          type: integer
-                        resources:
-                          description: Resources details
-                          properties:
-                            limitCPU:
-                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                              type: string
-                            limitMemory:
-                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                              type: string
-                            maxSizeDisk:
-                              description: These fields are not used anywhere
-                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                              type: string
-                            minSizeDisk:
-                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                              type: string
-                            requestCPU:
-                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                              type: string
-                            requestMemory:
-                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                              type: string
-                          type: object
-                        storage:
-                          description: Storage details
-                          properties:
-                            availabilityDomain:
-                              type: string
-                            pvcNames:
-                              items:
-                                type: string
-                              type: array
-                            size:
-                              type: string
-                          type: object
-                      required:
-                        - javaOpts
-                      type: object
-                    masterNode:
-                      description: ElasticsearchNode Type details
-                      properties:
-                        javaOpts:
+                        name:
                           type: string
                         replicas:
                           format: int32
@@ -225,6 +187,10 @@ spec:
                               pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                               type: string
                           type: object
+                        roles:
+                          items:
+                            type: string
+                          type: array
                         storage:
                           description: Storage details
                           properties:
@@ -240,6 +206,112 @@ spec:
                       required:
                         - javaOpts
                       type: object
+                    masterNode:
+                      description: ElasticsearchNode Type details
+                      properties:
+                        javaOpts:
+                          type: string
+                        name:
+                          type: string
+                        replicas:
+                          format: int32
+                          type: integer
+                        resources:
+                          description: Resources details
+                          properties:
+                            limitCPU:
+                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                              type: string
+                            limitMemory:
+                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                              type: string
+                            maxSizeDisk:
+                              description: These fields are not used anywhere
+                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                              type: string
+                            minSizeDisk:
+                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                              type: string
+                            requestCPU:
+                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                              type: string
+                            requestMemory:
+                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                              type: string
+                          type: object
+                        roles:
+                          items:
+                            type: string
+                          type: array
+                        storage:
+                          description: Storage details
+                          properties:
+                            availabilityDomain:
+                              type: string
+                            pvcNames:
+                              items:
+                                type: string
+                              type: array
+                            size:
+                              type: string
+                          type: object
+                      required:
+                        - javaOpts
+                      type: object
+                    nodes:
+                      items:
+                        description: ElasticsearchNode Type details
+                        properties:
+                          javaOpts:
+                            type: string
+                          name:
+                            type: string
+                          replicas:
+                            format: int32
+                            type: integer
+                          resources:
+                            description: Resources details
+                            properties:
+                              limitCPU:
+                                pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                                type: string
+                              limitMemory:
+                                pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                                type: string
+                              maxSizeDisk:
+                                description: These fields are not used anywhere
+                                pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                                type: string
+                              minSizeDisk:
+                                pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                                type: string
+                              requestCPU:
+                                pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                                type: string
+                              requestMemory:
+                                pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                                type: string
+                            type: object
+                          roles:
+                            items:
+                              type: string
+                            type: array
+                          storage:
+                            description: Storage details
+                            properties:
+                              availabilityDomain:
+                                type: string
+                              pvcNames:
+                                items:
+                                  type: string
+                                type: array
+                              size:
+                                type: string
+                            type: object
+                        required:
+                          - javaOpts
+                        type: object
+                      type: array
                     policies:
                       items:
                         description: IndexManagementPolicy Defines a policy for managing

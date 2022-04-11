@@ -4,6 +4,7 @@
 package transform
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -71,8 +72,8 @@ func GetEffectiveCR(actualCR *vzapi.Verrazzano) (*vzapi.Verrazzano, error) {
 	var emptyCertConfig = vzapi.Certificate{}
 	if effectiveCR.Spec.Components.CertManager.Certificate == emptyCertConfig {
 		effectiveCR.Spec.Components.CertManager.Certificate.CA = vzapi.CA{
-			SecretName:               "verrazzano-ca-certificate-secret",
-			ClusterResourceNamespace: "cert-manager",
+			SecretName:               constants.DefaultVerrazzanoCASecretName,
+			ClusterResourceNamespace: constants.CertManagerNamespace,
 		}
 	}
 	return effectiveCR, nil

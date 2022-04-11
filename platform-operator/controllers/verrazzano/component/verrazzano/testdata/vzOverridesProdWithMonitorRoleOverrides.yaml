@@ -36,7 +36,9 @@ security:
     subject-1:
       kind: User
       name: joe-monitor
-verrazzanoOperator:
+nodeExporter:
   enabled: true
 prometheusOperator:
+  enabled: true
+prometheusAdapter:
   enabled: true
