@@ -1702,7 +1702,7 @@ prometheusOperator:
 
   ## Alertmanager image to use for alertmanagers managed by the operator
   ##
-  alertmanagerDefaultBaseImage: quay.io/prometheus/alertmanager
+  # alertmanagerDefaultBaseImage: quay.io/prometheus/alertmanager
 
   ## Prometheus-config-reloader
   ##
