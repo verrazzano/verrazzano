@@ -63,7 +63,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	return kvs, nil
 }
 
-//appendCustomImageOverrides takes a list of subcomponent image names and appends it to the given Helm overrides
+// appendCustomImageOverrides takes a list of subcomponent image names and appends it to the given Helm overrides
 func appendCustomImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, subcomponents []string) ([]bom.KeyValue, error) {
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
