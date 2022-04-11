@@ -786,7 +786,6 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 			a.NoError(err)
 
 			actualNumKvs := len(kvs)
-			// t.Logf("Num kvs: %d", actualNumKvs)
 			expectedNumKvs := test.numKeyValues
 			if expectedNumKvs == 0 {
 				// default is 11, 2 file override + 1 custom image overrides + 8 ES
