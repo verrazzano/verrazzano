@@ -36,7 +36,7 @@ prometheus:
     storage: ""
 rancher:
   enabled: false
-verrazzanoOperator:
+nodeExporter:
   enabled: false
 prometheusOperator:
   enabled: false
