@@ -15,10 +15,10 @@ import (
 )
 
 const (
-	verrazzanoMonitoringNamespace       = "verrazzano-monitoring"
-	prometheusPushgatewayPod            = "prometheus-pushgateway"
-	waitTimeout                         = 3 * time.Minute
-	pollingInterval                     = 10 * time.Second
+	verrazzanoMonitoringNamespace = "verrazzano-monitoring"
+	prometheusPushgatewayPod      = "prometheus-pushgateway"
+	waitTimeout                   = 3 * time.Minute
+	pollingInterval               = 10 * time.Second
 )
 
 var t = framework.NewTestFramework("prometheus-pushgateway")

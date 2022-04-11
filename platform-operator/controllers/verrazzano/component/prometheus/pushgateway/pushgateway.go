@@ -17,7 +17,7 @@ import (
 
 const deploymentName = "prometheus-pushgateway"
 
-// isPushgatewayReady checks if the Prometheus operator deployment is ready
+// isPushgatewayReady checks if the Prometheus Pushgateway deployment is ready
 func isPushgatewayReady(ctx spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
 		{
@@ -29,7 +29,7 @@ func isPushgatewayReady(ctx spi.ComponentContext) bool {
 	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
-// PreInstall implementation for the Prometheus Operator Component
+// PreInstall implementation for the Prometheus Pushgateway Component
 func preInstall(ctx spi.ComponentContext) error {
 	// Do nothing if dry run
 	if ctx.IsDryRun() {
