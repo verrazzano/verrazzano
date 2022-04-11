@@ -216,10 +216,9 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 
 			t.Entry("Checking Deployment rancher", rancher.ComponentNamespace, rancher.ComponentName, "rancher"),
 			t.Entry("Checking Deployment rancher", rancher.ComponentNamespace, rancher.ComponentName, "rancher-webhook"),
-			t.Entry("Checking Deployment fleet-agent", "fleet-system", rancher.ComponentName, "fleet-agent"),
-			t.Entry("Checking Deployment fleet-controller", "fleet-system", rancher.ComponentName, "fleet-controller"),
-			t.Entry("Checking Deployment gitjob", "fleet-system", rancher.ComponentName, "gitjob"),
-			t.Entry("Checking Deployment rancher-operator", "rancher-operator-system", rancher.ComponentName, "rancher-operator"),
+			t.Entry("Checking Deployment fleet-agent", rancher.FleetLocalSystemNamespace, rancher.ComponentName, "fleet-agent"),
+			t.Entry("Checking Deployment fleet-controller", rancher.FleetSystemNamespace, rancher.ComponentName, "fleet-controller"),
+			t.Entry("Checking Deployment gitjob", rancher.FleetSystemNamespace, rancher.ComponentName, "gitjob"),
 		)
 	})
 
