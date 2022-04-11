@@ -3,10 +3,11 @@
 package vzconfig
 
 import (
+	"crypto/rand"
 	"fmt"
-	"math/rand"
+	"math/big"
+
 	"testing"
-	"time"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -104,9 +105,9 @@ func TestGetIngressServiceNotFound(t *testing.T) {
 }
 
 func TestGetIngressIP(t *testing.T) {
-	rand.Seed(time.Now().UnixNano())
-	testExternalIP := fmt.Sprintf("11.22.33.%d", rand.Intn(156)+100)
-	testLoadBalancerIP := fmt.Sprintf("11.22.33.%d", rand.Intn(100))
+	n, _ := rand.Int(rand.Reader, big.NewInt(100))
+	testExternalIP := fmt.Sprintf("11.22.33.%d", n.Int64()+100)
+	testLoadBalancerIP := fmt.Sprintf("11.22.33.%d", n)
 	tests := []struct {
 		name        string
 		serviceType vzapi.IngressType
@@ -197,9 +198,9 @@ func TestGetIngressIP(t *testing.T) {
 
 func TestGetDNSSuffix(t *testing.T) {
 	const testWildCardSuffix = "xip.io"
-	rand.Seed(time.Now().UnixNano())
-	testExternalIP := fmt.Sprintf("11.22.33.%d", rand.Intn(156)+100)
-	testLoadBalancerIP := fmt.Sprintf("11.22.33.%d", rand.Intn(100))
+	n, _ := rand.Int(rand.Reader, big.NewInt(100))
+	testExternalIP := fmt.Sprintf("11.22.33.%d", n.Int64()+100)
+	testLoadBalancerIP := fmt.Sprintf("11.22.33.%d", n)
 	tests := []struct {
 		name              string
 		serviceType       vzapi.IngressType
