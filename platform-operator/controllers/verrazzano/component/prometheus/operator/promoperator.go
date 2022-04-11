@@ -50,6 +50,7 @@ func preInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
+// AppendOverrides appends Helm value overrides for the Prometheus Operator Helm chart
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Append custom images from the subcomponents in the bom
 	ctx.Log().Debugf("Appending the image overrides for the Prometheus Operator components")
