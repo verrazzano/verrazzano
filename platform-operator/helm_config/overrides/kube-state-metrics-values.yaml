@@ -1,0 +1,3 @@
+prometheus:
+  monitor:
+    enabled: true

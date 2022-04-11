@@ -39,7 +39,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall: true,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0].name",
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-values.yaml"),
+			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "kube-state-metrics-values.yaml"),
 			Dependencies:            []string{},
 		},
 	}
