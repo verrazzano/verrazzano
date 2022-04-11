@@ -11,7 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 )
 
-const profilesRelativePath = "../../../../manifests/profiles"
+const profilesRelativePath = "../../../../../manifests/profiles"
 
 // TestIsEnabled tests the IsEnabled function for the Prometheus Pushgateway component
 func TestIsEnabled(t *testing.T) {
@@ -43,6 +43,36 @@ func TestIsEnabled(t *testing.T) {
 								Enabled: &trueValue,
 							},
 						},
+					},
+				},
+			},
+			expectTrue: true,
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Prometheus Pushgateway having empty section
+			// WHEN we call IsReady on the Prometheus Pushgateway component
+			// THEN the call returns true
+			name: "Test IsEnabled when Pushgateway components Monitoring component is left empty",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						PrometheusPushgateway: &vzapi.PrometheusPushgatewayComponent{
+							MonitoringComponent: vzapi.MonitoringComponent{},
+						},
+					},
+				},
+			},
+			expectTrue: true,
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Prometheus Pushgateway having empty section
+			// WHEN we call IsReady on the Prometheus Pushgateway component
+			// THEN the call returns true
+			name: "Test IsEnabled when Pushgateway component is left empty",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						PrometheusPushgateway: &vzapi.PrometheusPushgatewayComponent{},
 					},
 				},
 			},
