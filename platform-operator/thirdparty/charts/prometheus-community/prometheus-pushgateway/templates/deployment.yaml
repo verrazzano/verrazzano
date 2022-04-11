@@ -32,7 +32,11 @@ spec:
     {{- end }}
       containers:
         - name: pushgateway
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          {{- if .Values.prometheusPushgateway.image.sha }}
+          image: "{{ .Values.prometheusPushgateway.image.repository }}:{{ .Values.prometheusPushgateway.image.tag }}@sha256:{{ .Values.prometheusPushgateway.image.sha }}"
+          {{- else }}
+          image: "{{ .Values.prometheusPushgateway.image.repository }}:{{ .Values.prometheusPushgateway.image.tag }}"
+          {{- end }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
         {{- if .Values.extraVars }}
           env:

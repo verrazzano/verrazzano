@@ -23,7 +23,7 @@ const ComponentNamespace = constants.VerrazzanoMonitoringNamespace
 // ComponentJSONName is the json name of the component in the CRD
 const ComponentJSONName = "prometheusPushgateway"
 
-const chartName = "prometheus-pushgateway"
+const chartName = "prometheus-community/prometheus-pushgateway"
 
 type prometheusPushgatewayComponent struct {
 	helm.HelmComponent
@@ -40,7 +40,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall: true,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0].name",
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "pushgateway-values.yaml"),
+			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-pushgateway-values.yaml"),
 			Dependencies:            []string{certmanager.ComponentName},
 		},
 	}
