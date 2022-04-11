@@ -9,7 +9,6 @@ import (
 	"io/fs"
 	"io/ioutil"
 	"os"
-	"strconv"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	appsv1 "k8s.io/api/apps/v1"
@@ -77,22 +76,8 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	}
 	overrides.Config.DNSSuffix = dnsSuffix
 
-	dnsSuffixWithNodePort := dnsSuffix
-	ingressType, err := vzconfig.GetServiceType(effectiveCR)
-	if err != nil {
-		return nil, err
-	}
-	switch ingressType {
-	case vzapi.NodePort:
-		for _, ports := range effectiveCR.Spec.Components.Ingress.Ports {
-			if ports.Port == 443 {
-				dnsSuffixWithNodePort = fmt.Sprintf("%s:%s", dnsSuffix, strconv.Itoa(int(ports.NodePort)))
-			}
-		}
-	}
-
 	overrides.Proxy = &proxyValues{
-		OidcProviderHost:          fmt.Sprintf("keycloak.%s.%s", overrides.Config.EnvName, dnsSuffixWithNodePort),
+		OidcProviderHost:          fmt.Sprintf("keycloak.%s.%s", overrides.Config.EnvName, dnsSuffix),
 		OidcProviderHostInCluster: keycloakInClusterURL,
 	}
 
