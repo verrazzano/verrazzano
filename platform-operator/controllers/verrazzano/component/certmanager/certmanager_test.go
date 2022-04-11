@@ -162,7 +162,7 @@ func TestAppendCertManagerOverridesWithInstallArgs(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
 	defer func() { getClientFunc = k8sutil.GetCoreV1Client }()
-	getClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA)
+	getClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA, "vz-cn")
 	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 1)
@@ -239,7 +239,7 @@ func TestIsCATrue(t *testing.T) {
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
 
 	defer func() { getClientFunc = k8sutil.GetCoreV1Client }()
-	getClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA)
+	getClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA, "vz-cn")
 
 	client := fake.NewFakeClientWithScheme(testScheme)
 	isCAValue, err := isCA(spi.NewFakeContext(client, localvz, false, profileDir))
@@ -247,10 +247,15 @@ func TestIsCATrue(t *testing.T) {
 	assert.True(t, isCAValue)
 }
 
-func createClientFunc(caConfig vzapi.CA) getCoreV1ClientFuncType {
+func createClientFunc(caConfig vzapi.CA, cn string, otherObjs ...runtime.Object) getCoreV1ClientFuncType {
 	return func(...vzlog.VerrazzanoLogger) (corev1.CoreV1Interface, error) {
-		secret := &v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: caConfig.SecretName, Namespace: caConfig.ClusterResourceNamespace}}
-		return k8sfake.NewSimpleClientset(secret).CoreV1(), nil
+		secret, err := createCertSecretNoParent(caConfig.SecretName, caConfig.ClusterResourceNamespace, cn)
+		if err != nil {
+			return nil, err
+		}
+		objs := []runtime.Object{secret}
+		objs = append(objs, otherObjs...)
+		return k8sfake.NewSimpleClientset(objs...).CoreV1(), nil
 	}
 }
 

@@ -703,7 +703,10 @@ func extractCACommonName(ca vzapi.CA) ([]string, error) {
 }
 
 func extractCommonNameFromCertSecret(secret *v1.Secret) (string, error) {
-	certBytes := secret.Data[v1.TLSCertKey]
+	certBytes, found := secret.Data[v1.TLSCertKey]
+	if !found {
+		return "", fmt.Errorf("No Certificate data found in secret %s/%s", secret.Namespace, secret.Name)
+	}
 	leafCACertBytes := []byte{}
 	for {
 		block, rest := pem.Decode(certBytes)
