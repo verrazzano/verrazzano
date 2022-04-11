@@ -67,13 +67,13 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 func appendCustomImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, subcomponents []string) ([]bom.KeyValue, error) {
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
-		return kvs, ctx.Log().ErrorNewErr("Failed to get the bom file for the Prometheus Operator image overrides", err)
+		return kvs, ctx.Log().ErrorNewErr("Failed to get the bom file for the Prometheus Operator image overrides: ", err)
 	}
 
 	for _, subcomponent := range subcomponents {
 		imageOverrides, err := bomFile.BuildImageOverrides(subcomponent)
 		if err != nil {
-			return kvs, ctx.Log().ErrorfNewErr("Failed to build the Prometheus Operator image overrides for subcomponent %s", subcomponent, err)
+			return kvs, ctx.Log().ErrorfNewErr("Failed to build the Prometheus Operator image overrides for subcomponent %s: ", subcomponent, err)
 		}
 		kvs = append(kvs, imageOverrides...)
 	}
