@@ -23,18 +23,16 @@
       "subcomponents": [
         {
           "name": "ingress-controller",
-          "registry": "k8s.gcr.io",
           "images": [
             {
-              "repository" : "ingress-nginx",
-              "image": "controller",
-              "tag": "v1.1.1",
+              "image": "nginx-ingress-controller",
+              "tag": "1.1.1-20220411205120-e8206ddcc",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
-              "image": "defaultbackend-amd64",
-              "tag": "1.5",
+              "image": "nginx-ingress-default-backend",
+              "tag": "1.1.1-20220411205120-e8206ddcc",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
@@ -233,10 +231,8 @@
               "helmFullImageKey": "monitoringOperator.configReloaderImage"
             },
             {
-              "registry" : "k8s.gcr.io",
-              "repository" : "ingress-nginx",
-              "image": "controller",
-              "tag": "v1.1.1",
+              "image": "nginx-ingress-controller",
+              "tag": "1.1.1-20220411205120-e8206ddcc",
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
             },
             {
@@ -251,10 +247,8 @@
               "helmTagKey": "console.imageVersion"
             },
             {
-              "registry" : "k8s.gcr.io",
-              "repository" : "ingress-nginx",
-              "image": "controller",
-              "tag": "v1.1.1",
+              "image": "nginx-ingress-controller",
+              "tag": "1.1.1-20220411205120-e8206ddcc",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
             }
