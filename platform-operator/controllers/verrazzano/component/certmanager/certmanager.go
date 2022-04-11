@@ -194,10 +194,20 @@ func checkRenewAllCertificates(compContext spi.ComponentContext, isCAConfig bool
 	if err != nil {
 		return err
 	}
+	// Obtain the CA Common Name for comparison
 	issuerCNs, err := findIssuerCommonName(compContext.EffectiveCR().Spec.Components.CertManager.Certificate, isCAConfig)
 	if err != nil {
 		return err
 	}
+	// Compare the Issuer CN of all leaf certs in the system with the currently configured Issuer CN
+	if err := updateCerts(ctx, log, cmClient, issuerCNs, certList); err != nil {
+		return err
+	}
+	return nil
+}
+
+//updateCerts Loop through the certs, and issue a renew request if necessary
+func updateCerts(ctx context.Context, log vzlog.VerrazzanoLogger, cmClient certv1client.CertmanagerV1Interface, issuerCNs []string, certList certv1.CertificateList) error {
 	for index, currentCert := range certList.Items {
 		if currentCert.Name == caCertificateName {
 			log.Oncef("Skip renewal of CA certificate")
@@ -207,6 +217,7 @@ func checkRenewAllCertificates(compContext spi.ComponentContext, isCAConfig bool
 			log.Oncef("Certificate %s/%s not issued by the Verrazzano cluster issuer, skipping", currentCert.Namespace, currentCert.Name)
 			continue
 		}
+		// Get the common name from the cert and update if it doesn't match the issuer CN
 		certIssuerCN, err := getCertIssuerCommonName(currentCert)
 		if err != nil {
 			return err
@@ -221,6 +232,7 @@ func checkRenewAllCertificates(compContext spi.ComponentContext, isCAConfig bool
 	return nil
 }
 
+//getCertIssuerCommonName Gets the CN of the current issuer from the specified Cert secret
 func getCertIssuerCommonName(currentCert certv1.Certificate) (string, error) {
 	secret, err := getSecret(currentCert.Namespace, currentCert.Spec.SecretName)
 	if err != nil {
@@ -233,6 +245,7 @@ func getCertIssuerCommonName(currentCert certv1.Certificate) (string, error) {
 	return certIssuerCN, nil
 }
 
+//renewCertificate Requests a new certificate by updating the status of the Certificate object to "Issuing"
 func renewCertificate(ctx context.Context, cmclientv1 certv1client.CertmanagerV1Interface, log vzlog.VerrazzanoLogger, updateCert *certv1.Certificate) error {
 	// Update the certificate status to start a renewal; avoid using controllerruntime.CreateOrUpdate(), while
 	// it should only do an update we don't want to accidentally create a updateCert
