@@ -14,6 +14,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const defaultWildcardDomain = "nip.io"
+
 // GetEnvName Returns the configured environment name, or "default" if not specified in the configuration
 func GetEnvName(vz *vzapi.Verrazzano) string {
 	envName := vz.Spec.EnvironmentName
@@ -35,7 +37,7 @@ func FindVolumeTemplate(templateName string, templates []vzapi.VolumeClaimSpecTe
 
 // GetWildcardDomain Get the wildcard domain from the Verrazzano config
 func GetWildcardDomain(dnsConfig *vzapi.DNSComponent) string {
-	wildcardDomain := "nip.io"
+	wildcardDomain := defaultWildcardDomain
 	if dnsConfig != nil && dnsConfig.Wildcard != nil && len(dnsConfig.Wildcard.Domain) > 0 {
 		wildcardDomain = dnsConfig.Wildcard.Domain
 	}

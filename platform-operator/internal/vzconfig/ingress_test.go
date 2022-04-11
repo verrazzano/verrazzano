@@ -3,7 +3,10 @@
 package vzconfig
 
 import (
+	"fmt"
+	"math/rand"
 	"testing"
+	"time"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -16,8 +19,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const testExternalIP = "11.22.33.44"
-const testLoadBalancerIP = "11.22.33.55"
 const testDomain = "mydomain.com"
 
 // Test_getServiceTypeLoadBalancer tests the GetServiceType function
@@ -103,6 +104,9 @@ func TestGetIngressServiceNotFound(t *testing.T) {
 }
 
 func TestGetIngressIP(t *testing.T) {
+	rand.Seed(time.Now().UnixNano())
+	testExternalIP := fmt.Sprintf("11.22.33.%d", rand.Intn(156)+100)
+	testLoadBalancerIP := fmt.Sprintf("11.22.33.%d", rand.Intn(100))
 	tests := []struct {
 		name        string
 		serviceType vzapi.IngressType
@@ -192,6 +196,10 @@ func TestGetIngressIP(t *testing.T) {
 }
 
 func TestGetDNSSuffix(t *testing.T) {
+	const testWildCardSuffix = "xip.io"
+	rand.Seed(time.Now().UnixNano())
+	testExternalIP := fmt.Sprintf("11.22.33.%d", rand.Intn(156)+100)
+	testLoadBalancerIP := fmt.Sprintf("11.22.33.%d", rand.Intn(100))
 	tests := []struct {
 		name              string
 		serviceType       vzapi.IngressType
@@ -225,43 +233,43 @@ func TestGetDNSSuffix(t *testing.T) {
 		{
 			name:              "lb with wildcard dns and lb ip",
 			serviceType:       vzapi.LoadBalancer,
-			dnsWildCardSuffix: "xip.io",
+			dnsWildCardSuffix: testWildCardSuffix,
 			lbIP:              testLoadBalancerIP,
-			want:              testLoadBalancerIP + ".xip.io",
+			want:              testLoadBalancerIP + "." + testWildCardSuffix,
 		},
 		{
 			name:              "lb with wildcard dns and external ip",
 			serviceType:       vzapi.LoadBalancer,
-			dnsWildCardSuffix: "xip.io",
+			dnsWildCardSuffix: testWildCardSuffix,
 			externalIP:        testExternalIP,
-			want:              testExternalIP + ".xip.io",
+			want:              testExternalIP + "." + testWildCardSuffix,
 		},
 		{
 			name:              "lb with wildcard dns and both external and lb ip",
 			serviceType:       vzapi.LoadBalancer,
-			dnsWildCardSuffix: "xip.io",
+			dnsWildCardSuffix: testWildCardSuffix,
 			lbIP:              testLoadBalancerIP,
 			externalIP:        testExternalIP,
-			want:              testExternalIP + ".xip.io",
+			want:              testExternalIP + "." + testWildCardSuffix,
 		},
 		{
 			name:        "lb with external ip",
 			serviceType: vzapi.LoadBalancer,
 			externalIP:  testExternalIP,
-			want:        testExternalIP + ".nip.io",
+			want:        testExternalIP + "." + defaultWildcardDomain,
 		},
 		{
 			name:        "lb with lb ip",
 			serviceType: vzapi.LoadBalancer,
 			lbIP:        testLoadBalancerIP,
-			want:        testLoadBalancerIP + ".nip.io",
+			want:        testLoadBalancerIP + "." + defaultWildcardDomain,
 		},
 		{
 			name:        "lb with both external and lb ip",
 			serviceType: vzapi.LoadBalancer,
 			lbIP:        testLoadBalancerIP,
 			externalIP:  testExternalIP,
-			want:        testExternalIP + ".nip.io",
+			want:        testExternalIP + "." + defaultWildcardDomain,
 		},
 		{
 			name:        "lb no address found",
@@ -277,7 +285,7 @@ func TestGetDNSSuffix(t *testing.T) {
 			name:        "nodeport with external ip",
 			serviceType: vzapi.NodePort,
 			externalIP:  testExternalIP,
-			want:        testExternalIP + ".nip.io",
+			want:        testExternalIP + "." + defaultWildcardDomain,
 		},
 		{
 			name:              "nodeport with external dns and external ip",
