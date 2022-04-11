@@ -1115,6 +1115,19 @@ def runGinkgoRandomize(testSuitePath) {
     }
 }
 
+// Run a test suite against just the admin cluster
+def runGinkgoRandomizeAdmin(testSuitePath) {
+                sh """
+                    export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+                    export CLUSTER_NAME="admin"
+                    cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                    ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+                """
+            }
+        }
+    }
+}
+
 // Configure the Admin and Managed cluster installer custom resources
 def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript, String... extraArgs) {
     script {
@@ -1557,5 +1570,5 @@ def emitJobMetrics() {
     long timeInMillis = "${currentBuild.timeInMillis}" as long;
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
     env.TIME_WAITING = startTimeInMillis-timeInMillis
-    runGinkgoRandomize('jobmetrics')
+    runGinkgoRandomizeAdmin('jobmetrics')
 }
