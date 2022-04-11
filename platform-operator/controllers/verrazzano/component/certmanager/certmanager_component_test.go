@@ -846,22 +846,29 @@ func validationTests(t *testing.T, isUpdate bool) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewComponent()
-			getClientFunc = func(log ...vzlog.VerrazzanoLogger) (v1.CoreV1Interface, error) {
-				if tt.caSecret != nil {
-					return createFakeClient(tt.caSecret).CoreV1(), nil
-				}
-				return createFakeClient().CoreV1(), nil
-			}
-			if isUpdate {
-				if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
-					t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
-				}
-			} else {
-				if err := c.ValidateInstall(tt.new); (err != nil) != tt.wantErr {
-					t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
-				}
-
-			}
+			getClientFunc = getTestClient(tt)
+			runValidationTest(t, tt, isUpdate, c)
 		})
+	}
+}
+
+func runValidationTest(t *testing.T, tt validationTestStruct, isUpdate bool, c spi.Component) {
+	if isUpdate {
+		if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
+			t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
+		}
+	} else {
+		if err := c.ValidateInstall(tt.new); (err != nil) != tt.wantErr {
+			t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
+		}
+	}
+}
+
+func getTestClient(tt validationTestStruct) func(log ...vzlog.VerrazzanoLogger) (v1.CoreV1Interface, error) {
+	return func(log ...vzlog.VerrazzanoLogger) (v1.CoreV1Interface, error) {
+		if tt.caSecret != nil {
+			return createFakeClient(tt.caSecret).CoreV1(), nil
+		}
+		return createFakeClient().CoreV1(), nil
 	}
 }
