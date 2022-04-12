@@ -364,7 +364,7 @@ pipeline {
                         kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
 
                         # A successful completion of the upgrade means the Keycloak configuration was successfully rebuilt
-                        kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                        kubectl wait --timeout=25m --for=condition=UpgradeComplete verrazzano/my-verrazzano
                         
                         # Kill MySQL and wait for Keycloak to be healthy again
                         ${GO_REPO_PATH}/verrazzano/ci/scripts/chaos_test_ephemeral_storage.sh
@@ -507,7 +507,7 @@ pipeline {
                     if [[ "uninstall.failed.upgrade" != ${params.CHAOS_TEST_TYPE} ]]
                     then
                         # wait for the upgrade to complete
-                        kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                        kubectl wait --timeout=25m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
                         # Dump the resource to debug
                         kubectl get -o yaml verrazzano/my-verrazzano || true
@@ -883,9 +883,9 @@ def restartExampleApps() {
 def emitJobMetrics() {
     env.JOB_STATUS = "${currentBuild.currentResult}".trim()
     long duration = "${currentBuild.duration}" as long;
-    env.DURATION = (duration/1000)
+    env.DURATION = duration
     long timeInMillis = "${currentBuild.timeInMillis}" as long;
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
-    env.TIME_WAITING = ((startTimeInMillis-timeInMillis)/1000)
+    env.TIME_WAITING = startTimeInMillis-timeInMillis
     runGinkgoRandomize('jobmetrics')
 }

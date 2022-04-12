@@ -25,6 +25,7 @@ spec:
         {{- toYaml .Values.deployment.pod_labels | nindent 8 }}
         {{- end }}
       annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
         {{- if .Values.server.metrics_enabled }}
         prometheus.io/scrape: "true"
         prometheus.io/port: {{ .Values.server.metrics_port | quote }}
@@ -32,7 +33,7 @@ spec:
         prometheus.io/scrape: "false"
         prometheus.io/port: ""
         {{- end }}
-        kiali.io/runtimes: go,kiali
+        kiali.io/dashboards: go,kiali
         {{- if .Values.deployment.pod_annotations }}
         {{- toYaml .Values.deployment.pod_annotations | nindent 8 }}
         {{- end }}
@@ -47,14 +48,23 @@ spec:
       - name: {{ . }}
       {{- end }}
       {{- end }}
+      {{- if .Values.deployment.host_aliases }}
+      hostAliases:
+      {{- toYaml .Values.deployment.host_aliases | nindent 6 }}
+      {{- end }}
       containers:
-      - image: "{{ .Values.deployment.image_name }}:{{ .Values.deployment.image_version }}"
+      - image: "{{ .Values.deployment.image_name }}{{ if .Values.deployment.image_digest }}@{{ .Values.deployment.image_digest }}{{ end }}:{{ .Values.deployment.image_version }}"
         imagePullPolicy: {{ .Values.deployment.image_pull_policy | default "Always" }}
         name: {{ include "kiali-server.fullname" . }}
         command:
         - "/opt/kiali/kiali"
         - "-config"
         - "/kiali-configuration/config.yaml"
+        securityContext:
+          allowPrivilegeEscalation: false
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
         ports:
         - name: api-port
           containerPort: {{ .Values.server.port | default 20001 }}
@@ -104,10 +114,8 @@ spec:
           mountPath: "/kiali-cert"
         - name: {{ include "kiali-server.fullname" . }}-secret
           mountPath: "/kiali-secret"
-        {{- if .Capabilities.APIVersions.Has "route.openshift.io/v1" }}
         - name: {{ include "kiali-server.fullname" . }}-cabundle
           mountPath: "/kiali-cabundle"
-        {{- end }}
         {{- if .Values.deployment.resources }}
         resources:
         {{- toYaml .Values.deployment.resources | nindent 10 }}
@@ -130,10 +138,11 @@ spec:
         secret:
           secretName: {{ .Values.deployment.secret_name }}
           optional: true
-      {{- if .Capabilities.APIVersions.Has "route.openshift.io/v1" }}
       - name: {{ include "kiali-server.fullname" . }}-cabundle
         configMap:
           name: {{ include "kiali-server.fullname" . }}-cabundle
+      {{- if not (.Capabilities.APIVersions.Has "route.openshift.io/v1") }}
+          optional: true
       {{- end }}
       {{- if or (.Values.deployment.affinity.node) (or (.Values.deployment.affinity.pod) (.Values.deployment.affinity.pod_anti)) }}
       affinity:

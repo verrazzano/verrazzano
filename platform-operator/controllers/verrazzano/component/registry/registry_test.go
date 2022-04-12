@@ -23,6 +23,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
+	promadapter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/adapter"
 	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -50,7 +51,7 @@ func TestGetComponents(t *testing.T) {
 	assert := assert.New(t)
 	comps := GetComponents()
 
-	assert.Len(comps, 15, "Wrong number of components")
+	assert.Len(comps, 16, "Wrong number of components")
 	assert.Equal(comps[0].Name(), oam.ComponentName)
 	assert.Equal(comps[1].Name(), appoper.ComponentName)
 	assert.Equal(comps[2].Name(), istio.ComponentName)
@@ -66,6 +67,7 @@ func TestGetComponents(t *testing.T) {
 	assert.Equal(comps[12].Name(), keycloak.ComponentName)
 	assert.Equal(comps[13].Name(), kiali.ComponentName)
 	assert.Equal(comps[14].Name(), promoperator.ComponentName)
+	assert.Equal(comps[15].Name(), promadapter.ComponentName)
 }
 
 // TestFindComponent tests FindComponent

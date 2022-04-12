@@ -336,7 +336,7 @@ pipeline {
                     kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
 
                     # wait for the upgrade to complete
-                    kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                    kubectl wait --timeout=25m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
                     # Dump the resource to debug
                     kubectl get -o yaml verrazzano/my-verrazzano || true
@@ -847,9 +847,9 @@ def restartExampleApps() {
 def emitJobMetrics() {
     env.JOB_STATUS = "${currentBuild.currentResult}".trim()
     long duration = "${currentBuild.duration}" as long;
-    env.DURATION = (duration/1000)
+    env.DURATION = duration
     long timeInMillis = "${currentBuild.timeInMillis}" as long;
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
-    env.TIME_WAITING = ((startTimeInMillis-timeInMillis)/1000)
+    env.TIME_WAITING = startTimeInMillis-timeInMillis
     runGinkgoRandomize('jobmetrics')
 }

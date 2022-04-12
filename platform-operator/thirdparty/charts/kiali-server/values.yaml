@@ -1,4 +1,8 @@
-nameOverride: "kiali"
+# 'fullnameOverride' is deprecated. Use 'deployment.instance_name' instead.
+# This is only supported for backward compatibility and will be removed in a future version.
+# If 'fullnameOverride' is not "kiali" and 'deployment.instance_name' is "kiali",
+# then 'deployment.instance_name' will take the value of 'fullnameOverride' value.
+# Otherwise, 'fullnameOverride' is ignored and 'deployment.instance_name' is used.
 fullnameOverride: "kiali"
 
 # This is required for "openshift" auth strategy.
@@ -31,17 +35,17 @@ deployment:
     node: {}
     pod: {}
     pod_anti: {}
-  custom_dashboards:
-    excludes: ['']
-    includes: ['*']
+  host_aliases: []
   hpa:
     api_version: "autoscaling/v2beta2"
     spec: {}
+  image_digest: "" # use "sha256" if image_version is a sha256 hash (do NOT prefix this value with a "@")
   image_name: quay.io/kiali/kiali
   image_pull_policy: "Always"
   image_pull_secrets: []
-  image_version: ${HELM_IMAGE_TAG}
+  image_version: ${HELM_IMAGE_TAG} # version like "v1.39" (see: https://quay.io/repository/kiali/kiali?tab=tags) or a digest hash
   ingress_enabled: true
+  instance_name: "kiali"
   logger:
     log_format: "text"
     log_level: "info"
@@ -59,7 +63,7 @@ deployment:
   service_annotations: {}
   service_type: ""
   tolerations: []
-  version_label: ${HELM_IMAGE_TAG}
+  version_label: ${HELM_IMAGE_TAG} # v1.39 # v1.39.0 # see: https://quay.io/repository/kiali/kiali?tab=tags
   view_only_mode: false
 
 external_services:
@@ -70,6 +74,14 @@ identity: {}
   #cert_file:
   #private_key_file:
 
+kiali_feature_flags:
+  certificates_information_indicators:
+   enabled: true
+   secrets:
+   - cacerts
+   - istio-ca-secret
+  clustering:
+    enabled: true
 login_token:
   signing_key: ""
 

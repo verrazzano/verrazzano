@@ -220,15 +220,10 @@
           "name": "verrazzano",
           "images": [
             {
-              "image": "verrazzano-operator",
-              "tag": "1.1.0-20210907141728-f037a71",
-              "helmFullImageKey": "verrazzanoOperator.imageName",
-              "helmTagKey": "verrazzanoOperator.imageVersion"
-            },
-            {
               "image": "node-exporter",
               "tag": "1.0.0-20210513143333-a470f06",
-              "helmFullImageKey": "verrazzanoOperator.nodeExporterImage"
+              "helmFullImageKey": "nodeExporter.imageName",
+              "helmTagKey": "nodeExporter.imageVersion"
             },
             {
               "image": "verrazzano-monitoring-operator",

@@ -19,7 +19,7 @@ spec:
             spec:
               rules:
                 - paths:
-                    - path: "/"
+                    - path: "/catalogue"
                       pathType: Prefix
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
@@ -28,6 +28,5 @@ spec:
               name: hello-metrics
             spec:
               ports:
-                - port: 8080
-                  path: "/actuator/prometheus"
+                - port: 7001
                 - port: 9612

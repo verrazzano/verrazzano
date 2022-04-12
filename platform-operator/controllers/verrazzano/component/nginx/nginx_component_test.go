@@ -4,8 +4,9 @@
 package nginx
 
 import (
-	v1 "k8s.io/api/core/v1"
 	"testing"
+
+	v1 "k8s.io/api/core/v1"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
@@ -47,7 +48,7 @@ func Test_nginxComponent_ValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "change-type",
+			name: "change-type-to-nodeport",
 			old:  &vzapi.Verrazzano{},
 			new: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
@@ -58,7 +59,29 @@ func Test_nginxComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
+		},
+		{
+			name: "change-type-from-nodeport",
+			old: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Ingress: &vzapi.IngressNginxComponent{
+							Type: vzapi.NodePort,
+						},
+					},
+				},
+			},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Ingress: &vzapi.IngressNginxComponent{
+							Type: vzapi.LoadBalancer,
+						},
+					},
+				},
+			},
+			wantErr: false,
 		},
 		{
 			name: "change-install-args",
@@ -72,7 +95,7 @@ func Test_nginxComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "change-ports",
@@ -86,7 +109,7 @@ func Test_nginxComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name:    "no change",

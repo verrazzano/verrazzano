@@ -12,7 +12,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
@@ -125,9 +124,8 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 
 		// GIVEN Log message in Elasticsearch in the verrazzano-namespace-verrazzano-system index
 		// With field
-		//	kubernetes.labels.app.keyword==verrazzano-application-operator,
+		//  kubernetes.labels.app.keyword==verrazzano-application-operator,
 		//  kubernetes.labels.app.keyword==verrazzano-monitoring-operator,
-		//  kubernetes.labels.app.keyword==verrazzano-operator
 		// WHEN Log messages are retrieved from Elasticsearch
 		// THEN Verify there are valid log records
 		if !validateVAOLogs() {
@@ -137,10 +135,6 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		if !validateVMOLogs() {
 			// Don't fail for invalid logs until this is stable.
 			t.Logs.Info("Found problems with Verrazzano Monitoring Operator log records in verrazzano-system index")
-		}
-		if !validateVOLogs() {
-			// Don't fail for invalid logs until this is stable.
-			t.Logs.Info("Found problems with Verrazzano Operator log records in verrazzano-system index")
 		}
 	})
 
@@ -351,27 +345,6 @@ func validateVMOLogs() bool {
 		"verrazzano-monitoring-operator",
 		searchTimeWindow,
 		noExceptions)
-}
-
-func validateVOLogs() bool {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-		return false
-	}
-
-	// VO not installed in 1.3.0+
-	if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath); !ok {
-		return validateElasticsearchRecords(
-			allElasticsearchRecordValidator,
-			systemIndex,
-			"kubernetes.labels.app.keyword",
-			"verrazzano-operator",
-			searchTimeWindow,
-			noExceptions)
-	}
-
-	return true
 }
 
 func validatePrometheusLogs() bool {
