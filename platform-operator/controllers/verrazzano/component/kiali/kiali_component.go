@@ -87,6 +87,9 @@ func (c kialiComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return common.ApplyCRDYaml(ctx, config.GetHelmKialiChartsDir())
 }
 
+// removeDeploymentAndService removes the Kiali deployment and service during pre-upgrade.
+// The match selector for Kiali was changed in 1.42.0 from the previous Kiali version (1.34.1) that Verrazzano installed.
+// The match selector is an immutable field so this was a workaround to avoid a failure during Kiali upgrade.
 func removeDeploymentAndService(ctx spi.ComponentContext) error {
 	deployment := &appv1.Deployment{}
 	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: kialiSystemName}, deployment); err != nil {
