@@ -540,12 +540,12 @@ pipeline {
                         }
                         stage ('WebLogic Workload') {
                             steps {
-                                runGinkgo("workloads/weblogic", "${TEST_DUMP_ROOT}/weblogic-workload")
+                                runGinkgo("multicluster/workloads/mcweblogic", "${TEST_DUMP_ROOT}/weblogic-workload")
                             }
                         }
                         stage ('Coherence Workload') {
                             steps {
-                                runGinkgo("workloads/coherence", "${TEST_DUMP_ROOT}/coherence-workload")
+                                runGinkgo("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload")
                             }
                         }
                     }
