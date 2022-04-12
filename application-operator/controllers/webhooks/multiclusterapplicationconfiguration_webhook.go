@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-	k8sadmission "k8s.io/api/admission/v1beta1"
+	k8sadmission "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"

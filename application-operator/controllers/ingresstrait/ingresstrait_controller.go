@@ -102,7 +102,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) (err error) {
 // This also results in the status of the ingress trait resource being updated.
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=ingresstraits,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=ingresstraits/status,verbs=get;update;patch
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
@@ -115,7 +115,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	var err error
 	var trait *vzapi.IngressTrait
-	ctx := context.Background()
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	if trait, err = r.fetchTrait(ctx, req.NamespacedName, zap.S()); err != nil {
 		return clusters.IgnoreNotFoundWithLog(err, zap.S())
 	}
@@ -616,7 +618,7 @@ func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualSer
 	virtualService.Spec.Http = []*istionet.HTTPRoute{&route}
 
 	// Set the owner reference.
-	controllerutil.SetControllerReference(trait, virtualService, r.Scheme)
+	_ = controllerutil.SetControllerReference(trait, virtualService, r.Scheme)
 	return nil
 }
 
@@ -677,12 +679,9 @@ func (r *Reconciler) setupWatches() error {
 		// The handler for the Watch is a map function to map the detected change into requests to reconcile any
 		// existing ingress traits and invoke the IngressTrait Reconciler; this should cause us to update the
 		// VS and GW records for the associated apps.
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: handler.ToRequestsFunc(
-				func(a handler.MapObject) []reconcile.Request {
-					return r.createIngressTraitReconcileRequests()
-				}),
-		},
+		handler.EnqueueRequestsFromMapFunc(func(a client.Object) []reconcile.Request {
+			return r.createIngressTraitReconcileRequests()
+		}),
 		predicate.Funcs{
 			UpdateFunc: func(updateEvent event.UpdateEvent) bool {
 				return r.isConsoleIngressUpdated(updateEvent)

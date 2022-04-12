@@ -161,7 +161,7 @@ func TestKialiPostInstallUpdateResources(t *testing.T) {
 	authPol := &istioclisec.AuthorizationPolicy{
 		ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kiali-authzpol"},
 	}
-	fakeClient := fake.NewFakeClientWithScheme(testScheme, ingress, authPol, cert)
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(ingress, authPol, cert).Build()
 	err := NewComponent().PostInstall(spi.NewFakeContext(fakeClient, vz, false))
 	assert.Nil(t, err)
 }
@@ -192,7 +192,7 @@ func TestKialiPostInstallCreateResources(t *testing.T) {
 			},
 		},
 	}
-	fakeClient := fake.NewFakeClientWithScheme(testScheme, cert)
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(cert).Build()
 	err := NewComponent().PostInstall(spi.NewFakeContext(fakeClient, vz, false))
 	assert.Nil(t, err)
 }
@@ -219,7 +219,7 @@ func TestKialiPostUpgradeUpdateResources(t *testing.T) {
 	authPol := &istioclisec.AuthorizationPolicy{
 		ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kiali-authzpol"},
 	}
-	fakeClient := fake.NewFakeClientWithScheme(testScheme, ingress, authPol)
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(ingress, authPol).Build()
 	err := NewComponent().PostUpgrade(spi.NewFakeContext(fakeClient, vz, false))
 	assert.Nil(t, err)
 }
@@ -232,7 +232,7 @@ func TestPreUpgrade(t *testing.T) {
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
 	config.TestHelmConfigDir = "../../../../thirdparty"
-	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewFakeClientWithScheme(testScheme), nil, false))
+	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), nil, false))
 	assert.NoError(t, err)
 }
 

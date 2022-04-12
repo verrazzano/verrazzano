@@ -96,7 +96,7 @@ func testClient(doer func(*http.Client, *http.Request) (*http.Response, error)) 
 //  THEN NewClient should return a new client
 func TestNewClient(t *testing.T) {
 	s := createRootCASecret()
-	c := fake.NewFakeClientWithScheme(getScheme(), &s)
+	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&s).Build()
 	rest, err := NewClient(c, "hostname", "password")
 	assert.Nil(t, err)
 	assert.NotNil(t, rest)
@@ -115,12 +115,12 @@ func TestGetAdminSecret(t *testing.T) {
 	}{
 		{
 			"should retrieve the secret when it exists",
-			fake.NewFakeClientWithScheme(getScheme(), &secret),
+			fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&secret).Build(),
 			false,
 		},
 		{
 			"should throw an error when the secret is not present",
-			fake.NewFakeClientWithScheme(getScheme()),
+			fake.NewClientBuilder().WithScheme(getScheme()).Build(),
 			true,
 		},
 	}
@@ -150,12 +150,12 @@ func TestGetRancherTLSRootCA(t *testing.T) {
 	}{
 		{
 			"should retrieve the secret when it exists",
-			fake.NewFakeClientWithScheme(getScheme(), &secret),
+			fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&secret).Build(),
 			false,
 		},
 		{
 			"should throw an error when the secret is not present",
-			fake.NewFakeClientWithScheme(getScheme()),
+			fake.NewClientBuilder().WithScheme(getScheme()).Build(),
 			true,
 		},
 	}
@@ -183,12 +183,12 @@ func TestHttpClient(t *testing.T) {
 	}{
 		{
 			"should get an HTTP Client when additional CA Secret exists",
-			fake.NewFakeClientWithScheme(getScheme(), &secret),
+			fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&secret).Build(),
 			false,
 		},
 		{
 			"should get an HTTP Client when additional CA Secret is not present",
-			fake.NewFakeClientWithScheme(getScheme()),
+			fake.NewClientBuilder().WithScheme(getScheme()).Build(),
 			false,
 		},
 	}

@@ -22,6 +22,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const testBomFile = "../../verrazzano-bom.json"
+
 // TestUpdate tests the reconcile func with updated generation
 // GIVEN a request to reconcile an verrazzano resource after install is completed
 // WHEN all components have the smaller LastReconciledGeneration than verrazzano CR in the request
@@ -116,7 +118,7 @@ func testUpdate(t *testing.T,
 	specVer, statusVer, namespace, name string) (*assert.Assertions, *vzapi.Verrazzano, ctrl.Result, *bool, error) {
 	asserts := assert.New(t)
 
-	config.SetDefaultBomFilePath(unitTestBomFile)
+	config.SetDefaultBomFilePath(testBomFile)
 
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -172,7 +174,7 @@ func testUpdate(t *testing.T,
 	// The mocks are added to accomodate the expected calls to List instance when component is Ready
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
+		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList, options ...client.UpdateOption) error {
 			ingressList.Items = []networkingv1.Ingress{}
 			return nil
 		}).AnyTimes()
@@ -206,7 +208,7 @@ func testUpdate(t *testing.T,
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 	mocker.Finish()
 	return asserts, vz, result, fakeCompUpdated, err
 }

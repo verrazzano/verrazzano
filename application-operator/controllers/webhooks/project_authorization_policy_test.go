@@ -30,7 +30,7 @@ func TestDeleteOnePolicyOneNamespace(t *testing.T) {
 	scheme := runtime.NewScheme()
 	err := cluv1alpha1.AddToScheme(scheme)
 	assert.NoError(t, err, "Unexpected error adding to scheme")
-	client := ctrlfake.NewFakeClientWithScheme(scheme)
+	client := ctrlfake.NewClientBuilder().WithScheme(scheme).Build()
 
 	ap := &AuthorizationPolicy{
 		Client:      client,

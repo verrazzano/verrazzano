@@ -277,7 +277,7 @@ func TestAppendMySQLOverridesUpgrade(t *testing.T) {
 //  WHEN the deployment object has enough replicas available
 //  THEN true is returned
 func TestIsMySQLReady(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      ComponentName,
@@ -288,7 +288,7 @@ func TestIsMySQLReady(t *testing.T) {
 			Replicas:          1,
 			UpdatedReplicas:   1,
 		},
-	})
+	}).Build()
 	assert.True(t, isMySQLReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
@@ -297,7 +297,7 @@ func TestIsMySQLReady(t *testing.T) {
 //  WHEN the deployment object does NOT have enough replicas available
 //  THEN false is returned
 func TestIsMySQLNotReady(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      ComponentName,
@@ -307,7 +307,7 @@ func TestIsMySQLNotReady(t *testing.T) {
 			Replicas:          1,
 			UpdatedReplicas:   0,
 		},
-	})
+	}).Build()
 	assert.False(t, isMySQLReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 

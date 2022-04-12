@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/go-logr/logr"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"io/ioutil"
 	"strings"
@@ -32,10 +33,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/yaml"
 )
 
@@ -57,11 +56,11 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	mgr = mocks.NewMockManager(mocker)
 	cli = mocks.NewMockClient(mocker)
 	scheme = runtime.NewScheme()
-	vzapi.AddToScheme(scheme)
+	_ = vzapi.AddToScheme(scheme)
 	reconciler = Reconciler{Client: cli, Scheme: scheme, Scraper: "istio-system/prometheus"}
-	mgr.EXPECT().GetConfig().Return(&rest.Config{})
+	mgr.EXPECT().GetControllerOptions().AnyTimes()
 	mgr.EXPECT().GetScheme().Return(scheme)
-	mgr.EXPECT().GetLogger().Return(log.NullLogger{})
+	mgr.EXPECT().GetLogger().Return(logr.Discard())
 	mgr.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()
 	mgr.EXPECT().Add(gomock.Any()).Return(nil).AnyTimes()
 	err = reconciler.SetupWithManager(mgr)
@@ -114,8 +113,8 @@ func TestMetricsTraitCreatedForContainerizedWorkload(t *testing.T) {
 		})
 	// Expect a call to update the trait resource with a finalizer.
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 			assert.Equal("test-namespace", trait.Namespace)
 			assert.Equal("test-trait-name", trait.Name)
 			assert.Len(trait.Finalizers, 1)
@@ -180,7 +179,7 @@ func TestMetricsTraitCreatedForContainerizedWorkload(t *testing.T) {
 		})
 	// Expect a call to update the prometheus config
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, deployment *k8sapps.Deployment, opts ...client.UpdateOption) error {
 			scrape, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsEnabled"]
 			assert.True(ok)
@@ -197,7 +196,7 @@ func TestMetricsTraitCreatedForContainerizedWorkload(t *testing.T) {
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 	// Expect a call to update the status of the trait status
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 			assert.Len(trait.Status.Conditions, 1)
 			return nil
@@ -207,7 +206,7 @@ func TestMetricsTraitCreatedForContainerizedWorkload(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -263,8 +262,8 @@ func TestMetricsTraitCreatedForVerrazzanoWorkload(t *testing.T) {
 		})
 	// Expect a call to update the trait resource with a finalizer.
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 			assert.Equal("test-namespace", trait.Namespace)
 			assert.Equal("test-trait-name", trait.Name)
 			assert.Len(trait.Finalizers, 1)
@@ -350,7 +349,7 @@ func TestMetricsTraitCreatedForVerrazzanoWorkload(t *testing.T) {
 		})
 	// Expect a call to update the prometheus config
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, deployment *k8sapps.Deployment, opts ...client.UpdateOption) error {
 			scrape, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsEnabled"]
 			assert.True(ok)
@@ -367,7 +366,7 @@ func TestMetricsTraitCreatedForVerrazzanoWorkload(t *testing.T) {
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 	// Expect a call to update the status of the trait status
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 			assert.Len(trait.Status.Conditions, 1)
 			return nil
@@ -377,7 +376,7 @@ func TestMetricsTraitCreatedForVerrazzanoWorkload(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -432,8 +431,8 @@ func TestMetricsTraitCreatedForDeploymentWorkload(t *testing.T) {
 		})
 	// Expect a call to update the trait resource with a finalizer.
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 			assert.Equal("test-namespace", trait.Namespace)
 			assert.Equal("test-trait-name", trait.Name)
 			assert.Len(trait.Finalizers, 1)
@@ -491,7 +490,7 @@ func TestMetricsTraitCreatedForDeploymentWorkload(t *testing.T) {
 		})
 	// Expect a call to update the prometheus config
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, deployment *k8sapps.Deployment, opts ...client.UpdateOption) error {
 			scrape, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsEnabled"]
 			assert.True(ok)
@@ -508,7 +507,7 @@ func TestMetricsTraitCreatedForDeploymentWorkload(t *testing.T) {
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 	// Expect a call to update the status of the trait status
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 			assert.Len(trait.Status.Conditions, 1)
 			return nil
@@ -518,7 +517,7 @@ func TestMetricsTraitCreatedForDeploymentWorkload(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -573,7 +572,7 @@ func TestMetricsTraitDeletedForContainerizedWorkload(t *testing.T) {
 		return nil
 	})
 	// 3. Expect a call to update the child resource to remove the annotations
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8sapps.Deployment) error {
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8sapps.Deployment, opts ...client.UpdateOption) error {
 		assert.Equal("test-namespace", obj.Namespace)
 		assert.Equal("test-workload-name", obj.Name)
 		assert.NotContains(obj.Spec.Template.Annotations, "verrazzano.io/metricsEnabled")
@@ -596,7 +595,7 @@ func TestMetricsTraitDeletedForContainerizedWorkload(t *testing.T) {
 		return nil
 	})
 	// 8. Expect a call to update the prometheus configmap
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8score.ConfigMap) error {
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8score.ConfigMap, opts ...client.UpdateOption) error {
 		assert.Equal("verrazzano-system", obj.Namespace)
 		assert.Equal("vmi-system-prometheus-0", obj.Name)
 		return nil
@@ -609,13 +608,13 @@ func TestMetricsTraitDeletedForContainerizedWorkload(t *testing.T) {
 		return nil
 	})
 	// 10. Expect a call to update the owner application configuration
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, appConfig *oamcore.ApplicationConfiguration) error {
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, appConfig *oamcore.ApplicationConfiguration, opts ...client.UpdateOption) error {
 		assert.Equal("test-namespace", appConfig.Namespace)
 		assert.Equal("test-oam-app-name", appConfig.Name)
 		return nil
 	})
 	// 11. Expect a call to update the metrics trait to remove the finalizer
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *vzapi.MetricsTrait) error {
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 		assert.Equal("test-namespace", obj.Namespace)
 		assert.Equal("test-trait-name", obj.Name)
 		assert.Len(obj.Finalizers, 0)
@@ -625,7 +624,7 @@ func TestMetricsTraitDeletedForContainerizedWorkload(t *testing.T) {
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -693,7 +692,7 @@ func TestMetricsTraitDeletedForContainerizedWorkloadWhenDeploymentDeleted(t *tes
 		return nil
 	})
 	// Expect a call to update the prometheus configmap
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8score.ConfigMap) error {
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8score.ConfigMap, opts ...client.UpdateOption) error {
 		assert.Equal("verrazzano-system", obj.Namespace)
 		assert.Equal("vmi-system-prometheus-0", obj.Name)
 		return nil
@@ -706,13 +705,13 @@ func TestMetricsTraitDeletedForContainerizedWorkloadWhenDeploymentDeleted(t *tes
 		return nil
 	})
 	// Expect a call to update the owner application configuration
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, appConfig *oamcore.ApplicationConfiguration) error {
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, appConfig *oamcore.ApplicationConfiguration, opts ...client.UpdateOption) error {
 		assert.Equal("test-namespace", appConfig.Namespace)
 		assert.Equal("test-oam-app-name", appConfig.Name)
 		return nil
 	})
 	// Expect a call to update the metrics trait to remove the finalizer
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *vzapi.MetricsTrait) error {
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 		assert.Equal("test-namespace", obj.Namespace)
 		assert.Equal("test-trait-name", obj.Name)
 		assert.Len(obj.Finalizers, 0)
@@ -722,7 +721,7 @@ func TestMetricsTraitDeletedForContainerizedWorkloadWhenDeploymentDeleted(t *tes
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -777,7 +776,7 @@ func TestMetricsTraitDeletedForDeploymentWorkload(t *testing.T) {
 		return nil
 	})
 	// 3. Expect a call to update the child resource to remove the annotations
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8sapps.Deployment) error {
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8sapps.Deployment, opts ...client.UpdateOption) error {
 		assert.Equal("deploymetrics", obj.Namespace)
 		assert.Equal("deploymetrics-workload", obj.Name)
 		assert.NotContains(obj.Spec.Template.Annotations, "verrazzano.io/metricsEnabled")
@@ -800,7 +799,7 @@ func TestMetricsTraitDeletedForDeploymentWorkload(t *testing.T) {
 		return nil
 	})
 	// 8. Expect a call to update the prometheus configmap
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8score.ConfigMap) error {
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8score.ConfigMap, opts ...client.UpdateOption) error {
 		assert.Equal("verrazzano-system", obj.Namespace)
 		assert.Equal("vmi-system-prometheus-0", obj.Name)
 		return nil
@@ -813,13 +812,13 @@ func TestMetricsTraitDeletedForDeploymentWorkload(t *testing.T) {
 		return nil
 	})
 	// 10. Expect a call to update the owner application configuration
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, appConfig *oamcore.ApplicationConfiguration) error {
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, appConfig *oamcore.ApplicationConfiguration, opts ...client.UpdateOption) error {
 		assert.Equal("deploymetrics", appConfig.Namespace)
 		assert.Equal("deploymetrics-appconf", appConfig.Name)
 		return nil
 	})
 	// 11. Expect a call to update the metrics trait to remove the finalizer
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *vzapi.MetricsTrait) error {
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 		assert.Equal("deploymetrics", obj.Namespace)
 		assert.Equal("deploymetrics-deployment-trait", obj.Name)
 		assert.Len(obj.Finalizers, 0)
@@ -829,7 +828,7 @@ func TestMetricsTraitDeletedForDeploymentWorkload(t *testing.T) {
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "deploymetrics", Name: "deploymetrics-deployment-trait"}}
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -856,7 +855,7 @@ func TestFetchTraitError(t *testing.T) {
 	// Create and make the request
 	reconciler := newMetricsTraitReconciler(mock)
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -892,8 +891,8 @@ func TestWorkloadFetchError(t *testing.T) {
 		})
 	// Expect a call to update the trait resource with a finalizer.
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 			assert.Equal("test-namespace", trait.Namespace)
 			assert.Equal("test-trait-name", trait.Name)
 			assert.Len(trait.Finalizers, 1)
@@ -908,7 +907,7 @@ func TestWorkloadFetchError(t *testing.T) {
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -958,8 +957,8 @@ func TestDeploymentUpdateError(t *testing.T) {
 		})
 	// Expect a call to update the trait resource with a finalizer.
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 			assert.Equal("test-namespace", trait.Namespace)
 			assert.Equal("test-trait-name", trait.Name)
 			assert.Len(trait.Finalizers, 1)
@@ -1023,13 +1022,13 @@ func TestDeploymentUpdateError(t *testing.T) {
 			return nil
 		})
 	// Expect a call to update the child with annotations but return an error.
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(fmt.Errorf("test-error"))
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("test-error"))
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 	// Expect a call to update the status of the ingress trait.
 	// The status should include the error updating the deployment
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 			assert.Len(trait.Status.Conditions, 1)
 			assert.Equal(oamrt.ReasonReconcileError, trait.Status.Conditions[0].Reason)
@@ -1040,7 +1039,7 @@ func TestDeploymentUpdateError(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1075,8 +1074,8 @@ func TestUnsupportedWorkloadType(t *testing.T) {
 		})
 	// Expect a call to update the trait resource with a finalizer.
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 			assert.Equal("test-namespace", trait.Namespace)
 			assert.Equal("test-trait-name", trait.Name)
 			assert.Len(trait.Finalizers, 1)
@@ -1103,7 +1102,7 @@ func TestUnsupportedWorkloadType(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1193,8 +1192,8 @@ func TestNoUpdatesRequired(t *testing.T) {
 		})
 	// Expect a call to update the trait resource with a finalizer.
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 			assert.Equal("test-namespace", trait.Namespace)
 			assert.Equal("test-trait-name", trait.Name)
 			assert.Len(trait.Finalizers, 1)
@@ -1301,7 +1300,7 @@ func TestNoUpdatesRequired(t *testing.T) {
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1415,8 +1414,8 @@ func TestSSLNoUpdatesRequired(t *testing.T) {
 		})
 	// Expect a call to update the trait resource with a finalizer.
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 			assert.Equal("test-namespace", trait.Namespace)
 			assert.Equal("test-trait-name", trait.Name)
 			assert.Len(trait.Finalizers, 1)
@@ -1522,7 +1521,7 @@ func TestSSLNoUpdatesRequired(t *testing.T) {
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1585,8 +1584,8 @@ func TestMetricsTraitCreatedForWLSWorkload(t *testing.T) {
 		})
 	// Expect a call to update the trait resource with a finalizer.
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 			assert.Equal("test-namespace", trait.Namespace)
 			assert.Equal("test-trait-name", trait.Name)
 			assert.Len(trait.Finalizers, 1)
@@ -1670,16 +1669,16 @@ func TestMetricsTraitCreatedForWLSWorkload(t *testing.T) {
 
 	// Expect a call to get update the child pod
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&k8score.Pod{})).
-		DoAndReturn(func(ctx context.Context, obj *k8score.Pod) error {
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&k8score.Pod{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, obj *k8score.Pod, opts ...client.UpdateOption) error {
 			assert.Equal("test-namespace", obj.Namespace)
 			assert.Equal("test-pod-name", obj.Name)
 			return nil
 		})
 	// Expect a call to get update the prometheus configmap
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, obj *k8score.ConfigMap) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, obj *k8score.ConfigMap, opts ...client.UpdateOption) error {
 			assert.Equal("istio-system", obj.Namespace)
 			assert.Equal("prometheus", obj.Name)
 			assert.Contains(obj.Data["prometheus.yml"], "target_label: "+prometheusClusterNameLabel)
@@ -1690,7 +1689,7 @@ func TestMetricsTraitCreatedForWLSWorkload(t *testing.T) {
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 	// Expect a call to update the status of the trait status
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 			assert.Len(trait.Status.Conditions, 1)
 			return nil
@@ -1707,7 +1706,7 @@ func TestMetricsTraitCreatedForWLSWorkload(t *testing.T) {
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1769,7 +1768,7 @@ func TestMetricsTraitDeletedForWLSWorkload(t *testing.T) {
 		return nil
 	})
 	// 3. Expect a call to update the child resource to remove the annotations.
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8score.Pod) error {
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8score.Pod, opts ...client.UpdateOption) error {
 		assert.Equal("test-namespace", obj.Namespace)
 		assert.Equal("test-workload-namedomain-adminserver", obj.Name)
 		assert.NotContains(obj.Annotations, "verrazzano.io/metricsEnabled")
@@ -1789,7 +1788,7 @@ func TestMetricsTraitDeletedForWLSWorkload(t *testing.T) {
 		return nil
 	})
 	// 5. Expect a call to update the child resource to remove the annotations.
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8score.Pod) error {
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8score.Pod, opts ...client.UpdateOption) error {
 		assert.Equal("test-namespace", obj.Namespace)
 		assert.Equal("test-workload-namedomain-managed-server1", obj.Name)
 		assert.NotContains(obj.Annotations, "verrazzano.io/metricsEnabled")
@@ -1812,7 +1811,7 @@ func TestMetricsTraitDeletedForWLSWorkload(t *testing.T) {
 		return nil
 	})
 	// 8. Expect a call to update the prometheus configmap.
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8score.ConfigMap) error {
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8score.ConfigMap, opts ...client.UpdateOption) error {
 		assert.Equal("istio-system", obj.Namespace)
 		assert.Equal("prometheus", obj.Name)
 		return nil
@@ -1825,13 +1824,13 @@ func TestMetricsTraitDeletedForWLSWorkload(t *testing.T) {
 		return nil
 	})
 	// 10. Expect a call to update the owner application configuration
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, appConfig *oamcore.ApplicationConfiguration) error {
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, appConfig *oamcore.ApplicationConfiguration, opts ...client.UpdateOption) error {
 		assert.Equal("test-namespace", appConfig.Namespace)
 		assert.Equal("test-oam-app-name", appConfig.Name)
 		return nil
 	})
 	// 11. Expect a call to update the metrics trait to remove the finalizer
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *vzapi.MetricsTrait) error {
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 		assert.Equal("test-namespace", obj.Namespace)
 		assert.Equal("test-trait-name", obj.Name)
 		assert.Len(obj.Finalizers, 0)
@@ -1841,7 +1840,7 @@ func TestMetricsTraitDeletedForWLSWorkload(t *testing.T) {
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1895,8 +1894,8 @@ func TestMetricsTraitCreatedForCOHWorkload(t *testing.T) {
 		})
 	// Expect a call to update the trait resource with a finalizer.
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 			assert.Equal("test-namespace", trait.Namespace)
 			assert.Equal("test-trait-name", trait.Name)
 			assert.Len(trait.Finalizers, 1)
@@ -1965,7 +1964,7 @@ func TestMetricsTraitCreatedForCOHWorkload(t *testing.T) {
 		})
 	// Expect a call to update the prometheus config
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, deployment *k8sapps.StatefulSet, opts ...client.UpdateOption) error {
 			scrape, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsEnabled"]
 			assert.True(ok)
@@ -1982,7 +1981,7 @@ func TestMetricsTraitCreatedForCOHWorkload(t *testing.T) {
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 	// Expect a call to update the status of the trait status
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 			assert.Len(trait.Status.Conditions, 1)
 			return nil
@@ -1992,7 +1991,7 @@ func TestMetricsTraitCreatedForCOHWorkload(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -2055,8 +2054,8 @@ func TestMetricsTraitCreatedWithMultiplePorts(t *testing.T) {
 		})
 	// Expect a call to update the trait resource with a finalizer.
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 			assert.Equal("test-namespace", trait.Namespace)
 			assert.Equal("test-trait-name", trait.Name)
 			assert.Len(trait.Finalizers, 1)
@@ -2125,7 +2124,7 @@ func TestMetricsTraitCreatedWithMultiplePorts(t *testing.T) {
 		})
 	// Expect a call to update the prometheus config
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, deployment *k8sapps.StatefulSet, opts ...client.UpdateOption) error {
 			scrape, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsEnabled"]
 			assert.True(ok)
@@ -2151,7 +2150,7 @@ func TestMetricsTraitCreatedWithMultiplePorts(t *testing.T) {
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 	// Expect a call to update the status of the trait status
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 			assert.Len(trait.Status.Conditions, 1)
 			return nil
@@ -2161,7 +2160,7 @@ func TestMetricsTraitCreatedWithMultiplePorts(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -2226,8 +2225,8 @@ func TestMetricsTraitCreatedWithMultiplePortsAndPort(t *testing.T) {
 		})
 	// Expect a call to update the trait resource with a finalizer.
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 			assert.Equal("test-namespace", trait.Namespace)
 			assert.Equal("test-trait-name", trait.Name)
 			assert.Len(trait.Finalizers, 1)
@@ -2296,7 +2295,7 @@ func TestMetricsTraitCreatedWithMultiplePortsAndPort(t *testing.T) {
 		})
 	// Expect a call to update the prometheus config
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, deployment *k8sapps.StatefulSet, opts ...client.UpdateOption) error {
 			scrape, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsEnabled"]
 			assert.True(ok)
@@ -2331,7 +2330,7 @@ func TestMetricsTraitCreatedWithMultiplePortsAndPort(t *testing.T) {
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 	// Expect a call to update the status of the trait status
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 			assert.Len(trait.Status.Conditions, 1)
 			return nil
@@ -2341,7 +2340,7 @@ func TestMetricsTraitCreatedWithMultiplePortsAndPort(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -2395,7 +2394,7 @@ func TestMetricsTraitDeletedForCOHWorkload(t *testing.T) {
 		return nil
 	})
 	// 3. Expect a call to update the child resource to remove the annotations
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8sapps.StatefulSet) error {
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8sapps.StatefulSet, opts ...client.UpdateOption) error {
 		assert.Equal("test-namespace", obj.Namespace)
 		assert.Equal("test-workload-name", obj.Name)
 		assert.NotContains(obj.Spec.Template.Annotations, "verrazzano.io/metricsEnabled")
@@ -2418,7 +2417,7 @@ func TestMetricsTraitDeletedForCOHWorkload(t *testing.T) {
 		return nil
 	})
 	// 8. Expect a call to update the prometheus configmap
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8score.ConfigMap) error {
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8score.ConfigMap, opts ...client.UpdateOption) error {
 		assert.Equal("verrazzano-system", obj.Namespace)
 		assert.Equal("vmi-system-prometheus-0", obj.Name)
 		return nil
@@ -2431,13 +2430,13 @@ func TestMetricsTraitDeletedForCOHWorkload(t *testing.T) {
 		return nil
 	})
 	// 10. Expect a call to update the owner application configuration
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, appConfig *oamcore.ApplicationConfiguration) error {
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, appConfig *oamcore.ApplicationConfiguration, opts ...client.UpdateOption) error {
 		assert.Equal("test-namespace", appConfig.Namespace)
 		assert.Equal("test-oam-app-name", appConfig.Name)
 		return nil
 	})
 	// 11. Expect a call to update the metrics trait to remove the finalizer
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *vzapi.MetricsTrait) error {
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 		assert.Equal("test-namespace", obj.Namespace)
 		assert.Equal("test-trait-name", obj.Name)
 		assert.Len(obj.Finalizers, 0)
@@ -2447,7 +2446,7 @@ func TestMetricsTraitDeletedForCOHWorkload(t *testing.T) {
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -2677,7 +2676,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	// create a request and reconcile it
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: vzconst.KubeSystem, Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
