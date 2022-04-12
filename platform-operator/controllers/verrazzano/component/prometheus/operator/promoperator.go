@@ -60,17 +60,15 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		return kvs, err
 	}
 
-	// replace default Alertmanager Image
-	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
-	if err != nil {
-		return kvs, ctx.Log().ErrorNewErr("Failed to get the bom file for the Prometheus Operator image overrides: ", err)
+	// Replace default images for subcomponents Alertmanager and Prometheus
+	defaultImages := map[string]string{
+		// format "subcomponentName": "helmDefaultKey"
+		"alertmanager": "prometheusOperator.alertmanagerDefaultBaseImage",
+		"prometheus":   "prometheusOperator.prometheusDefaultBaseImage",
 	}
-	images, err := bomFile.GetImageNameList("alertmanager")
+	kvs, err = appendDefaultImageOverrides(ctx, kvs, defaultImages)
 	if err != nil {
-		return kvs, ctx.Log().ErrorNewErr("Failed to get the image from the bom for the Prometheus Operator image overrides: ", err)
-	}
-	if len(images) > 0 {
-		kvs = append(kvs, bom.KeyValue{Key: "prometheusOperator.alertmanagerDefaultBaseImage", Value: images[0]})
+		return kvs, err
 	}
 
 	return kvs, nil
@@ -89,6 +87,25 @@ func appendCustomImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, su
 			return kvs, ctx.Log().ErrorfNewErr("Failed to build the Prometheus Operator image overrides for subcomponent %s: ", subcomponent, err)
 		}
 		kvs = append(kvs, imageOverrides...)
+	}
+
+	return kvs, nil
+}
+
+func appendDefaultImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, subcomponents map[string]string) ([]bom.KeyValue, error) {
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return kvs, ctx.Log().ErrorNewErr("Failed to get the bom file for the Prometheus Operator image overrides: ", err)
+	}
+
+	for subcomponent, helmKey := range subcomponents {
+		images, err := bomFile.GetImageNameList(subcomponent)
+		if err != nil {
+			return kvs, ctx.Log().ErrorfNewErr("Failed to get the image for subcomponent %s from the bom: ", subcomponent, err)
+		}
+		if len(images) > 0 {
+			kvs = append(kvs, bom.KeyValue{Key: helmKey, Value: images[0]})
+		}
 	}
 
 	return kvs, nil
