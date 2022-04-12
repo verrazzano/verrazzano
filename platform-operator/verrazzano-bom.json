@@ -20,6 +20,7 @@
     },
     {
       "name": "ingress-nginx",
+      "repository": "verrazzano",
       "subcomponents": [
         {
           "name": "ingress-controller",
