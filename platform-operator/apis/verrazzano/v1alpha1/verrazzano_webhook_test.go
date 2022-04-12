@@ -381,3 +381,34 @@ func Test_combineErrors(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Equal(t, "[e1, e2, e3]", err.Error())
 }
+
+// TestUpdateMissingOciLoggingApiSecret Tests the update callback with valid spec config with oci-logging
+// GIVEN a ValidateUpdate() request
+// WHEN a new CR contains oci-logging with apiSecret
+// THEN validation error is returned
+func TestUpdateMissingOciLoggingApiSecret(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	oldSpec := &Verrazzano{Spec: VerrazzanoSpec{Profile: "dev"}}
+	newSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: "dev",
+			Components: ComponentSpec{
+				Fluentd: &FluentdComponent{
+					OCI: &OciLoggingConfiguration{
+						DefaultAppLogID: "testDefaultAppLogID",
+						SystemLogID:     "DefaultAppLogID",
+						APISecret:       "testAPISecret",
+					},
+				},
+			},
+		},
+	}
+	getControllerRuntimeClient = func() (client.Client, error) {
+		return fake.NewFakeClientWithScheme(newScheme()), nil
+	}
+	defer func() {
+		config.SetDefaultBomFilePath("")
+		getControllerRuntimeClient = getClient
+	}()
+	assert.Error(t, newSpec.ValidateUpdate(oldSpec))
+}
