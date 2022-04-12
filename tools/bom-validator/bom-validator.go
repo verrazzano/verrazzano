@@ -42,6 +42,7 @@ type imageError struct {
 
 var ignoreSubComponents = []string{
 	"additional-rancher",
+	"prometheus",
 }
 
 func main() {
