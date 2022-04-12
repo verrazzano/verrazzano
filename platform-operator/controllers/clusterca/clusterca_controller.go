@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package clusterca
@@ -37,6 +37,7 @@ func (r *VerrazzanoAdminCAReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *VerrazzanoAdminCAReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Determine if we're interested in this secret
 	if req.Name == constants.VerrazzanoIngressSecret && req.Namespace == constants.VerrazzanoSystemNamespace {
+		zap.S().Info("Reconciling VerrazzanoAdminCA")
 		// Get the verrazzano ingress secret
 		caSecret := corev1.Secret{}
 		if err := r.Get(context.TODO(), req.NamespacedName, &caSecret); err != nil {
@@ -44,6 +45,7 @@ func (r *VerrazzanoAdminCAReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			zap.S().Errorf("Failed to fetch Verrazzano Admin CA secret: %v", err)
 			return newRequeueWithDelay(), nil
 		}
+		zap.S().Info("Got admin secret")
 
 		// Get the resource logger needed to log message using 'progress' and 'once' methods
 		log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
@@ -56,6 +58,7 @@ func (r *VerrazzanoAdminCAReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		if err != nil {
 			zap.S().Errorf("Failed to create controller logger for VerrazzanoAdminCA controller", err)
 		}
+		zap.S().Info("Got logger")
 
 		r.log = log
 
@@ -70,9 +73,12 @@ func (r *VerrazzanoAdminCAReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			r.log.Errorf("Failed to create or update MC Admin CA secret: %v", err)
 			return newRequeueWithDelay(), nil
 		}
+		zap.S().Info("Created or updated mc admin secret")
 
 		// The resource has been reconciled.
 		r.log.Oncef("Successfully reconciled Admin CA secret")
+	} else {
+		zap.S().Infof("Ignoring reconcile for secret: %v", req.NamespacedName)
 	}
 
 	return ctrl.Result{}, nil
