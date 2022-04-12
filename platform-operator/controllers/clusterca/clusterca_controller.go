@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -40,9 +41,23 @@ func (r *VerrazzanoAdminCAReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		caSecret := corev1.Secret{}
 		if err := r.Get(context.TODO(), req.NamespacedName, &caSecret); err != nil {
 			// Secret should never be not found, unless we're running before it's been created
-			r.log.Errorf("Failed to fetch Verrazzano Admin CA secret: %v", err)
+			zap.S().Errorf("Failed to fetch Verrazzano Admin CA secret: %v", err)
 			return newRequeueWithDelay(), nil
 		}
+
+		// Get the resource logger needed to log message using 'progress' and 'once' methods
+		log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
+			Name:           caSecret.Name,
+			Namespace:      caSecret.Namespace,
+			ID:             string(caSecret.UID),
+			Generation:     caSecret.Generation,
+			ControllerName: "adminca",
+		})
+		if err != nil {
+			zap.S().Errorf("Failed to create controller logger for VerrazzanoAdminCA controller", err)
+		}
+
+		r.log = log
 
 		mcCASecret := corev1.Secret{}
 		mcCASecret.Data = make(map[string][]byte)
@@ -50,7 +65,7 @@ func (r *VerrazzanoAdminCAReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		mcCASecret.Name = constants.MCAdminCASecret
 		mcCASecret.Namespace = constants.VerrazzanoMultiClusterNamespace
 
-		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &mcCASecret, func() error { return nil })
+		_, err = controllerutil.CreateOrUpdate(context.TODO(), r.Client, &mcCASecret, func() error { return nil })
 		if err != nil {
 			r.log.Errorf("Failed to create or update MC Admin CA secret: %v", err)
 			return newRequeueWithDelay(), nil
@@ -65,5 +80,5 @@ func (r *VerrazzanoAdminCAReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 // Create a new Result that will cause a reconcile requeue after a short delay
 func newRequeueWithDelay() ctrl.Result {
-	return vzctrl.NewRequeueWithDelay(2, 3, time.Second)
+	return vzctrl.NewRequeueWithDelay(3, 5, time.Second)
 }

@@ -181,15 +181,6 @@ func main() {
 		mgr.GetWebhookServer().CertDir = config.CertDir
 	}
 
-	// Setup reconciler for the Admin CA secret (ensures admin ca bundle in verrazzano-mc namespace is up-to-date)
-	if err = (&clusterca.VerrazzanoAdminCAReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoAdminCABundle")
-		os.Exit(1)
-	}
-
 	// Setup the reconciler for VerrazzanoManagedCluster objects
 	if err = (&clusterscontroller.VerrazzanoManagedClusterReconciler{
 		Client: mgr.GetClient(),
@@ -207,6 +198,15 @@ func main() {
 			os.Exit(1)
 		}
 		mgr.GetWebhookServer().CertDir = config.CertDir
+	}
+
+	// Setup reconciler for the Admin CA secret (ensures admin ca bundle in verrazzano-mc namespace is up-to-date)
+	if err = (&clusterca.VerrazzanoAdminCAReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoAdminCA")
+		os.Exit(1)
 	}
 
 	// +kubebuilder:scaffold:builder
