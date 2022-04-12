@@ -133,4 +133,7 @@ replace (
 	k8s.io/cli-runtime => k8s.io/cli-runtime v0.23.5
 	k8s.io/client-go => k8s.io/client-go v0.23.5
 	k8s.io/code-generator => k8s.io/code-generator v0.23.5
+	github.com/spf13/cobra => github.com/spf13/cobra v1.1.1
+	golang.org/x/tools => golang.org/x/tools v0.0.0-20210106214847-113979e3529a
+
 )

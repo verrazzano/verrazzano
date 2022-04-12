@@ -2110,14 +2110,16 @@ golang.org/x/tools
 -------- Copyrights
 Copyright (c) 2009 The Go Authors. All rights reserved.
 Copyright 2014 The Go Authors. All rights reserved.
-Copyright 2009 The Go Authors. All rights reserved.
-Copyright 2013 The Go Authors. All rights reserved.
+Copyright 2009 The Go Authors.  All rights reserved.
+Copyright 2013 The Go Authors.  All rights reserved.
 Copyright 2018 The Go Authors. All rights reserved.
 Copyright 2019 The Go Authors. All rights reserved.
 Copyright 2015 The Go Authors. All rights reserved.
-Copyright 2021 The Go Authors. All rights reserved.
+Copyright 2015 The Go Authors.  All rights reserved.
+Copyright 2013 The Go Authors. All rights reserved.
 Copyright (c) 2017 The Go Authors. All rights reserved.
 Copyright 2017 The Go Authors. All rights reserved.
+Copyright 2009 The Go Authors. All rights reserved.
 Copyright 2010 The Go Authors. All rights reserved.
 Copyright 2016 The Go Authors. All rights reserved.
 Copyright 2011 The Go Authors. All rights reserved.
@@ -2130,11 +2132,10 @@ Portions Copyright © 2005-2007 C H Forsyth (forsyth@terzarima.net)
 Revisions Copyright © 2000-2007 Lucent Technologies Inc. and others
 Portions Copyright © 2009 The Go Authors. All rights reserved.
 Copyright 2012 The Go Authors. All rights reserved.
+Copyright 2012 The Go Authors.  All rights reserved.
 Copyright 2020 The Go Authors. All rights reserved.
-Copyright 2022 The Go Authors. All rights reserved.
+Copyright 2021 The Go Authors. All rights reserved.
 const license = `// Copyright 2013 The Go Authors. All rights reserved.
-const src = `// Copyright 2021 The Go Authors. All rights reserved.
-var tmpl = `// Copyright 2021 The Go Authors. All rights reserved.
 -------- Patents
 Additional IP Rights Grant (Patents)
 
@@ -2891,4 +2892,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: 3657b668586c5fa5a6ee53e367545ef8
+License file based on go.mod with md5 sum: 652d02bd5a45908962f8eeb77bd0f3a6
