@@ -45,6 +45,7 @@ func (r *VerrazzanoAdminCAReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		}
 
 		mcCASecret := corev1.Secret{}
+		mcCASecret.Data = make(map[string][]byte)
 		mcCASecret.Data["ca-bundle"] = caSecret.Data["ca.crt"]
 		mcCASecret.Name = constants.MCAdminCASecret
 		mcCASecret.Namespace = constants.VerrazzanoMultiClusterNamespace
