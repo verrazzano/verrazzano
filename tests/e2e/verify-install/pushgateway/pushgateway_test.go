@@ -36,7 +36,7 @@ func WhenPrometheusPushgatewayInstalledIt(description string, f interface{}) {
 	if supported {
 		t.It(description, f)
 	} else {
-		t.Logs.Infof("Skipping check '%v', the Prometheus Operator is not supported", description)
+		t.Logs.Infof("Skipping check '%v', the Prometheus Pushgateway is not supported", description)
 	}
 }
 
@@ -49,14 +49,14 @@ var _ = t.Describe("Prometheus Pushgateway", Label("f:platform-lcm.install"), fu
 		})
 
 		WhenPrometheusPushgatewayInstalledIt("should have a running pod", func() {
-			prometheusOperatorPodsRunning := func() bool {
+			prometheusPushgatewayPodsRunning := func() bool {
 				result, err := pkg.PodsRunning(verrazzanoMonitoringNamespace, []string{prometheusPushgatewayPod})
 				if err != nil {
 					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", prometheusPushgatewayPod, verrazzanoMonitoringNamespace, err))
 				}
 				return result
 			}
-			Eventually(prometheusOperatorPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(prometheusPushgatewayPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 })
