@@ -92,7 +92,7 @@ func (c *FakeMetricsTemplates) Update(ctx context.Context, metricsTemplate *v1al
 // Delete takes name of the metricsTemplate and deletes it. Returns an error if one occurs.
 func (c *FakeMetricsTemplates) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(metricstemplatesResource, c.ns, name), &v1alpha1.MetricsTemplate{})
+		Invokes(testing.NewDeleteActionWithOptions(metricstemplatesResource, c.ns, name, opts), &v1alpha1.MetricsTemplate{})
 
 	return err
 }

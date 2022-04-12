@@ -15,7 +15,7 @@ spec:
       external:
         suffix: abc.def.xyz.com
     ingress:
-      type: LoadBalancer
+      type: NodePort
       nginxInstallArgs:
       - name: controller.service.externalTrafficPolicy
         value: Local

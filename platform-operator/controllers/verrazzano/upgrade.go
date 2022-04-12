@@ -98,7 +98,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 		case vzStatePostUpgrade:
 			// Invoke the global post upgrade function after all components are upgraded.
 			log.Once("Doing Verrazzano post-upgrade processing")
-			err := postVerrazzanoUpgrade(log, r, cr)
+			err := postVerrazzanoUpgrade(log, r.Client, cr)
 			if err != nil {
 				log.Errorf("Error running Verrazzano system-level post-upgrade")
 				return newRequeueWithDelay(), err
@@ -107,7 +107,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 
 		case vzStateWaitPostUpgradeDone:
 			log.Progress("Post-upgrade is waiting for all components to be ready")
-			spiCtx, err := spi.NewContext(log, r, cr, r.DryRun)
+			spiCtx, err := spi.NewContext(log, r.Client, cr, r.DryRun)
 			if err != nil {
 				return newRequeueWithDelay(), err
 			}
@@ -130,7 +130,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 
 		case vzStateRestartApps:
 			log.Once("Doing Verrazzano post-upgrade application restarts if needed")
-			err := istio.RestartApps(log, r, cr.Generation)
+			err := istio.RestartApps(log, r.Client, cr.Generation)
 			if err != nil {
 				log.Errorf("Error running Verrazzano post-upgrade application restarts")
 				return newRequeueWithDelay(), err

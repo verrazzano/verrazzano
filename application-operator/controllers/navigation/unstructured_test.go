@@ -148,9 +148,10 @@ func TestGetUnstructuredChildResourcesByAPIVersionKindsPositive(t *testing.T) {
 
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
+	options := []client.ListOption{client.InNamespace("test-namespace")}
 	cli.EXPECT().
-		List(gomock.Eq(ctx), gomock.Not(gomock.Nil()), gomock.Eq(client.InNamespace("test-namespace")), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, namespace client.InNamespace, labels client.MatchingLabels) error {
+		List(gomock.Eq(ctx), gomock.Not(gomock.Nil()), options).
+		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, opts ...client.ListOption) error {
 			assert.Equal("Deployment", resources.GetKind())
 			return AppendAsUnstructured(resources, k8sapps.Deployment{
 				TypeMeta: metav1.TypeMeta{
@@ -185,9 +186,10 @@ func TestFetchUnstructuredChildResourcesByAPIVersionKindsNegative(t *testing.T) 
 
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
+	options := []client.ListOption{client.InNamespace("test-namespace")}
 	cli.EXPECT().
-		List(gomock.Eq(ctx), gomock.Not(gomock.Nil()), gomock.Eq(client.InNamespace("test-namespace")), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, namespace client.InNamespace, labels client.MatchingLabels) error {
+		List(gomock.Eq(ctx), gomock.Not(gomock.Nil()), options).
+		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, opts ...client.ListOption) error {
 			return fmt.Errorf("test-error")
 		})
 	children, err = FetchUnstructuredChildResourcesByAPIVersionKinds(ctx, cli, vzlog.DefaultLogger(), "test-namespace", "test-workload-uid", []oamcore.ChildResourceKind{{APIVersion: "apps/v1", Kind: "Deployment"}})
@@ -212,9 +214,10 @@ func TestGetUnstructuredChildResourcesByDeploymentPositive(t *testing.T) {
 
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
+	options := []client.ListOption{client.InNamespace("test-namespace")}
 	cli.EXPECT().
-		List(gomock.Eq(ctx), gomock.Not(gomock.Nil()), gomock.Eq(client.InNamespace("test-namespace")), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, namespace client.InNamespace, labels client.MatchingLabels) error {
+		List(gomock.Eq(ctx), gomock.Not(gomock.Nil()), options).
+		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, opts ...client.ListOption) error {
 			assert.Equal("Deployment", resources.GetKind())
 			return AppendAsUnstructured(resources, k8sapps.Deployment{
 				TypeMeta: metav1.TypeMeta{
@@ -319,12 +322,12 @@ func TestConvertRawExtensionToUnstructured(t *testing.T) {
 // ConvertToUnstructured converts an object to an Unstructured version
 // object - The object to convert to Unstructured
 func ConvertToUnstructured(object interface{}) (unstructured.Unstructured, error) {
-	bytes, err := json.Marshal(object)
+	jbytes, err := json.Marshal(object)
 	if err != nil {
 		return unstructured.Unstructured{}, err
 	}
 	var u map[string]interface{}
-	json.Unmarshal(bytes, &u)
+	_ = json.Unmarshal(jbytes, &u)
 	return unstructured.Unstructured{Object: u}, nil
 }
 

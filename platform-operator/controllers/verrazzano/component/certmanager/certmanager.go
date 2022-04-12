@@ -93,6 +93,7 @@ spec:
   acme:
     email: {{.Email}}
     server: "{{.Server}}"
+    preferredChain: ""
     privateKeySecretRef:
       name: verrazzano-cert-acme-secret
     solvers:
@@ -257,7 +258,7 @@ func renewCertificate(ctx context.Context, cmclientv1 certv1client.CertmanagerV1
 	}
 
 	// Set the certificate Issuing condition type to True, per guidance by the CertManager team
-	cmutil.SetCertificateCondition(updateCert, certv1.CertificateConditionIssuing, certmetav1.ConditionTrue,
+	cmutil.SetCertificateCondition(updateCert, updateCert.Generation, certv1.CertificateConditionIssuing, certmetav1.ConditionTrue,
 		"VerrazzanoUpdate", "Re-issue updated Verrazzano certificates from new ClusterIssuer")
 	// Updating the status field only works using the UpdateStatus call via the CertManager typed client interface
 	if _, err := cmclientv1.Certificates(updateCert.Namespace).UpdateStatus(ctx, updateCert, metav1.UpdateOptions{}); err != nil {

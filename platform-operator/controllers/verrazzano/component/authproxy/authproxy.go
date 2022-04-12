@@ -6,18 +6,18 @@ package authproxy
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"io/fs"
 	"io/ioutil"
+	"os"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -75,19 +75,6 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		return nil, err
 	}
 	overrides.Config.DNSSuffix = dnsSuffix
-
-	ingressType, err := vzconfig.GetServiceType(effectiveCR)
-	if err != nil {
-		return nil, err
-	}
-	switch ingressType {
-	case vzapi.NodePort:
-		for _, ports := range effectiveCR.Spec.Components.Ingress.Ports {
-			if ports.Port == 443 {
-				dnsSuffix = fmt.Sprintf("%s:%s", dnsSuffix, strconv.Itoa(int(ports.NodePort)))
-			}
-		}
-	}
 
 	overrides.Proxy = &proxyValues{
 		OidcProviderHost:          fmt.Sprintf("keycloak.%s.%s", overrides.Config.EnvName, dnsSuffix),
@@ -187,21 +174,21 @@ func reassociateResources(cli clipkg.Client) error {
 }
 
 // removeResourcePolicyAnnotation removes the resource policy annotation to allow the resource to be managed by helm
-func removeResourcePolicyAnnotation(cli clipkg.Client, obj controllerutil.Object, namespacedName types.NamespacedName) (controllerutil.Object, error) {
+func removeResourcePolicyAnnotation(cli clipkg.Client, obj clipkg.Object, namespacedName types.NamespacedName) (clipkg.Object, error) {
 	if err := cli.Get(context.TODO(), namespacedName, obj); err != nil {
 		if errors.IsNotFound(err) {
 			return obj, nil
 		}
 		return obj, err
 	}
-	objMerge := clipkg.MergeFrom(obj.DeepCopyObject())
 	annotations := obj.GetAnnotations()
 	if annotations == nil {
 		return obj, nil
 	}
 	delete(annotations, "helm.sh/resource-policy")
 	obj.SetAnnotations(annotations)
-	return obj, cli.Patch(context.TODO(), obj, objMerge)
+	err := cli.Update(context.TODO(), obj)
+	return obj, err
 }
 
 // loadImageSettings loads the override values for the image name and version

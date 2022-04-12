@@ -5,6 +5,7 @@ package helidonworkload
 
 import (
 	"context"
+	"github.com/go-logr/logr"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"io/ioutil"
 	"strconv"
@@ -30,10 +31,8 @@ import (
 	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/yaml"
 )
 
@@ -60,11 +59,11 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	mgr = mocks.NewMockManager(mocker)
 	cli = mocks.NewMockClient(mocker)
 	scheme = runtime.NewScheme()
-	vzapi.AddToScheme(scheme)
+	_ = vzapi.AddToScheme(scheme)
 	reconciler = Reconciler{Client: cli, Scheme: scheme}
-	mgr.EXPECT().GetConfig().Return(&rest.Config{})
+	mgr.EXPECT().GetControllerOptions().AnyTimes()
 	mgr.EXPECT().GetScheme().Return(scheme)
-	mgr.EXPECT().GetLogger().Return(log.NullLogger{})
+	mgr.EXPECT().GetLogger().Return(logr.Discard())
 	mgr.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()
 	mgr.EXPECT().Add(gomock.Any()).Return(nil).AnyTimes()
 	err = reconciler.SetupWithManager(mgr)
@@ -93,7 +92,7 @@ func TestReconcileWorkloadNotFound(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-helidon-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -121,7 +120,7 @@ func TestReconcileFetchWorkloadError(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-helidon-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.Nil(err)
@@ -181,7 +180,7 @@ func TestReconcileWorkloadMissingData(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-helidon-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.Nil(err)
@@ -279,8 +278,8 @@ func TestReconcileCreateHelidon(t *testing.T) {
 	// expect a call to status update
 	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoHelidonWorkload) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoHelidonWorkload, opts ...client.UpdateOption) error {
 			assert.Len(workload.Status.Resources, 2)
 			return nil
 		})
@@ -288,7 +287,7 @@ func TestReconcileCreateHelidon(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-helidon-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -410,8 +409,8 @@ func TestReconcileCreateHelidonWithMultipleContainers(t *testing.T) {
 	// expect a call to status update
 	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoHelidonWorkload) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoHelidonWorkload, opts ...client.UpdateOption) error {
 			assert.Len(workload.Status.Resources, 2)
 			return nil
 		})
@@ -419,7 +418,7 @@ func TestReconcileCreateHelidonWithMultipleContainers(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-helidon-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -522,8 +521,8 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 	// expect a call to status update
 	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoHelidonWorkload) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoHelidonWorkload, opts ...client.UpdateOption) error {
 			assert.Len(workload.Status.Resources, 2)
 			return nil
 		})
@@ -531,7 +530,7 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 	// create a request and reconcile it
 	request := newRequest(testNamespace, "test-verrazzano-helidon-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -650,8 +649,8 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 	// expect a call to status update
 	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoHelidonWorkload) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoHelidonWorkload, opts ...client.UpdateOption) error {
 			assert.Len(workload.Status.Resources, 2)
 			return nil
 		})
@@ -659,7 +658,7 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 	// create a request and reconcile it
 	request := newRequest(testNamespace, "test-verrazzano-helidon-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -669,7 +668,7 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 // newScheme creates a new scheme that includes this package's object to use for testing
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	vzapi.AddToScheme(scheme)
+	_ = vzapi.AddToScheme(scheme)
 	return scheme
 }
 
@@ -894,16 +893,16 @@ func TestReconcileRestart(t *testing.T) {
 		})
 	// expect a call to update the deployment
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Deployment{})).
-		DoAndReturn(func(ctx context.Context, deploy *appsv1.Deployment) error {
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Deployment{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, deploy *appsv1.Deployment, opts ...client.UpdateOption) error {
 			assert.Equal(testRestartVersion, deploy.Spec.Template.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation])
 			return nil
 		})
 	// expect a call to status update
 	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoHelidonWorkload) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoHelidonWorkload, opts ...client.UpdateOption) error {
 			assert.Len(workload.Status.Resources, 2)
 			return nil
 		})
@@ -911,7 +910,7 @@ func TestReconcileRestart(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(testNamespace, "test-verrazzano-helidon-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -929,7 +928,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(vzconst.KubeSystem, "unit-test-verrazzano-helidon-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()

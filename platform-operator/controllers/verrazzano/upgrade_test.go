@@ -120,8 +120,8 @@ func TestUpgradeNoVersion(t *testing.T) {
 
 	// The mocks are added to accomodate the expected calls to List instance when component is Ready
 	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList, opts ...client.ListOption) error {
 			ingressList.Items = []networkingv1.Ingress{}
 			return nil
 		}).AnyTimes()
@@ -167,7 +167,7 @@ func TestUpgradeNoVersion(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -229,8 +229,8 @@ func TestUpgradeSameVersion(t *testing.T) {
 
 	// The mocks are added to accomodate the expected calls to List instance when component is Ready
 	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList, opts ...client.ListOption) error {
 			ingressList.Items = []networkingv1.Ingress{}
 			return nil
 		}).AnyTimes()
@@ -276,7 +276,7 @@ func TestUpgradeSameVersion(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -352,7 +352,7 @@ func TestUpgradeInitComponents(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -430,7 +430,7 @@ func TestUpgradeStarted(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -527,7 +527,7 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -629,7 +629,7 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1470,8 +1470,8 @@ func TestRetryUpgrade(t *testing.T) {
 
 	// Expect a call to update annotations and ensure annotations are accurate
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano) error {
+		Update(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Equal(verrazzano.ObjectMeta.Annotations[constants.UpgradeRetryVersion], "a", "Incorrect restart version")
 			asserts.Equal(verrazzano.ObjectMeta.Annotations[constants.ObservedUpgradeRetryVersion], "a", "Incorrect observed restart version")
 			return nil
@@ -1492,7 +1492,7 @@ func TestRetryUpgrade(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1571,7 +1571,7 @@ func TestTransitionToPausedUpgradeFromFailed(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1650,7 +1650,7 @@ func TestTransitionToPausedUpgradeFromStarted(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1729,7 +1729,7 @@ func TestTransitionFromPausedUpgrade(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1802,7 +1802,7 @@ func TestDontRetryUpgrade(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1902,9 +1902,8 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 	}
 	verrazzanoToUse.Status.Components[keycloak.ComponentName].State = vzapi.CompStateDisabled
 
-	vzapi.AddToScheme(k8scheme.Scheme)
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
-		&verrazzanoToUse,
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&verrazzanoToUse,
 		&networkingv1.Ingress{
 			ObjectMeta: metav1.ObjectMeta{Namespace: "cattle-system", Name: "rancher"},
 			Spec: networkingv1.IngressSpec{
@@ -1970,8 +1969,11 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 			},
 		},
 		rbac.NewServiceAccount(getInstallNamespace(), buildServiceAccountName(name), []string{}, labels),
-		rbac.NewClusterRoleBinding(&verrazzanoToUse, buildClusterRoleBindingName(namespace, name), getInstallNamespace(), buildServiceAccountName(buildClusterRoleBindingName(namespace, name))),
-	)
+		rbac.NewClusterRoleBinding(
+			&verrazzanoToUse,
+			buildClusterRoleBindingName(namespace, name),
+			getInstallNamespace(),
+			buildServiceAccountName(buildClusterRoleBindingName(namespace, name)))).Build()
 
 	config.SetDefaultBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
@@ -2003,8 +2005,8 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 
 	// Create and make the request
 	request := newRequest(namespace, name)
-	reconciler := newVerrazzanoReconciler(client)
-	result, err := reconciler.Reconcile(request)
+	reconciler := newVerrazzanoReconciler(c)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -2025,7 +2027,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 			},
 		},
 	}
-	instanceInfo := vzinstance.GetInstanceInfo(spi.NewFakeContext(client, vz, false))
+	instanceInfo := vzinstance.GetInstanceInfo(spi.NewFakeContext(c, vz, false))
 	assert.NotNil(t, instanceInfo)
 	assert.Equal(t, "https://"+consoleURL, *instanceInfo.ConsoleURL)
 	assert.Equal(t, "https://"+rancherURL, *instanceInfo.RancherURL)
@@ -2090,8 +2092,8 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 
 	// The mocks are added to accomodate the expected calls to List instance when component is Ready
 	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList, opts ...client.ListOption) error {
 			ingressList.Items = []networkingv1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{Namespace: "cattle-system", Name: "rancher"},
@@ -2202,7 +2204,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -2295,7 +2297,7 @@ func reconcileLoop(reconciler Reconciler, request ctrl.Request) (ctrl.Result, er
 	var err error
 	var result ctrl.Result
 	for i := 0; i < numComponentStates; i++ {
-		result, err = reconciler.Reconcile(request)
+		result, err = reconciler.Reconcile(nil, request)
 		if err != nil || !result.Requeue {
 			break
 		}

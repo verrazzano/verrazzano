@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	istiofake "istio.io/client-go/pkg/clientset/versioned/fake"
-	admissionv1beta1 "k8s.io/api/admission/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -27,7 +27,7 @@ import (
 
 func decoder() *admission.Decoder {
 	scheme := runtime.NewScheme()
-	core.AddToScheme(scheme)
+	_ = core.AddToScheme(scheme)
 	decoder, err := admission.NewDecoder(scheme)
 	if err != nil {
 		zap.S().Errorf("Failed creating new decoder: %v", err)
@@ -42,7 +42,7 @@ func decoder() *admission.Decoder {
 func TestAppConfigDefaulterHandleError(t *testing.T) {
 	decoder := decoder()
 	defaulter := &AppConfigWebhook{}
-	defaulter.InjectDecoder(decoder)
+	_ = defaulter.InjectDecoder(decoder)
 	req := admission.Request{}
 	res := defaulter.Handle(context.TODO(), req)
 	assert.False(t, res.Allowed)
@@ -56,7 +56,7 @@ func TestAppConfigDefaulterHandleError(t *testing.T) {
 func TestAppConfigDefaulterHandle(t *testing.T) {
 	decoder := decoder()
 	defaulter := &AppConfigWebhook{}
-	defaulter.InjectDecoder(decoder)
+	_ = defaulter.InjectDecoder(decoder)
 	req := admission.Request{}
 	req.Object = runtime.RawExtension{Raw: readYaml2Json(t, "hello-conf.yaml")}
 	res := defaulter.Handle(context.TODO(), req)
@@ -103,7 +103,7 @@ func TestAppConfigWebhookHandleDeleteSecretNotFound(t *testing.T) {
 func TestAppConfigDefaulterHandleMarshalError(t *testing.T) {
 	decoder := decoder()
 	defaulter := &AppConfigWebhook{}
-	defaulter.InjectDecoder(decoder)
+	_ = defaulter.InjectDecoder(decoder)
 	req := admission.Request{}
 	req.Object = runtime.RawExtension{Raw: readYaml2Json(t, "hello-conf.yaml")}
 	appconfigMarshalFunc = func(v interface{}) ([]byte, error) {
@@ -132,7 +132,7 @@ func (*mockErrorDefaulter) Cleanup(appConfig *oamv1.ApplicationConfiguration, dr
 func TestAppConfigDefaulterHandleDefaultError(t *testing.T) {
 	decoder := decoder()
 	defaulter := &AppConfigWebhook{Defaulters: []AppConfigDefaulter{&mockErrorDefaulter{}}}
-	defaulter.InjectDecoder(decoder)
+	_ = defaulter.InjectDecoder(decoder)
 	req := admission.Request{}
 	req.Object = runtime.RawExtension{Raw: readYaml2Json(t, "hello-conf.yaml")}
 	res := defaulter.Handle(context.TODO(), req)
@@ -158,9 +158,9 @@ func testAppConfigWebhookHandleDelete(t *testing.T, certFound, secretFound, dryR
 		KubeClient:  fake.NewSimpleClientset(),
 		IstioClient: istiofake.NewSimpleClientset(),
 	}
-	webhook.InjectDecoder(decoder)
+	_ = webhook.InjectDecoder(decoder)
 	req := admission.Request{
-		AdmissionRequest: admissionv1beta1.AdmissionRequest{Operation: admissionv1beta1.Delete},
+		AdmissionRequest: admissionv1.AdmissionRequest{Operation: admissionv1.Delete},
 	}
 	req.OldObject = runtime.RawExtension{Raw: readYaml2Json(t, "hello-conf.yaml")}
 	if dryRun {

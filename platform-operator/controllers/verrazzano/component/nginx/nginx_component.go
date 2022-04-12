@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	k8s "github.com/verrazzano/verrazzano/platform-operator/internal/nodeport"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
@@ -78,18 +78,6 @@ func (c nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	// Block all changes for now, particularly around storage changes
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
-	}
-	// Reject service type change
-	oldType, err := vzconfig.GetServiceType(old)
-	if err != nil {
-		return err
-	}
-	newType, err := vzconfig.GetServiceType(new)
-	if err != nil {
-		return err
-	}
-	if oldType != newType {
-		return fmt.Errorf("Updates to service type not allowed for %s", ComponentJSONName)
 	}
 	return nil
 }
