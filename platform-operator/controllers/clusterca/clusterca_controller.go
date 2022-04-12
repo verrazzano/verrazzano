@@ -11,7 +11,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -34,14 +33,14 @@ func (r *VerrazzanoAdminCAReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *VerrazzanoAdminCAReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *VerrazzanoAdminCAReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Determine if we're interested in this secret
 	if req.Name == constants.VerrazzanoIngressSecret && req.Namespace == constants.VerrazzanoSystemNamespace {
 		// Get the verrazzano ingress secret
 		caSecret := corev1.Secret{}
 		if err := r.Get(context.TODO(), req.NamespacedName, &caSecret); err != nil {
 			// Secret should never be not found, unless we're running before it's been created
-			zap.S().Errorf("Failed to fetch Verrazzano Admin CA secret: %v", err)
+			r.log.Errorf("Failed to fetch Verrazzano Admin CA secret: %v", err)
 			return newRequeueWithDelay(), nil
 		}
 
@@ -52,7 +51,7 @@ func (r *VerrazzanoAdminCAReconciler) Reconcile(req ctrl.Request) (ctrl.Result, 
 
 		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &mcCASecret, func() error { return nil })
 		if err != nil {
-			zap.S().Errorf("Failed to create or update MC Admin CA secret: %v", err)
+			r.log.Errorf("Failed to create or update MC Admin CA secret: %v", err)
 			return newRequeueWithDelay(), nil
 		}
 
