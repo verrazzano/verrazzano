@@ -90,9 +90,8 @@ var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 
 	"verrazzano": {
 		kvs: map[string]string{
-			"verrazzanoOperator.imageName":           "ghcr.io/verrazzano/verrazzano-operator",
-			"verrazzanoOperator.imageVersion":        "0.15.0-20210512213227-2785c3a",
-			"verrazzanoOperator.nodeExporterImage":   "ghcr.io/verrazzano/node-exporter:1.0.0-20210513143333-a470f06",
+			"nodeExporter.imageName":                 "ghcr.io/verrazzano/node-exporter",
+			"nodeExporter.imageVersion":              "1.0.0-20210513143333-a470f06",
 			"monitoringOperator.imageName":           "ghcr.io/verrazzano/verrazzano-monitoring-operator",
 			"monitoringOperator.imageVersion":        "0.15.0-20210521020822-9b87485",
 			"monitoringOperator.istioProxyImage":     "ghcr.io/verrazzano/proxyv2:1.7.3",

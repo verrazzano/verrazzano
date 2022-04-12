@@ -522,7 +522,7 @@ pipeline {
                         runGinkgo('security/rbac')
                     }
                 }
-                // Evaluate this
+                // Revisit this
                 stage('bobs-books') {
                     environment {
                         DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/bobs-book-test.log"
@@ -723,7 +723,6 @@ def dumpBobObjects() {
 }
 
 def dumpBobLogs() {
-    dumpVerrazzanoOperatorLogs()
     dumpVerrazzanoApiLogs()
     sh """
         export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/bobs-bookstore-adminserver.log"
@@ -765,15 +764,7 @@ def dumpSockObjects() {
 }
 
 def dumpSockLogs() {
-    dumpVerrazzanoOperatorLogs()
     dumpVerrazzanoApiLogs()
-}
-
-def dumpVerrazzanoOperatorLogs() {
-    sh """
-        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-operator.log"
-        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-operator-*" -m "verrazzano operator" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
-    """
 }
 
 def dumpVerrazzanoSystemPods() {
