@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package clusterstest
@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -109,8 +110,8 @@ func DoExpectUpdateState(t *testing.T, cli *mocks.MockClient, statusWriter *mock
 
 	// the status update should be to success status/conditions on the MultiClusterApplicationConfiguration
 	statusWriter.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(mcAppConfig)).
-		DoAndReturn(func(ctx context.Context, mcAppConfig clusters.MultiClusterResource) error {
+		Update(gomock.Any(), gomock.AssignableToTypeOf(mcAppConfig), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, mcAppConfig clusters.MultiClusterResource, opts ...client.UpdateOption) error {
 			assert.Equal(t, v1alpha1.Pending, mcAppConfig.GetStatus().State)
 			return nil
 		})
@@ -126,8 +127,8 @@ func ExpectDeleteAssociatedResource(cli *mocks.MockClient, resource runtime.Obje
 		})
 
 	cli.EXPECT().
-		Delete(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, resource runtime.Object) error {
+		Delete(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, resource runtime.Object, opts ...client.DeleteOption) error {
 			return nil
 		})
 

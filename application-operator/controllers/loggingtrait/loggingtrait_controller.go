@@ -57,7 +57,7 @@ type LoggingTraitReconciler struct {
 // +kubebuilder:rbac:groups=apps,resources=replicasets,verbs=get;list;watch;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=pods,verbs=get;list;watch;update;patch;delete
 
-func (r *LoggingTraitReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *LoggingTraitReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
@@ -68,7 +68,9 @@ func (r *LoggingTraitReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 		return reconcile.Result{}, nil
 	}
 
-	ctx := context.Background()
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	var err error
 	var trait *oamv1alpha1.LoggingTrait
 	if trait, err = r.fetchTrait(ctx, req.NamespacedName, zap.S()); err != nil || trait == nil {
@@ -530,7 +532,8 @@ func resourceExists(ctx context.Context, r client.Reader, apiVersion string, kin
 	resources := unstructured.UnstructuredList{}
 	resources.SetAPIVersion(apiVersion)
 	resources.SetKind(kind)
-	err := r.List(ctx, &resources, client.InNamespace(namespace), client.MatchingFields{"metadata.name": name})
+	options := []client.ListOption{client.InNamespace(namespace), client.MatchingFields{"metadata.name": name}}
+	err := r.List(ctx, &resources, options...)
 	return len(resources.Items) != 0, err
 }
 

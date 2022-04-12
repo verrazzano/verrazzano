@@ -42,9 +42,7 @@ func TestFluentdApply(t *testing.T) {
 	// simulate config map not existing
 	mockClient.EXPECT().
 		List(fluentd.Context, gomock.Not(gomock.Nil()), client.InNamespace(testNamespace), client.MatchingFields{"metadata.name": configMapName + "-" + testWorkLoadType}).
-		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, inNamespace client.InNamespace, fields client.MatchingFields) error {
-			asserts.Equal(t, client.InNamespace(testNamespace), inNamespace)
-			asserts.Equal(t, client.MatchingFields{"metadata.name": configMapName + "-" + testWorkLoadType}, fields)
+		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, opts ...client.ListOption) error {
 			asserts.Equal(t, configMapAPIVersion, resources.GetAPIVersion())
 			asserts.Equal(t, configMapKind, resources.GetKind())
 			return nil
@@ -52,9 +50,8 @@ func TestFluentdApply(t *testing.T) {
 
 	mockClient.EXPECT().
 		Create(fluentd.Context, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, configMap *v1.ConfigMap, options *client.CreateOptions) error {
+		DoAndReturn(func(ctx context.Context, configMap *v1.ConfigMap, options ...client.CreateOption) error {
 			asserts.Equal(t, *fluentd.createFluentdConfigMap(testNamespace), *configMap)
-			asserts.Equal(t, client.CreateOptions{}, *options)
 			return nil
 		})
 
@@ -82,11 +79,10 @@ func TestFluentdApplyForUpdate(t *testing.T) {
 	fluentd := Fluentd{mockClient, zap.S(), context.Background(), testParseRules, testStorageName, scratchVolMountPath, testWorkLoadType}
 
 	// simulate config map existing
+
 	mockClient.EXPECT().
 		List(fluentd.Context, gomock.Not(gomock.Nil()), client.InNamespace(testNamespace), client.MatchingFields{"metadata.name": configMapName + "-" + testWorkLoadType}).
-		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, inNamespace client.InNamespace, fields client.MatchingFields) error {
-			asserts.Equal(t, client.InNamespace(testNamespace), inNamespace)
-			asserts.Equal(t, client.MatchingFields{"metadata.name": configMapName + "-" + testWorkLoadType}, fields)
+		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, opts ...client.ListOption) error {
 			asserts.Equal(t, configMapAPIVersion, resources.GetAPIVersion())
 			asserts.Equal(t, configMapKind, resources.GetKind())
 
@@ -97,9 +93,8 @@ func TestFluentdApplyForUpdate(t *testing.T) {
 		})
 	mockClient.EXPECT().
 		Update(fluentd.Context, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, configMap *v1.ConfigMap, options *client.UpdateOptions) error {
+		DoAndReturn(func(ctx context.Context, configMap *v1.ConfigMap, options ...client.UpdateOption) error {
 			asserts.Equal(t, *fluentd.createFluentdConfigMap(testNamespace), *configMap)
-			asserts.Equal(t, client.UpdateOptions{}, *options)
 			return nil
 		})
 
@@ -130,9 +125,7 @@ func TestFluentdRemove(t *testing.T) {
 	// simulate config map existing
 	mockClient.EXPECT().
 		List(fluentd.Context, gomock.Not(gomock.Nil()), client.InNamespace(testNamespace), client.MatchingFields{"metadata.name": configMapName + "-" + testWorkLoadType}).
-		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, inNamespace client.InNamespace, fields client.MatchingFields) error {
-			asserts.Equal(t, client.InNamespace(testNamespace), inNamespace)
-			asserts.Equal(t, client.MatchingFields{"metadata.name": configMapName + "-" + testWorkLoadType}, fields)
+		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, opts ...client.ListOption) error {
 			asserts.Equal(t, configMapAPIVersion, resources.GetAPIVersion())
 			asserts.Equal(t, configMapKind, resources.GetKind())
 
@@ -143,10 +136,8 @@ func TestFluentdRemove(t *testing.T) {
 		})
 	mockClient.EXPECT().
 		Delete(fluentd.Context, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, configmap *v1.ConfigMap, options *client.DeleteOptions) error {
+		DoAndReturn(func(ctx context.Context, configmap *v1.ConfigMap, options ...client.DeleteOption) error {
 			asserts.True(t, reflect.DeepEqual(fluentd.createFluentdConfigMap(testNamespace), configmap))
-			asserts.Equal(t, client.DeleteOptions{}, *options)
-
 			return nil
 		})
 
@@ -176,9 +167,7 @@ func TestFluentdApply_ManagedClusterElasticsearch(t *testing.T) {
 	// simulate config map not existing
 	mockClient.EXPECT().
 		List(fluentd.Context, gomock.Not(gomock.Nil()), client.InNamespace(testNamespace), client.MatchingFields{"metadata.name": configMapName + "-" + testWorkLoadType}).
-		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, inNamespace client.InNamespace, fields client.MatchingFields) error {
-			asserts.Equal(t, client.InNamespace(testNamespace), inNamespace)
-			asserts.Equal(t, client.MatchingFields{"metadata.name": configMapName + "-" + testWorkLoadType}, fields)
+		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, opts ...client.ListOption) error {
 			asserts.Equal(t, configMapAPIVersion, resources.GetAPIVersion())
 			asserts.Equal(t, configMapKind, resources.GetKind())
 			return nil
@@ -186,9 +175,8 @@ func TestFluentdApply_ManagedClusterElasticsearch(t *testing.T) {
 
 	mockClient.EXPECT().
 		Create(fluentd.Context, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, configMap *v1.ConfigMap, options *client.CreateOptions) error {
+		DoAndReturn(func(ctx context.Context, configMap *v1.ConfigMap, options ...client.CreateOption) error {
 			asserts.Equal(t, *fluentd.createFluentdConfigMap(testNamespace), *configMap)
-			asserts.Equal(t, client.CreateOptions{}, *options)
 			return nil
 		})
 

@@ -92,7 +92,7 @@ func TestPatchRancherIngress(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		c := fake.NewFakeClientWithScheme(getScheme(), &tt.in)
+		c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&tt.in).Build()
 		t.Run(tt.vzapi.Spec.EnvironmentName, func(t *testing.T) {
 			assert.Nil(t, patchRancherIngress(c, &tt.vzapi))
 		})
@@ -104,7 +104,7 @@ func TestPatchRancherIngress(t *testing.T) {
 //  WHEN patchRancherIngress is called
 //  THEN patchRancherIngress should fail to annotate the Ingress
 func TestPatchRancherIngressNotFound(t *testing.T) {
-	c := fake.NewFakeClientWithScheme(getScheme())
+	c := fake.NewClientBuilder().WithScheme(getScheme()).Build()
 	err := patchRancherIngress(c, &vzAcmeDev)
 	assert.NotNil(t, err)
 	assert.True(t, apierrors.IsNotFound(err))
@@ -115,7 +115,7 @@ func TestPatchRancherIngressNotFound(t *testing.T) {
 //  WHEN patchRancherDeployment is called
 //  THEN patchRancherDeployment should fail to patch the deployment
 func TestPatchRancherDeploymentNotFound(t *testing.T) {
-	c := fake.NewFakeClientWithScheme(getScheme())
+	c := fake.NewClientBuilder().WithScheme(getScheme()).Build()
 	err := patchRancherDeployment(c)
 	assert.NotNil(t, err)
 	assert.True(t, apierrors.IsNotFound(err))
@@ -173,7 +173,7 @@ func TestPatchRancherDeployment(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
-			c := fake.NewFakeClientWithScheme(getScheme(), tt.deployment)
+			c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(tt.deployment).Build()
 			err := patchRancherDeployment(c)
 			if tt.isError {
 				assert.NotNil(t, err)

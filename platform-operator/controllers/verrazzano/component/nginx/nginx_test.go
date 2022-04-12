@@ -114,7 +114,7 @@ func TestAppendNGINXOverridesExtraKVs(t *testing.T) {
 //  WHEN I call PreInstall
 //  THEN no errors are returned
 func TestNGINXPreInstall(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	err := PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false), ComponentName, ComponentNamespace, "")
 	assert.NoError(t, err)
 }
@@ -124,7 +124,7 @@ func TestNGINXPreInstall(t *testing.T) {
 //  WHEN the deployment object has enough replicas available
 //  THEN true is returned
 func TestIsNGINXReady(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      ControllerName,
@@ -148,7 +148,7 @@ func TestIsNGINXReady(t *testing.T) {
 				UpdatedReplicas:   1,
 			},
 		},
-	)
+	).Build()
 	assert.True(t, isNginxReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
@@ -157,7 +157,7 @@ func TestIsNGINXReady(t *testing.T) {
 //  WHEN the deployment object does NOT have enough replicas available
 //  THEN false is returned
 func TestIsNGINXNotReady(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      ControllerName,
@@ -179,7 +179,7 @@ func TestIsNGINXNotReady(t *testing.T) {
 				UpdatedReplicas:   1,
 			},
 		},
-	)
+	).Build()
 	assert.False(t, isNginxReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
@@ -234,7 +234,7 @@ func TestPostInstallWithPorts(t *testing.T) {
 			},
 		},
 	}
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, svc)
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(svc).Build()
 	err := PostInstall(spi.NewFakeContext(fakeClient, vz, false), ComponentName, ComponentNamespace)
 	assert.NoError(t, err)
 }
@@ -254,7 +254,7 @@ func TestPostInstallNoPorts(t *testing.T) {
 			},
 		},
 	}
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	assert.NoError(t, PostInstall(spi.NewFakeContext(fakeClient, vz, false), ComponentName, ComponentNamespace))
 }
 
@@ -263,7 +263,7 @@ func TestPostInstallNoPorts(t *testing.T) {
 //  WHEN the context DryRun flag is true
 //  THEN no error is returned
 func TestPostInstallDryRun(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	assert.NoError(t, PostInstall(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false), ComponentName, ComponentNamespace))
 }
 

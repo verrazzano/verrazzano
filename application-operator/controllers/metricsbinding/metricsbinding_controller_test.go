@@ -5,6 +5,7 @@ package metricsbinding
 
 import (
 	"context"
+	"github.com/go-logr/logr"
 	"os"
 	"strings"
 	"testing"
@@ -25,11 +26,9 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // TestReconcilerSetupWithManager test the creation of the metrics trait reconciler.
@@ -40,15 +39,15 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	assert := asserts.New(t)
 
 	scheme := newScheme()
-	vzapi.AddToScheme(scheme)
-	client := fake.NewFakeClientWithScheme(scheme)
+	_ = vzapi.AddToScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 	reconciler := newReconciler(client)
 
 	mocker := gomock.NewController(t)
 	manager := mocks.NewMockManager(mocker)
-	manager.EXPECT().GetConfig().Return(&rest.Config{}).AnyTimes()
+	manager.EXPECT().GetControllerOptions().AnyTimes()
 	manager.EXPECT().GetScheme().Return(scheme).AnyTimes()
-	manager.EXPECT().GetLogger().Return(log.NullLogger{}).AnyTimes()
+	manager.EXPECT().GetLogger().Return(logr.Discard()).AnyTimes()
 	manager.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()
 	manager.EXPECT().Add(gomock.Any()).Return(nil).AnyTimes()
 
@@ -119,7 +118,7 @@ func TestCreateScrapeConfig(t *testing.T) {
 
 	localMetricsTemplate.Spec.PrometheusConfig.ScrapeConfigTemplate = string(scrapeConfigTemplate)
 
-	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
+	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).Return(nil).AnyTimes()
 
 	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testDeploymentNamespace, Name: testDeploymentName}), gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, workload *unstructured.Unstructured) error {
@@ -133,11 +132,11 @@ func TestCreateScrapeConfig(t *testing.T) {
 			return nil
 		})
 
-	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: constants.VerrazzanoSystemNamespace, Name: testConfigMapName}), gomock.Not(gomock.Nil())).DoAndReturn(
-		func(ctx context.Context, key client.ObjectKey, cm *k8score.ConfigMap) error {
+	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: constants.VerrazzanoSystemNamespace, Name: testConfigMapName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, cm *k8score.ConfigMap) error {
 			cm.Data = configMap.Data
 			return nil
-		})
+		}).AnyTimes()
 
 	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Name: testDeploymentNamespace}), gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, namespace *k8score.Namespace) error {
@@ -193,7 +192,7 @@ func TestUpdateScrapeConfig(t *testing.T) {
 		func(ctx context.Context, key client.ObjectKey, cm *k8score.ConfigMap) error {
 			cm.Data = configMap.Data
 			return nil
-		})
+		}).AnyTimes()
 
 	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testExistsDeploymentNamespace, Name: testExistsDeploymentName}), gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, dep *unstructured.Unstructured) error {
@@ -252,7 +251,7 @@ func TestDeleteScrapeConfig(t *testing.T) {
 		func(ctx context.Context, key client.ObjectKey, cm *k8score.ConfigMap) error {
 			cm.Data = configMap.Data
 			return nil
-		})
+		}).AnyTimes()
 
 	assert.True(strings.Contains(configMap.Data["prometheus.yml"], formatJobName(createJobName(localMetricsBinding))))
 	log := vzlog.DefaultLogger()
@@ -297,7 +296,7 @@ func TestMutatePrometheusScrapeConfig(t *testing.T) {
 			return nil
 		})
 
-	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil)).Return(nil)
+	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil), gomock.Any()).Return(nil)
 
 	log := vzlog.DefaultLogger()
 	err = reconciler.mutatePrometheusScrapeConfig(context.TODO(), localMetricsBinding, reconciler.deleteScrapeConfig, log)
@@ -320,13 +319,13 @@ func TestReconcileBindingCreateOrUpdate(t *testing.T) {
 	configMap, err := getConfigMapFromTestFile()
 	assert.NoError(err, "Expected no error creating the ConfigMap from the test file")
 
-	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
+	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).Return(nil)
 
-	mock.EXPECT().Update(gomock.Any(), localMetricsBinding).DoAndReturn(
-		func(ctx context.Context, binding *vzapi.MetricsBinding) error {
+	mock.EXPECT().Update(gomock.Any(), localMetricsBinding, gomock.Any()).DoAndReturn(
+		func(ctx context.Context, binding *vzapi.MetricsBinding, opts ...client.UpdateOption) error {
 			binding.Finalizers = append(metricsBinding.GetFinalizers(), finalizerName)
 			return nil
-		})
+		}).AnyTimes()
 
 	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testMetricsBindingNamespace, Name: testMetricsBindingName}), gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, binding *vzapi.MetricsBinding) error {
@@ -412,7 +411,7 @@ func TestReconcileBindingDelete(t *testing.T) {
 			return nil
 		})
 
-	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
+	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).Return(nil)
 
 	log := vzlog.DefaultLogger()
 	controllerResult, err := reconciler.reconcileBindingDelete(context.TODO(), localMetricsBinding, log)
@@ -436,13 +435,13 @@ func TestCreateDeployment(t *testing.T) {
 	configMap, err := getConfigMapFromTestFile()
 	assert.NoError(err, "Expected no error creating the ConfigMap from the test file")
 
-	mock.EXPECT().Update(gomock.Any(), localMetricsBinding).DoAndReturn(
-		func(ctx context.Context, binding *vzapi.MetricsBinding) error {
+	mock.EXPECT().Update(gomock.Any(), localMetricsBinding, gomock.Any()).DoAndReturn(
+		func(ctx context.Context, binding *vzapi.MetricsBinding, opts ...client.UpdateOption) error {
 			binding.Finalizers = append(binding.GetFinalizers(), finalizerName)
 			return nil
-		})
+		}).AnyTimes()
 
-	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil())).Return(nil).AnyTimes()
+	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).Return(nil).AnyTimes()
 
 	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testMetricsBindingNamespace, Name: testMetricsBindingName}), gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, binding *vzapi.MetricsBinding) error {
@@ -490,7 +489,7 @@ func TestCreateDeployment(t *testing.T) {
 	namespacedName := types.NamespacedName{Namespace: testMetricsBindingNamespace, Name: testMetricsBindingName}
 	request := ctrl.Request{NamespacedName: namespacedName}
 
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	assert.NoError(err)
@@ -535,7 +534,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	namespacedName := types.NamespacedName{Namespace: vzconst.KubeSystem, Name: testMetricsBindingName}
 	request := ctrl.Request{NamespacedName: namespacedName}
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()

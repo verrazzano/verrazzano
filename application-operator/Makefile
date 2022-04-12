@@ -108,8 +108,6 @@ uninstall-crds: manifests
 mock-gen:
 	mockgen -destination=mocks/controller_client_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
 	mockgen -destination=mocks/controller_manager_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt sigs.k8s.io/controller-runtime Manager
-	mockgen -destination=mocks/logging_scope_handler_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope Handler
-	mockgen -destination=controllers/loggingscope/fluentd_mock.go -package=loggingscope -copyright_file=hack/boilerplate.go.txt github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope FluentdManager
 
 .PHONY: manifests
 manifests: application-manifests

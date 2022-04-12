@@ -213,7 +213,7 @@ func TestPrometheusWithStorageOverride(t *testing.T) {
 // WHEN I create a new VMI resource
 //  THEN the configuration in the CR is respected
 func TestCreateVMI(t *testing.T) {
-	ctx := spi.NewFakeContext(fake.NewFakeClientWithScheme(testScheme), &vmiEnabledCR, false)
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vmiEnabledCR, false)
 	err := createVMI(ctx)
 	assert.NoError(t, err)
 	vmi := &vmov1.VerrazzanoMonitoringInstance{}

@@ -6,6 +6,7 @@ package multiclusterapplicationconfiguration
 import (
 	"context"
 	"encoding/json"
+	"github.com/go-logr/logr"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"path/filepath"
 	"testing"
@@ -24,9 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const namespace = "unit-mcappconfig-namespace"
@@ -50,11 +49,11 @@ func TestAppConfigReconcilerSetupWithManager(t *testing.T) {
 	mgr = mocks.NewMockManager(mocker)
 	cli = mocks.NewMockClient(mocker)
 	scheme = runtime.NewScheme()
-	clustersv1alpha1.AddToScheme(scheme)
+	_ = clustersv1alpha1.AddToScheme(scheme)
 	reconciler = Reconciler{Client: cli, Scheme: scheme}
-	mgr.EXPECT().GetConfig().Return(&rest.Config{})
+	mgr.EXPECT().GetControllerOptions().AnyTimes()
 	mgr.EXPECT().GetScheme().Return(scheme)
-	mgr.EXPECT().GetLogger().Return(log.NullLogger{})
+	mgr.EXPECT().GetLogger().Return(logr.Discard())
 	mgr.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()
 	mgr.EXPECT().Add(gomock.Any()).Return(nil).AnyTimes()
 	err = reconciler.SetupWithManager(mgr)
@@ -101,7 +100,7 @@ func TestReconcileCreateAppConfig(t *testing.T) {
 
 	// expect a call to update the resource with a finalizer
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, appConfig *clustersv1alpha1.MultiClusterApplicationConfiguration, opts ...client.UpdateOption) error {
 			assert.True(len(appConfig.ObjectMeta.Finalizers) == 1, "Wrong number of finalizers")
 			assert.Equal(finalizerName, appConfig.ObjectMeta.Finalizers[0], "wrong finalizer")
@@ -114,7 +113,7 @@ func TestReconcileCreateAppConfig(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -154,7 +153,7 @@ func TestReconcileUpdateAppConfig(t *testing.T) {
 
 	// expect a call to update the OAM app config with the new app config data
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, app *v1alpha2.ApplicationConfiguration, opts ...client.CreateOption) error {
 			assertAppConfigValid(assert, app, mcAppConfigSample)
 			return nil
@@ -166,7 +165,7 @@ func TestReconcileUpdateAppConfig(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -216,7 +215,7 @@ func TestReconcileCreateAppConfigFailed(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.Nil(err)
@@ -253,7 +252,7 @@ func TestReconcileUpdateAppConfigFailed(t *testing.T) {
 
 	// expect a call to update the OAM app config and fail the call
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, c *v1alpha2.ApplicationConfiguration, opts ...client.CreateOption) error {
 			return errors.NewBadRequest("will not update it")
 		})
@@ -265,7 +264,7 @@ func TestReconcileUpdateAppConfigFailed(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.Nil(err)
@@ -295,7 +294,7 @@ func TestReconcileResourceNotFound(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -345,7 +344,7 @@ func TestReconcilePlacementInDifferentCluster(t *testing.T) {
 
 	// expect a call to update the resource with no finalizers
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration, opts ...client.UpdateOption) error {
 			assert.True(len(mcAppConfig.Finalizers) == 0, "Wrong number of finalizers")
 			return nil
@@ -354,7 +353,7 @@ func TestReconcilePlacementInDifferentCluster(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -383,8 +382,8 @@ func doExpectStatusUpdateFailed(cli *mocks.MockClient, mockStatusWriter *mocks.M
 
 	// the status update should be to failure status/conditions on the MultiClusterApplicationConfiguration
 	mockStatusWriter.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterApplicationConfiguration{})).
-		DoAndReturn(func(ctx context.Context, mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration) error {
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterApplicationConfiguration{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration, options ...client.UpdateOption) error {
 			clusterstest.AssertMultiClusterResourceStatus(assert, mcAppConfig.Status, clustersv1alpha1.Failed, clustersv1alpha1.DeployFailed, v1.ConditionTrue)
 			return nil
 		})
@@ -401,8 +400,8 @@ func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mock
 
 	// the status update should be to success status/conditions on the MultiClusterApplicationConfiguration
 	mockStatusWriter.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterApplicationConfiguration{})).
-		DoAndReturn(func(ctx context.Context, mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration) error {
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterApplicationConfiguration{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration, options ...client.UpdateOption) error {
 			clusterstest.AssertMultiClusterResourceStatus(assert, mcAppConfig.Status, clustersv1alpha1.Succeeded, clustersv1alpha1.DeployComplete, v1.ConditionTrue)
 			return nil
 		})
@@ -497,7 +496,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(vzconst.KubeSystem, "unit-test-verrazzano-helidon-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.Nil(err)
