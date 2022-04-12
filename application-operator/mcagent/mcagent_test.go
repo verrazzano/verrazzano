@@ -10,7 +10,8 @@ import (
 
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+
+	//clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
@@ -39,6 +40,7 @@ var validSecret = corev1.Secret{
 // GIVEN a request to process the agent loop
 // WHEN the a new VerrazzanoProjects resources exists
 // THEN ensure that there are no calls to sync any multi-cluster resources
+/*
 func TestProcessAgentThreadNoProjects(t *testing.T) {
 	assert := asserts.New(t)
 	log := zap.S().With("test")
@@ -151,6 +153,7 @@ func TestProcessAgentThreadSecretDeleted(t *testing.T) {
 	mcMocker.Finish()
 	assert.NoError(err)
 }
+*/
 
 // TestValidateSecret tests secret validation function
 func TestValidateSecret(t *testing.T) {
