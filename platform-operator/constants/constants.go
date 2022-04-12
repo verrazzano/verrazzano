@@ -145,3 +145,9 @@ const InitializeOperation = "initialize"
 
 // ReconcileLoopRequeueInterval is the interval before reconcile gets called again.
 const ReconcileLoopRequeueInterval = 3 * time.Minute
+
+// VerrazzanoIngressSecret is the secret where the verrazzano/console TLS cert, key, and CA(s) are stored
+const VerrazzanoIngressSecret = "verrazzano-tls" //nolint:gosec //#gosec G101
+
+// MCAdminCASecret is a secret containing the admin ca bundle
+const MCAdminCASecret = "verrazzano-admin-ca-bundle" //nolint:gosec //#gosec G101

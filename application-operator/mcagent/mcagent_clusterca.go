@@ -29,7 +29,7 @@ func (s *Syncer) syncClusterCAs() error {
 	return nil
 }
 
-// Synchronize the admin cluster CA cert -- update local copy if admin CA changes
+// syncAdminClusterCA - synchronize the admin cluster CA cert -- update local copy if admin CA changes
 func (s *Syncer) syncAdminClusterCA() error {
 
 	s.Log.Info("Syncing AdminClusterCA ...")
@@ -57,7 +57,7 @@ func (s *Syncer) syncAdminClusterCA() error {
 	s.Log.Info("Got local cluster registration secret")
 
 	// Update the local cluster registration secret if the admin CA certs are different
-	if !bytes.Equal(registrationSecret.Data["ca-bundle"], adminCASecret.Data["ca.crt"]) {
+	if !secretsEqualTrimmedWhitespace(registrationSecret.Data["ca-bundle"], adminCASecret.Data["ca.crt"]) {
 		s.Log.Info("CAs are different -- updating")
 		s.Log.Info("Local registration Secret: %v", registrationSecret.Data["ca-bundle"])
 		s.Log.Info("Admin CA Secret: %v", adminCASecret.Data["ca.crt"])
@@ -81,7 +81,7 @@ func (s *Syncer) syncAdminClusterCA() error {
 	return nil
 }
 
-// Synchronize the local cluster CA cert -- update admin copy if local CA changes
+// syncLocalClusterCA - synchronize the local cluster CA cert -- update admin copy if local CA changes
 func (s *Syncer) syncLocalClusterCA() error {
 
 	s.Log.Info("Syncing LocalClusterCA ...")
@@ -116,7 +116,7 @@ func (s *Syncer) syncLocalClusterCA() error {
 	s.Log.Info("Got VMC CA secret from admin cluster")
 
 	// Update the VMC cluster CA secret if the local CA is different
-	if !bytes.Equal(adminVMCCASecret.Data["cacrt"], localCASecret.Data["ca.crt"]) {
+	if !secretsEqualTrimmedWhitespace(adminVMCCASecret.Data["cacrt"], localCASecret.Data["ca.crt"]) {
 		s.Log.Info("CAs are different -- updating")
 		s.Log.Info("VMC CA Secret: %v", adminVMCCASecret.Data["cacrt"])
 		s.Log.Info("Local CA Secret: %v", localCASecret.Data["ca.crt"])
@@ -138,4 +138,10 @@ func (s *Syncer) syncLocalClusterCA() error {
 	}
 
 	return nil
+}
+
+func secretsEqualTrimmedWhitespace(secret1, secret2 []byte) bool {
+	a := bytes.Trim(secret1, " \t\n")
+	b := bytes.Trim(secret2, " \t\n")
+	return bytes.Equal(a, b)
 }
