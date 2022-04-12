@@ -40,6 +40,7 @@ type verrazzanoValues struct {
 	Externaldns        *externalDNSValues         `json:"externaldns,omitempty"`
 	PrometheusOperator *prometheusOperatorValues  `json:"prometheusOperator,omitempty"`
 	PrometheusAdapter  *prometheusAdapterValues   `json:"prometheusAdapter,omitempty"`
+	KubeStateMetrics   *kubeStateMetricsValues    `json:"kubeStateMetrics,omitempty"`
 }
 
 type subject struct {
@@ -211,5 +212,9 @@ type prometheusOperatorValues struct {
 }
 
 type prometheusAdapterValues struct {
+	Enabled bool `json:"enabled"` // Always write
+}
+
+type kubeStateMetricsValues struct {
 	Enabled bool `json:"enabled"` // Always write
 }
