@@ -19,10 +19,9 @@ import (
 )
 
 const (
-	resetPasswordCommand   = "reset-password"
-	ensureAdminCommand     = "ensure-default-admin"
-	CattleSystem           = "cattle-system"
-	RancherBootstrapSecret = "bootstrap-secret"
+	resetPasswordCommand = "reset-password"
+	ensureAdminCommand   = "ensure-default-admin"
+	BootstrapSecret      = "bootstrap-secret"
 )
 
 func createAdminSecretIfNotExists(log vzlog.VerrazzanoLogger, c client.Client) error {
@@ -47,8 +46,8 @@ func createAdminSecretIfNotExists(log vzlog.VerrazzanoLogger, c client.Client) e
 func removeBootstrapSecretIfExists(log vzlog.VerrazzanoLogger, c client.Client) error {
 	secret := &v1.Secret{}
 	nsName := types.NamespacedName{
-		Namespace: CattleSystem,
-		Name:      RancherBootstrapSecret}
+		Namespace: ComponentNamespace,
+		Name:      BootstrapSecret}
 
 	// check if the secret exists
 	if err := c.Get(context.TODO(), nsName, secret); err != nil {
