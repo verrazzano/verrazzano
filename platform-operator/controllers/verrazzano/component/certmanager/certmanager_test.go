@@ -63,9 +63,9 @@ var fakeComponent = certManagerComponent{}
 var testScheme = runtime.NewScheme()
 
 func init() {
-	k8scheme.AddToScheme(testScheme)
-	certv1.AddToScheme(testScheme)
-	vzapi.AddToScheme(testScheme)
+	_ = k8scheme.AddToScheme(testScheme)
+	_ = certv1.AddToScheme(testScheme)
+	_ = vzapi.AddToScheme(testScheme)
 }
 
 // TestIsCertManagerEnabled tests the IsCertManagerEnabled fn
@@ -174,7 +174,7 @@ func TestAppendCertManagerOverridesWithInstallArgs(t *testing.T) {
 // WHEN I call PreInstall with dry-run = true
 // THEN no errors are returned
 func TestCertManagerPreInstallDryRun(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(testScheme)
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	err := fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, true))
 	assert.NoError(t, err)
 }
@@ -187,7 +187,7 @@ func TestCertManagerPreInstall(t *testing.T) {
 	config.Set(config.OperatorConfig{
 		VerrazzanoRootDir: "../../../../..", //since we are running inside the cert manager package, root is up 5 directories
 	})
-	client := fake.NewFakeClientWithScheme(testScheme)
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	setBashFunc(fakeBash)
 	err := fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false))
 	assert.NoError(t, err)
@@ -198,11 +198,11 @@ func TestCertManagerPreInstall(t *testing.T) {
 // WHEN the deployment object has enough replicas available
 // THEN true is returned
 func TestIsCertManagerReady(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(testScheme,
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		newDeployment(certManagerDeploymentName, map[string]string{"app": certManagerDeploymentName}, true),
 		newDeployment(cainjectorDeploymentName, map[string]string{"app": "cainjector"}, true),
 		newDeployment(webhookDeploymentName, map[string]string{"app": "webhook"}, true),
-	)
+	).Build()
 	assert.True(t, isCertManagerReady(spi.NewFakeContext(client, nil, false)))
 }
 
@@ -211,20 +211,20 @@ func TestIsCertManagerReady(t *testing.T) {
 // WHEN the deployment object does not have enough replicas available
 // THEN false is returned
 func TestIsCertManagerNotReady(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(testScheme,
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		newDeployment(certManagerDeploymentName, map[string]string{"app": certManagerDeploymentName}, false),
 		newDeployment(cainjectorDeploymentName, map[string]string{"app": "cainjector"}, false),
 		newDeployment(webhookDeploymentName, map[string]string{"app": "webhook"}, false),
-	)
+	).Build()
 	assert.False(t, isCertManagerReady(spi.NewFakeContext(client, nil, false)))
 }
 
-// TestIsCANil tests the isCA function
+// TestIsCANilWithProfile tests the isCA function
 // GIVEN a call to isCA
 // WHEN the CertManager component is populated by the profile
 // THEN true is returned
 func TestIsCANilWithProfile(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(testScheme)
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	isCAValue, err := isCA(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false, profileDir))
 	assert.Nil(t, err)
 	assert.True(t, isCAValue)
@@ -241,7 +241,8 @@ func TestIsCATrue(t *testing.T) {
 	defer func() { getClientFunc = k8sutil.GetCoreV1Client }()
 	getClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA, "vz-cn")
 
-	client := fake.NewFakeClientWithScheme(testScheme)
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+
 	isCAValue, err := isCA(spi.NewFakeContext(client, localvz, false, profileDir))
 	assert.Nil(t, err)
 	assert.True(t, isCAValue)
@@ -266,7 +267,7 @@ func createClientFunc(caConfig vzapi.CA, cn string, otherObjs ...runtime.Object)
 func TestIsCAFalse(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
-	client := fake.NewFakeClientWithScheme(testScheme)
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	isCAValue, err := isCA(spi.NewFakeContext(client, localvz, false, profileDir))
 	assert.Nil(t, err)
 	assert.False(t, isCAValue)
@@ -280,7 +281,7 @@ func TestIsCABothPopulated(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
-	client := fake.NewFakeClientWithScheme(testScheme)
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	_, err := isCA(spi.NewFakeContext(client, localvz, false, profileDir))
 	assert.Error(t, err)
 }
@@ -293,7 +294,7 @@ func TestCreateCAResources(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
 
-	client := fake.NewFakeClientWithScheme(testScheme)
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 
 	opResult, err := createOrUpdateCAResources(spi.NewFakeContext(client, localvz, false, profileDir))
 	assert.NoError(t, err)
@@ -321,7 +322,7 @@ func TestCreateCAResources(t *testing.T) {
 			Namespace: localvz.Spec.Components.CertManager.Certificate.CA.ClusterResourceNamespace,
 		},
 	}
-	client = fake.NewFakeClientWithScheme(testScheme, &secret)
+	client = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&secret).Build()
 
 	opResult, err = createOrUpdateCAResources(spi.NewFakeContext(client, localvz, false, profileDir))
 	assert.NoError(t, err)
@@ -346,7 +347,7 @@ func TestCreateCAResources(t *testing.T) {
 //  WHEN No certs are found
 //  THEN no error is returned
 func TestRenewAllCertificatesNoCertsPresent(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(testScheme)
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	fakeContext := spi.NewFakeContext(client, vz, false)
 	assert.NoError(t, checkRenewAllCertificates(fakeContext, true))
 }

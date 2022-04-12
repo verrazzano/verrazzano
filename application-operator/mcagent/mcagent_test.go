@@ -10,6 +10,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
@@ -23,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var validSecret = corev1.Secret{
@@ -37,6 +39,71 @@ var validSecret = corev1.Secret{
 // GIVEN a request to process the agent loop
 // WHEN the a new VerrazzanoProjects resources exists
 // THEN ensure that there are no calls to sync any multi-cluster resources
+func TestProcessAgentThreadNoProjects(t *testing.T) {
+	assert := asserts.New(t)
+	log := zap.S().With("test")
+
+	// Managed cluster mocks
+	mcMocker := gomock.NewController(t)
+	mcMock := mocks.NewMockClient(mcMocker)
+
+	// Admin cluster mocks
+	adminMocker := gomock.NewController(t)
+	adminMock := mocks.NewMockClient(adminMocker)
+	adminStatusMock := mocks.NewMockStatusWriter(adminMocker)
+
+	// Managed Cluster - expect call to get the cluster registration secret.
+	mcMock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.ObjectMeta = validSecret.ObjectMeta
+			secret.Data = validSecret.Data
+			return nil
+		})
+
+	// Admin Cluster - expect a get followed by status update on VMC to record last agent connect time
+	vmcName := types.NamespacedName{Name: string(validSecret.Data[constants.ClusterNameData]), Namespace: constants.VerrazzanoMultiClusterNamespace}
+	expectGetAPIServerURLCalled(mcMock)
+	expectGetPrometheusHostCalled(mcMock)
+	expectAdminVMCStatusUpdateSuccess(adminMock, vmcName, adminStatusMock, assert)
+
+	// Admin Cluster - expect call to list VerrazzanoProject objects - return an empty list
+	adminMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...client.ListOption) error {
+			return nil
+		})
+
+	// Managed Cluster - expect call to list VerrazzanoProject objects - return an empty list
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...client.ListOption) error {
+			return nil
+		})
+
+	// Managed Cluster - expect call to list Namespace objects - return an empty list
+	mcMock.EXPECT().
+		List(gomock.Any(), &corev1.NamespaceList{}, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *corev1.NamespaceList, opts ...client.ListOption) error {
+			return nil
+		})
+
+	// Make the request
+	s := &Syncer{
+		AdminClient:        adminMock,
+		LocalClient:        mcMock,
+		Log:                log,
+		ManagedClusterName: testClusterName,
+		Context:            context.TODO(),
+	}
+	err := s.ProcessAgentThread()
+
+	// Validate the results
+	adminMocker.Finish()
+	mcMocker.Finish()
+	assert.NoError(err)
+	assert.Equal(validSecret.ResourceVersion, s.SecretResourceVersion)
+}
 
 // TestProcessAgentThreadSecretDeleted tests agent thread when the registration secret is deleted
 // GIVEN a request to process the agent loop
@@ -282,8 +349,8 @@ func TestSyncer_updateDeployment(t *testing.T) {
 
 				// Managed Cluster - expect call to update the deployment.
 				mcMock.EXPECT().
-					Update(gomock.Any(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, deployment *appsv1.Deployment) error {
+					Update(gomock.Any(), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, deployment *appsv1.Deployment, opts ...client.UpdateOption) error {
 						asserts.Equal(t, newVersion, getEnvValue(&deployment.Spec.Template.Spec.Containers, registrationSecretVersion), "expected env value for "+registrationSecretVersion)
 						return nil
 					})
@@ -330,8 +397,8 @@ func expectAdminVMCStatusUpdateSuccess(adminMock *mocks.MockClient, vmcName type
 		})
 	adminMock.EXPECT().Status().Return(adminStatusMock)
 	adminStatusMock.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&platformopclusters.VerrazzanoManagedCluster{})).
-		DoAndReturn(func(ctx context.Context, vmc *platformopclusters.VerrazzanoManagedCluster) error {
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&platformopclusters.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *platformopclusters.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			assert.Equal(vmcName.Namespace, vmc.Namespace)
 			assert.Equal(vmcName.Name, vmc.Name)
 			assert.NotNil(vmc.Status)
@@ -605,8 +672,8 @@ func TestSyncer_configureLogging(t *testing.T) {
 			// update only when expected
 			if expectUpdateDS {
 				mcMock.EXPECT().
-					Update(gomock.Any(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet) error {
+					Update(gomock.Any(), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet, opts ...client.UpdateOption) error {
 						return nil
 					})
 			}

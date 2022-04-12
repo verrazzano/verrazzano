@@ -193,7 +193,7 @@ func SetClusterLevelStatus(status *clustersv1alpha1.MultiClusterResourceStatus, 
 // NewScheme creates a new scheme that includes this package's object to use for testing
 func NewScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	clustersv1alpha1.AddToScheme(scheme)
+	_ = clustersv1alpha1.AddToScheme(scheme)
 	return scheme
 }
 
@@ -325,7 +325,7 @@ func SetEffectiveStateIfChanged(placement clustersv1alpha1.Placement,
 // DeleteAssociatedResource will retrieve and delete the resource specified by the name. It is used to delete
 // the underlying resource corresponding to a MultiClusterxxx wrapper resource (e.g. the OAM app config corresponding
 // to a MultiClusterApplicationConfiguration)
-func DeleteAssociatedResource(ctx context.Context, c client.Client, mcResource runtime.Object, finalizerName string, resourceToDelete runtime.Object, name types.NamespacedName) error {
+func DeleteAssociatedResource(ctx context.Context, c client.Client, mcResource client.Object, finalizerName string, resourceToDelete client.Object, name types.NamespacedName) error {
 	// Get and delete the associated with the name specified by resourceToDelete
 	err := c.Get(ctx, name, resourceToDelete)
 	if err != nil {
@@ -342,20 +342,17 @@ func DeleteAssociatedResource(ctx context.Context, c client.Client, mcResource r
 	// Deletion succeeded, now we can remove the finalizer
 
 	// assert the MC object is a controller util Object that can be processed by controllerutil.RemoveFinalizer
-	mcObj, ok := mcResource.(controllerutil.Object)
-	if ok {
-		controllerutil.RemoveFinalizer(mcObj, finalizerName)
-		err := c.Update(ctx, mcResource)
-		if err != nil {
-			return err
-		}
+	controllerutil.RemoveFinalizer(mcResource, finalizerName)
+	err = c.Update(ctx, mcResource)
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
 // AddFinalizer adds a finalizer and updates the resource if that finalizer is not already attached to the resource
-func AddFinalizer(ctx context.Context, r client.Client, obj controllerutil.Object, finalizerName string) (controllerruntime.Result, error) {
+func AddFinalizer(ctx context.Context, r client.Client, obj client.Object, finalizerName string) (controllerruntime.Result, error) {
 	if !controllerutil.ContainsFinalizer(obj, finalizerName) {
 		controllerutil.AddFinalizer(obj, finalizerName)
 		if err := r.Update(ctx, obj); err != nil {
@@ -384,7 +381,7 @@ func ShouldRequeue(r reconcile.Result) bool {
 }
 
 // GetResourceLogger will return the controller logger associated with the resource
-func GetResourceLogger(controller string, namespacedName types.NamespacedName, obj controllerutil.Object) (vzlog.VerrazzanoLogger, error) {
+func GetResourceLogger(controller string, namespacedName types.NamespacedName, obj client.Object) (vzlog.VerrazzanoLogger, error) {
 	// Get the resource logger needed to log message using 'progress' and 'once' methods
 	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
 		Name:           namespacedName.Name,

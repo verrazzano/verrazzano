@@ -31,15 +31,15 @@ func TestCreateOperatorNamespace(t *testing.T) {
 	}{
 		{
 			"should create the Rancher operator namespace",
-			fake.NewFakeClientWithScheme(getScheme()),
+			fake.NewClientBuilder().WithScheme(getScheme()).Build(),
 		},
 		{
 			"should not fail if the Rancher operator namespace already exists",
-			fake.NewFakeClientWithScheme(getScheme(), &v1.Namespace{
+			fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&v1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: OperatorNamespace,
 				},
-			}),
+			}).Build(),
 		},
 	}
 
@@ -63,15 +63,15 @@ func TestCreateCattleNamespace(t *testing.T) {
 	}{
 		{
 			"should create the cattle namespace",
-			fake.NewFakeClientWithScheme(getScheme()),
+			fake.NewClientBuilder().WithScheme(getScheme()).Build(),
 		},
 		{
 			"should edit the cattle namespace if already exists",
-			fake.NewFakeClientWithScheme(getScheme(), &v1.Namespace{
+			fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&v1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: common.CattleSystem,
 				},
-			}),
+			}).Build(),
 		},
 	}
 
@@ -97,19 +97,19 @@ func TestCopyDefaultCACertificate(t *testing.T) {
 	}{
 		{
 			"should not copy CA secret when not using the CA secret",
-			fake.NewFakeClientWithScheme(getScheme()),
+			fake.NewClientBuilder().WithScheme(getScheme()).Build(),
 			&vzAcmeDev,
 			false,
 		},
 		{
 			"should fail to copy the CA secret when it does not exist",
-			fake.NewFakeClientWithScheme(getScheme()),
+			fake.NewClientBuilder().WithScheme(getScheme()).Build(),
 			&vzDefaultCA,
 			true,
 		},
 		{
 			"should copy the CA secret when using the CA secret",
-			fake.NewFakeClientWithScheme(getScheme(), &secret),
+			fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&secret).Build(),
 			&vzDefaultCA,
 			false,
 		},
@@ -167,7 +167,7 @@ func TestIsUsingDefaultCACertificate(t *testing.T) {
 //  THEN createAdditionalCertificates should create additional certificates as necessary from the Verrazzano CR information
 func TestCreateAdditionalCertificates(t *testing.T) {
 	log := getTestLogger(t)
-	c := fake.NewFakeClientWithScheme(getScheme())
+	c := fake.NewClientBuilder().WithScheme(getScheme()).Build()
 	doOK := func(hc *http.Client, req *http.Request) (*http.Response, error) {
 		return &http.Response{
 			Body:       io.NopCloser(strings.NewReader("cert")),

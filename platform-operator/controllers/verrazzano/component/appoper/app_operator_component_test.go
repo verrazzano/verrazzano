@@ -50,12 +50,12 @@ func TestAppOperatorPostUpgradeNoDeleteClusterRoleBinding(t *testing.T) {
 			},
 		},
 	}
-	fakeClient := fake.NewFakeClientWithScheme(newScheme(),
+	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(
 		&v1alpha1.VerrazzanoManagedCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: clusterName,
 			},
-		})
+		}).Build()
 	err := NewComponent().PostUpgrade(spi.NewFakeContext(fakeClient, vz, false))
 	assert.NoError(t, err)
 }
@@ -77,7 +77,7 @@ func TestAppOperatorPostUpgradeDeleteClusterRoleBinding(t *testing.T) {
 			},
 		},
 	}
-	fakeClient := fake.NewFakeClientWithScheme(newScheme(),
+	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(
 		&v1alpha1.VerrazzanoManagedCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: clusterName,
@@ -89,7 +89,7 @@ func TestAppOperatorPostUpgradeDeleteClusterRoleBinding(t *testing.T) {
 			},
 			Subjects: nil,
 			RoleRef:  rbacv1.RoleRef{},
-		})
+		}).Build()
 	err := NewComponent().PostUpgrade(spi.NewFakeContext(fakeClient, vz, false))
 	assert.Nil(t, err)
 
@@ -102,9 +102,9 @@ func TestAppOperatorPostUpgradeDeleteClusterRoleBinding(t *testing.T) {
 
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	clustersv1alpha1.AddToScheme(scheme)
-	vzapi.AddToScheme(scheme)
-	rbacv1.AddToScheme(scheme)
+	_ = clustersv1alpha1.AddToScheme(scheme)
+	_ = vzapi.AddToScheme(scheme)
+	_ = rbacv1.AddToScheme(scheme)
 	return scheme
 }
 

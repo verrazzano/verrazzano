@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package istio
@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -25,12 +26,12 @@ import (
 //  WHEN I call createEnvoyFilter when the filter doesn't exist
 //  THEN the bash function is called to create the filter
 func TestCreateEnvoyFilter(t *testing.T) {
-	assert := assert.New(t)
-	assert.Equal("istio", comp.Name(), "Wrong component name")
+	a := assert.New(t)
+	a.Equal("istio", comp.Name(), "Wrong component name")
 
 	ctx := spi.NewFakeContext(getIstioFilterMockCreate(t), nil, false)
 	err := createEnvoyFilter(ctx.Log(), ctx.Client())
-	assert.NoError(err, "Error %s calling createEnvoyFilter", err)
+	a.NoError(err, "Error %s calling createEnvoyFilter", err)
 }
 
 func getIstioFilterMockCreate(t *testing.T) *mocks.MockClient {
@@ -46,8 +47,8 @@ func getIstioFilterMockCreate(t *testing.T) *mocks.MockClient {
 
 	// expect a call to create the filter
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured) error {
+		Create(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
 			return validateSpec(ctx, u)
 		})
 	return mock
@@ -58,12 +59,12 @@ func getIstioFilterMockCreate(t *testing.T) *mocks.MockClient {
 //  WHEN I call createEnvoyFilter when the filter exists
 //  THEN the bash function is called to update the filter
 func TestUpdateEnvoyFilter(t *testing.T) {
-	assert := assert.New(t)
-	assert.Equal("istio", comp.Name(), "Wrong component name")
+	a := assert.New(t)
+	a.Equal("istio", comp.Name(), "Wrong component name")
 
 	ctx := spi.NewFakeContext(getIstioFilterMockUpdate(t), nil, false)
 	err := createEnvoyFilter(ctx.Log(), ctx.Client())
-	assert.NoError(err, "Error %s calling createEnvoyFilter", err)
+	a.NoError(err, "Error %s calling createEnvoyFilter", err)
 }
 
 func getIstioFilterMockUpdate(t *testing.T) *mocks.MockClient {
@@ -79,8 +80,8 @@ func getIstioFilterMockUpdate(t *testing.T) *mocks.MockClient {
 
 	// expect a call to update the filter
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured) error {
+		Update(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.UpdateOption) error {
 			return validateSpec(ctx, u)
 		})
 

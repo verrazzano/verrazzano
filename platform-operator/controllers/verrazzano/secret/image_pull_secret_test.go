@@ -118,8 +118,8 @@ func TestUnexpectedErrorOnCreate(t *testing.T) {
 			return nil
 		})
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, secret *corev1.Secret) error {
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
 			return fmt.Errorf("Unexpected error")
 		})
 	copied, err := CheckImagePullSecret(mock, constants.VerrazzanoSystemNamespace)

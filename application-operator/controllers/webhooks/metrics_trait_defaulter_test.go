@@ -70,7 +70,7 @@ func testDefaulter(t *testing.T, componentPath, configPath, workloadPath string,
 				t.Fatalf("Error in unmarshalling component %v", err)
 			}
 			return nil
-		})
+		}).AnyTimes()
 
 	err = defaulter.Default(appConfig, false, zap.S())
 	if err != nil {
@@ -80,7 +80,7 @@ func testDefaulter(t *testing.T, componentPath, configPath, workloadPath string,
 	foundMetricsTrait := false
 	for _, trait := range appConfig.Spec.Components[0].Traits {
 		var rawTrait map[string]interface{}
-		json.Unmarshal(trait.Trait.Raw, &rawTrait)
+		_ = json.Unmarshal(trait.Trait.Raw, &rawTrait)
 		if rawTrait["apiVersion"] == apiVersion && rawTrait["kind"] == v1alpha1.MetricsTraitKind {
 			foundMetricsTrait = true
 		}

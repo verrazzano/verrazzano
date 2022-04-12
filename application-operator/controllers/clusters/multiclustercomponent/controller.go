@@ -37,7 +37,7 @@ type Reconciler struct {
 // Reconcile reconciles a MultiClusterComponent resource. It fetches the embedded OAM Component,
 // mutates it based on the MultiClusterComponent, and updates the status of the
 // MultiClusterComponent to reflect the success or failure of the changes to the embedded resource
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
@@ -48,7 +48,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, nil
 	}
 
-	ctx := context.Background()
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	var mcComp clustersv1alpha1.MultiClusterComponent
 	err := r.fetchMultiClusterComponent(ctx, req.NamespacedName, &mcComp)
 	if err != nil {
