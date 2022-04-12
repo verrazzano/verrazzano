@@ -398,9 +398,6 @@ pipeline {
                                     environment {
                                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
                                     }
-                                    when {
-                                        expression {params.RUN_SLOW_TESTS == true}
-                                    }
                                     steps {
                                         runGinkgoKeepGoing('workloads/coherence')
                                     }
