@@ -74,6 +74,10 @@ pipeline {
 
         // used to emit metrics
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
+        TEST_ENV = "KIND"
+        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
     }
 
     stages {
@@ -162,13 +166,8 @@ pipeline {
 
                 stage('Run Acceptance Tests') {
                     environment {
-                        TEST_ENV = "KIND"
                         PROJECT_ADMIN_ROLE = "verrazzano-project-admin"
                         TEST_ROLE = "verrazzano-test-role"
-
-                        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-                        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-                        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
                     }
                     stages {
                         stage ('Create test role') {
@@ -418,6 +417,9 @@ pipeline {
                 }
             }
         }
+        cleanup {
+            emitJobMetrics()
+        }
     }
 }
 
@@ -530,4 +532,14 @@ def runGinkgoWithKubeClient(testSuitePath) {
             ginkgo -v --keep-going --no-color ${testSuitePath}/...
         """
     }
+}
+
+def emitJobMetrics() {
+    env.JOB_STATUS = "${currentBuild.currentResult}".trim()
+    long duration = "${currentBuild.duration}" as long;
+    env.DURATION = duration
+    long timeInMillis = "${currentBuild.timeInMillis}" as long;
+    long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
+    env.TIME_WAITING = startTimeInMillis-timeInMillis
+    runGinkgoRandomize('jobmetrics')
 }
