@@ -512,8 +512,8 @@
             {
               "image": "prometheus-pushgateway",
               "tag": "v1.4.2",
-              "helmFullImageKey": "prometheusPushgateway.image.repository",
-              "helmTagKey": "prometheusPushgateway.image.tag"
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
             }
           ]
         }
