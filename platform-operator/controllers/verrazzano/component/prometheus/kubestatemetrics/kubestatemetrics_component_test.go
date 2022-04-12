@@ -13,7 +13,7 @@ import (
 
 const profilesRelativePath = "../../../../../manifests/profiles"
 
-// TestIsEnabled tests the IsEnabled function for the Prometheus Operator component
+// TestIsEnabled tests the IsEnabled function for the kube-state-metrics component
 func TestIsEnabled(t *testing.T) {
 	falseValue := false
 	trueValue := true
@@ -24,7 +24,7 @@ func TestIsEnabled(t *testing.T) {
 	}{
 		{
 			// GIVEN a default Verrazzano custom resource
-			// WHEN we call IsReady on the Prometheus Operator component
+			// WHEN we call IsReady on the kube-state-metrics component
 			// THEN the call returns true
 			name:       "Test IsEnabled when using default Verrazzano CR",
 			actualCR:   vzapi.Verrazzano{},

@@ -4,6 +4,7 @@
 package kubestatemetrics
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -12,10 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
-)
-
-import (
-	"context"
 )
 
 const deploymentName = "kube-state-metrics"

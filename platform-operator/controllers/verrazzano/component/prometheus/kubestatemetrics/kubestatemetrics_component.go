@@ -45,7 +45,7 @@ func NewComponent() spi.Component {
 	}
 }
 
-// IsEnabled returns true if the Prometheus Operator is enabled or if the component is not specified
+// IsEnabled returns true if kube-state-metrics is enabled or if the component is not specified
 // in the Verrazzano CR.
 func (c kubeStateMetricsComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	comp := effectiveCR.Spec.Components.KubeStateMetrics
@@ -55,7 +55,7 @@ func (c kubeStateMetricsComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool
 	return *comp.Enabled
 }
 
-// IsReady checks if the Prometheus Operator deployment is ready
+// IsReady checks if the kube-state-metrics deployment is ready
 func (c kubeStateMetricsComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
 		return isDeploymentReady(ctx)
@@ -63,7 +63,7 @@ func (c kubeStateMetricsComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
-// PreInstall updates resources necessary for the Prometheus Operator Component installation
+// PreInstall updates resources necessary for kube-state-metrics Component installation
 func (c kubeStateMetricsComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preInstall(ctx)
 }
