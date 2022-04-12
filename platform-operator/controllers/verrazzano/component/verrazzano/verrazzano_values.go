@@ -27,8 +27,8 @@ type verrazzanoValues struct {
 	Kiali              *kialiValues               `json:"kiali,omitempty"`
 	Keycloak           *keycloakValues            `json:"keycloak,omitempty"`
 	Rancher            *rancherValues             `json:"rancher,omitempty"`
-	VerrazzanoOperator *voValues                  `json:"verrazzanoOperator,omitempty"`
 	MonitoringOperator *vmoValues                 `json:"monitoringOperator,omitempty"`
+	NodeExporter       *nodeExporterValues        `json:"nodeExporter,omitempty"`
 	Logging            *loggingValues             `json:"logging,omitempty"`
 	Fluentd            *fluentdValues             `json:"fluentd,omitempty"`
 	Console            *consoleValues             `json:"console,omitempty"`
@@ -39,6 +39,7 @@ type verrazzanoValues struct {
 	Kubernetes         *kubernetesValues          `json:"kubernetes,omitempty"`
 	Externaldns        *externalDNSValues         `json:"externaldns,omitempty"`
 	PrometheusOperator *prometheusOperatorValues  `json:"prometheusOperator,omitempty"`
+	PrometheusAdapter  *prometheusAdapterValues   `json:"prometheusAdapter,omitempty"`
 }
 
 type subject struct {
@@ -116,13 +117,6 @@ type grafanaValues struct {
 	Requests *resourceRequestValues `json:"requests,omitempty"`
 }
 
-type voValues struct {
-	Name           string `json:"name,omitempty"`
-	Enabled        bool   `json:"enabled"` // Always write
-	APIServerRealm string `json:"apiServerRealm,omitempty"`
-	RequestMemory  string `json:"RequestMemory,omitempty"` // not a typo, the chart uses RequestMemory
-}
-
 type vmoValues struct {
 	Name                      string `json:"name,omitempty"`
 	Enabled                   bool   `json:"enabled"` // Always write
@@ -135,10 +129,15 @@ type vmoValues struct {
 	RequestMemory             string `json:"RequestMemory,omitempty"`
 }
 
+type nodeExporterValues struct {
+	Enabled bool `json:"enabled"` // Always write
+}
+
 type loggingValues struct {
 	Name                string `json:"name,omitempty"`
 	ElasticsearchURL    string `json:"elasticsearchURL,omitempty"`
 	ElasticsearchSecret string `json:"elasticsearchSecret,omitempty"`
+	ConfigHash          string `json:"configHash,omitempty"`
 }
 
 type fluentdValues struct {
@@ -208,5 +207,9 @@ type ociLoggingSettings struct {
 }
 
 type prometheusOperatorValues struct {
+	Enabled bool `json:"enabled"` // Always write
+}
+
+type prometheusAdapterValues struct {
 	Enabled bool `json:"enabled"` // Always write
 }

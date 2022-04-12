@@ -48,7 +48,7 @@ func Test_nginxComponent_ValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "change-type",
+			name: "change-type-to-nodeport",
 			old:  &vzapi.Verrazzano{},
 			new: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
@@ -59,7 +59,29 @@ func Test_nginxComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
+		},
+		{
+			name: "change-type-from-nodeport",
+			old: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Ingress: &vzapi.IngressNginxComponent{
+							Type: vzapi.NodePort,
+						},
+					},
+				},
+			},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Ingress: &vzapi.IngressNginxComponent{
+							Type: vzapi.LoadBalancer,
+						},
+					},
+				},
+			},
+			wantErr: false,
 		},
 		{
 			name: "change-install-args",
@@ -87,7 +109,7 @@ func Test_nginxComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name:    "no change",

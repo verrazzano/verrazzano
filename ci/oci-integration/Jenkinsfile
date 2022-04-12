@@ -461,7 +461,7 @@ pipeline {
 
                                     echo "Create Kind cluster"
                                     cd ${TEST_SCRIPTS_DIR}
-                                    ./create_kind_cluster.sh ${CLUSTER_NAME} ${GO_REPO_PATH}/verrazzano/platform-operator ${KUBECONFIG} ${KIND_KUBERNETES_CLUSTER_VERSION} true true true false "NONE" ${KIND_NODE_COUNT}
+                                    ./create_kind_cluster.sh ${CLUSTER_NAME} ${GO_REPO_PATH}/verrazzano/platform-operator ${KUBECONFIG} ${KIND_KUBERNETES_CLUSTER_VERSION} true true true false "NONE" 1
                                     if [ \$? -ne 0 ]; then
                                         mkdir ${WORKSPACE}/kind-logs
                                         kind export logs ${WORKSPACE}/kind-logs
@@ -812,9 +812,9 @@ def setDisplayName() {
 def emitJobMetrics() {
     env.JOB_STATUS = "${currentBuild.currentResult}".trim()
     long duration = "${currentBuild.duration}" as long;
-    env.DURATION = (duration/1000)
+    env.DURATION = duration
     long timeInMillis = "${currentBuild.timeInMillis}" as long;
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
-    env.TIME_WAITING = ((startTimeInMillis-timeInMillis)/1000)
+    env.TIME_WAITING = startTimeInMillis-timeInMillis
     runGinkgo('jobmetrics')
 }

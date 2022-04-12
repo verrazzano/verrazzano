@@ -11,7 +11,6 @@ rules:
   - configmaps
   - endpoints
   - pods/log
-  - pods/proxy
   verbs:
   - get
   - list
@@ -75,12 +74,6 @@ rules:
   - routes
   verbs:
   - get
-- apiGroups: ["monitoring.kiali.io"]
-  resources:
-  - monitoringdashboards
-  verbs:
-  - get
-  - list
 - apiGroups: ["iter8.tools"]
   resources:
   - experiments

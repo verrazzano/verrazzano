@@ -953,69 +953,6 @@ func mergeMaps(to map[string]string, from map[string]string) (map[string]string,
 	return mergedMap, updated
 }
 
-// buildDomain Build the DNS Domain from the current install
-func buildDomain(log vzlog.VerrazzanoLogger, c client.Client, vz *installv1alpha1.Verrazzano) (string, error) {
-	subdomain := vz.Spec.EnvironmentName
-	if len(subdomain) == 0 {
-		subdomain = vzconst.DefaultEnvironmentName
-	}
-	baseDomain, err := buildDomainSuffix(log, c, vz)
-	if err != nil {
-		return "", err
-	}
-	domain := subdomain + "." + baseDomain
-	return domain, nil
-}
-
-// buildDomainSuffix Get the configured domain suffix, or compute the nip.io domain
-func buildDomainSuffix(log vzlog.VerrazzanoLogger, c client.Client, vz *installv1alpha1.Verrazzano) (string, error) {
-	dns := vz.Spec.Components.DNS
-	if dns != nil && dns.OCI != nil {
-		return dns.OCI.DNSZoneName, nil
-	}
-	if dns != nil && dns.External != nil {
-		return dns.External.Suffix, nil
-	}
-	ipAddress, err := getIngressIP(log, c)
-	if err != nil {
-		return "", err
-	}
-
-	if dns != nil && dns.Wildcard != nil {
-		return ipAddress + dns.Wildcard.Domain, nil
-	}
-
-	// Default to nip.io
-	return ipAddress + ".nip.io", nil
-}
-
-// getIngressIP get the Ingress IP, used for the wildcard case (magic DNS)
-func getIngressIP(log vzlog.VerrazzanoLogger, c client.Client) (string, error) {
-	const nginxIngressController = "ingress-controller-ingress-nginx-controller"
-	const nginxNamespace = "ingress-nginx"
-	nsn := types.NamespacedName{Name: nginxIngressController, Namespace: nginxNamespace}
-	nginxService := corev1.Service{}
-	err := c.Get(context.TODO(), nsn, &nginxService)
-	if err != nil {
-		log.Errorf("Failed to get service %v: %v", nsn, err)
-		return "", err
-	}
-	if nginxService.Spec.Type == corev1.ServiceTypeLoadBalancer || nginxService.Spec.Type == corev1.ServiceTypeNodePort {
-		nginxIngress := nginxService.Status.LoadBalancer.Ingress
-		if len(nginxIngress) == 0 {
-			// In case of OLCNE, need to obtain the External IP from the Spec
-			if len(nginxService.Spec.ExternalIPs) == 0 {
-				return "", log.ErrorfNewErr("Failed because NGINX service %s is missing External IP address", nginxService.Name)
-			}
-			return nginxService.Spec.ExternalIPs[0], nil
-		}
-		return nginxIngress[0].IP, nil
-	}
-	err = fmt.Errorf("Failed because of unsupported service type %s for NGINX ingress", string(nginxService.Spec.Type))
-	log.Errorf("%v", err)
-	return "", err
-}
-
 func addFluentdExtraVolumeMounts(files []string, vz *installv1alpha1.Verrazzano) *installv1alpha1.Verrazzano {
 	for _, extraMount := range dirsOutsideVarLog(files) {
 		if vz.Spec.Components.Fluentd == nil {

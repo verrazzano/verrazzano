@@ -1,4 +1,4 @@
-// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package integ_test
@@ -18,7 +18,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/test/integ/util"
 )
 
-const verrazzanoOperator = "verrazzano-application-operator"
+const verrazzanoAppOperator = "verrazzano-application-operator"
 const verrazzanoSystem = "verrazzano-system"
 
 const appService = "hello-workload"
@@ -100,15 +100,15 @@ var _ = Describe("verrazzano-application namespace resources ", func() {
 			"The namespace should exist")
 	})
 
-	It(fmt.Sprintf("ServiceAccount %s exists", verrazzanoOperator), func() {
-		Expect(K8sClient.DoesServiceAccountExist(verrazzanoOperator, verrazzanoSystem)).To(BeTrue(),
+	It(fmt.Sprintf("ServiceAccount %s exists", verrazzanoAppOperator), func() {
+		Expect(K8sClient.DoesServiceAccountExist(verrazzanoAppOperator, verrazzanoSystem)).To(BeTrue(),
 			"The Verrazzano operator service account should exist")
 	})
-	It(fmt.Sprintf("Deployment %s exists", verrazzanoOperator), func() {
-		Expect(K8sClient.DoesDeploymentExist(verrazzanoOperator, verrazzanoSystem)).To(BeTrue(),
+	It(fmt.Sprintf("Deployment %s exists", verrazzanoAppOperator), func() {
+		Expect(K8sClient.DoesDeploymentExist(verrazzanoAppOperator, verrazzanoSystem)).To(BeTrue(),
 			"The Verrazzano operator doesn't exist")
 	})
-	It(fmt.Sprintf("Pod prefixed by %s exists", verrazzanoOperator), func() {
+	It(fmt.Sprintf("Pod prefixed by %s exists", verrazzanoAppOperator), func() {
 		Eventually(isOperatorRunning, for3m).Should(BeTrue(),
 			"The Verrazzano operator pod is not running")
 		Eventually(operatorServiceExists, for3m).Should(BeTrue(),
@@ -184,11 +184,11 @@ var _ = Describe("Testing hello app lifecycle", func() {
 
 //// Helper functions
 func isOperatorRunning() bool {
-	return K8sClient.IsPodRunning(verrazzanoOperator, verrazzanoSystem)
+	return K8sClient.IsPodRunning(verrazzanoAppOperator, verrazzanoSystem)
 }
 
 func operatorServiceExists() bool {
-	return K8sClient.DoesServiceExist(verrazzanoOperator, verrazzanoSystem)
+	return K8sClient.DoesServiceExist(verrazzanoAppOperator, verrazzanoSystem)
 }
 
 func createAppConfig() bool {

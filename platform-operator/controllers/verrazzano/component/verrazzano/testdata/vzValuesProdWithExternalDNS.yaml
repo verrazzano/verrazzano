@@ -13,7 +13,9 @@ monitoringOperator:
   enabled: true
 rancher:
   enabled: true
-verrazzanoOperator:
+nodeExporter:
   enabled: true
 prometheusOperator:
+  enabled: true
+prometheusAdapter:
   enabled: true

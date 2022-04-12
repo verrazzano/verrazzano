@@ -50,24 +50,24 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "1.2.0-20220225033848-4f1415cb5",
+              "tag": "v1.7.1",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver",
-              "tag": "1.2.0-20220225033913-4f1415cb5",
+              "tag": "v1.7.1",
               "helmFullImageKey": "extraArgs[0]=--acme-http01-solver-image"
             },
             {
               "image": "cert-manager-cainjector",
-              "tag": "1.2.0-20220225033848-4f1415cb5",
+              "tag": "v1.7.1",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook",
-              "tag": "1.2.0-20220225033848-4f1415cb5",
+              "tag": "v1.7.1",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             }
@@ -184,12 +184,6 @@
           "name": "verrazzano",
           "images": [
             {
-              "image": "verrazzano-operator",
-              "tag": "1.3.0-20220225034830-4714c1c",
-              "helmFullImageKey": "verrazzanoOperator.imageName",
-              "helmTagKey": "verrazzanoOperator.imageVersion"
-            },
-            {
               "image": "node-exporter",
               "tag": "1.0.0-20220225034938-e25ae11",
               "helmFullImageKey": "nodeExporter.imageName",
@@ -197,7 +191,7 @@
             },
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "1.3.0-20220405201853-318e510",
+              "tag": "1.3.0-20220411151034-bfc8d4b",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -357,7 +351,7 @@
           "images": [
             {
               "image": "kiali",
-              "tag": "v1.34.1-1",
+              "tag": "v1.42.0",
               "helmFullImageKey": "deployment.image_name",
               "helmTagKey": "deployment.image_version"
             }
@@ -430,9 +424,38 @@
           "images": [
             {
               "image": "prometheus-operator",
-              "tag": "v0.49.0-1",
+              "tag": "v0.55.1",
               "helmFullImageKey": "prometheusOperator.image.repository",
               "helmTagKey": "prometheusOperator.image.tag"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "prometheus-config-reloader",
+          "images": [
+            {
+              "image": "prometheus-config-reloader",
+              "tag": "v0.55.1",
+              "helmFullImageKey": "prometheusOperator.prometheusConfigReloader.image.repository",
+              "helmTagKey": "prometheusOperator.prometheusConfigReloader.image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "prometheus-adapter",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "prometheus-adapter",
+          "images": [
+            {
+              "image": "prometheus-adapter",
+              "tag": "v0.9.1-2",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
             }
           ]
         }

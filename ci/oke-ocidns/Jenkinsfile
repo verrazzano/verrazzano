@@ -751,7 +751,6 @@ def dumpBobObjects() {
 }
 
 def dumpBobLogs() {
-    dumpVerrazzanoOperatorLogs()
     dumpVerrazzanoApiLogs()
     sh """
         export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/bobs-bookstore-adminserver.log"
@@ -792,7 +791,6 @@ def dumpGenericSpringbootObjects() {
 }
 
 def dumpGenericSpringbootLogs() {
-    dumpVerrazzanoOperatorLogs()
     dumpVerrazzanoApiLogs()
     sh """
         export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-springboot.log"
@@ -812,15 +810,7 @@ def dumpSockObjects() {
 }
 
 def dumpSockLogs() {
-    dumpVerrazzanoOperatorLogs()
     dumpVerrazzanoApiLogs()
-}
-
-def dumpVerrazzanoOperatorLogs() {
-    sh """
-        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-operator.log"
-        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-operator-*" -m "verrazzano operator" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
-    """
 }
 
 def dumpVerrazzanoSystemPods() {
@@ -1010,9 +1000,9 @@ def createImagePullSecrets() {
 def emitJobMetrics() {
     env.JOB_STATUS = "${currentBuild.currentResult}".trim()
     long duration = "${currentBuild.duration}" as long;
-    env.DURATION = (duration/1000)
+    env.DURATION = duration
     long timeInMillis = "${currentBuild.timeInMillis}" as long;
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
-    env.TIME_WAITING = ((startTimeInMillis-timeInMillis)/1000)
+    env.TIME_WAITING = startTimeInMillis-timeInMillis
     runGinkgo('jobmetrics')
 }
