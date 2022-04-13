@@ -287,6 +287,7 @@ func Test_appendVerrazzanoValues(t *testing.T) {
 						DNS:                &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: "xip.io"}},
 						PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &falseValue},
 						PrometheusAdapter:  &vzapi.PrometheusAdapterComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						KubeStateMetrics:   &vzapi.KubeStateMetricsComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 					},
 				},
 			},
@@ -340,9 +341,9 @@ func Test_appendVerrazzanoValues(t *testing.T) {
 				a.NoError(err)
 			}
 
-			//outdata, err := yaml.Marshal(&values)
-			//assert.NoError(err)
-			//ioutil.WriteFile(fmt.Sprintf("%s/%s.yaml", os.TempDir(), test.name), outdata, fs.FileMode(0664))
+			// outdata, err := yaml.Marshal(&values)
+			// assert.NoError(err)
+			// ioutil.WriteFile(fmt.Sprintf("%s/%s.yaml", os.TempDir(), test.name), outdata, fs.FileMode(0664))
 
 			data, err := ioutil.ReadFile(test.expectedYAML)
 			a.NoError(err, "Error reading expected values yaml file %s", test.expectedYAML)
@@ -588,6 +589,7 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 						DNS:                &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: "xip.io"}},
 						PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &falseValue},
 						PrometheusAdapter:  &vzapi.PrometheusAdapterComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						KubeStateMetrics:   &vzapi.KubeStateMetricsComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 					},
 				},
 			},
@@ -784,7 +786,6 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 			a.NoError(err)
 
 			actualNumKvs := len(kvs)
-			//t.Logf("Num kvs: %d", actualNumKvs)
 			expectedNumKvs := test.numKeyValues
 			if expectedNumKvs == 0 {
 				// default is 11, 2 file override + 1 custom image overrides + 8 ES
@@ -1100,8 +1101,8 @@ func Test_fixupElasticSearchReplicaCount(t *testing.T) {
 	a.NoError(err, "Failed to create fake component context.")
 	createElasticsearchPod(ctx.Client(), "http")
 	execCommand = fakeExecCommand
-	fakeExecScenarioNames = []string{"fixupElasticSearchReplicaCount/get", "fixupElasticSearchReplicaCount/put"} //nolint
-	fakeExecScenarioIndex = 0                                                                                    //nolint
+	fakeExecScenarioNames = []string{"fixupElasticSearchReplicaCount/get", "fixupElasticSearchReplicaCount/put"} // nolint
+	fakeExecScenarioIndex = 0                                                                                    // nolint
 	err = fixupElasticSearchReplicaCount(ctx, "verrazzano-system")
 	a.NoError(err, "Failed to fixup Elasticsearch index template")
 
@@ -1109,8 +1110,8 @@ func Test_fixupElasticSearchReplicaCount(t *testing.T) {
 	//  WHEN fixupElasticSearchReplicaCount is called
 	//  THEN an error should be returned
 	//   AND no commands should be invoked
-	fakeExecScenarioNames = []string{} //nolint
-	fakeExecScenarioIndex = 0          //nolint
+	fakeExecScenarioNames = []string{} // nolint
+	fakeExecScenarioIndex = 0          // nolint
 	ctx, err = createFakeComponentContext()
 	a.NoError(err, "Failed to create fake component context.")
 	createElasticsearchPod(ctx.Client(), "tcp")
@@ -1121,8 +1122,8 @@ func Test_fixupElasticSearchReplicaCount(t *testing.T) {
 	//  WHEN fixupElasticSearchReplicaCount is called
 	//  THEN no error should be returned
 	//   AND no commands should be invoked
-	fakeExecScenarioNames = []string{} //nolint
-	fakeExecScenarioIndex = 0          //nolint
+	fakeExecScenarioNames = []string{} // nolint
+	fakeExecScenarioIndex = 0          // nolint
 	ctx, err = createFakeComponentContext()
 	a.NoError(err, "Unexpected error")
 	ctx.ActualCR().Status.Version = "1.1.0"
