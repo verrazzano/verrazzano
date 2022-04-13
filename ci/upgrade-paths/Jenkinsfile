@@ -30,7 +30,7 @@ pipeline {
                 description: 'This is the Verrazzano version for install.  By default, the latest Master release will be installed',
                 trim: true)
         string (name: 'VERSION_FOR_UPGRADE',
-                defaultValue: 'v1.2.0',
+                defaultValue: '',
                 description: 'This is the Verrazzano version for Upgrade.  By default, the specified version will be the latest minor release candidate',
                 trim: true)
         string (name: 'GIT_COMMIT_FOR_UPGRADE',

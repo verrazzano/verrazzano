@@ -151,7 +151,7 @@ pipeline {
                             """
             final String content = readFile(file: "${workspace}/tags.txt")
             final List gitTags = extractLines(content)
-            TARGET_UPGRADE_VERSION = gitTags.pop()
+            TARGET_UPGRADE_VERSION = gitTags.pop() - "v"
             echo "gitTags = ${gitTags}"
             allReleasesToRCJobs = addTargetUpgradeVersion(gitTags)
                     def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
