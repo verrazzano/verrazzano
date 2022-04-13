@@ -229,7 +229,7 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 	})
 
 	t.Context("WebLogic logging", Label("f:observability.logging.es"), func() {
-		indexName := "verrazzano-namespace-" + namespace
+		indexName := pkg.GetOpenSearchAppIndex(namespace)
 		// GIVEN a WebLogic application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found

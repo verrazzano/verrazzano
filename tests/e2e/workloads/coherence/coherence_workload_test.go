@@ -100,7 +100,7 @@ var _ = t.Describe("Validate deployment of VerrazzanoCoherenceWorkload", Label("
 	})
 
 	t.Context("Logging.", Label("f:observability.logging.es"), func() {
-		indexName := "verrazzano-namespace-" + namespace
+		indexName := pkg.GetOpenSearchAppIndex(namespace)
 		t.It("Verify Elasticsearch index exists", func() {
 			Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
