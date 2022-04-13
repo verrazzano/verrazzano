@@ -115,5 +115,8 @@ const WorkloadTypeCoherence = "coherence"
 // WorkloadTypeGeneric indicates the workload is generic (one of VerrazzanoHelidonWorkload, ContainerizedWorkload or Deployment)
 const WorkloadTypeGeneric = "generic"
 
-// ClusterCASecret is the name of the secret in a cluster that contains the cluster's ca bundle
-const ClusterCASecret = "verrazzano-tls" //nolint:gosec //#gosec G101
+// VzConsoleIngressTLSSecret is the name of the secret in a cluster that contains the cluster's ca bundle
+const VzConsoleIngressTLSSecret = "verrazzano-tls" //nolint:gosec //#gosec G101
+
+// MCAdminCASecret is the name of the secret in the verrazzano-mc namespace on an admin cluster that contains the cluster's ca bundle
+const MCAdminCASecret = "verrazzano-admin-ca-bundle" //nolint:gosec //#gosec G101
