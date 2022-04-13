@@ -329,27 +329,22 @@ func SlicesContainSameStrings(strings1, strings2 []string) bool {
 	return reflect.DeepEqual(m1, m2)
 }
 
-// SlicesContainSubsectionStrings compares two slices and returns true if the first slice is a subsection of the second slice
-func SlicesContainSubsectionStrings(strings1, strings2 []string) bool {
+// SlicesContainSubsetSubstring returns true if the strings in the first slice are substrings of any string in the second slice
+func SlicesContainSubsetSubstring(strings1, strings2 []string) bool {
 	if len(strings1) >= len(strings2) {
 		return false
 	}
 	if len(strings1) == 0 {
 		return true
 	}
-	// count how many times each string occurs in case there are duplicates
-	m1 := map[string]int32{}
-	for _, s := range strings1 {
-		m1[s]++
-	}
-	m2 := map[string]int32{}
-	for _, s := range strings2 {
-		m2[s]++
-	}
-
-	// See if all keys value pairs in map1 match the pairs in map2
-	for k, v := range m1 {
-		if m2[k] != v {
+	for _, s1 := range strings1 {
+		found := false
+		for _, s2 := range strings1 {
+			if strings.Contains(s1, s2) {
+				found = true
+			}
+		}
+		if !found {
 			return false
 		}
 	}

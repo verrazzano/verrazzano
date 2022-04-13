@@ -21,6 +21,7 @@ const (
 	prometheusTLSSecret             = "prometheus-operator-kube-p-admission"
 	prometheusOperatorDeployment    = "prometheus-operator-kube-p-operator"
 	prometheusOperatorContainerName = "kube-prometheus-stack"
+	bomFilepath                     = "../../../../platform-operator/verrazzano-bom.json"
 )
 
 var (
@@ -36,8 +37,8 @@ var (
 		"thanosrulers.monitoring.coreos.com",
 	}
 	expectedPromOperatorArgs = []string{
-		"--prometheus-default-base-image=ghcr.io/verrazzano/prometheus:v2.34.0",
-		"--alertmanager-default-base-image=ghcr.io/verrazzano/alertmanager:v0.24.0",
+		"--prometheus-default-base-image=ghcr.io/verrazzano/prometheus",
+		"--alertmanager-default-base-image=ghcr.io/verrazzano/alertmanager",
 	}
 )
 
@@ -93,18 +94,8 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 		// WHEN we check to make sure the default images are from Verrazzano
 		// THEN we see that the arguments are correctly populated
 		WhenPromStackInstalledIt("should have the correct default images", func() {
-			promStackPodsRunning := func() bool {
-				deployment, err := pkg.GetDeployment(verrazzanoMonitoringNamespace, prometheusOperatorDeployment)
-				if err != nil {
-					AbortSuite(fmt.Sprintf("Deployment %v is not found in the namespace: %v, error: %v", prometheusOperatorDeployment, verrazzanoMonitoringNamespace, err))
-				}
-				for _, container := range deployment.Spec.Template.Spec.Containers {
-					if container.Name == prometheusOperatorContainerName {
-						return pkg.SlicesContainSubsectionStrings(expectedPromOperatorArgs, container.Args)
-					}
-				}
-
-				return false
+			promStackPodsRunning := func() (bool, error) {
+				return pkg.ContainerHasExpectedArgs(verrazzanoMonitoringNamespace, prometheusOperatorDeployment, prometheusOperatorContainerName, expectedPromOperatorArgs)
 			}
 			Eventually(promStackPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})
