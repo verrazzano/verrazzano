@@ -92,8 +92,8 @@ pipeline {
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
 
-        WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
-        DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
+        WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
+        DATABASE_PSW = credentials('todo-mysql-password') // required by console ingress test
 
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
@@ -378,30 +378,6 @@ pipeline {
                                         runGinkgoKeepGoing('logging/helidon')
                                     }
                                 }
-                                stage('examples todo') {
-                                    environment {
-                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
-                                    }
-                                    steps {
-                                        runGinkgoFailFast('examples/todo')
-                                    }
-                                }
-                                stage('examples socks') {
-                                    environment {
-                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-socks"
-                                    }
-                                    steps {
-                                        runGinkgoKeepGoing('examples/socks')
-                                    }
-                                }
-                                stage('examples spring') {
-                                    environment {
-                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-spring"
-                                    }
-                                    steps {
-                                        runGinkgoKeepGoing('examples/springboot')
-                                    }
-                                }
                                 stage('examples helidon') {
                                     environment {
                                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
@@ -410,23 +386,20 @@ pipeline {
                                         runGinkgoKeepGoing('examples/helidon')
                                     }
                                 }
-                                stage('examples helidon-config') {
+                                stage('weblogic workload') {
                                     environment {
-                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-config"
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
                                     }
                                     steps {
-                                        runGinkgoKeepGoing('examples/helidonconfig')
+                                        runGinkgoFailFast('workloads/weblogic')
                                     }
                                 }
-                                stage('examples bobs') {
+                                stage('coherence workload') {
                                     environment {
-                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-bobs"
-                                    }
-                                    when {
-                                        expression {params.RUN_SLOW_TESTS == true}
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
                                     }
                                     steps {
-                                        runGinkgoKeepGoing('examples/bobsbooks')
+                                        runGinkgoKeepGoing('workloads/coherence')
                                     }
                                 }
                                 stage('console ingress') {
