@@ -134,3 +134,9 @@ externaldns:
 
 prometheusOperator:
   enabled: true
+
+kubeStateMetrics:
+  enabled: true
+
+prometheusPushgateway:
+  enabled: true
