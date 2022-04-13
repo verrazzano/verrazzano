@@ -7,8 +7,6 @@ import (
 	"bytes"
 	"fmt"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -144,7 +142,7 @@ func (s *Syncer) syncLocalClusterCA() error {
 	return nil
 }
 
-func secretsEqualTrimmedWhitespace(secret1,\r secret2 []byte) bool {
+func secretsEqualTrimmedWhitespace(secret1, secret2 []byte) bool {
 	a := bytes.Trim(secret1, " \t\n\r")
 	b := bytes.Trim(secret2, " \t\n\r")
 	return bytes.Equal(a, b)
