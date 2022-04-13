@@ -95,7 +95,8 @@ func removeDeploymentAndService(ctx spi.ComponentContext) error {
 	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: kialiSystemName}, deployment); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to get deployment %s/%s: %v", ComponentNamespace, kialiSystemName, err)
 	}
-	if deployment.Spec.Selector != nil {
+	// Remove the Kiali deployment only if the match selector is not what is expected.
+	if deployment.Spec.Selector != nil && len(deployment.Spec.Selector.MatchExpressions) == 0 && len(deployment.Spec.Selector.MatchLabels) == 2 {
 		instance, ok := deployment.Spec.Selector.MatchLabels["app.kubernetes.io/instance"]
 		if ok && instance == kialiSystemName {
 			name, ok := deployment.Spec.Selector.MatchLabels["app.kubernetes.io/name"]
