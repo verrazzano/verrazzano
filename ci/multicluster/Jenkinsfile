@@ -528,7 +528,7 @@ pipeline {
                         }
                         stage ('Examples Helidon Deprecated') {
                             steps {
-                                runGinkgo("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/examples-helidon")
+                                runGinkgo("multicluster/examples/helidon-deprecated", "${TEST_DUMP_ROOT}/helidon-deprecated")
                             }
                         }
                         stage ('Delete Deployed App NS') {
