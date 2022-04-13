@@ -339,6 +339,7 @@ func SlicesContainSubsetSubstring(strings1, strings2 []string) bool {
 		for _, s2 := range strings2 {
 			if strings.Contains(s1, s2) {
 				found = true
+				break
 			}
 		}
 		if !found {
