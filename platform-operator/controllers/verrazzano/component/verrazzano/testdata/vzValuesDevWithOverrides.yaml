@@ -22,3 +22,5 @@ prometheusAdapter:
   enabled: false
 kubeStateMetrics:
   enabled: false
+prometheusPushgateway:
+  enabled: false

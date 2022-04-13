@@ -22,7 +22,7 @@ const (
 )
 
 var (
-	promStackPods    = []string{"prometheus-adapter", "prometheus-operator-kube-p-operator", "kube-state-metrics"}
+	promStackPods    = []string{"prometheus-adapter", "prometheus-operator-kube-p-operator", "kube-state-metrics", "prometheus-pushgateway"}
 	promOperatorCrds = []string{
 		"alertmanagerconfigs.monitoring.coreos.com",
 		"alertmanagers.monitoring.coreos.com",
