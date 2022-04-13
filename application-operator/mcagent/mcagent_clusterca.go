@@ -16,6 +16,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+const (
+	keyCaCrtNoDot = "cacrt"
+	keyCaCrt      = "ca.crt"
+	keyCaBundle   = "ca-bundle"
+)
+
 // Synchronize Secret objects to the local cluster
 func (s *Syncer) syncClusterCAs() error {
 	err := s.syncAdminClusterCA()
@@ -57,23 +63,22 @@ func (s *Syncer) syncAdminClusterCA() error {
 	s.Log.Info("Got local cluster registration secret")
 
 	// Update the local cluster registration secret if the admin CA certs are different
-	if !secretsEqualTrimmedWhitespace(registrationSecret.Data["ca-bundle"], adminCASecret.Data["ca.crt"]) {
+	if !secretsEqualTrimmedWhitespace(registrationSecret.Data[keyCaBundle], adminCASecret.Data[keyCaCrt]) {
 		s.Log.Info("CAs are different -- updating")
-		s.Log.Info("Local registration Secret: %v", registrationSecret.Data["ca-bundle"])
-		s.Log.Info("Admin CA Secret: %v", adminCASecret.Data["ca.crt"])
 		newSecret := corev1.Secret{}
 		newSecret.Name = registrationSecret.Name
 		newSecret.Namespace = registrationSecret.Namespace
 		newSecret.Labels = registrationSecret.Labels
 		newSecret.Annotations = registrationSecret.Annotations
 		newSecret.Data = registrationSecret.Data
-		newSecret.Data["ca-bundle"] = adminCASecret.Data["ca.crt"]
-		_, err = controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &newSecret, func() error { return nil })
+		newSecret.Data[keyCaBundle] = adminCASecret.Data[keyCaCrt]
+		result, err := controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &newSecret, func() error { return nil })
 		if err != nil {
 			s.Log.Errorw(fmt.Sprintf("Failed syncing admin CA certificate: %v", err),
 				"Secret", registrationSecret.Name)
+		} else {
+			s.Log.Infof("Updated local cluster registration secret, result was: %v", result)
 		}
-		s.Log.Info("Updated local cluster registration secret")
 	} else {
 		s.Log.Info("CAs are the same -- not updating")
 	}
@@ -116,23 +121,22 @@ func (s *Syncer) syncLocalClusterCA() error {
 	s.Log.Info("Got VMC CA secret from admin cluster")
 
 	// Update the VMC cluster CA secret if the local CA is different
-	if !secretsEqualTrimmedWhitespace(adminVMCCASecret.Data["cacrt"], localCASecret.Data["ca.crt"]) {
+	if !secretsEqualTrimmedWhitespace(adminVMCCASecret.Data[keyCaCrtNoDot], localCASecret.Data[keyCaCrt]) {
 		s.Log.Info("CAs are different -- updating")
-		s.Log.Info("VMC CA Secret: %v", adminVMCCASecret.Data["cacrt"])
-		s.Log.Info("Local CA Secret: %v", localCASecret.Data["ca.crt"])
 		newSecret := corev1.Secret{}
 		newSecret.Name = adminVMCCASecret.Name
 		newSecret.Namespace = adminVMCCASecret.Namespace
 		newSecret.Labels = adminVMCCASecret.Labels
 		newSecret.Annotations = adminVMCCASecret.Annotations
 		newSecret.Data = adminVMCCASecret.Data
-		newSecret.Data["cacrt"] = localCASecret.Data["ca.crt"]
-		_, err = controllerutil.CreateOrUpdate(s.Context, s.AdminClient, &newSecret, func() error { return nil })
+		newSecret.Data[keyCaCrtNoDot] = localCASecret.Data[keyCaCrt]
+		result, err := controllerutil.CreateOrUpdate(s.Context, s.AdminClient, &newSecret, func() error { return nil })
 		if err != nil {
 			s.Log.Errorw(fmt.Sprintf("Failed syncing local CA certificate: %v", err),
 				"Secret", adminVMCCASecret.Name)
+		} else {
+			s.Log.Info("Updated VMC cluster CA secret on admin cluster, result was: %v", result)
 		}
-		s.Log.Info("Updated VMC cluster CA secret on admin cluster")
 	} else {
 		s.Log.Info("CAs are the same -- not updating")
 	}
