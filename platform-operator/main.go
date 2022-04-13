@@ -16,8 +16,8 @@ import (
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusterca"
 	clusterscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
+	secretscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
 	vzcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano"
 	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
@@ -200,12 +200,12 @@ func main() {
 		mgr.GetWebhookServer().CertDir = config.CertDir
 	}
 
-	// Setup reconciler for the Admin CA secret (ensures admin ca bundle in verrazzano-mc namespace is up-to-date)
-	if err = (&clusterca.VerrazzanoAdminCAReconciler{
+	// Setup secrets reconciler
+	if err = (&secretscontroller.VerrazzanoSecretsReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoAdminCA")
+		log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoSecrets")
 		os.Exit(1)
 	}
 
