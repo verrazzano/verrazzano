@@ -73,7 +73,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 				// so we can create network policies. Rancher will run pods in this namespace once
 				// the managed cluster manifest YAML is applied to the managed cluster.
 				Expect(nsListContains(namespaces.Items, "cattle-system")).To(BeTrue())
-				Expect(nsListContains(namespaces.Items, "local")).To(BeFalse())
+				Expect(nsListContains(namespaces.Items, "local")).To(BeTrue())
 			} else {
 				Expect(nsListContains(namespaces.Items, "cattle-system")).To(BeTrue())
 				Expect(nsListContains(namespaces.Items, "cattle-global-data")).To(BeTrue())
