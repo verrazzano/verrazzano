@@ -523,12 +523,12 @@ pipeline {
                     parallel {
                         stage ('Examples Helidon') {
                             steps {
-                                testHelidonExample("multicluster/examples/helidon")
+                                runGinkgo("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload")
                             }
                         }
                         stage ('Examples Helidon Deprecated') {
                             steps {
-                                testHelidonExample("multicluster/examples/helidon-deprecated")
+                                runGinkgo("multicluster/examples/helidon-deprecated", "${TEST_DUMP_ROOT}/helidon-deprecated")
                             }
                         }
                         stage ('Delete Deployed App NS') {
@@ -538,14 +538,14 @@ pipeline {
                                 }
                             }
                         }
-                        stage ('Examples Sock Shop') {
+                        stage ('WebLogic Workload') {
                             steps {
-                                testSockExample("multicluster/examples/sock-shop")
+                                runGinkgo("multicluster/workloads/mcweblogic", "${TEST_DUMP_ROOT}/weblogic-workload")
                             }
                         }
-                        stage('Examples Todo List') {
+                        stage ('Coherence Workload') {
                             steps {
-                                testTodoExample("multicluster/examples/todo-list")
+                                runGinkgo("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload")
                             }
                         }
                     }
@@ -1042,8 +1042,8 @@ def verifyManagedClusterPermissions() {
     }
 }
 
-// Test the multicluster Helidon example
-def testHelidonExample(testSuitePath) {
+// Run ginkgo test suites
+def runGinkgo(testSuitePath, clusterDumpDirectory) {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         sh """
@@ -1052,40 +1052,8 @@ def testHelidonExample(testSuitePath) {
             export CLUSTER_COUNT=$clusterCount
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-            export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
+            export DUMP_DIRECTORY="${clusterDumpDirectory}"
             ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
-        """
-    }
-}
-
-// Test the multicluster sock-shop example
-def testSockExample(testSuitePath) {
-    script {
-        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-        sh """
-            export MANAGED_CLUSTER_NAME="managed1"
-            export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-            export CLUSTER_COUNT=$clusterCount
-            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-            export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-sock"
-            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
-        """
-    }
-}
-
-// Test the multicluster todo-list example
-def testTodoExample(testSuitePath) {
-    script {
-        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-        sh """
-            export MANAGED_CLUSTER_NAME="managed1"
-            export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-            export CLUSTER_COUNT=$clusterCount
-            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-            export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
-            ginkgo -v -keepGoing --noColor ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
         """
     }
 }
@@ -1113,6 +1081,16 @@ def runGinkgoRandomize(testSuitePath) {
             }
         }
     }
+}
+
+// Run a test suite against just the admin cluster
+def runGinkgoRandomizeAdmin(testSuitePath) {
+    sh """
+        export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+        export CLUSTER_NAME="admin"
+        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+        ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+    """
 }
 
 // Configure the Admin and Managed cluster installer custom resources
@@ -1557,5 +1535,5 @@ def emitJobMetrics() {
     long timeInMillis = "${currentBuild.timeInMillis}" as long;
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
     env.TIME_WAITING = startTimeInMillis-timeInMillis
-    runGinkgoRandomize('jobmetrics')
+    runGinkgoRandomizeAdmin('jobmetrics')
 }

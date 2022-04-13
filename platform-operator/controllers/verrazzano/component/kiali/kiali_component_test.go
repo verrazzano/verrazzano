@@ -15,6 +15,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
+	appv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -127,6 +129,29 @@ func TestIsEnabledDevProfile(t *testing.T) {
 	cr.Spec.Components.Kiali = nil
 	cr.Spec.Profile = vzapi.Dev
 	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
+}
+
+// TestRemoveDeploymentAndService tests the removeDeploymentAndService function
+// GIVEN a call to removeDeploymentAndService
+//  WHEN the Kiali deployment and service exist
+//  THEN no error is returned
+func TestRemoveDeploymentAndService(t *testing.T) {
+	deployment := &appv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      kialiSystemName,
+		},
+	}
+	service := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      kialiSystemName,
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(deployment, service).Build()
+	err := removeDeploymentAndService(spi.NewFakeContext(fakeClient, nil, false))
+	assert.Nil(t, err)
 }
 
 // TestKialiPostInstallUpdateResources tests the PostInstall function
