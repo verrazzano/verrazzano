@@ -312,6 +312,11 @@ pipeline {
                     if(params.VERSION_FOR_UPGRADE != ""){
                        VERRAZZANO_DEV_VERSION = params.VERSION_FOR_UPGRADE
                     }
+
+                    sh"""
+                    echo VERRAZZANO_DEV_VERSION: "${VERRAZZANO_DEV_VERSION}"
+                    echo Params VERSION_FOR_UPGRADE: ${params.VERSION_FOR_UPGRADE}
+                    """
                 }
 
                 upgradeVerrazzanoScript(VERRAZZANO_DEV_VERSION)
