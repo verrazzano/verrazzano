@@ -4,10 +4,16 @@
 package nginx
 
 import (
+	"fmt"
 	"path/filepath"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	k8s "github.com/verrazzano/verrazzano/platform-operator/internal/nodeport"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -18,6 +24,9 @@ const ComponentName = "ingress-controller"
 
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = "ingress-nginx"
+
+// ComponentJSONName is the josn name of the verrazzano component in CRD
+const ComponentJSONName = "ingress"
 
 // nginxComponent represents an Nginx component
 type nginxComponent struct {
@@ -32,6 +41,7 @@ func NewComponent() spi.Component {
 	return nginxComponent{
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
+			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), "ingress-nginx"), // Note name is different than release name
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
@@ -47,8 +57,8 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled nginx-specific enabled check for installation
-func (c nginxComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	comp := ctx.EffectiveCR().Spec.Components.Ingress
+func (c nginxComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+	comp := effectiveCR.Spec.Components.Ingress
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
@@ -61,4 +71,18 @@ func (c nginxComponent) IsReady(ctx spi.ComponentContext) bool {
 		return isNginxReady(ctx)
 	}
 	return false
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	// Block all changes for now, particularly around storage changes
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	return nil
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (c nginxComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return k8s.ValidateForExternalIPSWithNodePort(&vz.Spec, c.Name())
 }

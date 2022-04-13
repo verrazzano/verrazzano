@@ -9,8 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -78,7 +76,7 @@ func TestGetUninstallJobName(t *testing.T) {
 }
 
 // TestSuccessfulInstall tests the Reconcile method for the following use case
-// GIVEN a request to reconcile an Verrazzano resource
+// GIVEN a request to reconcile a Verrazzano resource
 // WHEN a Verrazzano resource has been applied
 // THEN ensure all the objects are already created
 func TestSuccessfulInstall(t *testing.T) {
@@ -151,7 +149,7 @@ func TestSuccessfulInstall(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 	asserts.NoError(err)
 
 	// Validate the results
@@ -223,7 +221,7 @@ func TestInstallInitComponents(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
 	asserts.NotZero(result.RequeueAfter)
@@ -406,7 +404,7 @@ func TestCreateVerrazzano(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -556,7 +554,7 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -662,7 +660,7 @@ func TestUninstallComplete(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -751,7 +749,7 @@ func TestUninstallStarted(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -852,7 +850,7 @@ func TestUninstallFailed(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -953,7 +951,7 @@ func TestUninstallSucceeded(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -985,7 +983,7 @@ func TestVerrazzanoNotFound(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1016,7 +1014,7 @@ func TestVerrazzanoGetError(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1061,7 +1059,7 @@ func TestServiceAccountGetError(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1112,7 +1110,7 @@ func TestServiceAccountCreateError(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1161,7 +1159,7 @@ func TestClusterRoleBindingGetError(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1215,7 +1213,7 @@ func TestClusterRoleBindingCreateError(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1272,7 +1270,7 @@ func TestVZSystemNamespaceGetError(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1334,7 +1332,7 @@ func TestVZSystemNamespaceCreateError(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1398,7 +1396,7 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1407,294 +1405,12 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 	asserts.NotZero(result.RequeueAfter)
 }
 
-// TestBuildIngressIPForNIPNodePort tests buildDomain method
-// GIVEN a request to buildDomain
-// WHEN an nip.io configuration is detected and the service type is NodePort
-// THEN the correct domain using 127.0.0.1 is returned
-func TestBuildIngressIPForNIPNodePort(t *testing.T) {
-	log := vzlog.DefaultLogger()
-	namespace := "verrazzano"
-	name := "test"
-	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
-
-	// Expect a call to get the Rancher ingress
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "ingress-nginx", Name: "ingress-controller-ingress-nginx-controller"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *corev1.Service) error {
-			service.Spec.Type = corev1.ServiceTypeNodePort
-			return nil
-		})
-
-	suffix, err := buildDomain(log, mock, &vzapi.Verrazzano{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
-	})
-	assert.NoError(t, err)
-	assert.Equal(t, "default.127.0.0.1.nip.io", suffix)
-
-	// Validate the results
-	mocker.Finish()
-}
-
-// TestBuildIngressIPForNIPLoadBalancer tests buildDomain method
-// GIVEN a request to buildDomain
-// WHEN an nip.io configuration is detected and the service type is LoadBalancer
-// THEN the correct domain is returned
-func TestBuildIngressIPForNIPLoadBalancer(t *testing.T) {
-	log := vzlog.DefaultLogger()
-	namespace := "verrazzano"
-	name := "test"
-	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
-
-	// Expect a call to get the Rancher ingress
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "ingress-nginx", Name: "ingress-controller-ingress-nginx-controller"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *corev1.Service) error {
-			service.Spec.Type = corev1.ServiceTypeLoadBalancer
-			service.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{
-				{
-					IP:       "11.22.33.44",
-					Hostname: "myhost",
-				},
-			}
-			return nil
-		})
-
-	suffix, err := buildDomain(log, mock, &vzapi.Verrazzano{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
-	})
-	assert.NoError(t, err)
-	assert.Equal(t, "default.11.22.33.44.nip.io", suffix)
-
-	// Validate the results
-	mocker.Finish()
-}
-
-// TestBuildIngressIPForNIPGetError tests buildDomain method
-// GIVEN a request to buildDomain
-// WHEN an nip.io configuration is detected and the client.Get() call returns an error
-// THEN an error is returned
-func TestBuildIngressIPForNIPGetError(t *testing.T) {
-	log := vzlog.DefaultLogger()
-	namespace := "verrazzano"
-	name := "test"
-	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
-
-	// Expect a call to get the Rancher ingress
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "ingress-nginx", Name: "ingress-controller-ingress-nginx-controller"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *corev1.Service) error {
-			return fmt.Errorf("Simulated error")
-		})
-
-	suffix, err := buildDomain(log, mock, &vzapi.Verrazzano{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
-	})
-	assert.Error(t, err)
-	assert.Equal(t, "", suffix)
-
-	// Validate the results
-	mocker.Finish()
-}
-
-// TestBuildIngressIPForNIPInvalidServiceType tests buildDomain method
-// GIVEN a request to buildDomain
-// WHEN an nip.io configuration is detected with an invalid service type
-// THEN an error is returned
-func TestBuildIngressIPForNIPInvalidServiceType(t *testing.T) {
-	log := vzlog.DefaultLogger()
-	namespace := "verrazzano"
-	name := "test"
-	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
-
-	// Expect a call to get the Rancher ingress
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "ingress-nginx", Name: "ingress-controller-ingress-nginx-controller"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *corev1.Service) error {
-			service.Spec.Type = corev1.ServiceTypeClusterIP
-			return nil
-		})
-
-	suffix, err := buildDomain(log, mock, &vzapi.Verrazzano{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
-	})
-	assert.Error(t, err)
-	assert.Equal(t, "", suffix)
-
-	// Validate the results
-	mocker.Finish()
-}
-
-// TestBuildIngressIPForNIPLoadBalancerOLCNE tests buildDomain method
-// GIVEN a request to buildDomain
-// WHEN an nip.io configuration is detected and the service IP is in the expected location for OLCNE
-// THEN the correct domain is returned
-func TestBuildIngressIPForNIPLoadBalancerOLCNE(t *testing.T) {
-	log := vzlog.DefaultLogger()
-	namespace := "verrazzano"
-	name := "test"
-	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
-
-	// Expect a call to get the Rancher ingress
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "ingress-nginx", Name: "ingress-controller-ingress-nginx-controller"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *corev1.Service) error {
-			service.Spec.Type = corev1.ServiceTypeLoadBalancer
-			service.Spec.ExternalIPs = []string{
-				"11.22.33.44",
-			}
-			return nil
-		})
-
-	suffix, err := buildDomain(log, mock, &vzapi.Verrazzano{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
-	})
-	assert.NoError(t, err)
-	assert.Equal(t, "default.11.22.33.44.nip.io", suffix)
-
-	// Validate the results
-	mocker.Finish()
-}
-
-// TestBuildIngressIPForNIPLoadBalancerOLCNENoIPFound tests buildDomain method
-// GIVEN a request to buildDomain
-// WHEN an nip.io configuration is detected no service IP is in the expected location for OLCNE
-// THEN an error is returned
-func TestBuildIngressIPForNIPLoadBalancerOLCNENoIPFound(t *testing.T) {
-	log := vzlog.DefaultLogger()
-	namespace := "verrazzano"
-	name := "test"
-	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
-
-	// Expect a call to get the Rancher ingress
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "ingress-nginx", Name: "ingress-controller-ingress-nginx-controller"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *corev1.Service) error {
-			service.Spec.Type = corev1.ServiceTypeLoadBalancer
-			return nil
-		})
-
-	suffix, err := buildDomain(log, mock, &vzapi.Verrazzano{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
-	})
-	assert.Error(t, err)
-	assert.Equal(t, "", suffix)
-
-	// Validate the results
-	mocker.Finish()
-}
-
-// TestBuildOCIDNSDomain tests buildDomain method
-// GIVEN a request to buildDomain
-// WHEN an OCI DNS configuration is detected both with and without an environment name in the spec
-// THEN the correct domain is returned
-func TestBuildOCIDNSDomain(t *testing.T) {
-	log := vzlog.DefaultLogger()
-	namespace := "verrazzano"
-	name := "test"
-	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
-
-	suffix, err := buildDomain(log, mock, &vzapi.Verrazzano{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				DNS: &vzapi.DNSComponent{OCI: &vzapi.OCI{DNSZoneName: "my.zone.com"}},
-			},
-		},
-	})
-	assert.NoError(t, err)
-	assert.Equal(t, "default.my.zone.com", suffix)
-
-	suffix, err = buildDomain(log, mock, &vzapi.Verrazzano{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
-		Spec: vzapi.VerrazzanoSpec{
-			EnvironmentName: "myenv",
-			Components: vzapi.ComponentSpec{
-				DNS: &vzapi.DNSComponent{OCI: &vzapi.OCI{DNSZoneName: "my.zone.com"}},
-			},
-		},
-	})
-	assert.NoError(t, err)
-	assert.Equal(t, "myenv.my.zone.com", suffix)
-
-	// Validate the results
-	mocker.Finish()
-}
-
-// TestBuildExternalDNSDomain tests buildDomain method
-// GIVEN a request to buildDomain
-// WHEN an External DNS configuration is detected both with and without an environment name in the spec
-// THEN the correct domain is returned
-func TestBuildExternalDNSDomain(t *testing.T) {
-	log := vzlog.DefaultLogger()
-	namespace := "verrazzano"
-	name := "test"
-	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
-
-	suffix, err := buildDomain(log, mock, &vzapi.Verrazzano{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				DNS: &vzapi.DNSComponent{External: &vzapi.External{Suffix: "my.external.com"}},
-			},
-		},
-	})
-	assert.NoError(t, err)
-	assert.Equal(t, "default.my.external.com", suffix)
-
-	suffix, err = buildDomain(log, mock, &vzapi.Verrazzano{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
-		Spec: vzapi.VerrazzanoSpec{
-			EnvironmentName: "myenv",
-			Components: vzapi.ComponentSpec{
-				DNS: &vzapi.DNSComponent{External: &vzapi.External{Suffix: "my.external.com"}},
-			},
-		},
-	})
-	assert.NoError(t, err)
-	assert.Equal(t, "myenv.my.external.com", suffix)
-
-	// Validate the results
-	mocker.Finish()
-}
-
 // newScheme creates a new scheme that includes this package's object to use for testing
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	//_ = clientgoscheme.AddToScheme(scheme)
 	//_ = core.AddToScheme(scheme)
-	vzapi.AddToScheme(scheme)
+	_ = vzapi.AddToScheme(scheme)
 	return scheme
 }
 
@@ -1766,7 +1482,7 @@ func expectClusterRoleBindingExists(mock *mocks.MockClient, verrazzanoToUse vzap
 			clusterRoleBinding.RoleRef = crb.RoleRef
 			clusterRoleBinding.Subjects = crb.Subjects
 			return nil
-		})
+		}).AnyTimes()
 }
 
 // expectGetServiceAccountExists expects a call to get the service account for the Verrazzano with the given
@@ -1779,7 +1495,7 @@ func expectGetServiceAccountExists(mock *mocks.MockClient, name string, labels m
 			newSA := rbac.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
-		})
+		}).AnyTimes()
 }
 
 // expectGetVerrazzanoExists expects a call to get a Verrazzano with the given namespace and name, and returns
@@ -1793,7 +1509,7 @@ func expectGetVerrazzanoExists(mock *mocks.MockClient, verrazzanoToUse vzapi.Ver
 			verrazzano.Spec.Components.DNS = verrazzanoToUse.Spec.Components.DNS
 			verrazzano.Status = verrazzanoToUse.Status
 			return nil
-		})
+		}).AnyTimes()
 }
 
 // expectDeleteServiceAccount expects a call to delete the service account used by install

@@ -9,24 +9,22 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
-	"time"
 
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	k8s "github.com/verrazzano/verrazzano/platform-operator/internal/nodeport"
 
-	"github.com/verrazzano/verrazzano/pkg/istio"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
-	vzString "github.com/verrazzano/verrazzano/pkg/string"
+	"github.com/verrazzano/verrazzano/pkg/istio"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-
-	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -35,14 +33,17 @@ import (
 // ComponentName is the name of the component
 const ComponentName = "istio"
 
+// ComponentJSONName is the josn name of the verrazzano component in CRD
+const ComponentJSONName = "istio"
+
 // IstiodDeployment is the name of the istiod deployment
 const IstiodDeployment = "istiod"
 
-// IstioInressgatewayDeployment is the name of the istio ingressgateway deployment
-const IstioInressgatewayDeployment = "istio-ingressgateway"
+// IstioIngressgatewayDeployment is the name of the istio ingressgateway deployment
+const IstioIngressgatewayDeployment = "istio-ingressgateway"
 
-// IstioEressgatewayDeployment is the name of the istio egressgateway deployment
-const IstioEressgatewayDeployment = "istio-egressgateway"
+// IstioEgressgatewayDeployment is the name of the istio egressgateway deployment
+const IstioEgressgatewayDeployment = "istio-egressgateway"
 
 const istioGlobalHubKey = "global.hub"
 
@@ -54,6 +55,9 @@ const IstioCoreDNSReleaseName = "istiocoredns"
 
 // HelmScrtType is the secret type that helm uses to specify its releases
 const HelmScrtType = "helm.sh/release.v1"
+
+// subcompIstiod is the Istiod subcomponent in the bom
+const subcompIstiod = "istiod"
 
 // istioComponent represents an Istio component
 type istioComponent struct {
@@ -68,6 +72,11 @@ type istioComponent struct {
 
 	// Internal monitor object for peforming `istioctl` operations in the background
 	monitor installMonitor
+}
+
+// GetJsonName returns the josn name of the verrazzano component in CRD
+func (i istioComponent) GetJSONName() string {
+	return ComponentJSONName
 }
 
 type upgradeFuncSig func(log vzlog.VerrazzanoLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
@@ -104,8 +113,8 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled istio-specific enabled check for installation
-func (i istioComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	comp := ctx.EffectiveCR().Spec.Components.Istio
+func (i istioComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+	comp := effectiveCR.Spec.Components.Istio
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
@@ -120,6 +129,41 @@ func (i istioComponent) GetMinVerrazzanoVersion() string {
 // Name returns the component name
 func (i istioComponent) Name() string {
 	return ComponentName
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (i istioComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return k8s.ValidateForExternalIPSWithNodePort(&vz.Spec, i.Name())
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	// Do not allow any changes except to enable the component post-install
+	if i.IsEnabled(old) && !i.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	// Reject any other edits except IstioInstallArgs
+	if !reflect.DeepEqual(i.getIngressSettings(old), i.getIngressSettings(new)) {
+		return fmt.Errorf("Updates to ingress not allowed for %s", ComponentJSONName)
+	}
+	if !reflect.DeepEqual(i.getEgressSettings(old), i.getEgressSettings(new)) {
+		return fmt.Errorf("Updates to egress not allowed for %s", ComponentJSONName)
+	}
+	return nil
+}
+
+func (i istioComponent) getIngressSettings(vz *vzapi.Verrazzano) *vzapi.IstioIngressSection {
+	if vz != nil && vz.Spec.Components.Istio != nil {
+		return vz.Spec.Components.Istio.Ingress
+	}
+	return nil
+}
+
+func (i istioComponent) getEgressSettings(vz *vzapi.Verrazzano) *vzapi.IstioEgressSection {
+	if vz != nil && vz.Spec.Components.Istio != nil {
+		return vz.Spec.Components.Istio.Egress
+	}
+	return nil
 }
 
 func (i istioComponent) Upgrade(context spi.ComponentContext) error {
@@ -168,12 +212,21 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 
 func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
-		{Name: IstiodDeployment, Namespace: IstioNamespace},
-		{Name: IstioInressgatewayDeployment, Namespace: IstioNamespace},
-		{Name: IstioEressgatewayDeployment, Namespace: IstioNamespace},
+		{
+			Name:      IstiodDeployment,
+			Namespace: IstioNamespace,
+		},
+		{
+			Name:      IstioIngressgatewayDeployment,
+			Namespace: IstioNamespace,
+		},
+		{
+			Name:      IstioEgressgatewayDeployment,
+			Namespace: IstioNamespace,
+		},
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
-	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1, prefix)
+	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
 // GetDependencies returns the dependencies of this component
@@ -196,22 +249,6 @@ func (i istioComponent) PostUpgrade(context spi.ComponentContext) error {
 		return err
 	}
 
-	// Generate a restart version that will not change for this Verrazzano version
-	// Valid labels cannot contain + sign
-	restartVersion := context.EffectiveCR().Spec.Version + "-upgrade"
-	restartVersion = strings.ReplaceAll(restartVersion, "+", "-")
-
-	// Start WebLogic domains that were shutdown
-	context.Log().Infof("Starting WebLogic domains that were stopped pre-upgrade")
-	if err := StartDomainsStoppedByUpgrade(context.Log(), context.Client(), restartVersion); err != nil {
-		return err
-	}
-
-	// Restart all other apps
-	context.Log().Infof("Restarting all applications so they can get the new Envoy sidecar")
-	if err := RestartAllApps(context.Log(), context.Client(), restartVersion); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -224,78 +261,9 @@ func (i istioComponent) GetIngressNames(_ spi.ComponentContext) []types.Namespac
 	return []types.NamespacedName{}
 }
 
-// RestartComponents restarts all the deployments, StatefulSets, and DaemonSets
-// in all of the Istio injected system namespaces
-func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, client clipkg.Client) error {
-	// Restart all the deployments in the injected system namespaces
-	var deploymentList appsv1.DeploymentList
-	err := client.List(context.TODO(), &deploymentList)
-	if err != nil {
-		return err
-	}
-	for index := range deploymentList.Items {
-		deployment := &deploymentList.Items[index]
-
-		// Check if deployment is in an Istio injected system namespace
-		if vzString.SliceContainsString(namespaces, deployment.Namespace) {
-			if deployment.Spec.Paused {
-				return log.ErrorfNewErr("Failed, deployment %s can't be restarted because it is paused", deployment.Name)
-			}
-			if deployment.Spec.Template.ObjectMeta.Annotations == nil {
-				deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			}
-			deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
-			if err := client.Update(context.TODO(), deployment); err != nil {
-				return err
-			}
-		}
-	}
-	log.Info("Restarted system Deployments in istio injected namespaces")
-
-	// Restart all the StatefulSet in the injected system namespaces
-	statefulSetList := appsv1.StatefulSetList{}
-	err = client.List(context.TODO(), &statefulSetList)
-	if err != nil {
-		return err
-	}
-	for index := range statefulSetList.Items {
-		statefulSet := &statefulSetList.Items[index]
-
-		// Check if StatefulSet is in an Istio injected system namespace
-		if vzString.SliceContainsString(namespaces, statefulSet.Namespace) {
-			if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
-				statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			}
-			statefulSet.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
-			if err := client.Update(context.TODO(), statefulSet); err != nil {
-				return err
-			}
-		}
-	}
-	log.Info("Restarted system Statefulsets in istio injected namespaces")
-
-	// Restart all the DaemonSets in the injected system namespaces
-	var daemonSetList appsv1.DaemonSetList
-	err = client.List(context.TODO(), &daemonSetList)
-	if err != nil {
-		return err
-	}
-	for index := range daemonSetList.Items {
-		daemonSet := &daemonSetList.Items[index]
-
-		// Check if DaemonSet is in an Istio injected system namespace
-		if vzString.SliceContainsString(namespaces, daemonSet.Namespace) {
-			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
-				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			}
-			daemonSet.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
-			if err := client.Update(context.TODO(), daemonSet); err != nil {
-				return err
-			}
-		}
-	}
-	log.Info("Restarted system DaemonSets in istio injected namespaces")
-	return nil
+// GetCertificateNames returns the list of expected certificates used by this component
+func (i istioComponent) GetCertificateNames(_ spi.ComponentContext) []types.NamespacedName {
+	return []types.NamespacedName{}
 }
 
 func deleteIstioCoreDNS(context spi.ComponentContext) error {
@@ -395,15 +363,6 @@ func AppendIstioOverrides(_ spi.ComponentContext, releaseName string, _ string, 
 	return kvs, nil
 }
 
-// IstiodReadyCheck Determines if istiod is up and has a minimum number of available replicas
-func IstiodReadyCheck(ctx spi.ComponentContext, _ string, namespace string) bool {
-	deployments := []types.NamespacedName{
-		{Name: "istiod", Namespace: namespace},
-	}
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
-}
-
 func buildOverridesString(log vzlog.VerrazzanoLogger, client clipkg.Client, namespace string, additionalValues ...bom.KeyValue) (string, error) {
 	// Get the image overrides from the BOM
 	kvs, err := getImageOverrides()
@@ -433,7 +392,6 @@ func buildOverridesString(log vzlog.VerrazzanoLogger, client clipkg.Client, name
 
 // Get the image overrides from the BOM
 func getImageOverrides() ([]bom.KeyValue, error) {
-	const subcompIstiod = "istiod"
 	subComponentNames := []string{subcompIstiod}
 
 	// Create a Bom and get the Key Value overrides

@@ -43,7 +43,11 @@ var _ = t.BeforeSuite(func() {
 
 // 'It' Wrapper to only run spec if Kiali is supported on the current Verrazzano installation
 func WhenKialiInstalledIt(description string, f interface{}) {
-	supported, err := pkg.IsVerrazzanoMinVersion("1.1.0")
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
+	supported, err := pkg.IsVerrazzanoMinVersion("1.1.0", kubeconfigPath)
 	if err != nil {
 		Fail(err.Error())
 	}
@@ -51,7 +55,7 @@ func WhenKialiInstalledIt(description string, f interface{}) {
 	if supported && !pkg.IsManagedClusterProfile() {
 		t.It(description, f)
 	} else {
-		pkg.Log(pkg.Info, fmt.Sprintf("Skipping check '%v', Kiali is not supported", description))
+		t.Logs.Infof("Skipping check '%v', Kiali is not supported", description)
 	}
 }
 

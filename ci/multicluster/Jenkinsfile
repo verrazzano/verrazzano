@@ -36,7 +36,7 @@ pipeline {
         booleanParam (description: 'Whether to use External Elasticsearch', name: 'EXTERNAL_ELASTICSEARCH', defaultValue: false)
         choice (description: 'Number of Cluster', name: 'TOTAL_CLUSTERS', choices: ["2", "1", "3"])
         choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
-                choices: ["kind", "magicdns_oke", "ocidns_oke"])
+                choices: ["KIND", "magicdns_oke", "ocidns_oke"])
         choice (description: 'ACME Certificate Environment (Staging or Production)', name: 'ACME_ENVIRONMENT',
                 choices: acmeEnvironments)
         choice (description: 'OCI region to launch OKE clusters', name: 'OKE_CLUSTER_REGION',
@@ -48,14 +48,14 @@ pipeline {
         choice (name: 'OKE_CLUSTER_VERSION',
                 description: 'Kubernetes Version for OKE Cluster',
                 // 1st choice is the default value
-                choices: [ "v1.20.8", "v1.18.10", "v1.19.7", "v1.19.12" ])
+                choices: [ "v1.20.8", "v1.21.5", "v1.22.5" ])
         choice (name: 'KIND_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KIND Cluster',
                 // 1st choice is the default value
-                choices: [ "1.20", "1.19", "1.21" ])
+                choices: [ "1.20", "1.21", "1.22" ])
         string (name: 'VERSION_FOR_INSTALL',
-                defaultValue: 'v1.0.0',
-                description: 'This is the Verrazzano version for install before doing an upgrade.  By default, the v1.0.0 release will be installed',
+                defaultValue: 'v1.0.2',
+                description: 'This is the Verrazzano version for install before doing an upgrade.  By default, the v1.0.2 release will be installed',
                 trim: true)
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
@@ -68,11 +68,11 @@ pipeline {
         choice (name: 'ADMIN_CLUSTER_PROFILE',
                 description: 'Verrazzano Admin Cluster install profile name',
                 // 1st choice is the default value
-                choices: [ "dev", "prod" ])
+                choices: [ "prod", "dev" ])
         choice (name: 'MANAGED_CLUSTER_PROFILE',
                 description: 'Verrazzano Managed Cluster install profile name',
                 // 1st choice is the default value
-                choices: [ "managed-cluster", "dev", "prod" ])
+                choices: [ "managed-cluster", "prod", "dev" ])
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'This is the wildcard DNS domain',
                 // 1st choice is the default value
@@ -152,7 +152,7 @@ pipeline {
         OCI_CLI_REGION = "${params.OKE_CLUSTER_REGION}"
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
 
-        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
+        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-vz-prod-kind-with-persistence.yaml"
         INSTALL_CONFIG_FILE_OCIDNS = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-ocidns.yaml"
         INSTALL_CONFIG_FILE_NIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
         OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
@@ -273,12 +273,12 @@ pipeline {
                     setDisplayName()
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
 
-                    if (params.TEST_ENV != "kind") {
+                    if (params.TEST_ENV != "KIND") {
                         // derive the prefix for the OKE cluster
                         OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${GO_REPO_PATH}/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
                     }
                     // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
-                    env.K8S_VERSION_LABEL = "${params.TEST_ENV == 'kind' ? params.KIND_CLUSTER_VERSION : sh(returnStdout: true, script: '${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}').trim()}"
+                    env.K8S_VERSION_LABEL = "${params.TEST_ENV == 'KIND' ? params.KIND_CLUSTER_VERSION : sh(returnStdout: true, script: '${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}').trim()}"
                 }
             }
         }
@@ -297,7 +297,7 @@ pipeline {
                 stage('Prepare AT environment') {
                     parallel {
                         stage('Create Kind Clusters') {
-                            when { expression { return params.TEST_ENV == 'kind' } }
+                            when { expression { return params.TEST_ENV == 'KIND' } }
                             steps {
                                 createKindClusters()
                             }
@@ -357,7 +357,7 @@ pipeline {
                             }
                         }
                         stage("Configure KinD") {
-                            when { expression { return params.TEST_ENV == 'kind' } }
+                            when { expression { return params.TEST_ENV == 'KIND' } }
                             steps {
                                 configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
                             }
@@ -523,12 +523,12 @@ pipeline {
                     parallel {
                         stage ('Examples Helidon') {
                             steps {
-                                testHelidonExample("multicluster/examples/helidon")
+                                runGinkgo("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload")
                             }
                         }
                         stage ('Examples Helidon Deprecated') {
                             steps {
-                                testHelidonExample("multicluster/examples/helidon-deprecated")
+                                runGinkgo("multicluster/examples/helidon-deprecated", "${TEST_DUMP_ROOT}/helidon-deprecated")
                             }
                         }
                         stage ('Delete Deployed App NS') {
@@ -538,14 +538,14 @@ pipeline {
                                 }
                             }
                         }
-                        stage ('Examples Sock Shop') {
+                        stage ('WebLogic Workload') {
                             steps {
-                                testSockExample("multicluster/examples/sock-shop")
+                                runGinkgo("multicluster/workloads/mcweblogic", "${TEST_DUMP_ROOT}/weblogic-workload")
                             }
                         }
-                        stage('Examples Todo List') {
+                        stage ('Coherence Workload') {
                             steps {
-                                testTodoExample("multicluster/examples/todo-list")
+                                runGinkgo("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload")
                             }
                         }
                     }
@@ -701,10 +701,10 @@ pipeline {
                 }
 
                 int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                if (env.TEST_ENV == "kind") {
+                if (env.TEST_ENV == "KIND") {
                     for(int count=1; count<=clusterCount; count++) {
                         sh """
-                            if [ "${env.TEST_ENV}" == "kind" ]
+                            if [ "${env.TEST_ENV}" == "KIND" ]
                             then
                                 kind delete cluster --name ${CLUSTER_NAME_PREFIX}-$count
                             fi
@@ -731,6 +731,7 @@ pipeline {
         }
         cleanup {
             metricBuildDuration()
+            emitJobMetrics()
             deleteDir()
         }
     }
@@ -920,7 +921,7 @@ def upgradeVerrazzano() {
                 cat ${v8oUpgradeFile}
                 kubectl apply -f ${v8oUpgradeFile}
                 # wait for the upgrade to complete
-                kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                kubectl wait --timeout=25m --for=condition=UpgradeComplete verrazzano/my-verrazzano
                             
                 # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
                 kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
@@ -1041,8 +1042,8 @@ def verifyManagedClusterPermissions() {
     }
 }
 
-// Test the multicluster Helidon example
-def testHelidonExample(testSuitePath) {
+// Run ginkgo test suites
+def runGinkgo(testSuitePath, clusterDumpDirectory) {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         sh """
@@ -1051,40 +1052,8 @@ def testHelidonExample(testSuitePath) {
             export CLUSTER_COUNT=$clusterCount
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-            export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
+            export DUMP_DIRECTORY="${clusterDumpDirectory}"
             ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
-        """
-    }
-}
-
-// Test the multicluster sock-shop example
-def testSockExample(testSuitePath) {
-    script {
-        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-        sh """
-            export MANAGED_CLUSTER_NAME="managed1"
-            export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-            export CLUSTER_COUNT=$clusterCount
-            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-            export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-sock"
-            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
-        """
-    }
-}
-
-// Test the multicluster todo-list example
-def testTodoExample(testSuitePath) {
-    script {
-        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-        sh """
-            export MANAGED_CLUSTER_NAME="managed1"
-            export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-            export CLUSTER_COUNT=$clusterCount
-            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-            export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
-            ginkgo -v -keepGoing --noColor ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
         """
     }
 }
@@ -1112,6 +1081,16 @@ def runGinkgoRandomize(testSuitePath) {
             }
         }
     }
+}
+
+// Run a test suite against just the admin cluster
+def runGinkgoRandomizeAdmin(testSuitePath) {
+    sh """
+        export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+        export CLUSTER_NAME="admin"
+        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+        ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+    """
 }
 
 // Configure the Admin and Managed cluster installer custom resources
@@ -1396,7 +1375,7 @@ def metricJobName(stageName) {
 
 // Construct the set of labels/dimensions for the metrics
 def getMetricLabels() {
-    def kube_ver = "${params.TEST_ENV == 'kind' ? params.KIND_CLUSTER_VERSION : params.OKE_CLUSTER_VERSION }"
+    def kube_ver = "${params.TEST_ENV == 'KIND' ? params.KIND_CLUSTER_VERSION : params.OKE_CLUSTER_VERSION }"
     def buildNumber = String.format("%010d", env.BUILD_NUMBER.toInteger())
     labels = 'build_number=\\"' + "${buildNumber}"+'\\",' +
              'jenkins_build_number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
@@ -1547,4 +1526,14 @@ def runConsoleTests() {
         export CONSOLE_APP_COMP="${SAMPLE_APP_COMPONENT}"
         KUBECONFIG=${ADMIN_KUBECONFIG} RUN_APP_TESTS=true ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh
    """
+}
+
+def emitJobMetrics() {
+    env.JOB_STATUS = "${currentBuild.currentResult}".trim()
+    long duration = "${currentBuild.duration}" as long;
+    env.DURATION = duration
+    long timeInMillis = "${currentBuild.timeInMillis}" as long;
+    long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
+    env.TIME_WAITING = startTimeInMillis-timeInMillis
+    runGinkgoRandomizeAdmin('jobmetrics')
 }

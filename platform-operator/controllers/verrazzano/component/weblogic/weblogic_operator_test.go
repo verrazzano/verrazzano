@@ -44,7 +44,7 @@ func Test_appendWeblogicOperatorOverridesExtraKVs(t *testing.T) {
 //  WHEN I call WeblogicOperatorPreInstall
 //  THEN no errors are returned
 func Test_weblogicOperatorPreInstall(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	err := WeblogicOperatorPreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false), "weblogic-operator", "verrazzano-system", "")
 	assert.NoError(t, err)
 }
@@ -55,18 +55,18 @@ func Test_weblogicOperatorPreInstall(t *testing.T) {
 //  THEN true is returned
 func TestIsWeblogicOperatorReady(t *testing.T) {
 
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      ComponentName,
+			Labels:    map[string]string{"app": ComponentName},
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   1,
 		},
-	})
+	}).Build()
 	assert.True(t, isWeblogicOperatorReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
@@ -76,17 +76,16 @@ func TestIsWeblogicOperatorReady(t *testing.T) {
 //  THEN false is returned
 func TestIsWeblogicOperatorNotReady(t *testing.T) {
 
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      ComponentName,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       0,
-			AvailableReplicas:   0,
-			UnavailableReplicas: 1,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   0,
 		},
-	})
+	}).Build()
 	assert.False(t, isWeblogicOperatorReady(spi.NewFakeContext(fakeClient, nil, false)))
 }

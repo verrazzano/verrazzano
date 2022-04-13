@@ -6,7 +6,6 @@ package nginx
 import (
 	"context"
 	"fmt"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -32,11 +31,17 @@ const (
 
 func isNginxReady(context spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
-		{Name: ControllerName, Namespace: ComponentNamespace},
-		{Name: backendName, Namespace: ComponentNamespace},
+		{
+			Name:      ControllerName,
+			Namespace: ComponentNamespace,
+		},
+		{
+			Name:      backendName,
+			Namespace: ComponentNamespace,
+		},
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
-	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1, prefix)
+	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
 func AppendOverrides(context spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
@@ -116,5 +121,6 @@ func getInstallArgs(cr *vzapi.Verrazzano) []vzapi.InstallArgs {
 	if cr.Spec.Components.Ingress == nil {
 		return []vzapi.InstallArgs{}
 	}
+
 	return cr.Spec.Components.Ingress.NGINXInstallArgs
 }

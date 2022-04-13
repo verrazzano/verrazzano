@@ -9,13 +9,16 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
+	promadapter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/adapter"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/kubestatemetrics"
+	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/pushgateway"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
@@ -50,9 +53,9 @@ func getComponents() []spi.Component {
 	if len(componentsRegistry) == 0 {
 		componentsRegistry = []spi.Component{
 			oam.NewComponent(),
-			weblogic.NewComponent(),
 			appoper.NewComponent(),
 			istio.NewComponent(),
+			weblogic.NewComponent(),
 			nginx.NewComponent(),
 			certmanager.NewComponent(),
 			externaldns.NewComponent(),
@@ -63,6 +66,10 @@ func getComponents() []spi.Component {
 			mysql.NewComponent(),
 			keycloak.NewComponent(),
 			kiali.NewComponent(),
+			promoperator.NewComponent(),
+			promadapter.NewComponent(),
+			kubestatemetrics.NewComponent(),
+			pushgateway.NewComponent(),
 		}
 	}
 	return componentsRegistry
@@ -74,7 +81,7 @@ func FindComponent(releaseName string) (bool, spi.Component) {
 			return true, comp
 		}
 	}
-	return false, &helm.HelmComponent{}
+	return false, nil
 }
 
 // ComponentDependenciesMet Checks if the declared dependencies for the component are ready and available

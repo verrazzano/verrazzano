@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package certificates
@@ -24,30 +24,30 @@ import (
 //  WHEN I call SetupCertificates
 //  THEN all the needed certificate artifacts are created
 func TestSetupCertificates(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	dir, err := ioutil.TempDir("", "certs")
 	if err != nil {
-		assert.Nil(err, "error should not be returned creating temporary directory")
+		a.Nil(err, "error should not be returned creating temporary directory")
 	}
 	defer os.RemoveAll(dir)
 	caBundle, err := SetupCertificates(dir)
-	assert.Nil(err, "error should not be returned setting up certificates")
-	assert.NotNil(caBundle, "CA bundle should be returned")
+	a.Nil(err, "error should not be returned setting up certificates")
+	a.NotNil(caBundle, "CA bundle should be returned")
 	crtFile := fmt.Sprintf("%s/%s", dir, "tls.crt")
 	keyFile := fmt.Sprintf("%s/%s", dir, "tls.key")
-	assert.FileExists(crtFile, dir, "tls.crt", "expected tls.crt file not found")
-	assert.FileExists(keyFile, dir, "tls.key", "expected tls.key file not found")
+	a.FileExists(crtFile, dir, "tls.crt", "expected tls.crt file not found")
+	a.FileExists(keyFile, dir, "tls.key", "expected tls.key file not found")
 
 	crtBytes, err := ioutil.ReadFile(crtFile)
-	if assert.NoError(err) {
+	if a.NoError(err) {
 		block, _ := pem.Decode(crtBytes)
-		assert.NotEmptyf(block, "failed to decode PEM block containing public key")
-		assert.Equal("CERTIFICATE", block.Type)
+		a.NotEmptyf(block, "failed to decode PEM block containing public key")
+		a.Equal("CERTIFICATE", block.Type)
 		cert, err := x509.ParseCertificate(block.Bytes)
-		if assert.NoError(err) {
-			assert.NotEmpty(cert.DNSNames, "Certificate DNSNames SAN field should not be empty")
-			assert.Equal("verrazzano-application-operator.verrazzano-system.svc", cert.DNSNames[0])
+		if a.NoError(err) {
+			a.NotEmpty(cert.DNSNames, "Certificate DNSNames SAN field should not be empty")
+			a.Equal("verrazzano-application-operator.verrazzano-system.svc", cert.DNSNames[0])
 		}
 	}
 }
@@ -57,10 +57,10 @@ func TestSetupCertificates(t *testing.T) {
 //  WHEN I call SetupCertificates
 //  THEN all the needed certificate artifacts are not created
 func TestSetupCertificatesFail(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	_, err := SetupCertificates("bad-dir")
-	assert.Error(err, "error should be returned setting up certificates")
+	a.Error(err, "error should be returned setting up certificates")
 }
 
 // TestUpdateValidatingWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-platform-operator
@@ -69,7 +69,7 @@ func TestSetupCertificatesFail(t *testing.T) {
 //  WHEN I call UpdateValidatingnWebhookConfiguration
 //  THEN the validatingWebhookConfiguration resource set the CA Bundle as expected
 func TestUpdateValidatingWebhookConfiguration(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	kubeClient := fake.NewSimpleClientset()
 
@@ -97,13 +97,13 @@ func TestUpdateValidatingWebhookConfiguration(t *testing.T) {
 	}
 
 	_, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
-	assert.Nil(err, "error should not be returned creating validation webhook configuration")
+	a.Nil(err, "error should not be returned creating validation webhook configuration")
 
 	err = UpdateValidatingWebhookConfiguration(kubeClient, &caCert, IngressTraitValidatingWebhookName)
-	assert.Nil(err, "error should not be returned updating validation webhook configuration")
+	a.Nil(err, "error should not be returned updating validation webhook configuration")
 
 	updatedWebhook, _ := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), IngressTraitValidatingWebhookName, metav1.GetOptions{})
-	assert.Equal(caCert.Bytes(), updatedWebhook.Webhooks[0].ClientConfig.CABundle, "Expected CA bundle name did not match")
+	a.Equal(caCert.Bytes(), updatedWebhook.Webhooks[0].ClientConfig.CABundle, "Expected CA bundle name did not match")
 }
 
 // TestUpdateValidatingWebhookConfigurationFail tests that the CA Bundle is not updated in the
@@ -112,7 +112,7 @@ func TestUpdateValidatingWebhookConfiguration(t *testing.T) {
 //  WHEN I call UpdateValidatingnWebhookConfiguration
 //  THEN the validatingWebhookConfiguration resource will fail to be updated
 func TestUpdateValidatingWebhookConfigurationFail(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	kubeClient := fake.NewSimpleClientset()
 
@@ -140,10 +140,10 @@ func TestUpdateValidatingWebhookConfigurationFail(t *testing.T) {
 	}
 
 	_, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
-	assert.Nil(err, "error should not be returned creating validation webhook configuration")
+	a.Nil(err, "error should not be returned creating validation webhook configuration")
 
 	err = UpdateValidatingWebhookConfiguration(kubeClient, &caCert, IngressTraitValidatingWebhookName)
-	assert.Error(err, "error should be returned updating validation webhook configuration")
+	a.Error(err, "error should be returned updating validation webhook configuration")
 }
 
 // TestUpdateAppConfigMutatingWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-application-operator
@@ -152,7 +152,7 @@ func TestUpdateValidatingWebhookConfigurationFail(t *testing.T) {
 //  WHEN I call UpdateAppConfigMutatingWebhookConfiguration
 //  THEN the mutatingWebhookConfiguration resource set the CA Bundle as expected
 func TestUpdateAppConfigMutatingWebhookConfiguration(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	kubeClient := fake.NewSimpleClientset()
 
@@ -180,13 +180,13 @@ func TestUpdateAppConfigMutatingWebhookConfiguration(t *testing.T) {
 	}
 
 	_, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
-	assert.Nil(err, "error should not be returned creating validation webhook configuration")
+	a.Nil(err, "error should not be returned creating validation webhook configuration")
 
 	err = UpdateMutatingWebhookConfiguration(kubeClient, &caCert, AppConfigMutatingWebhookName)
-	assert.Nil(err, "error should not be returned updating validation webhook configuration")
+	a.Nil(err, "error should not be returned updating validation webhook configuration")
 
 	updatedWebhook, _ := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), AppConfigMutatingWebhookName, metav1.GetOptions{})
-	assert.Equal(caCert.Bytes(), updatedWebhook.Webhooks[0].ClientConfig.CABundle, "Expected CA bundle name did not match")
+	a.Equal(caCert.Bytes(), updatedWebhook.Webhooks[0].ClientConfig.CABundle, "Expected CA bundle name did not match")
 }
 
 // TestUpdateAppConfigMutatingWebhookConfigurationFail tests that the CA Bundle is not updated in the
@@ -195,7 +195,7 @@ func TestUpdateAppConfigMutatingWebhookConfiguration(t *testing.T) {
 //  WHEN I call UpdateAppConfigMutatingWebhookConfiguration
 //  THEN the mutatingWebhookConfiguration resource will fail to be updated
 func TestUpdateAppConfigMutatingWebhookConfigurationFail(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	kubeClient := fake.NewSimpleClientset()
 
@@ -223,10 +223,10 @@ func TestUpdateAppConfigMutatingWebhookConfigurationFail(t *testing.T) {
 	}
 
 	_, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
-	assert.Nil(err, "error should not be returned creating validation webhook configuration")
+	a.Nil(err, "error should not be returned creating validation webhook configuration")
 
 	err = UpdateMutatingWebhookConfiguration(kubeClient, &caCert, AppConfigMutatingWebhookName)
-	assert.Error(err, "error should be returned updating validation webhook configuration")
+	a.Error(err, "error should be returned updating validation webhook configuration")
 }
 
 // TestUpdateIstioMutatingWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-application-operator
@@ -235,7 +235,7 @@ func TestUpdateAppConfigMutatingWebhookConfigurationFail(t *testing.T) {
 //  WHEN I call UpdateIstioMutatingWebhookConfiguration
 //  THEN the mutatingWebhookConfiguration resource set the CA Bundle as expected
 func TestUpdateIstioMutatingWebhookConfiguration(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	kubeClient := fake.NewSimpleClientset()
 
@@ -263,13 +263,13 @@ func TestUpdateIstioMutatingWebhookConfiguration(t *testing.T) {
 	}
 
 	_, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
-	assert.Nil(err, "error should not be returned creating validation webhook configuration")
+	a.Nil(err, "error should not be returned creating validation webhook configuration")
 
 	err = UpdateMutatingWebhookConfiguration(kubeClient, &caCert, IstioMutatingWebhookName)
-	assert.Nil(err, "error should not be returned updating validation webhook configuration")
+	a.Nil(err, "error should not be returned updating validation webhook configuration")
 
 	updatedWebhook, _ := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), IstioMutatingWebhookName, metav1.GetOptions{})
-	assert.Equal(caCert.Bytes(), updatedWebhook.Webhooks[0].ClientConfig.CABundle, "Expected CA bundle name did not match")
+	a.Equal(caCert.Bytes(), updatedWebhook.Webhooks[0].ClientConfig.CABundle, "Expected CA bundle name did not match")
 }
 
 // TestUpdateIstioMutatingWebhookConfigurationFail tests that the CA Bundle is not updated in the
@@ -278,7 +278,7 @@ func TestUpdateIstioMutatingWebhookConfiguration(t *testing.T) {
 //  WHEN I call UpdateIstioMutatingWebhookConfiguration
 //  THEN the mutatingWebhookConfiguration resource will fail to be updated
 func TestUpdateIstioMutatingWebhookConfigurationFail(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	kubeClient := fake.NewSimpleClientset()
 
@@ -306,8 +306,8 @@ func TestUpdateIstioMutatingWebhookConfigurationFail(t *testing.T) {
 	}
 
 	_, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
-	assert.Nil(err, "error should not be returned creating validation webhook configuration")
+	a.Nil(err, "error should not be returned creating validation webhook configuration")
 
 	err = UpdateMutatingWebhookConfiguration(kubeClient, &caCert, IstioMutatingWebhookName)
-	assert.Error(err, "error should be returned updating validation webhook configuration")
+	a.Error(err, "error should be returned updating validation webhook configuration")
 }

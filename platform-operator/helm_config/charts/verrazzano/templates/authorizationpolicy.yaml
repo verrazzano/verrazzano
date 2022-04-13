@@ -1,4 +1,4 @@
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 #
@@ -87,15 +87,15 @@ spec:
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
-  name: vmi-system-es-ingress-authzpol
+  name: vmi-system-es-ingest-authzpol
   namespace: {{ .Release.Namespace }}
 spec:
   selector:
     matchLabels:
-      app: system-es-ingress
+      app: system-es-ingest
   action: ALLOW
   rules:
-    # vmi-system-es-ingress:9200 <- verrazzano-authproxy
+    # vmi-system-es-ingest:9200 <- verrazzano-authproxy
     - from:
         - source:
             namespaces: ["{{ .Release.Namespace }}"]
@@ -103,7 +103,7 @@ spec:
       to:
         - operation:
             ports: ["9200"]
-    # vmi-system-es-ingress:9200,9300 <- vmi-system-kibana (uses VMO SA)
+    # vmi-system-es-ingest:9200,9300 <- vmi-system-kibana (uses VMO SA)
     - from:
         - source:
             namespaces: ["{{ .Release.Namespace }}"]
@@ -111,7 +111,7 @@ spec:
       to:
         - operation:
             ports: ["9200","9300"]
-    # vmi-system-es-ingress:15090 <- vmi-system-prometheus (uses VMO SA)
+    # vmi-system-es-ingest:15090 <- vmi-system-prometheus (uses VMO SA)
     - from:
         - source:
             namespaces: ["{{ .Release.Namespace }}"]
@@ -186,7 +186,7 @@ spec:
             principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}"]
       to:
         - operation:
-            ports: ["15090"]
+            ports: ["15090", "5601"]
 {{- end }}
 
 ---

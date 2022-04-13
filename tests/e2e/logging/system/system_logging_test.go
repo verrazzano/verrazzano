@@ -6,15 +6,13 @@ package system
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
@@ -28,7 +26,6 @@ const (
 	keycloakIndex              = "verrazzano-namespace-keycloak"
 	cattleSystemIndex          = "verrazzano-namespace-cattle-system"
 	fleetSystemIndex           = "verrazzano-namespace-fleet-system"
-	localPathStorageIndex      = "verrazzano-namespace-local-path-storage"
 	rancherOperatorSystemIndex = "verrazzano-namespace-rancher-operator-system"
 	nginxIndex                 = "verrazzano-namespace-ingress-nginx"
 	monitoringIndex            = "verrazzano-namespace-monitoring"
@@ -127,9 +124,8 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 
 		// GIVEN Log message in Elasticsearch in the verrazzano-namespace-verrazzano-system index
 		// With field
-		//	kubernetes.labels.app.keyword==verrazzano-application-operator,
+		//  kubernetes.labels.app.keyword==verrazzano-application-operator,
 		//  kubernetes.labels.app.keyword==verrazzano-monitoring-operator,
-		//  kubernetes.labels.app.keyword==verrazzano-operator
 		// WHEN Log messages are retrieved from Elasticsearch
 		// THEN Verify there are valid log records
 		if !validateVAOLogs() {
@@ -139,10 +135,6 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		if !validateVMOLogs() {
 			// Don't fail for invalid logs until this is stable.
 			t.Logs.Info("Found problems with Verrazzano Monitoring Operator log records in verrazzano-system index")
-		}
-		if !validateVOLogs() {
-			// Don't fail for invalid logs until this is stable.
-			t.Logs.Info("Found problems with Verrazzano Operator log records in verrazzano-system index")
 		}
 	})
 
@@ -239,31 +231,6 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 			t.Logs.Info("Found problems with log records in fleet-system index")
 		}
 	})
-
-	testEnv := os.Getenv("TEST_ENV")
-	if testEnv != "LRE" {
-		t.It("contains local-path-storage index with valid records", func() {
-			// GIVEN existing system logs
-			// WHEN the Elasticsearch index for the local-path-storage namespace is retrieved
-			// THEN verify that it is found
-
-			dnsPodExist, err := pkg.DoesPodExist("cert-manager", "external-dns")
-			if err != nil {
-				dnsPodExist = false
-				t.Logs.Infof("Error calling DoesPodExist for external-dns: %s", err)
-			}
-			if !dnsPodExist {
-				Eventually(func() bool {
-					return pkg.LogIndexFound(localPathStorageIndex)
-				}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index local-path-storage")
-
-				if !validateLocalPathStorageLogs() {
-					// Don't fail for invalid logs until this is stable.
-					t.Logs.Info("Found problems with log records in local-path-storage index")
-				}
-			}
-		})
-	}
 
 	t.It("contains rancher-operator-system index with valid records", func() {
 		// GIVEN existing system logs
@@ -380,21 +347,6 @@ func validateVMOLogs() bool {
 		noExceptions)
 }
 
-func validateVOLogs() bool {
-	// VO not installed in 1.3.0+
-	if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0"); !ok {
-		return validateElasticsearchRecords(
-			allElasticsearchRecordValidator,
-			systemIndex,
-			"kubernetes.labels.app.keyword",
-			"verrazzano-operator",
-			searchTimeWindow,
-			noExceptions)
-	}
-
-	return true
-}
-
 func validatePrometheusLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
@@ -446,13 +398,18 @@ func validateGrafanaLogs() bool {
 }
 
 func validateOpenSearchLogs() bool {
-	return validateElasticsearchRecords(
-		noLevelElasticsearchRecordValidator,
-		systemIndex,
-		"kubernetes.labels.app.keyword",
-		"system-kibana",
-		searchTimeWindow,
-		noExceptions)
+	valid := true
+	openSearchAppComponents := []string{"system-kibana", "system-es-data", "system-es-master", "system-es-ingest"}
+	for _, appLabel := range openSearchAppComponents {
+		valid = validateElasticsearchRecords(
+			noLevelElasticsearchRecordValidator,
+			systemIndex,
+			"kubernetes.labels.app.keyword",
+			appLabel,
+			searchTimeWindow,
+			noExceptions) && valid
+	}
+	return valid
 }
 
 func validateWeblogicOperatorLogs() bool {
@@ -520,16 +477,6 @@ func validateFleetSystemLogs() bool {
 		fleetSystemIndex,
 		"kubernetes.namespace_name",
 		"fleet-system",
-		searchTimeWindow,
-		noExceptions)
-}
-
-func validateLocalPathStorageLogs() bool {
-	return validateElasticsearchRecords(
-		allElasticsearchRecordValidator,
-		localPathStorageIndex,
-		"kubernetes.namespace_name",
-		"local-path-storage",
 		searchTimeWindow,
 		noExceptions)
 }
@@ -666,7 +613,7 @@ func logLevelElasticsearchRecordValidator(hit pkg.ElasticsearchHit) bool {
 		pkg.Log(pkg.Info, "Log record has missing or empty level field")
 		return false
 	}
-	//level := val.(string)
+	// level := val.(string)
 	// Put this validation back in when the OAM logging is fixed.
 	// if strings.EqualFold(level, "debug") || strings.EqualFold(level, "dbg") || strings.EqualFold(level, "d") {
 	// 	pkg.Log(pkg.Info, fmt.Sprintf("Log record has invalid debug level: %s", level))
@@ -674,10 +621,10 @@ func logLevelElasticsearchRecordValidator(hit pkg.ElasticsearchHit) bool {
 	// }
 	// There is an Istio proxy error that causes this to fail.
 	// Put this validation back in when that is addressed.
-	//if strings.EqualFold(level, "error") || strings.EqualFold(level, "err") || strings.EqualFold(level, "e") {
+	// if strings.EqualFold(level, "error") || strings.EqualFold(level, "err") || strings.EqualFold(level, "e") {
 	//	pkg.Log(pkg.Info, fmt.Sprintf("Log record has invalid error level: %s", level))
 	//	valid = false
-	//}
+	// }
 
 	return true
 }

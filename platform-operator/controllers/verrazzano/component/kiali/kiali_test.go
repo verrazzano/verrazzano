@@ -22,7 +22,7 @@ import (
 //  WHEN there is a valid DNS configuration
 //  THEN the correct Helm overrides are returned
 func TestAppendOverrides(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
@@ -55,12 +55,12 @@ func TestIsKialiReady(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      kialiSystemName,
+			Labels:    map[string]string{"app": kialiSystemName},
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   1,
 		},
 	})
 
@@ -77,18 +77,17 @@ func TestIsKialiNotReady(t *testing.T) {
 	})
 	defer helm.SetDefaultChartStatusFunction()
 
-	fakeClient := fake.NewFakeClientWithScheme(testScheme, &appsv1.Deployment{
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      kialiSystemName,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       0,
-			AvailableReplicas:   0,
-			UnavailableReplicas: 1,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   0,
 		},
-	})
+	}).Build()
 	assert.False(t, isKialiReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
 }
 
@@ -102,6 +101,6 @@ func TestIsKialiNotReadyChartNotFound(t *testing.T) {
 	})
 	defer helm.SetDefaultChartStatusFunction()
 
-	fakeClient := fake.NewFakeClientWithScheme(testScheme)
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	assert.False(t, isKialiReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
 }

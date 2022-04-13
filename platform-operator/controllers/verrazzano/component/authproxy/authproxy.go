@@ -4,19 +4,28 @@
 package authproxy
 
 import (
+	"context"
 	"fmt"
 	"io/fs"
 	"io/ioutil"
 	"os"
 
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	"k8s.io/apimachinery/pkg/types"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/networking/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/yaml"
 )
 
@@ -40,16 +49,18 @@ func resetWriteFileFunc() {
 // isAuthProxyReady checks if the AuthProxy deployment is ready
 func isAuthProxyReady(ctx spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
-		{Name: ComponentName, Namespace: ComponentNamespace},
+		{
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
+		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
 // AppendOverrides builds the set of verrazzano-authproxy overrides for the helm install
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	effectiveCR := ctx.EffectiveCR()
-
 	// Overrides object to store any user overrides
 	overrides := authProxyValues{}
 
@@ -101,6 +112,83 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	kvs = append(kvs, bom.KeyValue{Value: overridesFileName, IsFile: true})
 
 	return kvs, nil
+}
+
+// GetHelmManagedResources returns a list of extra resource types and their namespaced names that are managed by the
+// authproxy helm chart
+func GetHelmManagedResources() []common.HelmManagedResource {
+	return []common.HelmManagedResource{
+		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: "verrazzano-authproxy-elasticsearch", Namespace: ComponentNamespace}},
+		{Obj: &corev1.Secret{}, NamespacedName: types.NamespacedName{Name: "verrazzano-authproxy-secret", Namespace: ComponentNamespace}},
+		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "verrazzano-authproxy-config", Namespace: ComponentNamespace}},
+		{Obj: &v1.Ingress{}, NamespacedName: types.NamespacedName{Name: "verrazzano-ingress", Namespace: ComponentNamespace}},
+	}
+}
+
+// authproxyPreHelmOps ensures the authproxy associated resources are managed its helm install/upgrade executions by
+// ensuring the resource policy of "keep" is removed (if it remains then helm is unable to delete these resources and
+// they will become orphaned)
+func authproxyPreHelmOps(ctx spi.ComponentContext) error {
+	return reassociateResources(ctx.Client())
+}
+
+//reassociateResources updates the resources to ensure they are managed by this release/component.  The resource policy
+// annotation is removed to ensure that helm manages the lifecycle of the resources (the resource policy annotation is
+// added to ensure the resources are disassociated from the VZ chart which used to manage these resources)
+func reassociateResources(cli clipkg.Client) error {
+	namespacedName := types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}
+	name := types.NamespacedName{Name: ComponentName}
+	objects := []controllerutil.Object{
+		&corev1.ServiceAccount{},
+		&corev1.Service{},
+		&appsv1.Deployment{},
+	}
+
+	noNamespaceObjects := []controllerutil.Object{
+		&rbacv1.ClusterRole{},
+		&rbacv1.ClusterRoleBinding{},
+	}
+
+	// namespaced resources
+	for _, obj := range objects {
+		if _, err := removeResourcePolicyAnnotation(cli, obj, namespacedName); err != nil {
+			return err
+		}
+	}
+
+	// additional namespaced resources managed by this helm chart
+	authProxyResources := GetHelmManagedResources()
+	for _, managedResoure := range authProxyResources {
+		if _, err := removeResourcePolicyAnnotation(cli, managedResoure.Obj, managedResoure.NamespacedName); err != nil {
+			return err
+		}
+	}
+
+	// cluster resources
+	for _, obj := range noNamespaceObjects {
+		if _, err := removeResourcePolicyAnnotation(cli, obj, name); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// removeResourcePolicyAnnotation removes the resource policy annotation to allow the resource to be managed by helm
+func removeResourcePolicyAnnotation(cli clipkg.Client, obj clipkg.Object, namespacedName types.NamespacedName) (clipkg.Object, error) {
+	if err := cli.Get(context.TODO(), namespacedName, obj); err != nil {
+		if errors.IsNotFound(err) {
+			return obj, nil
+		}
+		return obj, err
+	}
+	annotations := obj.GetAnnotations()
+	if annotations == nil {
+		return obj, nil
+	}
+	delete(annotations, "helm.sh/resource-policy")
+	obj.SetAnnotations(annotations)
+	err := cli.Update(context.TODO(), obj)
+	return obj, err
 }
 
 // loadImageSettings loads the override values for the image name and version

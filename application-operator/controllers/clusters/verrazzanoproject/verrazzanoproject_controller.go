@@ -57,7 +57,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // Reconcile reconciles a VerrazzanoProject resource.
 // It fetches its namespaces if the VerrazzanoProject is in the verrazzano-mc namespace
 // and create namespaces in the local cluster.
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
@@ -68,7 +68,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, nil
 	}
 
-	ctx := context.Background()
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	var vp clustersv1alpha1.VerrazzanoProject
 	err := r.Get(ctx, req.NamespacedName, &vp)
 	if err != nil {
@@ -167,7 +169,7 @@ func (r *Reconciler) syncAll(ctx context.Context, vp clustersv1alpha1.Verrazzano
 	}
 
 	// Sync the network policies
-	err = r.syncNetworkPolices(ctx, &vp, log)
+	err = r.syncNetworkPolicies(ctx, &vp, log)
 	if err != nil {
 		return err
 	}
@@ -355,8 +357,8 @@ func (r *Reconciler) getDefaultRoleBindingSubjects(vp clustersv1alpha1.Verrazzan
 	return adminSubjects, monitorSubjects
 }
 
-// syncNetworkPolices syncs the NetworkPolicies specified in the project
-func (r *Reconciler) syncNetworkPolices(ctx context.Context, project *clustersv1alpha1.VerrazzanoProject, log vzlog2.VerrazzanoLogger) error {
+// syncNetworkPolicies syncs the NetworkPolicies specified in the project
+func (r *Reconciler) syncNetworkPolicies(ctx context.Context, project *clustersv1alpha1.VerrazzanoProject, log vzlog2.VerrazzanoLogger) error {
 	// Create or update policies that are in the project spec
 	// The project webhook validates that the network policies use project namespaces
 	desiredPolicySet := make(map[string]bool)

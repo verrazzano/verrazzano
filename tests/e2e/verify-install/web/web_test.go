@@ -31,6 +31,7 @@ var t = framework.NewTestFramework("web")
 var serverURL string
 var isManagedClusterProfile bool
 var isTestSupported bool
+
 var _ = t.BeforeSuite(func() {
 	var ingress *networkingv1.Ingress
 	var clientset *kubernetes.Clientset
@@ -54,14 +55,18 @@ var _ = t.BeforeSuite(func() {
 	ingressRules := ingress.Spec.Rules
 	serverURL = fmt.Sprintf("https://%s/", ingressRules[0].Host)
 	var err error
-	isTestSupported, err = pkg.IsVerrazzanoMinVersion("1.1.0")
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
+	isTestSupported, err = pkg.IsVerrazzanoMinVersion("1.1.0", kubeconfigPath)
 	if err != nil {
 		Fail(err.Error())
 	}
 })
 
 var _ = t.AfterSuite(func() {
-	pkg.Log(pkg.Debug, "executing after suite")
+	t.Logs.Debug("executing after suite")
 })
 
 var _ = t.AfterEach(func() {})
@@ -89,10 +94,10 @@ var _ = t.Describe("Verrazzano Web UI,", Label("f:platform-lcm.install",
 				// There will normally be several certs, but we only need to check the
 				// first one -- might want to refactor the checks out into a pkg.IsCertValid()
 				// function so we can use it from other test suites too??
-				pkg.Log(pkg.Debug, "Issuer Common Name: "+certs[0].Issuer.CommonName)
-				pkg.Log(pkg.Debug, "Subject Common Name: "+certs[0].Subject.CommonName)
-				pkg.Log(pkg.Debug, "Not Before: "+certs[0].NotBefore.String())
-				pkg.Log(pkg.Debug, "Not After: "+certs[0].NotAfter.String())
+				t.Logs.Debug("Issuer Common Name: " + certs[0].Issuer.CommonName)
+				t.Logs.Debug("Subject Common Name: " + certs[0].Subject.CommonName)
+				t.Logs.Debug("Not Before: " + certs[0].NotBefore.String())
+				t.Logs.Debug("Not After: " + certs[0].NotAfter.String())
 				Expect(time.Now().After(certs[0].NotBefore)).To(BeTrue())
 				Expect(time.Now().Before(certs[0].NotAfter)).To(BeTrue())
 			}

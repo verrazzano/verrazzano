@@ -31,6 +31,12 @@ func createVMI(ctx spi.ComponentContext) error {
 		return nil
 	}
 
+	effectiveCR := ctx.EffectiveCR()
+	dnsSuffix, err := vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed getting DNS suffix: %v", err)
+	}
+
 	if err := createGrafanaConfigMaps(ctx); err != nil {
 		return ctx.Log().ErrorfNewErr("failed to create grafana configmaps: %v", err)
 	}
@@ -54,15 +60,17 @@ func createVMI(ctx spi.ComponentContext) error {
 			"verrazzano.binding": system,
 		}
 		cr := ctx.EffectiveCR()
-		vmi.Spec.URI = fmt.Sprintf("vmi.system.%s.%s", values.Config.EnvName, values.Config.DNSSuffix)
-		vmi.Spec.IngressTargetDNSName = fmt.Sprintf("verrazzano-ingress.%s.%s", values.Config.EnvName, values.Config.DNSSuffix)
+		vmi.Spec.URI = fmt.Sprintf("vmi.system.%s.%s", values.Config.EnvName, dnsSuffix)
+		vmi.Spec.IngressTargetDNSName = fmt.Sprintf("verrazzano-ingress.%s.%s", values.Config.EnvName, dnsSuffix)
 		vmi.Spec.ServiceType = "ClusterIP"
 		vmi.Spec.AutoSecret = true
 		vmi.Spec.SecretsName = ComponentName
 		vmi.Spec.CascadingDelete = true
 		vmi.Spec.Grafana = newGrafana(cr, storage, existingVMI)
 		vmi.Spec.Prometheus = newPrometheus(cr, storage, existingVMI)
-		opensearch, err := newOpenSearch(cr, storage, existingVMI)
+		hasDataNodeOverride := hasNodeStorageOverride(ctx.ActualCR(), "nodes.data.requests.storage")
+		hasMasterNodeOverride := hasNodeStorageOverride(ctx.ActualCR(), "nodes.master.requests.storage")
+		opensearch, err := newOpenSearch(cr, storage, existingVMI, hasDataNodeOverride, hasMasterNodeOverride)
 		if err != nil {
 			return err
 		}
@@ -135,13 +143,33 @@ func setStorageSize(storage *resourceRequestValues, storageObject *vmov1.Storage
 	}
 }
 
-func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance) (*vmov1.Elasticsearch, error) {
+func hasNodeStorageOverride(cr *vzapi.Verrazzano, override string) bool {
+	openSearch := cr.Spec.Components.Elasticsearch
+	if openSearch == nil {
+		return false
+	}
+	for _, arg := range openSearch.ESInstallArgs {
+		if arg.Name == override {
+			return true
+		}
+	}
+
+	return false
+}
+
+//newOpenSearch creates a new OpenSearch resource for the VMI
+// The storage settings for OpenSearch nodes follow this order of precedence:
+// 1. ESInstallArgs values
+// 2. VolumeClaimTemplate overrides
+// 3. Profile values (which show as ESInstallArgs in the ActualCR)
+// The data node storage may be changed on update. The master node storage may NOT.
+func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, hasDataOverride, hasMasterOverride bool) (*vmov1.Elasticsearch, error) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		return &vmov1.Elasticsearch{}, nil
 	}
-	opensearchValues := cr.Spec.Components.Elasticsearch
+	opensearchComponent := cr.Spec.Components.Elasticsearch
 	opensearch := &vmov1.Elasticsearch{
-		Enabled: opensearchValues.Enabled != nil && *opensearchValues.Enabled,
+		Enabled: opensearchComponent.Enabled != nil && *opensearchComponent.Enabled,
 		Storage: vmov1.Storage{},
 		MasterNode: vmov1.ElasticsearchNode{
 			Resources: vmov1.Resources{},
@@ -158,13 +186,42 @@ func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 		},
 	}
 
-	if storage != nil && len(storage.Storage) > 0 {
-		opensearch.Storage.Size = storage.Storage
-	}
-	if vmi != nil {
-		opensearch.Storage = vmi.Spec.Elasticsearch.Storage
+	// Proxy any ISM policies to the VMI
+	for _, policy := range opensearchComponent.Policies {
+		opensearch.Policies = append(opensearch.Policies, *policy.DeepCopy())
 	}
 
+	// Set the values in the OpenSearch object from the Verrazzano component InstallArgs
+	if err := populateOpenSearchFromInstallArgs(opensearch, opensearchComponent); err != nil {
+		return nil, err
+	}
+
+	setVolumeClaimOverride := func(nodeStorage *vmov1.Storage, hasInstallOverride bool) *vmov1.Storage {
+		// Use the volume claim override IFF it is present AND the user did not specify a data node storage override
+		if !hasInstallOverride && storage != nil && len(storage.Storage) > 0 {
+			nodeStorage = &vmov1.Storage{
+				Size: storage.Storage,
+			}
+		}
+		return nodeStorage
+	}
+	opensearch.MasterNode.Storage = setVolumeClaimOverride(opensearch.MasterNode.Storage, hasMasterOverride)
+	opensearch.DataNode.Storage = setVolumeClaimOverride(opensearch.DataNode.Storage, hasDataOverride)
+
+	if vmi != nil {
+		// We currently do not support resizing master node PVC
+		opensearch.MasterNode.Storage = &vmi.Spec.Elasticsearch.Storage
+		if vmi.Spec.Elasticsearch.MasterNode.Storage != nil {
+			opensearch.MasterNode.Storage = vmi.Spec.Elasticsearch.MasterNode.Storage.DeepCopy()
+		}
+	}
+
+	return opensearch, nil
+}
+
+//populateOpenSearchFromInstallArgs loops through each of the install args and sets their value in the corresponding
+// OpenSearch object
+func populateOpenSearchFromInstallArgs(opensearch *vmov1.Elasticsearch, opensearchComponent *vzapi.ElasticsearchComponent) error {
 	intSetter := func(val *int32, arg vzapi.InstallArgs) error {
 		var intVal int32
 		_, err := fmt.Sscan(arg.Value, &intVal)
@@ -174,35 +231,40 @@ func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 		*val = intVal
 		return nil
 	}
-
 	// The install args were designed for helm chart, not controller code.
 	// The switch statement is a shim around this design.
-	for _, arg := range opensearchValues.ESInstallArgs {
+	for _, arg := range opensearchComponent.ESInstallArgs {
 		switch arg.Name {
 		case "nodes.master.replicas":
 			if err := intSetter(&opensearch.MasterNode.Replicas, arg); err != nil {
-				return nil, err
+				return err
 			}
 		case "nodes.master.requests.memory":
 			opensearch.MasterNode.Resources.RequestMemory = arg.Value
 		case "nodes.ingest.replicas":
 			if err := intSetter(&opensearch.IngestNode.Replicas, arg); err != nil {
-				return nil, err
+				return err
 			}
 		case "nodes.ingest.requests.memory":
 			opensearch.IngestNode.Resources.RequestMemory = arg.Value
 		case "nodes.data.replicas":
 			if err := intSetter(&opensearch.DataNode.Replicas, arg); err != nil {
-				return nil, err
+				return err
 			}
 		case "nodes.data.requests.memory":
 			opensearch.DataNode.Resources.RequestMemory = arg.Value
 		case "nodes.data.requests.storage":
-			opensearch.Storage.Size = arg.Value
+			opensearch.DataNode.Storage = &vmov1.Storage{
+				Size: arg.Value,
+			}
+		case "nodes.master.requests.storage":
+			opensearch.MasterNode.Storage = &vmov1.Storage{
+				Size: arg.Value,
+			}
 		}
 	}
 
-	return opensearch, nil
+	return nil
 }
 
 func newOpenSearchDashboards(cr *vzapi.Verrazzano) vmov1.Kibana {
@@ -220,7 +282,15 @@ func newOpenSearchDashboards(cr *vzapi.Verrazzano) vmov1.Kibana {
 }
 
 func setupSharedVMIResources(ctx spi.ComponentContext) error {
-	return ensureVMISecret(ctx.Client())
+	err := ensureVMISecret(ctx.Client())
+	if err != nil {
+		return err
+	}
+	err = ensureBackupSecret(ctx.Client())
+	if err != nil {
+		return err
+	}
+	return ensureGrafanaAdminSecret(ctx.Client())
 }
 
 func ensureVMISecret(cli client.Client) error {
@@ -235,6 +305,55 @@ func ensureVMISecret(cli client.Client) error {
 		if secret.Data["username"] == nil || secret.Data["password"] == nil {
 			secret.Data["username"] = []byte(ComponentName)
 			pw, err := password.GeneratePassword(16)
+			if err != nil {
+				return err
+			}
+			secret.Data["password"] = []byte(pw)
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ensureBackupSecret(cli client.Client) error {
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      verrazzanoBackupScrtName,
+			Namespace: globalconst.VerrazzanoSystemNamespace,
+		},
+		Data: map[string][]byte{},
+	}
+	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), cli, secret, func() error {
+		// Populating dummy keys for access and secret key so that they are never empty
+		if secret.Data[objectstoreAccessKey] == nil || secret.Data[objectstoreAccessSecretKey] == nil {
+			key, err := password.GeneratePassword(32)
+			if err != nil {
+				return err
+			}
+			secret.Data[objectstoreAccessKey] = []byte(key)
+			secret.Data[objectstoreAccessSecretKey] = []byte(key)
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ensureGrafanaAdminSecret(cli client.Client) error {
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      grafanaScrtName,
+			Namespace: globalconst.VerrazzanoSystemNamespace,
+		},
+		Data: map[string][]byte{},
+	}
+	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), cli, secret, func() error {
+		if secret.Data["username"] == nil || secret.Data["password"] == nil {
+			secret.Data["username"] = []byte(ComponentName)
+			pw, err := password.GeneratePassword(32)
 			if err != nil {
 				return err
 			}

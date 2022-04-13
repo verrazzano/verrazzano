@@ -6,14 +6,14 @@ package metricsbinding
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/constants"
-	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vztemplate "github.com/verrazzano/verrazzano/application-operator/controllers/template"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
 	k8scorev1 "k8s.io/api/core/v1"
@@ -46,7 +46,7 @@ func (r *Reconciler) SetupWithManager(mgr k8scontroller.Manager) error {
 
 // Reconcile reconciles a workload to keep the Prometheus ConfigMap scrape job configuration up to date.
 // No kubebuilder annotations are used as the application RBAC for the application operator is now manually managed.
-func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req k8scontroller.Request) (k8scontroller.Result, error) {
 
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
@@ -57,7 +57,9 @@ func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result,
 		return reconcile.Result{}, nil
 	}
 
-	ctx := context.Background()
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	metricsBinding := vzapi.MetricsBinding{}
 	if err := r.Client.Get(context.TODO(), req.NamespacedName, &metricsBinding); err != nil {
 		return clusters.IgnoreNotFoundWithLog(err, zap.S())
@@ -142,15 +144,13 @@ func (r *Reconciler) updateMetricsBinding(metricsBinding *vzapi.MetricsBinding, 
 	// Retrieve the workload object from the MetricsBinding
 	workloadObject, err := r.getWorkloadObject(metricsBinding)
 	if err != nil {
-		log.Errorf("Failed to get the Workload from the MetricsBinding %s: %v", metricsBinding.Spec.Workload.Name, err)
-		return err
+		return log.ErrorfNewErr("Failed to get the Workload from the MetricsBinding %s: %v", metricsBinding.Spec.Workload.Name, err)
 	}
 
 	// Return error if UID is not found
 	if len(workloadObject.GetUID()) == 0 {
 		err = fmt.Errorf("could not get UID from workload resource: %s, %s", workloadObject.GetKind(), workloadObject.GetName())
-		log.Errorf("Failed to find UID for workload %s: %v", workloadObject.GetName(), err)
-		return err
+		return log.ErrorfNewErr("Failed to find UID for workload %s: %v", workloadObject.GetName(), err)
 	}
 
 	// Set the owner reference for the MetricsBinding so that it gets deleted with the workload
@@ -207,8 +207,7 @@ func (r *Reconciler) deleteScrapeConfig(metricsBinding *vzapi.MetricsBinding, co
 		if existingJobName == createdJobName {
 			err = promConfig.ArrayRemoveP(index, prometheusScrapeConfigsLabel)
 			if err != nil {
-				log.Errorf("Failed to remove array slice from Prometheus config: %v", err)
-				return err
+				return log.ErrorfNewErr("Failed to remove array slice from Prometheus config: %v", err)
 			}
 		}
 	}
@@ -216,8 +215,7 @@ func (r *Reconciler) deleteScrapeConfig(metricsBinding *vzapi.MetricsBinding, co
 	// Repopulate the configmap data
 	newPromConfigData, err := yaml.JSONToYAML(promConfig.Bytes())
 	if err != nil {
-		log.Errorf("Failed to convert Prometheus config data to YAML: %v", err)
-		return err
+		return log.ErrorfNewErr("Failed to convert Prometheus config data to YAML: %v", err)
 	}
 	configMap.Data[prometheusConfigKey] = string(newPromConfigData)
 	return nil
@@ -236,28 +234,27 @@ func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBin
 	// Get data from the configmap
 	promConfig, err := getConfigData(configMap)
 	if err != nil {
-		return err
+		return log.ErrorfNewErr("Failed to get Prometheus config map %s: %v", configMap.GetName(), err)
 	}
 
-	// Get the namespace for the template
+	// Get the namespace for the metrics binding
 	workloadNamespace := k8scorev1.Namespace{}
-	err = r.Client.Get(context.TODO(), k8sclient.ObjectKey{Name: template.GetNamespace()}, &workloadNamespace)
+	err = r.Client.Get(context.TODO(), k8sclient.ObjectKey{Name: metricsBinding.GetNamespace()}, &workloadNamespace)
 	if err != nil {
-		log.Errorf("Failed get the Namespace %s: %v", workloadNamespace.GetName(), err)
-		return err
+		return log.ErrorfNewErr("Failed to get metrics binding namespace %s: %v", metricsBinding.GetName(), err)
 	}
 
 	// Create Unstructured Namespace
 	workloadNamespaceUnstructuredMap, err := k8sruntime.DefaultUnstructuredConverter.ToUnstructured(&workloadNamespace)
 	if err != nil {
-		return err
+		return log.ErrorfNewErr("Failed to get the unstructured for namespace %s: %v", workloadNamespace.GetName(), err)
 	}
 	workloadNamespaceUnstructured := unstructured.Unstructured{Object: workloadNamespaceUnstructuredMap}
 
 	// Get the workload object for the template processor
 	workloadObject, err := r.getWorkloadObject(metricsBinding)
 	if err != nil {
-		return err
+		return log.ErrorfNewErr("Failed to get the workload object for metrics binding %s: %v", metricsBinding.GetName(), err)
 	}
 
 	// Organize inputs for template processor
@@ -270,7 +267,7 @@ func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBin
 	templateProcessor := vztemplate.NewProcessor(r.Client, template.Spec.PrometheusConfig.ScrapeConfigTemplate)
 	scrapeConfigString, err := templateProcessor.Process(templateInputs)
 	if err != nil {
-		return err
+		return log.ErrorfNewErr("Failed to process metrics template %s: %v", template.GetName(), err)
 	}
 
 	// Prepend job name to the scrape config
@@ -280,13 +277,11 @@ func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBin
 	// Format scrape config into readable container
 	configYaml, err := yaml.YAMLToJSON([]byte(scrapeConfigString))
 	if err != nil {
-		log.Errorf("Failed to convert scrape config YAML to JSON: %v", err)
-		return err
+		return log.ErrorfNewErr("Failed to convert scrape config YAML to JSON: %v", err)
 	}
 	newScrapeConfig, err := gabs.ParseJSON(configYaml)
 	if err != nil {
-		log.Errorf("Failed to convert scrape config JSON to container: %v", err)
-		return err
+		return log.ErrorfNewErr("Failed to convert scrape config JSON to container: %v", err)
 	}
 
 	// Create or Update scrape config with job name matching resource
@@ -298,11 +293,11 @@ func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBin
 			// Remove and recreate scrape config
 			err = promConfig.ArrayRemoveP(index, prometheusScrapeConfigsLabel)
 			if err != nil {
-				return err
+				return log.ErrorfNewErr("Failed to remove scrape config: %v", err)
 			}
 			err = promConfig.ArrayAppendP(newScrapeConfig.Data(), prometheusScrapeConfigsLabel)
 			if err != nil {
-				return err
+				return log.ErrorfNewErr("Failed to append scrape config: %v", err)
 			}
 			existingUpdated = true
 			break
@@ -311,14 +306,14 @@ func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBin
 	if !existingUpdated {
 		err = promConfig.ArrayAppendP(newScrapeConfig.Data(), prometheusScrapeConfigsLabel)
 		if err != nil {
-			return err
+			return log.ErrorfNewErr("Failed to append scrape config: %v", err)
 		}
 	}
 
 	// Repopulate the ConfigMap data
 	newPromConfigData, err := yaml.JSONToYAML(promConfig.Bytes())
 	if err != nil {
-		return err
+		return log.ErrorfNewErr("Failed to convert scrape config JSON to YAML: %v", err)
 	}
 	configMap.Data[prometheusConfigKey] = string(newPromConfigData)
 	return nil
@@ -337,8 +332,7 @@ func (r *Reconciler) getMetricsTemplate(metricsBinding *vzapi.MetricsBinding, lo
 	namespacedName := types.NamespacedName{Name: templateSpec.Name, Namespace: templateSpec.Namespace}
 	err := r.Client.Get(context.Background(), namespacedName, &template)
 	if err != nil {
-		log.Errorf("Failed to get the MetricsTemplate %s: %v", templateSpec.Name, err)
-		return nil, err
+		return nil, log.ErrorfNewErr("Failed to get the MetricsTemplate %s: %v", templateSpec.Name, err)
 	}
 
 	return &template, nil

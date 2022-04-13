@@ -33,7 +33,10 @@ func TestCreateAdminSecretIfNotExists(t *testing.T) {
 		config, k := k8sutilfake.NewClientsetConfig()
 		return config, k, nil
 	}
-	podList := createRancherPodList()
+
+	podListAllRunning := createRancherPodListWithAllRunning()
+	podListNoneRunning := createRancherPodListWithNoneRunning()
+	podListLastRunning := createRancherPodListWithLastRunning()
 	adminSecret := createAdminSecret()
 
 	var tests = []struct {
@@ -46,30 +49,50 @@ func TestCreateAdminSecretIfNotExists(t *testing.T) {
 		{
 			"should skip secret creation when secret is present",
 			"",
-			fake.NewFakeClientWithScheme(getScheme(), &adminSecret),
+			fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&adminSecret).Build(),
 			clientConfigFunction,
 			false,
 		},
 		{
 			"should be able to reset the admin password",
 			validStdOut,
-			fake.NewFakeClientWithScheme(getScheme(), &podList),
+			fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&podListAllRunning.Items[0]).Build(),
 			clientConfigFunction,
 			false,
 		},
 		{
 			"should fail when resetting admin password fails",
 			"",
-			fake.NewFakeClientWithScheme(getScheme(), &podList),
+			fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&podListAllRunning.Items[0]).Build(),
 			clientConfigFunction,
 			true,
 		},
 		{
-			"should fail when no Rancher pod is available",
+			"should fail when no Rancher pods exist",
 			validStdOut,
-			fake.NewFakeClientWithScheme(getScheme()),
+			fake.NewClientBuilder().WithScheme(getScheme()).Build(),
 			clientConfigFunction,
 			true,
+		},
+		// GIVEN a cluster with no Rancher pods running
+		// WHEN an attempt is made to create the Rancher admin secret
+		// THEN the request should fail before attempting to invoke commands
+		{
+			"should fail when no Rancher pod is available",
+			validStdOut,
+			fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&podListNoneRunning.Items[0]).Build(),
+			clientConfigFunction,
+			true,
+		},
+		// GIVEN a cluster with one of several Rancher pods running
+		// WHEN an attempt is made to create the Rancher admin secret
+		// THEN the request should succeed and correct commands invoked on the pod
+		{
+			"should pass when one Rancher pod is available",
+			validStdOut,
+			fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&podListLastRunning.Items[0], &podListLastRunning.Items[1]).Build(),
+			clientConfigFunction,
+			false,
 		},
 	}
 

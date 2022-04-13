@@ -4,15 +4,16 @@
 package istio
 
 import (
+	"testing"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
-const argShape = `gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"`
+const ComponentInstallArgShape = `gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"`
 
 var enabled = true
 
@@ -21,7 +22,7 @@ var enabled = true
 var cr1 = vzapi.IstioComponent{
 	IstioInstallArgs: []vzapi.InstallArgs{
 		{
-			Name:  argShape,
+			Name:  ComponentInstallArgShape,
 			Value: "10Mbps",
 		},
 		{
@@ -168,7 +169,7 @@ spec:
 var cr2 = vzapi.IstioComponent{
 	IstioInstallArgs: []vzapi.InstallArgs{
 		{
-			Name:  argShape,
+			Name:  ComponentInstallArgShape,
 			Value: "10Mbps",
 		},
 		{
@@ -456,7 +457,6 @@ spec:
 // WHEN BuildIstioOperatorYaml is called
 // THEN ensure that the result is correct.
 func TestBuildIstioOperatorYaml(t *testing.T) {
-	const indent = 2
 
 	tests := []struct {
 		testName string
@@ -481,10 +481,10 @@ func TestBuildIstioOperatorYaml(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
-			assert := assert.New(t)
+			a := assert.New(t)
 			s, err := BuildIstioOperatorYaml(test.value)
-			assert.NoError(err, s, "error merging yamls")
-			assert.YAMLEq(test.expected, s, "Result does not match expected value")
+			a.NoError(err, s, "error merging yamls")
+			a.YAMLEq(test.expected, s, "Result does not match expected value")
 		})
 	}
 }

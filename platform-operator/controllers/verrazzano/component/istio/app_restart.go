@@ -5,21 +5,49 @@ package istio
 
 import (
 	"context"
-	"strings"
+	"strconv"
+
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+// RestartApps restarts all the applications that have old Istio sidecars.
+// It also restarts WebLogic domains that were stopped in Istio pre-upgrade
+func RestartApps(log vzlog.VerrazzanoLogger, client clipkg.Client, generation int64) error {
+	// Generate a restart version that will not change for this Verrazzano version
+	restartVersion := "upgrade-" + strconv.Itoa(int(generation))
+
+	// Start WebLogic domains that were shutdown
+	log.Infof("Starting WebLogic domains that were stopped pre-upgrade")
+	if err := StartDomainsStoppedByUpgrade(log, client, restartVersion); err != nil {
+		return err
+	}
+
+	// Restart all other apps
+	log.Infof("Restarting all applications so they can get the new Envoy sidecar")
+	if err := RestartAllApps(log, client, restartVersion); err != nil {
+		return err
+	}
+	return nil
+}
+
 // StopDomainsUsingOldEnvoy stops all the WebLogic domains using Envoy 1.7.3
 func StopDomainsUsingOldEnvoy(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
+	// Get the latest Istio proxy image name from the bom
+	istioProxyImage, err := getIstioProxyImageFromBom()
+	if err != nil {
+		return log.ErrorfNewErr("Failed, restart components cannot find Istio proxy image in BOM: %v", err)
+	}
+
 	// get all the app configs
 	appConfigs := oam.ApplicationConfigurationList{}
 	if err := client.List(context.TODO(), &appConfigs, &clipkg.ListOptions{}); err != nil {
@@ -31,7 +59,7 @@ func StopDomainsUsingOldEnvoy(log vzlog.VerrazzanoLogger, client clipkg.Client) 
 		log.Debugf("StopWebLogicApps: found appConfig %s", appConfig.Name)
 		for _, wl := range appConfig.Status.Workloads {
 			if wl.Reference.Kind == vzconst.VerrazzanoWebLogicWorkloadKind {
-				if err := stopDomainIfNeeded(log, client, appConfig, wl.Reference.Name); err != nil {
+				if err := stopDomainIfNeeded(log, client, appConfig, wl.Reference.Name, istioProxyImage); err != nil {
 					return err
 				}
 			}
@@ -40,9 +68,15 @@ func StopDomainsUsingOldEnvoy(log vzlog.VerrazzanoLogger, client clipkg.Client) 
 	return nil
 }
 
-// Determine if the WebLogic operator needs to be stopped, if so then stop it
-func stopDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, appConfig oam.ApplicationConfiguration, wlName string) error {
+// Determine if the WebLogic domain needs to be stopped, if so then stop it
+func stopDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, appConfig oam.ApplicationConfiguration, wlName string, istioProxyImage string) error {
 	log.Progressf("StopWebLogicApps: checking if domain for workload %s needs to be stopped", wlName)
+
+	// Get the go client so we can bypass the cache and get directly from etcd
+	goClient, err := k8sutil.GetGoClient(log)
+	if err != nil {
+		return err
+	}
 
 	// Get the domain pods for this workload
 	weblogicReq, _ := labels.NewRequirement("verrazzano.io/workload-type", selection.Equals, []string{"weblogic"})
@@ -51,26 +85,20 @@ func stopDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, appCon
 	selector := labels.NewSelector()
 	selector = selector.Add(*weblogicReq).Add(*compReq).Add(*appConfNameReq)
 
-	var podList corev1.PodList
-	if err := client.List(context.TODO(), &podList, &clipkg.ListOptions{Namespace: appConfig.Namespace, LabelSelector: selector}); err != nil {
-		return err
+	// Get the pods using the label selector
+	podList, err := goClient.CoreV1().Pods(appConfig.Namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
+	if err != nil {
+		return log.ErrorfNewErr("Failed to list pods for Domain %s/%s: %v", appConfig.Namespace, wlName, err)
 	}
 
-	// If any pod is using Isito 1.7.3 then stop the domain and return
-	for _, pod := range podList.Items {
-		log.Debugf("StopWebLogicApps: found pod %s in namespace %s ", pod.Name, pod.Namespace)
-		for _, container := range pod.Spec.Containers {
-			if strings.Contains(container.Image, "proxyv2:1.7.3") {
-				log.Progressf("StopWebLogicApps: stopping domain for workload %s ", wlName)
-				err := stopDomain(client, appConfig.Namespace, wlName)
-				if err != nil {
-					return log.ErrorfNewErr("Failed annotating VerrazzanoWebLogicWorkload %s to stop the domain: %v", wlName, err)
-				}
-				return err
-			}
-		}
+	// Check if any pods contain the old Istio proxy image
+	found, oldImage := doesPodContainOldIstioSidecar(podList, istioProxyImage)
+	if !found {
+		return nil
 	}
-	return nil
+
+	log.Oncef("Restarting OAM WebLogic Domain %s which has a pod with an old Istio proxy %s", wlName, oldImage)
+	return stopDomain(client, appConfig.Namespace, wlName)
 }
 
 // Stop the WebLogic domain
@@ -139,7 +167,19 @@ func startDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, wlNam
 
 // RestartAllApps restarts all the applications
 func RestartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVersion string) error {
-	log.Progressf("RestartApps: restarting all apps")
+	log.Progressf("Restarting all OAM applications that have an old Istio proxy sidecar")
+
+	// Get the latest Istio proxy image name from the bom
+	istioProxyImage, err := getIstioProxyImageFromBom()
+	if err != nil {
+		return log.ErrorfNewErr("Failed, restart components cannot find Istio proxy image in BOM: %v", err)
+	}
+
+	// get the go client so we can bypass the cache and get directly from etcd
+	goClient, err := k8sutil.GetGoClient(log)
+	if err != nil {
+		return err
+	}
 
 	// get all the app configs
 	appConfigs := oam.ApplicationConfigurationList{}
@@ -147,18 +187,38 @@ func RestartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVer
 		return log.ErrorfNewErr("Failed to listing appConfigs %v", err)
 	}
 
+	// check each app config to see if any of the pods have old Istio proxy images
 	for _, appConfig := range appConfigs.Items {
-		log.Debugf("RestartApps: found appConfig %s", appConfig.Name)
+		log.Oncef("Checking OAM Application %s pods for an old Istio proxy sidecar", appConfig.Name)
+
+		// Get the pods for this appconfig
+		appConfNameReq, _ := labels.NewRequirement("app.oam.dev/name", selection.Equals, []string{appConfig.Name})
+		selector := labels.NewSelector()
+		selector = selector.Add(*appConfNameReq)
+
+		// Get the pods using the label selector
+		podList, err := goClient.CoreV1().Pods(appConfig.Namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
+		if err != nil {
+			return log.ErrorfNewErr("Failed to list pods for AppConfig %s/%s: %v", appConfig.Namespace, appConfig.Name, err)
+		}
+
+		// Check if any pods contain the old Istio proxy image
+		found, oldImage := doesPodContainOldIstioSidecar(podList, istioProxyImage)
+		if !found {
+			continue
+		}
+
+		log.Oncef("Restarting OAM Application %s which has a pod with an old Istio proxy sidecar %s", appConfig.Name, oldImage)
 
 		// Set the update the restart version
 		var ac oam.ApplicationConfiguration
 		ac.Namespace = appConfig.Namespace
 		ac.Name = appConfig.Name
-		_, err := controllerutil.CreateOrUpdate(context.TODO(), client, &ac, func() error {
+		_, err = controllerutil.CreateOrUpdate(context.TODO(), client, &ac, func() error {
 			if ac.ObjectMeta.Annotations == nil {
 				ac.ObjectMeta.Annotations = make(map[string]string)
 			}
-			log.Progressf("RestartApps: setting restart version for appconfig %s to %s ...  Old version is %s", appConfig.Name,
+			log.Progressf("Setting restart version for appconfig %s to %s. Previous version is %s", appConfig.Name,
 				restartVersion, ac.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation])
 			ac.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = restartVersion
 			return nil

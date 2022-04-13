@@ -6,6 +6,7 @@ package multiclustersecret
 import (
 	"context"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"github.com/go-logr/logr"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"testing"
 
@@ -22,9 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const namespace = "unit-mcsecret-namespace"
@@ -48,11 +47,11 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	mgr = mocks.NewMockManager(mocker)
 	cli = mocks.NewMockClient(mocker)
 	scheme = runtime.NewScheme()
-	clustersv1alpha1.AddToScheme(scheme)
+	_ = clustersv1alpha1.AddToScheme(scheme)
 	reconciler = Reconciler{Client: cli, Scheme: scheme}
-	mgr.EXPECT().GetConfig().Return(&rest.Config{})
+	mgr.EXPECT().GetControllerOptions().AnyTimes()
 	mgr.EXPECT().GetScheme().Return(scheme)
-	mgr.EXPECT().GetLogger().Return(log.NullLogger{})
+	mgr.EXPECT().GetLogger().Return(logr.Discard())
 	mgr.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()
 	mgr.EXPECT().Add(gomock.Any()).Return(nil).AnyTimes()
 	err = reconciler.SetupWithManager(mgr)
@@ -89,7 +88,7 @@ func TestReconcileCreateSecret(t *testing.T) {
 
 	// expect a call to create the K8S secret
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, s *v1.Secret, opts ...client.CreateOption) error {
 			assertSecretValid(assert, s, secretData)
 			return nil
@@ -97,7 +96,7 @@ func TestReconcileCreateSecret(t *testing.T) {
 
 	// expect a call to update the resource with a finalizer
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *clustersv1alpha1.MultiClusterSecret, opts ...client.UpdateOption) error {
 			assert.True(len(secret.ObjectMeta.Finalizers) == 1, "Wrong number of finalizers")
 			assert.Equal(finalizerName, secret.ObjectMeta.Finalizers[0], "wrong finalizer")
@@ -110,7 +109,7 @@ func TestReconcileCreateSecret(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newSecretReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -146,8 +145,8 @@ func TestReconcileUpdateSecret(t *testing.T) {
 
 	// expect a call to update the K8S secret with the new secret data
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, s *v1.Secret, opts ...client.CreateOption) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, s *v1.Secret, opts ...client.UpdateOption) error {
 			assertSecretValid(assert, s, newSecretData)
 			return nil
 		})
@@ -158,7 +157,7 @@ func TestReconcileUpdateSecret(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newSecretReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -194,7 +193,7 @@ func TestReconcileCreateSecretFailed(t *testing.T) {
 
 	// expect a call to create the K8S secret and fail the call
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, s *v1.Secret, opts ...client.CreateOption) error {
 			return errors.NewBadRequest("will not create it")
 		})
@@ -206,7 +205,7 @@ func TestReconcileCreateSecretFailed(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newSecretReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.Nil(err)
@@ -236,8 +235,8 @@ func TestReconcileUpdateSecretFailed(t *testing.T) {
 
 	// expect a call to update the K8S secret and fail the call
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, s *v1.Secret, opts ...client.CreateOption) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, s *v1.Secret, opts ...client.UpdateOption) error {
 			return errors.NewBadRequest("will not update it")
 		})
 
@@ -248,7 +247,7 @@ func TestReconcileUpdateSecretFailed(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newSecretReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.Nil(err)
@@ -296,7 +295,7 @@ func TestReconcilePlacementInDifferentCluster(t *testing.T) {
 
 	// expect a call to update the resource with no finalizers
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, mcSecret *clustersv1alpha1.MultiClusterSecret, opts ...client.UpdateOption) error {
 			assert.True(len(mcSecret.Finalizers) == 0, "Wrong number of finalizers")
 			return nil
@@ -307,7 +306,7 @@ func TestReconcilePlacementInDifferentCluster(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newSecretReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -337,7 +336,7 @@ func TestReconcileResourceNotFound(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newSecretReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -365,8 +364,8 @@ func doExpectStatusUpdateFailed(cli *mocks.MockClient, mockStatusWriter *mocks.M
 
 	// the status update should be to failure status/conditions on the multicluster secret
 	mockStatusWriter.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterSecret{})).
-		DoAndReturn(func(ctx context.Context, mcSecret *clustersv1alpha1.MultiClusterSecret) error {
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterSecret{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, mcSecret *clustersv1alpha1.MultiClusterSecret, opts ...client.UpdateOption) error {
 			clusterstest.AssertMultiClusterResourceStatus(assert, mcSecret.Status,
 				clustersv1alpha1.Failed, clustersv1alpha1.DeployFailed, v1.ConditionTrue)
 			return nil
@@ -383,8 +382,8 @@ func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mock
 
 	// the status update should be to success status/conditions on the multicluster secret
 	mockStatusWriter.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterSecret{})).
-		DoAndReturn(func(ctx context.Context, mcSecret *clustersv1alpha1.MultiClusterSecret) error {
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterSecret{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, mcSecret *clustersv1alpha1.MultiClusterSecret, opts ...client.UpdateOption) error {
 			clusterstest.AssertMultiClusterResourceStatus(assert, mcSecret.Status,
 				clustersv1alpha1.Succeeded, clustersv1alpha1.DeployComplete, v1.ConditionTrue)
 			return nil
@@ -449,7 +448,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(vzconst.KubeSystem, "unit-test-verrazzano-helidon-workload")
 	reconciler := newSecretReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.Nil(err)

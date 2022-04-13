@@ -18,18 +18,18 @@ import (
 //  WHEN the deployment object has enough replicas available
 //  THEN true is returned
 func TestIsCoherenceOperatorReady(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      ComponentName,
+			Labels:    map[string]string{"control-plane": "coherence"},
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   1,
 		},
-	})
+	}).Build()
 	assert.True(t, isCoherenceOperatorReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
@@ -38,17 +38,16 @@ func TestIsCoherenceOperatorReady(t *testing.T) {
 //  WHEN the deployment object does NOT have enough replicas available
 //  THEN false is returned
 func TestIsCoherenceOperatorNotReady(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      ComponentName,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       0,
-			AvailableReplicas:   0,
-			UnavailableReplicas: 1,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   0,
 		},
-	})
+	}).Build()
 	assert.False(t, isCoherenceOperatorReady(spi.NewFakeContext(fakeClient, nil, false)))
 }

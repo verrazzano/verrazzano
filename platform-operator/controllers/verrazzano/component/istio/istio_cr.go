@@ -6,9 +6,10 @@ package istio
 import (
 	"bytes"
 	"fmt"
-	"sigs.k8s.io/yaml"
 	"strings"
 	"text/template"
+
+	"sigs.k8s.io/yaml"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzyaml "github.com/verrazzano/verrazzano/platform-operator/internal/yaml"
@@ -77,7 +78,7 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 	const leftMargin = 0
 	const leftMarginExtIP = 12
 
-	var externalIPYAMLTemplateValue string = ""
+	var externalIPYAMLTemplateValue = ""
 	// Build a list of YAML strings from the istioComponent initargs, one for each arg.
 	expandedYamls := []string{}
 	for _, arg := range comp.IstioInstallArgs {

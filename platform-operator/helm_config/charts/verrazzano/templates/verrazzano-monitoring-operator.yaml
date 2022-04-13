@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 {{- if .Values.monitoringOperator.enabled }}
@@ -133,7 +133,7 @@ rules:
       - update
       - watch
   - apiGroups:
-      - extensions
+      - networking.k8s.io
     resources:
       - ingresses
     verbs:
@@ -339,6 +339,8 @@ spec:
       k8s-app: {{ .Values.monitoringOperator.name }}
   template:
     metadata:
+      annotations:
+        traffic.sidecar.istio.io/excludeOutboundPorts: "443"
       labels:
         k8s-app: {{ .Values.monitoringOperator.name }}
     spec:
@@ -351,7 +353,7 @@ spec:
               name: http
               protocol: TCP
             - containerPort: {{ .Values.monitoringOperator.metricsPort }}
-              name: metrics
+              name: http-metrics
               protocol: TCP
           resources:
             requests:
@@ -421,7 +423,7 @@ spec:
   ports:
     - port: {{ .Values.monitoringOperator.metricsPort }}
       targetPort: {{ .Values.monitoringOperator.metricsPort }}
-      name: metrics
+      name: http-metrics
   selector:
     k8s-app: {{ .Values.monitoringOperator.name }}
 {{- end }}

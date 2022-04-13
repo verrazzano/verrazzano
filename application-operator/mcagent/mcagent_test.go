@@ -69,22 +69,22 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 
 	// Admin Cluster - expect call to list VerrazzanoProject objects - return an empty list
 	adminMock.EXPECT().
-		List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...*client.ListOptions) error {
+		List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...client.ListOption) error {
 			return nil
 		})
 
 	// Managed Cluster - expect call to list VerrazzanoProject objects - return an empty list
 	mcMock.EXPECT().
-		List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...*client.ListOptions) error {
+		List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...client.ListOption) error {
 			return nil
 		})
 
 	// Managed Cluster - expect call to list Namespace objects - return an empty list
 	mcMock.EXPECT().
-		List(gomock.Any(), &corev1.NamespaceList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, list *corev1.NamespaceList, opts ...*client.ListOptions) error {
+		List(gomock.Any(), &corev1.NamespaceList{}, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *corev1.NamespaceList, opts ...client.ListOption) error {
 			return nil
 		})
 
@@ -349,8 +349,8 @@ func TestSyncer_updateDeployment(t *testing.T) {
 
 				// Managed Cluster - expect call to update the deployment.
 				mcMock.EXPECT().
-					Update(gomock.Any(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, deployment *appsv1.Deployment) error {
+					Update(gomock.Any(), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, deployment *appsv1.Deployment, opts ...client.UpdateOption) error {
 						asserts.Equal(t, newVersion, getEnvValue(&deployment.Spec.Template.Spec.Containers, registrationSecretVersion), "expected env value for "+registrationSecretVersion)
 						return nil
 					})
@@ -397,8 +397,8 @@ func expectAdminVMCStatusUpdateSuccess(adminMock *mocks.MockClient, vmcName type
 		})
 	adminMock.EXPECT().Status().Return(adminStatusMock)
 	adminStatusMock.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&platformopclusters.VerrazzanoManagedCluster{})).
-		DoAndReturn(func(ctx context.Context, vmc *platformopclusters.VerrazzanoManagedCluster) error {
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&platformopclusters.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *platformopclusters.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			assert.Equal(vmcName.Namespace, vmc.Namespace)
 			assert.Equal(vmcName.Name, vmc.Name)
 			assert.NotNil(vmc.Status)
@@ -672,8 +672,8 @@ func TestSyncer_configureLogging(t *testing.T) {
 			// update only when expected
 			if expectUpdateDS {
 				mcMock.EXPECT().
-					Update(gomock.Any(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet) error {
+					Update(gomock.Any(), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet, opts ...client.UpdateOption) error {
 						return nil
 					})
 			}

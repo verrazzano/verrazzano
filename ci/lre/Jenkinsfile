@@ -359,6 +359,11 @@ pipeline {
             }
         }
     }
+    post {
+        cleanup {
+            emitJobMetrics()
+        }
+    }
 }
 
 def runGinkgoRandomize(testSuitePath) {
@@ -390,3 +395,12 @@ def runSocksVariant(variant) {
     }
 }
 
+def emitJobMetrics() {
+    env.JOB_STATUS = "${currentBuild.currentResult}".trim()
+    long duration = "${currentBuild.duration}" as long;
+    env.DURATION = duration
+    long timeInMillis = "${currentBuild.timeInMillis}" as long;
+    long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
+    env.TIME_WAITING = startTimeInMillis-timeInMillis
+    runGinkgoRandomize('jobmetrics')
+}

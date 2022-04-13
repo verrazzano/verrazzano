@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -59,6 +60,7 @@ func getScheme() *runtime.Scheme {
 	_ = networking.AddToScheme(scheme)
 	_ = appsv1.AddToScheme(scheme)
 	_ = v1.AddToScheme(scheme)
+	_ = certv1.AddToScheme(scheme)
 	return scheme
 }
 
@@ -90,7 +92,7 @@ func createCASecret() v1.Secret {
 	}
 }
 
-func createRancherPodList() v1.PodList {
+func createRancherPodListWithAllRunning() v1.PodList {
 	return v1.PodList{
 		Items: []v1.Pod{
 			{
@@ -99,6 +101,62 @@ func createRancherPodList() v1.PodList {
 					Namespace: common.CattleSystem,
 					Labels: map[string]string{
 						"app": common.RancherName,
+					},
+				},
+				Status: v1.PodStatus{
+					Conditions: []v1.PodCondition{
+						{Type: "Ready", Status: "True"},
+					},
+				},
+			},
+		},
+	}
+}
+
+func createRancherPodListWithNoneRunning() v1.PodList {
+	return v1.PodList{
+		Items: []v1.Pod{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rancherpod",
+					Namespace: common.CattleSystem,
+					Labels: map[string]string{
+						"app": common.RancherName,
+					},
+				},
+			},
+		},
+	}
+}
+
+func createRancherPodListWithLastRunning() v1.PodList {
+	return v1.PodList{
+		Items: []v1.Pod{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rancherpod1",
+					Namespace: common.CattleSystem,
+					Labels: map[string]string{
+						"app": common.RancherName,
+					},
+				},
+				Status: v1.PodStatus{
+					Conditions: []v1.PodCondition{
+						{Type: "Ready", Status: "False"},
+					},
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rancherpod2",
+					Namespace: common.CattleSystem,
+					Labels: map[string]string{
+						"app": common.RancherName,
+					},
+				},
+				Status: v1.PodStatus{
+					Conditions: []v1.PodCondition{
+						{Type: "Ready", Status: "True"},
 					},
 				},
 			},

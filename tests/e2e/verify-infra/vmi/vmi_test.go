@@ -92,7 +92,6 @@ var (
 
 var _ = t.BeforeSuite(func() {
 	var err error
-
 	httpClient, err = pkg.GetVerrazzanoRetryableHTTPClient()
 	Expect(err).ToNot(HaveOccurred())
 
@@ -127,7 +126,10 @@ var _ = t.BeforeSuite(func() {
 var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
-
+	kubeconfig, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
 	isManagedClusterProfile := pkg.IsManagedClusterProfile()
 	if isManagedClusterProfile {
 		t.It("Elasticsearch should NOT be present", func() {
@@ -162,7 +164,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 			}
 			Eventually(elasticPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "pods did not all show up")
 			Eventually(elasticTLSSecret, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "tls-secret did not show up")
-			//Eventually(elasticCertificate, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "certificate did not show up")
+			// Eventually(elasticCertificate, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "certificate did not show up")
 			Eventually(elasticIngress, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "ingress did not show up")
 			Expect(ingressURLs).To(HaveKey("vmi-system-es-ingest"), "Ingress vmi-system-es-ingest not found")
 			assertOidcIngressByName("vmi-system-es-ingest")
@@ -263,6 +265,19 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 					func() { assertDashboard("Coherence%20Machines%20Summary%20Dashboard") },
 				)
 			})
+
+		t.ItMinimumVersion("Grafana should have the verrazzano user with admin privileges", "1.3.0", kubeconfig, func() {
+			vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfig)
+			if err != nil {
+				t.Logs.Errorf("Error getting Verrazzano resource: %v", err)
+				Fail(err.Error())
+			}
+			if vz.Spec.Version != "" {
+				t.Logs.Info("Skipping test because Verrazzano has been upgraded %s")
+			} else {
+				Eventually(assertAdminRole, waitTimeout, pollingInterval).Should(BeTrue())
+			}
+		})
 	}
 
 	t.It("Verify the instance info endpoint URLs", Label("f:mesh.ingress"), func() {
@@ -301,7 +316,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 		})
 	} else if pkg.IsProdProfile() {
 		t.It("Check persistent volumes for prod cluster profile", func() {
-			Expect(len(volumeClaims)).To(Equal(7))
+			Expect(len(volumeClaims)).To(Equal(8))
 			assertPersistentVolume("vmi-system-prometheus", size)
 			assertPersistentVolume("vmi-system-grafana", size)
 			assertPersistentVolume("elasticsearch-master-vmi-system-es-master-0", size)
@@ -309,6 +324,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 			assertPersistentVolume("elasticsearch-master-vmi-system-es-master-2", size)
 			assertPersistentVolume("vmi-system-es-data", size)
 			assertPersistentVolume("vmi-system-es-data-1", size)
+			assertPersistentVolume("vmi-system-es-data-2", size)
 		})
 	}
 })
@@ -357,11 +373,21 @@ func elasticConnected() bool {
 }
 
 func elasticHealth() bool {
-	return elastic.CheckHealth()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		t.Logs.Errorf("Failed to get default kubeconfig path: %s", err.Error())
+		return false
+	}
+	return elastic.CheckHealth(kubeconfigPath)
 }
 
 func elasticIndicesHealth() bool {
-	return elastic.CheckIndicesHealth()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		t.Logs.Errorf("Failed to get default kubeconfig path: %s", err.Error())
+		return false
+	}
+	return elastic.CheckIndicesHealth(kubeconfigPath)
 }
 
 func elasticTLSSecret() bool {
@@ -379,7 +405,7 @@ func assertDashboard(url string) {
 	searchDashboard := func() bool {
 		vmiHTTPClient, err := pkg.GetVerrazzanoRetryableHTTPClient()
 		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Error getting HTTP client: %v", err))
+			t.Logs.Errorf("Error getting HTTP client: %v", err)
 			return false
 		}
 		vmiHTTPClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
@@ -388,38 +414,84 @@ func assertDashboard(url string) {
 
 		req, err := retryablehttp.NewRequest("GET", searchURL, nil)
 		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Error creating HTTP request: %v", err))
+			t.Logs.Errorf("Error creating HTTP request: %v", err)
 			return false
 		}
 		req.SetBasicAuth(creds.Username, creds.Password)
 		resp, err := vmiHTTPClient.Do(req)
 		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Error making HTTP request: %v", err))
+			t.Logs.Errorf("Error making HTTP request: %v", err)
 			return false
 		}
 		if resp.StatusCode != http.StatusOK {
-			pkg.Log(pkg.Error, fmt.Sprintf("Unexpected HTTP status code: %d", resp.StatusCode))
+			t.Logs.Errorf("Unexpected HTTP status code: %d", resp.StatusCode)
 			return false
 		}
 		// assert that there is a single item in response
 		defer resp.Body.Close()
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Unable to read body from response: %v", err))
+			t.Logs.Errorf("Unable to read body from response: %v", err)
 			return false
 		}
 		var response []map[string]interface{}
 		if err := json.Unmarshal(bodyBytes, &response); err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Error unmarshaling response body: %v", err))
+			t.Logs.Errorf("Error unmarshaling response body: %v", err)
 			return false
 		}
 		if len(response) != 1 {
-			pkg.Log(pkg.Error, fmt.Sprintf("Unexpected response length: %d", len(response)))
+			t.Logs.Errorf("Unexpected response length: %d", len(response))
 			return false
 		}
 		return true
 	}
 	Eventually(searchDashboard, waitTimeout, pollingInterval).Should(BeTrue())
+}
+
+func assertAdminRole() bool {
+	searchURL := fmt.Sprintf("%sapi/users", ingressURLs["vmi-system-grafana"])
+	vmiHTTPClient, err := pkg.GetVerrazzanoRetryableHTTPClient()
+	if err != nil {
+		t.Logs.Errorf("Error getting HTTP client: %v", err)
+		return false
+	}
+	vmiHTTPClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+
+	req, err := retryablehttp.NewRequest("GET", searchURL, nil)
+	if err != nil {
+		t.Logs.Errorf("Error creating HTTP request: %v", err)
+		return false
+	}
+	req.SetBasicAuth(creds.Username, creds.Password)
+	resp, err := vmiHTTPClient.Do(req)
+	if err != nil {
+		t.Logs.Errorf("Error making HTTP request: %v", err)
+		return false
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Logs.Errorf("Unexpected HTTP status code: %d", resp.StatusCode)
+		return false
+	}
+	// assert that there is a single item in response
+	defer resp.Body.Close()
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Logs.Errorf("Unable to read body from response: %v", err)
+		return false
+	}
+	var response []map[string]interface{}
+	if err := json.Unmarshal(bodyBytes, &response); err != nil {
+		t.Logs.Errorf("Error unmarshaling response body: %v", err)
+		return false
+	}
+	if len(response) != 1 {
+		t.Logs.Errorf("Unexpected response length: %d", len(response))
+		return false
+	}
+	t.Logs.Infof("Grafana users: %s", response)
+	return response[0]["login"] == "verrazzano" && response[0]["isAdmin"] == true
 }
 
 func assertInstanceInfoURLs() {

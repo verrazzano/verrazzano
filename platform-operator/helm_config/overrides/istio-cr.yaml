@@ -1,4 +1,4 @@
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 apiVersion: install.istio.io/v1alpha1
@@ -53,10 +53,8 @@ spec:
       rewriteAppHTTPProbe: true
       neverInjectSelector:
         - matchExpressions:
-            - { key: app, operator: In, values: [ verrazzano-application-operator, verrazzano-operator ] }
+            - { key: app, operator: In, values: [ verrazzano-application-operator ] }
         - matchExpressions:
             - { key: control-plane, operator: In, values: [ coherence ] }
         - matchExpressions:
             - { key: app.kubernetes.io/name, operator: In, values: [ oam-kubernetes-runtime ] }
-        - matchExpressions:
-            - { key: k8s-app, operator: In, values: [ verrazzano-monitoring-operator ] }

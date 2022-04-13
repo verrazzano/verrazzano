@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
@@ -6,13 +6,13 @@ package webhooks
 import (
 	"context"
 	"encoding/json"
+	admissionv1 "k8s.io/api/admission/v1"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	v1alpha12 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -85,12 +85,12 @@ var testNetworkPolicy = v1alpha12.VerrazzanoProject{
 
 // newAdmissionRequest creates a new admissionRequest with the provided operation and object.
 // This is a test utility function used by other multi-cluster resource validation tests.
-func newAdmissionRequest(op admissionv1beta1.Operation, obj interface{}) admission.Request {
+func newAdmissionRequest(op admissionv1.Operation, obj interface{}) admission.Request {
 	raw := runtime.RawExtension{}
 	bytes, _ := json.Marshal(obj)
 	raw.Raw = bytes
 	req := admission.Request{
-		AdmissionRequest: admissionv1beta1.AdmissionRequest{
+		AdmissionRequest: admissionv1.AdmissionRequest{
 			Operation: op, Object: raw}}
 	return req
 }
@@ -99,11 +99,11 @@ func newAdmissionRequest(op admissionv1beta1.Operation, obj interface{}) admissi
 // This is a test utility function used by other multi-cluster resource validation tests.
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	v1alpha12.AddToScheme(scheme)
+	_ = v1alpha12.AddToScheme(scheme)
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Version: "v1",
 	}, &corev1.Secret{}, &corev1.SecretList{})
-	v1alpha1.AddToScheme(scheme)
+	_ = v1alpha1.AddToScheme(scheme)
 	return scheme
 }
 

@@ -36,19 +36,21 @@ import (
 )
 
 const (
-	dnsTarget          = "dnsTarget"
-	rulesHost          = "rulesHost"
-	tlsHosts           = "tlsHosts"
-	tlsSecret          = "tlsSecret"
-	vzSysRealm         = "verrazzano-system"
-	vzUsersGroup       = "verrazzano-users"
-	vzAdminGroup       = "verrazzano-admins"
-	vzMonitorGroup     = "verrazzano-monitors"
-	vzSystemGroup      = "verrazzano-system-users"
-	vzAPIAccessRole    = "vz_api_access"
-	vzUserName         = "verrazzano"
-	vzInternalPromUser = "verrazzano-prom-internal"
-	vzInternalEsUser   = "verrazzano-es-internal"
+	dnsTarget               = "dnsTarget"
+	rulesHost               = "rulesHost"
+	tlsHosts                = "tlsHosts"
+	tlsSecret               = "tlsSecret"
+	keycloakCertificateName = "keycloak-tls"
+	vzSysRealm              = "verrazzano-system"
+	vzUsersGroup            = "verrazzano-users"
+	vzAdminGroup            = "verrazzano-admins"
+	vzMonitorGroup          = "verrazzano-monitors"
+	vzSystemGroup           = "verrazzano-system-users"
+	vzAPIAccessRole         = "vz_api_access"
+	vzUserName              = "verrazzano"
+	vzInternalPromUser      = "verrazzano-prom-internal"
+	vzInternalEsUser        = "verrazzano-es-internal"
+	keycloakPodName         = "keycloak-0"
 )
 
 // Define the keycloak Key:Value pair for init container.
@@ -411,11 +413,9 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 	})
 
 	// this secret contains the keycloak TLS certificate created by cert-manager during the original keycloak installation
-	installEnvName := getEnvironmentName(compContext.EffectiveCR().Spec.EnvironmentName)
-	tlsSecretValue := fmt.Sprintf("%s-secret", installEnvName)
 	kvs = append(kvs, bom.KeyValue{
 		Key:   tlsSecret,
-		Value: tlsSecretValue,
+		Value: keycloakCertificateName,
 	})
 
 	return kvs, nil
@@ -430,19 +430,25 @@ func getEnvironmentName(envName string) string {
 	return envName
 }
 
-// updateKeycloakIngress updates the Ingress when using externalDNS
+// updateKeycloakIngress updates the Ingress
 func updateKeycloakIngress(ctx spi.ComponentContext) error {
 	ingress := networkv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{Name: "keycloak", Namespace: "keycloak"},
 	}
 	_, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &ingress, func() error {
-		dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
-		if err != nil {
-			return err
+		dnsSuffix, _ := vzconfig.GetDNSSuffix(ctx.Client(), ctx.EffectiveCR())
+		ingress.Annotations["cert-manager.io/common-name"] = fmt.Sprintf("%s.%s.%s",
+			ComponentName, ctx.EffectiveCR().Spec.EnvironmentName, dnsSuffix)
+		// update target annotation on Keycloak Ingress for external DNS
+		if vzconfig.IsExternalDNSEnabled(ctx.EffectiveCR()) {
+			dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
+			if err != nil {
+				return err
+			}
+			ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
+			ctx.Log().Debugf("updateKeycloakIngress: Updating Keycloak Ingress with ingressTarget = %s", ingressTarget)
+			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
 		}
-		ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
-		ctx.Log().Debugf("updateKeycloakIngress: Updating Keycloak Ingress with ingressTarget = %s", ingressTarget)
-		ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
 		return nil
 	})
 	ctx.Log().Debugf("updateKeycloakIngress: Keycloak ingress operation result: %v", err)
@@ -497,10 +503,39 @@ func updateKeycloakUris(ctx spi.ComponentContext) error {
 
 // configureKeycloakRealms configures the Verrazzano system realm
 func configureKeycloakRealms(ctx spi.ComponentContext) error {
+	// Make sure the Keycloak pod is ready
+	pod := keycloakPod()
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}, pod)
+	if err != nil {
+		ctx.Log().Errorf("Component Keycloak failed to get pod %s: %v", pod.Name, err)
+		return err
+	}
+	if !isPodReady(pod) {
+		ctx.Log().Progressf("Component Keycloak waiting for pod %s to be ready", pod.Name)
+		return fmt.Errorf("Waiting for pod %s to be ready", pod.Name)
+	}
+
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
 		return err
 	}
+
+	// If ephemeral storage is configured, additional steps may be required to
+	// rebuild the configuration lost due to MySQL pod getting restarted.
+	if (ctx.EffectiveCR().Spec.Components.Keycloak != nil) && (ctx.EffectiveCR().Spec.Components.Keycloak.MySQL.VolumeSource == nil) {
+		// When the MySQL pod restarts and using ephemeral storage, the
+		// login to Keycloak will fail.  Need to recycle the Keycloak pod
+		// to resolve the condition.
+		err = loginKeycloak(ctx, cfg, cli)
+		if err != nil {
+			err2 := ctx.Client().Delete(context.TODO(), pod)
+			if err2 != nil {
+				ctx.Log().Errorf("Component Keycloak failed to recycle pod %s: %v", pod.Name, err2)
+			}
+			return err
+		}
+	}
+
 	// Login to Keycloak
 	err = loginKeycloak(ctx, cfg, cli)
 	if err != nil {
@@ -583,7 +618,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Create verrazzano-pkce client
-	err = createVerrazzanoPkceClient(ctx, cfg, cli)
+	err = createOrUpdateVerrazzanoPkceClient(ctx, cfg, cli)
 	if err != nil {
 		return err
 	}
@@ -661,7 +696,7 @@ func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kuberne
 	ctx.Log().Debugf("loginKeycloak: Login Cmd = %s", maskPw(loginCmd))
 	stdOut, stdErr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(loginCmd))
 	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed retrieving logging into: stdout = %s: stderr = %s", stdOut, stdErr)
+		ctx.Log().Errorf("Component Keycloak failed logging into Keycloak: stdout = %s: stderr = %s", stdOut, stdErr)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
 	ctx.Log().Once("Component Keycloak successfully logged into Keycloak")
@@ -680,7 +715,7 @@ func bashCMD(command string) []string {
 func keycloakPod() *v1.Pod {
 	return &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "keycloak-0",
+			Name:      keycloakPodName,
 			Namespace: ComponentNamespace,
 		},
 	}
@@ -751,11 +786,6 @@ func getDNSDomain(c client.Client, vz *vzapi.Verrazzano) (string, error) {
 	return dnsDomain, nil
 }
 
-// getSecretName returns expected TLS secret name
-func getSecretName(vz *vzapi.Verrazzano) string {
-	return fmt.Sprintf("%s-secret", getEnvironmentName(vz.Spec.EnvironmentName))
-}
-
 func createVerrazzanoSystemRealm(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
 	kcPod := keycloakPod()
 	realm := "realm=" + vzSysRealm
@@ -784,7 +814,7 @@ func createVerrazzanoUsersGroup(ctx spi.ComponentContext) (string, error) {
 	}
 
 	userGroup := "name=" + vzUsersGroup
-	cmd := execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "groups", "-r", vzSysRealm, "-s", userGroup)
+	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "groups", "-r", vzSysRealm, "-s", userGroup)
 	ctx.Log().Debugf("createVerrazzanoUsersGroup: Create Verrazzano Users Group Cmd = %s", cmd.String())
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -814,7 +844,7 @@ func createVerrazzanoAdminGroup(ctx spi.ComponentContext, userGroupID string) (s
 	}
 	adminGroup := "groups/" + userGroupID + "/children"
 	adminGroupName := "name=" + vzAdminGroup
-	cmd := execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", adminGroup, "-r", vzSysRealm, "-s", adminGroupName)
+	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", adminGroup, "-r", vzSysRealm, "-s", adminGroupName)
 	ctx.Log().Debugf("createVerrazzanoAdminGroup: Create Verrazzano Admin Group Cmd = %s", cmd.String())
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -844,7 +874,7 @@ func createVerrazzanoMonitorsGroup(ctx spi.ComponentContext, userGroupID string)
 	}
 	monitorGroup := "groups/" + userGroupID + "/children"
 	monitorGroupName := "name=" + vzMonitorGroup
-	cmd := execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", monitorGroup, "-r", vzSysRealm, "-s", monitorGroupName)
+	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", monitorGroup, "-r", vzSysRealm, "-s", monitorGroupName)
 	ctx.Log().Debugf("createVerrazzanoProjectMonitorsGroup: Create Verrazzano Monitors Group Cmd = %s", cmd.String())
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -956,11 +986,17 @@ func createUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes
 	return nil
 }
 
-func createVerrazzanoPkceClient(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
+func createOrUpdateVerrazzanoPkceClient(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
 	data := templateData{}
 
 	keycloakClients, err := getKeycloakClients(ctx)
-	if err == nil && clientExists(keycloakClients, "verrazzano-pkce") {
+	if err != nil {
+		return err
+	}
+	if clientExists(keycloakClients, "verrazzano-pkce") {
+		if err := updateKeycloakUris(ctx); err != nil {
+			return err
+		}
 		return nil
 	}
 
@@ -971,7 +1007,8 @@ func createVerrazzanoPkceClient(ctx spi.ComponentContext, cfg *restclient.Config
 		ctx.Log().Errorf("Component Keycloak failed retrieving DNS sub domain: %v", err)
 		return err
 	}
-	ctx.Log().Debugf("createVerrazzanoPkceClient: DNSDomain returned %s", dnsSubDomain)
+	ctx.Log().Debugf("createOrUpdateVerrazzanoPkceClient: DNSDomain returned %s", dnsSubDomain)
+
 	data.DNSSubDomain = dnsSubDomain
 
 	// use template to get populate template with data
@@ -980,7 +1017,6 @@ func createVerrazzanoPkceClient(ctx spi.ComponentContext, cfg *restclient.Config
 	if err != nil {
 		return err
 	}
-
 	err = t.Execute(&b, &data)
 	if err != nil {
 		return err
@@ -991,13 +1027,13 @@ func createVerrazzanoPkceClient(ctx spi.ComponentContext, cfg *restclient.Config
 		b.String() +
 		"END"
 
-	ctx.Log().Debugf("createVerrazzanoPkceClient: Create verrazzano-pkce client Cmd = %s", vzPkceCreateCmd)
+	ctx.Log().Debugf("createOrUpdateVerrazzanoPkceClient: Create verrazzano-pkce client Cmd = %s", vzPkceCreateCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(vzPkceCreateCmd))
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed creating verrazzano-pkce client: stdout = %s, stderr = %s", stdout, stderr)
 		return err
 	}
-	ctx.Log().Debug("createVerrazzanoPkceClient: Created verrazzano-pkce client")
+	ctx.Log().Debug("createOrUpdateVerrazzanoPkceClient: Created verrazzano-pkce client")
 	return nil
 }
 
@@ -1081,7 +1117,7 @@ func removeLoginConfigFile(ctx spi.ComponentContext, cfg *restclient.Config, cli
 func getKeycloakGroups(ctx spi.ComponentContext) (KeycloakGroups, error) {
 	var keycloakGroups KeycloakGroups
 	// Get the Client ID JSON array
-	cmd := execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "groups", "-r", vzSysRealm)
+	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "groups", "-r", vzSysRealm)
 	out, err := cmd.Output()
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed retrieving Groups: %s", err)
@@ -1133,7 +1169,7 @@ func getGroupID(keycloakGroups KeycloakGroups, groupName string) string {
 func getKeycloakRoles(ctx spi.ComponentContext) (KeycloakRoles, error) {
 	var keycloakRoles KeycloakRoles
 	// Get the Client ID JSON array
-	cmd := execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get-roles", "-r", vzSysRealm)
+	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get-roles", "-r", vzSysRealm)
 	out, err := cmd.Output()
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed retrieving Roles: %s", err)
@@ -1166,7 +1202,7 @@ func roleExists(keycloakRoles KeycloakRoles, roleName string) bool {
 func getKeycloakUsers(ctx spi.ComponentContext) (KeycloakUsers, error) {
 	var keycloakUsers KeycloakUsers
 	// Get the Client ID JSON array
-	cmd := execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "users", "-r", vzSysRealm)
+	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "users", "-r", vzSysRealm)
 	out, err := cmd.Output()
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed retrieving Users: %s", err)
@@ -1198,7 +1234,7 @@ func userExists(keycloakUsers KeycloakUsers, userName string) bool {
 func getKeycloakClients(ctx spi.ComponentContext) (KeycloakClients, error) {
 	var keycloakClients KeycloakClients
 	// Get the Client ID JSON array
-	cmd := execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "clients", "-r", "verrazzano-system", "--fields", "id,clientId")
+	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "clients", "-r", "verrazzano-system", "--fields", "id,clientId")
 	out, err := cmd.Output()
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed retrieving clients: %s", err)
@@ -1238,21 +1274,23 @@ func getClientID(keycloakClients KeycloakClients, clientName string) string {
 }
 
 func isKeycloakReady(ctx spi.ComponentContext) bool {
-	// TLS cert from Cert Manager should be in Ready state
-	secretName := getSecretName(ctx.EffectiveCR())
-	secret := &corev1.Secret{}
-	namespacedName := types.NamespacedName{Name: secretName, Namespace: ComponentNamespace}
-	if err := ctx.Client().Get(context.TODO(), namespacedName, secret); err != nil {
-		ctx.Log().Progressf("Component Keycloak waiting for Certificate %v to exist", secretName)
-		return false
-	}
-
-	statefulsetName := []types.NamespacedName{
+	statefulset := []types.NamespacedName{
 		{
-			Namespace: ComponentNamespace,
 			Name:      ComponentName,
+			Namespace: ComponentNamespace,
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsetName, 1, prefix)
+	return status.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulset, 1, prefix)
+}
+
+// isPodReady determines if the pod is running by checking for a Ready condition with Status equal True
+func isPodReady(pod *v1.Pod) bool {
+	conditions := pod.Status.Conditions
+	for j := range conditions {
+		if conditions[j].Type == "Ready" && conditions[j].Status == "True" {
+			return true
+		}
+	}
+	return false
 }

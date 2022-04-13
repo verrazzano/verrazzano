@@ -104,7 +104,7 @@ func (c *FakeVerrazzanos) UpdateStatus(ctx context.Context, verrazzano *v1alpha1
 // Delete takes name of the verrazzano and deletes it. Returns an error if one occurs.
 func (c *FakeVerrazzanos) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(verrazzanosResource, c.ns, name), &v1alpha1.Verrazzano{})
+		Invokes(testing.NewDeleteActionWithOptions(verrazzanosResource, c.ns, name, opts), &v1alpha1.Verrazzano{})
 
 	return err
 }

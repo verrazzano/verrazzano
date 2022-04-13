@@ -34,6 +34,9 @@ webhooks:
       - v1beta1
       - v1
   - name: clusters.verrazzano.io
+    namespaceSelector:
+      matchExpressions:
+        - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
     clientConfig:
       service:
         name: {{ .Values.name }}

@@ -120,9 +120,10 @@ func TestFetchWorkloadChildren(t *testing.T) {
 			return nil
 		})
 	// Expect a call to list the children resources and return a list.
+	options := []client.ListOption{client.InNamespace("test-namespace")}
 	cli.EXPECT().
-		List(gomock.Eq(ctx), gomock.Not(gomock.Nil()), gomock.Eq(client.InNamespace("test-namespace")), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, namespace client.InNamespace, labels client.MatchingLabels) error {
+		List(gomock.Eq(ctx), gomock.Not(gomock.Nil()), options).
+		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, opts ...client.ListOption) error {
 			assert.Equal("Deployment", resources.GetKind())
 			return AppendAsUnstructured(resources, k8sapps.Deployment{
 				TypeMeta: metav1.TypeMeta{
@@ -160,9 +161,10 @@ func TestFetchWorkloadChildren(t *testing.T) {
 			wlDef.Spec.ChildResourceKinds = []oamcore.ChildResourceKind{{APIVersion: "apps/v1", Kind: "Deployment"}}
 			return nil
 		})
+	options = []client.ListOption{client.InNamespace("test-namespace")}
 	cli.EXPECT().
-		List(gomock.Eq(ctx), gomock.Not(gomock.Nil()), gomock.Eq(client.InNamespace("test-namespace")), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, namespace client.InNamespace, labels client.MatchingLabels) error {
+		List(gomock.Eq(ctx), gomock.Not(gomock.Nil()), options).
+		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, opts ...client.ListOption) error {
 			return fmt.Errorf("test-error")
 		})
 	workload = unstructured.Unstructured{}

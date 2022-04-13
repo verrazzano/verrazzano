@@ -64,14 +64,14 @@ func getComponentIngressURL(ingresses []networkingv1.Ingress, compContext spi.Co
 	}
 	for _, compIngressName := range comp.GetIngressNames(compContext) {
 		if compIngressName.Name == ingressName {
-			return getSystemIngressURL(ingresses, compIngressName.Namespace, compIngressName.Name)
+			return getSystemIngressURL(ingresses, compContext, compIngressName.Namespace, compIngressName.Name)
 		}
 	}
 	zap.S().Debugf("No ingress %s found for component %s", ingressName, componentName)
 	return nil
 }
 
-func getSystemIngressURL(ingresses []networkingv1.Ingress, namespace string, name string) *string {
+func getSystemIngressURL(ingresses []networkingv1.Ingress, compContext spi.ComponentContext, namespace string, name string) *string {
 	var ingress = findIngress(ingresses, namespace, name)
 	if ingress == nil {
 		zap.S().Debugf("No ingress found for %s/%s", namespace, name)

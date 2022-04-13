@@ -12,9 +12,9 @@ metadata:
     {{- end }}
     {{- if and (not (empty .Values.server.web_fqdn)) (not (empty .Values.server.web_schema)) }}
     {{- if empty .Values.server.web_port }}
-    kiali.io/external-url: {{ .Values.server.web_schema }}://{{ .Values.server.web_fqdn }}{{ default "" .Values.server.web_root }}
+    kiali.io/external-url: {{ .Values.server.web_schema }}://{{ .Values.server.web_fqdn }}{{ include "kiali-server.server.web_root" . }}
     {{- else }}
-    kiali.io/external-url: {{ .Values.server.web_schema }}://{{ .Values.server.web_fqdn }}:{{ .Values.server.web_port }}{{(default "" .Values.server.web_root) }}
+    kiali.io/external-url: {{ .Values.server.web_schema }}://{{ .Values.server.web_fqdn }}:{{ .Values.server.web_port }}{{ include "kiali-server.server.web_root" . }}
     {{- end }}
     {{- end }}
     {{- if .Values.deployment.service_annotations }}

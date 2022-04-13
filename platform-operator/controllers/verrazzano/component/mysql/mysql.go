@@ -40,10 +40,13 @@ const (
 // isMySQLReady checks to see if the MySQL component is in ready state
 func isMySQLReady(context spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
-		{Name: ComponentName, Namespace: ComponentNamespace},
+		{
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
+		},
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
-	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1, prefix)
+	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
 // appendMySQLOverrides appends the MySQL helm overrides
@@ -89,6 +92,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	// generate the MySQl PV overrides
 	kvs, err = generateVolumeSourceOverrides(compContext, kvs)
 	if err != nil {
+		compContext.Log().Error(err)
 		return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 
@@ -171,9 +175,13 @@ func removeMySQLInitFile(ctx spi.ComponentContext) {
 	}
 }
 
-// generateVolumeSourceOverrides generates the appropriate persistence overrides given the effective CR
+// generateVolumeSourceOverrides generates the appropriate persistence overrides given the component context
 func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	effectiveCR := compContext.EffectiveCR()
+	return doGenerateVolumeSourceOverrides(compContext.EffectiveCR(), kvs)
+}
+
+// doGenerateVolumeSourceOverrides generates the appropriate persistence overrides given the effective CR
+func doGenerateVolumeSourceOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	var mySQLVolumeSource *v1.VolumeSource
 	if effectiveCR.Spec.Components.Keycloak != nil {
 		mySQLVolumeSource = effectiveCR.Spec.Components.Keycloak.MySQL.VolumeSource
@@ -198,7 +206,7 @@ func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.K
 		pvcs := mySQLVolumeSource.PersistentVolumeClaim
 		storageSpec, found := vzconfig.FindVolumeTemplate(pvcs.ClaimName, effectiveCR.Spec.VolumeClaimSpecTemplates)
 		if !found {
-			return kvs, compContext.Log().ErrorfNewErr("Failed, No VolumeClaimTemplate found for %s", pvcs.ClaimName)
+			return kvs, fmt.Errorf("Failed, No VolumeClaimTemplate found for %s", pvcs.ClaimName)
 		}
 		storageClass := storageSpec.StorageClassName
 		if storageClass != nil && len(*storageClass) > 0 {

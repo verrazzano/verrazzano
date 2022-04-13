@@ -1,0 +1,9 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+# Enable the creation of service monitor in the kube-state-metrics chart
+prometheus:
+  monitor:
+    enabled: true
+# Enable adding a release label for kube-prometheus-stack scraping (see kube-state-metrics chart templates/_helpers.tpl)
+releaseLabel: true

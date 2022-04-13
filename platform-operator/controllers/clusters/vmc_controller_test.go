@@ -131,7 +131,7 @@ func TestCreateVMC(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -193,7 +193,7 @@ func TestCreateVMCWithExternalES(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -254,7 +254,7 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -313,7 +313,7 @@ func TestCreateVMCNoCACert(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -386,7 +386,7 @@ scrape_configs:
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -459,7 +459,7 @@ scrape_configs:
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -522,7 +522,7 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -555,7 +555,7 @@ func TestCreateVMCSyncSvcAccountFailed(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results - there should have been an error returned for failing to sync svc account
 	mocker.Finish()
@@ -591,7 +591,7 @@ func TestCreateVMCSyncRoleBindingFailed(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results - there should have been an error returned
 	mocker.Finish()
@@ -667,7 +667,7 @@ scrape_configs:
 
 	// Expect a call to Update the configmap
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.UpdateOption) error {
 			// check for the modified entry
 			asserts.Len(configMap.Data, 1, "no data found")
@@ -680,7 +680,7 @@ scrape_configs:
 
 			// Expect a call to update the VerrazzanoManagedCluster finalizer
 			mock.EXPECT().
-				Update(gomock.Any(), gomock.Any()).
+				Update(gomock.Any(), gomock.Any(), gomock.Any()).
 				DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 					asserts.True(len(vmc.ObjectMeta.Finalizers) == 0, "Wrong number of finalizers")
 					return nil
@@ -696,7 +696,7 @@ scrape_configs:
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -762,8 +762,8 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 
 	mock.EXPECT().Status().Return(mockStatus)
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
-		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster) error {
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			asserts.Equal(clustersapi.RegistrationFailed, vmc.Status.RancherRegistration.Status)
 			asserts.Equal("Failed to register managed cluster: Failed, Rancher ingress cattle-system/rancher is missing host names", vmc.Status.RancherRegistration.Message)
 			return nil
@@ -771,7 +771,7 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 
 	// Expect a call to create the manifest secret
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
 			data := secret.Data[YamlKey]
 			asserts.NotZero(len(data), "Expected yaml data in manifest secret")
@@ -780,7 +780,7 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 
 	// Expect a call to update the VerrazzanoManagedCluster kubeconfig secret testManagedCluster - return success
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			asserts.Equal(vmc.Spec.ManagedClusterManifestSecret, GetManifestSecretName(clusterName), "Manifest secret testManagedCluster did not match")
 			return nil
@@ -1138,11 +1138,11 @@ func TestRegisterClusterWithRancherOverrideRegistry(t *testing.T) {
 	oldRegistryEnv := os.Getenv(vpoconstants.RegistryOverrideEnvVar)
 	oldImageRepoEnv := os.Getenv(vpoconstants.ImageRepoOverrideEnvVar)
 	defer func() {
-		os.Setenv(vpoconstants.RegistryOverrideEnvVar, oldRegistryEnv)
-		os.Setenv(vpoconstants.ImageRepoOverrideEnvVar, oldImageRepoEnv)
+		_ = os.Setenv(vpoconstants.RegistryOverrideEnvVar, oldRegistryEnv)
+		_ = os.Setenv(vpoconstants.ImageRepoOverrideEnvVar, oldImageRepoEnv)
 	}()
-	os.Setenv(vpoconstants.RegistryOverrideEnvVar, registry)
-	os.Setenv(vpoconstants.ImageRepoOverrideEnvVar, imageRepo)
+	_ = os.Setenv(vpoconstants.RegistryOverrideEnvVar, registry)
+	_ = os.Setenv(vpoconstants.ImageRepoOverrideEnvVar, imageRepo)
 
 	// replace the image registry in the Rancher agent image with the overridden registry and repo
 	expectedRancherYAML := strings.Replace(rancherManifestYAML, "image: "+rancherAgentRegistry, "image: "+registry+"/"+imageRepo, 1)
@@ -1181,7 +1181,7 @@ func TestRegisterClusterWithRancherOverrideRegistry(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1193,7 +1193,7 @@ func TestRegisterClusterWithRancherOverrideRegistry(t *testing.T) {
 // newScheme creates a new scheme that includes this package's object to use for testing
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	clustersapi.AddToScheme(scheme)
+	_ = clustersapi.AddToScheme(scheme)
 	return scheme
 }
 
@@ -1237,7 +1237,7 @@ func expectSyncRoleBinding(t *testing.T, mock *mocks.MockClient, name string, su
 
 	// Expect a call to create the RoleBinding - return success or failure based on the succeed argument
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, binding *rbacv1.RoleBinding, opts ...client.CreateOption) error {
 			if succeed {
 				asserts.Equalf(generateManagedResourceName(name), binding.Name, "RoleBinding testManagedCluster did not match")
@@ -1261,7 +1261,7 @@ func expectSyncServiceAccount(t *testing.T, mock *mocks.MockClient, name string,
 
 	// Expect a call to create the ServiceAccount - return success
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, serviceAccount *corev1.ServiceAccount, opts ...client.CreateOption) error {
 			asserts.Equalf(constants.VerrazzanoMultiClusterNamespace, serviceAccount.Namespace, "ServiceAccount namespace did not match")
 			asserts.Equalf(generateManagedResourceName(name), serviceAccount.Name, "ServiceAccount testManagedCluster did not match")
@@ -1271,7 +1271,7 @@ func expectSyncServiceAccount(t *testing.T, mock *mocks.MockClient, name string,
 	// Expect a call to update the VerrazzanoManagedCluster service account name - return success or
 	// failure depending on the succeed argument
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			if succeed {
 				asserts.Equal(vmc.Spec.ServiceAccount, generateManagedResourceName(name), "ServiceAccount testManagedCluster did not match")
@@ -1322,7 +1322,7 @@ func expectSyncAgent(t *testing.T, mock *mocks.MockClient, name string) {
 
 	// Expect a call to create the Agent secret
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
 			return nil
 		})
@@ -1359,7 +1359,7 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 	// Expect a call to list Verrazzanos - return the Verrazzano configured with fluentd
 	mock.EXPECT().
 		List(gomock.Any(), &vzapi.VerrazzanoList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, list *vzapi.VerrazzanoList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, list *vzapi.VerrazzanoList, opts ...client.ListOption) error {
 			vz := vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
@@ -1413,7 +1413,7 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 
 	// Expect a call to get the tls secret, return the secret with the fields set
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "default-secret"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-tls"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
 				CaCrtKey: []byte(vzCaData),
@@ -1444,7 +1444,7 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 
 	// Expect a call to create the registration secret
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
 			asserts.Equalf(testManagedCluster, string(secret.Data[ManagedClusterNameKey]), "Incorrect cluster testManagedCluster in Registration secret ")
 			asserts.Equalf("https://keycloak", string(secret.Data[KeycloakURLKey]), "Incorrect admin ca bundle in Registration secret ")
@@ -1510,8 +1510,8 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockStatus *mocks.
 
 	mock.EXPECT().Status().Return(mockStatus)
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
-		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster) error {
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			asserts.Equal(clustersapi.RegistrationCompleted, vmc.Status.RancherRegistration.Status)
 			asserts.Equal("Registration of managed cluster completed successfully", vmc.Status.RancherRegistration.Message)
 			return nil
@@ -1519,7 +1519,7 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockStatus *mocks.
 
 	// Expect a call to create the manifest secret
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
 			data := secret.Data[YamlKey]
 			asserts.NotZero(len(data), "Expected yaml data in manifest secret")
@@ -1533,7 +1533,7 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockStatus *mocks.
 
 	// Expect a call to update the VerrazzanoManagedCluster kubeconfig secret testManagedCluster - return success
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			asserts.Equal(vmc.Spec.ManagedClusterManifestSecret, GetManifestSecretName(name), "Manifest secret testManagedCluster did not match")
 			return nil
@@ -1568,7 +1568,7 @@ func expectVmcGetAndUpdate(t *testing.T, mock *mocks.MockClient, name string, ca
 
 	// Expect a call to update the VerrazzanoManagedCluster finalizer
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			asserts.True(len(vmc.ObjectMeta.Finalizers) == 1, "Wrong number of finalizers")
 			asserts.Equal(finalizerName, vmc.ObjectMeta.Finalizers[0], "wrong finalizer")
@@ -1613,7 +1613,7 @@ func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometh
 		})
 
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.UpdateOption) error {
 			return f(configMap)
 		})
@@ -1816,8 +1816,8 @@ func getCaCrt() string {
 func expectStatusUpdateReadyCondition(asserts *assert.Assertions, mock *mocks.MockClient, mockStatus *mocks.MockStatusWriter, expectReady corev1.ConditionStatus, msg string) {
 	mock.EXPECT().Status().Return(mockStatus)
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
-		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster) error {
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			found := false
 			readyConditionCount := 0
 			for _, condition := range vmc.Status.Conditions {

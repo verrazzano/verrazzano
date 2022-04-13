@@ -14,8 +14,11 @@ import (
 // IsCoherenceOperatorReady checks if the COH operator deployment is ready
 func isCoherenceOperatorReady(ctx spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
-		{Name: ComponentName, Namespace: ComponentNamespace},
+		{
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
+		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }

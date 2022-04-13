@@ -7,9 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
@@ -34,10 +33,13 @@ const (
 // isKialiReady checks if the Kiali deployment is ready
 func isKialiReady(ctx spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
-		{Name: kialiSystemName, Namespace: ComponentNamespace},
+		{
+			Name:      kialiSystemName,
+			Namespace: ComponentNamespace,
+		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
 // AppendOverrides Build the set of Kiali overrides for the helm install
@@ -110,6 +112,7 @@ func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) erro
 		ingress.Annotations["nginx.ingress.kubernetes.io/backend-protocol"] = "HTTP"
 		ingress.Annotations["nginx.ingress.kubernetes.io/service-upstream"] = "true"
 		ingress.Annotations["nginx.ingress.kubernetes.io/upstream-vhost"] = "${service_name}.${namespace}.svc.cluster.local"
+		ingress.Annotations["cert-manager.io/common-name"] = kialiHostName
 		if vzconfig.IsExternalDNSEnabled(ctx.EffectiveCR()) {
 			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
 			ingress.Annotations["external-dns.alpha.kubernetes.io/ttl"] = "60"
@@ -130,7 +133,7 @@ func createOrUpdateAuthPolicy(ctx spi.ComponentContext) error {
 		authPol.Spec = securityv1beta1.AuthorizationPolicy{
 			Selector: &istiov1beta1.WorkloadSelector{
 				MatchLabels: map[string]string{
-					"app": kialiSystemName,
+					"app": "kiali",
 				},
 			},
 			Action: securityv1beta1.AuthorizationPolicy_ALLOW,

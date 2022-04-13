@@ -1,5 +1,6 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package nginx
 
 import (
@@ -16,8 +17,6 @@ import (
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
-
-const profilesRelativePath = "../../../../manifests/profiles"
 
 var crEnabled = vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
@@ -115,7 +114,7 @@ func TestAppendNGINXOverridesExtraKVs(t *testing.T) {
 //  WHEN I call PreInstall
 //  THEN no errors are returned
 func TestNGINXPreInstall(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	err := PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false), ComponentName, ComponentNamespace, "")
 	assert.NoError(t, err)
 }
@@ -125,31 +124,31 @@ func TestNGINXPreInstall(t *testing.T) {
 //  WHEN the deployment object has enough replicas available
 //  THEN true is returned
 func TestIsNGINXReady(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      ControllerName,
+			Labels:    map[string]string{"app.kubernetes.io/component": "controller"},
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   1,
 		},
 	},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      backendName,
+				Labels:    map[string]string{"app.kubernetes.io/component": "default-backend"},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
-	)
+	).Build()
 	assert.True(t, isNginxReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
@@ -158,16 +157,15 @@ func TestIsNGINXReady(t *testing.T) {
 //  WHEN the deployment object does NOT have enough replicas available
 //  THEN false is returned
 func TestIsNGINXNotReady(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      ControllerName,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       0,
-			AvailableReplicas:   0,
-			UnavailableReplicas: 1,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   0,
 		},
 	},
 		&appsv1.Deployment{
@@ -176,13 +174,12 @@ func TestIsNGINXNotReady(t *testing.T) {
 				Name:      backendName,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       0,
-				AvailableReplicas:   0,
-				UnavailableReplicas: 1,
+				AvailableReplicas: 0,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
-	)
+	).Build()
 	assert.False(t, isNginxReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
@@ -237,7 +234,7 @@ func TestPostInstallWithPorts(t *testing.T) {
 			},
 		},
 	}
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, svc)
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(svc).Build()
 	err := PostInstall(spi.NewFakeContext(fakeClient, vz, false), ComponentName, ComponentNamespace)
 	assert.NoError(t, err)
 }
@@ -257,7 +254,7 @@ func TestPostInstallNoPorts(t *testing.T) {
 			},
 		},
 	}
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	assert.NoError(t, PostInstall(spi.NewFakeContext(fakeClient, vz, false), ComponentName, ComponentNamespace))
 }
 
@@ -266,7 +263,7 @@ func TestPostInstallNoPorts(t *testing.T) {
 //  WHEN the context DryRun flag is true
 //  THEN no error is returned
 func TestPostInstallDryRun(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	assert.NoError(t, PostInstall(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false), ComponentName, ComponentNamespace))
 }
 
@@ -284,7 +281,7 @@ func TestNewComponent(t *testing.T) {
 //  WHEN The Nginx component is nil
 //  THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(&vzapi.Verrazzano{}))
 }
 
 // TestIsEnabledNilNginx tests the IsEnabled function
@@ -294,7 +291,7 @@ func TestIsEnabledNilComponent(t *testing.T) {
 func TestIsEnabledNilNginx(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Ingress = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(&cr))
 }
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
@@ -304,7 +301,7 @@ func TestIsEnabledNilNginx(t *testing.T) {
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Ingress.Enabled = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(&cr))
 }
 
 // TestIsEnabledExplicit tests the IsEnabled function
@@ -314,7 +311,7 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Ingress.Enabled = getBoolPtr(true)
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(&cr))
 }
 
 // TestIsDisableExplicit tests the IsEnabled function
@@ -324,7 +321,7 @@ func TestIsEnabledExplicit(t *testing.T) {
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Ingress.Enabled = getBoolPtr(false)
-	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.False(t, NewComponent().IsEnabled(&cr))
 }
 
 func getBoolPtr(b bool) *bool {
