@@ -21,7 +21,6 @@ const (
 	prometheusTLSSecret             = "prometheus-operator-kube-p-admission"
 	prometheusOperatorDeployment    = "prometheus-operator-kube-p-operator"
 	prometheusOperatorContainerName = "kube-prometheus-stack"
-	bomFilepath                     = "../../../../platform-operator/verrazzano-bom.json"
 )
 
 var (
