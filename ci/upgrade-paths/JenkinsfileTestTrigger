@@ -144,7 +144,6 @@ pipeline {
                     script {
                            sh """
                                 cd ${workspace}
-                                ls -ltr
                                 git tag | awk '/v1[.]/' >  tags.txt
                                 cat tags.txt
                                 cd ${workspace}
