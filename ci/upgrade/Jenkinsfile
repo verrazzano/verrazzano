@@ -446,14 +446,14 @@ pipeline {
                                 runGinkgoNamespace('examples/helidon', "true", "false", "hello-helidon")
                             }
                         }
-                        stage('examples todo') {
+                        stage('weblogic workload') {
                             steps {
-                                runGinkgoNamespace('examples/todo', "false", "true", "todo-list")
+                                runGinkgoNamespace('workloads/weblogic', "false", "true", "hello-wls")
                             }
                         }
-                        stage('examples bobs-books') {
+                        stage('coherence workload') {
                             steps {
-                                runGinkgoNamespace('examples/bobsbooks', "false", "true", "bobs-books")
+                                runGinkgoNamespace('workloads/coherence', "false", "true", "hello-coherence")
                             }
                         }
                     }
