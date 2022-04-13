@@ -161,8 +161,9 @@ func (c certManagerComponent) createOrUpdateClusterIssuer(compContext spi.Compon
 		}
 	}
 	if opResult == controllerutil.OperationResultCreated {
-		// We're in the initial install phase, and created the ClusterIssuer for the first time
-		compContext.Log().Oncef("Initial install, skipping certficate renewal checks")
+		// We're in the initial install phase, and created the ClusterIssuer for the first time,
+		// so skip the renewal checks
+		compContext.Log().Oncef("Initial install, skipping certificate renewal checks")
 		return nil
 	}
 	if err := checkRenewAllCertificates(compContext, isCAValue); err != nil {
