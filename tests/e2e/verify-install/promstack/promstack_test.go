@@ -38,14 +38,18 @@ var (
 var t = framework.NewTestFramework("promstack")
 
 // 'It' Wrapper to only run spec if the Prometheus Stack is supported on the current Verrazzano version
-func WhenPromStackInstalledIt(description string, f interface{}) {
+func WhenPromStackInstalledIt(description string, f func()) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		t.It(description, func() {
+			Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		})
 	}
 	supported, err := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
 	if err != nil {
-		Fail(err.Error())
+		t.It(description, func() {
+			Fail(fmt.Sprintf("Failed to check Verrazzano version 1.3.0: %s", err.Error()))
+		})
 	}
 	if supported {
 		t.It(description, f)
