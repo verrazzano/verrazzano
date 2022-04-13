@@ -212,7 +212,7 @@
             },
             {
               "image": "opensearch",
-              "tag": "1.2.3-20220322132501-d846b79c388",
+              "tag": "1.2.3-20220321223518-c480e8ed25d",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
