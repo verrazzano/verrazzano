@@ -144,14 +144,15 @@ pipeline {
                     script {
                            sh """
                                 cd ${workspace}
+                                ls -ltr
                                 git tag | awk '/v1[.]/' >  tags.txt
                                 cat tags.txt
                                 cd ${workspace}
                             """
             final String content = readFile(file: "${workspace}/tags.txt")
             final List gitTags = extractLines(content)
-            TARGET_UPGRADE_VERSION = gitTags.pop() - "v"
             echo "gitTags = ${gitTags}"
+            TARGET_UPGRADE_VERSION = gitTags.pop() - "v"
             allReleasesToRCJobs = addTargetUpgradeVersion(gitTags)
                     def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
                     echo "N JOBS = ${params.N_JOBS_FOR_EACH_BATCH}"
