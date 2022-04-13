@@ -331,15 +331,12 @@ func SlicesContainSameStrings(strings1, strings2 []string) bool {
 
 // SlicesContainSubsetSubstring returns true if the strings in the first slice are substrings of any string in the second slice
 func SlicesContainSubsetSubstring(strings1, strings2 []string) bool {
-	if len(strings1) >= len(strings2) {
-		return false
-	}
 	if len(strings1) == 0 {
 		return true
 	}
 	for _, s1 := range strings1 {
 		found := false
-		for _, s2 := range strings1 {
+		for _, s2 := range strings2 {
 			if strings.Contains(s1, s2) {
 				found = true
 			}
