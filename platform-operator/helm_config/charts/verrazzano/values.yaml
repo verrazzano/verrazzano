@@ -137,3 +137,6 @@ prometheusOperator:
 
 kubeStateMetrics:
   enabled: true
+
+prometheusPushgateway:
+  enabled: true
