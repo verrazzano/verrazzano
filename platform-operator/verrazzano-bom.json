@@ -165,13 +165,13 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.5.9-20211013170111-ec72f6a2f",
+              "tag": "v2.5.9-20211209021347-2e57ce2a4",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.5.9-20211013170111-ec72f6a2f"
+              "tag": "v2.5.9-20211209021347-2e57ce2a4"
             }
           ]
         },
@@ -190,7 +190,7 @@
             },
             {
               "image": "rancher-webhook",
-              "tag": "v0.1.1"
+              "tag": "v0.1.2"
             },
             {
               "image": "fleet-agent",
