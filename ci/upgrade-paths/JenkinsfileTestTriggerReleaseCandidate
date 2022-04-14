@@ -151,34 +151,32 @@ pipeline {
                     script {
                            sh """
                                 cd ${workspace}
-                                ls -ltr
                                 git tag | awk '/v1[.]/' >  tags.txt
                                 cat tags.txt
-                                cd ${workspace}
                             """
-            final String content = readFile(file: "${workspace}/tags.txt")
-            final List gitTags = extractLines(content)
-            echo "gitTags = ${gitTags}"
-            TARGET_UPGRADE_VERSION = gitTags.pop() - "v"
-            allReleasesToRCJobs = addTargetUpgradeVersion(gitTags)
-                    def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
-                    echo "N JOBS = ${params.N_JOBS_FOR_EACH_BATCH}"
-                    def k = 0
-                    def listOfMap = []
-                    allReleasesToRCStagesMap = [:]
-                    for(int i=0;i<allReleasesToRCJobs.size();i++){
-                        if(k<NJObs){
-                            allReleasesToRCStagesMap.put(allReleasesToRCJobs.get(i),allReleasesToRCStage(allReleasesToRCJobs.get(i)))
-                            k++;
-                        }
-                        if(k==NJObs || i == allReleasesToRCJobs.size()-1){
-                            listOfMap.add(allReleasesToRCStagesMap)
-                            allReleasesToRCStagesMap = [:]
-                            k = 0;
-                        }
+                        final String fileContent = readFile(file: "${workspace}/tags.txt")
+                        final List gitTags = extractReleaseTags(fileContent)
+                        echo "gitTags = ${gitTags}"
+                        TARGET_UPGRADE_VERSION = gitTags.pop() - "v"
+                        allReleasesToRCJobs = addTargetUpgradeVersion(gitTags)
+                        def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
+                        echo "The number of jobs to run in parallel : ${params.N_JOBS_FOR_EACH_BATCH}"
+                        def k = 0
+                        def  mapOfJobsInBatches = []
+                        allReleasesToRCStagesMap = [:]
+                        for(int i=0;i<allReleasesToRCJobs.size();i++){
+                            if(k<NJObs){
+                                allReleasesToRCStagesMap.put(allReleasesToRCJobs.get(i),allReleasesToRCStage(allReleasesToRCJobs.get(i)))
+                                k++;
+                            }
+                            if(k==NJObs || i == allReleasesToRCJobs.size()-1){
+                                mapOfJobsInBatches.add(allReleasesToRCStagesMap)
+                                allReleasesToRCStagesMap = [:]
+                                k = 0;
+                            }
                     }
-                    print listOfMap
-                    for(batch in listOfMap){
+                    print mapOfJobsInBatches
+                    for(batch in mapOfJobsInBatches){
                         parallel batch
                     }
                     //parallel allReleasesToRCStagesMap
@@ -198,7 +196,7 @@ pipeline {
                     if (isPagerDutyEnabled()) {
                         pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                     }
-                    slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
+                   // slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
                 }
             }
         }
@@ -396,18 +394,16 @@ def List<List> addTargetUpgradeVersion(List releases){
 
     upgradeJobsList = []
     releases.each {
-
         upgradeJobsList.add(["$it", TARGET_UPGRADE_VERSION])
-
     }
     return upgradeJobsList
 }
 
 @NonCPS
-List extractLines(final String content) {
+List extractReleaseTags(final String fileContent) {
     List releases = []
-    content.eachLine { line ->
-        releases << line
+    fileContent.eachLine { tag ->
+        releases << tag
     }
     return releases
 }
@@ -417,7 +413,7 @@ def allReleasesToRCStage(job) {
                 try {
                         stage("Upgrade Verrazzano from version ${job[0]} to  ${job[1]}"){
                         script {
-                           echo "this is ${job}"
+                            echo "Running upgrade job from version ${job[0]} to ${job[1]}"
                            def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
@@ -430,18 +426,11 @@ def allReleasesToRCStage(job) {
                                     string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                     booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                 ],  wait: true, propagate: true
-                                   jobResult = jobStatus.result
-                                  if (!jobResult.equals("SUCCESS")) {
-                                   currentBuild.result = jobResult
-                                   error jobResult
-                                  //   sh "exit 1" // this fails the stage
-                                }
-                    }
-             }
-             }catch(e){
-                echo "Stage error: ${e}"
-                echo "${currentBuild.result}"
-             //   jobResult = "FAIL"
+                        }
+                }
+             }catch(err){
+                echo "Caught: ${err}"
+                //currentBuild.result = 'FAILURE'
              }
     }
 }
