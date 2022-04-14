@@ -5,7 +5,6 @@ package verrazzano
 
 import (
 	"context"
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -297,7 +296,7 @@ func TestNodeAdapter(t *testing.T) {
 				Nodes: []vmov1.ElasticsearchNode{
 					{
 						Name:     "a",
-						Replicas: 1,
+						Replicas: 3,
 						Storage: &vmov1.Storage{
 							Size: vmiStorage,
 						},
@@ -338,7 +337,7 @@ func TestNodeAdapter(t *testing.T) {
 			},
 			Resources: &corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
-					corev1.ResourceRequestsMemory: resource.MustParse("48Mi"),
+					"memory": resource.MustParse("48Mi"),
 				},
 			},
 		},
@@ -351,15 +350,26 @@ func TestNodeAdapter(t *testing.T) {
 			},
 			Resources: &corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
-					corev1.ResourceRequestsMemory: resource.MustParse("48Mi"),
+					"memory": resource.MustParse("48Mi"),
 				},
 			},
 			Storage: &vzapi.OpenSearchNodeStorage{
-				Size: "100Mi",
+				Size: "100Gi",
 			},
 		},
 	}
 
 	adaptedNodes := nodeAdapter(vmi, nodes, &resourceRequestValues{Storage: vmiStorage})
-	fmt.Println(adaptedNodes)
+	compareNodes := func(n1, n2 *vmov1.ElasticsearchNode) {
+		assert.Equal(t, n1.Name, n2.Name)
+		assert.Equal(t, n1.Replicas, n2.Replicas)
+		assert.EqualValues(t, n1.Roles, n2.Roles)
+		if n1.Storage != nil {
+			assert.NotNil(t, n2.Storage)
+			assert.Equal(t, n1.Storage.Size, n2.Storage.Size)
+		}
+		assert.Equal(t, n1.Resources.RequestMemory, n2.Resources.RequestMemory)
+	}
+	compareNodes(&vmi.Spec.Elasticsearch.Nodes[0], &adaptedNodes[0])
+	compareNodes(&vmi.Spec.Elasticsearch.Nodes[1], &adaptedNodes[1])
 }
