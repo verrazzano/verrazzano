@@ -289,7 +289,7 @@ func TestIsEnabledNilVerrazzano(t *testing.T) {
 // TestIsEnabledNilComponent tests the IsEnabled function
 // GIVEN a call to IsEnabled
 //  WHEN The Verrazzano component is nil
-//  THEN false is returned
+//  THEN true is returned
 func TestIsEnabledNilComponent(t *testing.T) {
 	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath).EffectiveCR()))
 }
