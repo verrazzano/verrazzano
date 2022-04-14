@@ -13,7 +13,7 @@ def storeLocation=""
 // On master, we will use PHX for other branches we shuffle from the list of available regions
 // The region selected will be used for the Jenkins agent as well as for OKE clusters.
 // This region is propagated to all other jobs explicitly. Though there may be special case tests which will ignore this
-def availableRegions = env.JOB_NAME.contains('master') ? [ "us-phoenix-1" ] : [  "us-phoenix-1", "us-ashburn-1", eu-frankfurt-1", "uk-london-1" ]
+def availableRegions = env.JOB_NAME.contains('master') ? [ "us-phoenix-1" ] : [  "us-phoenix-1", "us-ashburn-1", "eu-frankfurt-1", "uk-london-1" ]
 Collections.shuffle(availableRegions)
 
 pipeline {
