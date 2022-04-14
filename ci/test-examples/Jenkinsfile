@@ -108,7 +108,7 @@ pipeline {
 
                 stage('Scan WebLogic Application') {
                     steps {
-                        scanContainerImage("${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC}:${VERSION}")
+                        scanContainerImage("${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC_MII}:${VERSION}")
                     }
                     post {
                         always {
