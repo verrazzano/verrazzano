@@ -23,15 +23,15 @@ const (
 	prometheusOperatorContainerName = "kube-prometheus-stack"
 )
 
-type EnabledFunc func(string) bool
+type enabledFunc func(string) bool
 
-type EnabledComponents struct {
+type enabledComponents struct {
 	podName     string
-	enabledFunc EnabledFunc
+	enabledFunc enabledFunc
 }
 
 var (
-	promStackEnabledComponents = []EnabledComponents{
+	promStackEnabledComponents = []enabledComponents{
 		{podName: "prometheus-adapter", enabledFunc: pkg.IsPrometheusAdapterEnabled},
 		{podName: "prometheus-operator-kube-p-operator", enabledFunc: pkg.IsPrometheusOperatorEnabled},
 		{podName: "kube-state-metrics", enabledFunc: pkg.IsKubeStateMetricsEnabled},

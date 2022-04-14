@@ -473,7 +473,7 @@ func IsPrometheusAdapterEnabled(kubeconfigPath string) bool {
 	if vz.Spec.Components.PrometheusAdapter == nil || vz.Spec.Components.PrometheusAdapter.Enabled == nil {
 		return false
 	}
-	return *vz.Spec.Components.WebLogicOperator.Enabled
+	return *vz.Spec.Components.PrometheusAdapter.Enabled
 }
 
 // IsPrometheusOperatorEnabled returns false if the Prometheus Operator component is not set, or the value of its Enabled field otherwise
