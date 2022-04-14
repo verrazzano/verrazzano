@@ -1,7 +1,8 @@
 // Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def availableRegions = env.JOB_NAME.contains('master') ? [ "us-phoenix-1" ] : [  "us-phoenix-1", "us-ashburn-1", eu-frankfurt-1", "uk-london-1" ]
+Collections.shuffle(availableRegions)
 
 pipeline {
     options {
@@ -14,7 +15,7 @@ pipeline {
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "${agentLabel}"
+            label params.LOCK_REGION
         }
     }
 
@@ -28,6 +29,7 @@ pipeline {
     //           operator image was built already (from master, or your branch) and only want to run the tests using it without running the full build. This is not a super likely situation (more likely individual test jobs
     //           will be manually kicked off rather than all of them). To accomplish this, specify GIT_COMMIT_TO_USE=NONE, and VERRAZZANO_OPERATOR_IMAGE=image-to-use
     parameters {
+        choice (description: 'OCI region to run Jenkins agent and OKE clusters in', name: 'LOCK_REGION', choices: availableRegions)
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs. A full pipeline specifies a valid commit hash here. NONE can be used for manually triggered jobs, however even for those a commit hash value is preferred to be supplied',
@@ -136,6 +138,7 @@ pipeline {
                         script {
                             build job: "/verrazzano-multi-cluster-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
+                                    string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                     string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
@@ -153,6 +156,7 @@ pipeline {
                         script {
                             build job: "/verrazzano-multi-cluster-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
+                                    string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                                     booleanParam(name: 'EXTERNAL_ELASTICSEARCH', value: true),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -171,6 +175,7 @@ pipeline {
                         script {
                             build job: "/verrazzano-uninstall-test/${CLEAN_BRANCH_NAME}",
                                 parameters: [
+                                    string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                     string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
@@ -188,6 +193,7 @@ pipeline {
                         script {
                             build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
+                                    string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                     booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
@@ -204,6 +210,7 @@ pipeline {
                         script {
                             build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
+                                    string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.21'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -224,6 +231,7 @@ pipeline {
                             try {
                                 build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
+                                        string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                                         string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -246,6 +254,7 @@ pipeline {
                         script {
                             build job: "/verrazzano-upgrade-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
+                                    string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                                     string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                     string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
