@@ -241,7 +241,6 @@ func Test_appendCustomImageOverrides(t *testing.T) {
 //  THEN the correct KeyValue objects and overrides file snippets are generated
 func Test_appendVerrazzanoValues(t *testing.T) {
 	falseValue := false
-	trueValue := true
 	tests := []struct {
 		name         string
 		description  string
@@ -286,10 +285,10 @@ func Test_appendVerrazzanoValues(t *testing.T) {
 						Keycloak:              &vzapi.KeycloakComponent{Enabled: &falseValue},
 						Rancher:               &vzapi.RancherComponent{Enabled: &falseValue},
 						DNS:                   &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: "xip.io"}},
-						PrometheusOperator:    &vzapi.PrometheusOperatorComponent{Enabled: &trueValue},
-						PrometheusAdapter:     &vzapi.PrometheusAdapterComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
-						KubeStateMetrics:      &vzapi.KubeStateMetricsComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
-						PrometheusPushgateway: &vzapi.PrometheusPushgatewayComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
+						PrometheusOperator:    &vzapi.PrometheusOperatorComponent{Enabled: &falseValue},
+						PrometheusAdapter:     &vzapi.PrometheusAdapterComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						KubeStateMetrics:      &vzapi.KubeStateMetricsComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						PrometheusPushgateway: &vzapi.PrometheusPushgatewayComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 					},
 				},
 			},
@@ -589,10 +588,10 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 						Keycloak:              &vzapi.KeycloakComponent{Enabled: &falseValue},
 						Rancher:               &vzapi.RancherComponent{Enabled: &falseValue},
 						DNS:                   &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: "xip.io"}},
-						PrometheusOperator:    &vzapi.PrometheusOperatorComponent{Enabled: &trueValue},
-						PrometheusAdapter:     &vzapi.PrometheusAdapterComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
-						KubeStateMetrics:      &vzapi.KubeStateMetricsComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
-						PrometheusPushgateway: &vzapi.PrometheusPushgatewayComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
+						PrometheusOperator:    &vzapi.PrometheusOperatorComponent{Enabled: &falseValue},
+						PrometheusAdapter:     &vzapi.PrometheusAdapterComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						KubeStateMetrics:      &vzapi.KubeStateMetricsComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						PrometheusPushgateway: &vzapi.PrometheusPushgatewayComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 					},
 				},
 			},
