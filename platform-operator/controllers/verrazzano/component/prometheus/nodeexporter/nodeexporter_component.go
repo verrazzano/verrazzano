@@ -40,7 +40,7 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
-			ImagePullSecretKeyname:  "image.pullSecrets[0]",
+			ImagePullSecretKeyname:  "serviceAccount.imagePullSecrets[0].name",
 			Dependencies:            []string{},
 			AppendOverridesFunc:     AppendOverrides,
 		},
