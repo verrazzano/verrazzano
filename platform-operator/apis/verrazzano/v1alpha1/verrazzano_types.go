@@ -381,6 +381,9 @@ type MonitoringComponent struct {
 
 // ElasticsearchComponent specifies the Elasticsearch configuration.
 type ElasticsearchComponent struct {
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+
 	MonitoringComponent `json:",inline"`
 
 	// Arguments for installing Elasticsearch
