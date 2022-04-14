@@ -1,0 +1,46 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: hello-domain
+spec:
+  workload:
+    apiVersion: oam.verrazzano.io/v1alpha1
+    kind: VerrazzanoWebLogicWorkload
+    spec:
+      template:
+        metadata:
+          name: hello-domain
+        spec:
+          adminServer:
+            adminChannelPortForwardingEnabled: true
+          domainUID: hellodomain
+          domainHome: /u01/domains/hellodomain
+          image: ghcr.io/verrazzano/weblogic-app-mii:20220414184401-bc06edf3
+          imagePullSecrets:
+            - name: hellodomain-repo-credentials
+          domainHomeSourceType: "FromModel"
+          includeServerOutInPodLog: true
+          replicas: 1
+          webLogicCredentialsSecret:
+            name: hellodomain-weblogic-credentials
+          configuration:
+            introspectorJobActiveDeadlineSeconds: 900
+            model:
+              domainType: WLS
+              runtimeEncryptionSecret: hellodomain-runtime-encrypt-secret
+          serverPod:
+            labels:
+              app: hello-domain
+              version: v1
+            env:
+              - name: JAVA_OPTIONS
+                value: "-Dweblogic.StdoutDebugEnabled=false"
+              - name: USER_MEM_ARGS
+                value: "-Djava.security.egd=file:/dev/./urandom -Xms64m -Xmx256m "
+              - name: WL_HOME
+                value: /u01/oracle/wlserver
+              - name: MW_HOME
+                value: /u01/oracle
