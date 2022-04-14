@@ -81,8 +81,8 @@ func resolveOpensearchNamespace(ns string) string {
 	return globalconst.VerrazzanoSystemNamespace
 }
 
-// isOpenSearchReady VMI components ready-check
-func isOpenSearchReady(ctx spi.ComponentContext) bool {
+// isOpensearchReady VMI components ready-check
+func isOpensearchReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 
 	var deployments []types.NamespacedName

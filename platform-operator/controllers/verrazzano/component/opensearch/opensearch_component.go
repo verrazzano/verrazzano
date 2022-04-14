@@ -35,7 +35,6 @@ const (
 	grafanaScrtName = "grafana-admin"
 
 	// Certificate names
-	verrazzanoCertificateName = "verrazzano-tls"
 	osCertificateName         = "system-tls-es-ingest"
 	grafanaCertificateName    = "system-tls-grafana"
 	osdCertificateName        = "system-tls-kibana"
@@ -46,8 +45,8 @@ const (
 	objectstoreAccessSecretKey = "object_store_secret_key"
 )
 
-// ComponentJSONName is the josn name of the verrazzano component in CRD
-const ComponentJSONName = "elasticSearch"
+// ComponentJSONName is the josn name of the opensearch component in CRD
+const ComponentJSONName = "elasticsearch"
 
 type opensearchComponent struct {
 	helm.HelmComponent
@@ -70,7 +69,7 @@ func NewComponent() spi.Component {
 	}
 }
 
-// PreInstall Verrazzano component pre-install processing; create and label required namespaces, copy any
+// PreInstall Opensearch component pre-install processing; create and label required namespaces, copy any
 // required secrets
 func (c opensearchComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := setupSharedVMIResources(ctx); err != nil {
@@ -83,7 +82,7 @@ func (c opensearchComponent) PreInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// Install Verrazzano component install processing
+// Install Opensearch component install processing
 func (c opensearchComponent) Install(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.Install(ctx); err != nil {
 		return err
@@ -91,12 +90,12 @@ func (c opensearchComponent) Install(ctx spi.ComponentContext) error {
 	return createVMI(ctx)
 }
 
-// PreUpgrade Verrazzano component pre-upgrade processing
+// PreUpgrade Opensearch component pre-upgrade processing
 func (c opensearchComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return opensearchPreUpgrade(ctx)
 }
 
-// InstallUpgrade Verrazzano component upgrade processing
+// InstallUpgrade Opensearch component upgrade processing
 func (c opensearchComponent) Upgrade(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.Upgrade(ctx); err != nil {
 		return err
@@ -107,7 +106,7 @@ func (c opensearchComponent) Upgrade(ctx spi.ComponentContext) error {
 // IsReady component check
 func (c opensearchComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		return isOpenSearchReady(ctx)
+		return isOpensearchReady(ctx)
 	}
 	return false
 }
@@ -121,9 +120,9 @@ func (c opensearchComponent) PostInstall(ctx spi.ComponentContext) error {
 	return c.HelmComponent.PostInstall(ctx)
 }
 
-// PostUpgrade Verrazzano-post-upgrade processing
+// PostUpgrade Opensearch post-upgrade processing
 func (c opensearchComponent) PostUpgrade(ctx spi.ComponentContext) error {
-	ctx.Log().Debugf("Verrazzano component post-upgrade")
+	ctx.Log().Debugf("Opensearch component post-upgrade")
 	c.HelmComponent.IngressNames = c.GetIngressNames(ctx)
 	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
 	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
@@ -141,9 +140,9 @@ func (c opensearchComponent) updateElasticsearchResources(ctx spi.ComponentConte
 	return nil
 }
 
-// IsEnabled verrazzano-specific enabled check for installation
+// IsEnabled opensearch-specific enabled check for installation
 func (c opensearchComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.Verrazzano
+	comp := effectiveCR.Spec.Components.Elasticsearch
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
@@ -161,17 +160,11 @@ func (c opensearchComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 	if err := compareStorageOverrides(old, new); err != nil {
 		return err
 	}
-	if err := validateFluentd(new); err != nil {
-		return err
-	}
 	return nil
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (c opensearchComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	if err := validateFluentd(vz); err != nil {
-		return err
-	}
+func (c opensearchComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
 	return nil
 }
 
@@ -191,37 +184,8 @@ func compareStorageOverrides(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error
 	return nil
 }
 
-// existing Fluentd mount paths can be found at platform-operator/helm_config/charts/verrazzano/templates/verrazzano-logging.yaml
-var existingFluentdMountPaths = [7]string{
-	"/fluentd/cacerts", "/fluentd/secret", "/fluentd/etc",
-	"/root/.oci", "/var/log", "/var/lib", "/run/log/journal"}
-
-func validateFluentd(vz *vzapi.Verrazzano) error {
-	fluentd := vz.Spec.Components.Fluentd
-	if fluentd != nil && len(fluentd.ExtraVolumeMounts) > 0 {
-		for _, vm := range fluentd.ExtraVolumeMounts {
-			mountPath := vm.Source
-			if vm.Destination != "" {
-				mountPath = vm.Destination
-			}
-			for _, existing := range existingFluentdMountPaths {
-				if mountPath == existing {
-					return fmt.Errorf("duplicate mount path found: %s; Fluentd by default has mount paths: %v", mountPath, existingFluentdMountPaths)
-				}
-			}
-		}
-	}
-	return nil
-}
-
 func (c opensearchComponent) checkEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow disabling of any component post-install for now
-	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
-	}
-	if vzconfig.IsConsoleEnabled(old) && !vzconfig.IsConsoleEnabled(new) {
-		return fmt.Errorf("Disabling component console not allowed")
-	}
 	if vzconfig.IsElasticsearchEnabled(old) && !vzconfig.IsElasticsearchEnabled(new) {
 		return fmt.Errorf("Disabling component elasticsearch not allowed")
 	}
@@ -275,11 +239,6 @@ func (c opensearchComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 // GetCertificateNames - gets the names of the ingresses associated with this component
 func (c opensearchComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var certificateNames []types.NamespacedName
-
-	certificateNames = append(certificateNames, types.NamespacedName{
-		Namespace: ComponentNamespace,
-		Name:      verrazzanoCertificateName,
-	})
 
 	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
 		certificateNames = append(certificateNames, types.NamespacedName{

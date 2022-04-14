@@ -74,19 +74,19 @@ func init() {
 	// +kubebuilder:scaffold:testScheme
 }
 
-// TestVzResolveNamespace tests the Verrazzano component name
-// GIVEN a Verrazzano component
+// TestOSResolveNamespace tests the Opensearch component name
+// GIVEN an Opensearch component
 //  WHEN I call resolveNamespace
-//  THEN the Verrazzano namespace name is correctly resolved
-func TestVzResolveNamespace(t *testing.T) {
+//  THEN the Opensearch namespace name is correctly resolved
+func TestOSResolveNamespace(t *testing.T) {
 	const defNs = vpoconst.VerrazzanoSystemNamespace
 	a := assert.New(t)
 	ns := resolveOpensearchNamespace("")
-	a.Equal(defNs, ns, "Wrong namespace resolved for Verrazzano when using empty namespace")
+	a.Equal(defNs, ns, "Wrong namespace resolved for Opensearch when using empty namespace")
 	ns = resolveOpensearchNamespace("default")
-	a.Equal(defNs, ns, "Wrong namespace resolved for Verrazzano when using default namespace")
+	a.Equal(defNs, ns, "Wrong namespace resolved for Opensearch when using default namespace")
 	ns = resolveOpensearchNamespace("custom")
-	a.Equal("custom", ns, "Wrong namespace resolved for Verrazzano when using custom namesapce")
+	a.Equal("custom", ns, "Wrong namespace resolved for Opensearch when using custom namesapce")
 }
 
 // Test_appendVMIValues tests the appendVMIValues function
@@ -141,7 +141,7 @@ func Test_appendVMIValues(t *testing.T) {
 					Profile: "dev",
 					Components: vzapi.ComponentSpec{
 						Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &falseValue},
 						Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 						Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 					},
@@ -460,7 +460,7 @@ func Test_fixupElasticSearchReplicaCount(t *testing.T) {
 	err = fixupElasticSearchReplicaCount(ctx, "verrazzano-system")
 	a.Error(err, "Error should be returned if there is no http port for elasticsearch pods")
 
-	// GIVEN a Verrazzano resource with version 1.1.0 in the status
+	// GIVEN an Opensearch resource with version 1.1.0 in the status
 	//  WHEN fixupElasticSearchReplicaCount is called
 	//  THEN no error should be returned
 	//   AND no commands should be invoked
@@ -472,7 +472,7 @@ func Test_fixupElasticSearchReplicaCount(t *testing.T) {
 	err = fixupElasticSearchReplicaCount(ctx, "verrazzano-system")
 	a.NoError(err, "No error should be returned if the source version is 1.1.0 or later")
 
-	// GIVEN a Verrazzano resource with Elasticsearch disabled
+	// GIVEN an Opensearch resource with Elasticsearch disabled
 	//  WHEN fixupElasticSearchReplicaCount is called
 	//  THEN no error should be returned
 	//   AND no commands should be invoked
@@ -866,11 +866,21 @@ func TestAssociateHelmObjectAndKeep(t *testing.T) {
 	assert.Equal(t, "Helm", obj.Labels["app.kubernetes.io/managed-by"])
 }
 
-// TestIsReadySecretNotReady tests the Verrazzano isOpenSearchReady call
-// GIVEN a Verrazzano component
-//  WHEN I call isOpenSearchReady when it is installed and the deployment availability criteria are met, but the secret is not found
+// TestIsReadySecretNotReady tests the Opensearch isOpensearchReady call
+// GIVEN an Opensearch component
+//  WHEN I call isOpensearchReady when it is installed and the deployment availability criteria are met, but the secret is not found
 //  THEN false is returned
 func TestIsReadySecretNotReady(t *testing.T) {
+	vz := &vzapi.Verrazzano{}
+	falseValue := false
+	vz.Spec.Components = vzapi.ComponentSpec{
+		Console:       &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Fluentd:       &vzapi.FluentdComponent{Enabled: &falseValue},
+		Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &falseValue},
+		Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+	}
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
@@ -882,49 +892,26 @@ func TestIsReadySecretNotReady(t *testing.T) {
 			UpdatedReplicas:   1,
 		},
 	}).Build()
-	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, isOpenSearchReady(ctx))
+	ctx := spi.NewFakeContext(c, vz, false)
+	assert.False(t, isOpensearchReady(ctx))
 }
 
-// TestIsReadyChartNotInstalled tests the Verrazzano isOpenSearchReady call
-// GIVEN a Verrazzano component
-//  WHEN I call isOpenSearchReady when it is not installed
+// TestIsReadyChartNotInstalled tests the Opensearch isOpensearchReady call
+// GIVEN an Opensearch component
+//  WHEN I call isOpensearchReady when it is not installed
 //  THEN false is returned
 func TestIsReadyChartNotInstalled(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, isOpenSearchReady(ctx))
+	assert.False(t, isOpensearchReady(ctx))
 }
 
-// TestIsReady tests the isOpenSearchReady call
-// GIVEN Verrazzano components that are all enabled by default
-//  WHEN I call isOpenSearchReady when all requirements are met
+// TestIsReady tests the isOpensearchReady call
+// GIVEN Opensearch components that are all enabled by default
+//  WHEN I call isOpensearchReady when all requirements are met
 //  THEN false is returned
 func TestIsReady(t *testing.T) {
-	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ComponentNamespace,
-			Name:      verrazzanoConsoleDeployment,
-			Labels:    map[string]string{"app": verrazzanoConsoleDeployment},
-		},
-		Status: appsv1.DeploymentStatus{
-			AvailableReplicas: 1,
-			Replicas:          1,
-			UpdatedReplicas:   1,
-		},
-	},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      vmoDeployment,
-				Labels:    map[string]string{"k8s-app": vmoDeployment},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
@@ -999,12 +986,128 @@ func TestIsReady(t *testing.T) {
 		},
 		&appsv1.DaemonSet{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: globalconst.VerrazzanoSystemNamespace,
-				Name:      fluentDaemonset,
+				Namespace: globalconst.VerrazzanoMonitoringNamespace,
+				Name:      nodeExporterDaemonset,
 			},
 			Status: appsv1.DaemonSetStatus{
 				UpdatedNumberScheduled: 1,
 				NumberAvailable:        1,
+			},
+		},
+		&appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      esMasterStatefulset,
+				Labels:    map[string]string{"app": "system-es-master"},
+			},
+			Status: appsv1.StatefulSetStatus{
+				ReadyReplicas:   1,
+				UpdatedReplicas: 1,
+			},
+		},
+		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
+			Namespace: ComponentNamespace}},
+	).Build()
+
+	vz := &vzapi.Verrazzano{}
+	vz.Spec.Components = vzapi.ComponentSpec{
+		Elasticsearch: &vzapi.ElasticsearchComponent{
+			ESInstallArgs: []vzapi.InstallArgs{
+				{
+					Name:  "nodes.master.replicas",
+					Value: "2",
+				},
+				{
+					Name:  "nodes.data.replicas",
+					Value: "2",
+				},
+				{
+					Name:  "nodes.ingest.replicas",
+					Value: "2",
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(c, vz, false)
+	assert.True(t, isOpensearchReady(ctx))
+}
+
+// TestIsReadyDeploymentNotAvailable tests the Opensearch isOpensearchReady call
+// GIVEN an Opensearch component
+//  WHEN I call isOpensearchReady when the Kibana deployment is not available
+//  THEN false is returned
+func TestIsReadyDeploymentNotAvailable(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      grafanaDeployment,
+				Labels:    map[string]string{"app": "system-grafana"},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      kibanaDeployment,
+				Labels:    map[string]string{"app": "system-kibana"},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   0,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      prometheusDeployment,
+				Labels:    map[string]string{"app": "system-prometheus"},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      fmt.Sprintf("%s-0", esDataDeployment),
+				Labels:    map[string]string{"app": "system-es-data", "index": "0"},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      fmt.Sprintf("%s-1", esDataDeployment),
+				Labels:    map[string]string{"app": "system-es-data", "index": "1"},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      esIngestDeployment,
+				Labels:    map[string]string{"app": "system-es-ingest"},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.DaemonSet{
@@ -1051,36 +1154,13 @@ func TestIsReady(t *testing.T) {
 			},
 		},
 	}
-	ctx := spi.NewFakeContext(c, vz, false)
-	assert.True(t, isOpenSearchReady(ctx))
-}
-
-// TestIsReadyDeploymentNotAvailable tests the Verrazzano isOpenSearchReady call
-// GIVEN a Verrazzano component
-//  WHEN I call isOpenSearchReady when the Verrazzano console deployment is not available
-//  THEN false is returned
-func TestIsReadyDeploymentNotAvailable(t *testing.T) {
-	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ComponentNamespace,
-			Name:      verrazzanoConsoleDeployment,
-		},
-		Status: appsv1.DeploymentStatus{
-			Replicas:          1,
-			AvailableReplicas: 1,
-			UpdatedReplicas:   0,
-		},
-	},
-		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
-			Namespace: ComponentNamespace}},
-	).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, isOpenSearchReady(ctx))
+	assert.False(t, isOpensearchReady(ctx))
 }
 
-// TestIsReadyDeploymentVMIDisabled tests the Verrazzano isOpenSearchReady call
-// GIVEN a Verrazzano component with all VMI components disabled
-//  WHEN I call isOpenSearchReady
+// TestIsReadyDeploymentVMIDisabled tests the Opensearch isOpensearchReady call
+// GIVEN an Opensearch component with all VMI components disabled
+//  WHEN I call isOpensearchReady
 //  THEN true is returned
 func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
@@ -1096,31 +1176,10 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 		Console:       &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 		Fluentd:       &vzapi.FluentdComponent{Enabled: &falseValue},
 		Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-		Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &falseValue},
 		Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 	}
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.True(t, isOpenSearchReady(ctx))
-}
-
-func TestConfigHashSum(t *testing.T) {
-	defaultAppLogID := "test-defaultAppLogId"
-	systemLogID := "test-systemLogId"
-	apiSec := "test-my-apiSec"
-	b := true
-	f1 := vzapi.FluentdComponent{
-		OCI: &vzapi.OciLoggingConfiguration{DefaultAppLogID: defaultAppLogID,
-			SystemLogID: systemLogID, APISecret: apiSec,
-		}}
-	f2 := vzapi.FluentdComponent{OCI: &vzapi.OciLoggingConfiguration{
-		APISecret:       apiSec,
-		DefaultAppLogID: defaultAppLogID,
-		SystemLogID:     systemLogID,
-	}}
-	assert.Equal(t, HashSum(f1), HashSum(f2))
-	f1.Enabled = &b
-	assert.NotEqual(t, HashSum(f1), HashSum(f2))
-	f2.Enabled = &b
-	assert.Equal(t, HashSum(f1), HashSum(f2))
+	assert.True(t, isOpensearchReady(ctx))
 }

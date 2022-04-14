@@ -37,7 +37,7 @@ var dnsComponents = vzapi.ComponentSpec{
 var crEnabled = vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		Components: vzapi.ComponentSpec{
-			Verrazzano: &vzapi.VerrazzanoComponent{
+			Elasticsearch: &vzapi.ElasticsearchComponent{
 				Enabled: getBoolPtr(true),
 			},
 		},
@@ -58,8 +58,8 @@ func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string,
 	return []byte("success"), []byte(""), nil
 }
 
-// TestPreUpgrade tests the Verrazzano PreUpgrade call
-// GIVEN a Verrazzano component
+// TestPreUpgrade tests the Opensearch PreUpgrade call
+// GIVEN an Opensearch component
 //  WHEN I call PreUpgrade with defaults
 //  THEN no error is returned
 func TestPreUpgrade(t *testing.T) {
@@ -70,8 +70,8 @@ func TestPreUpgrade(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestPreInstall tests the Verrazzano PreInstall call
-// GIVEN a Verrazzano component
+// TestPreInstall tests the Opensearch PreInstall call
+// GIVEN an Opensearch component
 //  WHEN I call PreInstall when dependencies are met
 //  THEN no error is returned
 func TestPreInstall(t *testing.T) {
@@ -81,8 +81,8 @@ func TestPreInstall(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestInstall tests the Verrazzano Install call
-// GIVEN a Verrazzano component
+// TestInstall tests the Opensearch Install call
+// GIVEN an Opensearch component
 //  WHEN I call Install when dependencies are met
 //  THEN no error is returned
 func TestInstall(t *testing.T) {
@@ -103,8 +103,8 @@ func TestInstall(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestPostInstall tests the Verrazzano PostInstall call
-// GIVEN a Verrazzano component
+// TestPostInstall tests the Opensearch PostInstall call
+// GIVEN an Opensearch component
 //  WHEN I call PostInstall
 //  THEN no error is returned
 func TestPostInstall(t *testing.T) {
@@ -143,8 +143,8 @@ func TestPostInstall(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestPostInstallCertsNotReady tests the Verrazzano PostInstall call
-// GIVEN a Verrazzano component
+// TestPostInstallCertsNotReady tests the Opensearch PostInstall call
+// GIVEN an Opensearch component
 //  WHEN I call PostInstall and the certificates aren't ready
 //  THEN a retryable error is returned
 func TestPostInstallCertsNotReady(t *testing.T) {
@@ -189,8 +189,8 @@ func TestPostInstallCertsNotReady(t *testing.T) {
 	assert.Equal(t, expectedErr, err)
 }
 
-// TestGetCertificateNames tests the Verrazzano GetCertificateNames call
-// GIVEN a Verrazzano component
+// TestGetCertificateNames tests the Opensearch GetCertificateNames call
+// GIVEN an Opensearch component
 //  WHEN I call GetCertificateNames
 //  THEN the correct number of certificate names are returned based on what is enabled
 func TestGetCertificateNames(t *testing.T) {
@@ -205,7 +205,7 @@ func TestGetCertificateNames(t *testing.T) {
 				Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &vmiEnabled}},
 				Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &vmiEnabled}},
 				Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &vmiEnabled}},
-				Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &vmiEnabled}},
+				Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &vmiEnabled},
 			},
 		},
 	}
@@ -223,11 +223,11 @@ func TestGetCertificateNames(t *testing.T) {
 	vz.Spec.Components.Elasticsearch.Enabled = &vmiEnabled
 
 	certNames = vzComp.GetCertificateNames(ctx)
-	assert.Len(t, certNames, 5, "Unexpected number of cert names")
+	assert.Len(t, certNames, 4, "Unexpected number of cert names")
 }
 
-// TestUpgrade tests the Verrazzano Upgrade call; simple wrapper exercise, more detailed testing is done elsewhere
-// GIVEN a Verrazzano component upgrading from 1.1.0 to 1.2.0
+// TestUpgrade tests the Opensearch Upgrade call; simple wrapper exercise, more detailed testing is done elsewhere
+// GIVEN an Opensearch component upgrading from 1.1.0 to 1.2.0
 //  WHEN I call Upgrade
 //  THEN no error is returned
 func TestUpgrade(t *testing.T) {
@@ -252,8 +252,8 @@ func TestUpgrade(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestPostUpgrade tests the Verrazzano PostUpgrade call; simple wrapper exercise, more detailed testing is done elsewhere
-// GIVEN a Verrazzano component upgrading from 1.1.0 to 1.2.0
+// TestPostUpgrade tests the Opensearch PostUpgrade call; simple wrapper exercise, more detailed testing is done elsewhere
+// GIVEN an Opensearch component upgrading from 1.1.0 to 1.2.0
 //  WHEN I call PostUpgrade
 //  THEN no error is returned
 func TestPostUpgrade(t *testing.T) {
@@ -276,51 +276,51 @@ func createPreInstallTestClient(extraObjs ...client.Object) client.Client {
 	return c
 }
 
-// TestIsEnabledNilVerrazzano tests the IsEnabled function
+// TestIsEnabledNilOpensearch tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Verrazzano component is nil
+//  WHEN The Opensearch component is enabled
 //  THEN true is returned
-func TestIsEnabledNilVerrazzano(t *testing.T) {
+func TestIsEnabledNilOpensearch(t *testing.T) {
 	cr := crEnabled
-	cr.Spec.Components.Verrazzano = nil
+	cr.Spec.Components.Elasticsearch = nil
 	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilComponent tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Verrazzano component is nil
-//  THEN false is returned
+//  WHEN The Opensearch component is nil
+//  THEN true is returned
 func TestIsEnabledNilComponent(t *testing.T) {
 	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Verrazzano component enabled is nil
+//  WHEN The Opensearch component enabled is nil
 //  THEN true is returned
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
-	cr.Spec.Components.Verrazzano.Enabled = nil
+	cr.Spec.Components.Elasticsearch.Enabled = nil
 	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Verrazzano component is explicitly enabled
+//  WHEN The Opensearch component is explicitly enabled
 //  THEN true is returned
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
-	cr.Spec.Components.Verrazzano.Enabled = getBoolPtr(true)
+	cr.Spec.Components.Elasticsearch.Enabled = getBoolPtr(true)
 	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsDisableExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Verrazzano component is explicitly disabled
+//  WHEN The Opensearch component is explicitly disabled
 //  THEN false is returned
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
-	cr.Spec.Components.Verrazzano.Enabled = getBoolPtr(false)
+	cr.Spec.Components.Elasticsearch.Enabled = getBoolPtr(false)
 	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
@@ -343,7 +343,7 @@ func Test_opensearchComponent_ValidateUpdate(t *testing.T) {
 			old: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
-						Verrazzano: &vzapi.VerrazzanoComponent{
+						Elasticsearch: &vzapi.ElasticsearchComponent{
 							Enabled: &disabled,
 						},
 					},
@@ -358,7 +358,7 @@ func Test_opensearchComponent_ValidateUpdate(t *testing.T) {
 			new: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
-						Verrazzano: &vzapi.VerrazzanoComponent{
+						Elasticsearch: &vzapi.ElasticsearchComponent{
 							Enabled: &disabled,
 						},
 					},
@@ -372,8 +372,8 @@ func Test_opensearchComponent_ValidateUpdate(t *testing.T) {
 			new: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
-						Verrazzano: &vzapi.VerrazzanoComponent{
-							InstallArgs: []vzapi.InstallArgs{{Name: "foo", Value: "bar"}},
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							ESInstallArgs: []vzapi.InstallArgs{{Name: "foo", Value: "bar"}},
 						},
 					},
 				},
@@ -502,19 +502,7 @@ func Test_opensearchComponent_ValidateUpdate(t *testing.T) {
 			new: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
-						Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &disabled}},
-					},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "disable-console",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Console: &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &disabled}},
+						Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &disabled},
 					},
 				},
 			},
@@ -571,90 +559,6 @@ func Test_opensearchComponent_ValidateUpdate(t *testing.T) {
 			},
 			wantErr: true,
 		},
-		{
-			name: "disable-fluentd",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{Enabled: &disabled},
-					},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "change-fluentd-oci",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
-							OCI: &vzapi.OciLoggingConfiguration{
-								APISecret: "secret",
-							},
-						},
-					},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "change-fluentd-es-secret",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
-							ElasticsearchSecret: "secret",
-						},
-					},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "change-fluentd-es-url",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
-							ElasticsearchURL: "url",
-						},
-					},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "change-fluentd-extravolume",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
-							ExtraVolumeMounts: []vzapi.VolumeMount{{Source: "foo"}},
-						},
-					},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "invalid-fluentd-extravolume",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
-							ExtraVolumeMounts: []vzapi.VolumeMount{{Source: "/root/.oci"}},
-						},
-					},
-				},
-			},
-			wantErr: true,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -662,51 +566,6 @@ func Test_opensearchComponent_ValidateUpdate(t *testing.T) {
 			err := c.ValidateUpdate(tt.old, tt.new)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestValidateFluentd(t *testing.T) {
-	varlog := "/var/log"
-	homevar := "/home/var_log"
-	tests := []struct {
-		name    string
-		vz      *vzapi.Verrazzano
-		wantErr bool
-	}{{
-		name:    "default",
-		vz:      &vzapi.Verrazzano{},
-		wantErr: false,
-	}, {
-		name: varlog,
-		vz: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						ExtraVolumeMounts: []vzapi.VolumeMount{{Source: varlog}},
-					},
-				},
-			},
-		},
-		wantErr: true,
-	}, {
-		name: homevar,
-		vz: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						ExtraVolumeMounts: []vzapi.VolumeMount{{Source: varlog, Destination: homevar}},
-					},
-				},
-			},
-		},
-		wantErr: false,
-	}}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := validateFluentd(tt.vz); (err != nil) != tt.wantErr {
-				t.Errorf("validateFluentd() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
