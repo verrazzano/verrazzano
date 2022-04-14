@@ -34,6 +34,7 @@ pipeline {
 
         // image name and tag are created from this variable
         HELLO_WEBLOGIC = 'weblogic-app'
+        HELLO_WEBLOGIC_MII = 'weblogic-app-mii'
         VERSION = get_image_tag()
 
         // access to GitHub Packages Maven Repository
@@ -41,6 +42,9 @@ pipeline {
 
         BUCKET_NAME = "build-shared-files"
         JDK11_BUNDLE = "openjdk-11+28_linux-x64_bin.tar.gz"
+
+        JDK8_BUNDLE = "jdk-8u261-linux-x64.tar.gz"
+        WEBLOGIC_BUNDLE = "fmw_12.2.1.4.0_wls.jar"
     }
 
     stages {
@@ -91,8 +95,13 @@ pipeline {
                             cd ${WORKSPACE}/verrazzano/tests/testdata/test-applications/weblogic/hello-weblogic
                             mvn -B -s $MAVEN_SETTINGS clean install
                             cd setup
-                            ./build.sh ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC}:${VERSION}
-                            docker push ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC}:${VERSION}
+                            #./build.sh ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC}:${VERSION}
+                            #docker push ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC}:${VERSION}
+                            
+                            oci os object get -bn ${BUCKET_NAME} --file ${JDK8_BUNDLE} --name ${JDK8_BUNDLE}
+                            oci os object get -bn ${BUCKET_NAME} --file ${WEBLOGIC_BUNDLE} --name ${WEBLOGIC_BUNDLE}
+                            ./build-mii.sh ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC_MII}:${VERSION}
+                            docker push ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC_MII}:${VERSION}
                         """
                     }
                 }
