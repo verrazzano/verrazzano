@@ -144,7 +144,7 @@ pipeline {
             }
         }
 
-        stage ('Kick off parallel tests') {
+        stage ('Compute Required N Upgrade Jobs') {
             parallel {
                 stage('Upgrade every release to Release Candidate') {
                 steps {
