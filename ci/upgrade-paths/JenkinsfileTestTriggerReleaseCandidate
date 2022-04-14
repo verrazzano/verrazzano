@@ -144,9 +144,9 @@ pipeline {
             }
         }
 
-        stage ('Compute Required N Upgrade Jobs') {
+        stage ('Upgrade every release to Release Candidate') {
             parallel {
-                stage('Upgrade every release to Release Candidate') {
+                stage('Compute required N Upgrade Jobs') {
                 steps {
                     script {
                            sh """
