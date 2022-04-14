@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package verrazzano
+package opensearch
 
 import (
 	"fmt"
@@ -18,7 +18,7 @@ import (
 )
 
 // appendVerrazzanoOverrides appends the image overrides for the monitoring-init-images subcomponent
-func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+func appendOpensearchOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 
 	// Append some custom image overrides
 	// - use local KeyValues array to ensure we append those after the file override; typically won't matter with the

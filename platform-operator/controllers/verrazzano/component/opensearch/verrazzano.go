@@ -1,7 +1,7 @@
 // Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package verrazzano
+package opensearch
 
 import (
 	"context"
@@ -78,7 +78,7 @@ func resetWriteFileFunc() {
 }
 
 // resolveVerrazzanoNamespace will return the default Verrazzano system namespace unless the namespace is specified
-func resolveVerrazzanoNamespace(ns string) string {
+func resolveOpensearchNamespace(ns string) string {
 	if len(ns) > 0 && ns != "default" {
 		return ns
 	}
@@ -331,17 +331,11 @@ func fixupFluentdDaemonset(log vzlog.VerrazzanoLogger, client clipkg.Client, nam
 }
 
 func createAndLabelNamespaces(ctx spi.ComponentContext) error {
-	if err := LabelKubeSystemNamespace(ctx.Client()); err != nil {
-		return err
-	}
 	if err := namespace.CreateVerrazzanoSystemNamespace(ctx.Client()); err != nil {
 		return err
 	}
 	if _, err := secret.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoSystemNamespace); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed checking for image pull secret: %v", err)
-	}
-	if err := namespace.CreateVerrazzanoMultiClusterNamespace(ctx.Client()); err != nil {
-		return err
 	}
 	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
 		// If the monitoring operator is enabled, create the monitoring namespace and copy the image pull secret
@@ -351,37 +345,6 @@ func createAndLabelNamespaces(ctx spi.ComponentContext) error {
 		if _, err := secret.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoMonitoringNamespace); err != nil {
 			return ctx.Log().ErrorfNewErr("Failed checking for image pull secret: %v", err)
 		}
-	}
-	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
-		if err := namespace.CreateKeycloakNamespace(ctx.Client()); err != nil {
-			return ctx.Log().ErrorfNewErr("Failed creating Keycloak namespace: %v", err)
-		}
-	}
-	if vzconfig.IsRancherEnabled(ctx.EffectiveCR()) {
-		if err := namespace.CreateAndLabelNamespace(ctx.Client(), globalconst.RancherOperatorSystemNamespace,
-			true, false); err != nil {
-			return ctx.Log().ErrorfNewErr("Failed creating Rancher operator system namespace %s: %v", globalconst.RancherOperatorSystemNamespace, err)
-		}
-	}
-	// cattle-system NS must be created since the rancher NetworkPolicy, which is always installed, requires it
-	if err := namespace.CreateRancherNamespace(ctx.Client()); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed creating Rancher namespace: %v", err)
-	}
-	return nil
-}
-
-// LabelKubeSystemNamespace adds the label needed by network polices to kube-system
-func LabelKubeSystemNamespace(client clipkg.Client) error {
-	const KubeSystemNamespace = "kube-system"
-	ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: KubeSystemNamespace}}
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), client, &ns, func() error {
-		if ns.Labels == nil {
-			ns.Labels = make(map[string]string)
-		}
-		ns.Labels["verrazzano.io/namespace"] = KubeSystemNamespace
-		return nil
-	}); err != nil {
-		return err
 	}
 	return nil
 }

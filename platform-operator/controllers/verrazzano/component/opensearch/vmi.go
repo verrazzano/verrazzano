@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package verrazzano
+package opensearch
 
 import (
 	"context"
@@ -35,10 +35,6 @@ func createVMI(ctx spi.ComponentContext) error {
 	dnsSuffix, err := vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("Failed getting DNS suffix: %v", err)
-	}
-
-	if err := createGrafanaConfigMaps(ctx); err != nil {
-		return ctx.Log().ErrorfNewErr("failed to create grafana configmaps: %v", err)
 	}
 	values := &verrazzanoValues{}
 	if err := appendVerrazzanoValues(ctx, values); err != nil {
@@ -330,30 +326,6 @@ func ensureBackupSecret(cli client.Client) error {
 			}
 			secret.Data[objectstoreAccessKey] = []byte(key)
 			secret.Data[objectstoreAccessSecretKey] = []byte(key)
-		}
-		return nil
-	}); err != nil {
-		return err
-	}
-	return nil
-}
-
-func ensureGrafanaAdminSecret(cli client.Client) error {
-	secret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      grafanaScrtName,
-			Namespace: globalconst.VerrazzanoSystemNamespace,
-		},
-		Data: map[string][]byte{},
-	}
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), cli, secret, func() error {
-		if secret.Data["username"] == nil || secret.Data["password"] == nil {
-			secret.Data["username"] = []byte(ComponentName)
-			pw, err := password.GeneratePassword(32)
-			if err != nil {
-				return err
-			}
-			secret.Data["password"] = []byte(pw)
 		}
 		return nil
 	}); err != nil {

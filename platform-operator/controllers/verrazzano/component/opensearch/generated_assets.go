@@ -24,7 +24,7 @@
 // manifests/dashboards/system/system_dashboard.json
 // manifests/dashboards/vmi_dashboard_provider.yml
 // manifests/dashboards/weblogic/weblogic_dashboard.json
-package verrazzano
+package opensearch
 
 import (
 	"bytes"
