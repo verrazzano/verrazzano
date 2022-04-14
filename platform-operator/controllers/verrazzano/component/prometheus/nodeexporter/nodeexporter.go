@@ -15,11 +15,13 @@ import (
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
+const daemonsetName = "prometheus-node-exporter"
+
 // isPrometheusNodeExporterReady checks if the Prometheus Node-Exporter daemonset is ready
 func isPrometheusNodeExporterReady(ctx spi.ComponentContext) bool {
 	sets := []types.NamespacedName{
 		{
-			Name:      "node-exporter-prometheus-node-exporter",
+			Name:      daemonsetName,
 			Namespace: ComponentNamespace,
 		},
 	}

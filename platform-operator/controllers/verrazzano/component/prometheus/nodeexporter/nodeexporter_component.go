@@ -6,11 +6,13 @@ package nodeexporter
 import (
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 )
 
 // ComponentName is the name of the component
@@ -40,6 +42,7 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:  "image.pullSecrets[0]",
 			Dependencies:            []string{},
+			AppendOverridesFunc:     AppendOverrides,
 		},
 	}
 }
@@ -65,4 +68,16 @@ func (c prometheusNodeExporterComponent) IsReady(ctx spi.ComponentContext) bool 
 // PreInstall updates resources necessary for the Prometheus Node-Exporter Component installation
 func (c prometheusNodeExporterComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preInstall(ctx)
+}
+
+// AppendOverrides appends Helm value overrides for the Prometheus Node Exporter component's Helm chart
+func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	// Only enable the node exporter's ServiceMonitor if Prometheus Operator is enabled in this install
+	ctx.Log().Debug("Appending service monitor override for the Prometheus Node Exporter component")
+	if vzconfig.IsPrometheusOperatorEnabled(ctx.EffectiveCR()) {
+		kvs = append(kvs, bom.KeyValue{
+			Key: "prometheus.monitor.enabled", Value: "true",
+		})
+	}
+	return kvs, nil
 }
