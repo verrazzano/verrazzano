@@ -214,7 +214,7 @@ func TestGetCertificateNames(t *testing.T) {
 	vzComp := NewComponent()
 
 	certNames := vzComp.GetCertificateNames(ctx)
-	assert.Len(t, certNames, 1, "Unexpected number of cert names")
+	assert.Len(t, certNames, 0, "Unexpected number of cert names")
 
 	vmiEnabled = true
 	vz.Spec.Components.Grafana.Enabled = &vmiEnabled

@@ -252,8 +252,7 @@ func TestHasDataNodeStorageOverride(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						Elasticsearch: &vzapi.ElasticsearchComponent{
-							MonitoringComponent: monitoringComponent,
-						},
+							Enabled: &enabled},
 					},
 				},
 			},
