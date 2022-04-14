@@ -15,10 +15,12 @@ import (
 )
 
 const (
-	verrazzanoMonitoringNamespace = "verrazzano-monitoring"
-	waitTimeout                   = 3 * time.Minute
-	pollingInterval               = 10 * time.Second
-	prometheusTLSSecret           = "prometheus-operator-kube-p-admission"
+	verrazzanoMonitoringNamespace   = "verrazzano-monitoring"
+	waitTimeout                     = 3 * time.Minute
+	pollingInterval                 = 10 * time.Second
+	prometheusTLSSecret             = "prometheus-operator-kube-p-admission"
+	prometheusOperatorDeployment    = "prometheus-operator-kube-p-operator"
+	prometheusOperatorContainerName = "kube-prometheus-stack"
 )
 
 var (
@@ -32,6 +34,10 @@ var (
 		"prometheusrules.monitoring.coreos.com",
 		"servicemonitors.monitoring.coreos.com",
 		"thanosrulers.monitoring.coreos.com",
+	}
+	expectedPromOperatorArgs = []string{
+		"--prometheus-default-base-image=ghcr.io/verrazzano/prometheus",
+		"--alertmanager-default-base-image=ghcr.io/verrazzano/alertmanager",
 	}
 )
 
@@ -79,6 +85,16 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 					AbortSuite(fmt.Sprintf("Pods %v is not running in the namespace: %v, error: %v", promStackPods, verrazzanoMonitoringNamespace, err))
 				}
 				return result
+			}
+			Eventually(promStackPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+
+		// GIVEN the Prometheus stack is installed
+		// WHEN we check to make sure the default images are from Verrazzano
+		// THEN we see that the arguments are correctly populated
+		WhenPromStackInstalledIt("should have the correct default images", func() {
+			promStackPodsRunning := func() (bool, error) {
+				return pkg.ContainerHasExpectedArgs(verrazzanoMonitoringNamespace, prometheusOperatorDeployment, prometheusOperatorContainerName, expectedPromOperatorArgs)
 			}
 			Eventually(promStackPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})
