@@ -10,8 +10,6 @@ import (
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
@@ -33,6 +31,8 @@ const (
 
 	// verrazzanoSecretName is the name of the VMI secret
 	verrazzanoSecretName = "verrazzano"
+	// Grafana admin secret data
+	grafanaScrtName = "grafana-admin"
 
 	// Certificate names
 	verrazzanoCertificateName = "verrazzano-tls"
@@ -65,7 +65,7 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:     appendOpensearchOverrides,
 			ImagePullSecretKeyname:  vzImagePullSecretKeyName,
 			SupportsOperatorInstall: true,
-			Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName, authproxy.ComponentName},
+			Dependencies:            []string{istio.ComponentName, nginx.ComponentName},
 		},
 	}
 }

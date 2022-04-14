@@ -282,7 +282,11 @@ func setupSharedVMIResources(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	return ensureBackupSecret(ctx.Client())
+	err = ensureBackupSecret(ctx.Client())
+	if err != nil {
+		return err
+	}
+	return ensureGrafanaAdminSecret(ctx.Client())
 }
 
 func ensureVMISecret(cli client.Client) error {
@@ -326,6 +330,30 @@ func ensureBackupSecret(cli client.Client) error {
 			}
 			secret.Data[objectstoreAccessKey] = []byte(key)
 			secret.Data[objectstoreAccessSecretKey] = []byte(key)
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ensureGrafanaAdminSecret(cli client.Client) error {
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      grafanaScrtName,
+			Namespace: globalconst.VerrazzanoSystemNamespace,
+		},
+		Data: map[string][]byte{},
+	}
+	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), cli, secret, func() error {
+		if secret.Data["username"] == nil || secret.Data["password"] == nil {
+			secret.Data["username"] = []byte(ComponentName)
+			pw, err := password.GeneratePassword(32)
+			if err != nil {
+				return err
+			}
+			secret.Data["password"] = []byte(pw)
 		}
 		return nil
 	}); err != nil {

@@ -220,6 +220,9 @@ func verrazzanoPreUpgrade(ctx spi.ComponentContext, namespace string) error {
 	if err := ensureVMISecret(ctx.Client()); err != nil {
 		return err
 	}
+	if err := ensureGrafanaAdminSecret(ctx.Client()); err != nil {
+		return err
+	}
 	return fixupFluentdDaemonset(ctx.Log(), ctx.Client(), namespace)
 }
 
