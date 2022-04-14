@@ -3,6 +3,7 @@
 package kiali
 
 import (
+	"context"
 	"testing"
 
 	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
@@ -18,8 +19,10 @@ import (
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -133,13 +136,21 @@ func TestIsEnabledDevProfile(t *testing.T) {
 
 // TestRemoveDeploymentAndService tests the removeDeploymentAndService function
 // GIVEN a call to removeDeploymentAndService
-//  WHEN the Kiali deployment and service exist
-//  THEN no error is returned
+//  WHEN the Kiali deployment and service exist with incorrect selectors
+//  THEN the deployment and service are deleted
 func TestRemoveDeploymentAndService(t *testing.T) {
 	deployment := &appv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      kialiSystemName,
+		},
+		Spec: appv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app.kubernetes.io/instance": ComponentName,
+					"app.kubernetes.io/name":     kialiSystemName,
+				},
+			},
 		},
 	}
 	service := &corev1.Service{
@@ -151,6 +162,52 @@ func TestRemoveDeploymentAndService(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(deployment, service).Build()
 	err := removeDeploymentAndService(spi.NewFakeContext(fakeClient, nil, false))
+	assert.Nil(t, err)
+	deployment = &appv1.Deployment{}
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: kialiSystemName, Namespace: ComponentNamespace}, deployment)
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
+	service = &corev1.Service{}
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: kialiSystemName, Namespace: ComponentNamespace}, service)
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
+
+}
+
+// TestRemoveDeploymentAndServiceNoMatch tests the removeDeploymentAndService function
+// GIVEN a call to removeDeploymentAndService
+//  WHEN the Kiali deployment and service exist with correct selectors
+//  THEN the deployment and service are not deleted
+func TestRemoveDeploymentAndServiceNoMatch(t *testing.T) {
+	deployment := &appv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      kialiSystemName,
+		},
+		Spec: appv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app.kubernetes.io/instance": kialiSystemName,
+					"app.kubernetes.io/name":     "kiali",
+				},
+			},
+		},
+	}
+	service := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      kialiSystemName,
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(deployment, service).Build()
+	err := removeDeploymentAndService(spi.NewFakeContext(fakeClient, nil, false))
+	assert.Nil(t, err)
+	deployment = &appv1.Deployment{}
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: kialiSystemName, Namespace: ComponentNamespace}, deployment)
+	assert.Nil(t, err)
+	service = &corev1.Service{}
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: kialiSystemName, Namespace: ComponentNamespace}, service)
 	assert.Nil(t, err)
 }
 
@@ -257,7 +314,21 @@ func TestPreUpgrade(t *testing.T) {
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
 	config.TestHelmConfigDir = "../../../../thirdparty"
-	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), nil, false))
+	deployment := &appv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      kialiSystemName,
+		},
+	}
+	service := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      kialiSystemName,
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(deployment, service).Build()
+	err := NewComponent().PreUpgrade(spi.NewFakeContext(fakeClient, nil, false))
 	assert.NoError(t, err)
 }
 
