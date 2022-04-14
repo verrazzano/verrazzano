@@ -430,17 +430,17 @@ def allReleasesToRCStage(job) {
                                     string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                     booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                 ],  wait: true, propagate: true
-                           jobResult = jobStatus.result
-                                  if (result.equals("SUCCESS")) {
-                                  } else {
+                                   jobResult = jobStatus.result
+                                  if (!jobResult.equals("SUCCESS")) {
                                    currentBuild.result = jobResult
+                                   error jobResult
                                   //   sh "exit 1" // this fails the stage
                                   }
                     }
              }
              }catch(e){
-                result = "FAIL"
+                echo "Stage error: ${jobResult}"
+             //   jobResult = "FAIL"
              }
-
     }
 }
