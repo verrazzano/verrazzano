@@ -153,5 +153,5 @@ func IsPrometheusNodeExporterEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.PrometheusNodeExporter != nil && vz.Spec.Components.PrometheusNodeExporter.Enabled != nil {
 		return *vz.Spec.Components.PrometheusNodeExporter.Enabled
 	}
-	return true
+	return false
 }

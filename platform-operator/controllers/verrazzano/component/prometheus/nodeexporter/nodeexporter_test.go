@@ -40,7 +40,7 @@ func TestIsPrometheusNodeExporterReady(t *testing.T) {
 				&appsv1.DaemonSet{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
-						Name:      "node-exporter-prometheus-node-exporter",
+						Name:      daemonsetName,
 					},
 					Status: appsv1.DaemonSetStatus{
 						NumberAvailable:        1,
@@ -58,7 +58,7 @@ func TestIsPrometheusNodeExporterReady(t *testing.T) {
 				&appsv1.DaemonSet{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
-						Name:      "node-exporter-prometheus-node-exporter",
+						Name:      daemonsetName,
 					},
 					Status: appsv1.DaemonSetStatus{
 						NumberAvailable:        0,

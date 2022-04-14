@@ -15,7 +15,7 @@ import (
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
-const daemonsetName = "prometheus-node-exporter"
+const daemonsetName = "prometheus-node-exporter" // Should match fullName override in prometheus-node-exporter-values.yaml
 
 // isPrometheusNodeExporterReady checks if the Prometheus Node-Exporter daemonset is ready
 func isPrometheusNodeExporterReady(ctx spi.ComponentContext) bool {

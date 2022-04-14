@@ -4,6 +4,7 @@
 package nodeexporter
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -26,6 +27,8 @@ const ComponentJSONName = "prometheusNodeExporter"
 
 const chartDir = "prometheus-community/prometheus-node-exporter"
 
+var valuesFile = fmt.Sprintf("%s-values.yaml", ComponentName)
+
 type prometheusNodeExporterComponent struct {
 	helm.HelmComponent
 }
@@ -41,6 +44,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall: true,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:  "serviceAccount.imagePullSecrets[0].name",
+			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), valuesFile),
 			Dependencies:            []string{},
 			AppendOverridesFunc:     AppendOverrides,
 		},
