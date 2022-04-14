@@ -16,7 +16,7 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = "node-exporter"
+const ComponentName = "prometheus-node-exporter"
 
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoMonitoringNamespace

@@ -526,7 +526,7 @@
       "subcomponents": [
         {
           "repository": "verrazzano",
-          "name": "node-exporter",
+          "name": "prometheus-node-exporter",
           "images": [
             {
               "image": "node-exporter",
