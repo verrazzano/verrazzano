@@ -148,17 +148,23 @@ func (c certManagerComponent) createOrUpdateClusterIssuer(compContext spi.Compon
 	if err != nil {
 		return compContext.Log().ErrorfNewErr("Failed to verify the config type: %v", err)
 	}
-	//var opResult controllerutil.OperationResult
+	var opResult controllerutil.OperationResult
 	if !isCAValue {
 		// Create resources needed for Acme certificates
-		if _, err = createOrUpdateAcmeResources(compContext); err != nil {
+		if opResult, err = createOrUpdateAcmeResources(compContext); err != nil {
 			return compContext.Log().ErrorfNewErr("Failed creating Acme resources: %v", err)
 		}
 	} else {
 		// Create resources needed for CA certificates
-		if _, err = createOrUpdateCAResources(compContext); err != nil {
+		if opResult, err = createOrUpdateCAResources(compContext); err != nil {
 			return compContext.Log().ErrorfNewErr("Failed creating CA resources: %v", err)
 		}
+	}
+	if opResult == controllerutil.OperationResultCreated {
+		// We're in the initial install phase, and created the ClusterIssuer for the first time,
+		// so skip the renewal checks
+		compContext.Log().Oncef("Initial install, skipping certificate renewal checks")
+		return nil
 	}
 	if err := checkRenewAllCertificates(compContext, isCAValue); err != nil {
 		compContext.Log().Errorf("Error requesting certificate renewal: %s", err.Error())

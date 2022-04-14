@@ -329,6 +329,26 @@ func SlicesContainSameStrings(strings1, strings2 []string) bool {
 	return reflect.DeepEqual(m1, m2)
 }
 
+// SlicesContainSubsetSubstring returns true if the strings in the first slice are substrings of any string in the second slice
+func SlicesContainSubsetSubstring(strings1, strings2 []string) bool {
+	if len(strings1) == 0 {
+		return true
+	}
+	for _, s1 := range strings1 {
+		found := false
+		for _, s2 := range strings2 {
+			if strings.Contains(s2, s1) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
 // PolicyRulesEqual compares two RBAC PolicyRules for semantic equality
 func PolicyRulesEqual(rule1, rule2 rbacv1.PolicyRule) bool {
 	if SlicesContainSameStrings(rule1.Verbs, rule2.Verbs) &&

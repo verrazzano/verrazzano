@@ -207,7 +207,7 @@
             },
             {
               "image": "prometheus",
-              "tag": "v2.31.1",
+              "tag": "v2.34.0",
               "helmFullImageKey": "monitoringOperator.prometheusImage"
             },
             {
@@ -237,7 +237,7 @@
             },
             {
               "image": "console",
-              "tag": "1.3.0-20220330134752-bb0b72b",
+              "tag": "1.3.0-20220413232225-9d9bb79",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -477,7 +477,7 @@
           "images": [
             {
               "image": "prometheus-adapter",
-              "tag": "v0.9.1-2",
+              "tag": "v0.9.1-3",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }

@@ -93,18 +93,29 @@ func (c kialiComponent) PreUpgrade(ctx spi.ComponentContext) error {
 func removeDeploymentAndService(ctx spi.ComponentContext) error {
 	deployment := &appv1.Deployment{}
 	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: kialiSystemName}, deployment); err != nil {
-		ctx.Log().ErrorfNewErr("Failed to get deployment %s/%s: %v", ComponentNamespace, kialiSystemName, err)
+		return ctx.Log().ErrorfNewErr("Failed to get deployment %s/%s: %v", ComponentNamespace, kialiSystemName, err)
+	}
+	// Remove the Kiali deployment only if the match selector is not what is expected.
+	if deployment.Spec.Selector != nil && len(deployment.Spec.Selector.MatchExpressions) == 0 && len(deployment.Spec.Selector.MatchLabels) == 2 {
+		instance, ok := deployment.Spec.Selector.MatchLabels["app.kubernetes.io/instance"]
+		if ok && instance == kialiSystemName {
+			name, ok := deployment.Spec.Selector.MatchLabels["app.kubernetes.io/name"]
+			if ok && name == "kiali" {
+				return nil
+			}
+		}
 	}
 	service := &corev1.Service{}
 	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: kialiSystemName}, service); err != nil {
-		ctx.Log().ErrorfNewErr("Failed to get service %s/%s: %v", ComponentNamespace, kialiSystemName, err)
+		return ctx.Log().ErrorfNewErr("Failed to get service %s/%s: %v", ComponentNamespace, kialiSystemName, err)
 	}
 	if err := ctx.Client().Delete(context.TODO(), service); err != nil {
-		ctx.Log().ErrorfNewErr("Failed to delete service %s/%s: %v", ComponentNamespace, kialiSystemName, err)
+		return ctx.Log().ErrorfNewErr("Failed to delete service %s/%s: %v", ComponentNamespace, kialiSystemName, err)
 	}
 	if err := ctx.Client().Delete(context.TODO(), deployment); err != nil {
-		ctx.Log().ErrorfNewErr("Failed to delete deployment %s/%s: %v", ComponentNamespace, kialiSystemName, err)
+		return ctx.Log().ErrorfNewErr("Failed to delete deployment %s/%s: %v", ComponentNamespace, kialiSystemName, err)
 	}
+
 	return nil
 }
 
