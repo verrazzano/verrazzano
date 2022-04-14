@@ -254,12 +254,12 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	if err := removeBootstrapSecretIfExists(log, c); err != nil {
+	if err := rest.PutServerURL(); err != nil {
+		ctx.Log().Error(err)
 		return err
 	}
 
-	if err := rest.PutServerURL(); err != nil {
-		ctx.Log().Error(err)
+	if err := removeBootstrapSecretIfExists(log, c); err != nil {
 		return err
 	}
 
