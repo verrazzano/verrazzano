@@ -160,7 +160,7 @@ pipeline {
                         TARGET_UPGRADE_VERSION = gitTags.pop() - "v"
                         allReleasesToRCJobs = addTargetUpgradeVersion(gitTags)
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
-                        echo "The number of jobs to run in parallel : ${params.N_JOBS_FOR_EACH_BATCH}"
+                        echo "Number of jobs to be run in parallel : ${params.N_JOBS_FOR_EACH_BATCH}"
                         def k = 0
                         def  mapOfJobsInBatches = []
                         allReleasesToRCStagesMap = [:]
