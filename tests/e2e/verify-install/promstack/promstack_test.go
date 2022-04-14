@@ -23,8 +23,20 @@ const (
 	prometheusOperatorContainerName = "kube-prometheus-stack"
 )
 
+type EnabledFunc func(string) bool
+
+type EnabledComponents struct {
+	podName     string
+	enabledFunc EnabledFunc
+}
+
 var (
-	promStackPods    = []string{"prometheus-adapter", "prometheus-operator-kube-p-operator", "kube-state-metrics", "prometheus-pushgateway"}
+	promStackEnabledComponents = []EnabledComponents{
+		{podName: "prometheus-adapter", enabledFunc: pkg.IsPrometheusAdapterEnabled},
+		{podName: "prometheus-operator-kube-p-operator", enabledFunc: pkg.IsPrometheusOperatorEnabled},
+		{podName: "kube-state-metrics", enabledFunc: pkg.IsKubeStateMetricsEnabled},
+		{podName: "prometheus-pushgateway", enabledFunc: pkg.IsPrometheusPushgatewayEnabled},
+	}
 	promOperatorCrds = []string{
 		"alertmanagerconfigs.monitoring.coreos.com",
 		"alertmanagers.monitoring.coreos.com",
@@ -80,9 +92,16 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 		// THEN we successfully find the running pods
 		WhenPromStackInstalledIt("should have running pods", func() {
 			promStackPodsRunning := func() bool {
-				result, err := pkg.PodsRunning(verrazzanoMonitoringNamespace, promStackPods)
+				kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
+				enabledPods := []string{}
+				for _, component := range promStackEnabledComponents {
+					if component.enabledFunc(kubeconfigPath) {
+						enabledPods = append(enabledPods, component.podName)
+					}
+				}
+				result, err := pkg.PodsRunning(verrazzanoMonitoringNamespace, enabledPods)
 				if err != nil {
-					AbortSuite(fmt.Sprintf("Pods %v is not running in the namespace: %v, error: %v", promStackPods, verrazzanoMonitoringNamespace, err))
+					AbortSuite(fmt.Sprintf("Pods %v is not running in the namespace: %v, error: %v", enabledPods, verrazzanoMonitoringNamespace, err))
 				}
 				return result
 			}
