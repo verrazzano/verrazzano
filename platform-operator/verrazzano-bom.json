@@ -252,6 +252,58 @@
       ]
     },
     {
+      "name": "verrazzano-monitoring-operator",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "verrazzano-monitoring-operator",
+          "images": [
+            {
+              "image": "verrazzano-monitoring-operator",
+              "tag": "1.3.0-20220411154318-17ca0f1",
+              "helmFullImageKey": "monitoringOperator.imageName",
+              "helmTagKey": "monitoringOperator.imageVersion"
+            },
+            {
+              "image": "proxyv2",
+              "tag": "1.11.4",
+              "helmFullImageKey": "monitoringOperator.istioProxyImage"
+            },
+            {
+              "image": "grafana",
+              "tag": "v7.5.11",
+              "helmFullImageKey": "monitoringOperator.grafanaImage"
+            },
+            {
+              "image": "prometheus",
+              "tag": "v2.31.1",
+              "helmFullImageKey": "monitoringOperator.prometheusImage"
+            },
+            {
+              "image": "opensearch",
+              "tag": "1.2.3-20220321223518-c480e8ed25d",
+              "helmFullImageKey": "monitoringOperator.esImage"
+            },
+            {
+              "image": "opensearch-dashboards",
+              "tag": "1.2.0-20220301201035-be0efd47ab",
+              "helmFullImageKey": "monitoringOperator.kibanaImage"
+            },
+            {
+              "image": "configmap-reload",
+              "tag": "0.7.1-20220302211236-774d907",
+              "helmFullImageKey": "monitoringOperator.configReloaderImage"
+            },
+            {
+              "image": "nginx-ingress-controller",
+              "tag": "0.46.0-20220301064424-ee602c1aa",
+              "helmFullImageKey": "monitoringOperator.oidcProxyImage"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "monitoring-init-images",
       "subcomponents": [
         {
