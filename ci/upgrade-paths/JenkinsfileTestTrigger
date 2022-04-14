@@ -417,7 +417,7 @@ def allReleasesToRCStage(job) {
                 try {
                         stage("Upgrade Verrazzano from version ${job[0]} to  ${job[1]}"){
                         script {
-                            echo "this is ${job}"
+                           echo "this is ${job}"
                            def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
@@ -435,11 +435,12 @@ def allReleasesToRCStage(job) {
                                    currentBuild.result = jobResult
                                    error jobResult
                                   //   sh "exit 1" // this fails the stage
-                                  }
+                                }
                     }
              }
              }catch(e){
-                echo "Stage error: ${jobResult}"
+                echo "Stage error: ${e}"
+                echo "${currentBuild.result}"
              //   jobResult = "FAIL"
              }
     }
