@@ -24,17 +24,14 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -84,276 +81,12 @@ func init() {
 func TestVzResolveNamespace(t *testing.T) {
 	const defNs = vpoconst.VerrazzanoSystemNamespace
 	a := assert.New(t)
-	ns := resolveVerrazzanoNamespace("")
+	ns := resolveOpensearchNamespace("")
 	a.Equal(defNs, ns, "Wrong namespace resolved for Verrazzano when using empty namespace")
-	ns = resolveVerrazzanoNamespace("default")
+	ns = resolveOpensearchNamespace("default")
 	a.Equal(defNs, ns, "Wrong namespace resolved for Verrazzano when using default namespace")
-	ns = resolveVerrazzanoNamespace("custom")
+	ns = resolveOpensearchNamespace("custom")
 	a.Equal("custom", ns, "Wrong namespace resolved for Verrazzano when using custom namesapce")
-}
-
-// TestFixupFluentdDaemonset tests calls to fixupFluentdDaemonset
-func TestFixupFluentdDaemonset(t *testing.T) {
-	const defNs = vpoconst.VerrazzanoSystemNamespace
-	a := assert.New(t)
-	scheme := runtime.NewScheme()
-	_ = appsv1.AddToScheme(scheme)
-	_ = corev1.AddToScheme(scheme)
-	c := fake.NewClientBuilder().WithScheme(scheme).Build()
-	log := vzlog.DefaultLogger()
-
-	ns := corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: defNs,
-		},
-	}
-	err := c.Create(context.TODO(), &ns)
-	a.NoError(err)
-
-	// Should return with no error since the fluentd daemonset does not exist.
-	// This is valid case when fluentd is not installed.
-	err = fixupFluentdDaemonset(log, c, defNs)
-	a.NoError(err)
-
-	// Create a fluentd daemonset for test purposes
-	daemonSet := appsv1.DaemonSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: defNs,
-			Name:      globalconst.FluentdDaemonSetName,
-		},
-		Spec: appsv1.DaemonSetSpec{
-			Template: corev1.PodTemplateSpec{
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name: "wrong-name",
-							Env: []corev1.EnvVar{
-								{
-									Name:  vpoconst.ClusterNameEnvVar,
-									Value: "managed1",
-								},
-								{
-									Name:  vpoconst.ElasticsearchURLEnvVar,
-									Value: "some-url",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	err = c.Create(context.TODO(), &daemonSet)
-	a.NoError(err)
-
-	// should return error that fluentd container is missing
-	err = fixupFluentdDaemonset(log, c, defNs)
-	a.Contains(err.Error(), "fluentd container not found in fluentd daemonset: fluentd")
-
-	daemonSet.Spec.Template.Spec.Containers[0].Name = "fluentd"
-	err = c.Update(context.TODO(), &daemonSet)
-	a.NoError(err)
-
-	// should return no error since the env variables don't need fixing up
-	err = fixupFluentdDaemonset(log, c, defNs)
-	a.NoError(err)
-
-	// create a secret with needed keys
-	data := make(map[string][]byte)
-	data[vpoconst.ClusterNameData] = []byte("managed1")
-	data[vpoconst.ElasticsearchURLData] = []byte("some-url")
-	secret := corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: defNs,
-			Name:      vpoconst.MCRegistrationSecret,
-		},
-		Data: data,
-	}
-	err = c.Create(context.TODO(), &secret)
-	a.NoError(err)
-
-	// Update env variables to use ValueFrom instead of Value
-	clusterNameRef := corev1.EnvVarSource{
-		SecretKeyRef: &corev1.SecretKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
-				Name: vpoconst.MCRegistrationSecret,
-			},
-			Key: vpoconst.ClusterNameData,
-		},
-	}
-	esURLRef := corev1.EnvVarSource{
-		SecretKeyRef: &corev1.SecretKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
-				Name: vpoconst.MCRegistrationSecret,
-			},
-			Key: vpoconst.ElasticsearchURLData,
-		},
-	}
-	daemonSet.Spec.Template.Spec.Containers[0].Env[0].Value = ""
-	daemonSet.Spec.Template.Spec.Containers[0].Env[0].ValueFrom = &clusterNameRef
-	daemonSet.Spec.Template.Spec.Containers[0].Env[1].Value = ""
-	daemonSet.Spec.Template.Spec.Containers[0].Env[1].ValueFrom = &esURLRef
-	err = c.Update(context.TODO(), &daemonSet)
-	a.NoError(err)
-
-	// should return no error
-	err = fixupFluentdDaemonset(log, c, defNs)
-	a.NoError(err)
-
-	// env variables should be fixed up to use Value instead of ValueFrom
-	fluentdNamespacedName := types.NamespacedName{Name: globalconst.FluentdDaemonSetName, Namespace: defNs}
-	updatedDaemonSet := appsv1.DaemonSet{}
-	err = c.Get(context.TODO(), fluentdNamespacedName, &updatedDaemonSet)
-	a.NoError(err)
-	a.Equal("managed1", updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[0].Value)
-	a.Nil(updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[0].ValueFrom)
-	a.Equal("some-url", updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[1].Value)
-	a.Nil(updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[1].ValueFrom)
-}
-
-// Test_appendCustomImageOverrides tests the appendCustomImageOverrides function
-// GIVEN a call to appendCustomImageOverrides
-//  WHEN I call with no extra kvs
-//  THEN the correct KeyValue objects are returned and no error occurs
-func Test_appendCustomImageOverrides(t *testing.T) {
-	a := assert.New(t)
-	config.SetDefaultBomFilePath(testBomFilePath)
-	defer func() {
-		config.SetDefaultBomFilePath("")
-	}()
-	kvs, err := appendCustomImageOverrides([]bom.KeyValue{})
-
-	a.NoError(err)
-	a.Len(kvs, 2)
-	a.Contains(kvs, bom.KeyValue{
-		Key:   "monitoringOperator.prometheusInitImage",
-		Value: "ghcr.io/oracle/oraclelinux:7-slim",
-	})
-	a.Contains(kvs, bom.KeyValue{
-		Key:   "monitoringOperator.esInitImage",
-		Value: "ghcr.io/oracle/oraclelinux:7.8",
-	})
-}
-
-// Test_appendVerrazzanoValues tests the appendVerrazzanoValues function
-// GIVEN a call to appendVerrazzanoValues
-//  WHEN I call with a ComponentContext with different profiles and overrides
-//  THEN the correct KeyValue objects and overrides file snippets are generated
-func Test_appendVerrazzanoValues(t *testing.T) {
-	falseValue := false
-	tests := []struct {
-		name         string
-		description  string
-		expectedYAML string
-		actualCR     vzapi.Verrazzano
-		expectedErr  error
-	}{
-		{
-			name:         "BasicProdVerrazzanoNoOverrides",
-			description:  "Test basic prod no user overrides",
-			actualCR:     vzapi.Verrazzano{},
-			expectedYAML: "testdata/vzValuesProdNoOverrides.yaml",
-			expectedErr:  nil,
-		},
-		{
-			name:         "BasicDevVerrazzanoNoOverrides",
-			description:  "Test basic dev no user overrides",
-			actualCR:     vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Profile: "dev"}},
-			expectedYAML: "testdata/vzValuesDevNoOverrides.yaml",
-			expectedErr:  nil,
-		},
-		{
-			name:         "BasicManagedClusterVerrazzanoNoOverrides",
-			description:  "Test basic managed-cluster no user overrides",
-			actualCR:     vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Profile: "managed-cluster"}},
-			expectedYAML: "testdata/vzValuesMgdClusterNoOverrides.yaml",
-			expectedErr:  nil,
-		},
-		{
-			name:        "DevVerrazzanoWithOverrides",
-			description: "Test dev profile with overrides no user overrides",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Profile:         "dev",
-					EnvironmentName: "myenv",
-					Components: vzapi.ComponentSpec{
-						Console:               &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Prometheus:            &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Kibana:                &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Elasticsearch:         &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Grafana:               &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Keycloak:              &vzapi.KeycloakComponent{Enabled: &falseValue},
-						Rancher:               &vzapi.RancherComponent{Enabled: &falseValue},
-						DNS:                   &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: "xip.io"}},
-						PrometheusOperator:    &vzapi.PrometheusOperatorComponent{Enabled: &falseValue},
-						PrometheusAdapter:     &vzapi.PrometheusAdapterComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						KubeStateMetrics:      &vzapi.KubeStateMetricsComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						PrometheusPushgateway: &vzapi.PrometheusPushgatewayComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-					},
-				},
-			},
-			expectedYAML: "testdata/vzValuesDevWithOverrides.yaml",
-			expectedErr:  nil,
-		},
-		{
-			name:        "ProdWithExternaDNSEnabled",
-			description: "Test prod with OCI DNS enabled, should enable external-dns component",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						DNS: &vzapi.DNSComponent{
-							OCI: &vzapi.OCI{
-								OCIConfigSecret:        "myOCISecret",
-								DNSZoneCompartmentOCID: "myCompartmentOCID",
-								DNSZoneOCID:            "myZoneOCID",
-								DNSZoneName:            "myzone.com",
-							},
-						},
-					},
-				},
-			},
-			expectedYAML: "testdata/vzValuesProdWithExternalDNS.yaml",
-			expectedErr:  nil,
-		},
-	}
-	defer resetWriteFileFunc()
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			a := assert.New(t)
-
-			t.Log(test.description)
-
-			fakeClient := createFakeClientWithIngress()
-			fakeContext := spi.NewFakeContext(fakeClient, &test.actualCR, false, profileDir)
-			values := verrazzanoValues{}
-
-			writeFileFunc = func(filename string, data []byte, perm fs.FileMode) error {
-				if test.expectedErr != nil {
-					return test.expectedErr
-				}
-				a.Equal([]byte(test.expectedYAML), data)
-				return nil
-			}
-
-			err := appendVerrazzanoValues(fakeContext, &values)
-			if test.expectedErr != nil {
-				a.Error(err)
-			} else {
-				a.NoError(err)
-			}
-
-			// outdata, err := yaml.Marshal(&values)
-			// assert.NoError(err)
-			// ioutil.WriteFile(fmt.Sprintf("%s/%s.yaml", os.TempDir(), test.name), outdata, fs.FileMode(0664))
-
-			data, err := ioutil.ReadFile(test.expectedYAML)
-			a.NoError(err, "Error reading expected values yaml file %s", test.expectedYAML)
-			expectedValues := verrazzanoValues{}
-			err = yaml.Unmarshal(data, &expectedValues)
-			a.NoError(err)
-			a.Equal(expectedValues, values)
-		})
-	}
 }
 
 // Test_appendVMIValues tests the appendVMIValues function
@@ -501,7 +234,7 @@ func Test_appendVMIValues(t *testing.T) {
 
 			fakeClient := createFakeClientWithIngress()
 			fakeContext := spi.NewFakeContext(fakeClient, &test.actualCR, false, profileDir)
-			values := verrazzanoValues{}
+			values := vmiValues{}
 
 			writeFileFunc = func(filename string, data []byte, perm fs.FileMode) error {
 				if test.expectedErr != nil {
@@ -519,298 +252,12 @@ func Test_appendVMIValues(t *testing.T) {
 
 			data, err := ioutil.ReadFile(test.expectedYAML)
 			a.NoError(err, "Error reading expected values yaml file %s", test.expectedYAML)
-			expectedValues := verrazzanoValues{}
+			expectedValues := vmiValues{}
 			err = yaml.Unmarshal(data, &expectedValues)
 			a.NoError(err)
 			a.Equal(expectedValues, values)
 		})
 	}
-}
-
-// Test_appendVerrazzanoOverrides tests the appendVerrazzanoOverrides function
-// GIVEN a call to appendVerrazzanoOverrides
-//  WHEN I call with a ComponentContext with different profiles and overrides
-//  THEN the correct KeyValue objects and overrides file snippets are generated
-func Test_appendVerrazzanoOverrides(t *testing.T) {
-	config.SetDefaultBomFilePath(testBomFilePath)
-	defer func() {
-		config.SetDefaultBomFilePath("")
-	}()
-	falseValue := false
-	trueValue := true
-	tests := []struct {
-		name         string
-		description  string
-		expectedYAML string
-		actualCR     vzapi.Verrazzano
-		expectedErr  error
-		numKeyValues int
-	}{
-		{
-			name:         "ProdDefault",
-			description:  "Test basic prod profile with no user overrides",
-			actualCR:     vzapi.Verrazzano{},
-			expectedYAML: "testdata/vzOverridesProdDefault.yaml",
-		},
-		{
-			name:        "ProdDefaultIOError",
-			description: "Test basic prod profile with no user overrides",
-			actualCR:    vzapi.Verrazzano{},
-			expectedErr: fmt.Errorf("Error writing file"),
-		},
-		{
-			name:         "DevDefault",
-			description:  "Test basic dev profile with no user overrides",
-			actualCR:     vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Profile: "dev"}},
-			expectedYAML: "testdata/vzOverridesDevDefault.yaml",
-			numKeyValues: 7,
-		},
-		{
-			name:         "ManagedClusterDefault",
-			description:  "Test basic managed-cluster no user overrides",
-			actualCR:     vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Profile: "managed-cluster"}},
-			expectedYAML: "testdata/vzOverridesManagedClusterDefault.yaml",
-			numKeyValues: 3,
-		},
-		{
-			name:        "DevWithOverrides",
-			description: "Test dev profile with user overrides",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Profile:         "dev",
-					EnvironmentName: "myenv",
-					Components: vzapi.ComponentSpec{
-						Console:               &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Prometheus:            &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Kibana:                &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Elasticsearch:         &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Grafana:               &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Keycloak:              &vzapi.KeycloakComponent{Enabled: &falseValue},
-						Rancher:               &vzapi.RancherComponent{Enabled: &falseValue},
-						DNS:                   &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: "xip.io"}},
-						PrometheusOperator:    &vzapi.PrometheusOperatorComponent{Enabled: &falseValue},
-						PrometheusAdapter:     &vzapi.PrometheusAdapterComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						KubeStateMetrics:      &vzapi.KubeStateMetricsComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						PrometheusPushgateway: &vzapi.PrometheusPushgatewayComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-					},
-				},
-			},
-			expectedYAML: "testdata/vzOverridesDevWithOverrides.yaml",
-			numKeyValues: 7,
-		},
-		{
-			name:        "ProdWithExternaDNSEnabled",
-			description: "Test prod with OCI DNS enabled, should enable external-dns component",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						DNS: &vzapi.DNSComponent{
-							OCI: &vzapi.OCI{
-								OCIConfigSecret:        "myOCISecret",
-								DNSZoneCompartmentOCID: "myCompartmentOCID",
-								DNSZoneOCID:            "myZoneOCID",
-								DNSZoneName:            "myzone.com",
-							},
-						},
-					},
-				},
-			},
-			expectedYAML: "testdata/vzOverridesProdWithExternaDNSEnabled.yaml",
-		},
-		{
-			name:        "ProdWithAdminRoleOverrides",
-			description: "Test prod with Security admin role overrides only",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Security: vzapi.SecuritySpec{
-						AdminSubjects: []rbacv1.Subject{
-							{
-								Kind: "User",
-								Name: "kilgore-trout",
-							},
-							{
-								Kind: "User",
-								Name: "fred-flintstone",
-							},
-						},
-					},
-				},
-			},
-			expectedYAML: "testdata/vzOverridesProdWithAdminRoleOverrides.yaml",
-		},
-		{
-			name:        "ProdWithMonitorRoleOverrides",
-			description: "Test prod with Monitor admin role overrides only",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Security: vzapi.SecuritySpec{
-						MonitorSubjects: []rbacv1.Subject{
-							{
-								Kind: "Group",
-								Name: "group-of-monitors",
-							},
-							{
-								Kind: "User",
-								Name: "joe-monitor",
-							},
-						},
-					},
-				},
-			},
-			expectedYAML: "testdata/vzOverridesProdWithMonitorRoleOverrides.yaml",
-		},
-		{
-			name:        "ProdWithAdminAndMonitorRoleOverrides",
-			description: "Test prod with Security admin and monitor role overrides",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Security: vzapi.SecuritySpec{
-						AdminSubjects: []rbacv1.Subject{
-							{
-								Kind: "User",
-								Name: "kilgore-trout",
-							},
-						},
-						MonitorSubjects: []rbacv1.Subject{
-							{
-								Kind: "Group",
-								Name: "group-of-monitors",
-							},
-						},
-					},
-				},
-			},
-			expectedYAML: "testdata/vzOverridesProdWithAdminAndMonitorRoleOverrides.yaml",
-		},
-		{
-			name:        "ProdWithFluentdEmptyExtraVolumeMountsOverrides",
-			description: "Test prod with a fluentd override with an empty extra volume mounts field",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Profile: vzapi.Prod,
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
-							ExtraVolumeMounts: []vzapi.VolumeMount{},
-						},
-					},
-				},
-			},
-			expectedYAML: "testdata/vzOverridesProdWithFluentdEmptyExtraVolumeMountsOverrides.yaml",
-		},
-		{
-			name:        "ProdWithFluentdOverrides",
-			description: "Test prod with fluentd overrides",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Profile: vzapi.Prod,
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
-							ExtraVolumeMounts: []vzapi.VolumeMount{
-								{Source: "mysourceDefaults"},
-								{Source: "mysourceRO", ReadOnly: &trueValue},
-								{Source: "mysourceCustomDestRW", Destination: "mydest", ReadOnly: &falseValue},
-							},
-							ElasticsearchURL:    "http://myes.mydomain.com:9200",
-							ElasticsearchSecret: "custom-elasticsearch-secret",
-						},
-					},
-				},
-			},
-			expectedYAML: "testdata/vzOverridesProdWithFluentdOverrides.yaml",
-		},
-		{
-			name:        "ProdWithFluentdOCILoggingOverrides",
-			description: "Test prod with fluentd OCI Logging overrides",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Profile: vzapi.Prod,
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
-							OCI: &vzapi.OciLoggingConfiguration{
-								SystemLogID:     "ocid1.log.oc1.iad.system-log-ocid",
-								DefaultAppLogID: "ocid1.log.oc1.iad.default-app-log-ocid",
-							},
-						},
-					},
-				},
-			},
-			expectedYAML: "testdata/vzOverridesProdWithFluentdOCILoggingOverrides.yaml",
-		},
-	}
-	defer resetWriteFileFunc()
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			a := assert.New(t)
-			t.Log(test.description)
-
-			fakeClient := createFakeClientWithIngress()
-			fakeContext := spi.NewFakeContext(fakeClient, &test.actualCR, false, profileDir)
-
-			writeFileFunc = func(filename string, data []byte, perm fs.FileMode) error {
-				if test.expectedErr != nil {
-					return test.expectedErr
-				}
-				if err := ioutil.WriteFile(filename, data, perm); err != nil {
-					a.Failf("Failure writing file %s: %s", filename, err)
-					return err
-				}
-				a.FileExists(filename)
-
-				// Unmarshal the VZ expected and actual data into verrazzanoValues structs
-				// and do a deep-equals comparison using the asserts package
-
-				// Unmarshal the actual generated helm values from code under test
-				actualValues := verrazzanoValues{}
-				err := yaml.Unmarshal(data, &actualValues)
-				a.NoError(err)
-
-				// read in the expected results data from a file and unmarshal it into a values object
-				expectedData, err := ioutil.ReadFile(test.expectedYAML)
-				a.NoError(err, "Error reading expected values yaml file %s", test.expectedYAML)
-				expectedValues := verrazzanoValues{}
-				err = yaml.Unmarshal(expectedData, &expectedValues)
-
-				a.NoError(err)
-				a.Equal(expectedValues.Logging.ConfigHash, HashSum(fakeContext.EffectiveCR().Spec.Components.Fluentd))
-				// Compare the actual and expected values objects
-				a.Equal(expectedValues, actualValues)
-				a.Equal(HashSum(expectedValues), HashSum(actualValues))
-				return nil
-			}
-
-			kvs := []bom.KeyValue{}
-			kvs, err := appendVerrazzanoOverrides(fakeContext, "", "", "", kvs)
-			if test.expectedErr != nil {
-				a.Error(err)
-				a.Equal([]bom.KeyValue{}, kvs)
-				return
-			}
-			a.NoError(err)
-
-			actualNumKvs := len(kvs)
-			expectedNumKvs := test.numKeyValues
-			if expectedNumKvs == 0 {
-				// default is 11, 2 file override + 1 custom image overrides + 8 ES
-				expectedNumKvs = 11
-			}
-			a.Equal(expectedNumKvs, actualNumKvs)
-			// Check Temp file
-			a.True(kvs[0].IsFile, "Expected generated verrazzano overrides first in list of helm args")
-			tempFilePath := kvs[0].Value
-			_, err = os.Stat(tempFilePath)
-			a.NoError(err, "Unexpected error checking for temp file %s: %s", tempFilePath, err)
-			cleanTempFiles(fakeContext)
-		})
-	}
-	// Verify temp files are deleted
-	files, err := ioutil.ReadDir(os.TempDir())
-	assert.NoError(t, err, "Error reading temp dir to verify file cleanup")
-	for _, file := range files {
-		assert.False(t,
-			strings.HasPrefix(file.Name(), tmpFilePrefix) && strings.HasSuffix(file.Name(), ".yaml"),
-			"Found unexpected temp file remaining: %s", file.Name())
-	}
-
 }
 
 // Test_findStorageOverride tests the findStorageOverride function
@@ -961,113 +408,6 @@ func Test_findStorageOverride(t *testing.T) {
 			}
 		})
 	}
-}
-
-// Test_loggingPreInstall tests the Verrazzano loggingPreInstall call
-func Test_loggingPreInstall(t *testing.T) {
-	// GIVEN a Verrazzano component
-	//  WHEN I call loggingPreInstall with fluentd overrides for ES and a custom ES secret
-	//  THEN no error is returned and the secret has been copied
-	trueValue := true
-	secretName := "my-es-secret" //nolint:gosec //#gosec G101
-	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Namespace: vpoconst.VerrazzanoInstallNamespace, Name: secretName},
-	}).Build()
-
-	ctx := spi.NewFakeContext(c,
-		&vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						Enabled:             &trueValue,
-						ElasticsearchURL:    "https://myes.mydomain.com:9200",
-						ElasticsearchSecret: secretName,
-					},
-				},
-			},
-		},
-		false)
-	err := loggingPreInstall(ctx)
-	assert.NoError(t, err)
-
-	secret := &corev1.Secret{}
-	err = c.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: ComponentNamespace}, secret)
-	assert.NoError(t, err)
-
-	// GIVEN a Verrazzano component
-	//  WHEN I call loggingPreInstall with fluentd overrides for OCI logging, including an OCI API secret name
-	//  THEN no error is returned and the secret has been copied
-	secretName = "my-oci-api-secret" //nolint:gosec //#gosec G101
-	cs := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-		&corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Namespace: vpoconst.VerrazzanoInstallNamespace, Name: secretName},
-		},
-	).Build()
-	ctx = spi.NewFakeContext(cs,
-		&vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						Enabled: &trueValue,
-						OCI: &vzapi.OciLoggingConfiguration{
-							APISecret: secretName,
-						},
-					},
-				},
-			},
-		},
-		false)
-	err = loggingPreInstall(ctx)
-	assert.NoError(t, err)
-
-	err = cs.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: ComponentNamespace}, secret)
-	assert.NoError(t, err)
-}
-
-// Test_loggingPreInstallSecretNotFound tests the Verrazzano loggingPreInstall call
-// GIVEN a Verrazzano component
-//  WHEN I call loggingPreInstall with fluentd overrides for ES and a custom ES secret and the secret does not exist
-//  THEN an error is returned
-func Test_loggingPreInstallSecretNotFound(t *testing.T) {
-	trueValue := true
-	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(c,
-		&vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						Enabled:             &trueValue,
-						ElasticsearchURL:    "https://myes.mydomain.com:9200",
-						ElasticsearchSecret: "my-es-secret",
-					},
-				},
-			},
-		},
-		false)
-	err := loggingPreInstall(ctx)
-	assert.Error(t, err)
-}
-
-// Test_loggingPreInstallFluentdNotEnabled tests the Verrazzano loggingPreInstall call
-// GIVEN a Verrazzano component
-//  WHEN I call loggingPreInstall and fluentd is disabled
-//  THEN no error is returned
-func Test_loggingPreInstallFluentdNotEnabled(t *testing.T) {
-	falseValue := false
-	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(c,
-		&vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						Enabled: &falseValue,
-					},
-				},
-			},
-		},
-		false)
-	err := loggingPreInstall(ctx)
-	assert.NoError(t, err)
 }
 
 func createFakeClientWithIngress() client.Client {
@@ -1526,9 +866,9 @@ func TestAssociateHelmObjectAndKeep(t *testing.T) {
 	assert.Equal(t, "Helm", obj.Labels["app.kubernetes.io/managed-by"])
 }
 
-// TestIsReadySecretNotReady tests the Verrazzano isVerrazzanoReady call
+// TestIsReadySecretNotReady tests the Verrazzano isOpenSearchReady call
 // GIVEN a Verrazzano component
-//  WHEN I call isVerrazzanoReady when it is installed and the deployment availability criteria are met, but the secret is not found
+//  WHEN I call isOpenSearchReady when it is installed and the deployment availability criteria are met, but the secret is not found
 //  THEN false is returned
 func TestIsReadySecretNotReady(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&appsv1.Deployment{
@@ -1543,22 +883,22 @@ func TestIsReadySecretNotReady(t *testing.T) {
 		},
 	}).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, isVerrazzanoReady(ctx))
+	assert.False(t, isOpenSearchReady(ctx))
 }
 
-// TestIsReadyChartNotInstalled tests the Verrazzano isVerrazzanoReady call
+// TestIsReadyChartNotInstalled tests the Verrazzano isOpenSearchReady call
 // GIVEN a Verrazzano component
-//  WHEN I call isVerrazzanoReady when it is not installed
+//  WHEN I call isOpenSearchReady when it is not installed
 //  THEN false is returned
 func TestIsReadyChartNotInstalled(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, isVerrazzanoReady(ctx))
+	assert.False(t, isOpenSearchReady(ctx))
 }
 
-// TestIsReady tests the Verrazzano isVerrazzanoReady call
+// TestIsReady tests the isOpenSearchReady call
 // GIVEN Verrazzano components that are all enabled by default
-//  WHEN I call isVerrazzanoReady when all requirements are met
+//  WHEN I call isOpenSearchReady when all requirements are met
 //  THEN false is returned
 func TestIsReady(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&appsv1.Deployment{
@@ -1712,12 +1052,12 @@ func TestIsReady(t *testing.T) {
 		},
 	}
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.True(t, isVerrazzanoReady(ctx))
+	assert.True(t, isOpenSearchReady(ctx))
 }
 
-// TestIsReadyDeploymentNotAvailable tests the Verrazzano isVerrazzanoReady call
+// TestIsReadyDeploymentNotAvailable tests the Verrazzano isOpenSearchReady call
 // GIVEN a Verrazzano component
-//  WHEN I call isVerrazzanoReady when the Verrazzano console deployment is not available
+//  WHEN I call isOpenSearchReady when the Verrazzano console deployment is not available
 //  THEN false is returned
 func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&appsv1.Deployment{
@@ -1735,12 +1075,12 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 			Namespace: ComponentNamespace}},
 	).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, isVerrazzanoReady(ctx))
+	assert.False(t, isOpenSearchReady(ctx))
 }
 
-// TestIsReadyDeploymentVMIDisabled tests the Verrazzano isVerrazzanoReady call
+// TestIsReadyDeploymentVMIDisabled tests the Verrazzano isOpenSearchReady call
 // GIVEN a Verrazzano component with all VMI components disabled
-//  WHEN I call isVerrazzanoReady
+//  WHEN I call isOpenSearchReady
 //  THEN true is returned
 func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
@@ -1761,7 +1101,7 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 	}
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.True(t, isVerrazzanoReady(ctx))
+	assert.True(t, isOpenSearchReady(ctx))
 }
 
 func TestConfigHashSum(t *testing.T) {

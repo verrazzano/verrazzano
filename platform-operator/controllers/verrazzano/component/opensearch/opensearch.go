@@ -15,11 +15,9 @@ import (
 	"time"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
@@ -31,9 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
@@ -85,26 +81,12 @@ func resolveOpensearchNamespace(ns string) string {
 	return globalconst.VerrazzanoSystemNamespace
 }
 
-// isVerrazzanoReady Verrazzano components ready-check
-func isVerrazzanoReady(ctx spi.ComponentContext) bool {
+// isOpenSearchReady VMI components ready-check
+func isOpenSearchReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 
-	// First, check deployments
 	var deployments []types.NamespacedName
-	if vzconfig.IsConsoleEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments,
-			types.NamespacedName{
-				Name:      verrazzanoConsoleDeployment,
-				Namespace: ComponentNamespace,
-			})
-	}
-	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments,
-			types.NamespacedName{
-				Name:      vmoDeployment,
-				Namespace: ComponentNamespace,
-			})
-	}
+
 	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments,
 			types.NamespacedName{
@@ -192,13 +174,6 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 				Namespace: globalconst.VerrazzanoMonitoringNamespace,
 			})
 	}
-	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) && getProfile(ctx.EffectiveCR()) != vzapi.ManagedCluster {
-		daemonsets = append(daemonsets,
-			types.NamespacedName{
-				Name:      fluentDaemonset,
-				Namespace: ComponentNamespace,
-			})
-	}
 	if !status.DaemonSetsAreReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {
 		return false
 	}
@@ -207,7 +182,7 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 }
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart
-func verrazzanoPreUpgrade(ctx spi.ComponentContext, namespace string) error {
+func opensearchPreUpgrade(ctx spi.ComponentContext) error {
 	if err := common.ApplyCRDYaml(ctx, config.GetHelmVzChartsDir()); err != nil {
 		return err
 	}
@@ -220,10 +195,7 @@ func verrazzanoPreUpgrade(ctx spi.ComponentContext, namespace string) error {
 	if err := ensureVMISecret(ctx.Client()); err != nil {
 		return err
 	}
-	if err := ensureGrafanaAdminSecret(ctx.Client()); err != nil {
-		return err
-	}
-	return fixupFluentdDaemonset(ctx.Log(), ctx.Client(), namespace)
+	return ensureGrafanaAdminSecret(ctx.Client())
 }
 
 func findStorageOverride(effectiveCR *vzapi.Verrazzano) (*resourceRequestValues, error) {
@@ -250,86 +222,6 @@ func findStorageOverride(effectiveCR *vzapi.Verrazzano) (*resourceRequestValues,
 	return nil, fmt.Errorf("Failed, unsupported volume source: %v", defaultVolumeSource)
 }
 
-// This function is used to fixup the fluentd daemonset on a managed cluster so that helm upgrade of Verrazzano does
-// not fail.  Prior to Verrazzano v1.0.1, the mcagent would change the environment variables CLUSTER_NAME and
-// ELASTICSEARCH_URL on a managed cluster to use valueFrom (from a secret) instead of using a Value. The helm chart
-// template for the fluentd daemonset expects a Value.
-func fixupFluentdDaemonset(log vzlog.VerrazzanoLogger, client clipkg.Client, namespace string) error {
-	// Get the fluentd daemonset resource
-	fluentdNamespacedName := types.NamespacedName{Name: globalconst.FluentdDaemonSetName, Namespace: namespace}
-	daemonSet := appsv1.DaemonSet{}
-	err := client.Get(context.TODO(), fluentdNamespacedName, &daemonSet)
-	if errors.IsNotFound(err) {
-		return nil
-	}
-	if err != nil {
-		return log.ErrorfNewErr("Failed to find the fluentd DaemonSet %s, %v", daemonSet.Name, err)
-	}
-
-	// Find the fluent container and save it's container index
-	fluentdIndex := -1
-	for i, container := range daemonSet.Spec.Template.Spec.Containers {
-		if container.Name == "fluentd" {
-			fluentdIndex = i
-			break
-		}
-	}
-	if fluentdIndex == -1 {
-		return log.ErrorfNewErr("Failed, fluentd container not found in fluentd daemonset: %s", daemonSet.Name)
-	}
-
-	// Check if env variables CLUSTER_NAME and ELASTICSEARCH_URL are using valueFrom.
-	clusterNameIndex := -1
-	elasticURLIndex := -1
-	for i, env := range daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env {
-		if env.Name == constants.ClusterNameEnvVar && env.ValueFrom != nil {
-			clusterNameIndex = i
-			continue
-		}
-		if env.Name == constants.ElasticsearchURLEnvVar && env.ValueFrom != nil {
-			elasticURLIndex = i
-		}
-	}
-
-	// If valueFrom is not being used then we do not need to fix the env variables
-	if clusterNameIndex == -1 && elasticURLIndex == -1 {
-		return nil
-	}
-
-	// Get the secret containing managed cluster name and Elasticsearch URL
-	secretNamespacedName := types.NamespacedName{Name: constants.MCRegistrationSecret, Namespace: namespace}
-	sec := corev1.Secret{}
-	err = client.Get(context.TODO(), secretNamespacedName, &sec)
-	if err != nil {
-		return err
-	}
-
-	// The secret must contain a cluster name
-	clusterName, ok := sec.Data[constants.ClusterNameData]
-	if !ok {
-		return log.ErrorfNewErr("Failed, the secret named %s in namespace %s is missing the required field %s", sec.Name, sec.Namespace, constants.ClusterNameData)
-	}
-
-	// The secret must contain the Elasticsearch endpoint's URL
-	elasticsearchURL, ok := sec.Data[constants.ElasticsearchURLData]
-	if !ok {
-		return log.ErrorfNewErr("Failed, the secret named %s in namespace %s is missing the required field %s", sec.Name, sec.Namespace, constants.ElasticsearchURLData)
-	}
-
-	// Update the daemonset to use a Value instead of the valueFrom
-	if clusterNameIndex != -1 {
-		daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env[clusterNameIndex].Value = string(clusterName)
-		daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env[clusterNameIndex].ValueFrom = nil
-	}
-	if elasticURLIndex != -1 {
-		daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env[elasticURLIndex].Value = string(elasticsearchURL)
-		daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env[elasticURLIndex].ValueFrom = nil
-	}
-	log.Debug("Updating fluentd daemonset to use valueFrom instead of Value for CLUSTER_NAME and ELASTICSEARCH_URL environment variables")
-	err = client.Update(context.TODO(), &daemonSet)
-	return err
-}
-
 func createAndLabelNamespaces(ctx spi.ComponentContext) error {
 	if err := namespace.CreateVerrazzanoSystemNamespace(ctx.Client()); err != nil {
 		return err
@@ -337,74 +229,6 @@ func createAndLabelNamespaces(ctx spi.ComponentContext) error {
 	if _, err := secret.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoSystemNamespace); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed checking for image pull secret: %v", err)
 	}
-	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
-		// If the monitoring operator is enabled, create the monitoring namespace and copy the image pull secret
-		if err := namespace.CreateVerrazzanoMonitoringNamespace(ctx.Client()); err != nil {
-			return ctx.Log().ErrorfNewErr("Failed creating Verrazzano Monitoring namespace: %v", err)
-		}
-		if _, err := secret.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoMonitoringNamespace); err != nil {
-			return ctx.Log().ErrorfNewErr("Failed checking for image pull secret: %v", err)
-		}
-	}
-	return nil
-}
-
-// loggingPreInstall copies logging secrets from the verrazzano-install namespace to the verrazzano-system namespace
-func loggingPreInstall(ctx spi.ComponentContext) error {
-	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) {
-		// If fluentd is enabled, copy any custom secrets
-		fluentdConfig := ctx.EffectiveCR().Spec.Components.Fluentd
-		if fluentdConfig != nil {
-			// Copy the internal Elasticsearch secret
-			if len(fluentdConfig.ElasticsearchURL) > 0 && fluentdConfig.ElasticsearchSecret != globalconst.VerrazzanoESInternal {
-				if err := copySecret(ctx, fluentdConfig.ElasticsearchSecret, "custom Elasticsearch"); err != nil {
-					return err
-				}
-			}
-			// Copy the OCI API secret
-			if fluentdConfig.OCI != nil && len(fluentdConfig.OCI.APISecret) > 0 {
-				if err := copySecret(ctx, fluentdConfig.OCI.APISecret, "OCI API"); err != nil {
-					return err
-				}
-			}
-		}
-	}
-	return nil
-}
-
-// copySecret copies a secret from the verrazzano-install namespace to the verrazzano-system namespace. If
-// the target secret already exists, then it will be updated if necessary.
-func copySecret(ctx spi.ComponentContext, secretName string, logMsg string) error {
-	vzLog := ctx.Log()
-	vzLog.Debugf("Copying %s secret %s to %s namespace", logMsg, secretName, globalconst.VerrazzanoSystemNamespace)
-
-	targetSecret := corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: globalconst.VerrazzanoSystemNamespace,
-		},
-	}
-	opResult, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &targetSecret, func() error {
-		sourceSecret := corev1.Secret{}
-		nsn := types.NamespacedName{Name: secretName, Namespace: constants.VerrazzanoInstallNamespace}
-		if err := ctx.Client().Get(context.TODO(), nsn, &sourceSecret); err != nil {
-			return err
-		}
-		targetSecret.Type = sourceSecret.Type
-		targetSecret.Immutable = sourceSecret.Immutable
-		targetSecret.StringData = sourceSecret.StringData
-		targetSecret.Data = sourceSecret.Data
-		return nil
-	})
-
-	vzLog.Debugf("Copy %s secret result: %s", logMsg, opResult)
-	if err != nil {
-		if !errors.IsNotFound(err) {
-			return ctx.Log().ErrorfNewErr("Failed in create/update for copysecret: %v", err)
-		}
-		return vzLog.ErrorfNewErr("Failed, the %s secret %s not found in namespace %s", logMsg, secretName, constants.VerrazzanoInstallNamespace)
-	}
-
 	return nil
 }
 
@@ -648,15 +472,6 @@ func associateHelmObject(cli clipkg.Client, obj clipkg.Object, releaseName types
 	obj.SetLabels(labels)
 	err := cli.Update(context.TODO(), obj)
 	return obj, err
-}
-
-// GetProfile Returns the configured profile name, or "prod" if not specified in the configuration
-func getProfile(vz *vzapi.Verrazzano) vzapi.ProfileType {
-	profile := vz.Spec.Profile
-	if len(profile) == 0 {
-		profile = vzapi.Prod
-	}
-	return profile
 }
 
 // HashSum returns the hash sum of the config object

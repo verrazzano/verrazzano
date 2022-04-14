@@ -37,8 +37,11 @@ func createVMI(ctx spi.ComponentContext) error {
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("Failed getting DNS suffix: %v", err)
 	}
-
 	envName := vzconfig.GetEnvName(effectiveCR)
+
+	if err := createGrafanaConfigMaps(ctx); err != nil {
+		return ctx.Log().ErrorfNewErr("failed to create grafana configmaps: %v", err)
+	}
 
 	storage, err := findStorageOverride(ctx.EffectiveCR())
 	if err != nil {

@@ -122,13 +122,13 @@ func TestPostInstall(t *testing.T) {
 
 	// now get all the ingresses for VZ and add them to the fake K8S and ensure that PostInstall succeeds
 	// when all the ingresses are present in the cluster
-	vzIngressNames := vzComp.(verrazzanoComponent).GetIngressNames(ctx)
+	vzIngressNames := vzComp.(opensearchComponent).GetIngressNames(ctx)
 	for _, ingressName := range vzIngressNames {
 		_ = c.Create(context.TODO(), &v1.Ingress{
 			ObjectMeta: metav1.ObjectMeta{Name: ingressName.Name, Namespace: ingressName.Namespace},
 		})
 	}
-	for _, certName := range vzComp.(verrazzanoComponent).GetCertificateNames(ctx) {
+	for _, certName := range vzComp.(opensearchComponent).GetCertificateNames(ctx) {
 		time := metav1.Now()
 		_ = c.Create(context.TODO(), &certv1.Certificate{
 			ObjectMeta: metav1.ObjectMeta{Name: certName.Name, Namespace: certName.Namespace},
@@ -162,13 +162,13 @@ func TestPostInstallCertsNotReady(t *testing.T) {
 
 	// now get all the ingresses for VZ and add them to the fake K8S and ensure that PostInstall succeeds
 	// when all the ingresses are present in the cluster
-	vzIngressNames := vzComp.(verrazzanoComponent).GetIngressNames(ctx)
+	vzIngressNames := vzComp.(opensearchComponent).GetIngressNames(ctx)
 	for _, ingressName := range vzIngressNames {
 		_ = c.Create(context.TODO(), &v1.Ingress{
 			ObjectMeta: metav1.ObjectMeta{Name: ingressName.Name, Namespace: ingressName.Namespace},
 		})
 	}
-	for _, certName := range vzComp.(verrazzanoComponent).GetCertificateNames(ctx) {
+	for _, certName := range vzComp.(opensearchComponent).GetCertificateNames(ctx) {
 		time := metav1.Now()
 		_ = c.Create(context.TODO(), &certv1.Certificate{
 			ObjectMeta: metav1.ObjectMeta{Name: certName.Name, Namespace: certName.Namespace},
@@ -328,7 +328,7 @@ func getBoolPtr(b bool) *bool {
 	return &b
 }
 
-func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
+func Test_opensearchComponent_ValidateUpdate(t *testing.T) {
 	disabled := false
 	var pvc1Gi, _ = resource.ParseQuantity("1Gi")
 	var pvc2Gi, _ = resource.ParseQuantity("2Gi")

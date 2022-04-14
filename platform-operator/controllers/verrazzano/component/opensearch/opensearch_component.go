@@ -93,7 +93,7 @@ func (c opensearchComponent) Install(ctx spi.ComponentContext) error {
 
 // PreUpgrade Verrazzano component pre-upgrade processing
 func (c opensearchComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	return verrazzanoPreUpgrade(ctx, ComponentNamespace)
+	return opensearchPreUpgrade(ctx)
 }
 
 // InstallUpgrade Verrazzano component upgrade processing
@@ -107,7 +107,7 @@ func (c opensearchComponent) Upgrade(ctx spi.ComponentContext) error {
 // IsReady component check
 func (c opensearchComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		return isVerrazzanoReady(ctx)
+		return isOpenSearchReady(ctx)
 	}
 	return false
 }
