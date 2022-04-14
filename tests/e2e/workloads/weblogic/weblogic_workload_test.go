@@ -27,7 +27,7 @@ const (
 	imagePullPollingInterval = 30 * time.Second
 
 	appConfiguration  = "tests/testdata/test-applications/weblogic/hello-weblogic/hello-wls-app.yaml"
-	compConfiguration = "tests/testdata/test-applications/weblogic/hello-weblogic/hello-wls-comp.yaml"
+	compConfiguration = "tests/testdata/test-applications/weblogic/hello-weblogic/hello-wls-comp-mii.yaml"
 
 	appURL         = "hello/weblogic/greetings/message"
 	welcomeMessage = "Hello WebLogic"

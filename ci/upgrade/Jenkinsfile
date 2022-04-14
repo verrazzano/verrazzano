@@ -240,6 +240,11 @@ pipeline {
                                 runGinkgoNamespace('examples/helidon', "false", "true", "hello-helidon")
                             }
                         }
+                        stage('weblogic workload') {
+                            steps {
+                                runGinkgoNamespace('workloads/weblogic', "false", "true", "hello-wls")
+                            }
+                        }
                         // Re-enable this stage when a mechanism is in place to deploy different comp and app yamls based on VZ version
 //                         stage('examples socks') {
 //                             steps {
@@ -448,7 +453,7 @@ pipeline {
                         }
                         stage('weblogic workload') {
                             steps {
-                                runGinkgoNamespace('workloads/weblogic', "false", "true", "hello-wls")
+                                runGinkgoNamespace('workloads/weblogic', "true", "false", "hello-wls")
                             }
                         }
                         stage('coherence workload') {
