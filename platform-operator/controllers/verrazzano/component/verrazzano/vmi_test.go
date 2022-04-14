@@ -5,11 +5,14 @@ package verrazzano
 
 import (
 	"context"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
@@ -283,4 +286,80 @@ func TestSetupSharedVmiResources(t *testing.T) {
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
 	err := setupSharedVMIResources(ctx)
 	assert.Nil(t, err)
+}
+
+func TestNodeAdapter(t *testing.T) {
+	vmiStorage := "50Gi"
+	vmi := &vmov1.VerrazzanoMonitoringInstance{
+		Spec: vmov1.VerrazzanoMonitoringInstanceSpec{
+			Elasticsearch: vmov1.Elasticsearch{
+				Enabled: true,
+				Nodes: []vmov1.ElasticsearchNode{
+					{
+						Name:     "a",
+						Replicas: 1,
+						Storage: &vmov1.Storage{
+							Size: vmiStorage,
+						},
+						Roles: []vmov1.NodeRole{
+							vmov1.MasterRole,
+						},
+						Resources: vmov1.Resources{
+							RequestMemory: "48Mi",
+						},
+					},
+					{
+						Name:     "b",
+						Replicas: 2,
+						Storage: &vmov1.Storage{
+							Size: "100Gi",
+							PvcNames: []string{
+								"1", "2",
+							},
+						},
+						Roles: []vmov1.NodeRole{
+							vmov1.DataRole,
+							vmov1.IngestRole,
+						},
+						Resources: vmov1.Resources{
+							RequestMemory: "48Mi",
+						},
+					},
+				},
+			},
+		},
+	}
+	nodes := []vzapi.OpenSearchNode{
+		{
+			Name:     "a",
+			Replicas: 3,
+			Roles: []vmov1.NodeRole{
+				vmov1.MasterRole,
+			},
+			Resources: &corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceRequestsMemory: resource.MustParse("48Mi"),
+				},
+			},
+		},
+		{
+			Name:     "b",
+			Replicas: 2,
+			Roles: []vmov1.NodeRole{
+				vmov1.DataRole,
+				vmov1.IngestRole,
+			},
+			Resources: &corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceRequestsMemory: resource.MustParse("48Mi"),
+				},
+			},
+			Storage: &vzapi.OpenSearchNodeStorage{
+				Size: "100Mi",
+			},
+		},
+	}
+
+	adaptedNodes := nodeAdapter(vmi, nodes, &resourceRequestValues{Storage: vmiStorage})
+	fmt.Println(adaptedNodes)
 }
