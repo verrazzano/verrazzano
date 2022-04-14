@@ -32,14 +32,14 @@ func createVMI(ctx spi.ComponentContext) error {
 	}
 
 	effectiveCR := ctx.EffectiveCR()
+
 	dnsSuffix, err := vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("Failed getting DNS suffix: %v", err)
 	}
-	values := &verrazzanoValues{}
-	if err := appendVerrazzanoValues(ctx, values); err != nil {
-		return ctx.Log().ErrorfNewErr("failed to get Verrazzano values: %v", err)
-	}
+
+	envName := vzconfig.GetEnvName(effectiveCR)
+
 	storage, err := findStorageOverride(ctx.EffectiveCR())
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("failed to get storage overrides: %v", err)
@@ -56,8 +56,8 @@ func createVMI(ctx spi.ComponentContext) error {
 			"verrazzano.binding": system,
 		}
 		cr := ctx.EffectiveCR()
-		vmi.Spec.URI = fmt.Sprintf("vmi.system.%s.%s", values.Config.EnvName, dnsSuffix)
-		vmi.Spec.IngressTargetDNSName = fmt.Sprintf("verrazzano-ingress.%s.%s", values.Config.EnvName, dnsSuffix)
+		vmi.Spec.URI = fmt.Sprintf("vmi.system.%s.%s", envName, dnsSuffix)
+		vmi.Spec.IngressTargetDNSName = fmt.Sprintf("verrazzano-ingress.%s.%s", envName, dnsSuffix)
 		vmi.Spec.ServiceType = "ClusterIP"
 		vmi.Spec.AutoSecret = true
 		vmi.Spec.SecretsName = verrazzanoSecretName
