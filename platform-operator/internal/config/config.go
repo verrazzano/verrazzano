@@ -18,7 +18,6 @@ const (
 	thirdPartyManifestsDirSuffix = "/platform-operator/thirdparty/manifests"
 	helmConfigDirSuffix          = "/platform-operator/helm_config"
 	helmChartsDirSuffix          = "/platform-operator/helm_config/charts"
-	helmVzChartsDirSuffix        = "/platform-operator/helm_config/charts/verrazzano"
 	helmVmoChartsDirSuffix       = "/platform-operator/helm_config/charts/verrazzano-monitoring-operator"
 	helmAppOpChartsDirSuffix     = "/platform-operator/helm_config/charts/verrazzano-application-operator"
 	helmKialiChartsDirSuffix     = "/platform-operator/thirdparty/charts/kiali-server"
