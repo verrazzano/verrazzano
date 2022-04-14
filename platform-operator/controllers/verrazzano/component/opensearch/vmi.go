@@ -60,7 +60,7 @@ func createVMI(ctx spi.ComponentContext) error {
 		vmi.Spec.IngressTargetDNSName = fmt.Sprintf("verrazzano-ingress.%s.%s", values.Config.EnvName, dnsSuffix)
 		vmi.Spec.ServiceType = "ClusterIP"
 		vmi.Spec.AutoSecret = true
-		vmi.Spec.SecretsName = ComponentName
+		vmi.Spec.SecretsName = verrazzanoSecretName
 		vmi.Spec.CascadingDelete = true
 		vmi.Spec.Grafana = newGrafana(cr, storage, existingVMI)
 		vmi.Spec.Prometheus = newPrometheus(cr, storage, existingVMI)
@@ -288,14 +288,14 @@ func setupSharedVMIResources(ctx spi.ComponentContext) error {
 func ensureVMISecret(cli client.Client) error {
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      ComponentName,
+			Name:      verrazzanoSecretName,
 			Namespace: globalconst.VerrazzanoSystemNamespace,
 		},
 		Data: map[string][]byte{},
 	}
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), cli, secret, func() error {
 		if secret.Data["username"] == nil || secret.Data["password"] == nil {
-			secret.Data["username"] = []byte(ComponentName)
+			secret.Data["username"] = []byte(verrazzanoSecretName)
 			pw, err := password.GeneratePassword(16)
 			if err != nil {
 				return err

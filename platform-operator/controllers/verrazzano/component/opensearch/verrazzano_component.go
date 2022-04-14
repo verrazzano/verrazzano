@@ -31,6 +31,9 @@ const (
 	// vzImagePullSecretKeyName is the Helm key name for the VZ chart image pull secret
 	vzImagePullSecretKeyName = "global.imagePullSecrets[0]"
 
+	// verrazzanoSecretName is the name of the VMI secret
+	verrazzanoSecretName = "verrazzano"
+
 	// Certificate names
 	verrazzanoCertificateName = "verrazzano-tls"
 	osCertificateName         = "system-tls-es-ingest"
