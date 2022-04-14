@@ -36,18 +36,15 @@ func (s *Syncer) syncClusterCAs() error {
 // syncAdminClusterCA - synchronize the admin cluster CA cert -- update local copy if admin CA changes
 func (s *Syncer) syncAdminClusterCA() error {
 
-	s.Log.Info("Syncing AdminClusterCA ...")
-
 	// Get the cluster CA secret from the admin cluster
 	adminCASecret := corev1.Secret{}
 	err := s.AdminClient.Get(s.Context, client.ObjectKey{
 		Namespace: constants.VerrazzanoMultiClusterNamespace,
-		Name:      constants.MCAdminCASecret,
+		Name:      constants.VerrazzanoLocalCABundleSecret,
 	}, &adminCASecret)
 	if err != nil {
 		return err
 	}
-	s.Log.Info("Got admin cluster CA secret")
 
 	// Get the local cluster registration secret
 	registrationSecret := corev1.Secret{}
@@ -58,27 +55,19 @@ func (s *Syncer) syncAdminClusterCA() error {
 	if err != nil {
 		return err
 	}
-	s.Log.Info("Got local cluster registration secret")
 
 	// Update the local cluster registration secret if the admin CA certs are different
-	if !secretsEqualTrimmedWhitespace(registrationSecret.Data[keyCaBundle], adminCASecret.Data[keyCaBundle]) {
-		s.Log.Info("CAs are different -- updating")
-		newSecret := corev1.Secret{}
-		newSecret.Name = registrationSecret.Name
-		newSecret.Namespace = registrationSecret.Namespace
-		newSecret.Labels = registrationSecret.Labels
-		newSecret.Annotations = registrationSecret.Annotations
-		newSecret.Data = registrationSecret.Data
-		newSecret.Data[keyCaBundle] = adminCASecret.Data[keyCaBundle]
-		result, err := controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &newSecret, func() error { return nil })
+	if !s.secretsEqualTrimmedWhitespace(registrationSecret.Data[keyCaBundle], adminCASecret.Data[keyCaBundle]) {
+		result, err := controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &registrationSecret, func() error {
+			registrationSecret.Data[keyCaBundle] = adminCASecret.Data[keyCaBundle]
+			return nil
+		})
 		if err != nil {
 			s.Log.Errorw(fmt.Sprintf("Failed syncing admin CA certificate: %v", err),
 				"Secret", registrationSecret.Name)
 		} else {
 			s.Log.Infof("Updated local cluster registration secret, result was: %v", result)
 		}
-	} else {
-		s.Log.Info("CAs are the same -- not updating")
 	}
 
 	return nil
@@ -87,62 +76,53 @@ func (s *Syncer) syncAdminClusterCA() error {
 // syncLocalClusterCA - synchronize the local cluster CA cert -- update admin copy if local CA changes
 func (s *Syncer) syncLocalClusterCA() error {
 
-	s.Log.Info("Syncing LocalClusterCA ...")
-
 	// Get the local cluster CA secret
 	localCASecret := corev1.Secret{}
 	err := s.LocalClient.Get(s.Context, client.ObjectKey{
 		Namespace: constants.VerrazzanoSystemNamespace,
-		Name:      constants.VzConsoleIngressTLSSecret,
+		Name:      constants.VerrazzanoIngressTLSSecret,
 	}, &localCASecret)
 	if err != nil {
 		return err
 	}
-	s.Log.Info("Got local cluster CA secret")
 
 	// Get the managed cluster CA secret from the admin cluster
-	vmcName := client.ObjectKey{Name: s.ManagedClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
 	vmc := platformopclusters.VerrazzanoManagedCluster{}
-	err = s.AdminClient.Get(s.Context, vmcName, &vmc)
+	err = s.AdminClient.Get(s.Context, client.ObjectKey{
+		Name:      s.ManagedClusterName,
+		Namespace: constants.VerrazzanoMultiClusterNamespace,
+	}, &vmc)
 	if err != nil {
 		return err
 	}
-	s.Log.Info("Got VMC from admin cluster")
-	adminVMCCASecret := corev1.Secret{}
+
+	vmcCASecret := corev1.Secret{}
 	err = s.AdminClient.Get(s.Context, client.ObjectKey{
 		Namespace: constants.VerrazzanoMultiClusterNamespace,
 		Name:      vmc.Spec.CASecret,
-	}, &adminVMCCASecret)
+	}, &vmcCASecret)
 	if err != nil {
 		return err
 	}
-	s.Log.Info("Got VMC CA secret from admin cluster")
 
 	// Update the VMC cluster CA secret if the local CA is different
-	if !secretsEqualTrimmedWhitespace(adminVMCCASecret.Data[keyCaCrtNoDot], localCASecret.Data[keyCaCrt]) {
-		s.Log.Info("CAs are different -- updating")
-		newSecret := corev1.Secret{}
-		newSecret.Name = adminVMCCASecret.Name
-		newSecret.Namespace = adminVMCCASecret.Namespace
-		newSecret.Labels = adminVMCCASecret.Labels
-		newSecret.Annotations = adminVMCCASecret.Annotations
-		newSecret.Data = adminVMCCASecret.Data
-		newSecret.Data[keyCaCrtNoDot] = localCASecret.Data[keyCaCrt]
-		result, err := controllerutil.CreateOrUpdate(s.Context, s.AdminClient, &newSecret, func() error { return nil })
+	if !s.secretsEqualTrimmedWhitespace(vmcCASecret.Data[keyCaCrtNoDot], localCASecret.Data[keyCaCrt]) {
+		result, err := controllerutil.CreateOrUpdate(s.Context, s.AdminClient, &vmcCASecret, func() error {
+			vmcCASecret.Data[keyCaCrtNoDot] = localCASecret.Data[keyCaCrt]
+			return nil
+		})
 		if err != nil {
 			s.Log.Errorw(fmt.Sprintf("Failed syncing local CA certificate: %v", err),
-				"Secret", adminVMCCASecret.Name)
+				"Secret", vmcCASecret.Name)
 		} else {
-			s.Log.Info("Updated VMC cluster CA secret on admin cluster, result was: %v", result)
+			s.Log.Infof("Updated VMC cluster CA secret on admin cluster, result was: %v", result)
 		}
-	} else {
-		s.Log.Info("CAs are the same -- not updating")
 	}
 
 	return nil
 }
 
-func secretsEqualTrimmedWhitespace(secret1, secret2 []byte) bool {
+func (s *Syncer) secretsEqualTrimmedWhitespace(secret1, secret2 []byte) bool {
 	a := bytes.Trim(secret1, " \t\n\r")
 	b := bytes.Trim(secret2, " \t\n\r")
 	return bytes.Equal(a, b)
