@@ -50,7 +50,7 @@ func NewComponent() spi.Component {
 func (c prometheusAdapterComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	comp := effectiveCR.Spec.Components.PrometheusAdapter
 	if comp == nil || comp.Enabled == nil {
-		return false
+		return true
 	}
 	return *comp.Enabled
 }

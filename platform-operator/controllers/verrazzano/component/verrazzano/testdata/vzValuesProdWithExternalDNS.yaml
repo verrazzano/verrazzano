@@ -16,10 +16,10 @@ rancher:
 nodeExporter:
   enabled: true
 prometheusOperator:
-  enabled: false
+  enabled: true
 prometheusAdapter:
-  enabled: false
+  enabled: true
 kubeStateMetrics:
-  enabled: false
+  enabled: true
 prometheusPushgateway:
-  enabled: false
+  enabled: true
