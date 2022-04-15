@@ -120,7 +120,7 @@ func IsPrometheusOperatorEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.PrometheusOperator != nil && vz.Spec.Components.PrometheusOperator.Enabled != nil {
 		return *vz.Spec.Components.PrometheusOperator.Enabled
 	}
-	return true
+	return false
 }
 
 // IsPrometheusAdapterEnabled returns false only if the Prometheus Adapter is explicitly disabled in the CR
@@ -128,7 +128,7 @@ func IsPrometheusAdapterEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.PrometheusAdapter != nil && vz.Spec.Components.PrometheusAdapter.Enabled != nil {
 		return *vz.Spec.Components.PrometheusAdapter.Enabled
 	}
-	return true
+	return false
 }
 
 // IsKubeStateMetricsEnabled returns false only if Kube State Metrics is explicitly disabled in the CR
@@ -136,7 +136,7 @@ func IsKubeStateMetricsEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.KubeStateMetrics != nil && vz.Spec.Components.KubeStateMetrics.Enabled != nil {
 		return *vz.Spec.Components.KubeStateMetrics.Enabled
 	}
-	return true
+	return false
 }
 
 // IsPrometheusPushgatewayEnabled returns false only if the Prometheus Pushgateway is explicitly disabled in the CR
@@ -144,5 +144,5 @@ func IsPrometheusPushgatewayEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.PrometheusPushgateway != nil && vz.Spec.Components.PrometheusPushgateway.Enabled != nil {
 		return *vz.Spec.Components.PrometheusPushgateway.Enabled
 	}
-	return true
+	return false
 }

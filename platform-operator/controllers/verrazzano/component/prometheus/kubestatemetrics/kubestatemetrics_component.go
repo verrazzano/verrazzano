@@ -50,7 +50,7 @@ func NewComponent() spi.Component {
 func (c kubeStateMetricsComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	comp := effectiveCR.Spec.Components.KubeStateMetrics
 	if comp == nil || comp.Enabled == nil {
-		return true
+		return false
 	}
 	return *comp.Enabled
 }
