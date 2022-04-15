@@ -59,7 +59,17 @@ func (c vmoComponent) IsReady(context spi.ComponentContext) bool {
 	return false
 }
 
+// PreInstall VMO pre-install processing
+func (c vmoComponent) PreInstall(context spi.ComponentContext) error {
+	return exportVmoHelmChart(context)
+}
+
+// PostInstall VMO post-install processing
+func (c vmoComponent) PostInstall(context spi.ComponentContext) error {
+	return reassociateResources(context)
+}
+
 // PreUpgrade VMO pre-upgrade processing
-func (c vmoComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	return common.ApplyCRDYaml(ctx, config.GetHelmVmoChartsDir())
+func (c vmoComponent) PreUpgrade(context spi.ComponentContext) error {
+	return common.ApplyCRDYaml(context, config.GetHelmVmoChartsDir())
 }

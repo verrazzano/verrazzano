@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -1518,7 +1519,7 @@ func TestAssociateHelmObjectAndKeep(t *testing.T) {
 	}
 
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(obj).Build()
-	_, err := associateHelmObject(c, obj, namespacedName, namespacedName, true)
+	_, err := common.AssociateHelmObject(c, obj, namespacedName, namespacedName, true)
 	assert.NoError(t, err)
 	assert.Equal(t, ComponentName, obj.Annotations["meta.helm.sh/release-name"])
 	assert.Equal(t, globalconst.VerrazzanoSystemNamespace, obj.Annotations["meta.helm.sh/release-namespace"])
