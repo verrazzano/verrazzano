@@ -21,7 +21,6 @@ const (
 	prometheusTLSSecret             = "prometheus-operator-kube-p-admission"
 	prometheusOperatorDeployment    = "prometheus-operator-kube-p-operator"
 	prometheusOperatorContainerName = "kube-prometheus-stack"
-	prometheusOperatorPodName       = "prometheus-operator-kube-p-operator"
 )
 
 type enabledFunc func(string) bool
