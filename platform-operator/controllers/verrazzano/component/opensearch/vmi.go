@@ -6,6 +6,7 @@ package opensearch
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -105,7 +106,7 @@ func hasNodeStorageOverride(cr *vzapi.Verrazzano, override string) bool {
 // 2. VolumeClaimTemplate overrides
 // 3. Profile values (which show as ESInstallArgs in the ActualCR)
 // The data node storage may be changed on update. The master node storage may NOT.
-func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, hasDataOverride, hasMasterOverride bool) (*vmov1.Elasticsearch, error) {
+func newOpenSearch(cr *vzapi.Verrazzano, storage *verrazzano.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, hasDataOverride, hasMasterOverride bool) (*vmov1.Elasticsearch, error) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		return &vmov1.Elasticsearch{}, nil
 	}

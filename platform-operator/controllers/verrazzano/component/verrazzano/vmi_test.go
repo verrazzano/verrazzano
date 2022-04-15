@@ -77,7 +77,7 @@ var vmiEnabledCR = vzapi.Verrazzano{
 //  WHEN I create new VMI resources
 //  THEN the configuration in the CR is respected
 func TestNewVMIResources(t *testing.T) {
-	r := &resourceRequestValues{
+	r := &ResourceRequestValues{
 		Memory:  "",
 		Storage: "50Gi",
 	}
@@ -106,7 +106,7 @@ func TestNewVMIResources(t *testing.T) {
 //  WHEN I create a new opensearch resource
 //  THEN the opensearch resource fails to create
 func TestOpenSearchInvalidArgs(t *testing.T) {
-	r := &resourceRequestValues{}
+	r := &ResourceRequestValues{}
 	crBadArgs := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
@@ -132,7 +132,7 @@ func TestOpenSearchInvalidArgs(t *testing.T) {
 //  THEN the storage options from the existing VMi are preserved, and any policy values are copied.
 func TestNewOpenSearchValuesAreCopied(t *testing.T) {
 	age := "1d"
-	r := &resourceRequestValues{}
+	r := &ResourceRequestValues{}
 	testvz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
@@ -204,7 +204,7 @@ func TestNewPrometheusWithDefaultStorage(t *testing.T) {
 // WHEN I create a new Prometheus resource
 //  THEN the storage is 100Gi
 func TestPrometheusWithStorageOverride(t *testing.T) {
-	prometheus := newPrometheus(&vmiEnabledCR, &resourceRequestValues{Storage: "100Gi"}, nil)
+	prometheus := newPrometheus(&vmiEnabledCR, &ResourceRequestValues{Storage: "100Gi"}, nil)
 	assert.Equal(t, "100Gi", prometheus.Storage.Size)
 }
 

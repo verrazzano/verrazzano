@@ -12,7 +12,7 @@ package verrazzano
 // There are a few cases where this is not true
 // - "enabled" flags should always be written; if the user or profile specifies false it
 //   needs to be recorded in the overrides and not omitted
-// - "resourceRequestValues.storage" should be allowed to record empty values, as it is a valid
+// - "ResourceRequestValues.storage" should be allowed to record empty values, as it is a valid
 //   value to the VMO to indicate ephemeral storage is to be used
 //
 type verrazzanoValues struct {
@@ -57,7 +57,7 @@ type volumeMount struct {
 	ReadOnly    bool   `json:"readOnly,omitempty"`
 }
 
-type resourceRequestValues struct {
+type ResourceRequestValues struct {
 	Memory  string `json:"memory,omitempty"`
 	Storage string `json:"storage"` // Empty string allowed
 }
@@ -88,12 +88,12 @@ type esNodes struct {
 
 type esNodeValues struct {
 	Replicas int                    `json:"replicas,omitempty"`
-	Requests *resourceRequestValues `json:"requests,omitempty"`
+	Requests *ResourceRequestValues `json:"requests,omitempty"`
 }
 
 type prometheusValues struct {
 	Enabled  bool                   `json:"enabled"` // Always write
-	Requests *resourceRequestValues `json:"requests,omitempty"`
+	Requests *ResourceRequestValues `json:"requests,omitempty"`
 }
 
 type kialiValues struct {
@@ -111,12 +111,12 @@ type rancherValues struct {
 
 type kibanaValues struct {
 	Enabled  bool                   `json:"enabled"` // Always write
-	Requests *resourceRequestValues `json:"requests,omitempty"`
+	Requests *ResourceRequestValues `json:"requests,omitempty"`
 }
 
 type grafanaValues struct {
 	Enabled  bool                   `json:"enabled"` // Always write
-	Requests *resourceRequestValues `json:"requests,omitempty"`
+	Requests *ResourceRequestValues `json:"requests,omitempty"`
 }
 
 type vmoValues struct {

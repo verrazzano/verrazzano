@@ -95,7 +95,7 @@ func (o opensearchComponent) Install(ctx spi.ComponentContext) error {
 
 // PreUpgrade Opensearch component pre-upgrade processing
 func (o opensearchComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	return opensearchPreUpgrade(ctx)
+	return ensureVMISecret(ctx.Client())
 }
 
 // InstallUpgrade Opensearch component upgrade processing

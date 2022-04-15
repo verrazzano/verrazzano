@@ -226,13 +226,13 @@ func verrazzanoPreUpgrade(ctx spi.ComponentContext, namespace string) error {
 	return fixupFluentdDaemonset(ctx.Log(), ctx.Client(), namespace)
 }
 
-func findStorageOverride(effectiveCR *vzapi.Verrazzano) (*resourceRequestValues, error) {
+func findStorageOverride(effectiveCR *vzapi.Verrazzano) (*ResourceRequestValues, error) {
 	if effectiveCR == nil || effectiveCR.Spec.DefaultVolumeSource == nil {
 		return nil, nil
 	}
 	defaultVolumeSource := effectiveCR.Spec.DefaultVolumeSource
 	if defaultVolumeSource.EmptyDir != nil {
-		return &resourceRequestValues{
+		return &ResourceRequestValues{
 			Storage: "",
 		}, nil
 	}
@@ -243,7 +243,7 @@ func findStorageOverride(effectiveCR *vzapi.Verrazzano) (*resourceRequestValues,
 			return nil, fmt.Errorf("Failed, did not find matching storage volume template for claim %s", pvcClaim.ClaimName)
 		}
 		storageString := storageSpec.Resources.Requests.Storage().String()
-		return &resourceRequestValues{
+		return &ResourceRequestValues{
 			Storage: storageString,
 		}, nil
 	}

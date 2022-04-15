@@ -5,81 +5,45 @@ package opensearch
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
-	"io/ioutil"
 	"os/exec"
 	"strconv"
 	"strings"
 	"time"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
-	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
 )
 
 // ComponentName is the name of the component
 
 const (
-	esHelmValuePrefixFormat = "elasticSearch.%s"
-
 	workloadName  = "system-es-master"
 	containerName = "es-master"
 	portName      = "http"
 	indexPattern  = "verrazzano-*"
 
-	tmpFilePrefix        = "verrazzano-overrides-"
-	tmpSuffix            = "yaml"
-	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
-	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
-
-	fluentDaemonset       = "fluentd"
-	nodeExporterDaemonset = "node-exporter"
-
-	esDataDeployment            = "vmi-system-es-data"
-	esIngestDeployment          = "vmi-system-es-ingest"
-	grafanaDeployment           = "vmi-system-grafana"
-	kibanaDeployment            = "vmi-system-kibana"
-	prometheusDeployment        = "vmi-system-prometheus-0"
-	verrazzanoConsoleDeployment = "verrazzano-console"
-	vmoDeployment               = "verrazzano-monitoring-operator"
+	esDataDeployment   = "vmi-system-es-data"
+	esIngestDeployment = "vmi-system-es-ingest"
+	kibanaDeployment   = "vmi-system-kibana"
 
 	esMasterStatefulset = "vmi-system-es-master"
 )
 
 var (
 	// For Unit test purposes
-	execCommand   = exec.Command
-	writeFileFunc = ioutil.WriteFile
+	execCommand = exec.Command
 )
-
-func resetWriteFileFunc() {
-	writeFileFunc = ioutil.WriteFile
-}
-
-// resolveVerrazzanoNamespace will return the default Verrazzano system namespace unless the namespace is specified
-func resolveOpensearchNamespace(ns string) string {
-	if len(ns) > 0 && ns != "default" {
-		return ns
-	}
-	return globalconst.VerrazzanoSystemNamespace
-}
 
 // isOpensearchInstalled checks if Opensearch has been installed yet
 func isOpensearchInstalled(ctx spi.ComponentContext) (bool, error) {
@@ -229,23 +193,6 @@ func isOpensearchReady(ctx spi.ComponentContext) bool {
 	return isVerrazzanoSecretReady(ctx)
 }
 
-// VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart
-func opensearchPreUpgrade(ctx spi.ComponentContext) error {
-	if err := common.ApplyCRDYaml(ctx, config.GetHelmVzChartsDir()); err != nil {
-		return err
-	}
-	if err := importToHelmChart(ctx.Client()); err != nil {
-		return err
-	}
-	if err := exportFromHelmChart(ctx.Client()); err != nil {
-		return err
-	}
-	if err := ensureVMISecret(ctx.Client()); err != nil {
-		return err
-	}
-	return ensureGrafanaAdminSecret(ctx.Client())
-}
-
 func findStorageOverride(effectiveCR *vzapi.Verrazzano) (*resourceRequestValues, error) {
 	if effectiveCR == nil || effectiveCR.Spec.DefaultVolumeSource == nil {
 		return nil, nil
@@ -293,13 +240,6 @@ func isVerrazzanoSecretReady(ctx spi.ComponentContext) bool {
 		return false
 	}
 	return true
-}
-
-//cleanTempFiles - Clean up the override temp files in the temp dir
-func cleanTempFiles(ctx spi.ComponentContext) {
-	if err := vzos.RemoveTempFiles(ctx.Log().GetZapLogger(), tmpFileCleanPattern); err != nil {
-		ctx.Log().Errorf("Failed deleting temp files: %v", err)
-	}
 }
 
 // fixupElasticSearchReplicaCount fixes the replica count set for single node Elasticsearch cluster
@@ -414,120 +354,4 @@ func waitForPodsWithReadyContainer(client clipkg.Client, retryDelay time.Duratio
 		}
 		time.Sleep(retryDelay)
 	}
-}
-
-//importToHelmChart annotates any existing objects that should be managed by helm
-func importToHelmChart(cli clipkg.Client) error {
-	namespacedName := types.NamespacedName{Name: nodeExporter, Namespace: globalconst.VerrazzanoMonitoringNamespace}
-	name := types.NamespacedName{Name: nodeExporter}
-	objects := []clipkg.Object{
-		&appsv1.DaemonSet{},
-		&corev1.ServiceAccount{},
-		&corev1.Service{},
-	}
-
-	noNamespaceObjects := []clipkg.Object{
-		&rbacv1.ClusterRole{},
-		&rbacv1.ClusterRoleBinding{},
-	}
-
-	for _, obj := range objects {
-		if _, err := associateHelmObjectToThisRelease(cli, obj, namespacedName); err != nil {
-			return err
-		}
-	}
-
-	for _, obj := range noNamespaceObjects {
-		if _, err := associateHelmObjectToThisRelease(cli, obj, name); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-//exportFromHelmChart annotates any existing objects that should be managed by another helm component, e.g.
-// the resources associated with the authproxy which historically were associated with the Verrazzano chart.
-func exportFromHelmChart(cli clipkg.Client) error {
-	// The authproxy resources can not be managed by the authproxy component since the upgrade path may be from a
-	// version that does not define the authproxy as a top level component and therefore PreUpgrade is not invoked
-	// on the authproxy component (in that case the authproxy upgrade is skipped)
-	authproxyReleaseName := types.NamespacedName{Name: authproxy.ComponentName, Namespace: authproxy.ComponentNamespace}
-	namespacedName := authproxyReleaseName
-	name := types.NamespacedName{Name: authproxy.ComponentName}
-	objects := []clipkg.Object{
-		&corev1.ServiceAccount{},
-		&corev1.Service{},
-		&appsv1.Deployment{},
-	}
-
-	noNamespaceObjects := []clipkg.Object{
-		&rbacv1.ClusterRole{},
-		&rbacv1.ClusterRoleBinding{},
-	}
-
-	// namespaced resources
-	for _, obj := range objects {
-		if _, err := associateHelmObject(cli, obj, authproxyReleaseName, namespacedName, true); err != nil {
-			return err
-		}
-	}
-
-	authproxyManagedResources := authproxy.GetHelmManagedResources()
-	for _, managedResource := range authproxyManagedResources {
-		if _, err := associateHelmObject(cli, managedResource.Obj, authproxyReleaseName, managedResource.NamespacedName, true); err != nil {
-			return err
-		}
-	}
-
-	// cluster resources
-	for _, obj := range noNamespaceObjects {
-		if _, err := associateHelmObject(cli, obj, authproxyReleaseName, name, true); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-//associateHelmObjectToThisRelease annotates an object as being managed by the verrazzano helm chart
-func associateHelmObjectToThisRelease(cli clipkg.Client, obj clipkg.Object, namespacedName types.NamespacedName) (clipkg.Object, error) {
-	return associateHelmObject(cli, obj, types.NamespacedName{Name: ComponentName, Namespace: globalconst.VerrazzanoSystemNamespace}, namespacedName, false)
-}
-
-//associateHelmObject annotates an object as being managed by the specified release helm chart
-func associateHelmObject(cli clipkg.Client, obj clipkg.Object, releaseName types.NamespacedName, namespacedName types.NamespacedName, keepResource bool) (clipkg.Object, error) {
-	if err := cli.Get(context.TODO(), namespacedName, obj); err != nil {
-		if errors.IsNotFound(err) {
-			return obj, nil
-		}
-		return obj, err
-	}
-
-	annotations := obj.GetAnnotations()
-	if annotations == nil {
-		annotations = map[string]string{}
-	}
-	annotations["meta.helm.sh/release-name"] = releaseName.Name
-	annotations["meta.helm.sh/release-namespace"] = releaseName.Namespace
-	if keepResource {
-		annotations["helm.sh/resource-policy"] = "keep"
-	}
-	obj.SetAnnotations(annotations)
-	labels := obj.GetLabels()
-	if labels == nil {
-		labels = map[string]string{}
-	}
-	labels["app.kubernetes.io/managed-by"] = "Helm"
-	obj.SetLabels(labels)
-	err := cli.Update(context.TODO(), obj)
-	return obj, err
-}
-
-// HashSum returns the hash sum of the config object
-func HashSum(config interface{}) string {
-	sha := sha256.New()
-	if data, err := yaml.Marshal(config); err == nil {
-		sha.Write(data)
-		return fmt.Sprintf("%x", sha.Sum(nil))
-	}
-	return ""
 }

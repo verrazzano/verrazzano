@@ -823,7 +823,7 @@ func Test_findStorageOverride(t *testing.T) {
 		name             string
 		description      string
 		actualCR         vzapi.Verrazzano
-		expectedOverride *resourceRequestValues
+		expectedOverride *ResourceRequestValues
 		expectedErr      bool
 	}{
 		{
@@ -839,7 +839,7 @@ func Test_findStorageOverride(t *testing.T) {
 					DefaultVolumeSource: &corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
 				},
 			},
-			expectedOverride: &resourceRequestValues{
+			expectedOverride: &ResourceRequestValues{
 				Storage: "",
 			},
 		},
@@ -863,7 +863,7 @@ func Test_findStorageOverride(t *testing.T) {
 					},
 				},
 			},
-			expectedOverride: &resourceRequestValues{
+			expectedOverride: &ResourceRequestValues{
 				Storage: pvc100Gi.String(),
 			},
 		},
@@ -888,7 +888,7 @@ func Test_findStorageOverride(t *testing.T) {
 					},
 				},
 			},
-			expectedOverride: &resourceRequestValues{
+			expectedOverride: &ResourceRequestValues{
 				Storage: pvc100Gi.String(),
 			},
 		},

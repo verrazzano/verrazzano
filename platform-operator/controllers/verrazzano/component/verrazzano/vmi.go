@@ -93,7 +93,7 @@ func newVMI() *vmov1.VerrazzanoMonitoringInstance {
 	}
 }
 
-func newGrafana(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance) vmov1.Grafana {
+func newGrafana(cr *vzapi.Verrazzano, storage *ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance) vmov1.Grafana {
 	if cr.Spec.Components.Grafana == nil {
 		return vmov1.Grafana{}
 	}
@@ -115,7 +115,7 @@ func newGrafana(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vmov1
 	return grafana
 }
 
-func newPrometheus(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance) vmov1.Prometheus {
+func newPrometheus(cr *vzapi.Verrazzano, storage *ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance) vmov1.Prometheus {
 	if cr.Spec.Components.Prometheus == nil {
 		return vmov1.Prometheus{}
 	}
@@ -135,7 +135,7 @@ func newPrometheus(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 	return prometheus
 }
 
-func setStorageSize(storage *resourceRequestValues, storageObject *vmov1.Storage) {
+func setStorageSize(storage *ResourceRequestValues, storageObject *vmov1.Storage) {
 	if storage == nil {
 		storageObject.Size = "50Gi"
 	} else {
@@ -163,7 +163,7 @@ func hasNodeStorageOverride(cr *vzapi.Verrazzano, override string) bool {
 // 2. VolumeClaimTemplate overrides
 // 3. Profile values (which show as ESInstallArgs in the ActualCR)
 // The data node storage may be changed on update. The master node storage may NOT.
-func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, hasDataOverride, hasMasterOverride bool) (*vmov1.Elasticsearch, error) {
+func newOpenSearch(cr *vzapi.Verrazzano, storage *ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, hasDataOverride, hasMasterOverride bool) (*vmov1.Elasticsearch, error) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		return &vmov1.Elasticsearch{}, nil
 	}
