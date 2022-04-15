@@ -23,20 +23,8 @@ const (
 	prometheusOperatorContainerName = "kube-prometheus-stack"
 )
 
-type enabledFunc func(string) bool
-
-type enabledComponents struct {
-	podName     string
-	enabledFunc enabledFunc
-}
-
 var (
-	promStackEnabledComponents = []enabledComponents{
-		{podName: "prometheus-adapter", enabledFunc: pkg.IsPrometheusAdapterEnabled},
-		{podName: "prometheus-operator-kube-p-operator", enabledFunc: pkg.IsPrometheusOperatorEnabled},
-		{podName: "kube-state-metrics", enabledFunc: pkg.IsKubeStateMetricsEnabled},
-		{podName: "prometheus-pushgateway", enabledFunc: pkg.IsPrometheusPushgatewayEnabled},
-	}
+	promStackPods    = []string{"prometheus-adapter", "prometheus-operator-kube-p-operator", "kube-state-metrics", "prometheus-pushgateway"}
 	promOperatorCrds = []string{
 		"alertmanagerconfigs.monitoring.coreos.com",
 		"alertmanagers.monitoring.coreos.com",
@@ -54,28 +42,6 @@ var (
 )
 
 var t = framework.NewTestFramework("promstack")
-
-func listEnabledComponents() []string {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-	}
-	var enabledPods []string
-	for _, component := range promStackEnabledComponents {
-		if component.enabledFunc(kubeconfigPath) {
-			enabledPods = append(enabledPods, component.podName)
-		}
-	}
-	return enabledPods
-}
-
-func isPrometheusOperatorEnabled() bool {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-	}
-	return pkg.IsPrometheusOperatorEnabled(kubeconfigPath)
-}
 
 // 'It' Wrapper to only run spec if the Prometheus Stack is supported on the current Verrazzano version
 func WhenPromStackInstalledIt(description string, f func()) {
@@ -105,9 +71,6 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 		// THEN we successfully find the namespace
 		WhenPromStackInstalledIt("should have a verrazzano-monitoring namespace", func() {
 			Eventually(func() (bool, error) {
-				if len(listEnabledComponents()) == 0 {
-					return true, nil
-				}
 				return pkg.DoesNamespaceExist(verrazzanoMonitoringNamespace)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
@@ -117,10 +80,9 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 		// THEN we successfully find the running pods
 		WhenPromStackInstalledIt("should have running pods", func() {
 			promStackPodsRunning := func() bool {
-				enabledPods := listEnabledComponents()
-				result, err := pkg.PodsRunning(verrazzanoMonitoringNamespace, enabledPods)
+				result, err := pkg.PodsRunning(verrazzanoMonitoringNamespace, promStackPods)
 				if err != nil {
-					AbortSuite(fmt.Sprintf("Pods %v is not running in the namespace: %v, error: %v", enabledPods, verrazzanoMonitoringNamespace, err))
+					AbortSuite(fmt.Sprintf("Pods %v is not running in the namespace: %v, error: %v", promStackPods, verrazzanoMonitoringNamespace, err))
 				}
 				return result
 			}
@@ -132,24 +94,18 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 		// THEN we see that the arguments are correctly populated
 		WhenPromStackInstalledIt("should have the correct default images", func() {
 			promStackPodsRunning := func() (bool, error) {
-				if isPrometheusOperatorEnabled() {
-					return pkg.ContainerHasExpectedArgs(verrazzanoMonitoringNamespace, prometheusOperatorDeployment, prometheusOperatorContainerName, expectedPromOperatorArgs)
-				}
-				return true, nil
+				return pkg.ContainerHasExpectedArgs(verrazzanoMonitoringNamespace, prometheusOperatorDeployment, prometheusOperatorContainerName, expectedPromOperatorArgs)
 			}
 			Eventually(promStackPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
 		WhenPromStackInstalledIt("should have the correct Prometheus Operator CRDs", func() {
 			verifyCRDList := func() (bool, error) {
-				if isPrometheusOperatorEnabled() {
-					for _, crd := range promOperatorCrds {
-						exists, err := pkg.DoesCRDExist(crd)
-						if err != nil || !exists {
-							return exists, err
-						}
+				for _, crd := range promOperatorCrds {
+					exists, err := pkg.DoesCRDExist(crd)
+					if err != nil || !exists {
+						return exists, err
 					}
-					return true, nil
 				}
 				return true, nil
 			}
@@ -158,10 +114,7 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 
 		WhenPromStackInstalledIt("should have the TLS secret", func() {
 			Eventually(func() bool {
-				if isPrometheusOperatorEnabled() {
-					return pkg.SecretsCreated(verrazzanoMonitoringNamespace, prometheusTLSSecret)
-				}
-				return true
+				return pkg.SecretsCreated(verrazzanoMonitoringNamespace, prometheusTLSSecret)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})

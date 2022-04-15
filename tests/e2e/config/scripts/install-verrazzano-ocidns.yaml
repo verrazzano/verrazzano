@@ -19,11 +19,3 @@ spec:
     fluentd:
       extraVolumeMounts:
         - source: /u01/data
-    prometheusOperator:
-      enabled: true
-    prometheusAdapter:
-      enabled: true
-    kubeStateMetrics:
-      enabled: true
-    prometheusPushgateway:
-      enabled: true
