@@ -73,7 +73,7 @@ func TestPostInstallCA(t *testing.T) {
 		return cmClient.CertmanagerV1(), nil
 	}
 
-	client := fake.NewFakeClientWithScheme(testScheme)
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	err := fakeComponent.PostInstall(spi.NewFakeContext(client, localvz, false))
 	assert.NoError(t, err)
 }
@@ -126,7 +126,7 @@ func runCAUpdateTest(t *testing.T, upgrade bool) {
 		},
 	}
 
-	client := fake.NewFakeClientWithScheme(testScheme, localvz)
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(localvz).Build()
 	ctx := spi.NewFakeContext(client, updatedVZ, false)
 
 	var err error
@@ -149,7 +149,7 @@ func runCAUpdateTest(t *testing.T, upgrade bool) {
 func TestPostInstallAcme(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
-	client := fake.NewFakeClientWithScheme(testScheme)
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	// set OCI DNS secret value and create secret
 	localvz.Spec.Components.DNS = &vzapi.DNSComponent{
 		OCI: &vzapi.OCI{
@@ -157,7 +157,7 @@ func TestPostInstallAcme(t *testing.T) {
 			DNSZoneName:     testDNSDomain,
 		},
 	}
-	client.Create(context.TODO(), &corev1.Secret{
+	_ = client.Create(context.TODO(), &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      testOCIDNSName,
 			Namespace: ComponentNamespace,
@@ -237,7 +237,7 @@ func runAcmeUpdateTest(t *testing.T, upgrade bool) {
 		OCIZoneName: newOCI.DNSZoneName,
 	})
 
-	client := fake.NewFakeClientWithScheme(testScheme, localvz, oldSecret, newSecret, existingIssuer)
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(localvz, oldSecret, newSecret, existingIssuer).Build()
 	ctx := spi.NewFakeContext(client, updatedVz, false)
 
 	var err error
@@ -248,9 +248,10 @@ func runAcmeUpdateTest(t *testing.T, upgrade bool) {
 	}
 	assert.NoError(t, err)
 
-	actualIssuer, _ := createAcmeClusterIssuer(vzlog.DefaultLogger(), templateData{})
-	assert.NoError(t, client.Get(context.TODO(), types.NamespacedName{Name: verrazzanoClusterIssuerName}, actualIssuer))
+	actualIssuer, _ := createACMEIssuerObject(ctx)
 	assert.Equal(t, expectedIssuer.Object["spec"], actualIssuer.Object["spec"])
+	assert.NoError(t, client.Get(context.TODO(), types.NamespacedName{Name: verrazzanoClusterIssuerName}, actualIssuer))
+
 }
 
 // TestClusterIssuerUpdated tests the createOrUpdateClusterIssuer function
@@ -356,7 +357,7 @@ func TestClusterIssuerUpdated(t *testing.T) {
 	}
 
 	// Fake controllerruntime client and ComponentContext for the call
-	client := fake.NewFakeClientWithScheme(testScheme, existingClusterIssuer, certificate, ociSecret)
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(existingClusterIssuer, certificate, ociSecret).Build()
 	ctx := spi.NewFakeContext(client, localvz, false)
 
 	// Fake Go client for the CertManager clientset
@@ -426,7 +427,7 @@ func TestClusterIssuerUpdated(t *testing.T) {
 //  WHEN the ComponentContext has DryRun set to true
 //  THEN no error is returned
 func TestDryRun(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(testScheme)
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(client, vz, true)
 
 	assert.NoError(t, fakeComponent.PreInstall(ctx))

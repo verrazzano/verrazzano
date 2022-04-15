@@ -6,6 +6,7 @@ package verrazzanoproject
 import (
 	"context"
 	"fmt"
+	"github.com/go-logr/logr"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"testing"
 	"time"
@@ -28,9 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const finalizer = "project.verrazzano.io"
@@ -103,11 +102,11 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	mgr = mocks.NewMockManager(mocker)
 	cli = mocks.NewMockClient(mocker)
 	scheme = runtime.NewScheme()
-	clustersv1alpha1.AddToScheme(scheme)
+	_ = clustersv1alpha1.AddToScheme(scheme)
 	reconciler = Reconciler{Client: cli, Scheme: scheme}
-	mgr.EXPECT().GetConfig().Return(&rest.Config{})
+	mgr.EXPECT().GetControllerOptions().AnyTimes()
 	mgr.EXPECT().GetScheme().Return(scheme)
-	mgr.EXPECT().GetLogger().Return(log.NullLogger{})
+	mgr.EXPECT().GetLogger().Return(logr.Discard())
 	mgr.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()
 	mgr.EXPECT().Add(gomock.Any()).Return(nil).AnyTimes()
 	err = reconciler.SetupWithManager(mgr)
@@ -273,7 +272,7 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 
 						// expect call to update the namespace
 						mockClient.EXPECT().
-							Update(gomock.Any(), gomock.Any()).
+							Update(gomock.Any(), gomock.Any(), gomock.Any()).
 							DoAndReturn(func(ctx context.Context, namespace *corev1.Namespace, opts ...client.UpdateOption) error {
 								assert.Equal(tt.fields.nsList[0].Metadata.Name, namespace.Name, "namespace name did not match")
 								_, labelExists := namespace.Labels[constants.LabelVerrazzanoManaged]
@@ -301,8 +300,8 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 
 						// expect call to create a namespace
 						mockClient.EXPECT().
-							Create(gomock.Any(), gomock.Any()).
-							DoAndReturn(func(ctx context.Context, ns *corev1.Namespace) error {
+							Create(gomock.Any(), gomock.Any(), gomock.Any()).
+							DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.CreateOption) error {
 								assert.Equal(tt.fields.nsList[0].Metadata.Name, ns.Name, "namespace name did not match")
 								return nil
 							})
@@ -340,8 +339,8 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 			// Make the request
 			request := clusterstest.NewRequest(tt.fields.vpNamespace, tt.fields.vpName)
 			reconciler := newVerrazzanoProjectReconciler(mockClient)
-			vmcclient.AddToScheme(reconciler.Scheme)
-			_, err := reconciler.Reconcile(request)
+			_ = vmcclient.AddToScheme(reconciler.Scheme)
+			_, err := reconciler.Reconcile(nil, request)
 
 			mocker.Finish()
 
@@ -387,7 +386,7 @@ func TestNetworkPolicies(t *testing.T) {
 
 	// expect call to update the namespace
 	mockClient.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, namespace *corev1.Namespace, opts ...client.UpdateOption) error {
 			return nil
 		})
@@ -413,7 +412,7 @@ func TestNetworkPolicies(t *testing.T) {
 
 	// Expect call to create the network policies in the namespace
 	mockClient.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, policy *netv1.NetworkPolicy, opts ...client.CreateOption) error {
 			return nil
 		})
@@ -447,8 +446,8 @@ func TestNetworkPolicies(t *testing.T) {
 	// Make the request
 	request := clusterstest.NewRequest(constants.VerrazzanoMultiClusterNamespace, vpName)
 	reconciler := newVerrazzanoProjectReconciler(mockClient)
-	vmcclient.AddToScheme(reconciler.Scheme)
-	_, err := reconciler.Reconcile(request)
+	_ = vmcclient.AddToScheme(reconciler.Scheme)
+	_, err := reconciler.Reconcile(nil, request)
 	assert.NoError(err)
 
 	mocker.Finish()
@@ -479,7 +478,7 @@ func TestDeleteVerrazzanoProject(t *testing.T) {
 	// Make the request
 	request := clusterstest.NewRequest(constants.VerrazzanoMultiClusterNamespace, vpName)
 	reconciler := newVerrazzanoProjectReconciler(mockClient)
-	_, err := reconciler.Reconcile(request)
+	_, err := reconciler.Reconcile(nil, request)
 	assert.NoError(err)
 
 	mocker.Finish()
@@ -575,8 +574,8 @@ func TestDeleteVerrazzanoProjectFinalizer(t *testing.T) {
 
 	// the status update should be to success status/conditions on the VerrazzanoProject
 	mockClient.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.VerrazzanoProject{})).
-		DoAndReturn(func(ctx context.Context, vp *clustersv1alpha1.VerrazzanoProject) error {
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.VerrazzanoProject{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vp *clustersv1alpha1.VerrazzanoProject, opts ...client.UpdateOption) error {
 			assert.NotContainsf(vp.Finalizers, finalizer, "finalizer should be cleared")
 			return nil
 		})
@@ -584,8 +583,8 @@ func TestDeleteVerrazzanoProjectFinalizer(t *testing.T) {
 	// Make the request
 	request := clusterstest.NewRequest(constants.VerrazzanoMultiClusterNamespace, vpName)
 	reconciler := newVerrazzanoProjectReconciler(mockClient)
-	vmcclient.AddToScheme(reconciler.Scheme)
-	_, err := reconciler.Reconcile(request)
+	_ = vmcclient.AddToScheme(reconciler.Scheme)
+	_, err := reconciler.Reconcile(nil, request)
 	assert.NoError(err)
 
 	mocker.Finish()
@@ -661,8 +660,8 @@ func mockNewManagedClusterRoleBindingExpectations(assert *asserts.Assertions, mo
 
 	// expect a call to create the managed cluster rolebinding
 	mockClient.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, rb *rbacv1.RoleBinding) error {
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, rb *rbacv1.RoleBinding, opts ...client.CreateOption) error {
 			assert.Equal(managedClusterRole, rb.RoleRef.Name)
 			assert.Equal("ClusterRole", rb.RoleRef.Kind)
 			assert.Equal(managedClusterSubjects, rb.Subjects)
@@ -679,8 +678,8 @@ func mockNewRoleBindingExpectations(assert *asserts.Assertions, mockClient *mock
 
 	// expect a call to create a rolebinding for the subjects to the specified role
 	mockClient.EXPECT().
-		Create(gomock.Any(), RoleBindingMatcher(role)).
-		DoAndReturn(func(ctx context.Context, rb *rbacv1.RoleBinding) error {
+		Create(gomock.Any(), RoleBindingMatcher(role), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, rb *rbacv1.RoleBinding, opts ...client.CreateOption) error {
 			assert.Equal(subjects, rb.Subjects)
 			return nil
 		})
@@ -692,8 +691,8 @@ func mockNewRoleBindingExpectations(assert *asserts.Assertions, mockClient *mock
 
 	// expect a call to create a rolebinding for the subjects to the specified k8s role
 	mockClient.EXPECT().
-		Create(gomock.Any(), RoleBindingMatcher(k8sRole)).
-		DoAndReturn(func(ctx context.Context, rb *rbacv1.RoleBinding) error {
+		Create(gomock.Any(), RoleBindingMatcher(k8sRole), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, rb *rbacv1.RoleBinding, opts ...client.CreateOption) error {
 			assert.Equal(subjects, rb.Subjects)
 			return nil
 		})
@@ -715,8 +714,8 @@ func mockUpdatedRoleBindingExpectations(assert *asserts.Assertions, mockClient *
 
 	// expect a call to update the rolebinding
 	mockClient.EXPECT().
-		Update(gomock.Any(), RoleBindingMatcher(role)).
-		DoAndReturn(func(ctx context.Context, rb *rbacv1.RoleBinding) error {
+		Update(gomock.Any(), RoleBindingMatcher(role), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, rb *rbacv1.RoleBinding, opts ...client.UpdateOption) error {
 			assert.Equal(role, rb.RoleRef.Name)
 			assert.Equal(subjects, rb.Subjects)
 			return nil
@@ -736,8 +735,8 @@ func mockUpdatedRoleBindingExpectations(assert *asserts.Assertions, mockClient *
 
 	// expect a call to update the rolebinding
 	mockClient.EXPECT().
-		Update(gomock.Any(), RoleBindingMatcher(k8sRole)).
-		DoAndReturn(func(ctx context.Context, rb *rbacv1.RoleBinding) error {
+		Update(gomock.Any(), RoleBindingMatcher(k8sRole), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, rb *rbacv1.RoleBinding, opts ...client.UpdateOption) error {
 			assert.Equal(k8sRole, rb.RoleRef.Name)
 			assert.Equal(subjects, rb.Subjects)
 			return nil
@@ -755,8 +754,8 @@ func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mock
 
 	// the status update should be to success status/conditions on the VerrazzanoProject
 	mockStatusWriter.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.VerrazzanoProject{})).
-		DoAndReturn(func(ctx context.Context, vp *clustersv1alpha1.VerrazzanoProject) error {
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.VerrazzanoProject{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vp *clustersv1alpha1.VerrazzanoProject, opts ...client.UpdateOption) error {
 			clusterstest.AssertMultiClusterResourceStatus(assert, vp.Status, clustersv1alpha1.Succeeded, clustersv1alpha1.DeployComplete, corev1.ConditionTrue)
 			return nil
 		})
@@ -773,7 +772,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(vzconst.KubeSystem, "unit-test-verrazzano-helidon-workload")
 	reconciler := newVerrazzanoProjectReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.Nil(err)

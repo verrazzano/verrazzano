@@ -6,6 +6,7 @@ package cohworkload
 import (
 	"context"
 	"fmt"
+	"github.com/go-logr/logr"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"strings"
@@ -34,10 +35,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const namespace = "unit-test-namespace"
@@ -72,12 +71,12 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	mgr = mocks.NewMockManager(mocker)
 	cli = mocks.NewMockClient(mocker)
 	scheme = runtime.NewScheme()
-	vzapi.AddToScheme(scheme)
+	_ = vzapi.AddToScheme(scheme)
 	metricsReconciler := &metricstrait.Reconciler{Client: cli, Scheme: scheme, Scraper: "verrazzano-system/vmi-system-prometheus-0"}
 	reconciler = Reconciler{Client: cli, Scheme: scheme, Metrics: metricsReconciler}
-	mgr.EXPECT().GetConfig().Return(&rest.Config{})
+	mgr.EXPECT().GetControllerOptions().AnyTimes()
 	mgr.EXPECT().GetScheme().Return(scheme)
-	mgr.EXPECT().GetLogger().Return(log.NullLogger{})
+	mgr.EXPECT().GetLogger().Return(logr.Discard())
 	mgr.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()
 	mgr.EXPECT().Add(gomock.Any()).Return(nil).AnyTimes()
 	err = reconciler.SetupWithManager(mgr)
@@ -157,7 +156,7 @@ func TestReconcileCreateCoherence(t *testing.T) {
 		})
 	// expect a call to create the Coherence CR
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
 			assert.Equal(coherenceAPIVersion, u.GetAPIVersion())
 			assert.Equal(coherenceKind, u.GetKind())
@@ -183,15 +182,15 @@ func TestReconcileCreateCoherence(t *testing.T) {
 	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
 	// expect a call to update the status upgrade version
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload, opts ...client.UpdateOption) error {
 			return nil
 		})
 
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -278,7 +277,7 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 		})
 	// expect a call to create the Coherence CR
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
 			assert.Equal(coherenceAPIVersion, u.GetAPIVersion())
 			assert.Equal(coherenceKind, u.GetKind())
@@ -309,15 +308,15 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
 	// expect a call to update the status upgrade version
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload, opts ...client.UpdateOption) error {
 			return nil
 		})
 
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -466,8 +465,8 @@ func TestReconcileCreateCoherenceWithCustomLogging(t *testing.T) {
 	}
 	// expect a call to create the custom logging config map
 	cli.EXPECT().
-		Create(gomock.Any(), customLoggingConfigMap).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap) error {
+		Create(gomock.Any(), customLoggingConfigMap, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
 			return nil
 		})
 	// no config maps found, so expect a call to create a config map with our parsing rules
@@ -485,7 +484,7 @@ func TestReconcileCreateCoherenceWithCustomLogging(t *testing.T) {
 		})
 	// expect a call to create the Coherence CR
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
 			assert.Equal(coherenceAPIVersion, u.GetAPIVersion())
 			assert.Equal(coherenceKind, u.GetKind())
@@ -510,15 +509,15 @@ func TestReconcileCreateCoherenceWithCustomLogging(t *testing.T) {
 	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
 	// expect a call to update the status upgrade version
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload, opts ...client.UpdateOption) error {
 			return nil
 		})
 
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -652,7 +651,7 @@ func TestReconcileCreateCoherenceWithCustomLoggingConfigMapExists(t *testing.T) 
 		})
 	// expect a call to create the Coherence CR
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
 			assert.Equal(coherenceAPIVersion, u.GetAPIVersion())
 			assert.Equal(coherenceKind, u.GetKind())
@@ -677,15 +676,15 @@ func TestReconcileCreateCoherenceWithCustomLoggingConfigMapExists(t *testing.T) 
 	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
 	// expect a call to update the status upgrade version
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload, opts ...client.UpdateOption) error {
 			return nil
 		})
 
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -771,8 +770,8 @@ func TestReconcileUpdateFluentdImage(t *testing.T) {
 		})
 	// expect a call to update the Coherence CR
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.UpdateOption) error {
 			assert.Equal(coherenceAPIVersion, u.GetAPIVersion())
 			assert.Equal(coherenceKind, u.GetKind())
 
@@ -808,15 +807,15 @@ func TestReconcileUpdateFluentdImage(t *testing.T) {
 	// expect a call to status update
 	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload, opts ...client.UpdateOption) error {
 			return nil
 		})
 
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -905,8 +904,8 @@ func TestReconcileUpdateCR(t *testing.T) {
 		})
 	// expect a call to update the Coherence CR
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.UpdateOption) error {
 			assert.Equal(coherenceAPIVersion, u.GetAPIVersion())
 			assert.Equal(coherenceKind, u.GetKind())
 
@@ -926,15 +925,15 @@ func TestReconcileUpdateCR(t *testing.T) {
 	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
 	// expect a call to update the status upgrade version
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload, opts ...client.UpdateOption) error {
 			return nil
 		})
 
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -1024,7 +1023,7 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 		})
 	// expect a call to create the Coherence CR
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
 			assert.Equal(coherenceAPIVersion, u.GetAPIVersion())
 			assert.Equal(coherenceKind, u.GetKind())
@@ -1054,15 +1053,15 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
 	// expect a call to update the status upgrade version
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload, opts ...client.UpdateOption) error {
 			return nil
 		})
 
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -1141,7 +1140,7 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 		})
 	// expect a call to create the Coherence CR and return an error
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
 			assert.Equal(coherenceAPIVersion, u.GetAPIVersion())
 			assert.Equal(coherenceKind, u.GetKind())
@@ -1151,7 +1150,7 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.Nil(err)
@@ -1179,7 +1178,7 @@ func TestReconcileWorkloadNotFound(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -1207,7 +1206,7 @@ func TestReconcileFetchWorkloadError(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.Nil(err)
@@ -1242,7 +1241,7 @@ func TestCreateUpdateDestinationRuleCreate(t *testing.T) {
 
 	// Expect a call to create the destinationRule and return success
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, dr *istioclient.DestinationRule, opts ...client.CreateOption) error {
 			assert.Equal(destinationRuleKind, dr.Kind)
 			assert.Equal(destinationRuleAPIVersion, dr.APIVersion)
@@ -1304,8 +1303,8 @@ func TestCreateUpdateDestinationRuleUpdate(t *testing.T) {
 
 	// Expect a call to update the destinationRule and return success
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, dr *istioclient.DestinationRule, opts ...client.CreateOption) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, dr *istioclient.DestinationRule, opts ...client.UpdateOption) error {
 			assert.Equal(destinationRuleKind, dr.Kind)
 			assert.Equal(destinationRuleAPIVersion, dr.APIVersion)
 			assert.Equal("*.test-namespace.svc.cluster.local", dr.Spec.Host)
@@ -1487,8 +1486,8 @@ func TestReconcileRestart(t *testing.T) {
 		})
 	// expect a call to update the Coherence CR
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&unstructured.Unstructured{})).
-		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured) error {
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&unstructured.Unstructured{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.UpdateOption) error {
 			assert.Equal(coherenceAPIVersion, u.GetAPIVersion())
 			assert.Equal(coherenceKind, u.GetKind())
 
@@ -1525,15 +1524,15 @@ func TestReconcileRestart(t *testing.T) {
 	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
 	// expect a call to update the status upgrade version
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload, opts ...client.UpdateOption) error {
 			return nil
 		})
 
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -1551,7 +1550,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(vzconst.KubeSystem, "unit-test-verrazzano-helidon-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	mocker.Finish()
 	assert.Nil(err)

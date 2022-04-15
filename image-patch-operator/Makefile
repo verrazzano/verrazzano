@@ -1,4 +1,4 @@
-# Copyright (C) 2021, Oracle and/or its affiliates.
+# Copyright (C) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 include ../make/quality.mk
@@ -43,8 +43,7 @@ ifndef RELEASE_BRANCH
 	RELEASE_BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 endif
 
-# Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true"
+CRD_OPTIONS ?= "crd:crdVersions=v1"
 
 DIST_DIR:=dist
 K8S_NAMESPACE:=default
@@ -104,6 +103,12 @@ endif
 .PHONY: unit-test
 unit-test: go-install
 	$(GO) test -v ./api/... ./controllers/...
+
+# Generate mocks
+.PHONY: mock-gen
+mock-gen:
+	mockgen -destination=mocks/controller_client_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
+	mockgen -destination=mocks/controller_manager_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt sigs.k8s.io/controller-runtime Manager
 
 .PHONY: manifests
 manifests: image-patch-manifests

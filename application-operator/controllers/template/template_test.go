@@ -29,7 +29,7 @@ type Profile struct {
 // WHEN the processor executes
 // THEN the resulting string should be populated with values from the config map and secret
 func TestPopulateFromKubeResources(t *testing.T) {
-	client := getTestClient()
+	c := getTestClient()
 	templateText := `data:
   template:
     - value1: "{{configmap "testNamespace" "testConfigMap" "value1"}}"
@@ -42,7 +42,7 @@ func TestPopulateFromKubeResources(t *testing.T) {
     - value2: "This is the string associated with value2"
     - secret: "totallySecretValue"
 `
-	tp := NewProcessor(client, templateText)
+	tp := NewProcessor(c, templateText)
 	output, err := tp.Process(nil)
 	asserts.NoError(t, err, "error executing template processing for config map values")
 	asserts.Equal(t, expectedOutput, output)
@@ -53,7 +53,7 @@ func TestPopulateFromKubeResources(t *testing.T) {
 // WHEN the processor executes
 // THEN the resulting string should be populated with values from the structs provided as inputs
 func TestPopulateFromStructs(t *testing.T) {
-	client := getTestClient()
+	c := getTestClient()
 	inputs := map[string]interface{}{
 		"workload": Workload{Name: "Workload1"},
 		"profile":  Profile{Name: "Profile1"},
@@ -68,7 +68,7 @@ func TestPopulateFromStructs(t *testing.T) {
     - workload: "Workload1"
     - profile: "Profile1"
 `
-	tp := NewProcessor(client, templateText)
+	tp := NewProcessor(c, templateText)
 	output, err := tp.Process(inputs)
 	asserts.NoError(t, err, "error executing template processing for config map values")
 	asserts.Equal(t, expectedOutput, output)
@@ -79,7 +79,7 @@ func TestPopulateFromStructs(t *testing.T) {
 // WHEN the processor executes
 // THEN the resulting string should be populated with values from the sources indicated
 func TestPopulateFromStructsAndResources(t *testing.T) {
-	client := getTestClient()
+	c := getTestClient()
 	inputs := map[string]interface{}{
 		"workload": Workload{Name: "Workload1"},
 		"profile":  Profile{Name: "Profile1"},
@@ -100,7 +100,7 @@ func TestPopulateFromStructsAndResources(t *testing.T) {
     - workload: "Workload1"
     - profile: "Profile1"
 `
-	tp := NewProcessor(client, templateText)
+	tp := NewProcessor(c, templateText)
 	output, err := tp.Process(inputs)
 	asserts.NoError(t, err, "error executing template processing for config map values")
 	asserts.Equal(t, expectedOutput, output)
@@ -112,7 +112,7 @@ func TestPopulateFromStructsAndResources(t *testing.T) {
 // THEN the resulting string should be populated from the Unstructured's values
 func TestPopulateFromUnstructured(t *testing.T) {
 	assert := asserts.New(t)
-	client := getTestClient()
+	c := getTestClient()
 	workload, err := convertToUnstructured(
 		k8sapps.Deployment{
 			ObjectMeta: k8smeta.ObjectMeta{
@@ -125,7 +125,7 @@ func TestPopulateFromUnstructured(t *testing.T) {
 	}
 	templateText := `<{{.workload.metadata.namespace}}/{{.workload.metadata.name}}>`
 	expectedOutput := `<test-namespace-name/test-workload-name>`
-	tp := NewProcessor(client, templateText)
+	tp := NewProcessor(c, templateText)
 	actualOutput, err := tp.Process(inputs)
 	assert.NoError(err, "error processing template")
 	assert.Equal(expectedOutput, actualOutput, "expected template to be populated correctly from unstructured")
@@ -137,10 +137,10 @@ func TestPopulateFromUnstructured(t *testing.T) {
 // THEN the resulting string should be populated from the resources values
 func TestPopulateFromGet(t *testing.T) {
 	assert := asserts.New(t)
-	client := getTestClient()
+	c := getTestClient()
 	templateText := `{{$cm := get "v1" "ConfigMap" "testNamespace" "testConfigMap"}}<{{$cm.metadata.name}}>`
 	expectedOutput := `<testConfigMap>`
-	tp := NewProcessor(client, templateText)
+	tp := NewProcessor(c, templateText)
 	actualOutput, err := tp.Process(nil)
 	assert.NoError(err, "error processing template")
 	assert.Equal(expectedOutput, actualOutput, "expected template to be populated correctly from unstructured")
@@ -148,7 +148,7 @@ func TestPopulateFromGet(t *testing.T) {
 
 // getTestClient returns a controller/kube client with references to simple secret and configmap
 func getTestClient() client.Client {
-	client := fake.NewFakeClientWithScheme(newScheme(),
+	c := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(
 		&k8score.Secret{
 			ObjectMeta: k8smeta.ObjectMeta{
 				Name:      "someSecret",
@@ -167,8 +167,8 @@ func getTestClient() client.Client {
 				"value1": "This is the string associated with value1",
 				"value2": "This is the string associated with value2",
 			},
-		})
-	return client
+		}).Build()
+	return c
 }
 
 func newScheme() *runtime.Scheme {
@@ -184,11 +184,11 @@ func newScheme() *runtime.Scheme {
 // convertToUnstructured converts an object to an Unstructured version
 // object - The object to convert to Unstructured
 func convertToUnstructured(object interface{}) (unstructured.Unstructured, error) {
-	bytes, err := json.Marshal(object)
+	jbytes, err := json.Marshal(object)
 	if err != nil {
 		return unstructured.Unstructured{}, err
 	}
 	var u map[string]interface{}
-	json.Unmarshal(bytes, &u)
+	json.Unmarshal(jbytes, &u)
 	return unstructured.Unstructured{Object: u}, nil
 }

@@ -6,7 +6,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
-//IsPrometheusEnabled - Returns false only if explicitly disabled in the CR
+// IsPrometheusEnabled - Returns false only if explicitly disabled in the CR
 func IsPrometheusEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.Prometheus != nil && vz.Spec.Components.Prometheus.Enabled != nil {
 		return *vz.Spec.Components.Prometheus.Enabled
@@ -14,7 +14,7 @@ func IsPrometheusEnabled(vz *vzapi.Verrazzano) bool {
 	return true
 }
 
-//IsKibanaEnabled - Returns false only if explicitly disabled in the CR
+// IsKibanaEnabled - Returns false only if explicitly disabled in the CR
 func IsKibanaEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.Kibana != nil && vz.Spec.Components.Kibana.Enabled != nil {
 		return *vz.Spec.Components.Kibana.Enabled
@@ -22,7 +22,7 @@ func IsKibanaEnabled(vz *vzapi.Verrazzano) bool {
 	return true
 }
 
-//IsNGINXEnabled - Returns false only if explicitly disabled in the CR
+// IsNGINXEnabled - Returns false only if explicitly disabled in the CR
 func IsNGINXEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.Ingress != nil && vz.Spec.Components.Ingress.Enabled != nil {
 		return *vz.Spec.Components.Ingress.Enabled
@@ -30,7 +30,7 @@ func IsNGINXEnabled(vz *vzapi.Verrazzano) bool {
 	return true
 }
 
-//IsIstioEnabled - Returns false only if explicitly disabled in the CR
+// IsIstioEnabled - Returns false only if explicitly disabled in the CR
 func IsIstioEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.Istio != nil && vz.Spec.Components.Istio.Enabled != nil {
 		return *vz.Spec.Components.Istio.Enabled
@@ -46,7 +46,7 @@ func IsCertManagerEnabled(vz *vzapi.Verrazzano) bool {
 	return true
 }
 
-//IsKialiEnabled - Returns false only if explicitly disabled in the CR
+// IsKialiEnabled - Returns false only if explicitly disabled in the CR
 func IsKialiEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.Kiali != nil && vz.Spec.Components.Kiali.Enabled != nil {
 		return *vz.Spec.Components.Kiali.Enabled
@@ -54,7 +54,7 @@ func IsKialiEnabled(vz *vzapi.Verrazzano) bool {
 	return true
 }
 
-//IsElasticsearchEnabled - Returns false only if explicitly disabled in the CR
+// IsElasticsearchEnabled - Returns false only if explicitly disabled in the CR
 func IsElasticsearchEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.Elasticsearch != nil && vz.Spec.Components.Elasticsearch.Enabled != nil {
 		return *vz.Spec.Components.Elasticsearch.Enabled
@@ -62,7 +62,7 @@ func IsElasticsearchEnabled(vz *vzapi.Verrazzano) bool {
 	return true
 }
 
-//IsGrafanaEnabled - Returns false only if explicitly disabled in the CR
+// IsGrafanaEnabled - Returns false only if explicitly disabled in the CR
 func IsGrafanaEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.Grafana != nil && vz.Spec.Components.Grafana.Enabled != nil {
 		return *vz.Spec.Components.Grafana.Enabled
@@ -70,7 +70,7 @@ func IsGrafanaEnabled(vz *vzapi.Verrazzano) bool {
 	return true
 }
 
-//IsFluentdEnabled - Returns false only if explicitly disabled in the CR
+// IsFluentdEnabled - Returns false only if explicitly disabled in the CR
 func IsFluentdEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.Fluentd != nil && vz.Spec.Components.Fluentd.Enabled != nil {
 		return *vz.Spec.Components.Fluentd.Enabled
@@ -78,7 +78,7 @@ func IsFluentdEnabled(vz *vzapi.Verrazzano) bool {
 	return true
 }
 
-//IsConsoleEnabled - Returns false only if explicitly disabled in the CR
+// IsConsoleEnabled - Returns false only if explicitly disabled in the CR
 func IsConsoleEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.Console != nil && vz.Spec.Components.Console.Enabled != nil {
 		return *vz.Spec.Components.Console.Enabled
@@ -86,7 +86,7 @@ func IsConsoleEnabled(vz *vzapi.Verrazzano) bool {
 	return true
 }
 
-//IsKeycloakEnabled - Returns false only if explicitly disabled in the CR
+// IsKeycloakEnabled - Returns false only if explicitly disabled in the CR
 func IsKeycloakEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.Keycloak != nil && vz.Spec.Components.Keycloak.Enabled != nil {
 		return *vz.Spec.Components.Keycloak.Enabled
@@ -94,7 +94,7 @@ func IsKeycloakEnabled(vz *vzapi.Verrazzano) bool {
 	return true
 }
 
-//IsRancherEnabled - Returns false only if explicitly disabled in the CR
+// IsRancherEnabled - Returns false only if explicitly disabled in the CR
 func IsRancherEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.Rancher != nil && vz.Spec.Components.Rancher.Enabled != nil {
 		return *vz.Spec.Components.Rancher.Enabled
@@ -127,6 +127,22 @@ func IsPrometheusOperatorEnabled(vz *vzapi.Verrazzano) bool {
 func IsPrometheusAdapterEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.PrometheusAdapter != nil && vz.Spec.Components.PrometheusAdapter.Enabled != nil {
 		return *vz.Spec.Components.PrometheusAdapter.Enabled
+	}
+	return true
+}
+
+// IsKubeStateMetricsEnabled returns false only if Kube State Metrics is explicitly disabled in the CR
+func IsKubeStateMetricsEnabled(vz *vzapi.Verrazzano) bool {
+	if vz != nil && vz.Spec.Components.KubeStateMetrics != nil && vz.Spec.Components.KubeStateMetrics.Enabled != nil {
+		return *vz.Spec.Components.KubeStateMetrics.Enabled
+	}
+	return true
+}
+
+// IsPrometheusPushgatewayEnabled returns false only if the Prometheus Pushgateway is explicitly disabled in the CR
+func IsPrometheusPushgatewayEnabled(vz *vzapi.Verrazzano) bool {
+	if vz != nil && vz.Spec.Components.PrometheusPushgateway != nil && vz.Spec.Components.PrometheusPushgateway.Enabled != nil {
+		return *vz.Spec.Components.PrometheusPushgateway.Enabled
 	}
 	return true
 }

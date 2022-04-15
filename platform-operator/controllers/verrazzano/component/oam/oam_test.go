@@ -30,7 +30,7 @@ var crEnabled = vzapi.Verrazzano{
 //  THEN true is returned
 func TestIsOAMOperatorReady(t *testing.T) {
 
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      ComponentName,
@@ -41,7 +41,7 @@ func TestIsOAMOperatorReady(t *testing.T) {
 			Replicas:          1,
 			UpdatedReplicas:   1,
 		},
-	})
+	}).Build()
 	assert.True(t, isOAMReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
 }
 
@@ -51,7 +51,7 @@ func TestIsOAMOperatorReady(t *testing.T) {
 //  THEN false is returned
 func TestIsOAMOperatorNotReady(t *testing.T) {
 
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      ComponentName,
@@ -61,7 +61,7 @@ func TestIsOAMOperatorNotReady(t *testing.T) {
 			Replicas:          1,
 			UpdatedReplicas:   0,
 		},
-	})
+	}).Build()
 	assert.False(t, isOAMReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
 }
 

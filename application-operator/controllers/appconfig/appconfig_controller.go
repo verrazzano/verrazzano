@@ -52,7 +52,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // Reconcile checks restart version annotations on an ApplicationConfiguration and
 // restarts applications as needed. When applications are restarted, the previous restart
 // version annotation value is updated.
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
@@ -62,8 +62,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		log.Infof("Application configuration resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
 		return reconcile.Result{}, nil
 	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
-	ctx := context.Background()
 	var appConfig oamv1.ApplicationConfiguration
 	if err := r.Client.Get(ctx, req.NamespacedName, &appConfig); err != nil {
 		return clusters.IgnoreNotFoundWithLog(err, zap.S())
@@ -145,16 +147,16 @@ func (r *Reconciler) restartComponent(ctx context.Context, wlNamespace string, w
 	switch workload.GetKind() {
 	case vzconst.VerrazzanoCoherenceWorkloadKind:
 		log.Debugf("Setting Coherence workload %s restart-version", wlName)
-		return updateRestartVersion(ctx, r, &workload, restartVersion, log)
+		return updateRestartVersion(ctx, r.Client, &workload, restartVersion, log)
 	case vzconst.VerrazzanoWebLogicWorkloadKind:
 		log.Debugf("Setting WebLogic workload %s restart-version", wlName)
-		return updateRestartVersion(ctx, r, &workload, restartVersion, log)
+		return updateRestartVersion(ctx, r.Client, &workload, restartVersion, log)
 	case vzconst.VerrazzanoHelidonWorkloadKind:
 		log.Debugf("Setting Helidon workload %s restart-version", wlName)
-		return updateRestartVersion(ctx, r, &workload, restartVersion, log)
+		return updateRestartVersion(ctx, r.Client, &workload, restartVersion, log)
 	case vzconst.ContainerizedWorkloadKind:
 		log.Debugf("Setting Containerized workload %s restart-version", wlName)
-		return updateRestartVersion(ctx, r, &workload, restartVersion, log)
+		return updateRestartVersion(ctx, r.Client, &workload, restartVersion, log)
 	case vzconst.DeploymentWorkloadKind:
 		log.Debugf("Setting Deployment workload %s restart-version", wlName)
 		return r.restartDeployment(ctx, restartVersion, wlName, wlNamespace, log)

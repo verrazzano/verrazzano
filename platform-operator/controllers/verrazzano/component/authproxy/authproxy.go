@@ -174,21 +174,21 @@ func reassociateResources(cli clipkg.Client) error {
 }
 
 // removeResourcePolicyAnnotation removes the resource policy annotation to allow the resource to be managed by helm
-func removeResourcePolicyAnnotation(cli clipkg.Client, obj controllerutil.Object, namespacedName types.NamespacedName) (controllerutil.Object, error) {
+func removeResourcePolicyAnnotation(cli clipkg.Client, obj clipkg.Object, namespacedName types.NamespacedName) (clipkg.Object, error) {
 	if err := cli.Get(context.TODO(), namespacedName, obj); err != nil {
 		if errors.IsNotFound(err) {
 			return obj, nil
 		}
 		return obj, err
 	}
-	objMerge := clipkg.MergeFrom(obj.DeepCopyObject())
 	annotations := obj.GetAnnotations()
 	if annotations == nil {
 		return obj, nil
 	}
 	delete(annotations, "helm.sh/resource-policy")
 	obj.SetAnnotations(annotations)
-	return obj, cli.Patch(context.TODO(), obj, objMerge)
+	err := cli.Update(context.TODO(), obj)
+	return obj, err
 }
 
 // loadImageSettings loads the override values for the image name and version

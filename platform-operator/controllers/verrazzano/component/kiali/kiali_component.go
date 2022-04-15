@@ -4,6 +4,7 @@
 package kiali
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 
@@ -17,6 +18,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	appv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -78,7 +81,42 @@ func (c kialiComponent) PostInstall(ctx spi.ComponentContext) error {
 // PreUpgrade Kiali-pre-upgrade processing
 func (c kialiComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Kiali pre-upgrade")
+	if err := removeDeploymentAndService(ctx); err != nil {
+		return err
+	}
 	return common.ApplyCRDYaml(ctx, config.GetHelmKialiChartsDir())
+}
+
+// removeDeploymentAndService removes the Kiali deployment and service during pre-upgrade.
+// The match selector for Kiali was changed in 1.42.0 from the previous Kiali version (1.34.1) that Verrazzano installed.
+// The match selector is an immutable field so this was a workaround to avoid a failure during Kiali upgrade.
+func removeDeploymentAndService(ctx spi.ComponentContext) error {
+	deployment := &appv1.Deployment{}
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: kialiSystemName}, deployment); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to get deployment %s/%s: %v", ComponentNamespace, kialiSystemName, err)
+	}
+	// Remove the Kiali deployment only if the match selector is not what is expected.
+	if deployment.Spec.Selector != nil && len(deployment.Spec.Selector.MatchExpressions) == 0 && len(deployment.Spec.Selector.MatchLabels) == 2 {
+		instance, ok := deployment.Spec.Selector.MatchLabels["app.kubernetes.io/instance"]
+		if ok && instance == kialiSystemName {
+			name, ok := deployment.Spec.Selector.MatchLabels["app.kubernetes.io/name"]
+			if ok && name == "kiali" {
+				return nil
+			}
+		}
+	}
+	service := &corev1.Service{}
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: kialiSystemName}, service); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to get service %s/%s: %v", ComponentNamespace, kialiSystemName, err)
+	}
+	if err := ctx.Client().Delete(context.TODO(), service); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to delete service %s/%s: %v", ComponentNamespace, kialiSystemName, err)
+	}
+	if err := ctx.Client().Delete(context.TODO(), deployment); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to delete deployment %s/%s: %v", ComponentNamespace, kialiSystemName, err)
+	}
+
+	return nil
 }
 
 // PostUpgrade Kiali-post-upgrade processing, create or update the Kiali ingress

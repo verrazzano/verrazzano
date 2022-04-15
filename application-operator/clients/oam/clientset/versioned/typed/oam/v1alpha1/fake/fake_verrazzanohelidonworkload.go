@@ -104,7 +104,7 @@ func (c *FakeVerrazzanoHelidonWorkloads) UpdateStatus(ctx context.Context, verra
 // Delete takes name of the verrazzanoHelidonWorkload and deletes it. Returns an error if one occurs.
 func (c *FakeVerrazzanoHelidonWorkloads) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(verrazzanohelidonworkloadsResource, c.ns, name), &v1alpha1.VerrazzanoHelidonWorkload{})
+		Invokes(testing.NewDeleteActionWithOptions(verrazzanohelidonworkloadsResource, c.ns, name, opts), &v1alpha1.VerrazzanoHelidonWorkload{})
 
 	return err
 }
