@@ -140,7 +140,7 @@ func TestAppendOverrides(t *testing.T) {
 	assert.True(t, strings.HasPrefix(bom.FindKV(kvs, "prometheusOperator.alertmanagerDefaultBaseImage"), "ghcr.io/verrazzano/alertmanager:"))
 	assert.True(t, strings.HasPrefix(bom.FindKV(kvs, "prometheusOperator.prometheusDefaultBaseImage"), "ghcr.io/verrazzano/prometheus:"))
 
-	assert.Equal(t, "true", bom.FindKV(kvs, "prometheusOperator.admissionWebhooks.certManager"))
+	assert.Equal(t, "true", bom.FindKV(kvs, "prometheusOperator.admissionWebhooks.certManager.enabled"))
 
 	// GIVEN a Verrazzano CR with the CertManager component disabled
 	// WHEN the AppendOverrides function is called
@@ -163,7 +163,7 @@ func TestAppendOverrides(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 7)
 
-	assert.Equal(t, "false", bom.FindKV(kvs, "prometheusOperator.admissionWebhooks.certManager"))
+	assert.Equal(t, "false", bom.FindKV(kvs, "prometheusOperator.admissionWebhooks.certManager.enabled"))
 }
 
 // TestPreInstall tests the preInstall function.

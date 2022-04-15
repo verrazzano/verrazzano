@@ -76,7 +76,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	// If the cert-manager component is enabled, use it for webhook certificates, otherwise Prometheus Operator
 	// will use the kube-webhook-certgen image
 	kvs = append(kvs, bom.KeyValue{
-		Key:   "prometheusOperator.admissionWebhooks.certManager",
+		Key:   "prometheusOperator.admissionWebhooks.certManager.enabled",
 		Value: strconv.FormatBool(vzconfig.IsCertManagerEnabled(ctx.EffectiveCR())),
 	})
 
