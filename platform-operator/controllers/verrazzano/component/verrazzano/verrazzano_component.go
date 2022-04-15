@@ -127,21 +127,10 @@ func (c verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
 // PostUpgrade Verrazzano-post-upgrade processing
 func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Verrazzano component post-upgrade")
+	cleanTempFiles(ctx)
 	c.HelmComponent.IngressNames = c.GetIngressNames(ctx)
 	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
-	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
-		return err
-	}
-	cleanTempFiles(ctx)
-	return c.updateElasticsearchResources(ctx)
-}
-
-// updateElasticsearchResources updates elasticsearch resources
-func (c verrazzanoComponent) updateElasticsearchResources(ctx spi.ComponentContext) error {
-	if err := fixupElasticSearchReplicaCount(ctx, resolveVerrazzanoNamespace(c.ChartNamespace)); err != nil {
-		return err
-	}
-	return nil
+	return c.HelmComponent.PostUpgrade(ctx)
 }
 
 // IsEnabled verrazzano-specific enabled check for installation
@@ -244,24 +233,10 @@ func (c verrazzanoComponent) checkEnabled(old *vzapi.Verrazzano, new *vzapi.Verr
 func (c verrazzanoComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var ingressNames []types.NamespacedName
 
-	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
-		ingressNames = append(ingressNames, types.NamespacedName{
-			Namespace: ComponentNamespace,
-			Name:      constants.ElasticsearchIngress,
-		})
-	}
-
 	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
 		ingressNames = append(ingressNames, types.NamespacedName{
 			Namespace: ComponentNamespace,
 			Name:      constants.GrafanaIngress,
-		})
-	}
-
-	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
-		ingressNames = append(ingressNames, types.NamespacedName{
-			Namespace: ComponentNamespace,
-			Name:      constants.KibanaIngress,
 		})
 	}
 
@@ -284,24 +259,10 @@ func (c verrazzanoComponent) GetCertificateNames(ctx spi.ComponentContext) []typ
 		Name:      verrazzanoCertificateName,
 	})
 
-	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
-		certificateNames = append(certificateNames, types.NamespacedName{
-			Namespace: ComponentNamespace,
-			Name:      osCertificateName,
-		})
-	}
-
 	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
 		certificateNames = append(certificateNames, types.NamespacedName{
 			Namespace: ComponentNamespace,
 			Name:      grafanaCertificateName,
-		})
-	}
-
-	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
-		certificateNames = append(certificateNames, types.NamespacedName{
-			Namespace: ComponentNamespace,
-			Name:      osdCertificateName,
 		})
 	}
 

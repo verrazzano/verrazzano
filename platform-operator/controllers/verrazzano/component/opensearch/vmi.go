@@ -25,7 +25,7 @@ const (
 	system = "system"
 )
 
-//createVMI instantiates the VMI resource and the Grafana Dashboards configmap
+//createVMI instantiates the VMI resource
 func createVMI(ctx spi.ComponentContext) error {
 	if !vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
 		return nil

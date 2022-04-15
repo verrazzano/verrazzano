@@ -25,9 +25,6 @@ const (
 	// ComponentNamespace is the namespace of the component
 	ComponentNamespace = constants.VerrazzanoSystemNamespace
 
-	// vzImagePullSecretKeyName is the Helm key name for the VZ chart image pull secret
-	vzImagePullSecretKeyName = "global.imagePullSecrets[0]"
-
 	// verrazzanoSecretName is the name of the VMI secret
 	verrazzanoSecretName       = "verrazzano"
 	verrazzanoBackupScrtName   = "verrazzano-backup"
@@ -216,12 +213,6 @@ func (o opensearchComponent) checkEnabled(old *vzapi.Verrazzano, new *vzapi.Verr
 	// Do not allow disabling of any component post-install for now
 	if vzconfig.IsElasticsearchEnabled(old) && !vzconfig.IsElasticsearchEnabled(new) {
 		return fmt.Errorf("Disabling component elasticsearch not allowed")
-	}
-	if vzconfig.IsGrafanaEnabled(old) && !vzconfig.IsGrafanaEnabled(new) {
-		return fmt.Errorf("Disabling component grafana not allowed")
-	}
-	if vzconfig.IsPrometheusEnabled(old) && !vzconfig.IsPrometheusEnabled(new) {
-		return fmt.Errorf("Disabling component prometheus not allowed")
 	}
 	if vzconfig.IsKibanaEnabled(old) && !vzconfig.IsKibanaEnabled(new) {
 		return fmt.Errorf("Disabling component kibana not allowed")
