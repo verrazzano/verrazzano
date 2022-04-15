@@ -112,8 +112,6 @@ func (o opensearchComponent) IsReady(ctx spi.ComponentContext) bool {
 func (o opensearchComponent) PostInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Opensearch component post-upgrade")
 
-	cleanTempFiles(ctx)
-
 	// Check if the ingresses and certs are present
 	prefix := fmt.Sprintf("Component %s", ComponentName)
 	if !status.IngressesPresent(ctx.Log(), ctx.Client(), o.GetIngressNames(ctx), prefix) {
@@ -136,8 +134,6 @@ func (o opensearchComponent) PostInstall(ctx spi.ComponentContext) error {
 // PostUpgrade Opensearch post-upgrade processing
 func (o opensearchComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Opensearch component post-upgrade")
-
-	cleanTempFiles(ctx)
 
 	// Check if the ingresses and certs are present
 	prefix := fmt.Sprintf("Component %s", ComponentName)

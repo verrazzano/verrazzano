@@ -6,6 +6,7 @@ package opensearch
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -193,13 +194,13 @@ func isOpensearchReady(ctx spi.ComponentContext) bool {
 	return isVerrazzanoSecretReady(ctx)
 }
 
-func findStorageOverride(effectiveCR *vzapi.Verrazzano) (*resourceRequestValues, error) {
+func findStorageOverride(effectiveCR *vzapi.Verrazzano) (*verrazzano.ResourceRequestValues, error) {
 	if effectiveCR == nil || effectiveCR.Spec.DefaultVolumeSource == nil {
 		return nil, nil
 	}
 	defaultVolumeSource := effectiveCR.Spec.DefaultVolumeSource
 	if defaultVolumeSource.EmptyDir != nil {
-		return &resourceRequestValues{
+		return &verrazzano.ResourceRequestValues{
 			Storage: "",
 		}, nil
 	}
@@ -210,7 +211,7 @@ func findStorageOverride(effectiveCR *vzapi.Verrazzano) (*resourceRequestValues,
 			return nil, fmt.Errorf("Failed, did not find matching storage volume template for claim %s", pvcClaim.ClaimName)
 		}
 		storageString := storageSpec.Resources.Requests.Storage().String()
-		return &resourceRequestValues{
+		return &verrazzano.ResourceRequestValues{
 			Storage: storageString,
 		}, nil
 	}
