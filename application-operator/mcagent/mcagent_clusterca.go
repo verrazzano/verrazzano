@@ -57,7 +57,7 @@ func (s *Syncer) syncAdminClusterCA() error {
 	}
 
 	// Update the local cluster registration secret if the admin CA certs are different
-	if !s.secretsEqualTrimmedWhitespace(registrationSecret.Data[keyCaBundle], adminCASecret.Data[keyCaBundle]) {
+	if !secretsEqualTrimmedWhitespace(registrationSecret.Data[keyCaBundle], adminCASecret.Data[keyCaBundle]) {
 		result, err := controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &registrationSecret, func() error {
 			registrationSecret.Data[keyCaBundle] = adminCASecret.Data[keyCaBundle]
 			return nil
@@ -106,7 +106,7 @@ func (s *Syncer) syncLocalClusterCA() error {
 	}
 
 	// Update the VMC cluster CA secret if the local CA is different
-	if !s.secretsEqualTrimmedWhitespace(vmcCASecret.Data[keyCaCrtNoDot], localCASecret.Data[keyCaCrt]) {
+	if !secretsEqualTrimmedWhitespace(vmcCASecret.Data[keyCaCrtNoDot], localCASecret.Data[keyCaCrt]) {
 		result, err := controllerutil.CreateOrUpdate(s.Context, s.AdminClient, &vmcCASecret, func() error {
 			vmcCASecret.Data[keyCaCrtNoDot] = localCASecret.Data[keyCaCrt]
 			return nil
@@ -122,7 +122,7 @@ func (s *Syncer) syncLocalClusterCA() error {
 	return nil
 }
 
-func (s *Syncer) secretsEqualTrimmedWhitespace(secret1, secret2 []byte) bool {
+func secretsEqualTrimmedWhitespace(secret1, secret2 []byte) bool {
 	a := bytes.Trim(secret1, " \t\n\r")
 	b := bytes.Trim(secret2, " \t\n\r")
 	return bytes.Equal(a, b)
