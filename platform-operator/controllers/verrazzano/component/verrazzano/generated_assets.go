@@ -455,7 +455,7 @@ func manifestsDashboardsHelidonHelidon_dashboardJson() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "manifests/dashboards/helidon/helidon_dashboard.json", size: 31603, mode: os.FileMode(420), modTime: time.Unix(1649679518, 0)}
+	info := bindataFileInfo{name: "manifests/dashboards/helidon/helidon_dashboard.json", size: 31603, mode: os.FileMode(420), modTime: time.Unix(1647457998, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
