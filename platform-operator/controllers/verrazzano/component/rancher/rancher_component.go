@@ -199,6 +199,7 @@ func (r rancherComponent) Install(ctx spi.ComponentContext) error {
 	c := ctx.Client()
 	// Set MKNOD Cap on Rancher deployment
 	if err := patchRancherDeployment(c); err != nil {
+		log.Progressf("Error patching Rancher deployment: %s", err.Error())
 		return err
 	}
 	log.Debugf("Patched Rancher deployment to support MKNOD")
@@ -232,31 +233,37 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	log := ctx.Log()
 
 	if err := createAdminSecretIfNotExists(log, c); err != nil {
+		ctx.Log().Progressf("Error creating Rancher admin secret: %s", err.Error())
 		return err
 	}
 	password, err := common.GetAdminSecret(c)
 	if err != nil {
+		ctx.Log().Progressf("Error getting Rancher admin secret: %s", err.Error())
 		return err
 	}
 	rancherHostName, err := getRancherHostname(c, vz)
 	if err != nil {
+		ctx.Log().Progressf("Error getting Rancher hostname: %s", err.Error())
 		return err
 	}
 
 	rest, err := common.NewClient(c, rancherHostName, password)
 	if err != nil {
+		ctx.Log().Progressf("Error getting Rancher client: %s", err.Error())
 		return err
 	}
 	if err := rest.SetAccessToken(); err != nil {
+		ctx.Log().Progressf("Error setting Rancher access token: %s", err.Error())
 		return err
 	}
 
 	if err := rest.PutServerURL(); err != nil {
-		ctx.Log().Error(err)
+		ctx.Log().Progressf("Error setting Rancher server URL: %s", err.Error())
 		return err
 	}
 
 	if err := removeBootstrapSecretIfExists(log, c); err != nil {
+		ctx.Log().Progressf("Error removing Rancher bootstrap secret: %s", err.Error())
 		return err
 	}
 
