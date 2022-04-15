@@ -5,50 +5,19 @@ package rancher
 
 import (
 	"errors"
+	"io"
+	"net/http"
+	"strings"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"io"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"strings"
-	"testing"
 )
-
-// TestCreateOperatorNamespace verifies creation of the Rancher operator namespace
-// GIVEN a CertManager component
-//  WHEN createRancherOperatorNamespace is called
-//  THEN createRancherOperatorNamespace the Rancher operator namespace should be created
-func TestCreateOperatorNamespace(t *testing.T) {
-	log := getTestLogger(t)
-
-	var tests = []struct {
-		testName string
-		c        client.Client
-	}{
-		{
-			"should create the Rancher operator namespace",
-			fake.NewClientBuilder().WithScheme(getScheme()).Build(),
-		},
-		{
-			"should not fail if the Rancher operator namespace already exists",
-			fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&v1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: OperatorNamespace,
-				},
-			}).Build(),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.testName, func(t *testing.T) {
-			assert.Nil(t, createRancherOperatorNamespace(log, tt.c))
-		})
-	}
-}
 
 // TestCreateCattleNamespace verifies creation of the cattle-system namespace
 // GIVEN a CertManager component
