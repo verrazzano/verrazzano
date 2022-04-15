@@ -5,9 +5,6 @@ package verrazzano
 
 import (
 	"fmt"
-	"path/filepath"
-	"reflect"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
@@ -16,9 +13,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/types"
+	"path/filepath"
+	"reflect"
 )
 
 const (
@@ -127,6 +127,9 @@ func (c verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
 // PostUpgrade Verrazzano-post-upgrade processing
 func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Verrazzano component post-upgrade")
+	if err := vmo.ReassociateResources(ctx); err != nil {
+		return err
+	}
 	c.HelmComponent.IngressNames = c.GetIngressNames(ctx)
 	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
 	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
