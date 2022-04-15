@@ -58,9 +58,7 @@ var t = framework.NewTestFramework("promstack")
 func listEnabledComponents() []string {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		t.It("should be able to find the cluster kubeconfig", func() {
-			Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-		})
+		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
 	var enabledPods []string
 	for _, component := range promStackEnabledComponents {
@@ -74,9 +72,7 @@ func listEnabledComponents() []string {
 func isPrometheusOperatorEnabled() bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		t.It("should be able to find the cluster kubeconfig", func() {
-			Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-		})
+		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
 	return pkg.IsPrometheusOperatorEnabled(kubeconfigPath)
 }
