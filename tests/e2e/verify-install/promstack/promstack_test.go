@@ -163,7 +163,10 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 
 		WhenPromStackInstalledIt("should have the TLS secret", func() {
 			Eventually(func() bool {
-				return pkg.SecretsCreated(verrazzanoMonitoringNamespace, prometheusTLSSecret)
+				if isPrometheusOperatorEnabled() {
+					return pkg.SecretsCreated(verrazzanoMonitoringNamespace, prometheusTLSSecret)
+				}
+				return true
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
