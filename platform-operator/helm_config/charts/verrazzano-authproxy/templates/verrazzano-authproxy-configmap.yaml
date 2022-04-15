@@ -45,7 +45,7 @@ data:
             -- not a legit origin, could be intended to trick us into oversharing
             auth.bad_request("Invalid Origin header: '*'")
         end
-        
+
         ngx.header["Vary"] = "Origin"
         local requestMethod = ngx.req.get_method()
         local originAllowed = auth.isOriginAllowed(h, backend, ingressUri)
@@ -56,7 +56,7 @@ data:
         if not originAllowed and requestMethod ~= "GET" and requestMethod ~= "HEAD" and requestMethod ~= "OPTIONS" then
             auth.forbidden("Origin: " .. h .. " not allowed.")
         end
-        
+
         if originAllowed then
             -- From "Simple Cross-Origin Request, Actual Request, and Redirects" section of https://www.w3.org/TR/2020/SPSD-cors-20200602,
             -- set the value of Access-Control-Allow-Origin and Access-Control-Allow-Credentials hedaers if there is a match.
@@ -67,13 +67,13 @@ data:
                 ngx.header["Access-Control-Allow-Methods"] = "GET, HEAD, POST, PUT, DELETE, OPTIONS, PATCH"
             end
         end
-        
+
         if requestMethod == "OPTIONS" then
             ngx.header["Content-Length"] = 0
             ngx.status = 200
             ngx.exit(ngx.HTTP_OK)
         end
-        
+
     else
         if ngx.req.get_method() == "OPTIONS" then
             auth.bad_request("OPTIONS request with no Origin header")
@@ -132,7 +132,7 @@ data:
     if not auth.isAuthorized(token) then
         auth.forbidden("Not authorized")
     end
-  
+
     local usernameFromToken = auth.usernameFromIdToken(token)
     auth.audit("User "..usernameFromToken.." authenticated and authorized")
 
@@ -242,7 +242,7 @@ data:
             me.log(ngx.INFO, msg)
         end
     end
-    
+
     function me.error(msg, obj)
         if obj then
             me.log(ngx.ERR, msg, 'object', obj)
@@ -250,7 +250,7 @@ data:
             me.log(ngx.ERR, msg)
         end
     end
-    
+
     function me.debug(msg, obj)
         if obj then
             me.log(ngx.DEBUG, msg, 'object', obj)
@@ -285,7 +285,7 @@ data:
             return req_uri:sub(begin, endin-1)
         end
     end
-    
+
     -- For now, auditing reports a log message at the debug level
     function me.audit(msg, err)
         me.logJson(ngx.DEBUG, msg, err)
@@ -1151,17 +1151,17 @@ data:
         end
         return true
     end
-    
+
     function me.isOriginAllowed(origin, backend, ingressUri)
-        -- As per https://datatracker.ietf.org/doc/rfc6454, "User Agent Requirements" section a "null" value for 
-        -- Origin header is set by user agents for privacy-sensitive contexts. However it does not defined what 
+        -- As per https://datatracker.ietf.org/doc/rfc6454, "User Agent Requirements" section a "null" value for
+        -- Origin header is set by user agents for privacy-sensitive contexts. However it does not defined what
         -- a privacy-sensitive context means. The "Privacy-Sensitive Contexts" section of https://wiki.mozilla.org/Security/Origin
         -- defines certain contexts as privacy sensitive but there also it does not explain behaviour of server for the
         -- "Access-Control-Allow-Origin" header. Therefore we do not allow such requests.
         if origin == "null" then
             return false
         end
-        
+
         if origin == ingressUri then
             return true
         end
@@ -1182,11 +1182,11 @@ data:
         elseif backend == 'kiali' then
             allowedOrigins = os.getenv("VZ_KIALI_ALLOWED_ORIGINS")
         end
-        
+
         if not allowedOrigins or allowedOrigins == "" then
             return false
         end
-        
+
         for requestOrigin in string.gmatch(origin, '([^ ]+)') do
             local originFound = false
             for allowedOrigin in string.gmatch(allowedOrigins, '([^,]+)') do
@@ -1206,7 +1206,7 @@ data:
     #user  nobody;
     worker_processes  1;
 
-    error_log  /var/log/nginx/error.log info;
+    error_log  /var/log/nginx/error.log debug;
     pid        logs/nginx.pid;
 
     env KUBERNETES_SERVICE_HOST;
