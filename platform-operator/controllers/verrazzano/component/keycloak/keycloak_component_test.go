@@ -6,21 +6,26 @@ package keycloak
 import (
 	"testing"
 
-	"k8s.io/apimachinery/pkg/types"
-
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-var kcComponent = NewComponent()
+var (
+	kcComponent = NewComponent()
+	testScheme  = runtime.NewScheme()
+)
 
 // TestIsEnabled tests the Keycloak IsEnabled call
 // GIVEN a Keycloak component
@@ -227,4 +232,96 @@ func TestKeycloakComponent_GetCertificateNames(t *testing.T) {
 	names := NewComponent().GetCertificateNames(ctx)
 	assert.Len(t, names, 1)
 	assert.Equal(t, types.NamespacedName{Name: keycloakCertificateName, Namespace: ComponentNamespace}, names[0])
+}
+
+func TestKeycloakConfigHash(t *testing.T) {
+	a := assert.New(t)
+	config.TestProfilesDir = profilesRelativePath
+	defer func() { config.TestProfilesDir = "" }()
+	boolT := true
+	tests := []struct {
+		name  string
+		a     *vzapi.Verrazzano
+		b     *vzapi.Verrazzano
+		equal bool
+	}{{
+		name:  "default",
+		a:     &vzapi.Verrazzano{},
+		b:     &vzapi.Verrazzano{},
+		equal: true,
+	}, {
+		name: "default-cm",
+		a:    &vzapi.Verrazzano{},
+		b: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					CertManager: &vzapi.CertManagerComponent{
+						Enabled: &boolT,
+						Certificate: vzapi.Certificate{
+							CA: vzapi.CA{ClusterResourceNamespace: "cert-manager", SecretName: "verrazzano-ca-certificate-secret"},
+						},
+					},
+				},
+			},
+		},
+		equal: true,
+	}, {
+		name: "custom-ca",
+		a:    &vzapi.Verrazzano{},
+		b: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					CertManager: &vzapi.CertManagerComponent{
+						Enabled: &boolT,
+						Certificate: vzapi.Certificate{
+							CA: vzapi.CA{ClusterResourceNamespace: "myns", SecretName: "my-ca-certificate-secret"},
+						},
+					},
+				},
+			},
+		},
+		equal: false,
+	}, {
+		name: "wildcard-dns",
+		a:    &vzapi.Verrazzano{},
+		b: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					DNS: &vzapi.DNSComponent{
+						Wildcard: &vzapi.Wildcard{Domain: "sslip.io"},
+					},
+				},
+			},
+		},
+		equal: false,
+	}, {
+		name: "oci-dns",
+		a:    &vzapi.Verrazzano{},
+		b: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					DNS: &vzapi.DNSComponent{
+						OCI: &vzapi.OCI{
+							OCIConfigSecret:        "myOciConfigSecret",
+							DNSZoneCompartmentOCID: "my.dnsZoneCompartmentOCID",
+							DNSZoneOCID:            "my.dnsZoneOCID",
+							DNSZoneName:            "my.dnsZoneName",
+						},
+					},
+				},
+			},
+		},
+		equal: false,
+	}}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctxA, _ := spi.NewContext(vzlog.DefaultLogger(), fake.NewClientBuilder().WithScheme(testScheme).Build(), tt.a, false)
+			ctxB, _ := spi.NewContext(vzlog.DefaultLogger(), fake.NewClientBuilder().WithScheme(testScheme).Build(), tt.b, false)
+			if tt.equal {
+				a.Equal(keycloakConfigHash(ctxA), keycloakConfigHash(ctxB))
+			} else {
+				a.NotEqual(keycloakConfigHash(ctxA), keycloakConfigHash(ctxB))
+			}
+		})
+	}
 }

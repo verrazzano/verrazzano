@@ -3,10 +3,10 @@
 package verrazzano
 
 import (
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"reflect"
 	"strconv"
 
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -32,6 +32,7 @@ type fakeComponent struct {
 	ready           string `default:"true"`
 	enabled         string `default:"true"`
 	minVersion      string
+	configHash      string
 }
 
 func (f fakeComponent) Name() string {
@@ -96,11 +97,11 @@ func (f fakeComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	return getBool(f.installed, "installed"), nil
 }
 
-func (f fakeComponent) IsReady(x spi.ComponentContext) bool {
+func (f fakeComponent) IsReady(_ spi.ComponentContext) bool {
 	return getBool(f.ready, "ready")
 }
 
-func (f fakeComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+func (f fakeComponent) IsEnabled(_ *vzapi.Verrazzano) bool {
 	return getBool(f.enabled, "enabled")
 }
 
@@ -128,4 +129,8 @@ func getBool(val string, fieldName string) bool {
 	}
 	boolVal, _ := strconv.ParseBool(val)
 	return boolVal
+}
+
+func (f fakeComponent) GetConfigHash(_ spi.ComponentContext) string {
+	return f.configHash
 }

@@ -772,10 +772,10 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 				err = yaml.Unmarshal(expectedData, &expectedValues)
 
 				a.NoError(err)
-				a.Equal(expectedValues.Logging.ConfigHash, HashSum(fakeContext.EffectiveCR().Spec.Components.Fluentd))
+				a.Equal(expectedValues.Logging.ConfigHash, spi.HashSum(fakeContext.EffectiveCR().Spec.Components.Fluentd))
 				// Compare the actual and expected values objects
 				a.Equal(expectedValues, actualValues)
-				a.Equal(HashSum(expectedValues), HashSum(actualValues))
+				a.Equal(spi.HashSum(expectedValues), spi.HashSum(actualValues))
 				return nil
 			}
 
@@ -1779,9 +1779,9 @@ func TestConfigHashSum(t *testing.T) {
 		DefaultAppLogID: defaultAppLogID,
 		SystemLogID:     systemLogID,
 	}}
-	assert.Equal(t, HashSum(f1), HashSum(f2))
+	assert.Equal(t, spi.HashSum(f1), spi.HashSum(f2))
 	f1.Enabled = &b
-	assert.NotEqual(t, HashSum(f1), HashSum(f2))
+	assert.NotEqual(t, spi.HashSum(f1), spi.HashSum(f2))
 	f2.Enabled = &b
-	assert.Equal(t, HashSum(f1), HashSum(f2))
+	assert.Equal(t, spi.HashSum(f1), spi.HashSum(f2))
 }

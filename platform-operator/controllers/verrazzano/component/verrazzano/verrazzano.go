@@ -5,7 +5,6 @@ package verrazzano
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
 	"io/ioutil"
 	"os/exec"
@@ -35,7 +34,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
 )
 
 // ComponentName is the name of the component
@@ -688,14 +686,4 @@ func getProfile(vz *vzapi.Verrazzano) vzapi.ProfileType {
 		profile = vzapi.Prod
 	}
 	return profile
-}
-
-// HashSum returns the hash sum of the config object
-func HashSum(config interface{}) string {
-	sha := sha256.New()
-	if data, err := yaml.Marshal(config); err == nil {
-		sha.Write(data)
-		return fmt.Sprintf("%x", sha.Sum(nil))
-	}
-	return ""
 }

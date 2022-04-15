@@ -11,19 +11,17 @@ import (
 	"path/filepath"
 	"strings"
 
-	k8s "github.com/verrazzano/verrazzano/platform-operator/internal/nodeport"
-
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/istio"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	k8s "github.com/verrazzano/verrazzano/platform-operator/internal/nodeport"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -388,4 +386,8 @@ func getImageOverrides() ([]bom.KeyValue, error) {
 		}
 	}
 	return kvs, nil
+}
+
+func (i istioComponent) GetConfigHash(context spi.ComponentContext) string {
+	return spi.HashSum(context.EffectiveCR().Spec.Components.Istio)
 }

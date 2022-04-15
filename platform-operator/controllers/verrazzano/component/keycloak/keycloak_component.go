@@ -6,6 +6,8 @@ package keycloak
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -20,7 +22,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -194,4 +195,18 @@ func (c KeycloakComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallA
 		return vz.Spec.Components.Keycloak.KeycloakInstallArgs
 	}
 	return nil
+}
+
+func (c KeycloakComponent) GetConfigHash(ctx spi.ComponentContext) string {
+	return keycloakConfigHash(ctx)
+}
+
+func keycloakConfigHash(ctx spi.ComponentContext) string {
+	effectiveCR := ctx.EffectiveCR()
+	vzConfig := map[string]interface{}{
+		"certManager": effectiveCR.Spec.Components.CertManager,
+		"dns":         effectiveCR.Spec.Components.DNS,
+		"keycloak":    effectiveCR.Spec.Components.Keycloak,
+	}
+	return spi.HashSum(vzConfig)
 }

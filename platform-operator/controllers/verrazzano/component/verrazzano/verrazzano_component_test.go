@@ -711,3 +711,62 @@ func TestValidateFluentd(t *testing.T) {
 		})
 	}
 }
+
+func TestVzConfigHash(t *testing.T) {
+	a := assert.New(t)
+	config.TestProfilesDir = profilesRelativePath
+	defer func() { config.TestProfilesDir = "" }()
+	boolT := true
+	boolF := false
+	tests := []struct {
+		name  string
+		a     *vzapi.Verrazzano
+		b     *vzapi.Verrazzano
+		equal bool
+	}{{
+		name:  "default",
+		a:     &vzapi.Verrazzano{},
+		b:     &vzapi.Verrazzano{},
+		equal: true,
+	}, {
+		name: "enable",
+		a:    &vzapi.Verrazzano{},
+		b: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					AuthProxy: &vzapi.AuthProxyComponent{
+						Enabled: &boolT,
+					},
+					Fluentd: &vzapi.FluentdComponent{
+						Enabled: &boolT,
+					},
+				},
+			},
+		},
+		equal: true,
+	}, {
+		name: "disable",
+		a:    &vzapi.Verrazzano{},
+		b: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					Fluentd: &vzapi.FluentdComponent{
+						Enabled: &boolF,
+					},
+				},
+			},
+		},
+		equal: false,
+	}}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctxA, _ := spi.NewContext(vzlog.DefaultLogger(), fake.NewClientBuilder().WithScheme(testScheme).Build(), tt.a, false)
+			ctxB, _ := spi.NewContext(vzlog.DefaultLogger(), fake.NewClientBuilder().WithScheme(testScheme).Build(), tt.b, false)
+			if tt.equal {
+				a.Equal(vzConfigHash(ctxA), vzConfigHash(ctxB))
+			} else {
+				a.NotEqual(vzConfigHash(ctxA), vzConfigHash(ctxB))
+			}
+		})
+	}
+}

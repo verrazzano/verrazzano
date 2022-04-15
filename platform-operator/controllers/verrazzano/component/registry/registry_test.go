@@ -484,6 +484,10 @@ func (f fakeComponent) GetMinVerrazzanoVersion() string {
 	return "1.0.0"
 }
 
+func (f fakeComponent) GetConfigHash(_ spi.ComponentContext) string {
+	return ""
+}
+
 func (f fakeComponent) IsOperatorInstallSupported() bool {
 	return true
 }

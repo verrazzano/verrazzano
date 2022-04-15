@@ -5,6 +5,10 @@ package helm
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"strings"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -16,11 +20,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	"io/ioutil"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 )
 
 // HelmComponent struct needed to implement a component
@@ -485,4 +486,8 @@ func GetInstallArgs(args []vzapi.InstallArgs) []bom.KeyValue {
 		}
 	}
 	return installArgs
+}
+
+func (h HelmComponent) GetConfigHash(context spi.ComponentContext) string {
+	return context.GetConfigHashByJSONName(h.GetJSONName())
 }

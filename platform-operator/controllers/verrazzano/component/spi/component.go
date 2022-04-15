@@ -32,6 +32,8 @@ type ComponentContext interface {
 	GetOperation() string
 	// GetComponent returns the component object in the context
 	GetComponent() string
+	// GetConfigHashByJSONName returns the component config hash
+	GetConfigHashByJSONName(name string) string
 }
 
 // ComponentInfo interface defines common information and metadata about components
@@ -52,6 +54,8 @@ type ComponentInfo interface {
 	GetCertificateNames(context ComponentContext) []types.NamespacedName
 	// GetJsonName returns the josn name of the verrazzano component in CRD
 	GetJSONName() string
+	// GetConfigHash returns the hash of the verrazzano component in CRD
+	GetConfigHash(context ComponentContext) string
 }
 
 // ComponentInstaller interface defines installs operations for components that support it

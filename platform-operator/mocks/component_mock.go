@@ -527,6 +527,20 @@ func (mr *MockComponentMockRecorder) GetDependencies() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDependencies", reflect.TypeOf((*MockComponent)(nil).GetDependencies))
 }
 
+// GetConfigHash mocks base method.
+func (m *MockComponent) GetConfigHash(arg0 spi.ComponentContext) string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetConfigHash", arg0)
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetConfigHash indicates an expected call of GetConfigHash.
+func (mr *MockComponentMockRecorder) GetConfigHash(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigHash", reflect.TypeOf((*MockComponent)(nil).GetConfigHash), arg0)
+}
+
 // GetIngressNames mocks base method.
 func (m *MockComponent) GetIngressNames(arg0 spi.ComponentContext) []types.NamespacedName {
 	m.ctrl.T.Helper()

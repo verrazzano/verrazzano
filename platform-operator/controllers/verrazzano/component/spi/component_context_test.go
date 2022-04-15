@@ -3,11 +3,11 @@
 package spi
 
 import (
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
 
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
@@ -20,6 +20,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
 )
+
+const testProfilesDir = "../../../../manifests/profiles"
 
 var testScheme = runtime.NewScheme()
 
@@ -40,7 +42,7 @@ func init() {
 // WHEN I call NewContext
 // THEN the correct correct context is created with the proper merge of the profile and user overrides
 func TestContextProfilesMerge(t *testing.T) {
-	config.TestProfilesDir = "../../../../manifests/profiles"
+	config.TestProfilesDir = testProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	tests := []struct {
@@ -174,4 +176,17 @@ func loadExpectedMergeResult(expectedYamlFile string) (*vzapi.Verrazzano, error)
 	vz := vzapi.Verrazzano{}
 	err = yaml.Unmarshal(bYaml, &vz)
 	return &vz, err
+}
+
+func TestCompConfigHash(t *testing.T) {
+	a := assert.New(t)
+	config.TestProfilesDir = testProfilesDir
+	defer func() { config.TestProfilesDir = "" }()
+	actualCR := &devOCIDNSOverride
+	context, _ := NewContext(vzlog.DefaultLogger(), fake.NewClientBuilder().WithScheme(testScheme).Build(), actualCR, false)
+	bt := true
+	f := vzapi.FluentdComponent{Enabled: &bt,
+		ElasticsearchSecret: "verrazzano-es-internal",
+		ElasticsearchURL:    "http://verrazzano-authproxy-elasticsearch:8775"}
+	a.Equal(context.GetConfigHashByJSONName("fluentd"), HashSum(f))
 }

@@ -33,10 +33,9 @@ func TestUpdate(t *testing.T) {
 	namespace := "verrazzano"
 	name := "TestUpdate"
 	lastReconciledGeneration := int64(2)
-	reconcilingGen := int64(0)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t,
-		lastReconciledGeneration+1, reconcilingGen, lastReconciledGeneration,
-		"1.3.0", "1.3.0", namespace, name)
+		lastReconciledGeneration+1, lastReconciledGeneration,
+		"1.3.0", "1.3.0", namespace, name, "oldHash", "newHash")
 	defer reset()
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateInstalling, vz.Status.State)
@@ -52,10 +51,11 @@ func TestNoUpdateSameGeneration(t *testing.T) {
 	initUnitTesing()
 	namespace := "verrazzano"
 	name := "TestSameGeneration"
+	configHash := "sameHash"
 	lastReconciledGeneration := int64(2)
-	reconcilingGen := int64(0)
-	asserts, vz, result, fakeCompUpdated, err := testUpdate(t, lastReconciledGeneration, reconcilingGen, lastReconciledGeneration,
-		"1.3.1", "1.3.1", namespace, name)
+	asserts, vz, result, fakeCompUpdated, err := testUpdate(t,
+		lastReconciledGeneration, lastReconciledGeneration,
+		"1.3.1", "1.3.1", namespace, name, configHash, configHash)
 	defer reset()
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateReady, vz.Status.State)
@@ -72,9 +72,10 @@ func TestUpdateWithUpgrade(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 	lastReconciledGeneration := int64(2)
-	reconcilingGen := int64(0)
-	asserts, vz, result, fakeCompUpdated, err := testUpdate(t, lastReconciledGeneration+1, reconcilingGen, lastReconciledGeneration,
-		"1.3.0", "1.2.0", namespace, name)
+	configHash := "upgradeSameConfig"
+	asserts, vz, result, fakeCompUpdated, err := testUpdate(t,
+		lastReconciledGeneration+1, lastReconciledGeneration,
+		"1.3.0", "1.2.0", namespace, name, configHash, configHash)
 	defer reset()
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateUpgrading, vz.Status.State)
@@ -91,10 +92,9 @@ func TestUpdateOnUpdate(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
 	lastReconciledGeneration := int64(2)
-	reconcilingGen := int64(3)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t,
-		reconcilingGen+1, reconcilingGen, lastReconciledGeneration,
-		"1.3.3", "1.3.3", namespace, name)
+		int64(4), lastReconciledGeneration,
+		"1.3.3", "1.3.3", namespace, name, "old", "new")
 	defer reset()
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateInstalling, vz.Status.State)
@@ -112,10 +112,10 @@ func reset() {
 }
 
 func testUpdate(t *testing.T,
-	//mocker *gomock.Controller, mock *mocks.MockClient,
-	vzCrGen, reconcilingGen, lastReconciledGeneration int64,
-	//mockStatus *mocks.MockStatusWriter,
-	specVer, statusVer, namespace, name string) (*assert.Assertions, *vzapi.Verrazzano, ctrl.Result, *bool, error) {
+	vzCrGen, lastReconciledGeneration int64,
+	specVer, statusVer,
+	namespace, name,
+	oldHash, newHash string) (*assert.Assertions, *vzapi.Verrazzano, ctrl.Result, *bool, error) {
 	asserts := assert.New(t)
 
 	config.SetDefaultBomFilePath(testBomFile)
@@ -124,7 +124,7 @@ func testUpdate(t *testing.T,
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 
-	fakeComp := fakeComponent{}
+	fakeComp := fakeComponent{configHash: newHash}
 	fakeComp.ReleaseName = "verrazzano-authproxy"
 	fakeComp.SupportsOperatorInstall = true
 	var fakeCompUpdated *bool
@@ -140,7 +140,7 @@ func testUpdate(t *testing.T,
 	})
 	compStatusMap := makeVerrazzanoComponentStatusMap()
 	for _, status := range compStatusMap {
-		status.ReconcilingGeneration = reconcilingGen
+		status.ConfigHash = oldHash
 		status.LastReconciledGeneration = lastReconciledGeneration
 	}
 	var vz *vzapi.Verrazzano

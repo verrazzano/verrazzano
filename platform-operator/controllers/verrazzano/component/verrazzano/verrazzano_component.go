@@ -314,3 +314,20 @@ func (c verrazzanoComponent) GetCertificateNames(ctx spi.ComponentContext) []typ
 
 	return certificateNames
 }
+
+func (c verrazzanoComponent) GetConfigHash(ctx spi.ComponentContext) string {
+	return vzConfigHash(ctx)
+}
+
+func vzConfigHash(ctx spi.ComponentContext) string {
+	effectiveCR := ctx.EffectiveCR()
+	vzConfig := map[string]interface{}{
+		"verrazzano":    effectiveCR.Spec.Components.Verrazzano,
+		"console":       effectiveCR.Spec.Components.Console,
+		"elasticsearch": effectiveCR.Spec.Components.Elasticsearch,
+		"fluentd":       effectiveCR.Spec.Components.Fluentd,
+		"grafana":       effectiveCR.Spec.Components.Grafana,
+		"prometheus":    effectiveCR.Spec.Components.Prometheus,
+	}
+	return spi.HashSum(vzConfig)
+}

@@ -7067,6 +7067,9 @@ spec:
                         - type
                         type: object
                       type: array
+                    configHash:
+                      description: The hash sum of the VZ Component configuration
+                      type: string
                     lastReconciledGeneration:
                       description: The generation of the last VZ resource the Component
                         was successfully reconciled against
