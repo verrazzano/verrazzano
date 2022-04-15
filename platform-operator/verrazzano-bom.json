@@ -427,6 +427,12 @@
               "tag": "v0.55.1",
               "helmFullImageKey": "prometheusOperator.image.repository",
               "helmTagKey": "prometheusOperator.image.tag"
+            },
+            {
+              "image": "kube-webhook-certgen",
+              "tag": "1.1.1-20220414195226-864e56292",
+              "helmFullImageKey": "prometheusOperator.admissionWebhooks.patch.image.repository",
+              "helmTagKey": "prometheusOperator.admissionWebhooks.patch.image.tag"
             }
           ]
         },

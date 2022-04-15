@@ -6,11 +6,13 @@ package operator
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -70,6 +72,13 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	if err != nil {
 		return kvs, err
 	}
+
+	// If the cert-manager component is enabled, use it for webhook certificates, otherwise Prometheus Operator
+	// will use the kube-webhook-certgen image
+	kvs = append(kvs, bom.KeyValue{
+		Key:   "prometheusOperator.admissionWebhooks.certManager",
+		Value: strconv.FormatBool(vzconfig.IsCertManagerEnabled(ctx.EffectiveCR())),
+	})
 
 	return kvs, nil
 }
