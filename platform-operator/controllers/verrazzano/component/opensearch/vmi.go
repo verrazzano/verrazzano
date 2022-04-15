@@ -21,8 +21,7 @@ import (
 )
 
 const (
-	nodeExporter = "node-exporter"
-	system       = "system"
+	system = "system"
 )
 
 //createVMI instantiates the VMI resource and the Grafana Dashboards configmap
@@ -38,10 +37,6 @@ func createVMI(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed getting DNS suffix: %v", err)
 	}
 	envName := vzconfig.GetEnvName(effectiveCR)
-
-	if err := createGrafanaConfigMaps(ctx); err != nil {
-		return ctx.Log().ErrorfNewErr("failed to create grafana configmaps: %v", err)
-	}
 
 	storage, err := findStorageOverride(ctx.EffectiveCR())
 	if err != nil {
@@ -65,8 +60,6 @@ func createVMI(ctx spi.ComponentContext) error {
 		vmi.Spec.AutoSecret = true
 		vmi.Spec.SecretsName = verrazzanoSecretName
 		vmi.Spec.CascadingDelete = true
-		vmi.Spec.Grafana = newGrafana(cr, storage, existingVMI)
-		vmi.Spec.Prometheus = newPrometheus(cr, storage, existingVMI)
 		hasDataNodeOverride := hasNodeStorageOverride(ctx.ActualCR(), "nodes.data.requests.storage")
 		hasMasterNodeOverride := hasNodeStorageOverride(ctx.ActualCR(), "nodes.master.requests.storage")
 		opensearch, err := newOpenSearch(cr, storage, existingVMI, hasDataNodeOverride, hasMasterNodeOverride)
@@ -89,56 +82,6 @@ func newVMI() *vmov1.VerrazzanoMonitoringInstance {
 			Name:      system,
 			Namespace: globalconst.VerrazzanoSystemNamespace,
 		},
-	}
-}
-
-func newGrafana(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance) vmov1.Grafana {
-	if cr.Spec.Components.Grafana == nil {
-		return vmov1.Grafana{}
-	}
-	grafanaValues := cr.Spec.Components.Grafana
-	grafana := vmov1.Grafana{
-		Enabled:              grafanaValues.Enabled != nil && *grafanaValues.Enabled,
-		DashboardsConfigMap:  "system-dashboards",
-		DatasourcesConfigMap: "vmi-system-datasource",
-		Resources: vmov1.Resources{
-			RequestMemory: "48Mi",
-		},
-		Storage: vmov1.Storage{},
-	}
-	setStorageSize(storage, &grafana.Storage)
-	if vmi != nil {
-		grafana.Storage = vmi.Spec.Grafana.Storage
-	}
-
-	return grafana
-}
-
-func newPrometheus(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance) vmov1.Prometheus {
-	if cr.Spec.Components.Prometheus == nil {
-		return vmov1.Prometheus{}
-	}
-	prometheusValues := cr.Spec.Components.Prometheus
-	prometheus := vmov1.Prometheus{
-		Enabled: prometheusValues.Enabled != nil && *prometheusValues.Enabled,
-		Resources: vmov1.Resources{
-			RequestMemory: "128Mi",
-		},
-		Storage: vmov1.Storage{},
-	}
-	setStorageSize(storage, &prometheus.Storage)
-	if vmi != nil {
-		prometheus.Storage = vmi.Spec.Prometheus.Storage
-	}
-
-	return prometheus
-}
-
-func setStorageSize(storage *resourceRequestValues, storageObject *vmov1.Storage) {
-	if storage == nil {
-		storageObject.Size = "50Gi"
-	} else {
-		storageObject.Size = storage.Storage
 	}
 }
 
@@ -285,11 +228,7 @@ func setupSharedVMIResources(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	err = ensureBackupSecret(ctx.Client())
-	if err != nil {
-		return err
-	}
-	return ensureGrafanaAdminSecret(ctx.Client())
+	return ensureBackupSecret(ctx.Client())
 }
 
 func ensureVMISecret(cli client.Client) error {
@@ -333,30 +272,6 @@ func ensureBackupSecret(cli client.Client) error {
 			}
 			secret.Data[objectstoreAccessKey] = []byte(key)
 			secret.Data[objectstoreAccessSecretKey] = []byte(key)
-		}
-		return nil
-	}); err != nil {
-		return err
-	}
-	return nil
-}
-
-func ensureGrafanaAdminSecret(cli client.Client) error {
-	secret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      grafanaScrtName,
-			Namespace: globalconst.VerrazzanoSystemNamespace,
-		},
-		Data: map[string][]byte{},
-	}
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), cli, secret, func() error {
-		if secret.Data["username"] == nil || secret.Data["password"] == nil {
-			secret.Data["username"] = []byte(ComponentName)
-			pw, err := password.GeneratePassword(32)
-			if err != nil {
-				return err
-			}
-			secret.Data["password"] = []byte(pw)
 		}
 		return nil
 	}); err != nil {
