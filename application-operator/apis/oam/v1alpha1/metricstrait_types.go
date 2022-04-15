@@ -52,6 +52,10 @@ type MetricsTraitSpec struct {
 	// Defaults to istio-system/prometheus
 	Scraper *string `json:"scraper,omitempty"`
 
+	// Enabled specifies whether metrics collection is enabled. Defaults to true.
+	//+optional
+	Enabled *bool `json:"enabled,omitempty"`
+
 	// A reference to the workload used to generate this metrics trait.
 	WorkloadReference oamrt.TypedReference `json:"workloadRef"`
 }
