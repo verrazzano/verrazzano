@@ -169,6 +169,7 @@ pipeline {
                     }
                     print mapOfJobsInBatches
                     for(batch in mapOfJobsInBatches){
+                        scheduleNextBatch()
                         parallel batch
                     }
                     //parallel allReleasesToRCStagesMap
@@ -425,4 +426,18 @@ def allReleasesToRCStage(job) {
                 //currentBuild.result = 'FAILURE'
              }
     }
+}
+
+def scheduleNextBatch(){
+
+            stage('Schedule next batch of parallel Jobs'){
+
+                script{
+
+                    echo "Scheduling next batch of parallel jobs..."
+
+                }
+
+            }
+
 }
