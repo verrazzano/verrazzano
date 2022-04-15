@@ -7,6 +7,12 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"io/ioutil"
+	"os/exec"
+	"strconv"
+	"strings"
+	"time"
+
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
@@ -20,20 +26,15 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"os/exec"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // ComponentName is the name of the component
@@ -350,12 +351,6 @@ func createAndLabelNamespaces(ctx spi.ComponentContext) error {
 	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
 		if err := namespace.CreateKeycloakNamespace(ctx.Client()); err != nil {
 			return ctx.Log().ErrorfNewErr("Failed creating Keycloak namespace: %v", err)
-		}
-	}
-	if vzconfig.IsRancherEnabled(ctx.EffectiveCR()) {
-		if err := namespace.CreateAndLabelNamespace(ctx.Client(), globalconst.RancherOperatorSystemNamespace,
-			true, false); err != nil {
-			return ctx.Log().ErrorfNewErr("Failed creating Rancher operator system namespace %s: %v", globalconst.RancherOperatorSystemNamespace, err)
 		}
 	}
 	// cattle-system NS must be created since the rancher NetworkPolicy, which is always installed, requires it
