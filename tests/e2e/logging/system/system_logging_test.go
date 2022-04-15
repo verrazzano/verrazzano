@@ -17,18 +17,17 @@ import (
 )
 
 const (
-	shortPollingInterval       = 10 * time.Second
-	shortWaitTimeout           = 5 * time.Minute
-	searchTimeWindow           = "1h"
-	systemIndex                = "verrazzano-namespace-verrazzano-system"
-	installIndex               = "verrazzano-namespace-verrazzano-install"
-	certMgrIndex               = "verrazzano-namespace-cert-manager"
-	keycloakIndex              = "verrazzano-namespace-keycloak"
-	cattleSystemIndex          = "verrazzano-namespace-cattle-system"
-	fleetSystemIndex           = "verrazzano-namespace-fleet-system"
-	rancherOperatorSystemIndex = "verrazzano-namespace-rancher-operator-system"
-	nginxIndex                 = "verrazzano-namespace-ingress-nginx"
-	monitoringIndex            = "verrazzano-namespace-monitoring"
+	shortPollingInterval  = 10 * time.Second
+	shortWaitTimeout      = 5 * time.Minute
+	searchTimeWindow      = "1h"
+	systemIndex           = "verrazzano-namespace-verrazzano-system"
+	installIndex          = "verrazzano-namespace-verrazzano-install"
+	certMgrIndex          = "verrazzano-namespace-cert-manager"
+	keycloakIndex         = "verrazzano-namespace-keycloak"
+	cattleSystemIndex     = "verrazzano-namespace-cattle-system"
+	fleetLocalSystemIndex = "verrazzano-namespace-cattle-fleet-local-system"
+	nginxIndex            = "verrazzano-namespace-ingress-nginx"
+	monitoringIndex       = "verrazzano-namespace-monitoring"
 )
 
 var (
@@ -218,31 +217,31 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		}
 	})
 
-	t.It("contains fleet-system index with valid records", func() {
+	t.It("contains cattle-fleet-local-system index with valid records", func() {
 		// GIVEN existing system logs
-		// WHEN the Elasticsearch index for the fleet-system namespace is retrieved
+		// WHEN the Elasticsearch index for the cattle-fleet-system namespace is retrieved
 		// THEN verify that it is found
 		Eventually(func() bool {
-			return pkg.LogIndexFound(fleetSystemIndex)
-		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index fleet-system")
+			return pkg.LogIndexFound(fleetLocalSystemIndex)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index cattle-fleet-local-system")
 
 		if !validateFleetSystemLogs() {
 			// Don't fail for invalid logs until this is stable.
-			t.Logs.Info("Found problems with log records in fleet-system index")
+			t.Logs.Info("Found problems with log records in cattle-fleet-local-system index")
 		}
 	})
 
-	t.It("contains rancher-operator-system index with valid records", func() {
+	t.It("contains cattle-fleet-local-system index with valid records", func() {
 		// GIVEN existing system logs
-		// WHEN the Elasticsearch index for the rancher-operator-system namespace is retrieved
+		// WHEN the Elasticsearch index for the cattle-fleet-local-system namespace is retrieved
 		// THEN verify that it is found
 		Eventually(func() bool {
-			return pkg.LogIndexFound(rancherOperatorSystemIndex)
-		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index rancher-operator-system")
+			return pkg.LogIndexFound(fleetLocalSystemIndex)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index cattle-fleet-local-system")
 
-		if !validateRancherOperatorSystemLogs() {
+		if !validateFleetSystemLogs() {
 			// Don't fail for invalid logs until this is stable.
-			t.Logs.Info("Found problems with log records in rancher-operator-system index")
+			t.Logs.Info("Found problems with log records in cattle-fleet-local-system index")
 		}
 	})
 
@@ -474,19 +473,9 @@ func validateRancherWebhookLogs() bool {
 func validateFleetSystemLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		fleetSystemIndex,
+		fleetLocalSystemIndex,
 		"kubernetes.namespace_name",
 		"fleet-system",
-		searchTimeWindow,
-		noExceptions)
-}
-
-func validateRancherOperatorSystemLogs() bool {
-	return validateElasticsearchRecords(
-		allElasticsearchRecordValidator,
-		rancherOperatorSystemIndex,
-		"kubernetes.namespace_name",
-		"rancher-operator-system",
 		searchTimeWindow,
 		noExceptions)
 }
