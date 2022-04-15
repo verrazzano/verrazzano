@@ -81,19 +81,12 @@ func resolveOpensearchNamespace(ns string) string {
 	return globalconst.VerrazzanoSystemNamespace
 }
 
-// isOpensearchReady VMI components ready-check
-func isOpensearchReady(ctx spi.ComponentContext) bool {
+// isOpensearchInstalled checks if Opensearch has been installed yet
+func isOpensearchInstalled(ctx spi.ComponentContext) (bool, error) {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 
 	var deployments []types.NamespacedName
 
-	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments,
-			types.NamespacedName{
-				Name:      grafanaDeployment,
-				Namespace: ComponentNamespace,
-			})
-	}
 	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments,
 			types.NamespacedName{
@@ -101,10 +94,78 @@ func isOpensearchReady(ctx spi.ComponentContext) bool {
 				Namespace: ComponentNamespace,
 			})
 	}
-	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
+	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
+		if ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
+			esInstallArgs := ctx.EffectiveCR().Spec.Components.Elasticsearch.ESInstallArgs
+			for _, args := range esInstallArgs {
+				if args.Name == "nodes.data.replicas" {
+					replicas, _ := strconv.Atoi(args.Value)
+					for i := 0; replicas > 0 && i < replicas; i++ {
+						deployments = append(deployments,
+							types.NamespacedName{
+								Name:      fmt.Sprintf("%s-%d", esDataDeployment, i),
+								Namespace: ComponentNamespace,
+							})
+					}
+					continue
+				}
+				if args.Name == "nodes.ingest.replicas" {
+					replicas, _ := strconv.Atoi(args.Value)
+					if replicas > 0 {
+						deployments = append(deployments,
+							types.NamespacedName{
+								Name:      esIngestDeployment,
+								Namespace: ComponentNamespace,
+							})
+					}
+				}
+			}
+		}
+	}
+
+	deploymentsExist, err := status.DoDeploymentsExist(ctx.Log(), ctx.Client(), deployments, prefix)
+	if !deploymentsExist {
+		return false, err
+	}
+
+	// Next, check statefulsets
+	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
+		if ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
+			esInstallArgs := ctx.EffectiveCR().Spec.Components.Elasticsearch.ESInstallArgs
+			for _, args := range esInstallArgs {
+				if args.Name == "nodes.master.replicas" {
+					var statefulsets []types.NamespacedName
+					replicas, _ := strconv.Atoi(args.Value)
+					if replicas > 0 {
+						statefulsets = append(statefulsets,
+							types.NamespacedName{
+								Name:      esMasterStatefulset,
+								Namespace: ComponentNamespace,
+							})
+						statefulsetsExist, err := status.DoStatefulSetsExist(ctx.Log(), ctx.Client(), statefulsets, prefix)
+						if !statefulsetsExist {
+							return false, err
+						}
+					}
+					break
+				}
+			}
+		}
+	}
+
+	return isVerrazzanoSecretReady(ctx), nil
+}
+
+// isOpensearchReady VMI components ready-check
+func isOpensearchReady(ctx spi.ComponentContext) bool {
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+
+	var deployments []types.NamespacedName
+
+	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments,
 			types.NamespacedName{
-				Name:      prometheusDeployment,
+				Name:      kibanaDeployment,
 				Namespace: ComponentNamespace,
 			})
 	}
@@ -163,19 +224,6 @@ func isOpensearchReady(ctx spi.ComponentContext) bool {
 				}
 			}
 		}
-	}
-
-	// Finally, check daemonsets
-	var daemonsets []types.NamespacedName
-	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
-		daemonsets = append(daemonsets,
-			types.NamespacedName{
-				Name:      nodeExporterDaemonset,
-				Namespace: globalconst.VerrazzanoMonitoringNamespace,
-			})
-	}
-	if !status.DaemonSetsAreReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {
-		return false
 	}
 
 	return isVerrazzanoSecretReady(ctx)

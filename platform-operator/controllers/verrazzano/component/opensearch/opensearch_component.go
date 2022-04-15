@@ -5,16 +5,15 @@ package opensearch
 
 import (
 	"fmt"
-	"path/filepath"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"reflect"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -30,48 +29,55 @@ const (
 	vzImagePullSecretKeyName = "global.imagePullSecrets[0]"
 
 	// verrazzanoSecretName is the name of the VMI secret
-	verrazzanoSecretName = "verrazzano"
-	// Grafana admin secret data
-	grafanaScrtName = "grafana-admin"
-
-	// Certificate names
-	osCertificateName         = "system-tls-es-ingest"
-	grafanaCertificateName    = "system-tls-grafana"
-	osdCertificateName        = "system-tls-kibana"
-	prometheusCertificateName = "system-tls-prometheus"
-
+	verrazzanoSecretName       = "verrazzano"
 	verrazzanoBackupScrtName   = "verrazzano-backup"
 	objectstoreAccessKey       = "object_store_access_key"
 	objectstoreAccessSecretKey = "object_store_secret_key"
+
+	// Certificate names
+	osCertificateName  = "system-tls-es-ingest"
+	osdCertificateName = "system-tls-kibana"
 )
 
 // ComponentJSONName is the josn name of the opensearch component in CRD
 const ComponentJSONName = "elasticsearch"
 
-type opensearchComponent struct {
-	helm.HelmComponent
+type opensearchComponent struct{}
+
+// GetDependencies returns the dependencies of the Opensearch component
+func (o opensearchComponent) GetDependencies() []string {
+	return []string{istio.ComponentName, nginx.ComponentName}
+}
+
+// GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the Opensearch component
+func (o opensearchComponent) GetMinVerrazzanoVersion() string {
+	return constants.VerrazzanoVersion1_3_0
+}
+
+// GetJSONName returns the josn name of the Opensearch component in CRD
+func (o opensearchComponent) GetJSONName() string {
+	return ComponentJSONName
+}
+
+func (o opensearchComponent) IsOperatorInstallSupported() bool {
+	return true
+}
+
+func (o opensearchComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
+	return isOpensearchInstalled(ctx)
+}
+
+func (o opensearchComponent) Reconcile(ctx spi.ComponentContext) error {
+	return nil
 }
 
 func NewComponent() spi.Component {
-	return opensearchComponent{
-		helm.HelmComponent{
-			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetHelmChartsDir(), ComponentName),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			ResolveNamespaceFunc:    resolveOpensearchNamespace,
-			AppendOverridesFunc:     appendOpensearchOverrides,
-			ImagePullSecretKeyname:  vzImagePullSecretKeyName,
-			SupportsOperatorInstall: true,
-			Dependencies:            []string{istio.ComponentName, nginx.ComponentName},
-		},
-	}
+	return opensearchComponent{}
 }
 
 // PreInstall Opensearch component pre-install processing; create and label required namespaces, copy any
 // required secrets
-func (c opensearchComponent) PreInstall(ctx spi.ComponentContext) error {
+func (o opensearchComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := setupSharedVMIResources(ctx); err != nil {
 		return err
 	}
@@ -83,65 +89,86 @@ func (c opensearchComponent) PreInstall(ctx spi.ComponentContext) error {
 }
 
 // Install Opensearch component install processing
-func (c opensearchComponent) Install(ctx spi.ComponentContext) error {
-	if err := c.HelmComponent.Install(ctx); err != nil {
-		return err
-	}
+func (o opensearchComponent) Install(ctx spi.ComponentContext) error {
 	return createVMI(ctx)
 }
 
 // PreUpgrade Opensearch component pre-upgrade processing
-func (c opensearchComponent) PreUpgrade(ctx spi.ComponentContext) error {
+func (o opensearchComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return opensearchPreUpgrade(ctx)
 }
 
 // InstallUpgrade Opensearch component upgrade processing
-func (c opensearchComponent) Upgrade(ctx spi.ComponentContext) error {
-	if err := c.HelmComponent.Upgrade(ctx); err != nil {
-		return err
-	}
+func (o opensearchComponent) Upgrade(ctx spi.ComponentContext) error {
 	return createVMI(ctx)
 }
 
 // IsReady component check
-func (c opensearchComponent) IsReady(ctx spi.ComponentContext) bool {
-	if c.HelmComponent.IsReady(ctx) {
-		return isOpensearchReady(ctx)
-	}
-	return false
+func (o opensearchComponent) IsReady(ctx spi.ComponentContext) bool {
+	return isOpensearchReady(ctx)
 }
 
 // PostInstall - post-install, clean up temp files
-func (c opensearchComponent) PostInstall(ctx spi.ComponentContext) error {
+func (o opensearchComponent) PostInstall(ctx spi.ComponentContext) error {
+	ctx.Log().Debugf("Opensearch component post-upgrade")
+
 	cleanTempFiles(ctx)
-	// populate the ingress and certificate names before calling PostInstall on Helm component because those will be needed there
-	c.HelmComponent.IngressNames = c.GetIngressNames(ctx)
-	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
-	return c.HelmComponent.PostInstall(ctx)
+
+	// Check if the ingresses and certs are present
+	prefix := fmt.Sprintf("Component %s", ComponentName)
+	if !status.IngressesPresent(ctx.Log(), ctx.Client(), o.GetIngressNames(ctx), prefix) {
+		return ctrlerrors.RetryableError{
+			Source:    ComponentName,
+			Operation: "Check if Ingresses are present",
+		}
+	}
+
+	if readyStatus, certsNotReady := status.CertificatesAreReady(ctx.Client(), ctx.Log(), ctx.EffectiveCR(), o.GetCertificateNames(ctx)); !readyStatus {
+		ctx.Log().Progressf("Certificates not ready for component %s: %v", ComponentName, certsNotReady)
+		return ctrlerrors.RetryableError{
+			Source:    ComponentName,
+			Operation: "Check if certificates are ready",
+		}
+	}
+	return nil
 }
 
 // PostUpgrade Opensearch post-upgrade processing
-func (c opensearchComponent) PostUpgrade(ctx spi.ComponentContext) error {
+func (o opensearchComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Opensearch component post-upgrade")
-	c.HelmComponent.IngressNames = c.GetIngressNames(ctx)
-	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
-	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
-		return err
-	}
+
 	cleanTempFiles(ctx)
-	return c.updateElasticsearchResources(ctx)
+
+	// Check if the ingresses and certs are present
+	prefix := fmt.Sprintf("Component %s", ComponentName)
+	if !status.IngressesPresent(ctx.Log(), ctx.Client(), o.GetIngressNames(ctx), prefix) {
+		return ctrlerrors.RetryableError{
+			Source:    ComponentName,
+			Operation: "Check if Ingresses are present",
+		}
+	}
+
+	if readyStatus, certsNotReady := status.CertificatesAreReady(ctx.Client(), ctx.Log(), ctx.EffectiveCR(), o.GetCertificateNames(ctx)); !readyStatus {
+		ctx.Log().Progressf("Certificates not ready for component %s: %v", ComponentName, certsNotReady)
+		return ctrlerrors.RetryableError{
+			Source:    ComponentName,
+			Operation: "Check if certificates are ready",
+		}
+	}
+
+	return o.updateElasticsearchResources(ctx)
 }
 
 // updateElasticsearchResources updates elasticsearch resources
-func (c opensearchComponent) updateElasticsearchResources(ctx spi.ComponentContext) error {
-	if err := fixupElasticSearchReplicaCount(ctx, resolveOpensearchNamespace(c.ChartNamespace)); err != nil {
+func (o opensearchComponent) updateElasticsearchResources(ctx spi.ComponentContext) error {
+	if err := fixupElasticSearchReplicaCount(ctx, ComponentNamespace); err != nil {
 		return err
 	}
 	return nil
 }
 
 // IsEnabled opensearch-specific enabled check for installation
-func (c opensearchComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+func (o opensearchComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	comp := effectiveCR.Spec.Components.Elasticsearch
 	if comp == nil || comp.Enabled == nil {
 		return true
@@ -150,9 +177,9 @@ func (c opensearchComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c opensearchComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (o opensearchComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow disabling active components
-	if err := c.checkEnabled(old, new); err != nil {
+	if err := o.checkEnabled(old, new); err != nil {
 		return err
 	}
 	// Reject any other edits except InstallArgs
@@ -164,8 +191,13 @@ func (c opensearchComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (c opensearchComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
+func (o opensearchComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
 	return nil
+}
+
+// Name returns the component name
+func (o opensearchComponent) Name() string {
+	return ComponentName
 }
 
 func compareStorageOverrides(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
@@ -184,7 +216,7 @@ func compareStorageOverrides(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error
 	return nil
 }
 
-func (c opensearchComponent) checkEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (o opensearchComponent) checkEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow disabling of any component post-install for now
 	if vzconfig.IsElasticsearchEnabled(old) && !vzconfig.IsElasticsearchEnabled(new) {
 		return fmt.Errorf("Disabling component elasticsearch not allowed")
@@ -202,20 +234,13 @@ func (c opensearchComponent) checkEnabled(old *vzapi.Verrazzano, new *vzapi.Verr
 }
 
 // GetIngressNames - gets the names of the ingresses associated with this component
-func (c opensearchComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
+func (o opensearchComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var ingressNames []types.NamespacedName
 
 	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
 		ingressNames = append(ingressNames, types.NamespacedName{
 			Namespace: ComponentNamespace,
 			Name:      constants.ElasticsearchIngress,
-		})
-	}
-
-	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
-		ingressNames = append(ingressNames, types.NamespacedName{
-			Namespace: ComponentNamespace,
-			Name:      constants.GrafanaIngress,
 		})
 	}
 
@@ -226,18 +251,11 @@ func (c opensearchComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 		})
 	}
 
-	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
-		ingressNames = append(ingressNames, types.NamespacedName{
-			Namespace: ComponentNamespace,
-			Name:      constants.PrometheusIngress,
-		})
-	}
-
 	return ingressNames
 }
 
 // GetCertificateNames - gets the names of the ingresses associated with this component
-func (c opensearchComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
+func (o opensearchComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var certificateNames []types.NamespacedName
 
 	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
@@ -247,24 +265,10 @@ func (c opensearchComponent) GetCertificateNames(ctx spi.ComponentContext) []typ
 		})
 	}
 
-	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
-		certificateNames = append(certificateNames, types.NamespacedName{
-			Namespace: ComponentNamespace,
-			Name:      grafanaCertificateName,
-		})
-	}
-
 	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
 		certificateNames = append(certificateNames, types.NamespacedName{
 			Namespace: ComponentNamespace,
 			Name:      osdCertificateName,
-		})
-	}
-
-	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
-		certificateNames = append(certificateNames, types.NamespacedName{
-			Namespace: ComponentNamespace,
-			Name:      prometheusCertificateName,
 		})
 	}
 
