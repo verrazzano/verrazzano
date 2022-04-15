@@ -6,7 +6,7 @@ metadata:
   name: {{ .Values.impersonatorRoleName }}
 rules:
 - apiGroups: [""]
-  resources: ["users", "groups", "uids"]
+  resources: ["users", "groups"]
   verbs: ["impersonate"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -78,7 +78,7 @@ spec:
                     mode: 0755
                   - key: nginx.conf
                     path: nginx.conf
-                    mode: 0744
+                    mode: 0744 
                   - key: conf.lua
                     path: conf.lua
                     mode: 0755
