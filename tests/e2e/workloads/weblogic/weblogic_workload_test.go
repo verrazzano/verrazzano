@@ -27,8 +27,8 @@ const (
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
 
-	appConfiguration           = "tests/testdata/test-applications/weblogic/hello-weblogic/hello-wls-app.yaml"
-	auxiliaryCompConfiguration = "tests/testdata/test-applications/weblogic/hello-weblogic/hello-wls-comp.yaml"
+	appConfiguration              = "tests/testdata/test-applications/weblogic/hello-weblogic/hello-wls-app.yaml"
+	auxiliaryCompConfiguration    = "tests/testdata/test-applications/weblogic/hello-weblogic/hello-wls-comp.yaml"
 	modelInImageCompConfiguration = "tests/testdata/test-applications/weblogic/hello-weblogic/hello-wls-comp-mii.yaml"
 
 	appURL         = "hello/weblogic/greetings/message"
