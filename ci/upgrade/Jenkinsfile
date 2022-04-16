@@ -91,6 +91,7 @@ pipeline {
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
+        WEBLOGIC_DOMAIN_MODE = "MODEL-IN-IMAGE"
 
         OLD_PODS_FILE="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-old-vpo-app-pods.out"
         NEW_PODS_FILE="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-new-vpo-app-pods.out"

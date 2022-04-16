@@ -8,6 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"net/http"
+	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -26,8 +27,9 @@ const (
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
 
-	appConfiguration  = "tests/testdata/test-applications/weblogic/hello-weblogic/hello-wls-app.yaml"
-	compConfiguration = "tests/testdata/test-applications/weblogic/hello-weblogic/hello-wls-comp-mii.yaml"
+	appConfiguration           = "tests/testdata/test-applications/weblogic/hello-weblogic/hello-wls-app.yaml"
+	auxiliaryCompConfiguration = "tests/testdata/test-applications/weblogic/hello-weblogic/hello-wls-comp.yaml"
+	modelInImageCompConfiguration = "tests/testdata/test-applications/weblogic/hello-weblogic/hello-wls-comp-mii.yaml"
 
 	appURL         = "hello/weblogic/greetings/message"
 	welcomeMessage = "Hello WebLogic"
@@ -37,12 +39,23 @@ const (
 	wlsAdminServer = "hellodomain-adminserver"
 )
 
+var weblogicDomainMode = os.Getenv("WEBLOGIC_DOMAIN_MODE")
+
 var (
 	t                  = framework.NewTestFramework("weblogicworkload")
 	generatedNamespace = pkg.GenerateNamespace("hello-wls")
 	expectedPods       = []string{wlsAdminServer}
 	host               = ""
 )
+
+func getCompConfiguration() string {
+	if weblogicDomainMode == "AUXILIARY" {
+		return auxiliaryCompConfiguration
+	} else if weblogicDomainMode == "MODEL-IN-IMAGE" {
+		return modelInImageCompConfiguration
+	}
+	return auxiliaryCompConfiguration
+}
 
 var _ = BeforeSuite(func() {
 	if !skipDeploy {
@@ -126,7 +139,7 @@ func deployWebLogicApp(namespace string) {
 
 	t.Logs.Info("Create component resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(compConfiguration, namespace)
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(getCompConfiguration(), namespace)
 	}, shortWaitTimeout, shortPollingInterval, "Failed to create component resources for WebLogic application").ShouldNot(HaveOccurred())
 }
 
@@ -140,7 +153,7 @@ func undeployWebLogicApp() {
 
 	t.Logs.Info("Delete component")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace(compConfiguration, namespace)
+		return pkg.DeleteResourceFromFileInGeneratedNamespace(getCompConfiguration(), namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Wait for pod to terminate")
