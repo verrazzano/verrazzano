@@ -108,7 +108,7 @@ pipeline {
                     }
                 }
 
-                stage('Scan WebLogic Application - Model in Image') {
+                stage('Scan WebLogic Application - Auxiliary') {
                     steps {
                         scanContainerImage("${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC}:${VERSION}")
                     }
