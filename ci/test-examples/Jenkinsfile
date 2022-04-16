@@ -17,6 +17,10 @@ pipeline {
                 defaultValue: '1.0.0-1',
                 description: 'Base value used as part of generated image tag',
                 trim: true)
+        choice (name: 'WEBLOGIC_DOMAIN_MODE',
+                description: 'Weblogic domain mode',
+                // 1st choice is the default value
+                choices: [ "ALL", "AUXILIARY", "MODEL-IN-IMAGE" ])
     }
 
     environment {
@@ -45,6 +49,8 @@ pipeline {
 
         JDK8_BUNDLE = "jdk-8u261-linux-x64.tar.gz"
         WEBLOGIC_BUNDLE = "fmw_12.2.1.4.0_wls.jar"
+
+        WEBLOGIC_DOMAIN_MODE_ENV = "${params.WEBLOGIC_DOMAIN_MODE}"
     }
 
     stages {
@@ -95,13 +101,16 @@ pipeline {
                             cd ${WORKSPACE}/verrazzano/tests/testdata/test-applications/weblogic/hello-weblogic
                             mvn -B -s $MAVEN_SETTINGS clean install
                             cd setup
-                            #./build.sh ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC}:${VERSION}
-                            #docker push ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC}:${VERSION}
-                            
-                            oci os object get -bn ${BUCKET_NAME} --file ${JDK8_BUNDLE} --name ${JDK8_BUNDLE}
-                            oci os object get -bn ${BUCKET_NAME} --file ${WEBLOGIC_BUNDLE} --name ${WEBLOGIC_BUNDLE}
-                            ./build-mii.sh ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC_MII}:${VERSION}
-                            docker push ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC_MII}:${VERSION}
+                            if [[ $WEBLOGIC_DOMAIN_MODE_ENV == "ALL" ]] || [[ $WEBLOGIC_DOMAIN_MODE_ENV == "AUXILIARY" ]]; then
+                                ./build.sh -d a -i ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC}:${VERSION}
+                                docker push ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC}:${VERSION}
+                            fi
+                            if [[ $WEBLOGIC_DOMAIN_MODE_ENV == "ALL" ]] || [[ $WEBLOGIC_DOMAIN_MODE_ENV == "MODEL-IN-IMAGE" ]]; then
+                                oci os object get -bn ${BUCKET_NAME} --file ${JDK8_BUNDLE} --name ${JDK8_BUNDLE}
+                                oci os object get -bn ${BUCKET_NAME} --file ${WEBLOGIC_BUNDLE} --name ${WEBLOGIC_BUNDLE}
+                                ./build.sh -d m -i ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC_MII}:${VERSION}
+                                docker push ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC_MII}:${VERSION}
+                            fi
                         """
                     }
                 }

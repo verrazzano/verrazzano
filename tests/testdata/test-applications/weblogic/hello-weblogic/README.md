@@ -11,7 +11,12 @@ The bash script setup/build.sh creates the auxiliary image for model in image de
 
     $ cd <application root directory>
     $ mvn clean package
-    $ cd setup; ./build.sh <container registry>/<image>:<version>
+    $ cd setup
+    
+    $ ./build.sh -d a -i <container registry>/<image>:<version>    # Weblogic Auxiliary image
+    OR
+    $ ./build.sh -d m -i <container registry>/<image>:<version>    # Weblogic "Model in Image" image
+    
     $ docker image push <image registry>/<image>:<version>
 
 ## Deploy the sample application to Verrazzano
