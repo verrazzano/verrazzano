@@ -107,33 +107,32 @@ pipeline {
                         """
                     }
                 }
-                stage('Scan WebLogic Applications') {
-                    stage('Scan WebLogic Application - Model in Image') {
-                        steps {
-                            scanContainerImage("${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC}:${VERSION}")
-                        }
-                        post {
-                            always {
-                                sh """
-                                 mv ${WORKSPACE}/scanning-report-grype.json	${WORKSPACE}/hello_weblogic_scanning-report-grype.json
-                                 mv ${WORKSPACE}/scanning-report-trivy.json	${WORKSPACE}/hello_weblogic_scanning-report-trivy.json
-                             """
-                                archiveArtifacts artifacts: '**/*scanning-report*.json', allowEmptyArchive: true
-                            }
+
+                stage('Scan WebLogic Application - Model in Image') {
+                    steps {
+                        scanContainerImage("${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC}:${VERSION}")
+                    }
+                    post {
+                        always {
+                            sh """
+                             mv ${WORKSPACE}/scanning-report-grype.json	${WORKSPACE}/hello_weblogic_scanning-report-grype.json
+                             mv ${WORKSPACE}/scanning-report-trivy.json	${WORKSPACE}/hello_weblogic_scanning-report-trivy.json
+                         """
+                            archiveArtifacts artifacts: '**/*scanning-report*.json', allowEmptyArchive: true
                         }
                     }
-                    stage('Scan WebLogic Application - Model in Image') {
-                        steps {
-                            scanContainerImage("${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC_MII}:${VERSION}")
-                        }
-                        post {
-                            always {
-                                sh """
-                                 mv ${WORKSPACE}/scanning-report-grype.json	${WORKSPACE}/hello_weblogic_mii_scanning-report-grype.json
-                                 mv ${WORKSPACE}/scanning-report-trivy.json	${WORKSPACE}/hello_weblogic_mii_scanning-report-trivy.json
-                             """
-                                archiveArtifacts artifacts: '**/*scanning-report*.json', allowEmptyArchive: true
-                            }
+                }
+                stage('Scan WebLogic Application - Model in Image') {
+                    steps {
+                        scanContainerImage("${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC_MII}:${VERSION}")
+                    }
+                    post {
+                        always {
+                            sh """
+                             mv ${WORKSPACE}/scanning-report-grype.json	${WORKSPACE}/hello_weblogic_mii_scanning-report-grype.json
+                             mv ${WORKSPACE}/scanning-report-trivy.json	${WORKSPACE}/hello_weblogic_mii_scanning-report-trivy.json
+                         """
+                            archiveArtifacts artifacts: '**/*scanning-report*.json', allowEmptyArchive: true
                         }
                     }
                 }
