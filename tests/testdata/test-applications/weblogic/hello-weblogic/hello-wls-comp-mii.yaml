@@ -18,7 +18,7 @@ spec:
             adminChannelPortForwardingEnabled: true
           domainUID: hellodomain
           domainHome: /u01/domains/hellodomain
-          image: ghcr.io/verrazzano/weblogic-app-mii:20220414184401-bc06edf3
+          image: ghcr.io/verrazzano/weblogic-app-mii:20220416020333-8cec18b1
           imagePullSecrets:
             - name: hellodomain-repo-credentials
           domainHomeSourceType: "FromModel"
