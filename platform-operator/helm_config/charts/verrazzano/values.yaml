@@ -89,19 +89,6 @@ api:
   name: verrazzano-authproxy
   port: 8775
 
-# OCI-related values
-oci:
-  region: ""
-  tenancyOcid: ""
-  userOcid: ""
-  fingerprint: ""
-  privateKey: ""
-  compartment: ""
-  clusterOcid: ""
-  objectStore:
-    bucketName: ""
-    namespace: ""
-
 config:
   envName:
   dnsSuffix:

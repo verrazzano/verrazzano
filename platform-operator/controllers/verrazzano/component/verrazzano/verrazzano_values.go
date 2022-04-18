@@ -33,7 +33,6 @@ type verrazzanoValues struct {
 	Fluentd               *fluentdValues               `json:"fluentd,omitempty"`
 	Console               *consoleValues               `json:"console,omitempty"`
 	API                   *apiValues                   `json:"api,omitempty"`
-	OCI                   *ociValues                   `json:"oci,omitempty"`
 	Config                *configValues                `json:"config,omitempty"`
 	Security              *securityRoleBindingValues   `json:"security,omitempty"`
 	Kubernetes            *kubernetesValues            `json:"kubernetes,omitempty"`
@@ -156,22 +155,6 @@ type consoleValues struct {
 type apiValues struct {
 	Name string `json:"name,omitempty"`
 	Port int    `json:"port,omitempty"`
-}
-
-type ociValues struct {
-	Region      string               `json:"region,omitempty"`
-	TenancyOcid string               `json:"tenancyOcid,omitempty"`
-	UserOcid    string               `json:"userOcid,omitempty"`
-	Fingerprint string               `json:"fingerprint,omitempty"`
-	PrivateKey  string               `json:"privateKey,omitempty"`
-	Compartment string               `json:"compartment,omitempty"`
-	ClusterOcid string               `json:"clusterOcid,omitempty"`
-	ObjectStore *objectStoreSettings `json:"objectStore,omitempty"`
-}
-
-type objectStoreSettings struct {
-	BucketName string `json:"bucketName,omitempty"`
-	Namespace  string `json:"namespace,omitempty"`
 }
 
 type configValues struct {
