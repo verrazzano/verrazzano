@@ -52,7 +52,7 @@ func NewComponent() spi.Component {
 func (c prometheusComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	comp := effectiveCR.Spec.Components.PrometheusOperator
 	if comp == nil || comp.Enabled == nil {
-		return true
+		return false
 	}
 	return *comp.Enabled
 }
