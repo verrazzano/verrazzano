@@ -24,6 +24,8 @@ pipeline {
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
         DOCKER_REPO = 'ghcr.io'
         DOCKER_REPO_URL = "https://${DOCKER_REPO}"
+        OCR_CREDS = credentials('ocr-pull-and-push-account')
+        OCR_REPO = 'container-registry.oracle.com'
         NETRC_FILE = credentials('netrc')
 
         OCI_CLI_TENANCY = credentials('oci-tenancy')
@@ -83,6 +85,7 @@ pipeline {
                     tar xz -C $HOME/.m2/repository/com -f /build-shared-files/oracle-maven.tar.gz
                     sudo yum -y install wget
                     echo "${DOCKER_CREDS_PSW}" | docker login ghcr.io -u ${DOCKER_CREDS_USR} --password-stdin
+                    echo "${OCR_CREDS_PSW}" | docker login ${OCR_REPO} -u ${OCR_CREDS_USR} --password-stdin
                 """
             }
         }
@@ -101,8 +104,8 @@ pipeline {
                             
                             oci os object get -bn ${BUCKET_NAME} --file ${JDK8_BUNDLE} --name ${JDK8_BUNDLE}
                             oci os object get -bn ${BUCKET_NAME} --file ${WEBLOGIC_BUNDLE} --name ${WEBLOGIC_BUNDLE}
-                            ./build.sh -d m -i ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC_MII}:${VERSION}
-                            docker push ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC_MII}:${VERSION}
+                            ./build.sh -d m -i ${OCR_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC_MII}:${VERSION}
+                            docker push ${OCR_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC_MII}:${VERSION}
                             
                         """
                     }
