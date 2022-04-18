@@ -38,6 +38,10 @@ spec:
             description: MetricsTraitSpec specifies the desired state of a metrics
               trait.
             properties:
+              enabled:
+                description: Enabled specifies whether metrics collection is enabled.
+                  Defaults to true.
+                type: boolean
               path:
                 description: The HTTP path for the related metrics endpoint. Defaults
                   to /metrics.

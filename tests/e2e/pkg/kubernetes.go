@@ -476,6 +476,58 @@ func IsOpenSearchEnabled(kubeconfigPath string) bool {
 	return true
 }
 
+// IsPrometheusAdapterEnabled returns false if the Prometheus Adapter component is not set, or the value of its Enabled field otherwise
+func IsPrometheusAdapterEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.PrometheusAdapter == nil || vz.Spec.Components.PrometheusAdapter.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.PrometheusAdapter.Enabled
+}
+
+// IsPrometheusOperatorEnabled returns false if the Prometheus Operator component is not set, or the value of its Enabled field otherwise
+func IsPrometheusOperatorEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.PrometheusOperator == nil || vz.Spec.Components.PrometheusOperator.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.PrometheusOperator.Enabled
+}
+
+// IsKubeStateMetricsEnabled returns false if the Kube State Metrics component is not set, or the value of its Enabled field otherwise
+func IsKubeStateMetricsEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.KubeStateMetrics == nil || vz.Spec.Components.KubeStateMetrics.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.KubeStateMetrics.Enabled
+}
+
+// IsPrometheusPushgatewayEnabled returns false if the Prometheus Pushgateway component is not set, or the value of its Enabled field otherwise
+func IsPrometheusPushgatewayEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.PrometheusPushgateway == nil || vz.Spec.Components.PrometheusPushgateway.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.PrometheusPushgateway.Enabled
+}
+
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
 func APIExtensionsClientSet() (*apiextv1.ApiextensionsV1Client, error) {
 	config, err := k8sutil.GetKubeConfig()

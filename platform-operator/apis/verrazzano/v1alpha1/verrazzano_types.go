@@ -389,6 +389,20 @@ type ElasticsearchComponent struct {
 	// +patchStrategy=merge,retainKeys
 	ESInstallArgs []InstallArgs                 `json:"installArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 	Policies      []vmov1.IndexManagementPolicy `json:"policies,omitempty"`
+	Nodes         []OpenSearchNode              `json:"nodes,omitempty"`
+}
+
+//OpenSearchNode specifies a node group in the OpenSearch cluster
+type OpenSearchNode struct {
+	Name      string                       `json:"name,omitempty"`
+	Replicas  int32                        `json:"replicas,omitempty"`
+	Roles     []vmov1.NodeRole             `json:"roles,omitempty"`
+	Storage   *OpenSearchNodeStorage       `json:"storage,omitempty"`
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+}
+
+type OpenSearchNodeStorage struct {
+	Size string `json:"size"`
 }
 
 // KibanaComponent specifies the Kibana configuration.

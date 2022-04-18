@@ -154,6 +154,33 @@ func MetricsExist(metricsName, key, value string) bool {
 	return MetricsExistInCluster(metricsName, m, kubeconfigPath)
 }
 
+// ScrapeTargets queries Prometheus API /api/v1/targets to list scrape targets
+func ScrapeTargets() ([]interface{}, error) {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return nil, err
+	}
+
+	metricsURL := fmt.Sprintf("https://%s/api/v1/targets", getPrometheusIngressHost(kubeconfigPath))
+	password, err := GetVerrazzanoPasswordInCluster(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := GetWebPageWithBasicAuth(metricsURL, "", "verrazzano", password, kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error retrieving targets %d", resp.StatusCode)
+	}
+	//Log(Info, fmt.Sprintf("targets: %s", string(resp.Body)))
+	var result map[string]interface{}
+	json.Unmarshal(resp.Body, &result)
+	activeTargets := Jq(result, "data", "activeTargets").([]interface{})
+	return activeTargets, nil
+}
+
 // Jq queries JSON nodes with a JSON path
 func Jq(node interface{}, path ...string) interface{} {
 	for _, p := range path {
