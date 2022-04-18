@@ -25,10 +25,10 @@ func TestIsEnabled(t *testing.T) {
 		{
 			// GIVEN a default Verrazzano custom resource
 			// WHEN we call IsReady on the Prometheus Node-Exporter component
-			// THEN the call returns true
+			// THEN the call returns false (since it is disabled by default)
 			name:       "Test IsEnabled when using default Verrazzano CR",
 			actualCR:   vzapi.Verrazzano{},
-			expectTrue: true,
+			expectTrue: false,
 		},
 		{
 			// GIVEN a Verrazzano custom resource with the Prometheus Node-Exporter enabled
