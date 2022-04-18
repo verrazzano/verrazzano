@@ -411,6 +411,11 @@ func (in *MetricsTraitSpec) DeepCopyInto(out *MetricsTraitSpec) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.Enabled != nil {
+		in, out := &in.Enabled, &out.Enabled
+		*out = new(bool)
+		**out = **in
+	}
 	out.WorkloadReference = in.WorkloadReference
 }
 

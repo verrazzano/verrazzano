@@ -901,11 +901,12 @@ func mutatePrometheusScrapeConfig(ctx context.Context, trait *vzapi.MetricsTrait
 			oldScrapeJob := oldScrapeConfig.Search(prometheusJobNameLabel).Data()
 			if newScrapeJob == oldScrapeJob {
 				// If the scrape config should be removed then skip adding it to the result slice.
-				// This will occur in two situations.
+				// This will occur in three situations.
 				// 1. The trait is being deleted.
 				// 2. The trait scraper has been changed and the old scrape config is being updated.
 				//    In this case the traitDefaults and newScrapeConfig will be nil.
-				if trait.DeletionTimestamp.IsZero() && traitDefaults != nil && newScrapeConfig != nil {
+				// 3. The trait is being disabled.
+				if trait.DeletionTimestamp.IsZero() && traitDefaults != nil && newScrapeConfig != nil && isEnabled(trait) {
 					prometheusScrapeConfig.ArrayAppendP(newScrapeConfig.Data(), prometheusScrapeConfigsLabel)
 				}
 				existingReplaced = true
@@ -919,6 +920,10 @@ func mutatePrometheusScrapeConfig(ctx context.Context, trait *vzapi.MetricsTrait
 		}
 	}
 	return prometheusScrapeConfig, nil
+}
+
+func isEnabled(trait *vzapi.MetricsTrait) bool {
+	return trait.Spec.Enabled == nil || *trait.Spec.Enabled
 }
 
 // MutateAnnotations mutates annotations with values used by the scraper config.
@@ -946,8 +951,8 @@ func MutateAnnotations(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTr
 		}
 	}
 
-	// If the trait is being deleted, remove the annotations.
-	if !trait.DeletionTimestamp.IsZero() {
+	// If the trait is being deleted or disabled, remove the annotations.
+	if !trait.DeletionTimestamp.IsZero() || !isEnabled(trait) {
 		for k := range mutated {
 			if strings.HasPrefix(k, verrazzanoMetricsAnnotationPrefix) {
 				delete(mutated, k)
@@ -1056,6 +1061,11 @@ func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait,
 	job, err := createPrometheusScrapeConfigMapJobName(trait, portIncrement)
 	if err != nil {
 		return "", nil, err
+	}
+
+	// If the metricsTrait is being disabled then return nil for the config
+	if !isEnabled(trait) {
+		return job, nil, nil
 	}
 
 	// If workload is nil then the trait is being deleted so no config is required

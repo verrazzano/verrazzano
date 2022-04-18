@@ -7,12 +7,4 @@ metadata:
   name: my-verrazzano
 spec:
   profile: dev
-  components:
-    prometheusOperator:
-      enabled: true
-    prometheusAdapter:
-      enabled: true
-    kubeStateMetrics:
-      enabled: true
-    prometheusPushgateway:
-      enabled: true
+
