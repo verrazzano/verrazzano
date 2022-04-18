@@ -102,8 +102,8 @@ const DefaultVerrazzanoCASecretName = "verrazzano-ca-certificate-secret"
 // VmiPromConfigName - The name of the prometheus config map
 const VmiPromConfigName string = "vmi-system-prometheus-config"
 
-// PrometheusJobScrapeIntervalZeroSeconds - The string 0s representing an invalid prometheus config scrape interval
-const PrometheusJobScrapeIntervalZeroSeconds = "0s"
+// TestPrometheusJobScrapeInterval - The string 30s representing a test only prometheus config scrape interval
+const TestPrometheusJobScrapeInterval = "30s"
 
 // TestPrometheusJob - Name of a test prometheus scraper job
 const TestPrometheusScrapeJob = "test_job"

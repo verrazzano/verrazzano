@@ -59,7 +59,7 @@ func recordConfigMapCreationTS() {
 			scrapeConfig := nsc.(map[interface{}]interface{})
 			// Change the default value of an existing default job
 			if scrapeConfig["job_name"] == "prometheus" {
-				scrapeConfig["scrape_interval"] = vzconst.PrometheusJobScrapeIntervalZeroSeconds
+				scrapeConfig["scrape_interval"] = vzconst.TestPrometheusJobScrapeInterval
 				break
 			}
 		}
@@ -105,7 +105,7 @@ var _ = t.Describe("Update prometheus configmap", Label("f:pre-upgrade"), func()
 					scrapeConfig := nsc.(map[interface{}]interface{})
 					// Check that interval is updated
 					if scrapeConfig["job_name"] == "prometheus" {
-						intervalUpdated = (scrapeConfig["scrape_interval"].(string) == vzconst.PrometheusJobScrapeIntervalZeroSeconds)
+						intervalUpdated = (scrapeConfig["scrape_interval"].(string) == vzconst.TestPrometheusJobScrapeInterval)
 					}
 
 					// Check that test scrape config is created
