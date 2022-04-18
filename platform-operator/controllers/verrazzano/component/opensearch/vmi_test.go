@@ -10,6 +10,7 @@ import (
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
@@ -77,17 +78,10 @@ var vmiEnabledCR = vzapi.Verrazzano{
 //  WHEN I create new VMI resources
 //  THEN the configuration in the CR is respected
 func TestNewVMIResources(t *testing.T) {
-	r := &resourceRequestValues{
+	r := &verrazzano.ResourceRequestValues{
 		Memory:  "",
 		Storage: "50Gi",
 	}
-	grafana := newGrafana(&vmiEnabledCR, r, nil)
-	assert.Equal(t, "48Mi", grafana.Resources.RequestMemory)
-	assert.Equal(t, "50Gi", grafana.Storage.Size)
-
-	prometheus := newPrometheus(&vmiEnabledCR, r, nil)
-	assert.Equal(t, "128Mi", prometheus.Resources.RequestMemory)
-	assert.Equal(t, "50Gi", prometheus.Storage.Size)
 
 	opensearch, err := newOpenSearch(&vmiEnabledCR, r, nil, true, false)
 	assert.NoError(t, err)
@@ -106,7 +100,7 @@ func TestNewVMIResources(t *testing.T) {
 //  WHEN I create a new opensearch resource
 //  THEN the opensearch resource fails to create
 func TestOpenSearchInvalidArgs(t *testing.T) {
-	r := &resourceRequestValues{}
+	r := &verrazzano.ResourceRequestValues{}
 	crBadArgs := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
@@ -132,7 +126,7 @@ func TestOpenSearchInvalidArgs(t *testing.T) {
 //  THEN the storage options from the existing VMi are preserved, and any policy values are copied.
 func TestNewOpenSearchValuesAreCopied(t *testing.T) {
 	age := "1d"
-	r := &resourceRequestValues{}
+	r := &verrazzano.ResourceRequestValues{}
 	testvz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
@@ -163,49 +157,6 @@ func TestNewOpenSearchValuesAreCopied(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "1Gi", openSearch.MasterNode.Storage.Size)
 	assert.EqualValues(t, testvz.Spec.Components.Elasticsearch.Policies, openSearch.Policies)
-}
-
-// TestNewGrafanaWithExistingVMI tests that storage values in the VMI are not erased when a new Grafana is created
-// GIVEN a Verrazzano CR and an existing VMO
-//  WHEN I create a new Grafana resource
-//  THEN the storage options from the existing VMO are preserved.
-func TestNewGrafanaWithExistingVMI(t *testing.T) {
-	existingVmo := vmov1.VerrazzanoMonitoringInstance{
-		Spec: vmov1.VerrazzanoMonitoringInstanceSpec{
-			Grafana: vmov1.Grafana{
-				Enabled: true,
-				Storage: vmov1.Storage{
-					Size: "100Gi",
-					PvcNames: []string{
-						"my-pvc",
-					},
-				},
-			},
-		},
-	}
-
-	grafana := newGrafana(&vmiEnabledCR, nil, &existingVmo)
-	assert.NotNil(t, grafana)
-	assert.Equal(t, "100Gi", grafana.Storage.Size)
-	assert.Equal(t, []string{"my-pvc"}, grafana.Storage.PvcNames)
-}
-
-// TestNewPrometheusWithDefaultStorage tests that the default storage of Prometheus is 50Gi
-// GIVEN a Verrazzano CR
-// WHEN I create a new Prometheus resource
-//  THEN the storage is 50Gi
-func TestNewPrometheusWithDefaultStorage(t *testing.T) {
-	prometheus := newPrometheus(&vmiEnabledCR, nil, nil)
-	assert.Equal(t, "50Gi", prometheus.Storage.Size)
-}
-
-// TestPrometheusWithStorageOverride tests that storage overrides are applied to Prometheus
-// GIVEN a Verrazzano CR and a storage override of 100Gi
-// WHEN I create a new Prometheus resource
-//  THEN the storage is 100Gi
-func TestPrometheusWithStorageOverride(t *testing.T) {
-	prometheus := newPrometheus(&vmiEnabledCR, &resourceRequestValues{Storage: "100Gi"}, nil)
-	assert.Equal(t, "100Gi", prometheus.Storage.Size)
 }
 
 // TestCreateVMI tests a new VMI resources is created in K8s according to the CR

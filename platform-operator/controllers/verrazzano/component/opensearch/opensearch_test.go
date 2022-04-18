@@ -9,8 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	"io/fs"
-	"io/ioutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"os"
 	"os/exec"
 	"strings"
@@ -36,7 +35,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -46,6 +44,7 @@ import (
 const (
 	profileDir      = "../../../../manifests/profiles"
 	testBomFilePath = "../../testdata/test_bom.json"
+	vmoDeployment   = "verrazzano-monitoring-operator"
 )
 
 var (
@@ -74,192 +73,6 @@ func init() {
 	// +kubebuilder:scaffold:testScheme
 }
 
-// TestOSResolveNamespace tests the Opensearch component name
-// GIVEN an Opensearch component
-//  WHEN I call resolveNamespace
-//  THEN the Opensearch namespace name is correctly resolved
-func TestOSResolveNamespace(t *testing.T) {
-	const defNs = vpoconst.VerrazzanoSystemNamespace
-	a := assert.New(t)
-	ns := resolveOpensearchNamespace("")
-	a.Equal(defNs, ns, "Wrong namespace resolved for Opensearch when using empty namespace")
-	ns = resolveOpensearchNamespace("default")
-	a.Equal(defNs, ns, "Wrong namespace resolved for Opensearch when using default namespace")
-	ns = resolveOpensearchNamespace("custom")
-	a.Equal("custom", ns, "Wrong namespace resolved for Opensearch when using custom namesapce")
-}
-
-// Test_appendVMIValues tests the appendVMIValues function
-// GIVEN a call to appendVMIValues
-//  WHEN I call with a ComponentContext with different profiles and overrides
-//  THEN the correct KeyValue objects and overrides file snippets are generated
-func Test_appendVMIValues(t *testing.T) {
-	falseValue := false
-	defaultDevExpectedHelmOverrides := []bom.KeyValue{
-		{Key: "elasticSearch.nodes.master.replicas", Value: "1"},
-		{Key: "elasticSearch.nodes.master.requests.memory", Value: "1G"},
-		{Key: "elasticSearch.nodes.ingest.replicas", Value: "0"},
-		{Key: "elasticSearch.nodes.data.replicas", Value: "0"},
-	}
-	tests := []struct {
-		name                  string
-		description           string
-		expectedYAML          string
-		actualCR              vzapi.Verrazzano
-		expectedHelmOverrides []bom.KeyValue
-		expectedErr           error
-	}{
-		{
-			name:                  "VMIProdVerrazzanoNoOverrides",
-			description:           "Test VMI basic prod no user overrides",
-			actualCR:              vzapi.Verrazzano{},
-			expectedYAML:          "testdata/vzValuesVMIProdVerrazzanoNoOverrides.yaml",
-			expectedHelmOverrides: prodESOverrides,
-			expectedErr:           nil,
-		},
-		{
-			name:                  "VMIDevVerrazzanoNoOverrides",
-			description:           "Test VMI basic dev no user overrides",
-			actualCR:              vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Profile: "dev"}},
-			expectedYAML:          "testdata/vzValuesVMIDevVerrazzanoNoOverrides.yaml",
-			expectedHelmOverrides: defaultDevExpectedHelmOverrides,
-			expectedErr:           nil,
-		},
-		{
-			name:                  "VMIManagedClusterVerrazzanoNoOverrides",
-			description:           "Test VMI basic managed-cluster no user overrides",
-			actualCR:              vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Profile: "managed-cluster"}},
-			expectedYAML:          "testdata/vzValuesVMIManagedClusterVerrazzanoNoOverrides.yaml",
-			expectedHelmOverrides: []bom.KeyValue{},
-			expectedErr:           nil,
-		},
-		{
-			name:        "VMIDevWithOverrides",
-			description: "Test VMI dev profile with overrides no user overrides",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Profile: "dev",
-					Components: vzapi.ComponentSpec{
-						Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &falseValue},
-						Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-					},
-				},
-			},
-			expectedYAML:          "testdata/vzValuesVMIDevWithOverrides.yaml",
-			expectedHelmOverrides: defaultDevExpectedHelmOverrides,
-			expectedErr:           nil,
-		},
-		{
-			name:        "VMIDevWithStorageOverrides",
-			description: "Test VMI dev profile with overrides no user overrides",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Profile:             "dev",
-					DefaultVolumeSource: &corev1.VolumeSource{PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "vmi"}},
-					VolumeClaimSpecTemplates: []vzapi.VolumeClaimSpecTemplate{
-						{
-							ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
-							Spec: corev1.PersistentVolumeClaimSpec{
-								Resources: corev1.ResourceRequirements{
-									Requests: corev1.ResourceList{
-										"storage": pvc100Gi,
-									},
-								},
-							},
-						},
-					},
-					Components: vzapi.ComponentSpec{},
-				},
-			},
-			expectedYAML:          "testdata/vzValuesVMIDevWithStorageOverrides.yaml",
-			expectedHelmOverrides: defaultDevExpectedHelmOverrides,
-			expectedErr:           nil,
-		},
-		{
-			name:        "VMIProdWithStorageOverrides",
-			description: "Test VMI prod profile with emptyDir defaultVolumeSource override",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Profile:             "prod",
-					DefaultVolumeSource: &corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
-				},
-			},
-			expectedYAML:          "testdata/vzValuesVMIProdWithStorageOverrides.yaml",
-			expectedHelmOverrides: prodESOverrides,
-			expectedErr:           nil,
-		},
-		{
-			name:        "VMIProdWithESInstallArgs",
-			description: "Test VMI prod profile with emptyDir defaultVolumeSource override",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Profile:             "prod",
-					DefaultVolumeSource: &corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
-					Components: vzapi.ComponentSpec{
-						Elasticsearch: &vzapi.ElasticsearchComponent{
-							ESInstallArgs: []vzapi.InstallArgs{
-								{Name: "nodes.master.replicas", Value: "6"},
-								{Name: "nodes.master.requests.memory", Value: "3G"},
-								{Name: "nodes.ingest.replicas", Value: "8"},
-								{Name: "nodes.ingest.requests.memory", Value: "32G"},
-								{Name: "nodes.data.replicas", Value: "16"},
-								{Name: "nodes.data.requests.memory", Value: "32G"},
-							},
-						},
-					},
-				},
-			},
-			expectedHelmOverrides: []bom.KeyValue{
-				{Key: "elasticSearch.nodes.master.replicas", Value: "6"},
-				{Key: "elasticSearch.nodes.master.requests.memory", Value: "3G"},
-				{Key: "elasticSearch.nodes.ingest.replicas", Value: "8"},
-				{Key: "elasticSearch.nodes.ingest.requests.memory", Value: "32G"},
-				{Key: "elasticSearch.nodes.data.replicas", Value: "16"},
-				{Key: "elasticSearch.nodes.data.requests.memory", Value: "32G"},
-				{Key: "elasticSearch.nodes.data.requests.storage", Value: "50Gi"},
-				{Key: "elasticSearch.nodes.master.requests.storage", Value: "50Gi"},
-			},
-			expectedYAML: "testdata/vzValuesVMIProdWithESInstallArgs.yaml",
-			expectedErr:  nil,
-		},
-	}
-	defer resetWriteFileFunc()
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			a := assert.New(t)
-
-			t.Log(test.description)
-
-			fakeClient := createFakeClientWithIngress()
-			fakeContext := spi.NewFakeContext(fakeClient, &test.actualCR, false, profileDir)
-			values := vmiValues{}
-
-			writeFileFunc = func(filename string, data []byte, perm fs.FileMode) error {
-				if test.expectedErr != nil {
-					return test.expectedErr
-				}
-				a.Equal([]byte(test.expectedYAML), data)
-				return nil
-			}
-
-			storageOverride, err := findStorageOverride(fakeContext.EffectiveCR())
-			a.NoError(err)
-
-			keyValues := appendVMIOverrides(fakeContext.EffectiveCR(), &values, storageOverride, []bom.KeyValue{})
-			a.Equal(test.expectedHelmOverrides, keyValues, "Install args did not match")
-
-			data, err := ioutil.ReadFile(test.expectedYAML)
-			a.NoError(err, "Error reading expected values yaml file %s", test.expectedYAML)
-			expectedValues := vmiValues{}
-			err = yaml.Unmarshal(data, &expectedValues)
-			a.NoError(err)
-			a.Equal(expectedValues, values)
-		})
-	}
-}
-
 // Test_findStorageOverride tests the findStorageOverride function
 // GIVEN a call to findStorageOverride
 //  WHEN I call with a ComponentContext with different profiles and overrides
@@ -270,7 +83,7 @@ func Test_findStorageOverride(t *testing.T) {
 		name             string
 		description      string
 		actualCR         vzapi.Verrazzano
-		expectedOverride *resourceRequestValues
+		expectedOverride *verrazzano.ResourceRequestValues
 		expectedErr      bool
 	}{
 		{
@@ -286,7 +99,7 @@ func Test_findStorageOverride(t *testing.T) {
 					DefaultVolumeSource: &corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
 				},
 			},
-			expectedOverride: &resourceRequestValues{
+			expectedOverride: &verrazzano.ResourceRequestValues{
 				Storage: "",
 			},
 		},
@@ -310,7 +123,7 @@ func Test_findStorageOverride(t *testing.T) {
 					},
 				},
 			},
-			expectedOverride: &resourceRequestValues{
+			expectedOverride: &verrazzano.ResourceRequestValues{
 				Storage: pvc100Gi.String(),
 			},
 		},
@@ -335,7 +148,7 @@ func Test_findStorageOverride(t *testing.T) {
 					},
 				},
 			},
-			expectedOverride: &resourceRequestValues{
+			expectedOverride: &verrazzano.ResourceRequestValues{
 				Storage: pvc100Gi.String(),
 			},
 		},
@@ -817,55 +630,6 @@ func createObjectFromTemplate(obj runtime.Object, template string, data interfac
 	return runtime.DefaultUnstructuredConverter.FromUnstructured(uns.Object, obj)
 }
 
-// TestAssociateHelmObjectToThisRelease tests labelling/annotating objects that will be imported to a helm chart
-// GIVEN an unmanaged object
-//  WHEN I call associateHelmObjectToThisRelease
-//  THEN the object is managed by helm
-func TestAssociateHelmObjectToThisRelease(t *testing.T) {
-	namespacedName := types.NamespacedName{
-		Name:      ComponentName,
-		Namespace: ComponentNamespace,
-	}
-	obj := &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-	}
-
-	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(obj).Build()
-	_, err := associateHelmObjectToThisRelease(c, obj, namespacedName)
-	assert.NoError(t, err)
-	assert.Equal(t, obj.Annotations["meta.helm.sh/release-name"], ComponentName)
-	assert.Equal(t, obj.Annotations["meta.helm.sh/release-namespace"], globalconst.VerrazzanoSystemNamespace)
-	assert.Equal(t, obj.Labels["app.kubernetes.io/managed-by"], "Helm")
-}
-
-// TestAssociateHelmObjectAndKeep tests labelling/annotating objects that will be associated to a helm chart
-// GIVEN an unmanaged object
-//  WHEN I call associateHelmObject with keep set to true
-//  THEN the object is managed by helm and is labeled with a resource policy of "keep"
-func TestAssociateHelmObjectAndKeep(t *testing.T) {
-	namespacedName := types.NamespacedName{
-		Name:      ComponentName,
-		Namespace: ComponentNamespace,
-	}
-	obj := &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-	}
-
-	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(obj).Build()
-	_, err := associateHelmObject(c, obj, namespacedName, namespacedName, true)
-	assert.NoError(t, err)
-	assert.Equal(t, ComponentName, obj.Annotations["meta.helm.sh/release-name"])
-	assert.Equal(t, globalconst.VerrazzanoSystemNamespace, obj.Annotations["meta.helm.sh/release-namespace"])
-	assert.Equal(t, "keep", obj.Annotations["helm.sh/resource-policy"])
-	assert.Equal(t, "Helm", obj.Labels["app.kubernetes.io/managed-by"])
-}
-
 // TestIsReadySecretNotReady tests the Opensearch isOpensearchReady call
 // GIVEN an Opensearch component
 //  WHEN I call isOpensearchReady when it is installed and the deployment availability criteria are met, but the secret is not found
@@ -915,32 +679,8 @@ func TestIsReady(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      grafanaDeployment,
-				Labels:    map[string]string{"app": "system-grafana"},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
 				Name:      kibanaDeployment,
 				Labels:    map[string]string{"app": "system-kibana"},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      prometheusDeployment,
-				Labels:    map[string]string{"app": "system-prometheus"},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
@@ -982,16 +722,6 @@ func TestIsReady(t *testing.T) {
 				AvailableReplicas: 1,
 				Replicas:          1,
 				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.DaemonSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: globalconst.VerrazzanoMonitoringNamespace,
-				Name:      nodeExporterDaemonset,
-			},
-			Status: appsv1.DaemonSetStatus{
-				UpdatedNumberScheduled: 1,
-				NumberAvailable:        1,
 			},
 		},
 		&appsv1.StatefulSet{
@@ -1041,18 +771,6 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      grafanaDeployment,
-				Labels:    map[string]string{"app": "system-grafana"},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
 				Name:      kibanaDeployment,
 				Labels:    map[string]string{"app": "system-kibana"},
 			},
@@ -1060,18 +778,6 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 				AvailableReplicas: 1,
 				Replicas:          1,
 				UpdatedReplicas:   0,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      prometheusDeployment,
-				Labels:    map[string]string{"app": "system-prometheus"},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
@@ -1108,16 +814,6 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 				AvailableReplicas: 1,
 				Replicas:          1,
 				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.DaemonSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: globalconst.VerrazzanoMonitoringNamespace,
-				Name:      nodeExporterDaemonset,
-			},
-			Status: appsv1.DaemonSetStatus{
-				UpdatedNumberScheduled: 1,
-				NumberAvailable:        1,
 			},
 		},
 		&appsv1.StatefulSet{
