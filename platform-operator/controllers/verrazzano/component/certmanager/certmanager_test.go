@@ -188,7 +188,6 @@ func TestCertManagerPreInstall(t *testing.T) {
 		VerrazzanoRootDir: "../../../../..", //since we are running inside the cert manager package, root is up 5 directories
 	})
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	setBashFunc(fakeBash)
 	err := fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false))
 	assert.NoError(t, err)
 }
@@ -377,11 +376,6 @@ func certificateExists(client clipkg.Client, name string, namespace string) (boo
 		return false, clipkg.IgnoreNotFound(err)
 	}
 	return true, nil
-}
-
-// fakeBash verifies that the correct parameter values are passed to upgrade
-func fakeBash(_ ...string) (string, string, error) {
-	return "success", "", nil
 }
 
 // Create a new deployment object for testing

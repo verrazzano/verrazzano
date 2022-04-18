@@ -210,10 +210,11 @@ func runAcmeUpdateTest(t *testing.T, upgrade bool) {
 	}
 
 	existingIssuer, _ := createAcmeClusterIssuer(vzlog.DefaultLogger(), templateData{
-		Email:       acme.EmailAddress,
-		Server:      acme.Environment,
-		SecretName:  oci.OCIConfigSecret,
-		OCIZoneName: oci.DNSZoneName,
+		Email:          acme.EmailAddress,
+		AcmeSecretName: caAcmeSecretName,
+		Server:         acme.Environment,
+		SecretName:     oci.OCIConfigSecret,
+		OCIZoneName:    oci.DNSZoneName,
 	})
 
 	updatedVz := vz.DeepCopy()
@@ -231,10 +232,11 @@ func runAcmeUpdateTest(t *testing.T, upgrade bool) {
 	updatedVz.Spec.Components.DNS = &vzapi.DNSComponent{OCI: newOCI}
 
 	expectedIssuer, _ := createAcmeClusterIssuer(vzlog.DefaultLogger(), templateData{
-		Email:       newAcme.EmailAddress,
-		Server:      letsEncryptProdEndpoint,
-		SecretName:  newOCI.OCIConfigSecret,
-		OCIZoneName: newOCI.DNSZoneName,
+		Email:          newAcme.EmailAddress,
+		AcmeSecretName: caAcmeSecretName,
+		Server:         letsEncryptProdEndpoint,
+		SecretName:     newOCI.OCIConfigSecret,
+		OCIZoneName:    newOCI.DNSZoneName,
 	})
 
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(localvz, oldSecret, newSecret, existingIssuer).Build()
