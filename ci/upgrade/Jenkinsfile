@@ -24,9 +24,9 @@ pipeline {
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
-                choices: [ "1.20", "1.19", "1.21" ])
+                choices: [ "1.20", "1.21", "1.22" ])
         string (name: 'VERSION_FOR_INSTALL',
-                defaultValue: 'v1.0.2',
+                defaultValue: 'v1.1.2',
                 description: 'This is the Verrazzano version for install.  By default, the latest Master release will be installed',
                 trim: true)
         string (name: 'GIT_COMMIT_FOR_UPGRADE',
@@ -341,7 +341,7 @@ pipeline {
                     kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
 
                     # wait for the upgrade to complete
-                    kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                    kubectl wait --timeout=25m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
                     # Dump the resource to debug
                     kubectl get -o yaml verrazzano/my-verrazzano || true
@@ -451,14 +451,14 @@ pipeline {
                                 runGinkgoNamespace('examples/helidon', "true", "false", "hello-helidon")
                             }
                         }
-                        stage('examples todo') {
+                        stage('weblogic workload') {
                             steps {
-                                runGinkgoNamespace('examples/todo', "false", "true", "todo-list")
+                                runGinkgoNamespace('workloads/weblogic', "false", "true", "hello-wls")
                             }
                         }
-                        stage('examples bobs-books') {
+                        stage('coherence workload') {
                             steps {
-                                runGinkgoNamespace('examples/bobsbooks', "false", "true", "bobs-books")
+                                runGinkgoNamespace('workloads/coherence', "false", "true", "hello-coherence")
                             }
                         }
                     }

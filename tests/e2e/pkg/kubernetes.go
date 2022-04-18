@@ -1086,6 +1086,21 @@ func DoesVerrazzanoProjectExistInCluster(name string, kubeconfigPath string) (bo
 	return vp != nil && len(vp.Name) > 0, nil
 }
 
+// ContainerHasExpectedArgs returns true if each of the arguments matches a substring of one of the arguments found in the deployment
+func ContainerHasExpectedArgs(namespace string, deploymentName string, containerName string, arguments []string) (bool, error) {
+	deployment, err := GetDeployment(namespace, deploymentName)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Deployment %v is not found in the namespace: %v, error: %v", deploymentName, namespace, err))
+		return false, nil
+	}
+	for _, container := range deployment.Spec.Template.Spec.Containers {
+		if container.Name == containerName {
+			return SlicesContainSubsetSubstring(arguments, container.Args), nil
+		}
+	}
+	return false, nil
+}
+
 // UpdateConfigMap updates the config map
 func UpdateConfigMap(configMap *corev1.ConfigMap) error {
 	// Get the Kubernetes clientset

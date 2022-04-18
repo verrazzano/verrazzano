@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
@@ -11,7 +11,7 @@ import (
 	v1alpha12 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	admissionv1beta1 "k8s.io/api/admission/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -22,7 +22,7 @@ import (
 func newMultiClusterConfigmapValidator() MultiClusterConfigmapValidator {
 	scheme := newScheme()
 	decoder, _ := admission.NewDecoder(scheme)
-	cli := fake.NewFakeClientWithScheme(scheme)
+	cli := fake.NewClientBuilder().WithScheme(scheme).Build()
 	v := MultiClusterConfigmapValidator{client: cli, decoder: decoder}
 	return v
 }
@@ -43,12 +43,12 @@ func TestValidationFailureForMultiClusterConfigMapCreationWithoutTargetClusters(
 		Spec: v1alpha12.MultiClusterConfigMapSpec{},
 	}
 
-	req := newAdmissionRequest(admissionv1beta1.Create, p)
+	req := newAdmissionRequest(admissionv1.Create, p)
 	res := v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected multi-cluster configmap validation to fail due to missing placement information.")
 	asrt.Contains(res.Result.Reason, "target cluster")
 
-	req = newAdmissionRequest(admissionv1beta1.Update, p)
+	req = newAdmissionRequest(admissionv1.Update, p)
 	res = v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected multi-cluster configmap validation to fail due to missing placement information.")
 	asrt.Contains(res.Result.Reason, "target cluster")
@@ -74,12 +74,12 @@ func TestValidationFailureForMultiClusterConfigMapCreationTargetingMissingManage
 		},
 	}
 
-	req := newAdmissionRequest(admissionv1beta1.Create, p)
+	req := newAdmissionRequest(admissionv1.Create, p)
 	res := v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected multi-cluster configmap validation to fail due to missing placement information.")
 	asrt.Contains(res.Result.Reason, "invalid-cluster-name")
 
-	req = newAdmissionRequest(admissionv1beta1.Update, p)
+	req = newAdmissionRequest(admissionv1.Update, p)
 	res = v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected multi-cluster configmap validation to fail due to missing placement information.")
 	asrt.Contains(res.Result.Reason, "invalid-cluster-name")
@@ -136,11 +136,11 @@ func TestValidationSuccessForMultiClusterConfigMapCreationTargetingExistingManag
 	asrt.NoError(v.client.Create(context.TODO(), &c))
 	asrt.NoError(v.client.Create(context.TODO(), &vp))
 
-	req := newAdmissionRequest(admissionv1beta1.Create, p)
+	req := newAdmissionRequest(admissionv1.Create, p)
 	res := v.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected multi-cluster configmap create validation to succeed.")
 
-	req = newAdmissionRequest(admissionv1beta1.Update, p)
+	req = newAdmissionRequest(admissionv1.Update, p)
 	res = v.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected multi-cluster configmap update validation to succeed.")
 }
@@ -192,11 +192,11 @@ func TestValidationSuccessForMultiClusterConfigMapCreationWithoutTargetClustersO
 	asrt.NoError(v.client.Create(context.TODO(), &s))
 	asrt.NoError(v.client.Create(context.TODO(), &vp))
 
-	req := newAdmissionRequest(admissionv1beta1.Create, p)
+	req := newAdmissionRequest(admissionv1.Create, p)
 	res := v.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected multi-cluster configmap validation to succeed with missing placement information on managed cluster.")
 
-	req = newAdmissionRequest(admissionv1beta1.Update, p)
+	req = newAdmissionRequest(admissionv1.Update, p)
 	res = v.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected multi-cluster configmap validation to succeed with missing placement information on managed cluster.")
 }

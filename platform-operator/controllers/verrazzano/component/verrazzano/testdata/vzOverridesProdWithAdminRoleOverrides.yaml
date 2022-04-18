@@ -36,7 +36,13 @@ security:
     subject-1:
       kind: User
       name: fred-flintstone
-verrazzanoOperator:
+nodeExporter:
   enabled: true
 prometheusOperator:
+  enabled: true
+prometheusAdapter:
+  enabled: true
+kubeStateMetrics:
+  enabled: true
+prometheusPushgateway:
   enabled: true

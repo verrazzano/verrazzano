@@ -9,13 +9,13 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+
 	"gopkg.in/yaml.v2"
-	"k8s.io/apimachinery/pkg/api/errors"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/istio"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -35,6 +35,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 const (
@@ -217,10 +218,9 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 
 			t.Entry("Checking Deployment rancher", rancher.ComponentNamespace, rancher.ComponentName, "rancher"),
 			t.Entry("Checking Deployment rancher", rancher.ComponentNamespace, rancher.ComponentName, "rancher-webhook"),
-			t.Entry("Checking Deployment fleet-agent", "fleet-system", rancher.ComponentName, "fleet-agent"),
-			t.Entry("Checking Deployment fleet-controller", "fleet-system", rancher.ComponentName, "fleet-controller"),
-			t.Entry("Checking Deployment gitjob", "fleet-system", rancher.ComponentName, "gitjob"),
-			t.Entry("Checking Deployment rancher-operator", "rancher-operator-system", rancher.ComponentName, "rancher-operator"),
+			t.Entry("Checking Deployment fleet-agent", rancher.FleetLocalSystemNamespace, rancher.ComponentName, "fleet-agent"),
+			t.Entry("Checking Deployment fleet-controller", rancher.FleetSystemNamespace, rancher.ComponentName, "fleet-controller"),
+			t.Entry("Checking Deployment gitjob", rancher.FleetSystemNamespace, rancher.ComponentName, "gitjob"),
 		)
 	})
 

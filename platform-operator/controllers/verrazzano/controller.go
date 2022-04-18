@@ -70,10 +70,13 @@ var unitTesting bool
 // +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanos,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanos/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;watch;list;create;update;delete
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Get the Verrazzano resource
+	if ctx == nil {
+		ctx = context.TODO()
+	}
 	vz := &installv1alpha1.Verrazzano{}
-	if err := r.Get(context.TODO(), req.NamespacedName, vz); err != nil {
+	if err := r.Get(ctx, req.NamespacedName, vz); err != nil {
 		// If the resource is not found, that means all of the finalizers have been removed,
 		// and the Verrazzano resource has been deleted, so there is nothing left to do.
 		if errors.IsNotFound(err) {
@@ -96,7 +99,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	log.Oncef("Reconciling Verrazzano resource %v, generation %v, version %s", req.NamespacedName, vz.Generation, vz.Status.Version)
-	res, err := r.doReconcile(log, vz)
+	res, err := r.doReconcile(ctx, log, vz)
 	if vzctrl.ShouldRequeue(res) {
 		return res, nil
 	}
@@ -112,8 +115,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 }
 
 // doReconcile the Verrazzano CR
-func (r *Reconciler) doReconcile(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
-	ctx := context.TODO()
+func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 
 	// Initialize once for this Verrazzano resource when the operator starts
 	result, err := r.initForVzResource(vz, log)
@@ -141,7 +143,7 @@ func (r *Reconciler) doReconcile(log vzlog.VerrazzanoLogger, vz *installv1alpha1
 		return reconcile.Result{Requeue: true}, nil
 	}
 
-	vzctx, err := vzcontext.NewVerrazzanoContext(log, r, vz, r.DryRun)
+	vzctx, err := vzcontext.NewVerrazzanoContext(log, r.Client, vz, r.DryRun)
 	if err != nil {
 		log.Errorf("Failed to create component context: %v", err)
 		return newRequeueWithDelay(), err
@@ -786,7 +788,7 @@ func (r *Reconciler) checkComponentReadyState(vzctx vzcontext.VerrazzanoContext)
 
 	// Return false if any enabled component is not ready
 	for _, comp := range registry.GetComponents() {
-		spiCtx, err := spi.NewContext(vzctx.Log, r, vzctx.ActualCR, r.DryRun)
+		spiCtx, err := spi.NewContext(vzctx.Log, r.Client, vzctx.ActualCR, r.DryRun)
 		if err != nil {
 			spiCtx.Log().Errorf("Failed to create component context: %v", err)
 			return false, err
@@ -806,7 +808,7 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 		cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
 	}
 
-	newContext, err := spi.NewContext(log, r, cr, r.DryRun)
+	newContext, err := spi.NewContext(log, r.Client, cr, r.DryRun)
 	if err != nil {
 		return newRequeueWithDelay(), err
 	}
@@ -951,69 +953,6 @@ func mergeMaps(to map[string]string, from map[string]string) (map[string]string,
 		}
 	}
 	return mergedMap, updated
-}
-
-// buildDomain Build the DNS Domain from the current install
-func buildDomain(log vzlog.VerrazzanoLogger, c client.Client, vz *installv1alpha1.Verrazzano) (string, error) {
-	subdomain := vz.Spec.EnvironmentName
-	if len(subdomain) == 0 {
-		subdomain = vzconst.DefaultEnvironmentName
-	}
-	baseDomain, err := buildDomainSuffix(log, c, vz)
-	if err != nil {
-		return "", err
-	}
-	domain := subdomain + "." + baseDomain
-	return domain, nil
-}
-
-// buildDomainSuffix Get the configured domain suffix, or compute the nip.io domain
-func buildDomainSuffix(log vzlog.VerrazzanoLogger, c client.Client, vz *installv1alpha1.Verrazzano) (string, error) {
-	dns := vz.Spec.Components.DNS
-	if dns != nil && dns.OCI != nil {
-		return dns.OCI.DNSZoneName, nil
-	}
-	if dns != nil && dns.External != nil {
-		return dns.External.Suffix, nil
-	}
-	ipAddress, err := getIngressIP(log, c)
-	if err != nil {
-		return "", err
-	}
-
-	if dns != nil && dns.Wildcard != nil {
-		return ipAddress + dns.Wildcard.Domain, nil
-	}
-
-	// Default to nip.io
-	return ipAddress + ".nip.io", nil
-}
-
-// getIngressIP get the Ingress IP, used for the wildcard case (magic DNS)
-func getIngressIP(log vzlog.VerrazzanoLogger, c client.Client) (string, error) {
-	const nginxIngressController = "ingress-controller-ingress-nginx-controller"
-	const nginxNamespace = "ingress-nginx"
-	nsn := types.NamespacedName{Name: nginxIngressController, Namespace: nginxNamespace}
-	nginxService := corev1.Service{}
-	err := c.Get(context.TODO(), nsn, &nginxService)
-	if err != nil {
-		log.Errorf("Failed to get service %v: %v", nsn, err)
-		return "", err
-	}
-	if nginxService.Spec.Type == corev1.ServiceTypeLoadBalancer || nginxService.Spec.Type == corev1.ServiceTypeNodePort {
-		nginxIngress := nginxService.Status.LoadBalancer.Ingress
-		if len(nginxIngress) == 0 {
-			// In case of OLCNE, need to obtain the External IP from the Spec
-			if len(nginxService.Spec.ExternalIPs) == 0 {
-				return "", log.ErrorfNewErr("Failed because NGINX service %s is missing External IP address", nginxService.Name)
-			}
-			return nginxService.Spec.ExternalIPs[0], nil
-		}
-		return nginxIngress[0].IP, nil
-	}
-	err = fmt.Errorf("Failed because of unsupported service type %s for NGINX ingress", string(nginxService.Spec.Type))
-	log.Errorf("%v", err)
-	return "", err
 }
 
 func addFluentdExtraVolumeMounts(files []string, vz *installv1alpha1.Verrazzano) *installv1alpha1.Verrazzano {
@@ -1201,8 +1140,8 @@ func newRequeueWithDelay() ctrl.Result {
 func (r *Reconciler) watchJobs(namespace string, name string, log vzlog.VerrazzanoLogger) error {
 
 	// Define a mapping to the Verrazzano resource
-	mapFn := handler.ToRequestsFunc(
-		func(a handler.MapObject) []reconcile.Request {
+	mapFn := handler.EnqueueRequestsFromMapFunc(
+		func(a client.Object) []reconcile.Request {
 			return []reconcile.Request{
 				{NamespacedName: types.NamespacedName{
 					Namespace: namespace,
@@ -1226,9 +1165,7 @@ func (r *Reconciler) watchJobs(namespace string, name string, log vzlog.Verrazza
 		&source.Kind{Type: &batchv1.Job{
 			ObjectMeta: metav1.ObjectMeta{Namespace: getInstallNamespace()},
 		}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: mapFn,
-		},
+		mapFn,
 		// Comment it if default predicate fun is used.
 		p)
 	if err != nil {
@@ -1243,8 +1180,8 @@ func (r *Reconciler) watchJobs(namespace string, name string, log vzlog.Verrazza
 // when a pod is created.
 func (r *Reconciler) watchPods(namespace string, name string, log vzlog.VerrazzanoLogger) error {
 	// Define a mapping to the Verrazzano resource
-	mapFn := handler.ToRequestsFunc(
-		func(a handler.MapObject) []reconcile.Request {
+	mapFn := handler.EnqueueRequestsFromMapFunc(
+		func(a client.Object) []reconcile.Request {
 			return []reconcile.Request{
 				{NamespacedName: types.NamespacedName{
 					Namespace: namespace,
@@ -1276,9 +1213,7 @@ func (r *Reconciler) watchPods(namespace string, name string, log vzlog.Verrazza
 	// Watch pods and trigger reconciles for Verrazzano resources when a pod is created
 	err := r.Controller.Watch(
 		&source.Kind{Type: &corev1.Pod{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: mapFn,
-		},
+		mapFn,
 		predicateFunc)
 	if err != nil {
 		return err

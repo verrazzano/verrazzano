@@ -46,7 +46,7 @@ func (r *Reconciler) SetupWithManager(mgr k8scontroller.Manager) error {
 
 // Reconcile reconciles a workload to keep the Prometheus ConfigMap scrape job configuration up to date.
 // No kubebuilder annotations are used as the application RBAC for the application operator is now manually managed.
-func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req k8scontroller.Request) (k8scontroller.Result, error) {
 
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
@@ -57,7 +57,9 @@ func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result,
 		return reconcile.Result{}, nil
 	}
 
-	ctx := context.Background()
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	metricsBinding := vzapi.MetricsBinding{}
 	if err := r.Client.Get(context.TODO(), req.NamespacedName, &metricsBinding); err != nil {
 		return clusters.IgnoreNotFoundWithLog(err, zap.S())

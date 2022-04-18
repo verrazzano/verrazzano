@@ -7,7 +7,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"io/ioutil"
 	"os/exec"
 	"strconv"
@@ -20,6 +19,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
@@ -35,7 +35,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
 )
 
@@ -299,22 +298,22 @@ func fixupFluentdDaemonset(log vzlog.VerrazzanoLogger, client clipkg.Client, nam
 
 	// Get the secret containing managed cluster name and Elasticsearch URL
 	secretNamespacedName := types.NamespacedName{Name: constants.MCRegistrationSecret, Namespace: namespace}
-	secret := corev1.Secret{}
-	err = client.Get(context.TODO(), secretNamespacedName, &secret)
+	sec := corev1.Secret{}
+	err = client.Get(context.TODO(), secretNamespacedName, &sec)
 	if err != nil {
 		return err
 	}
 
 	// The secret must contain a cluster name
-	clusterName, ok := secret.Data[constants.ClusterNameData]
+	clusterName, ok := sec.Data[constants.ClusterNameData]
 	if !ok {
-		return log.ErrorfNewErr("Failed, the secret named %s in namespace %s is missing the required field %s", secret.Name, secret.Namespace, constants.ClusterNameData)
+		return log.ErrorfNewErr("Failed, the secret named %s in namespace %s is missing the required field %s", sec.Name, sec.Namespace, constants.ClusterNameData)
 	}
 
 	// The secret must contain the Elasticsearch endpoint's URL
-	elasticsearchURL, ok := secret.Data[constants.ElasticsearchURLData]
+	elasticsearchURL, ok := sec.Data[constants.ElasticsearchURLData]
 	if !ok {
-		return log.ErrorfNewErr("Failed, the secret named %s in namespace %s is missing the required field %s", secret.Name, secret.Namespace, constants.ElasticsearchURLData)
+		return log.ErrorfNewErr("Failed, the secret named %s in namespace %s is missing the required field %s", sec.Name, sec.Namespace, constants.ElasticsearchURLData)
 	}
 
 	// Update the daemonset to use a Value instead of the valueFrom
@@ -356,12 +355,6 @@ func createAndLabelNamespaces(ctx spi.ComponentContext) error {
 	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
 		if err := namespace.CreateKeycloakNamespace(ctx.Client()); err != nil {
 			return ctx.Log().ErrorfNewErr("Failed creating Keycloak namespace: %v", err)
-		}
-	}
-	if vzconfig.IsRancherEnabled(ctx.EffectiveCR()) {
-		if err := namespace.CreateAndLabelNamespace(ctx.Client(), globalconst.RancherOperatorSystemNamespace,
-			true, false); err != nil {
-			return ctx.Log().ErrorfNewErr("Failed creating Rancher operator system namespace %s: %v", globalconst.RancherOperatorSystemNamespace, err)
 		}
 	}
 	// cattle-system NS must be created since the rancher NetworkPolicy, which is always installed, requires it
@@ -477,7 +470,7 @@ func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) 
 	}
 
 	// Only apply this fix to clusters being upgraded from a source version before 1.1.0.
-	ver1_1_0, err := semver.NewSemVersion("v1.1.0")
+	ver110, err := semver.NewSemVersion("v1.1.0")
 	if err != nil {
 		return err
 	}
@@ -485,7 +478,7 @@ func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) 
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("Failed Elasticsearch post-upgrade: Invalid source Verrazzano version: %v", err)
 	}
-	if sourceVer.IsGreatherThan(ver1_1_0) || sourceVer.IsEqualTo(ver1_1_0) {
+	if sourceVer.IsGreatherThan(ver110) || sourceVer.IsEqualTo(ver110) {
 		ctx.Log().Debug("Elasticsearch Post Upgrade: Replica count update unnecessary for source Verrazzano version %v.", sourceVer.ToString())
 		return nil
 	}
@@ -586,13 +579,13 @@ func waitForPodsWithReadyContainer(client clipkg.Client, retryDelay time.Duratio
 func importToHelmChart(cli clipkg.Client) error {
 	namespacedName := types.NamespacedName{Name: nodeExporter, Namespace: globalconst.VerrazzanoMonitoringNamespace}
 	name := types.NamespacedName{Name: nodeExporter}
-	objects := []controllerutil.Object{
+	objects := []clipkg.Object{
 		&appsv1.DaemonSet{},
 		&corev1.ServiceAccount{},
 		&corev1.Service{},
 	}
 
-	noNamespaceObjects := []controllerutil.Object{
+	noNamespaceObjects := []clipkg.Object{
 		&rbacv1.ClusterRole{},
 		&rbacv1.ClusterRoleBinding{},
 	}
@@ -620,13 +613,13 @@ func exportFromHelmChart(cli clipkg.Client) error {
 	authproxyReleaseName := types.NamespacedName{Name: authproxy.ComponentName, Namespace: authproxy.ComponentNamespace}
 	namespacedName := authproxyReleaseName
 	name := types.NamespacedName{Name: authproxy.ComponentName}
-	objects := []controllerutil.Object{
+	objects := []clipkg.Object{
 		&corev1.ServiceAccount{},
 		&corev1.Service{},
 		&appsv1.Deployment{},
 	}
 
-	noNamespaceObjects := []controllerutil.Object{
+	noNamespaceObjects := []clipkg.Object{
 		&rbacv1.ClusterRole{},
 		&rbacv1.ClusterRoleBinding{},
 	}
@@ -655,19 +648,19 @@ func exportFromHelmChart(cli clipkg.Client) error {
 }
 
 //associateHelmObjectToThisRelease annotates an object as being managed by the verrazzano helm chart
-func associateHelmObjectToThisRelease(cli clipkg.Client, obj controllerutil.Object, namespacedName types.NamespacedName) (controllerutil.Object, error) {
+func associateHelmObjectToThisRelease(cli clipkg.Client, obj clipkg.Object, namespacedName types.NamespacedName) (clipkg.Object, error) {
 	return associateHelmObject(cli, obj, types.NamespacedName{Name: ComponentName, Namespace: globalconst.VerrazzanoSystemNamespace}, namespacedName, false)
 }
 
 //associateHelmObject annotates an object as being managed by the specified release helm chart
-func associateHelmObject(cli clipkg.Client, obj controllerutil.Object, releaseName types.NamespacedName, namespacedName types.NamespacedName, keepResource bool) (controllerutil.Object, error) {
+func associateHelmObject(cli clipkg.Client, obj clipkg.Object, releaseName types.NamespacedName, namespacedName types.NamespacedName, keepResource bool) (clipkg.Object, error) {
 	if err := cli.Get(context.TODO(), namespacedName, obj); err != nil {
 		if errors.IsNotFound(err) {
 			return obj, nil
 		}
 		return obj, err
 	}
-	objMerge := clipkg.MergeFrom(obj.DeepCopyObject())
+
 	annotations := obj.GetAnnotations()
 	if annotations == nil {
 		annotations = map[string]string{}
@@ -684,7 +677,8 @@ func associateHelmObject(cli clipkg.Client, obj controllerutil.Object, releaseNa
 	}
 	labels["app.kubernetes.io/managed-by"] = "Helm"
 	obj.SetLabels(labels)
-	return obj, cli.Patch(context.TODO(), obj, objMerge)
+	err := cli.Update(context.TODO(), obj)
+	return obj, err
 }
 
 // GetProfile Returns the configured profile name, or "prod" if not specified in the configuration

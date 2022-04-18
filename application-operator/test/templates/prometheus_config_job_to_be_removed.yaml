@@ -1,0 +1,281 @@
+# Copyright (C) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+global:
+  scrape_interval: 20s
+  scrape_timeout: 10s
+  evaluation_interval: 30s
+alerting:
+  alertmanagers:
+    - follow_redirects: true
+      scheme: http
+      timeout: 10s
+      api_version: v2
+      static_configs:
+        - targets:
+            - vmi-system-alertmanager:9093
+rule_files:
+  - /etc/prometheus/rules/*.rules
+scrape_configs:
+  - job_name: prometheus
+    honor_timestamps: true
+    scrape_interval: 20s
+    scrape_timeout: 15s
+    metrics_path: /metrics
+    scheme: http
+    follow_redirects: true
+    static_configs:
+      - targets:
+          - localhost:9090
+        labels:
+          verrazzano_cluster: local
+  - job_name: node-exporter
+    honor_timestamps: true
+    scrape_interval: 20s
+    scrape_timeout: 15s
+    metrics_path: /metrics
+    scheme: http
+    follow_redirects: true
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_endpoints_name]
+        separator: ;
+        regex: node-exporter
+        replacement: $1
+        action: keep
+      - separator: ;
+        regex: (.*)
+        target_label: verrazzano_cluster
+        replacement: local
+        action: replace
+    kubernetes_sd_configs:
+      - role: endpoints
+        kubeconfig_file: ""
+        follow_redirects: true
+  - job_name: cadvisor
+    honor_timestamps: true
+    scrape_interval: 20s
+    scrape_timeout: 15s
+    metrics_path: /metrics
+    scheme: https
+    authorization:
+      type: Bearer
+      credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      insecure_skip_verify: true
+    follow_redirects: true
+    relabel_configs:
+      - separator: ;
+        regex: __meta_kubernetes_node_label_(.+)
+        replacement: $1
+        action: labelmap
+      - separator: ;
+        regex: (.*)
+        target_label: __address__
+        replacement: kubernetes.default.svc:443
+        action: replace
+      - source_labels: [__meta_kubernetes_node_name]
+        separator: ;
+        regex: (.+)
+        target_label: __metrics_path__
+        replacement: /api/v1/nodes/$1/proxy/metrics/cadvisor
+        action: replace
+      - separator: ;
+        regex: (.*)
+        target_label: verrazzano_cluster
+        replacement: local
+        action: replace
+    kubernetes_sd_configs:
+      - role: node
+        kubeconfig_file: ""
+        follow_redirects: true
+  - job_name: nginx-ingress-controller
+    honor_timestamps: true
+    scrape_interval: 20s
+    scrape_timeout: 10s
+    metrics_path: /metrics
+    scheme: http
+    follow_redirects: true
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_system_io_scrape]
+        separator: ;
+        regex: "true"
+        replacement: $1
+        action: keep
+      - separator: ;
+        regex: __meta_kubernetes_pod_label_(.+)
+        replacement: $1
+        action: labelmap
+      - source_labels: [__meta_kubernetes_namespace]
+        separator: ;
+        regex: (.*)
+        target_label: kubernetes_namespace
+        replacement: $1
+        action: replace
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        separator: ;
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        target_label: __address__
+        replacement: $1:10254
+        action: replace
+      - source_labels: [__meta_kubernetes_pod_name]
+        separator: ;
+        regex: (.*)
+        target_label: kubernetes_pod_name
+        replacement: $1
+        action: replace
+      - separator: ;
+        regex: (.*)
+        target_label: verrazzano_cluster
+        replacement: local
+        action: replace
+    kubernetes_sd_configs:
+      - role: pod
+        kubeconfig_file: ""
+        follow_redirects: true
+        namespaces:
+          names:
+            - ingress-nginx
+  - job_name: envoy-stats
+    honor_timestamps: true
+    scrape_interval: 20s
+    scrape_timeout: 10s
+    metrics_path: /stats/prometheus
+    scheme: http
+    follow_redirects: true
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_container_port_name]
+        separator: ;
+        regex: .*-envoy-prom
+        replacement: $1
+        action: keep
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        separator: ;
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        target_label: __address__
+        replacement: $1:15090
+        action: replace
+      - separator: ;
+        regex: __meta_kubernetes_pod_label_(.+)
+        replacement: $1
+        action: labeldrop
+      - source_labels: [__meta_kubernetes_namespace]
+        separator: ;
+        regex: (.*)
+        target_label: namespace
+        replacement: $1
+        action: replace
+      - source_labels: [__meta_kubernetes_pod_name]
+        separator: ;
+        regex: (.*)
+        target_label: pod_name
+        replacement: $1
+        action: replace
+      - separator: ;
+        regex: (.*)
+        target_label: verrazzano_cluster
+        replacement: local
+        action: replace
+    kubernetes_sd_configs:
+      - role: pod
+        kubeconfig_file: ""
+        follow_redirects: true
+  - job_name: pilot
+    honor_timestamps: true
+    scrape_interval: 20s
+    scrape_timeout: 10s
+    metrics_path: /metrics
+    scheme: http
+    follow_redirects: true
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+        separator: ;
+        regex: istiod;http-monitoring
+        replacement: $1
+        action: keep
+      - source_labels: [__meta_kubernetes_service_label_app]
+        separator: ;
+        regex: (.*)
+        target_label: app
+        replacement: $1
+        action: replace
+      - separator: ;
+        regex: (.*)
+        target_label: verrazzano_cluster
+        replacement: local
+        action: replace
+    kubernetes_sd_configs:
+      - role: endpoints
+        kubeconfig_file: ""
+        follow_redirects: true
+        namespaces:
+          names:
+            - istio-system
+  - job_name: ##JOB_NAME##
+    honor_timestamps: true
+    scrape_interval: 20s
+    scrape_timeout: 10s
+    metrics_path: /metrics
+    scheme: https
+    tls_config:
+      ca_file: /etc/istio-certs/root-cert.pem
+      cert_file: /etc/istio-certs/cert-chain.pem
+      key_file: /etc/istio-certs/key.pem
+      insecure_skip_verify: true
+    follow_redirects: true
+    relabel_configs:
+      - separator: ;
+        regex: (.*)
+        target_label: verrazzano_cluster
+        replacement: local
+        action: replace
+      - source_labels: [__meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled,
+                        __meta_kubernetes_pod_label_app_oam_dev_name, __meta_kubernetes_pod_label_app_oam_dev_component]
+        separator: ;
+        regex: true;hello-helidon-appconf;hello-helidon-component
+        replacement: $1
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_annotation_verrazzano_io_metricsPath]
+        separator: ;
+        regex: (.+)
+        target_label: __metrics_path__
+        replacement: $1
+        action: replace
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_verrazzano_io_metricsPort]
+        separator: ;
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        target_label: __address__
+        replacement: $1:$2
+        action: replace
+      - source_labels: [__meta_kubernetes_namespace]
+        separator: ;
+        regex: (.*)
+        target_label: namespace
+        replacement: $1
+        action: replace
+      - separator: ;
+        regex: __meta_kubernetes_pod_label_(.+)
+        replacement: $1
+        action: labelmap
+      - source_labels: [__meta_kubernetes_pod_name]
+        separator: ;
+        regex: (.*)
+        target_label: pod_name
+        replacement: $1
+        action: replace
+      - separator: ;
+        regex: (controller_revision_hash)
+        replacement: $1
+        action: labeldrop
+      - source_labels: [name]
+        separator: ;
+        regex: .*/(.*)$
+        target_label: webapp
+        replacement: $1
+        action: replace
+    kubernetes_sd_configs:
+      - role: pod
+        kubeconfig_file: ""
+        follow_redirects: true
+        namespaces:
+          names:
+            - hello-helidon-05e0f7c

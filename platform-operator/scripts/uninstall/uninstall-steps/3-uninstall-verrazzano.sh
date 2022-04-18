@@ -140,8 +140,25 @@ function delete_kiali {
   kubectl delete -f ${KIALI_CHART_DIR}/crds || true
 }
 
+function delete_prometheus_adapter {
+  log "Uninstall the Prometheus adapter"
+  if helm status prometheus-adapter --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
+    if ! helm uninstall prometheus-adapter --namespace "${VERRAZZANO_MONITORING_NS}" ; then
+      error "Failed to uninstall the Prometheus adapter."
+    fi
+  fi
+}
+
+function delete_kube_state_metrics {
+  log "Uninstall kube-state-metrics"
+  if helm status kube-state-metrics --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
+    if ! helm uninstall kube-state-metrics --namespace "${VERRAZZANO_MONITORING_NS}" ; then
+      error "Failed to uninstall kube-state-metrics."
+    fi
+  fi
+}
+
 function delete_prometheus_operator {
-  CHART_DIR=${CHARTS_DIR}/kube-prometheus-stack
   log "Uninstall the Prometheus operator"
   if helm status prometheus-operator --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
     if ! helm uninstall prometheus-operator --namespace "${VERRAZZANO_MONITORING_NS}" ; then
@@ -157,6 +174,18 @@ function delete_prometheus_operator {
   kubectl delete namespace "${VERRAZZANO_MONITORING_NS}" --ignore-not-found=true || err_return $? "Could not delete the ${VERRAZZANO_MONITORING_NS} namespace"
 }
 
+function delete_prometheus_pushgateway {
+  log "Uninstall the Prometheus Pushgateway"
+  if helm status prometheus-pushgateway --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
+    if ! helm uninstall prometheus-pushgateway --namespace "${VERRAZZANO_MONITORING_NS}" ; then
+      error "Failed to uninstall the Prometheus Pushgateway."
+    fi
+  fi
+}
+
+action "Deleting Prometheus Pushgateway " delete_prometheus_pushgateway || exit 1
+action "Deleting Prometheus adapter " delete_prometheus_adapter || exit 1
+action "Deleting kube-state-metrics " delete_kube_state_metrics || exit 1
 action "Deleting Prometheus operator " delete_prometheus_operator || exit 1
 action "Deleting Verrazzano Application Kubernetes operator" delete_application_operator || exit 1
 action "Deleting OAM Kubernetes operator" delete_oam_operator || exit 1

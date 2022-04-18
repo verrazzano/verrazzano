@@ -36,7 +36,13 @@ prometheus:
     storage: ""
 rancher:
   enabled: true
-verrazzanoOperator:
+nodeExporter:
   enabled: true
 prometheusOperator:
+  enabled: true
+prometheusAdapter:
+  enabled: true
+kubeStateMetrics:
+  enabled: true
+prometheusPushgateway:
   enabled: true

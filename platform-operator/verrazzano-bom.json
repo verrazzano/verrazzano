@@ -27,13 +27,13 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "0.46.0-20220316222923-c2764d860",
+              "tag": "1.1.1-20220413170248-b60724ed1",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
               "image": "nginx-ingress-default-backend",
-              "tag": "0.46.0-20220316222923-c2764d860",
+              "tag": "1.1.1-20220413170248-b60724ed1",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
@@ -50,24 +50,24 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "1.2.0-20220225033848-4f1415cb5",
+              "tag": "v1.7.1",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver",
-              "tag": "1.2.0-20220225033913-4f1415cb5",
+              "tag": "v1.7.1",
               "helmFullImageKey": "extraArgs[0]=--acme-http01-solver-image"
             },
             {
               "image": "cert-manager-cainjector",
-              "tag": "1.2.0-20220225033848-4f1415cb5",
+              "tag": "v1.7.1",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook",
-              "tag": "1.2.0-20220225033848-4f1415cb5",
+              "tag": "v1.7.1",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             }
@@ -125,13 +125,13 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.5.9-20220228142012-806336795",
+              "tag": "v2.6.3-20220318142324-84d023acd",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.5.9-20220228142012-806336795"
+              "tag": "v2.6.3-20220318142324-84d023acd"
             }
           ]
         },
@@ -142,7 +142,7 @@
           "images": [
             {
               "image": "shell",
-              "tag": "v0.1.6"
+              "tag": "v0.1.14"
             },
             {
               "image": "kubectl",
@@ -150,23 +150,19 @@
             },
             {
               "image": "rancher-webhook",
-              "tag": "v0.1.3"
+              "tag": "v0.2.2"
             },
             {
               "image": "fleet-agent",
-              "tag": "v0.3.5"
+              "tag": "v0.3.8"
             },
             {
               "image": "fleet",
-              "tag": "v0.3.5"
+              "tag": "v0.3.8"
             },
             {
               "image": "gitjob",
-              "tag": "v0.1.15"
-            },
-            {
-              "image": "rancher-operator",
-              "tag": "v0.1.4"
+              "tag": "v0.1.23"
             },
             {
               "image": "local-path-provisioner",
@@ -183,12 +179,6 @@
           "repository": "verrazzano",
           "name": "verrazzano",
           "images": [
-            {
-              "image": "verrazzano-operator",
-              "tag": "1.3.0-20220225034830-4714c1c",
-              "helmFullImageKey": "verrazzanoOperator.imageName",
-              "helmTagKey": "verrazzanoOperator.imageVersion"
-            },
             {
               "image": "node-exporter",
               "tag": "1.0.0-20220225034938-e25ae11",
@@ -213,12 +203,12 @@
             },
             {
               "image": "prometheus",
-              "tag": "v2.31.1",
+              "tag": "v2.34.0",
               "helmFullImageKey": "monitoringOperator.prometheusImage"
             },
             {
               "image": "opensearch",
-              "tag": "1.2.3-20220321223518-c480e8ed25d",
+              "tag": "1.2.3-20220414183247-3456fb02cde",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
@@ -233,7 +223,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "0.46.0-20220301064424-ee602c1aa",
+              "tag": "1.1.1-20220413170248-b60724ed1",
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
             },
             {
@@ -243,13 +233,13 @@
             },
             {
               "image": "console",
-              "tag": "1.3.0-20220330134752-bb0b72b",
+              "tag": "1.3.0-20220413232225-9d9bb79",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "0.46.0-20220301064424-ee602c1aa",
+              "tag": "1.1.1-20220413170248-b60724ed1",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
             }
@@ -430,9 +420,96 @@
           "images": [
             {
               "image": "prometheus-operator",
-              "tag": "v0.49.0-1",
+              "tag": "v0.55.1",
               "helmFullImageKey": "prometheusOperator.image.repository",
               "helmTagKey": "prometheusOperator.image.tag"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "prometheus-config-reloader",
+          "images": [
+            {
+              "image": "prometheus-config-reloader",
+              "tag": "v0.55.1",
+              "helmFullImageKey": "prometheusOperator.prometheusConfigReloader.image.repository",
+              "helmTagKey": "prometheusOperator.prometheusConfigReloader.image.tag"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "alertmanager",
+          "images": [
+            {
+              "image": "alertmanager",
+              "tag": "v0.24.0",
+              "helmFullImageKey": "alertmanager.alertmanagerSpec.image.repository",
+              "helmTagKey": "alertmanager.alertmanagerSpec.image.tag"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "prometheus",
+          "images": [
+            {
+              "image": "prometheus",
+              "tag": "v2.34.0",
+              "helmFullImageKey": "prometheus.prometheusSpec.image.repository",
+              "helmTagKey": "prometheus.prometheusSpec.image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "prometheus-adapter",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "prometheus-adapter",
+          "images": [
+            {
+              "image": "prometheus-adapter",
+              "tag": "v0.9.1-3",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "kube-state-metrics",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "kube-state-metrics",
+          "images": [
+            {
+              "image": "kube-state-metrics",
+              "tag": "v2.4.2",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "prometheus-pushgateway",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "prometheus-pushgateway",
+          "images": [
+            {
+              "image": "prometheus-pushgateway",
+              "tag": "v1.4.2",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
             }
           ]
         }

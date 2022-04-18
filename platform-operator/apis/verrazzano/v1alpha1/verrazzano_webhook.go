@@ -131,6 +131,14 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 		return err
 	}
 
+	client, err := getControllerRuntimeClient()
+	if err != nil {
+		return err
+	}
+	if err := validateOCISecrets(client, &v.Spec); err != nil {
+		return err
+	}
+
 	// hand the old and new Verrazzano to component validator to validate
 	if componentValidator != nil {
 		if errs := componentValidator.ValidateUpdate(oldResource, v); len(errs) > 0 {

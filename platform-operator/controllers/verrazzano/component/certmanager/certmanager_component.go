@@ -6,14 +6,13 @@ package certmanager
 import (
 	"context"
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path/filepath"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -25,7 +24,7 @@ import (
 const ComponentName = "cert-manager"
 
 // ComponentNamespace is the namespace of the component
-const ComponentNamespace = "cert-manager"
+const ComponentNamespace = vzconst.CertManagerNamespace
 
 // ComponentJSONName is the josn name of the verrazzano component in CRD
 const ComponentJSONName = "certManager"
@@ -76,8 +75,18 @@ func (c certManagerComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.V
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	if !reflect.DeepEqual(c.getCertificateSettings(old), c.getCertificateSettings(new)) {
-		return fmt.Errorf("Updates to certificate settings not allowed for %s", c.GetJSONName())
+	if _, err := validateConfiguration(new); err != nil {
+		return err
+	}
+	return nil
+}
+
+// ValidateInstall checks if the specified new Verrazzano CR is valid for this component to be installed
+func (c certManagerComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	// Do not allow any changes except to enable the component post-install
+	if c.IsEnabled(vz) {
+		_, err := validateConfiguration(vz)
+		return err
 	}
 	return nil
 }
@@ -134,10 +143,32 @@ func (c certManagerComponent) PostUpgrade(compContext spi.ComponentContext) erro
 	return c.createOrUpdateClusterIssuer(compContext)
 }
 
-func (c certManagerComponent) getCertificateSettings(vz *vzapi.Verrazzano) vzapi.Certificate {
-	var certSettings vzapi.Certificate
-	if vz.Spec.Components.CertManager != nil {
-		certSettings = vz.Spec.Components.CertManager.Certificate
+func (c certManagerComponent) createOrUpdateClusterIssuer(compContext spi.ComponentContext) error {
+	isCAValue, err := isCA(compContext)
+	if err != nil {
+		return compContext.Log().ErrorfNewErr("Failed to verify the config type: %v", err)
 	}
-	return certSettings
+	var opResult controllerutil.OperationResult
+	if !isCAValue {
+		// Create resources needed for Acme certificates
+		if opResult, err = createOrUpdateAcmeResources(compContext); err != nil {
+			return compContext.Log().ErrorfNewErr("Failed creating Acme resources: %v", err)
+		}
+	} else {
+		// Create resources needed for CA certificates
+		if opResult, err = createOrUpdateCAResources(compContext); err != nil {
+			return compContext.Log().ErrorfNewErr("Failed creating CA resources: %v", err)
+		}
+	}
+	if opResult == controllerutil.OperationResultCreated {
+		// We're in the initial install phase, and created the ClusterIssuer for the first time,
+		// so skip the renewal checks
+		compContext.Log().Oncef("Initial install, skipping certificate renewal checks")
+		return nil
+	}
+	if err := checkRenewAllCertificates(compContext, isCAValue); err != nil {
+		compContext.Log().Errorf("Error requesting certificate renewal: %s", err.Error())
+		return err
+	}
+	return nil
 }

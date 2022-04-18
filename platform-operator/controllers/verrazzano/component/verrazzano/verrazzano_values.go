@@ -16,29 +16,32 @@ package verrazzano
 //   value to the VMO to indicate ephemeral storage is to be used
 //
 type verrazzanoValues struct {
-	Name               string                     `json:"name,omitempty"`
-	Global             *globalValues              `json:"global,omitempty"`
-	Image              *imageValues               `json:"image,omitempty"`
-	AppBinding         *appBindingValues          `json:"appBinding,omitempty"`
-	ElasticSearch      *elasticsearchValues       `json:"elasticSearch,omitempty"`
-	Prometheus         *prometheusValues          `json:"prometheus,omitempty"`
-	Grafana            *grafanaValues             `json:"grafana,omitempty"`
-	Kibana             *kibanaValues              `json:"kibana,omitempty"`
-	Kiali              *kialiValues               `json:"kiali,omitempty"`
-	Keycloak           *keycloakValues            `json:"keycloak,omitempty"`
-	Rancher            *rancherValues             `json:"rancher,omitempty"`
-	VerrazzanoOperator *voValues                  `json:"verrazzanoOperator,omitempty"`
-	MonitoringOperator *vmoValues                 `json:"monitoringOperator,omitempty"`
-	Logging            *loggingValues             `json:"logging,omitempty"`
-	Fluentd            *fluentdValues             `json:"fluentd,omitempty"`
-	Console            *consoleValues             `json:"console,omitempty"`
-	API                *apiValues                 `json:"api,omitempty"`
-	OCI                *ociValues                 `json:"oci,omitempty"`
-	Config             *configValues              `json:"config,omitempty"`
-	Security           *securityRoleBindingValues `json:"security,omitempty"`
-	Kubernetes         *kubernetesValues          `json:"kubernetes,omitempty"`
-	Externaldns        *externalDNSValues         `json:"externaldns,omitempty"`
-	PrometheusOperator *prometheusOperatorValues  `json:"prometheusOperator,omitempty"`
+	Name                  string                       `json:"name,omitempty"`
+	Global                *globalValues                `json:"global,omitempty"`
+	Image                 *imageValues                 `json:"image,omitempty"`
+	AppBinding            *appBindingValues            `json:"appBinding,omitempty"`
+	ElasticSearch         *elasticsearchValues         `json:"elasticSearch,omitempty"`
+	Prometheus            *prometheusValues            `json:"prometheus,omitempty"`
+	Grafana               *grafanaValues               `json:"grafana,omitempty"`
+	Kibana                *kibanaValues                `json:"kibana,omitempty"`
+	Kiali                 *kialiValues                 `json:"kiali,omitempty"`
+	Keycloak              *keycloakValues              `json:"keycloak,omitempty"`
+	Rancher               *rancherValues               `json:"rancher,omitempty"`
+	MonitoringOperator    *vmoValues                   `json:"monitoringOperator,omitempty"`
+	NodeExporter          *nodeExporterValues          `json:"nodeExporter,omitempty"`
+	Logging               *loggingValues               `json:"logging,omitempty"`
+	Fluentd               *fluentdValues               `json:"fluentd,omitempty"`
+	Console               *consoleValues               `json:"console,omitempty"`
+	API                   *apiValues                   `json:"api,omitempty"`
+	OCI                   *ociValues                   `json:"oci,omitempty"`
+	Config                *configValues                `json:"config,omitempty"`
+	Security              *securityRoleBindingValues   `json:"security,omitempty"`
+	Kubernetes            *kubernetesValues            `json:"kubernetes,omitempty"`
+	Externaldns           *externalDNSValues           `json:"externaldns,omitempty"`
+	PrometheusOperator    *prometheusOperatorValues    `json:"prometheusOperator,omitempty"`
+	PrometheusAdapter     *prometheusAdapterValues     `json:"prometheusAdapter,omitempty"`
+	KubeStateMetrics      *kubeStateMetricsValues      `json:"kubeStateMetrics,omitempty"`
+	PrometheusPushgateway *prometheusPushgatewayValues `json:"prometheusPushgateway,omitempty"`
 }
 
 type subject struct {
@@ -116,13 +119,6 @@ type grafanaValues struct {
 	Requests *resourceRequestValues `json:"requests,omitempty"`
 }
 
-type voValues struct {
-	Name           string `json:"name,omitempty"`
-	Enabled        bool   `json:"enabled"` // Always write
-	APIServerRealm string `json:"apiServerRealm,omitempty"`
-	RequestMemory  string `json:"RequestMemory,omitempty"` // not a typo, the chart uses RequestMemory
-}
-
 type vmoValues struct {
 	Name                      string `json:"name,omitempty"`
 	Enabled                   bool   `json:"enabled"` // Always write
@@ -133,6 +129,10 @@ type vmoValues struct {
 	EsWaitTargetVersion       string `json:"esWaitTargetVersion,omitempty"`
 	OidcAuthEnabled           bool   `json:"oidcAuthEnabled,omitempty"`
 	RequestMemory             string `json:"RequestMemory,omitempty"`
+}
+
+type nodeExporterValues struct {
+	Enabled bool `json:"enabled"` // Always write
 }
 
 type loggingValues struct {
@@ -209,5 +209,17 @@ type ociLoggingSettings struct {
 }
 
 type prometheusOperatorValues struct {
+	Enabled bool `json:"enabled"` // Always write
+}
+
+type prometheusAdapterValues struct {
+	Enabled bool `json:"enabled"` // Always write
+}
+
+type kubeStateMetricsValues struct {
+	Enabled bool `json:"enabled"` // Always write
+}
+
+type prometheusPushgatewayValues struct {
 	Enabled bool `json:"enabled"` // Always write
 }

@@ -25,7 +25,7 @@ pipeline {
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
-                choices: [ "1.20", "1.19", "1.21" ])
+                choices: [ "1.20", "1.21", "1.22" ])
         string (name: 'VERSION_FOR_INSTALL',
                 defaultValue: 'v1.0.2',
                 description: 'This is the Verrazzano version for install.  By default, the latest Master release will be installed',
@@ -364,7 +364,7 @@ pipeline {
                         kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
 
                         # A successful completion of the upgrade means the Keycloak configuration was successfully rebuilt
-                        kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                        kubectl wait --timeout=25m --for=condition=UpgradeComplete verrazzano/my-verrazzano
                         
                         # Kill MySQL and wait for Keycloak to be healthy again
                         ${GO_REPO_PATH}/verrazzano/ci/scripts/chaos_test_ephemeral_storage.sh
@@ -507,7 +507,7 @@ pipeline {
                     if [[ "uninstall.failed.upgrade" != ${params.CHAOS_TEST_TYPE} ]]
                     then
                         # wait for the upgrade to complete
-                        kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                        kubectl wait --timeout=25m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
                         # Dump the resource to debug
                         kubectl get -o yaml verrazzano/my-verrazzano || true

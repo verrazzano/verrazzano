@@ -19,7 +19,7 @@ import (
 //  WHEN the yaml is valid
 //  THEN no error is returned
 func TestIsApplyCRDYamlValid(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	config.TestHelmConfigDir = "../../../../helm_config"
 	assert.Nil(t, ApplyCRDYaml(spi.NewFakeContext(fakeClient, nil, false), config.GetHelmAppOpChartsDir()))
 }
@@ -29,7 +29,7 @@ func TestIsApplyCRDYamlValid(t *testing.T) {
 //  WHEN the path is invalid
 //  THEN an appropriate error is returned
 func TestIsApplyCRDYamlInvalidPath(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	config.TestHelmConfigDir = "./testdata"
 	assert.Error(t, ApplyCRDYaml(spi.NewFakeContext(fakeClient, nil, false), ""))
 }
@@ -39,7 +39,7 @@ func TestIsApplyCRDYamlInvalidPath(t *testing.T) {
 //  WHEN the yaml is invalid
 //  THEN an appropriate error is returned
 func TestIsApplyCRDYamlInvalidChart(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	config.TestHelmConfigDir = "invalidPath"
 	assert.Error(t, ApplyCRDYaml(spi.NewFakeContext(fakeClient, nil, false), ""))
 }

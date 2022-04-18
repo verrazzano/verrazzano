@@ -6,6 +6,7 @@ package loggingtrait
 import (
 	"context"
 	"encoding/json"
+	"github.com/go-logr/logr"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"testing"
@@ -27,8 +28,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	"k8s.io/apimachinery/pkg/runtime"
-	restclient "k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -47,11 +46,11 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	mgr = mocks.NewMockManager(mocker)
 	cli = mocks.NewMockClient(mocker)
 	scheme = runtime.NewScheme()
-	vzapi.AddToScheme(scheme)
+	_ = vzapi.AddToScheme(scheme)
 	reconciler = LoggingTraitReconciler{Client: cli, Scheme: scheme}
-	mgr.EXPECT().GetConfig().Return(&restclient.Config{})
+	mgr.EXPECT().GetControllerOptions().AnyTimes()
 	mgr.EXPECT().GetScheme().Return(scheme)
-	mgr.EXPECT().GetLogger().Return(log.NullLogger{})
+	mgr.EXPECT().GetLogger().Return(logr.Discard())
 	mgr.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()
 	mgr.EXPECT().Add(gomock.Any()).Return(nil).AnyTimes()
 	err = reconciler.SetupWithManager(mgr)
@@ -112,15 +111,16 @@ func TestLoggingTraitCreatedForContainerizedWorkload(t *testing.T) {
 			return nil
 		})
 	// Expect to list config map
+	options := []client.ListOption{client.InNamespace(namespaceName), client.MatchingFields{"metadata.name": "logging-stdout-test-deployment-name-deployment"}}
 	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), client.InNamespace(namespaceName), client.MatchingFields{"metadata.name": "logging-stdout-test-deployment-name-deployment"}).
-		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, name client.InNamespace, fields client.MatchingFields) error {
+		List(gomock.Any(), gomock.Not(gomock.Nil()), options).
+		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
 			return nil
 		})
 	// Expect to create a config map
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Not(gomock.Nil()), &client.CreateOptions{}).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts *client.CreateOptions) error {
+		Create(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
 			return nil
 		})
 	// Expect a call to get the deployment
@@ -143,7 +143,7 @@ func TestLoggingTraitCreatedForContainerizedWorkload(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: namespaceName, Name: "test-trait-name"}}
 
 	reconciler := newLoggingTraitReconciler(mock, t)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -208,9 +208,10 @@ func TestDeleteLoggingTraitFromContainerizedWorkload(t *testing.T) {
 			return nil
 		})
 	// Expect to list deployment
+	options := []client.ListOption{client.InNamespace(namespaceName)}
 	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), client.InNamespace(namespaceName), client.MatchingLabels(nil)).
-		DoAndReturn(func(ctx context.Context, deployment *unstructured.UnstructuredList, name client.InNamespace, labels map[string]string) error {
+		List(gomock.Any(), gomock.Not(gomock.Nil()), options).
+		DoAndReturn(func(ctx context.Context, deployment *unstructured.UnstructuredList, opts ...client.ListOption) error {
 			unstructuredDeployment, err := convertToUnstructured(testDeployment)
 			if err != nil {
 				t.Fatalf("Could not create unstructured Deployment")
@@ -227,7 +228,7 @@ func TestDeleteLoggingTraitFromContainerizedWorkload(t *testing.T) {
 	// Expect to list config map
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), client.InNamespace(namespaceName), client.MatchingFields{"metadata.name": "logging-stdout-test-deployment-name-deployment"}).
-		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, name client.InNamespace, fields client.MatchingFields) error {
+		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, options ...client.ListOption) error {
 			return nil
 		})
 
@@ -243,12 +244,12 @@ func TestDeleteLoggingTraitFromContainerizedWorkload(t *testing.T) {
 // convertToUnstructured converts an object to an Unstructured version
 // object - The object to convert to Unstructured
 func convertToUnstructured(object interface{}) (unstructured.Unstructured, error) {
-	bytes, err := json.Marshal(object)
+	jbytes, err := json.Marshal(object)
 	if err != nil {
 		return unstructured.Unstructured{}, err
 	}
 	var u map[string]interface{}
-	json.Unmarshal(bytes, &u)
+	_ = json.Unmarshal(jbytes, &u)
 	return unstructured.Unstructured{Object: u}, nil
 }
 
@@ -320,7 +321,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	// create a request and reconcile it
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: vzconst.KubeSystem, Name: "test-trait-name"}}
 	reconciler := newLoggingTraitReconciler(mock, t)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()

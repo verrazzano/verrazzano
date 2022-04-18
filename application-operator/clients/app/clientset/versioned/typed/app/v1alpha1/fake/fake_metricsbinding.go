@@ -92,7 +92,7 @@ func (c *FakeMetricsBindings) Update(ctx context.Context, metricsBinding *v1alph
 // Delete takes name of the metricsBinding and deletes it. Returns an error if one occurs.
 func (c *FakeMetricsBindings) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(metricsbindingsResource, c.ns, name), &v1alpha1.MetricsBinding{})
+		Invokes(testing.NewDeleteActionWithOptions(metricsbindingsResource, c.ns, name, opts), &v1alpha1.MetricsBinding{})
 
 	return err
 }

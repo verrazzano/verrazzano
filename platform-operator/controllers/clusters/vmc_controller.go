@@ -45,8 +45,11 @@ type bindingParams struct {
 	serviceAccountName string
 }
 
-func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *VerrazzanoManagedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Get the  resource
+	if ctx == nil {
+		ctx = context.TODO()
+	}
 	cr := &clustersv1alpha1.VerrazzanoManagedCluster{}
 	if err := r.Get(context.TODO(), req.NamespacedName, cr); err != nil {
 		// If the resource is not found, that means all of the finalizers have been removed,
@@ -72,7 +75,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 
 	r.log = log
 	log.Oncef("Reconciling Verrazzano resource %v", req.NamespacedName)
-	res, err := r.doReconcile(log, cr)
+	res, err := r.doReconcile(ctx, log, cr)
 	if vzctrl.ShouldRequeue(res) {
 		return res, nil
 	}
@@ -96,8 +99,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 }
 
 // Reconcile reconciles a VerrazzanoManagedCluster object
-func (r *VerrazzanoManagedClusterReconciler) doReconcile(log vzlog.VerrazzanoLogger, vmc *clustersv1alpha1.VerrazzanoManagedCluster) (ctrl.Result, error) {
-	ctx := context.TODO()
+func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger, vmc *clustersv1alpha1.VerrazzanoManagedCluster) (ctrl.Result, error) {
 
 	if !vmc.ObjectMeta.DeletionTimestamp.IsZero() {
 		// Finalizer is present, so lets do the cluster deletion
