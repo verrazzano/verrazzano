@@ -124,7 +124,9 @@ func TestAppendOverrides(t *testing.T) {
 					},
 				},
 			},
-			expectedOverrides: []bom.KeyValue{bom.KeyValue{Key: "prometheus.monitor.enabled", Value: "true"}},
+			expectedOverrides: []bom.KeyValue{
+				bom.KeyValue{Key: "prometheus.monitor.enabled", Value: "true"},
+			},
 		},
 	}
 
