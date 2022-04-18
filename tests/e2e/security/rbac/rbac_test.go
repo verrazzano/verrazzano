@@ -5,21 +5,19 @@ package rbac
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"strconv"
-	"time"
-
-	"k8s.io/client-go/kubernetes"
-
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/client-go/kubernetes"
 )
 
 var (
@@ -450,8 +448,8 @@ var _ = t.Describe("Test Verrazzano API Service Account", func() {
 				return crole, err
 			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
-			Expect(len(crole.Rules) == 1).To(BeTrue(),
-				fmt.Sprintf("FAIL: The cluster role %v contains more than one rules.", crole))
+			Expect(len(crole.Rules) == 2).To(BeTrue(),
+				fmt.Sprintf("FAIL: The cluster role %v expected to contain two rules, found %d.", crole, len(crole.Rules)))
 
 			crule := crole.Rules[0]
 			Expect(len(crule.Resources) == 2).To(BeTrue(),
