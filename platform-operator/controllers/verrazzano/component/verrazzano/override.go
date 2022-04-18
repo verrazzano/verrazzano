@@ -19,7 +19,6 @@ import (
 
 // appendVerrazzanoOverrides appends the image overrides for the monitoring-init-images subcomponent
 func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-
 	// Append some custom image overrides
 	// - use local KeyValues array to ensure we append those after the file override; typically won't matter with the
 	//   way we implement Helm calls, but don't depend on that

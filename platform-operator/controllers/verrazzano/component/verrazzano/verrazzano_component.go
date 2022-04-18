@@ -214,17 +214,11 @@ func (c verrazzanoComponent) checkEnabled(old *vzapi.Verrazzano, new *vzapi.Verr
 	if vzconfig.IsConsoleEnabled(old) && !vzconfig.IsConsoleEnabled(new) {
 		return fmt.Errorf("Disabling component console not allowed")
 	}
-	if vzconfig.IsElasticsearchEnabled(old) && !vzconfig.IsElasticsearchEnabled(new) {
-		return fmt.Errorf("Disabling component elasticsearch not allowed")
-	}
 	if vzconfig.IsGrafanaEnabled(old) && !vzconfig.IsGrafanaEnabled(new) {
 		return fmt.Errorf("Disabling component grafana not allowed")
 	}
 	if vzconfig.IsPrometheusEnabled(old) && !vzconfig.IsPrometheusEnabled(new) {
 		return fmt.Errorf("Disabling component prometheus not allowed")
-	}
-	if vzconfig.IsKibanaEnabled(old) && !vzconfig.IsKibanaEnabled(new) {
-		return fmt.Errorf("Disabling component kibana not allowed")
 	}
 	return nil
 }
