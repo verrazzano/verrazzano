@@ -155,10 +155,12 @@ func newOpenSearch(cr *vzapi.Verrazzano, storage *verrazzano.ResourceRequestValu
 	opensearch.DataNode.Storage = setVolumeClaimOverride(opensearch.DataNode.Storage, hasDataOverride)
 
 	if vmi != nil {
-		// We currently do not support resizing master node PVC
-		opensearch.MasterNode.Storage = &vmi.Spec.Elasticsearch.Storage
-		if vmi.Spec.Elasticsearch.MasterNode.Storage != nil {
-			opensearch.MasterNode.Storage = vmi.Spec.Elasticsearch.MasterNode.Storage.DeepCopy()
+		if vmi.Spec.Elasticsearch.MasterNode.Replicas > 0 {
+			// We currently do not support resizing master node PVC
+			opensearch.MasterNode.Storage = &vmi.Spec.Elasticsearch.Storage
+			if vmi.Spec.Elasticsearch.MasterNode.Storage != nil {
+				opensearch.MasterNode.Storage = vmi.Spec.Elasticsearch.MasterNode.Storage.DeepCopy()
+			}
 		}
 		// PVC Names should be preserved
 		if vmi.Spec.Elasticsearch.DataNode.Storage != nil {
