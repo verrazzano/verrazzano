@@ -547,11 +547,19 @@ type IngressNginxComponent struct {
 
 // IstioIngressSection specifies the specific config options available for the Istio Ingress Gateways.
 type IstioIngressSection struct {
+	// Type of ingress.  Default is LoadBalancer
+	// +optional
+	Type IngressType `json:"type,omitempty"`
+	// Ports to be used for NGINX
+	// +optional
+	Ports []corev1.ServicePort `json:"ports,omitempty"`
+	// +optional
 	Kubernetes *IstioKubernetesSection `json:"kubernetes,omitempty"`
 }
 
 // IstioEgressSection specifies the specific config options available for the Istio Egress Gateways.
 type IstioEgressSection struct {
+	// +optional
 	Kubernetes *IstioKubernetesSection `json:"kubernetes,omitempty"`
 }
 
