@@ -36,7 +36,7 @@ pipeline {
                         description: 'This is the full git commit hash from the source build to be used for all jobs. A full pipeline specifies a valid commit hash here. NONE can be used for manually triggered jobs, however even for those a commit hash value is preferred to be supplied',
                         trim: true)
         string (name: 'N_JOBS_FOR_EACH_BATCH',
-                defaultValue: '6',
+                defaultValue: '3',
                 description: 'This is to define total number of jobs executed parallelly per each batch',
                 trim: true)
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
