@@ -1085,3 +1085,20 @@ func DoesVerrazzanoProjectExistInCluster(name string, kubeconfigPath string) (bo
 
 	return vp != nil && len(vp.Name) > 0, nil
 }
+
+// UpdateConfigMap updates the config map
+func UpdateConfigMap(configMap *corev1.ConfigMap) error {
+	// Get the Kubernetes clientset
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return err
+	}
+
+	cmi := clientset.CoreV1().ConfigMaps(configMap.GetNamespace())
+	_, err = cmi.Update(context.TODO(), configMap, metav1.UpdateOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to update Config Map %s from namespace %s: %v ", configMap.GetName(), configMap.GetNamespace(), err))
+		return err
+	}
+	return nil
+}

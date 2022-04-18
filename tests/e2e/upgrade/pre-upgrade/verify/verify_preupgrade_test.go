@@ -5,11 +5,10 @@ package verify
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+	"gopkg.in/yaml.v2"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -49,52 +48,97 @@ var _ = t.AfterSuite(func() {
 func recordConfigMapCreationTS() {
 	t.Logs.Info("Recording prometheus Cretaion timestamp")
 	t.Logs.Info("Get Prometheus configmap creation timestamp")
-	Eventually(func() (string, error) {
+	Eventually(func() error {
 		configMap, err := pkg.GetConfigMap(vzconst.VmiPromConfigName, vzconst.VerrazzanoSystemNamespace)
 		if err != nil {
 			pkg.Log(pkg.Error, fmt.Sprintf("Failed getting configmap: %v", err))
-			return "", err
+			return err
 		}
 
-		creationTimestamp := configMap.CreationTimestamp.UTC().String()
-		f, err := os.Create(fmt.Sprintf("../../%s", vzconst.PromConfigMapCreationTimestampFile))
+		prometheusConfig, ok := configMap.Data["prometheus.yml"]
+		Expect(ok, true)
+		var configYaml map[interface{}]interface{}
+		err = yaml.Unmarshal([]byte(prometheusConfig), &configYaml)
 		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Failed creating timestamp file: %v", err))
-			return "", err
+			pkg.Log(pkg.Error, fmt.Sprintf("Failed getting configmap yaml: %v", err))
+			return err
 		}
-		defer f.Close()
 
-		_, err = f.WriteString(creationTimestamp)
+		scrapeConfigsData, ok := configYaml["scrape_configs"]
+		Expect(ok).To(BeTrue())
+		scrapeConfigs := scrapeConfigsData.([]interface{})
+		for _, nsc := range scrapeConfigs {
+			scrapeConfig := nsc.(map[interface{}]interface{})
+			// Change the default value of an existing default job
+			if scrapeConfig["job_name"] == "prometheus" {
+				scrapeConfig["scrape_interval"] = vzconst.PrometheusJobScrapeIntervalZeroSeconds
+				break
+			}
+		}
+		// Add a test scrape config
+		dummyScrapConfig := make(map[interface{}]interface{})
+		dummyScrapConfig["job_name"] = vzconst.TestPrometheusScrapeJob
+		scrapeConfigs = append(scrapeConfigs, dummyScrapConfig)
+		configYaml["scrape_configs"] = scrapeConfigs
+		newConfigYaml, err := yaml.Marshal(&configYaml)
 		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Failed writing to timestamp file: %v", err))
-			return "", err
+			pkg.Log(pkg.Error, fmt.Sprintf("Failed updating configmap yaml: %v", err))
+			return err
 		}
 
-		err = f.Sync()
+		configMap.Data["prometheus.yml"] = string(newConfigYaml)
+		err = pkg.UpdateConfigMap(configMap)
 		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Failed saving timestamp file: %v", err))
-			return "", err
+			pkg.Log(pkg.Error, fmt.Sprintf("Failed updating configmap: %v", err))
+			return err
 		}
 
-		pkg.Log(pkg.Info, fmt.Sprintf("Wrote configmap timestamp to : %v", f))
-		return creationTimestamp, nil
-	}, waitTimeout, shortPollingInterval).ShouldNot(BeEmpty())
+		return nil
+	}, waitTimeout, shortPollingInterval).Should(BeNil())
 }
 
-var _ = t.Describe("Record prometheus configmap timestamp", Label("f:pre-upgrade"), func() {
-	// Verify that prometheus configmap creation timestamp is set in an Environment variable
+var _ = t.Describe("Update prometheus configmap", Label("f:pre-upgrade"), func() {
+	// Verify that prometheus configmap is updated
 	// GIVEN the prometheus configmap is created
 	// WHEN the upgrade has not started and vmo pod is not restarted
-	// THEN the file contining configmap timestamp is populated
-	t.Context("check prometheus configmap timestamp", func() {
+	// THEN the file updated prometheus configmap contains updated scrape interval and test job
+	t.Context("check prometheus configmap", func() {
 		t.It("before upgrade", func() {
-			Eventually(func() string {
-				data, err := ioutil.ReadFile(fmt.Sprintf("../../%s", vzconst.PromConfigMapCreationTimestampFile))
+			Eventually(func() bool {
+				configMap, err := pkg.GetConfigMap(vzconst.VmiPromConfigName, vzconst.VerrazzanoSystemNamespace)
 				if err != nil {
-					return ""
+					pkg.Log(pkg.Error, fmt.Sprintf("Failed getting configmap: %v", err))
+					return false
 				}
-				return string(data)
-			}, waitTimeout, pollingInterval).ShouldNot(BeEmpty())
+
+				prometheusConfig, ok := configMap.Data["prometheus.yml"]
+				Expect(ok, true)
+				var configYaml map[interface{}]interface{}
+				err = yaml.Unmarshal([]byte(prometheusConfig), &configYaml)
+				if err != nil {
+					pkg.Log(pkg.Error, fmt.Sprintf("Failed getting configmap yaml: %v", err))
+					return false
+				}
+
+				scrapeConfigsData, ok := configYaml["scrape_configs"]
+				Expect(ok).To(BeTrue())
+				scrapeConfigs := scrapeConfigsData.([]interface{})
+				intervalUpdated := false
+				testJobFound := false
+				for _, nsc := range scrapeConfigs {
+					scrapeConfig := nsc.(map[interface{}]interface{})
+					// Check that interval is updated
+					if scrapeConfig["job_name"] == "prometheus" {
+						intervalUpdated = (scrapeConfig["scrape_interval"].(string) == vzconst.PrometheusJobScrapeIntervalZeroSeconds)
+					}
+
+					// Check that test scrape config is created
+					if scrapeConfig["job_name"] == vzconst.TestPrometheusScrapeJob {
+						testJobFound = true
+					}
+				}
+				return intervalUpdated && testJobFound
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 

@@ -98,5 +98,8 @@ const KubeSystem = "kube-system"
 // VmiPromConfigName - The name of the prometheus config map
 const VmiPromConfigName string = "vmi-system-prometheus-config"
 
-// PromConfigMapCreationTimestampFile - The file containing creation timestamp of prometheus config map
-const PromConfigMapCreationTimestampFile = "prom-configmap-ts"
+// PrometheusJobScrapeIntervalZeroSeconds - The string 0s representing an invalid prometheus config scrape interval
+const PrometheusJobScrapeIntervalZeroSeconds = "0s"
+
+// TestPrometheusJob - Name of a test prometheus scraper job
+const TestPrometheusScrapeJob = "test_job"

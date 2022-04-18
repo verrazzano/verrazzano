@@ -5,12 +5,12 @@ package verify
 
 import (
 	"fmt"
-	"io/ioutil"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -308,25 +308,47 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 	})
 })
 
-var _ = t.Describe("Verify prometheus configmap timestamp,", Label("f:post-upgrade"), func() {
-	// Verify prometheus configmap is not deleted
+var _ = t.Describe("Verify prometheus configmap reconciliation,", Label("f:post-upgrade"), func() {
+	// Verify prometheus configmap is reconciled correctly
 	// GIVEN upgrade has completed
 	// WHEN the vmo pod is restarted
-	// THEN the creation timestamp on prometheus configmap should be same as before.
+	// THEN the test job created before upgrade still exists and prometheus scrape job interval is corrected.
 	t.It("Verify prometheus configmap is not deleted on vmo restart.", func() {
 		Eventually(func() (bool, error) {
 			configMap, err := pkg.GetConfigMap(vzconst.VmiPromConfigName, vzconst.VerrazzanoSystemNamespace)
 			if err != nil {
+				pkg.Log(pkg.Error, fmt.Sprintf("Failed getting configmap: %v", err))
 				return false, err
 			}
 
-			expectedTimestamp, err := ioutil.ReadFile(fmt.Sprintf("../../%s", vzconst.PromConfigMapCreationTimestampFile))
+			prometheusConfig, ok := configMap.Data["prometheus.yml"]
+			Expect(ok, true)
+			var configYaml map[interface{}]interface{}
+			err = yaml.Unmarshal([]byte(prometheusConfig), &configYaml)
 			if err != nil {
+				pkg.Log(pkg.Error, fmt.Sprintf("Failed getting configmap yaml: %v", err))
 				return false, err
 			}
 
-			return configMap.CreationTimestamp.UTC().String() == string(expectedTimestamp), nil
-		}, twoMinutes, pollingInterval).Should(BeTrue(), "Timestamp of prometehus configmap not same before and after upgrade")
+			scrapeConfigsData, ok := configYaml["scrape_configs"]
+			Expect(ok).To(BeTrue())
+			scrapeConfigs := scrapeConfigsData.([]interface{})
+			intervalUpdated := false
+			testJobFound := false
+			for _, nsc := range scrapeConfigs {
+				scrapeConfig := nsc.(map[interface{}]interface{})
+				// Check that interval is updated
+				if scrapeConfig["job_name"] == "prometheus" {
+					intervalUpdated = (scrapeConfig["scrape_interval"].(string) != vzconst.PrometheusJobScrapeIntervalZeroSeconds)
+				}
+
+				// Check that test scrape config is not removed
+				if scrapeConfig["job_name"] == vzconst.TestPrometheusScrapeJob {
+					testJobFound = true
+				}
+			}
+			return intervalUpdated && testJobFound, nil
+		}, twoMinutes, pollingInterval).Should(BeTrue(), "Prometheus scrape job default time interval not updated or the test job is removed after upgrade.")
 	})
 })
 
