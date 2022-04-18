@@ -166,6 +166,8 @@ func (c certManagerComponent) createOrUpdateClusterIssuer(compContext spi.Compon
 		compContext.Log().Oncef("Initial install, skipping certificate renewal checks")
 		return nil
 	}
+	// CertManager configuration was updated, cleanup any old resources from previous configuration
+	// and renew certificates against the new ClusterIssuer
 	if err := cleanupUnusedResources(compContext, isCAValue); err != nil {
 		return err
 	}

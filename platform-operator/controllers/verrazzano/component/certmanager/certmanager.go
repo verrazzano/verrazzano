@@ -749,19 +749,10 @@ func extractCommonNameFromCertSecret(secret *v1.Secret) (string, error) {
 	return cert.Issuer.CommonName, nil
 }
 
-func deleteObject(client crtclient.Client, name string, namespace string, object crtclient.Object) error {
-	object.SetName(name)
-	object.SetNamespace(namespace)
-	if err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, object); err != nil {
-		return client.Delete(context.TODO(), object)
-	}
-	return nil
-}
-
 func cleanupUnusedResources(compContext spi.ComponentContext, isCAValue bool) error {
 	defaultCANotUsed := func() bool {
 		// We're not using the default CA if we're either configured for ACME or it's a Customer-provided CA
-		return !isCAValue || compContext.EffectiveCR().Spec.Components.CertManager.Certificate.CA.SecretName == defaultCACertificateSecretName
+		return !isCAValue || compContext.EffectiveCR().Spec.Components.CertManager.Certificate.CA.SecretName != defaultCACertificateSecretName
 	}
 	client := compContext.Client()
 	log := compContext.Log()
@@ -772,16 +763,30 @@ func cleanupUnusedResources(compContext spi.ComponentContext, isCAValue bool) er
 			return err
 		}
 	}
-	if !defaultCANotUsed() {
-		// Issuer is either the default or Custom issuer; clean up the default Verrazzano issuer secret
-		// and self-signed issuer
+	if defaultCANotUsed() {
+		// Issuer is either the default or Custom issuer; clean up the default Verrazzano issuer resources
+		// - self-signed Issuer object
+		// - self-signed CA certificate
+		// - self-signed secret object
 		log.Oncef("Clean up Verrazzano self-signed issuer resources")
-		if err := deleteObject(client, defaultCACertificateSecretName, ComponentNamespace, &v1.Secret{}); err != nil {
-			return err
-		}
 		if err := deleteObject(client, caSelfSignedIssuerName, ComponentNamespace, &certv1.Issuer{}); err != nil {
 			return err
 		}
+		if err := deleteObject(client, caCertificateName, ComponentNamespace, &certv1.Certificate{}); err != nil {
+			return err
+		}
+		if err := deleteObject(client, defaultCACertificateSecretName, ComponentNamespace, &v1.Secret{}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func deleteObject(client crtclient.Client, name string, namespace string, object crtclient.Object) error {
+	object.SetName(name)
+	object.SetNamespace(namespace)
+	if err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, object); err == nil {
+		return client.Delete(context.TODO(), object)
 	}
 	return nil
 }
