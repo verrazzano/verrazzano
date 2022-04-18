@@ -1115,10 +1115,10 @@ func buildDomainNameForWildcard(cli client.Reader, trait *vzapi.IngressTrait, su
 	}
 	var IP string
 	if istio.Spec.Type == corev1.ServiceTypeLoadBalancer {
-		if len(istio.Status.LoadBalancer.Ingress) > 0 {
-			IP = istio.Status.LoadBalancer.Ingress[0].IP
-		} else if len(istio.Spec.ExternalIPs) > 0 {
+		if len(istio.Spec.ExternalIPs) > 0 {
 			IP = istio.Spec.ExternalIPs[0]
+		} else if len(istio.Status.LoadBalancer.Ingress) > 0 {
+			IP = istio.Status.LoadBalancer.Ingress[0].IP
 		} else {
 			return "", fmt.Errorf("%s is missing loadbalancer IP", istioIngressGateway)
 		}
