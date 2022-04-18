@@ -256,12 +256,35 @@ func TestPostUpgrade(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
-			Version:    "v1.2.0",
 			Components: dnsComponents,
 		},
-		Status: vzapi.VerrazzanoStatus{Version: "1.1.0"},
 	}, false)
-	err := NewComponent().PostUpgrade(ctx)
+	comp := NewComponent()
+
+	// PostUpgrade will fail because the expected VZ ingresses are not present in cluster
+	err := comp.PostInstall(ctx)
+	assert.IsType(t, spi2.RetryableError{}, err)
+
+	// now get all the ingresses for VZ and add them to the fake K8S and ensure that PostUpgrade succeeds
+	// when all the ingresses are present in the cluster
+	vzIngressNames := comp.(opensearchComponent).GetIngressNames(ctx)
+	for _, ingressName := range vzIngressNames {
+		_ = c.Create(context.TODO(), &v1.Ingress{
+			ObjectMeta: metav1.ObjectMeta{Name: ingressName.Name, Namespace: ingressName.Namespace},
+		})
+	}
+	for _, certName := range comp.(opensearchComponent).GetCertificateNames(ctx) {
+		time := metav1.Now()
+		_ = c.Create(context.TODO(), &certv1.Certificate{
+			ObjectMeta: metav1.ObjectMeta{Name: certName.Name, Namespace: certName.Namespace},
+			Status: certv1.CertificateStatus{
+				Conditions: []certv1.CertificateCondition{
+					{Type: certv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
+				},
+			},
+		})
+	}
+	err = comp.PostInstall(ctx)
 	assert.NoError(t, err)
 }
 
