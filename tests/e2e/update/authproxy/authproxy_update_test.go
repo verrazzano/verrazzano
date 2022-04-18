@@ -115,7 +115,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 			cr := update.GetCR()
 
 			expectedRunning := uint32(1)
-			if cr.Spec.Profile == "production" || cr.Spec.Profile == "" {
+			if cr.Spec.Profile == "prod" || cr.Spec.Profile == "" {
 				expectedRunning = 2
 			}
 			validatePods(authProxyName, constants.VerrazzanoSystemNamespace, expectedRunning, false)
