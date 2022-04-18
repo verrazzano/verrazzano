@@ -409,7 +409,7 @@ def allReleasesToRCStage(job) {
                             echo "Running upgrade job from version ${job[0]} to ${job[1]}"
                            def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
-                                    string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERSION_FOR_INSTALL', value: job[0]),
                                     string(name: 'VERSION_FOR_UPGRADE', value: job[1]),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
