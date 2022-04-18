@@ -38,59 +38,62 @@ func (r *VerrazzanoSecretsReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+
 	// The only secret we care about (for now) is the verrazzano ingress tls secret (verrazzano-tls)
-	if req.Name == constants.VerrazzanoIngressSecret && req.Namespace == constants.VerrazzanoSystemNamespace {
-		// Get the verrazzano ingress secret
-		caSecret := corev1.Secret{}
-		err := r.Get(context.TODO(), req.NamespacedName, &caSecret)
-		if err != nil {
-			// Secret should never be not found, unless we're running before it's been created
-			zap.S().Errorf("Failed to fetch Verrazzano ingress secret: %v", err)
-			return newRequeueWithDelay(), nil
-		}
-
-		// Get the resource logger needed to log message using 'progress' and 'once' methods
-		log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
-			Name:           caSecret.Name,
-			Namespace:      caSecret.Namespace,
-			ID:             string(caSecret.UID),
-			Generation:     caSecret.Generation,
-			ControllerName: "secrets",
-		})
-		if err != nil {
-			zap.S().Errorf("Failed to create resource logger for VerrazzanoSecrets controller", err)
-		}
-		r.log = log
-
-		// Get the MC local ca-bundle secret, or initialize a blank one
-		mcCASecret := corev1.Secret{}
-		err = r.Get(context.TODO(), client.ObjectKey{
-			Namespace: constants.VerrazzanoMultiClusterNamespace,
-			Name:      constants.VerrazzanoLocalCABundleSecret,
-		}, &mcCASecret)
-		if err != nil {
-			if apierrors.IsNotFound(err) {
-				mcCASecret.Name = constants.VerrazzanoLocalCABundleSecret
-				mcCASecret.Namespace = constants.VerrazzanoMultiClusterNamespace
-			} else {
-				r.log.Errorf("Failed to fetch Verrazzano ingress secret: %v", err)
-				return newRequeueWithDelay(), nil
-			}
-		}
-
-		result, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &mcCASecret, func() error {
-			if mcCASecret.Data == nil {
-				mcCASecret.Data = make(map[string][]byte)
-			}
-			mcCASecret.Data["ca-bundle"] = caSecret.Data["ca.crt"]
-			return nil
-		})
-		if err != nil {
-			r.log.Errorf("Failed to create or update MC admin ca-bundle secret: %v", err)
-			return newRequeueWithDelay(), nil
-		}
-		zap.S().Infof("Created or updated MC admin ca-bundle secret, result was: %v", result)
+	if req.Namespace != constants.VerrazzanoSystemNamespace || req.Name != constants.VerrazzanoIngressSecret {
+		return ctrl.Result{}, nil
 	}
+
+	// Get the verrazzano ingress secret
+	caSecret := corev1.Secret{}
+	err := r.Get(context.TODO(), req.NamespacedName, &caSecret)
+	if err != nil {
+		// Secret should never be not found, unless we're running before it's been created
+		zap.S().Errorf("Failed to fetch Verrazzano ingress secret: %v", err)
+		return newRequeueWithDelay(), nil
+	}
+
+	// Get the resource logger needed to log message using 'progress' and 'once' methods
+	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
+		Name:           caSecret.Name,
+		Namespace:      caSecret.Namespace,
+		ID:             string(caSecret.UID),
+		Generation:     caSecret.Generation,
+		ControllerName: "secrets",
+	})
+	if err != nil {
+		zap.S().Errorf("Failed to create resource logger for VerrazzanoSecrets controller", err)
+	}
+	r.log = log
+
+	// Get the MC local ca-bundle secret, or initialize a blank one
+	mcCASecret := corev1.Secret{}
+	err = r.Get(context.TODO(), client.ObjectKey{
+		Namespace: constants.VerrazzanoMultiClusterNamespace,
+		Name:      constants.VerrazzanoLocalCABundleSecret,
+	}, &mcCASecret)
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			r.log.Errorf("Failed to fetch Verrazzano ingress secret: %v", err)
+			return newRequeueWithDelay(), nil
+		}
+		mcCASecret := corev1.Secret{}
+		mcCASecret.Name = constants.VerrazzanoLocalCABundleSecret
+		mcCASecret.Namespace = constants.VerrazzanoMultiClusterNamespace
+	}
+
+	result, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &mcCASecret, func() error {
+		if mcCASecret.Data == nil {
+			mcCASecret.Data = make(map[string][]byte)
+		}
+		mcCASecret.Data["ca-bundle"] = caSecret.Data["ca.crt"]
+		return nil
+	})
+	if err != nil {
+		r.log.Errorf("Failed to create or update MC admin ca-bundle secret: %v", err)
+		return newRequeueWithDelay(), nil
+	}
+	r.log.Infof("Created or updated MC admin ca-bundle secret, result was: %v", result)
 
 	return ctrl.Result{}, nil
 }
