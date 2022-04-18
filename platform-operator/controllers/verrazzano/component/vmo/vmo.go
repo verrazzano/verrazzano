@@ -182,10 +182,10 @@ func appendVMIOverrides(effectiveCR *vzapi.Verrazzano, overrides *vmiValues, sto
 	return kvs
 }
 
-// exportVmoHelmChart adds necessary annotations to verrazzano-monitoring-operator objects which allows them to be
+// ExportVmoHelmChart adds necessary annotations to verrazzano-monitoring-operator objects which allows them to be
 // managed by the verrazzano-monitoring-operator helm chart.  This is needed for the case when VMO was
 // previously installed by the verrazzano helm charrt.
-func exportVmoHelmChart(ctx spi.ComponentContext) error {
+func ExportVmoHelmChart(ctx spi.ComponentContext) error {
 	releaseName := types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}
 	managedResources := getHelmManagedResources()
 	for _, managedResource := range managedResources {
@@ -197,10 +197,10 @@ func exportVmoHelmChart(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// ReassociateResources updates the resources to ensure they are managed by the VMO release/component.  The resource policy
+// reassociateResources updates the resources to ensure they are managed by the VMO release/component.  The resource policy
 // annotation is removed to ensure that helm manages the lifecycle of the resources (the resource policy annotation is
 // added to ensure the resources are disassociated from the VZ chart which used to manage these resources)
-func ReassociateResources(ctx spi.ComponentContext) error {
+func reassociateResources(ctx spi.ComponentContext) error {
 	managedResources := getHelmManagedResources()
 	for _, managedResource := range managedResources {
 		if _, err := common.RemoveResourcePolicyAnnotation(ctx.Client(), managedResource.Obj, managedResource.NamespacedName); err != nil {

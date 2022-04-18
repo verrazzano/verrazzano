@@ -67,7 +67,7 @@ func (c vmoComponent) PreInstall(context spi.ComponentContext) error {
 		return context.Log().ErrorfNewErr("Failed searching for release: %v", err)
 	}
 	if found {
-		return exportVmoHelmChart(context)
+		return reassociateResources(context)
 	}
 
 	return nil
@@ -75,5 +75,19 @@ func (c vmoComponent) PreInstall(context spi.ComponentContext) error {
 
 // PreUpgrade VMO pre-upgrade processing
 func (c vmoComponent) PreUpgrade(context spi.ComponentContext) error {
+	found, err := helmcli.IsReleaseInstalled(vzconst.Verrazzano, vzconst.VerrazzanoSystemNamespace)
+	if err != nil {
+		return context.Log().ErrorfNewErr("Failed searching for release: %v", err)
+	}
+	if found {
+		if err := reassociateResources(context); err != nil {
+			return err
+		}
+	}
+	return common.ApplyCRDYaml(context, config.GetHelmVmoChartsDir())
+}
+
+// PostUpgrade VMO post-upgrade processing
+func (c vmoComponent) PostUpgrade(context spi.ComponentContext) error {
 	return common.ApplyCRDYaml(context, config.GetHelmVmoChartsDir())
 }

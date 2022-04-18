@@ -96,6 +96,9 @@ func (c verrazzanoComponent) Install(ctx spi.ComponentContext) error {
 
 // PreUpgrade Verrazzano component pre-upgrade processing
 func (c verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	if err := vmo.ExportVmoHelmChart(ctx); err != nil {
+		return err
+	}
 	return verrazzanoPreUpgrade(ctx, ComponentNamespace)
 }
 
@@ -127,9 +130,6 @@ func (c verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
 // PostUpgrade Verrazzano-post-upgrade processing
 func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Verrazzano component post-upgrade")
-	if err := vmo.ReassociateResources(ctx); err != nil {
-		return err
-	}
 	c.HelmComponent.IngressNames = c.GetIngressNames(ctx)
 	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
 	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
