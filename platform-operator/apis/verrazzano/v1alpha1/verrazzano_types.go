@@ -425,6 +425,11 @@ type PrometheusNodeExporterComponent struct {
 type PrometheusOperatorComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
+	// To enable watch for arbitrary helm values
+	// +optional
+	MonitorChanges *WatchValues           `json:"monitorChanges,omitempty"`
+	ValuesRefs     *ValuesFiles           `json:"valuesRefs,omitempty"`
+	Values         map[string]interface{} `json:"values,omitempty"`
 }
 
 // PrometheusPushgatewayComponent specifies the Prometheus Pushgateway configuration.
@@ -723,3 +728,21 @@ type OciLoggingConfiguration struct {
 	SystemLogID     string `json:"systemLogId"`
 	APISecret       string `json:"apiSecret,omitempty"`
 }
+
+type ValuesFiles struct {
+	ConfigMap *ConfigMap `json:"configMap,omitempty"`
+	Secret    *Secret    `json:"secret,omitempty"`
+}
+
+type ConfigMap struct {
+	Name string   `json:"name"`
+	Keys []string `json:"keys"`
+	corev1.ConfigMap
+}
+
+type Secret struct {
+	Name string   `json:"name"`
+	Keys []string `json:"keys"`
+}
+
+type WatchValues bool

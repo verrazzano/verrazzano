@@ -6,7 +6,6 @@ package operator
 import (
 	"context"
 	"fmt"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -17,7 +16,9 @@ import (
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
-const deploymentName = "prometheus-operator-kube-p-operator"
+const (
+	deploymentName = "prometheus-operator-kube-p-operator"
+)
 
 // isPrometheusOperatorReady checks if the Prometheus operator deployment is ready
 func isPrometheusOperatorReady(ctx spi.ComponentContext) bool {
