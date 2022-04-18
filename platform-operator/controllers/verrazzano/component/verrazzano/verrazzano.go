@@ -97,13 +97,7 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 				Namespace: ComponentNamespace,
 			})
 	}
-	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments,
-			types.NamespacedName{
-				Name:      vmoDeployment,
-				Namespace: ComponentNamespace,
-			})
-	}
+
 	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments,
 			types.NamespacedName{

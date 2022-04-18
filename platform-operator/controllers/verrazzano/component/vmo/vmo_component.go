@@ -4,7 +4,6 @@
 package vmo
 
 import (
-	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -61,33 +60,33 @@ func (c vmoComponent) IsReady(context spi.ComponentContext) bool {
 }
 
 // PreInstall VMO pre-install processing
-func (c vmoComponent) PreInstall(context spi.ComponentContext) error {
-	found, err := helmcli.IsReleaseInstalled(vzconst.Verrazzano, vzconst.VerrazzanoSystemNamespace)
-	if err != nil {
-		return context.Log().ErrorfNewErr("Failed searching for release: %v", err)
-	}
-	if found {
-		return reassociateResources(context)
-	}
-
-	return nil
-}
+//func (c vmoComponent) PreInstall(context spi.ComponentContext) error {
+//	found, err := helmcli.IsReleaseInstalled(vzconst.Verrazzano, vzconst.VerrazzanoSystemNamespace)
+//	if err != nil {
+//		return context.Log().ErrorfNewErr("Failed searching for release: %v", err)
+//	}
+//	if found {
+//		return reassociateResources(context)
+//	}
+//
+//	return nil
+//}
 
 // PreUpgrade VMO pre-upgrade processing
 func (c vmoComponent) PreUpgrade(context spi.ComponentContext) error {
-	found, err := helmcli.IsReleaseInstalled(vzconst.Verrazzano, vzconst.VerrazzanoSystemNamespace)
-	if err != nil {
-		return context.Log().ErrorfNewErr("Failed searching for release: %v", err)
-	}
-	if found {
-		if err := reassociateResources(context); err != nil {
-			return err
-		}
-	}
+	//	found, err := helmcli.IsReleaseInstalled(vzconst.Verrazzano, vzconst.VerrazzanoSystemNamespace)
+	//	if err != nil {
+	//		return context.Log().ErrorfNewErr("Failed searching for release: %v", err)
+	//	}
+	//	if found {
+	//		if err := reassociateResources(context); err != nil {
+	//			return err
+	//		}
+	//	}
 	return common.ApplyCRDYaml(context, config.GetHelmVmoChartsDir())
 }
 
 // PostUpgrade VMO post-upgrade processing
-func (c vmoComponent) PostUpgrade(context spi.ComponentContext) error {
-	return common.ApplyCRDYaml(context, config.GetHelmVmoChartsDir())
-}
+//func (c vmoComponent) PostUpgrade(context spi.ComponentContext) error {
+//	return common.ApplyCRDYaml(context, config.GetHelmVmoChartsDir())
+//}

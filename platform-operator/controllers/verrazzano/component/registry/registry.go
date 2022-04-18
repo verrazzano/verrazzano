@@ -61,6 +61,7 @@ func getComponents() []spi.Component {
 			certmanager.NewComponent(),
 			externaldns.NewComponent(),
 			rancher.NewComponent(),
+			vmo.NewComponent(),
 			verrazzano.NewComponent(),
 			authproxy.NewComponent(),
 			coherence.NewComponent(),
@@ -71,7 +72,6 @@ func getComponents() []spi.Component {
 			promadapter.NewComponent(),
 			kubestatemetrics.NewComponent(),
 			pushgateway.NewComponent(),
-			vmo.NewComponent(),
 		}
 	}
 	return componentsRegistry
