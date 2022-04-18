@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -127,6 +128,8 @@ func newOpenSearch(cr *vzapi.Verrazzano, storage *verrazzano.ResourceRequestValu
 				RequestMemory: "2.5Gi",
 			},
 		},
+		// adapt the VPO node list to VMI node list
+		Nodes: nodeAdapter(vmi, cr.Spec.Components.Elasticsearch.Nodes, storage),
 	}
 
 	// Proxy any ISM policies to the VMI
@@ -156,6 +159,10 @@ func newOpenSearch(cr *vzapi.Verrazzano, storage *verrazzano.ResourceRequestValu
 		opensearch.MasterNode.Storage = &vmi.Spec.Elasticsearch.Storage
 		if vmi.Spec.Elasticsearch.MasterNode.Storage != nil {
 			opensearch.MasterNode.Storage = vmi.Spec.Elasticsearch.MasterNode.Storage.DeepCopy()
+		}
+		// PVC Names should be preserved
+		if vmi.Spec.Elasticsearch.DataNode.Storage != nil {
+			opensearch.DataNode.Storage.PvcNames = vmi.Spec.Elasticsearch.DataNode.Storage.PvcNames
 		}
 	}
 
@@ -279,4 +286,58 @@ func ensureBackupSecret(cli client.Client) error {
 		return err
 	}
 	return nil
+}
+
+func nodeAdapter(vmi *vmov1.VerrazzanoMonitoringInstance, nodes []vzapi.OpenSearchNode, storage *verrazzano.ResourceRequestValues) []vmov1.ElasticsearchNode {
+	getQuantity := func(q *resource.Quantity) string {
+		if q == nil || q.String() == "0" {
+			return ""
+		}
+		return q.String()
+	}
+	var vmoNodes []vmov1.ElasticsearchNode
+	for _, node := range nodes {
+		var storageSize string
+		if storage != nil && storage.Storage != "" {
+			storageSize = storage.Storage
+		}
+		if node.Storage != nil {
+			storageSize = node.Storage.Size
+		}
+		resources := vmov1.Resources{}
+		if node.Resources != nil {
+			resources.RequestCPU = getQuantity(node.Resources.Requests.Cpu())
+			resources.LimitCPU = getQuantity(node.Resources.Limits.Cpu())
+			resources.RequestMemory = getQuantity(node.Resources.Requests.Memory())
+			resources.LimitMemory = getQuantity(node.Resources.Limits.Memory())
+		}
+		vmoNode := vmov1.ElasticsearchNode{
+			Name:      node.Name,
+			JavaOpts:  "",
+			Replicas:  node.Replicas,
+			Roles:     node.Roles,
+			Resources: resources,
+			Storage: &vmov1.Storage{
+				Size: storageSize,
+			},
+		}
+		// if the node was present in an existing VMI and has PVC names, they should be carried over
+		setPVCNames(vmi, &vmoNode)
+		vmoNodes = append(vmoNodes, vmoNode)
+	}
+	return vmoNodes
+}
+
+//setPVCNames persists any PVC names from an existing VMI
+func setPVCNames(vmi *vmov1.VerrazzanoMonitoringInstance, node *vmov1.ElasticsearchNode) {
+	if vmi != nil {
+		for _, nodeGroup := range vmi.Spec.Elasticsearch.Nodes {
+			if nodeGroup.Name == node.Name {
+				if nodeGroup.Storage != nil {
+					node.Storage.PvcNames = nodeGroup.Storage.PvcNames
+				}
+				return
+			}
+		}
+	}
 }
