@@ -10,8 +10,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"gopkg.in/yaml.v2"
-
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/istio"
@@ -315,24 +313,12 @@ var _ = t.Describe("Verify prometheus configmap reconciliation,", Label("f:post-
 	// THEN the test job created before upgrade still exists and prometheus scrape job interval is corrected.
 	t.It("Verify prometheus configmap is not deleted on vmo restart.", func() {
 		Eventually(func() (bool, error) {
-			configMap, err := pkg.GetConfigMap(vzconst.VmiPromConfigName, vzconst.VerrazzanoSystemNamespace)
+			_, scrapeConfigs, _, err := pkg.GetPrometheusConfig()
 			if err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf("Failed getting configmap: %v", err))
+				pkg.Log(pkg.Error, fmt.Sprintf("Failed getting prometheus config: %v", err))
 				return false, err
 			}
 
-			prometheusConfig, ok := configMap.Data["prometheus.yml"]
-			Expect(ok, true)
-			var configYaml map[interface{}]interface{}
-			err = yaml.Unmarshal([]byte(prometheusConfig), &configYaml)
-			if err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf("Failed getting configmap yaml: %v", err))
-				return false, err
-			}
-
-			scrapeConfigsData, ok := configYaml["scrape_configs"]
-			Expect(ok).To(BeTrue())
-			scrapeConfigs := scrapeConfigsData.([]interface{})
 			intervalUpdated := false
 			testJobFound := false
 			for _, nsc := range scrapeConfigs {

@@ -49,24 +49,12 @@ func recordConfigMapCreationTS() {
 	t.Logs.Info("Recording prometheus Cretaion timestamp")
 	t.Logs.Info("Get Prometheus configmap creation timestamp")
 	Eventually(func() error {
-		configMap, err := pkg.GetConfigMap(vzconst.VmiPromConfigName, vzconst.VerrazzanoSystemNamespace)
+		configMap, scrapeConfigs, configYaml, err := pkg.GetPrometheusConfig()
 		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Failed getting configmap: %v", err))
+			pkg.Log(pkg.Error, fmt.Sprintf("Failed getting prometheus config: %v", err))
 			return err
 		}
 
-		prometheusConfig, ok := configMap.Data["prometheus.yml"]
-		Expect(ok, true)
-		var configYaml map[interface{}]interface{}
-		err = yaml.Unmarshal([]byte(prometheusConfig), &configYaml)
-		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Failed getting configmap yaml: %v", err))
-			return err
-		}
-
-		scrapeConfigsData, ok := configYaml["scrape_configs"]
-		Expect(ok).To(BeTrue())
-		scrapeConfigs := scrapeConfigsData.([]interface{})
 		for _, nsc := range scrapeConfigs {
 			scrapeConfig := nsc.(map[interface{}]interface{})
 			// Change the default value of an existing default job
@@ -105,24 +93,12 @@ var _ = t.Describe("Update prometheus configmap", Label("f:pre-upgrade"), func()
 	t.Context("check prometheus configmap", func() {
 		t.It("before upgrade", func() {
 			Eventually(func() bool {
-				configMap, err := pkg.GetConfigMap(vzconst.VmiPromConfigName, vzconst.VerrazzanoSystemNamespace)
+				_, scrapeConfigs, _, err := pkg.GetPrometheusConfig()
 				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Failed getting configmap: %v", err))
+					pkg.Log(pkg.Error, fmt.Sprintf("Failed getting prometheus config: %v", err))
 					return false
 				}
 
-				prometheusConfig, ok := configMap.Data["prometheus.yml"]
-				Expect(ok, true)
-				var configYaml map[interface{}]interface{}
-				err = yaml.Unmarshal([]byte(prometheusConfig), &configYaml)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Failed getting configmap yaml: %v", err))
-					return false
-				}
-
-				scrapeConfigsData, ok := configYaml["scrape_configs"]
-				Expect(ok).To(BeTrue())
-				scrapeConfigs := scrapeConfigsData.([]interface{})
 				intervalUpdated := false
 				testJobFound := false
 				for _, nsc := range scrapeConfigs {
