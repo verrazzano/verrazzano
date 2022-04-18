@@ -55,12 +55,15 @@ const (
 	caCertificateName           = "verrazzano-ca-certificate"
 	caCertCommonName            = "verrazzano-root-ca"
 	verrazzanoClusterIssuerName = "verrazzano-cluster-issuer"
+	clusterResourceNamespaceKey = "clusterResourceNamespace"
 
 	crdDirectory  = "/cert-manager/"
 	crdInputFile  = "cert-manager.crds.yaml"
 	crdOutputFile = "output.crd.yaml"
 
-	clusterResourceNamespaceKey = "clusterResourceNamespace"
+	// ACME-related constants
+	defaultCACertificateSecretName = "verrazzano-ca-certificate-secret" //nolint:gosec //#gosec G101
+	caAcmeSecretName               = "verrazzano-cert-acme-secret"      //nolint:gosec //#gosec G101
 
 	// Valid Let's Encrypt environment values
 	letsencryptProduction    = "production"
@@ -69,11 +72,6 @@ const (
 	letsEncryptStageEndpoint = "https://acme-staging-v02.api.letsencrypt.org/directory"
 
 	certRequestNameAnnotation = "cert-manager.io/certificate-name"
-
-	/* #nosec */
-	defaultCACertificateSecretName = "verrazzano-ca-certificate-secret"
-	/* #nosec */
-	caAcmeSecretName = "verrazzano-cert-acme-secret"
 )
 
 var (
