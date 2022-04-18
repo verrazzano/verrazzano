@@ -7,7 +7,9 @@ import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"testing"
@@ -46,7 +48,7 @@ var acme = vzapi.Acme{
 }
 
 // Default Verrazzano object
-var vz = &vzapi.Verrazzano{
+var defaultVZConfig = &vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		EnvironmentName: "myenv",
 		Components: vzapi.ComponentSpec{
@@ -73,7 +75,7 @@ func init() {
 // WHEN cert-manager is enabled
 // THEN the function returns true
 func TestIsCertManagerEnabled(t *testing.T) {
-	localvz := vz.DeepCopy()
+	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(true)
 	assert.True(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, localvz, false).EffectiveCR()))
 }
@@ -139,7 +141,7 @@ func TestCleanTempFiles(t *testing.T) {
 // WHEN cert-manager is disabled
 // THEN the function returns false
 func TestIsCertManagerDisabled(t *testing.T) {
-	localvz := vz.DeepCopy()
+	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(false)
 	assert.False(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, localvz, false).EffectiveCR()))
 }
@@ -159,10 +161,10 @@ func TestAppendCertManagerOverrides(t *testing.T) {
 // WHEN a VZ spec is passed with install args
 // THEN the values created properly
 func TestAppendCertManagerOverridesWithInstallArgs(t *testing.T) {
-	localvz := vz.DeepCopy()
+	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
 	defer func() { getClientFunc = k8sutil.GetCoreV1Client }()
-	getClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA, "vz-cn")
+	getClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA, "defaultVZConfig-cn")
 	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 1)
@@ -234,11 +236,11 @@ func TestIsCANilWithProfile(t *testing.T) {
 // WHEN the Certificate CA is populated
 // THEN true is returned
 func TestIsCATrue(t *testing.T) {
-	localvz := vz.DeepCopy()
+	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
 
 	defer func() { getClientFunc = k8sutil.GetCoreV1Client }()
-	getClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA, "vz-cn")
+	getClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA, "defaultVZConfig-cn")
 
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 
@@ -264,7 +266,7 @@ func createClientFunc(caConfig vzapi.CA, cn string, otherObjs ...runtime.Object)
 // WHEN the Certificate Acme is populated
 // THEN false is returned
 func TestIsCAFalse(t *testing.T) {
-	localvz := vz.DeepCopy()
+	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	isCAValue, err := isCA(spi.NewFakeContext(client, localvz, false, profileDir))
@@ -277,7 +279,7 @@ func TestIsCAFalse(t *testing.T) {
 // WHEN the Certificate Acme is populated
 // THEN false is returned
 func TestIsCABothPopulated(t *testing.T) {
-	localvz := vz.DeepCopy()
+	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
@@ -290,7 +292,7 @@ func TestCreateCAResources(t *testing.T) {
 	// GIVEN that a secret with the cluster CA certificate does not exist
 	// WHEN a call is made to create the CA resources
 	// THEN the call succeeds and an Issuer, Certificate, and ClusterIssuer have been created
-	localvz := vz.DeepCopy()
+	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
 
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
@@ -347,8 +349,157 @@ func TestCreateCAResources(t *testing.T) {
 //  THEN no error is returned
 func TestRenewAllCertificatesNoCertsPresent(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	fakeContext := spi.NewFakeContext(client, vz, false)
+	fakeContext := spi.NewFakeContext(client, defaultVZConfig, false)
 	assert.NoError(t, checkRenewAllCertificates(fakeContext, true))
+}
+
+// TestDeleteObject tests the deleteObject function
+// GIVEN a call to deleteObject
+// WHEN for an object that exists
+// THEN no error is returned and the object is deleted, and that it is idempotent if called again for the same object
+func TestDeleteObject(t *testing.T) {
+	const name = "mysecret"
+	const ns = "myns"
+	secretToDelete := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
+	}
+	client := fake.NewClientBuilder().WithScheme(testScheme).
+		WithObjects(
+			secretToDelete,
+		).Build()
+
+	fakeContext := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false, profileDir)
+	assert.NoError(t, deleteObject(fakeContext.Client(), name, ns, &v1.Secret{}))
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: ns}, &v1.Secret{})
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
+
+	// Ensure this is idempotent, and no error is returned if the secret isn't found
+	assert.NoError(t, deleteObject(fakeContext.Client(), name, ns, &v1.Secret{}))
+
+}
+
+// TestCleanupUnusedACMEResources tests the cleanupUnusedResources function
+// GIVEN a call to cleanupUnusedResources
+// WHEN the default issuer is configured and there are leftover ACME resources
+// THEN no error is returned and default ACME CA secret is deleted without affecting the required default issuer resources
+func TestCleanupUnusedACMEResources(t *testing.T) {
+	vz := defaultVZConfig.DeepCopy()
+
+	client := fake.NewClientBuilder().WithScheme(testScheme).
+		WithObjects(createACMEResources()...).
+		WithObjects(createClusterIssuerResources()...).
+		WithObjects(createDefaultIssuerResources()...).
+		Build()
+
+	fakeContext := spi.NewFakeContext(client, vz, false, profileDir)
+	assert.NoError(t, cleanupUnusedResources(fakeContext, true))
+	assertFound(t, client, verrazzanoClusterIssuerName, ComponentNamespace, &certv1.ClusterIssuer{})
+	assertNotFound(t, client, caAcmeSecretName, ComponentNamespace, &v1.Secret{})
+	assertFound(t, client, defaultCACertificateSecretName, ComponentNamespace, &v1.Secret{})
+	assertFound(t, client, caCertificateName, ComponentNamespace, &certv1.Certificate{})
+	assertFound(t, client, caSelfSignedIssuerName, ComponentNamespace, &certv1.Issuer{})
+}
+
+// TestCleanupUnusedDefaultCAResources tests the cleanupUnusedResources function
+// GIVEN a call to cleanupUnusedResources
+// WHEN the ACME issuer is configured and there are leftover default issuer resources
+// THEN no error is returned and default issuer resources are deleted without affecting the required ACME resources
+func TestCleanupUnusedDefaultCAResources(t *testing.T) {
+	vz := defaultVZConfig.DeepCopy()
+	vz.Spec.Components.CertManager.Certificate = vzapi.Certificate{}
+	vz.Spec.Components.CertManager.Certificate.Acme = acme
+
+	client := fake.NewClientBuilder().WithScheme(testScheme).
+		WithObjects(createACMEResources()...).
+		WithObjects(createClusterIssuerResources()...).
+		WithObjects(createDefaultIssuerResources()...).
+		Build()
+
+	fakeContext := spi.NewFakeContext(client, vz, false, profileDir)
+	assert.NoError(t, cleanupUnusedResources(fakeContext, false))
+	assertFound(t, client, caAcmeSecretName, ComponentNamespace, &v1.Secret{})
+	assertFound(t, client, verrazzanoClusterIssuerName, ComponentNamespace, &certv1.ClusterIssuer{})
+	assertNotFound(t, client, defaultCACertificateSecretName, ComponentNamespace, &v1.Secret{})
+	assertNotFound(t, client, caCertificateName, ComponentNamespace, &certv1.Certificate{})
+	assertNotFound(t, client, caSelfSignedIssuerName, ComponentNamespace, &certv1.Issuer{})
+}
+
+// TestCustomCAConfigCleanupUnusedResources tests the cleanupUnusedResources function
+// GIVEN a call to cleanupUnusedResources
+// WHEN a Custom CA issuer is configured and there are leftover default and ACME issuer resources
+// THEN no error is returned and all leftover default and ACME issuer resources are deleted without affecting the required resources
+func TestCustomCAConfigCleanupUnusedResources(t *testing.T) {
+	const customCAName = "my-ca"
+	const customCANamespace = "customca"
+
+	vz := defaultVZConfig.DeepCopy()
+	vz.Spec.Components.CertManager.Certificate = vzapi.Certificate{}
+	vz.Spec.Components.CertManager.Certificate.CA = vzapi.CA{
+		SecretName:               customCAName,
+		ClusterResourceNamespace: customCANamespace,
+	}
+
+	client := fake.NewClientBuilder().WithScheme(testScheme).
+		WithObjects(createClusterIssuerResources()...).
+		WithObjects(createCustomCAResources(customCAName, customCANamespace)...).
+		WithObjects(createACMEResources()...).
+		WithObjects(createDefaultIssuerResources()...).
+		Build()
+
+	fakeContext := spi.NewFakeContext(client, vz, false, profileDir)
+	assert.NoError(t, cleanupUnusedResources(fakeContext, true))
+	assertFound(t, client, customCAName, customCANamespace, &v1.Secret{})
+	assertFound(t, client, verrazzanoClusterIssuerName, ComponentNamespace, &certv1.ClusterIssuer{})
+	assertNotFound(t, client, caAcmeSecretName, ComponentNamespace, &v1.Secret{})
+	assertNotFound(t, client, defaultCACertificateSecretName, ComponentNamespace, &v1.Secret{})
+	assertNotFound(t, client, caCertificateName, ComponentNamespace, &certv1.Certificate{})
+	assertNotFound(t, client, caSelfSignedIssuerName, ComponentNamespace, &certv1.Issuer{})
+}
+
+func assertNotFound(t *testing.T, client clipkg.WithWatch, name string, namespace string, obj clipkg.Object) {
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, obj)
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
+}
+
+func assertFound(t *testing.T, client clipkg.WithWatch, name string, namespace string, obj clipkg.Object) {
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, obj)
+	assert.NoError(t, err)
+}
+
+func createACMEResources() []clipkg.Object {
+	acmeSecret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: caAcmeSecretName, Namespace: ComponentNamespace},
+	}
+	return []clipkg.Object{acmeSecret}
+}
+
+func createCustomCAResources(name string, namespace string) []clipkg.Object {
+	customcA := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+	}
+	return []clipkg.Object{customcA}
+}
+
+func createClusterIssuerResources() []clipkg.Object {
+	customcA := &certv1.ClusterIssuer{
+		ObjectMeta: metav1.ObjectMeta{Name: verrazzanoClusterIssuerName, Namespace: ComponentNamespace},
+	}
+	return []clipkg.Object{customcA}
+}
+
+func createDefaultIssuerResources() []clipkg.Object {
+	secretToDelete := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: defaultCACertificateSecretName, Namespace: ComponentNamespace},
+	}
+	selfSignedCACert := &certv1.Certificate{
+		ObjectMeta: metav1.ObjectMeta{Name: caCertificateName, Namespace: ComponentNamespace},
+	}
+	selfSignedIssuer := &certv1.Issuer{
+		ObjectMeta: metav1.ObjectMeta{Name: caSelfSignedIssuerName, Namespace: ComponentNamespace},
+	}
+	return []clipkg.Object{secretToDelete, selfSignedCACert, selfSignedIssuer}
 }
 
 // issuerExists returns true if the Issuer with the name and namespace exists.
