@@ -840,7 +840,7 @@ def getPlatformOperatorURLForReleaseBranch(upgradeTargetVersion){
 
 def upgradePlatformOperatorScript(upgradeTargetVersion){
 
-           def  operatorURL = getPlatformOperatorURLForPatchRelease(upgradeTargetVersion)
+           def  operatorURL = getPlatformOperatorURLForReleaseBranch(upgradeTargetVersion)
 
                 sh """
                 # dump the app pods before updating the VPO so they can be compared after the VPO is updated
