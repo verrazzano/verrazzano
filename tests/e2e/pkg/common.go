@@ -8,9 +8,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"net/http"
 	neturl "net/url"
 	"os"
@@ -20,7 +17,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/go-retryablehttp"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+
 	"github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	v1 "k8s.io/api/core/v1"
@@ -274,7 +274,7 @@ func isReadyAndRunning(pod v1.Pod) bool {
 	}
 	if pod.Status.Reason == "Evicted" && len(pod.Status.ContainerStatuses) == 0 {
 		Log(Info, fmt.Sprintf("Pod %v was Evicted", pod.Name))
-		return true //ignore this evicted pod
+		return true // ignore this evicted pod
 	}
 	return false
 }
@@ -284,7 +284,7 @@ func GetRetryPolicy() func(ctx context.Context, resp *http.Response, err error) 
 	return func(ctx context.Context, resp *http.Response, err error) (bool, error) {
 		if err != nil {
 			if v, ok := err.(*neturl.Error); ok {
-				//DefaultRetryPolicy does not retry "x509: certificate signed by unknown authority" which may happen on wildcard DNS (e.g. nip.io) when starting
+				// DefaultRetryPolicy does not retry "x509: certificate signed by unknown authority" which may happen on wildcard DNS (e.g. nip.io) when starting
 				if _, ok := v.Err.(x509.UnknownAuthorityError); ok {
 					return HasWildcardDNS(v.URL), v
 				}
@@ -497,4 +497,20 @@ func CheckNSFinalizerRemoved(ns string, clientset *kubernetes.Clientset) bool {
 		Log(Info, fmt.Sprintf("Error in getting namespace %v", err))
 	}
 	return namespace.Finalizers == nil
+}
+
+// GetImagePrefix Gets the image prefix for container images (accounts for private registry)
+func GetImagePrefix() string {
+	imagePrefix := "ghcr.io"
+	registry := os.Getenv("REGISTRY")
+	privateRepo := os.Getenv("PRIVATE_REPO")
+	if len(registry) > 0 {
+		imagePrefix = registry
+	}
+	if len(privateRepo) > 0 {
+		imagePrefix += "/" + privateRepo
+	} else {
+		imagePrefix += "/verrazzano"
+	}
+	return imagePrefix
 }

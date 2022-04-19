@@ -47,9 +47,10 @@ var (
 		"servicemonitors.monitoring.coreos.com",
 		"thanosrulers.monitoring.coreos.com",
 	}
+	imagePrefix              = pkg.GetImagePrefix()
 	expectedPromOperatorArgs = []string{
-		"--prometheus-default-base-image=ghcr.io/verrazzano/prometheus",
-		"--alertmanager-default-base-image=ghcr.io/verrazzano/alertmanager",
+		"--prometheus-default-base-image=" + imagePrefix + "/prometheus",
+		"--alertmanager-default-base-image=" + imagePrefix + "/alertmanager",
 	}
 )
 
