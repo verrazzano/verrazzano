@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"time"
@@ -28,9 +29,9 @@ const (
 
 var (
 	t             = framework.NewTestFramework("topology")
+	namespace     = pkg.GenerateNamespace("vmi")
 	client        *vmoClient.Clientset
 	kubeClientSet *kubernetes.Clientset
-	namespace     string
 )
 
 var _ = t.BeforeSuite(func() {
@@ -39,27 +40,39 @@ var _ = t.BeforeSuite(func() {
 	Expect(err).To(BeNil())
 	kubeClientSet, err = k8sutil.GetKubernetesClientset()
 	Expect(err).To(BeNil())
-	namespace = pkg.GenerateNamespace("vmi")
-	nsLabels := map[string]string{
-		"verrazzano-managed": "true",
-		"istio-injection":    "enabled"}
-	_, err = pkg.CreateNamespace(namespace, nsLabels)
-	Expect(err).To(BeNil())
-	err = copySecret(verrazzanoName, systemNamespace, namespace)
-	Expect(err).To(BeNil())
-	err = copySecret("verrazzano-local-registration", systemNamespace, namespace)
-	Expect(err).To(BeNil())
-	_, err = kubeClientSet.CoreV1().ServiceAccounts(namespace).Create(context.TODO(), &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "verrazzano-monitoring-operator",
-		},
-	}, metav1.CreateOptions{})
-	Expect(err).To(BeNil())
+
+	Eventually(func() bool {
+		nsLabels := map[string]string{
+			"verrazzano-managed": "true",
+			"istio-injection":    "enabled"}
+		_, err = pkg.CreateNamespace(namespace, nsLabels)
+		if err != nil && !apierrors.IsAlreadyExists(err) {
+			return false
+		}
+		err = copySecret(verrazzanoName, systemNamespace, namespace)
+		if err != nil && !apierrors.IsAlreadyExists(err) {
+			return false
+		}
+		err = copySecret("verrazzano-local-registration", systemNamespace, namespace)
+		if err != nil && !apierrors.IsAlreadyExists(err) {
+			return false
+		}
+		_, err = kubeClientSet.CoreV1().ServiceAccounts(namespace).Create(context.TODO(), &corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "verrazzano-monitoring-operator",
+			},
+		}, metav1.CreateOptions{})
+		if err != nil && !apierrors.IsAlreadyExists(err) {
+			return false
+		}
+		return true
+	}, timeout, pollInterval).Should(BeTrue())
 })
 
 var _ = t.AfterSuite(func() {
 	Eventually(func() bool {
-		if err := client.VerrazzanoV1().VerrazzanoMonitoringInstances(namespace).Delete(context.TODO(), vmiName, metav1.DeleteOptions{}); err != nil {
+		if err := client.VerrazzanoV1().VerrazzanoMonitoringInstances(namespace).Delete(context.TODO(), vmiName, metav1.DeleteOptions{}); err != nil &&
+			!apierrors.IsNotFound(err) {
 			t.Logs.Errorf("failed to delete vmi: %v", err)
 			return false
 		}
