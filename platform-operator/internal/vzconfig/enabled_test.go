@@ -262,9 +262,7 @@ func TestIsElasticsearchEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Elasticsearch: &vzapi.ElasticsearchComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &trueValue,
-					},
+					Enabled: &trueValue,
 				},
 			},
 		}}))
@@ -272,9 +270,7 @@ func TestIsElasticsearchEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Elasticsearch: &vzapi.ElasticsearchComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &falseValue,
-					},
+					Enabled: &falseValue,
 				},
 			},
 		}}))

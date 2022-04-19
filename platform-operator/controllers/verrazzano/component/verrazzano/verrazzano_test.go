@@ -9,15 +9,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	"io/fs"
-	"io/ioutil"
-	"os"
-	"os/exec"
-	"strings"
-	"testing"
-	"text/template"
-	"time"
-
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
@@ -30,6 +21,8 @@ import (
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"io/fs"
+	"io/ioutil"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -41,9 +34,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"os"
+	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
+	"strings"
+	"testing"
+	"text/template"
 )
 
 const (
@@ -281,7 +279,7 @@ func Test_appendVerrazzanoValues(t *testing.T) {
 						Console:               &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 						Prometheus:            &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 						Kibana:                &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Elasticsearch:         &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Elasticsearch:         &vzapi.ElasticsearchComponent{Enabled: &falseValue},
 						Grafana:               &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 						Keycloak:              &vzapi.KeycloakComponent{Enabled: &falseValue},
 						Rancher:               &vzapi.RancherComponent{Enabled: &falseValue},
@@ -409,7 +407,7 @@ func Test_appendVMIValues(t *testing.T) {
 					Profile: "dev",
 					Components: vzapi.ComponentSpec{
 						Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &falseValue},
 						Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 						Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 					},
@@ -584,7 +582,7 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 						Console:               &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 						Prometheus:            &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 						Kibana:                &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Elasticsearch:         &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Elasticsearch:         &vzapi.ElasticsearchComponent{Enabled: &falseValue},
 						Grafana:               &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 						Keycloak:              &vzapi.KeycloakComponent{Enabled: &falseValue},
 						Rancher:               &vzapi.RancherComponent{Enabled: &falseValue},
@@ -1091,167 +1089,6 @@ func createFakeClientWithIngress() client.Client {
 	return fakeClient
 }
 
-// Test_fixupElasticSearchReplicaCount tests the fixupElasticSearchReplicaCount function.
-func Test_fixupElasticSearchReplicaCount(t *testing.T) {
-	a := assert.New(t)
-
-	// GIVEN an Elasticsearch pod with a http port
-	//  WHEN fixupElasticSearchReplicaCount is called
-	//  THEN a command should be executed to get the cluster health information
-	//   AND a command should be executed to update the cluster index settings
-	//   AND no error should be returned
-	ctx, err := createFakeComponentContext()
-	a.NoError(err, "Failed to create fake component context.")
-	createElasticsearchPod(ctx.Client(), "http")
-	execCommand = fakeExecCommand
-	fakeExecScenarioNames = []string{"fixupElasticSearchReplicaCount/get", "fixupElasticSearchReplicaCount/put"} // nolint
-	fakeExecScenarioIndex = 0                                                                                    // nolint
-	err = fixupElasticSearchReplicaCount(ctx, "verrazzano-system")
-	a.NoError(err, "Failed to fixup Elasticsearch index template")
-
-	// GIVEN an Elasticsearch pod with no http port
-	//  WHEN fixupElasticSearchReplicaCount is called
-	//  THEN an error should be returned
-	//   AND no commands should be invoked
-	fakeExecScenarioNames = []string{} // nolint
-	fakeExecScenarioIndex = 0          // nolint
-	ctx, err = createFakeComponentContext()
-	a.NoError(err, "Failed to create fake component context.")
-	createElasticsearchPod(ctx.Client(), "tcp")
-	err = fixupElasticSearchReplicaCount(ctx, "verrazzano-system")
-	a.Error(err, "Error should be returned if there is no http port for elasticsearch pods")
-
-	// GIVEN a Verrazzano resource with version 1.1.0 in the status
-	//  WHEN fixupElasticSearchReplicaCount is called
-	//  THEN no error should be returned
-	//   AND no commands should be invoked
-	fakeExecScenarioNames = []string{} // nolint
-	fakeExecScenarioIndex = 0          // nolint
-	ctx, err = createFakeComponentContext()
-	a.NoError(err, "Unexpected error")
-	ctx.ActualCR().Status.Version = "1.1.0"
-	err = fixupElasticSearchReplicaCount(ctx, "verrazzano-system")
-	a.NoError(err, "No error should be returned if the source version is 1.1.0 or later")
-
-	// GIVEN a Verrazzano resource with Elasticsearch disabled
-	//  WHEN fixupElasticSearchReplicaCount is called
-	//  THEN no error should be returned
-	//   AND no commands should be invoked
-	fakeExecScenarioNames = []string{}
-	fakeExecScenarioIndex = 0
-	falseValue := false
-	ctx, err = createFakeComponentContext()
-	a.NoError(err, "Unexpected error")
-	ctx.EffectiveCR().Spec.Components.Elasticsearch.Enabled = &falseValue
-	err = fixupElasticSearchReplicaCount(ctx, "verrazzano-system")
-	a.NoError(err, "No error should be returned if the elasticsearch is not enabled")
-}
-
-// Test_getNamedContainerPortOfContainer tests the getNamedContainerPortOfContainer function.
-func Test_getNamedContainerPortOfContainer(t *testing.T) {
-	a := assert.New(t)
-	// Create a simple pod
-	pod := newPod()
-
-	// GIVEN a pod with a ready container named test-ready-container-name
-	//  WHEN getNamedContainerPortOfContainer is invoked for test-ready-container-name
-	//  THEN return the port number for the container port named test-ready-port-name
-	port, err := getNamedContainerPortOfContainer(*pod, "test-ready-container-name", "test-ready-port-name")
-	a.NoError(err, "Failed to find container port")
-	a.Equal(int32(42), port, "Expected to find valid named container port")
-
-	// GIVEN a pod with a ready and unready container
-	//  WHEN getNamedContainerPortOfContainer is invoked for a invalid container name
-	//  THEN an error should be returned
-	_, err = getNamedContainerPortOfContainer(*pod, "wrong-container-name", "test-port-name")
-	a.Error(err, "Error should be returned when the specified container name does not exist")
-
-	// GIVEN a pod with a ready container named test-ready-container-name
-	//  WHEN getNamedContainerPortOfContainer is invoked for the ready container but wrong port name
-	//  THEN an error should be returned
-	_, err = getNamedContainerPortOfContainer(*pod, "test-ready-container-name", "wrong-port-name")
-	a.Error(err, "Error should be returned when the specified container port name does not exist")
-}
-
-// Test_getPodsWithReadyContainer tests the getPodsWithReadyContainer function.
-func Test_getPodsWithReadyContainer(t *testing.T) {
-	a := assert.New(t)
-	ctx, err := createFakeComponentContext()
-	a.NoError(err, "Failed to create fake component context.")
-
-	podTemplate := `---
-apiVersion: v1
-kind: Pod
-metadata:
- labels:
-   test_label_name: {{.test_label_value}}
- name: {{.test_pod_name}}
- namespace: test_namespace_name
-spec:
- containers:
-   - name: test_container_name
-     ports:
-       - name: http
-         containerPort: 9200
-         protocol: TCP
-status:
- containerStatuses:
-   - name: test_container_name
-     ready: {{.test_container_ready}}`
-
-	// GIVEN a pod with a ready container
-	//  WHEN getPodsWithReadyContainer is invoked
-	//  THEN expect the pod to be returned
-	//   AND expect no error
-	readyPodParams := map[string]string{
-		"test_pod_name":        "test_ready_pod_name",
-		"test_label_value":     "test_ready_label_value",
-		"test_container_ready": "true",
-	}
-	a.NoError(createResourceFromTemplate(ctx.Client(), &corev1.Pod{}, podTemplate, readyPodParams), "Failed to create test pod.")
-	pods, err := getPodsWithReadyContainer(ctx.Client(), "test_container_name", client.InNamespace("test_namespace_name"), client.MatchingLabels{"test_label_name": "test_ready_label_value"})
-	a.NoError(err, "Unexpected error")
-	a.Len(pods, 1, "Expected to find one pod with a ready container")
-
-	// GIVEN a pod with an unready container
-	//  WHEN getPodsWithReadyContainer is invoked
-	//  THEN expect not pods to be returned
-	//   AND expect no error
-	unreadyPodParams := map[string]string{
-		"test_pod_name":        "test_unready_pod_name",
-		"test_label_value":     "test_unready_label_value",
-		"test_container_ready": "false",
-	}
-	a.NoError(createResourceFromTemplate(ctx.Client(), &corev1.Pod{}, podTemplate, unreadyPodParams), "Failed to create test pod.")
-	pods, err = getPodsWithReadyContainer(ctx.Client(), "test_container_name", client.InNamespace("test_namespace_name"), client.MatchingLabels{"test-label-name": "test_unready_label_value"})
-	a.NoError(err, "Unexpected error")
-	a.Len(pods, 0, "Expected not to find and pods with a ready container")
-}
-
-// Test_waitForPodsWithReadyContainer tests the waitForPodsWithReadyContainer function.
-func Test_waitForPodsWithReadyContainer(t *testing.T) {
-	a := assert.New(t)
-
-	// GIVEN a pod with a ready container
-	//  WHEN waitForPodsWithReadyContainer is invoked for the container
-	//  THEN expect the ready pod to be returned
-	ctx, err := createFakeComponentContext()
-	createPod(ctx.Client())
-	a.NoError(err, "Failed to create fake component context.")
-	pods, err := waitForPodsWithReadyContainer(ctx.Client(), 1*time.Nanosecond, 5*time.Nanosecond, "test-ready-container-name", client.InNamespace("test-namespace-name"), client.MatchingLabels{"test-label-name": "test-label-value"})
-	a.NoError(err, "Unexpected error finding pods with ready container")
-	a.Len(pods, 1, "Expected to find one pod with a ready container")
-
-	// GIVEN a pod with a ready container
-	//  WHEN waitForPodsWithReadyContainer is invoked for a container that will never be ready
-	//  THEN expect no pods to eventually be returned
-	ctx, err = createFakeComponentContext()
-	a.NoError(err, "Failed to create fake component context.")
-	pods, err = waitForPodsWithReadyContainer(ctx.Client(), 1*time.Nanosecond, 2*time.Nanosecond, "test-unready-container-name", client.InNamespace("test-namespace-name"), client.MatchingLabels{"test-label-name": "test-label-value"})
-	a.NoError(err, "Unexpected error finding pods with ready container")
-	a.Len(pods, 0, "Expected to find no pods with a ready container")
-}
-
 // newFakeRuntimeScheme creates a new fake scheme
 func newFakeRuntimeScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
@@ -1601,56 +1438,8 @@ func TestIsReady(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      kibanaDeployment,
-				Labels:    map[string]string{"app": "system-kibana"},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
 				Name:      prometheusDeployment,
 				Labels:    map[string]string{"app": "system-prometheus"},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      fmt.Sprintf("%s-0", esDataDeployment),
-				Labels:    map[string]string{"app": "system-es-data", "index": "0"},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      fmt.Sprintf("%s-1", esDataDeployment),
-				Labels:    map[string]string{"app": "system-es-data", "index": "1"},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      esIngestDeployment,
-				Labels:    map[string]string{"app": "system-es-ingest"},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
@@ -1678,40 +1467,12 @@ func TestIsReady(t *testing.T) {
 				NumberAvailable:        1,
 			},
 		},
-		&appsv1.StatefulSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      esMasterStatefulset,
-				Labels:    map[string]string{"app": "system-es-master"},
-			},
-			Status: appsv1.StatefulSetStatus{
-				ReadyReplicas:   1,
-				UpdatedReplicas: 1,
-			},
-		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
 			Namespace: ComponentNamespace}},
 	).Build()
 
 	vz := &vzapi.Verrazzano{}
-	vz.Spec.Components = vzapi.ComponentSpec{
-		Elasticsearch: &vzapi.ElasticsearchComponent{
-			ESInstallArgs: []vzapi.InstallArgs{
-				{
-					Name:  "nodes.master.replicas",
-					Value: "2",
-				},
-				{
-					Name:  "nodes.data.replicas",
-					Value: "2",
-				},
-				{
-					Name:  "nodes.ingest.replicas",
-					Value: "2",
-				},
-			},
-		},
-	}
+	vz.Spec.Components = vzapi.ComponentSpec{}
 	ctx := spi.NewFakeContext(c, vz, false)
 	assert.True(t, isVerrazzanoReady(ctx))
 }
@@ -1754,12 +1515,10 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	falseValue := false
 	vz.Spec.Components = vzapi.ComponentSpec{
-		Console:       &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-		Fluentd:       &vzapi.FluentdComponent{Enabled: &falseValue},
-		Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-		Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-		Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Console:    &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Fluentd:    &vzapi.FluentdComponent{Enabled: &falseValue},
+		Prometheus: &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Grafana:    &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 	}
 	ctx := spi.NewFakeContext(c, vz, false)
 	assert.True(t, isVerrazzanoReady(ctx))

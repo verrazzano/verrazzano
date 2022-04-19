@@ -202,10 +202,11 @@ func TestGetCertificateNames(t *testing.T) {
 				DNS: &vzapi.DNSComponent{
 					External: &vzapi.External{Suffix: "blah"},
 				},
-				Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &vmiEnabled}},
-				Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &vmiEnabled}},
-				Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &vmiEnabled}},
-				Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &vmiEnabled}},
+				Grafana:    &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &vmiEnabled}},
+				Prometheus: &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &vmiEnabled}},
+				Kibana:     &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &vmiEnabled}},
+				Elasticsearch: &vzapi.ElasticsearchComponent{
+					Enabled: &vmiEnabled},
 			},
 		},
 	}
@@ -502,7 +503,7 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 			new: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
-						Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &disabled}},
+						Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &disabled},
 					},
 				},
 			},
