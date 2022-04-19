@@ -151,6 +151,7 @@ pipeline {
                         final List gitTags = extractReleaseTags(fileContent)
                         echo "gitTags = ${gitTags}"
                         TARGET_UPGRADE_VERSION = gitTags.pop() - "v"
+                        TARGET_UPGRADE_VERSION = getNextPatchReleaseVersion(TARGET_UPGRADE_VERSION)
                         allReleasesToRCJobs = addTargetUpgradeVersion(gitTags)
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
                         echo "Number of jobs to be run in parallel : ${params.N_JOBS_FOR_EACH_BATCH}"
@@ -159,7 +160,7 @@ pipeline {
                         allReleasesToRCStagesMap = [:]
                         for(int i=0;i<allReleasesToRCJobs.size();i++){
                             if(k<NJObs){
-                                allReleasesToRCStagesMap.putg(allReleasesToRCJobs.get(i),allReleasesToRCStage(allReleasesToRCJobs.get(i)))
+                                allReleasesToRCStagesMap.put(allReleasesToRCJobs.get(i),allReleasesToRCStage(allReleasesToRCJobs.get(i)))
                                 k++;
                             }
                             if(k==NJObs || i == allReleasesToRCJobs.size()-1){
@@ -412,4 +413,12 @@ def allReleasesToRCStage(job) {
                 //currentBuild.result = 'FAILURE'
              }
     }
+}
+
+def getNextPatchReleaseVersion(upgradeTargetVersion){
+
+    def latestReleaseTagSplit = upgradeTargetVersion.split("\\.")
+    int nextPatchVersion = Integer.parseInt(latestReleaseTagSplit[2]) + 1
+    def nextPatchRelease = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1] + "." + nextPatchVersion
+    return nextPatchRelease
 }

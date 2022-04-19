@@ -836,13 +836,7 @@ def getPlatformOperatorURLForReleaseBranch(upgradeTargetVersion){
     return operatorURL
 }
 
-def getNextPatchReleaseVersion(upgradeTargetVersion){
 
-    def latestReleaseTagSplit = upgradeTargetVersion.split("\\.")
-    int nextPatchVersion = Integer.parseInt(latestReleaseTagSplit[2]) + 1
-    def nextPatchRelease = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1] + "." + nextPatchVersion
-    return nextPatchRelease
-}
 
 def upgradePlatformOperatorScript(upgradeTargetVersion){
 
@@ -870,11 +864,6 @@ def upgradePlatformOperatorScript(upgradeTargetVersion){
 
 
 def upgradeVerrazzanoScript(upgradeTargetVersion){
-
-        if(upgradeTargetVersion !="master"){
-
-            upgradeTargetVersion = getNextPatchReleaseVersion(upgradeTargetVersion)
-        }
 
          sh """
             echo "Upgrading the Verrazzano installation to version" ${verrazzanoTargetVersion}
