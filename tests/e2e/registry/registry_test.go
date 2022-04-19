@@ -23,7 +23,6 @@ const (
 )
 
 var registry = os.Getenv("REGISTRY")
-var privateRepo = os.Getenv("PRIVATE_REPO")
 
 // List of namespaces from which all the pods are queried to confirm the images are loaded from the target registry/repo
 var listOfNamespaces = []string{
