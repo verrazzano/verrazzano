@@ -54,6 +54,7 @@ var _ = t.BeforeSuite(func() {
 			Name: "verrazzano-monitoring-operator",
 		},
 	}, metav1.CreateOptions{})
+	Expect(err).To(BeNil())
 })
 
 var _ = t.AfterSuite(func() {
@@ -68,7 +69,7 @@ var _ = t.AfterSuite(func() {
 			return false
 		}
 		return true
-	}).Should(BeTrue())
+	}, timeout, pollInterval).Should(BeTrue())
 })
 
 var _ = t.Describe("OpenSearch Cluster Topology", func() {
@@ -201,7 +202,7 @@ func eventuallyUpdateVMI(t *framework.TestFramework, updaterFunc func(vmi *vmov1
 			return false
 		}
 		return true
-	}).Should(BeTrue())
+	}, timeout, pollInterval).Should(BeTrue())
 }
 
 func getVMI() (*vmov1.VerrazzanoMonitoringInstance, error) {
