@@ -425,6 +425,9 @@ type PrometheusNodeExporterComponent struct {
 type PrometheusOperatorComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
+	// +optional
+	// To enable and watch helm value overrides
+	HelmValueOverrides `json:",inline"`
 }
 
 // PrometheusPushgatewayComponent specifies the Prometheus Pushgateway configuration.
@@ -723,3 +726,28 @@ type OciLoggingConfiguration struct {
 	SystemLogID     string `json:"systemLogId"`
 	APISecret       string `json:"apiSecret,omitempty"`
 }
+
+// Helm Value override config
+type HelmValueOverrides struct {
+	MonitorChanges *WatchForHelmValues `json:"monitorChanges,omitempty"`
+	Overrides      []Overrides         `json:"overrides,omitempty"`
+}
+
+type Overrides struct {
+	ConfigMapKeySelector *corev1.ConfigMapKeySelector `json:"configMapRef,omitempty"`
+	SecretKeySelector    *corev1.SecretKeySelector    `json:"secretRef,omitempty"`
+	Values               []crValues                   `json:"values,omitempty"`
+}
+
+//type ConfigMapRef struct {
+//	ConfigMapKeySelector *corev1.ConfigMapKeySelector `json:"configMapRef,omitempty"`
+//}
+
+//type SecretRef struct {
+//	SecretKeySelector *corev1.SecretKeySelector `json:"secretRef,omitempty"`
+//}
+
+// For helm values that are directly entered into the VZ cr
+type crValues map[string]string
+
+type WatchForHelmValues bool
