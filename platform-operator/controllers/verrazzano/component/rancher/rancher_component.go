@@ -233,39 +233,29 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	log := ctx.Log()
 
 	if err := createAdminSecretIfNotExists(log, c); err != nil {
-		ctx.Log().Progressf("Error creating Rancher admin secret: %s", err.Error())
-		return err
+		return log.ErrorfThrottledNewErr("Error creating Rancher admin secret: %s", err.Error())
 	}
 	password, err := common.GetAdminSecret(c)
 	if err != nil {
-		ctx.Log().Progressf("Error getting Rancher admin secret: %s", err.Error())
-		return err
+		return log.ErrorfThrottledNewErr("Error getting Rancher admin secret: %s", err.Error())
 	}
 	rancherHostName, err := getRancherHostname(c, vz)
 	if err != nil {
-		ctx.Log().Progressf("Error getting Rancher hostname: %s", err.Error())
-		return err
+		return log.ErrorfThrottledNewErr("Error getting Rancher hostname: %s", err.Error())
 	}
 
 	rest, err := common.NewClient(c, rancherHostName, password)
 	if err != nil {
-		ctx.Log().Progressf("Error getting Rancher client: %s", err.Error())
-		return err
+		return log.ErrorfThrottledNewErr("Error getting Rancher client: %s", err.Error())
 	}
 	if err := rest.SetAccessToken(); err != nil {
-		ctx.Log().Progressf("Error setting Rancher access token: %s", err.Error())
-		return err
+		return log.ErrorfThrottledNewErr("Error setting Rancher access token: %s", err.Error())
 	}
-
 	if err := rest.PutServerURL(); err != nil {
-		ctx.Log().Progressf("Error setting Rancher server URL: %s", err.Error())
-		return err
+		return log.ErrorfThrottledNewErr("Error setting Rancher server URL: %s", err.Error())
 	}
-
 	if err := removeBootstrapSecretIfExists(log, c); err != nil {
-		ctx.Log().Progressf("Error removing Rancher bootstrap secret: %s", err.Error())
-		return err
+		return log.ErrorfThrottledNewErr("Error removing Rancher bootstrap secret: %s", err.Error())
 	}
-
 	return r.HelmComponent.PostInstall(ctx)
 }
