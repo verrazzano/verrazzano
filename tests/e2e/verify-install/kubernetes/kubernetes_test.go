@@ -60,37 +60,39 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 
 		t.It("the expected namespaces exist", func() {
 			var namespaces *v1.NamespaceList
-			Eventually(func() (*v1.NamespaceList, error) {
+			Eventually(func() (bool, error) {
 				var err error
 				namespaces, err = pkg.ListNamespaces(metav1.ListOptions{})
-				return namespaces, err
-			}, timeout5Min, pollingInterval).ShouldNot(BeNil())
+				if err != nil {
+					return false, err
+				}
+				if isManagedClusterProfile {
+					Expect(nsListContains(namespaces.Items, "cattle-global-data")).To(BeFalse())
+					Expect(nsListContains(namespaces.Items, "cattle-global-nt")).To(BeFalse())
+					// Even though we do not install Rancher on managed clusters, we do create the namespace
+					// so we can create network policies. Rancher will run pods in this namespace once
+					// the managed cluster manifest YAML is applied to the managed cluster.
+					Expect(nsListContains(namespaces.Items, "cattle-system")).To(BeTrue())
+				} else {
+					Expect(nsListContains(namespaces.Items, "cattle-system")).To(BeTrue())
+					Expect(nsListContains(namespaces.Items, "cattle-global-data")).To(BeTrue())
+					Expect(nsListContains(namespaces.Items, "cattle-global-nt")).To(BeTrue())
+				}
+				Expect(nsListContains(namespaces.Items, "istio-system")).To(BeTrue())
+				Expect(nsListContains(namespaces.Items, "gitlab")).To(BeFalse())
+				if isManagedClusterProfile {
+					Expect(nsListContains(namespaces.Items, "keycloak")).To(BeFalse())
+				} else {
+					Expect(nsListContains(namespaces.Items, "keycloak")).To(BeTrue())
+				}
+				Expect(nsListContains(namespaces.Items, "verrazzano-system")).To(BeTrue())
+				Expect(nsListContains(namespaces.Items, "verrazzano-mc")).To(BeTrue())
+				Expect(nsListContains(namespaces.Items, "cert-manager")).To(BeTrue())
+				Expect(nsListContains(namespaces.Items, "ingress-nginx")).To(BeTrue())
 
-			if isManagedClusterProfile {
-				Expect(nsListContains(namespaces.Items, "cattle-global-data")).To(BeFalse())
-				Expect(nsListContains(namespaces.Items, "cattle-global-nt")).To(BeFalse())
-				// Even though we do not install Rancher on managed clusters, we do create the namespace
-				// so we can create network policies. Rancher will run pods in this namespace once
-				// the managed cluster manifest YAML is applied to the managed cluster.
-				Expect(nsListContains(namespaces.Items, "cattle-system")).To(BeTrue())
-				Expect(nsListContains(namespaces.Items, "local")).To(BeTrue())
-			} else {
-				Expect(nsListContains(namespaces.Items, "cattle-system")).To(BeTrue())
-				Expect(nsListContains(namespaces.Items, "cattle-global-data")).To(BeTrue())
-				Expect(nsListContains(namespaces.Items, "cattle-global-nt")).To(BeTrue())
-				Expect(nsListContains(namespaces.Items, "local")).To(BeTrue())
-			}
-			Expect(nsListContains(namespaces.Items, "istio-system")).To(BeTrue())
-			Expect(nsListContains(namespaces.Items, "gitlab")).To(BeFalse())
-			if isManagedClusterProfile {
-				Expect(nsListContains(namespaces.Items, "keycloak")).To(BeFalse())
-			} else {
-				Expect(nsListContains(namespaces.Items, "keycloak")).To(BeTrue())
-			}
-			Expect(nsListContains(namespaces.Items, "verrazzano-system")).To(BeTrue())
-			Expect(nsListContains(namespaces.Items, "verrazzano-mc")).To(BeTrue())
-			Expect(nsListContains(namespaces.Items, "cert-manager")).To(BeTrue())
-			Expect(nsListContains(namespaces.Items, "ingress-nginx")).To(BeTrue())
+				// If we get here, all assertions passed, so return true
+				return true, nil
+			}, timeout5Min, pollingInterval).Should(BeTrue())
 		})
 
 		kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
