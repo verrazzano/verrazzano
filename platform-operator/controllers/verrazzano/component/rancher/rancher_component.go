@@ -259,7 +259,6 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	// Remove the bootstrap secret, it causes an upgrade failure
 	if err := removeBootstrapSecretIfExists(log, c); err != nil {
 		return err
 	}
