@@ -35,7 +35,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"os"
-	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
@@ -1089,148 +1088,6 @@ func createFakeClientWithIngress() client.Client {
 	return fakeClient
 }
 
-// newFakeRuntimeScheme creates a new fake scheme
-func newFakeRuntimeScheme() *runtime.Scheme {
-	scheme := runtime.NewScheme()
-	_ = appsv1.AddToScheme(scheme)
-	_ = corev1.AddToScheme(scheme)
-	return scheme
-}
-
-// createFakeComponentContext creates a fake component context
-func createFakeComponentContext() (spi.ComponentContext, error) {
-	c := fake.NewClientBuilder().WithScheme(newFakeRuntimeScheme()).Build()
-
-	vzTemplate := `---
-apiVersion: install.verrazzano.io/v1alpha1
-kind: Verrazzano
-metadata:
-  name: test-verrazzano
-  namespace: default
-spec:
-  version: 1.1.0
-  profile: dev
-  components:
-    elasticsearch:
-      enabled: true
-status:
-  version: 1.0.0
-`
-	vzObject := vzapi.Verrazzano{}
-	if err := createObjectFromTemplate(&vzObject, vzTemplate, nil); err != nil {
-		return nil, err
-	}
-
-	return spi.NewFakeContext(c, &vzObject, false), nil
-}
-
-// createPod creates a k8s pod
-func createPod(cli client.Client) {
-	_ = cli.Create(context.TODO(), newPod())
-}
-
-func newPod() *corev1.Pod {
-	labels := map[string]string{
-		"test-label-name": "test-label-value",
-	}
-	return &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "simple-pod",
-			Namespace: "test-namespace-name",
-			Labels:    labels,
-		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name: "test-ready-container-name",
-					Ports: []corev1.ContainerPort{
-						{
-							ContainerPort: 42,
-							Name:          "test-ready-port-name",
-						},
-					},
-				},
-				{
-					Name: "test-not-ready-container-name",
-					Ports: []corev1.ContainerPort{
-						{
-							ContainerPort: 777,
-							Name:          "test-not-ready-port-name",
-						},
-					},
-				},
-			},
-		},
-		Status: corev1.PodStatus{
-			ContainerStatuses: []corev1.ContainerStatus{
-				{
-					Name:  "test-ready-container-name",
-					Ready: true,
-				},
-				{
-					Name:  "test-not-ready-container-name",
-					Ready: false,
-				},
-			},
-		},
-	}
-}
-
-func createElasticsearchPod(cli client.Client, portName string) {
-	labels := map[string]string{
-		"app": "system-es-master",
-	}
-	pod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "es-pod",
-			Namespace: "verrazzano-system",
-			Labels:    labels,
-		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name: "es-master",
-					Ports: []corev1.ContainerPort{
-						{
-							ContainerPort: 42,
-							Name:          portName,
-						},
-					},
-				},
-			},
-		},
-		Status: corev1.PodStatus{
-			ContainerStatuses: []corev1.ContainerStatus{
-				{
-					Name:  "es-master",
-					Ready: true,
-				},
-			},
-		},
-	}
-	_ = cli.Create(context.TODO(), pod)
-}
-
-var fakeExecScenarioNames = []string{}
-var fakeExecScenarioIndex = 0
-
-// fakeExecCommand is used to fake command execution.
-// The TestFakeExecHandler test is executed as a test.
-// The test scenario is communicated using the TEST_FAKE_EXEC_SCENARIO environment variable.
-// The value of that variable is derrived from fakeExecScenarioNames at fakeExecScenarioIndex
-// The fakeExecScenarioIndex is incremented after every invocation.
-func fakeExecCommand(command string, args ...string) *exec.Cmd {
-	cs := []string{"-test.run=TestFakeExecHandler", "--", command}
-	cs = append(cs, args...)
-	firstArg := os.Args[0]
-	cmd := exec.Command(firstArg, cs...)
-	cmd.Env = []string{
-		fmt.Sprintf("TEST_FAKE_EXEC_SCENARIO=%s", fakeExecScenarioNames[fakeExecScenarioIndex]),
-	}
-	fakeExecScenarioIndex++
-	return cmd
-}
-
 // TestFakeExecHandler is a test intended to be use to handle fake command execution
 // See the fakeExecCommand function.
 // When this test is invoked normally no TEST_FAKE_EXEC_SCENARIO is present
@@ -1292,27 +1149,6 @@ func updateUnstructuredFromYAMLTemplate(uns *unstructured.Unstructured, template
 		return err
 	}
 	return nil
-}
-
-// createResourceFromTemplate builds a resource by merging the data with the template and then
-// stores the resource using the provided client.
-func createResourceFromTemplate(cli client.Client, obj client.Object, template string, data interface{}) error {
-	if err := createObjectFromTemplate(obj, template, data); err != nil {
-		return err
-	}
-	if err := cli.Create(context.TODO(), obj); err != nil {
-		return err
-	}
-	return nil
-}
-
-// createObjectFromTemplate builds an object by merging the data with the template
-func createObjectFromTemplate(obj runtime.Object, template string, data interface{}) error {
-	uns := unstructured.Unstructured{}
-	if err := updateUnstructuredFromYAMLTemplate(&uns, template, data); err != nil {
-		return err
-	}
-	return runtime.DefaultUnstructuredConverter.FromUnstructured(uns.Object, obj)
 }
 
 // TestAssociateHelmObjectToThisRelease tests labelling/annotating objects that will be imported to a helm chart
@@ -1515,10 +1351,12 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	falseValue := false
 	vz.Spec.Components = vzapi.ComponentSpec{
-		Console:    &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-		Fluentd:    &vzapi.FluentdComponent{Enabled: &falseValue},
-		Prometheus: &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-		Grafana:    &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Console:       &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Fluentd:       &vzapi.FluentdComponent{Enabled: &falseValue},
+		Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &falseValue},
 	}
 	ctx := spi.NewFakeContext(c, vz, false)
 	assert.True(t, isVerrazzanoReady(ctx))

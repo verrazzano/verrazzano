@@ -204,9 +204,6 @@ func TestGetCertificateNames(t *testing.T) {
 				},
 				Grafana:    &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &vmiEnabled}},
 				Prometheus: &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &vmiEnabled}},
-				Kibana:     &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &vmiEnabled}},
-				Elasticsearch: &vzapi.ElasticsearchComponent{
-					Enabled: &vmiEnabled},
 			},
 		},
 	}
@@ -220,11 +217,9 @@ func TestGetCertificateNames(t *testing.T) {
 	vmiEnabled = true
 	vz.Spec.Components.Grafana.Enabled = &vmiEnabled
 	vz.Spec.Components.Prometheus.Enabled = &vmiEnabled
-	vz.Spec.Components.Kibana.Enabled = &vmiEnabled
-	vz.Spec.Components.Elasticsearch.Enabled = &vmiEnabled
 
 	certNames = vzComp.GetCertificateNames(ctx)
-	assert.Len(t, certNames, 5, "Unexpected number of cert names")
+	assert.Len(t, certNames, 3, "Unexpected number of cert names")
 }
 
 // TestUpgrade tests the Verrazzano Upgrade call; simple wrapper exercise, more detailed testing is done elsewhere
@@ -466,50 +461,6 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "resize pvc in ESInstallArgs",
-			old: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Elasticsearch: &vzapi.ElasticsearchComponent{
-							ESInstallArgs: []vzapi.InstallArgs{
-								{
-									Name:  "nodes.data.requests.storage",
-									Value: "1Gi",
-								},
-							},
-						},
-					},
-				},
-			},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Elasticsearch: &vzapi.ElasticsearchComponent{
-							ESInstallArgs: []vzapi.InstallArgs{
-								{
-									Name:  "nodes.data.requests.storage",
-									Value: "2Gi",
-								},
-							},
-						},
-					},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "disable-opensearch",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &disabled},
-					},
-				},
-			},
-			wantErr: true,
-		},
-		{
 			name: "disable-console",
 			old:  &vzapi.Verrazzano{},
 			new: &vzapi.Verrazzano{
@@ -520,21 +471,6 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 				},
 			},
 			wantErr: true,
-		},
-		{
-			// Change to OS installargs allowed, persistence changes are supported
-			name: "change-os-installargs",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Elasticsearch: &vzapi.ElasticsearchComponent{
-							ESInstallArgs: []vzapi.InstallArgs{{Name: "foo", Value: "bar"}},
-						},
-					},
-				},
-			},
-			wantErr: false,
 		},
 		{
 			name: "disable-grafana",
@@ -555,18 +491,6 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						Prometheus: &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &disabled}},
-					},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "disable-osd",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Kibana: &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &disabled}},
 					},
 				},
 			},
