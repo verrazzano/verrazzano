@@ -12,7 +12,7 @@ pipeline {
 
     agent {
         docker {
-            image "${EXPERIMENTAL_RUNNER_DOCKER_IMAGE}"
+            image "${RUNNER_DOCKER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
@@ -32,6 +32,10 @@ pipeline {
         string (name: 'VERSION_FOR_UPGRADE',
                 defaultValue: 'NONE',
                 description: 'This is the Verrazzano version for Upgrade.  By default, the specified version will be the latest minor release candidate',
+                trim: true)
+        string (name: 'IS_TRIGGERED_MANUALLY',
+                defaultValue: 'YES',
+                description: 'This flag is used to test upgrade within existing releases. the default value is set to YES to enable users to trigger customized version upgrades. Default: YES',
                 trim: true)
         string (name: 'GIT_COMMIT_FOR_UPGRADE',
                 defaultValue: 'NONE',
@@ -309,10 +313,11 @@ pipeline {
 
                     if(VERSION_FOR_UPGRADE == "NONE"){
                         VERSION_FOR_UPGRADE = VERRAZZANO_DEV_VERSION
-                    }
-                    if(params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "master"){
+                    } else if(params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "master"){
                        VERRAZZANO_DEV_VERSION = params.VERSION_FOR_UPGRADE
                     }
+
+
 
                     sh"""
                     echo VERRAZZANO_DEV_VERSION: "${VERRAZZANO_DEV_VERSION}"
@@ -826,12 +831,15 @@ def emitJobMetrics() {
 def getPlatformOperatorURLForNextRelease(upgradeTargetVersion){
     def operatorURL = "https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml"
 
-        if(upgradeTargetVersion != "master"){
+        if(upgradeTargetVersion != "master" && params.IS_TRIGGERED_MANUALLY != "YES"){
             def latestReleaseTagSplit = upgradeTargetVersion.split("\\.")
             def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
-           // operatorURL = "https://github.com/verrazzano/verrazzano/releases/download/v${upgradeTargetVersion}/operator.yaml"
+
               operatorURL = "https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/release-${latestReleaseBranch}/operator.yaml"
+        }else if(params.IS_TRIGGERED_MANUALLY == "YES"){
+            operatorURL = "https://github.com/verrazzano/verrazzano/releases/download/v${upgradeTargetVersion}/operator.yaml"
         }
+
 
     return operatorURL
 }
@@ -883,7 +891,7 @@ def upgradeVerrazzanoScript(upgradeTargetVersion){
              kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
 
              # wait for the upgrade to complete
-             kubectl wait --timeout=25m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+             kubectl wait --timeout=35m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
              # Dump the resource to debug
              kubectl get -o yaml verrazzano/my-verrazzano || true
