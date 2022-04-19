@@ -150,7 +150,10 @@ pipeline {
                         final String fileContent = readFile(file: "${workspace}/tags.txt")
                         final List gitTags = extractReleaseTags(fileContent)
                         echo "gitTags = ${gitTags}"
-                        TARGET_UPGRADE_VERSION = gitTags.pop() - "v"
+                        def latestReleaseTag = gitTags.pop() - "v"
+                        latestReleaseTagSplit = latestReleaseTag.split("\\.")
+                        latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
+                        TARGET_UPGRADE_VERSION = latestReleaseBranch
                         allReleasesToRCJobs = addTargetUpgradeVersion(gitTags)
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
                         echo "Number of jobs to be run in parallel : ${params.N_JOBS_FOR_EACH_BATCH}"

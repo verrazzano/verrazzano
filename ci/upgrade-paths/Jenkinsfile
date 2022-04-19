@@ -829,7 +829,8 @@ def upgradePlatformOperatorScript(upgradeTargetVersion){
     def operatorURL = "https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml"
     script{
         if(upgradeTargetVersion != "master"){
-            operatorURL = "https://github.com/verrazzano/verrazzano/releases/download/v${upgradeTargetVersion}/operator.yaml"
+           // operatorURL = "https://github.com/verrazzano/verrazzano/releases/download/v${upgradeTargetVersion}/operator.yaml"
+              operatorURL = "https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/release-${upgradeTargetVersion}/operator.yaml"
         }
     }
                 sh """
