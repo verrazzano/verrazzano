@@ -30,7 +30,7 @@ pipeline {
                 description: 'This is the Verrazzano version for install.  By default, the latest Master release will be installed',
                 trim: true)
         string (name: 'VERSION_FOR_UPGRADE',
-                defaultValue: '',
+                defaultValue: 'NONE',
                 description: 'This is the Verrazzano version for Upgrade.  By default, the specified version will be the latest minor release candidate',
                 trim: true)
         string (name: 'GIT_COMMIT_FOR_UPGRADE',
@@ -307,10 +307,10 @@ pipeline {
                     // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
                     VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json | jq -r '.version'").trim()
 
-                    if(VERSION_FOR_UPGRADE == ""){
+                    if(VERSION_FOR_UPGRADE == "NONE"){
                         VERSION_FOR_UPGRADE = VERRAZZANO_DEV_VERSION
                     }
-                    if(params.VERSION_FOR_UPGRADE != "" && params.VERSION_FOR_UPGRADE != "master"){
+                    if(params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "master"){
                        VERRAZZANO_DEV_VERSION = params.VERSION_FOR_UPGRADE
                     }
 
@@ -823,16 +823,31 @@ def emitJobMetrics() {
 }
 
 
+def getPlatformOperatorURLForReleaseBranch(upgradeTargetVersion){
+    def operatorURL = "https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml"
+
+        if(upgradeTargetVersion != "master"){
+            def latestReleaseTagSplit = upgradeTargetVersion.split("\\.")
+            def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
+           // operatorURL = "https://github.com/verrazzano/verrazzano/releases/download/v${upgradeTargetVersion}/operator.yaml"
+              operatorURL = "https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/release-${latestReleaseBranch}/operator.yaml"
+        }
+
+    return operatorURL
+}
+
+def getNextPatchReleaseVersion(upgradeTargetVersion){
+
+    def latestReleaseTagSplit = upgradeTargetVersion.split("\\.")
+    int nextPatchVersion = Integer.parseInt(latestReleaseTagSplit[2]) + 1
+    def nextPatchRelease = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1] + "." + nextPatchVersion
+    return nextPatchRelease
+}
+
 def upgradePlatformOperatorScript(upgradeTargetVersion){
 
-    //def operatorURL = "https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/master/operator.yaml"
-    def operatorURL = "https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml"
-    script{
-        if(upgradeTargetVersion != "master"){
-           // operatorURL = "https://github.com/verrazzano/verrazzano/releases/download/v${upgradeTargetVersion}/operator.yaml"
-              operatorURL = "https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/release-${upgradeTargetVersion}/operator.yaml"
-        }
-    }
+           def  operatorURL = getPlatformOperatorURLForPatchRelease(upgradeTargetVersion)
+
                 sh """
                 # dump the app pods before updating the VPO so they can be compared after the VPO is updated
                 echo "Application pods before VPO update:"
@@ -854,7 +869,12 @@ def upgradePlatformOperatorScript(upgradeTargetVersion){
 }
 
 
-def upgradeVerrazzanoScript(verrazzanoTargetVersion){
+def upgradeVerrazzanoScript(upgradeTargetVersion){
+
+        if(upgradeTargetVersion !="master"){
+
+            upgradeTargetVersion = getNextPatchReleaseVersion(upgradeTargetVersion)
+        }
 
          sh """
             echo "Upgrading the Verrazzano installation to version" ${verrazzanoTargetVersion}
