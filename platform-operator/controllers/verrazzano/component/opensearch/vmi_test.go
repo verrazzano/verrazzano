@@ -149,6 +149,9 @@ func TestNewOpenSearchValuesAreCopied(t *testing.T) {
 				Storage: vmov1.Storage{
 					Size: "1Gi",
 				},
+				MasterNode: vmov1.ElasticsearchNode{
+					Replicas: 1,
+				},
 			},
 		},
 	}
