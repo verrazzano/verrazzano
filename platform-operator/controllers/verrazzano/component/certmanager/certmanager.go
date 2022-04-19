@@ -15,7 +15,6 @@ import (
 	cmclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	"html/template"
 	"io"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"net/mail"
@@ -23,6 +22,7 @@ import (
 	"path/filepath"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"strings"
+	"text/template"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
