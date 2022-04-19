@@ -77,6 +77,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 					Expect(nsListContains(namespaces.Items, "cattle-system")).To(BeTrue())
 					Expect(nsListContains(namespaces.Items, "cattle-global-data")).To(BeTrue())
 					Expect(nsListContains(namespaces.Items, "cattle-global-nt")).To(BeTrue())
+					Expect(nsListContains(namespaces.Items, "local")).To(BeTrue())
 				}
 				Expect(nsListContains(namespaces.Items, "istio-system")).To(BeTrue())
 				Expect(nsListContains(namespaces.Items, "gitlab")).To(BeFalse())
