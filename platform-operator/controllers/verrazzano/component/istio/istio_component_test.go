@@ -523,7 +523,7 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "change-ingress-affinity",
@@ -543,7 +543,7 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "change-egress-replicas",
@@ -563,7 +563,7 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "change-eggress-affinity",
@@ -583,7 +583,7 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name:    "no change",
