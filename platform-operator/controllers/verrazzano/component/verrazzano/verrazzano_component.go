@@ -33,9 +33,7 @@ const (
 
 	// Certificate names
 	verrazzanoCertificateName = "verrazzano-tls"
-	osCertificateName         = "system-tls-es-ingest"
 	grafanaCertificateName    = "system-tls-grafana"
-	osdCertificateName        = "system-tls-kibana"
 	prometheusCertificateName = "system-tls-prometheus"
 
 	verrazzanoBackupScrtName   = "verrazzano-backup"
@@ -99,7 +97,7 @@ func (c verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return verrazzanoPreUpgrade(ctx, ComponentNamespace)
 }
 
-// InstallUpgrade Verrazzano component upgrade processing
+// Upgrade Verrazzano component upgrade processing
 func (c verrazzanoComponent) Upgrade(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.Upgrade(ctx); err != nil {
 		return err

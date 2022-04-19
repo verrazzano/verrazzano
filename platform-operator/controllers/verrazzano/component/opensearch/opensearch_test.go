@@ -9,7 +9,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"os"
 	"os/exec"
 	"strings"
@@ -17,16 +16,15 @@ import (
 	"text/template"
 	"time"
 
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
-	"github.com/verrazzano/verrazzano/pkg/bom"
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
+
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	"github.com/stretchr/testify/assert"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -48,17 +46,8 @@ const (
 )
 
 var (
-	testScheme      = runtime.NewScheme()
-	pvc100Gi, _     = resource.ParseQuantity("100Gi")
-	prodESOverrides = []bom.KeyValue{
-		{Key: "elasticSearch.nodes.master.replicas", Value: "3"},
-		{Key: "elasticSearch.nodes.master.requests.memory", Value: "1.4Gi"},
-		{Key: "elasticSearch.nodes.ingest.replicas", Value: "1"},
-		{Key: "elasticSearch.nodes.ingest.requests.memory", Value: "2.5Gi"},
-		{Key: "elasticSearch.nodes.data.replicas", Value: "3"},
-		{Key: "elasticSearch.nodes.data.requests.memory", Value: "4.8Gi"},
-		{Key: "elasticSearch.nodes.data.requests.storage", Value: "50Gi"},
-		{Key: "elasticSearch.nodes.master.requests.storage", Value: "50Gi"}}
+	testScheme  = runtime.NewScheme()
+	pvc100Gi, _ = resource.ParseQuantity("100Gi")
 )
 
 func init() {
@@ -221,26 +210,6 @@ func Test_findStorageOverride(t *testing.T) {
 			}
 		})
 	}
-}
-
-func createFakeClientWithIngress() client.Client {
-
-	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-		&corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{Name: vpoconst.NGINXControllerServiceName, Namespace: globalconst.IngressNamespace},
-			Spec: corev1.ServiceSpec{
-				Type: corev1.ServiceTypeLoadBalancer,
-			},
-			Status: corev1.ServiceStatus{
-				LoadBalancer: corev1.LoadBalancerStatus{
-					Ingress: []corev1.LoadBalancerIngress{
-						{IP: "11.22.33.44"},
-					},
-				},
-			},
-		},
-	).Build()
-	return fakeClient
 }
 
 // Test_fixupElasticSearchReplicaCount tests the fixupElasticSearchReplicaCount function.

@@ -4,10 +4,7 @@
 package verrazzano
 
 import (
-	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/base64"
 	"fmt"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
@@ -30,7 +27,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -40,7 +36,6 @@ import (
 	"sigs.k8s.io/yaml"
 	"strings"
 	"testing"
-	"text/template"
 )
 
 const (
@@ -1110,45 +1105,6 @@ func TestFakeExecHandler(t *testing.T) {
 			a.Fail("Unknown test scenario provided in environment variable TEST_FAKE_EXEC_SCENARIO: %s", scenario)
 		}
 	}
-}
-
-// populateTemplate reads a template from a file and replaces values in the template from param maps
-// template - The template text
-// params - a vararg of param maps
-func populateTemplate(templateStr string, data interface{}) (string, error) {
-	hasher := sha256.New()
-	hasher.Write([]byte(templateStr))
-	name := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
-	t, err := template.New(name).Option("missingkey=error").Parse(templateStr)
-	if err != nil {
-		return "", err
-	}
-	var buf bytes.Buffer
-	err = t.ExecuteTemplate(&buf, name, data)
-	if err != nil {
-		return "", err
-	}
-	return buf.String(), nil
-}
-
-// updateUnstructuredFromYAMLTemplate updates an unstructured from a populated YAML template file.
-// uns - The unstructured to update
-// template - The template text
-// params - The param maps to merge into the template
-func updateUnstructuredFromYAMLTemplate(uns *unstructured.Unstructured, template string, data interface{}) error {
-	str, err := populateTemplate(template, data)
-	if err != nil {
-		return err
-	}
-	ybytes, err := yaml.YAMLToJSON([]byte(str))
-	if err != nil {
-		return err
-	}
-	_, _, err = unstructured.UnstructuredJSONScheme.Decode(ybytes, nil, uns)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 // TestAssociateHelmObjectToThisRelease tests labelling/annotating objects that will be imported to a helm chart

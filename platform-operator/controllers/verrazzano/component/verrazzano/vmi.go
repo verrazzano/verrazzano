@@ -134,20 +134,6 @@ func setStorageSize(storage *ResourceRequestValues, storageObject *vmov1.Storage
 	}
 }
 
-func hasNodeStorageOverride(cr *vzapi.Verrazzano, override string) bool {
-	openSearch := cr.Spec.Components.Elasticsearch
-	if openSearch == nil {
-		return false
-	}
-	for _, arg := range openSearch.ESInstallArgs {
-		if arg.Name == override {
-			return true
-		}
-	}
-
-	return false
-}
-
 func setupSharedVMIResources(ctx spi.ComponentContext) error {
 	err := ensureVMISecret(ctx.Client())
 	if err != nil {

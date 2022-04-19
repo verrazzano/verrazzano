@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"os/exec"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
@@ -38,11 +37,6 @@ import (
 const (
 	esHelmValuePrefixFormat = "elasticSearch.%s"
 
-	workloadName  = "system-es-master"
-	containerName = "es-master"
-	portName      = "http"
-	indexPattern  = "verrazzano-*"
-
 	tmpFilePrefix        = "verrazzano-overrides-"
 	tmpSuffix            = "yaml"
 	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
@@ -51,20 +45,14 @@ const (
 	fluentDaemonset       = "fluentd"
 	nodeExporterDaemonset = "node-exporter"
 
-	esDataDeployment            = "vmi-system-es-data"
-	esIngestDeployment          = "vmi-system-es-ingest"
 	grafanaDeployment           = "vmi-system-grafana"
-	kibanaDeployment            = "vmi-system-kibana"
 	prometheusDeployment        = "vmi-system-prometheus-0"
 	verrazzanoConsoleDeployment = "verrazzano-console"
 	vmoDeployment               = "verrazzano-monitoring-operator"
-
-	esMasterStatefulset = "vmi-system-es-master"
 )
 
 var (
 	// For Unit test purposes
-	execCommand   = exec.Command
 	writeFileFunc = ioutil.WriteFile
 )
 
