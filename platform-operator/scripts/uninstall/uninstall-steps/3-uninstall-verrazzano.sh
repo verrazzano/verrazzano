@@ -154,6 +154,9 @@ function delete_kube_state_metrics {
   if helm status kube-state-metrics --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
     if ! helm uninstall kube-state-metrics --namespace "${VERRAZZANO_MONITORING_NS}" ; then
       error "Failed to uninstall kube-state-metrics."
+    fi
+  fi
+}
 
 function delete_prometheus_node_exporter {
   log "Uninstall the Prometheus node-exporter"
