@@ -7,10 +7,13 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -181,7 +184,7 @@ func appendVMIOverrides(effectiveCR *vzapi.Verrazzano, overrides *vmiValues, sto
 // ExportVmoHelmChart adds necessary annotations to verrazzano-monitoring-operator objects which allows them to be
 // managed by the verrazzano-monitoring-operator helm chart.  This is needed for the case when VMO was
 // previously installed by the verrazzano helm charrt.
-/* func ExportVmoHelmChart(ctx spi.ComponentContext) error {
+func ExportVmoHelmChart(ctx spi.ComponentContext) error {
 	releaseName := types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}
 	managedResources := getHelmManagedResources()
 	for _, managedResource := range managedResources {
@@ -211,7 +214,7 @@ func reassociateResources(ctx spi.ComponentContext) error {
 // VMO helm chart
 func getHelmManagedResources() []common.HelmManagedResource {
 	return []common.HelmManagedResource{
-		{Obj: &appsv1.Deployment{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator", Namespace: ComponentNamespace}},
+		// {Obj: &appsv1.Deployment{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator", Namespace: ComponentNamespace}},
 		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-config", Namespace: ComponentNamespace}},
 		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator", Namespace: ComponentNamespace}},
 		{Obj: &corev1.ServiceAccount{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator", Namespace: ComponentNamespace}},
@@ -223,4 +226,3 @@ func getHelmManagedResources() []common.HelmManagedResource {
 		{Obj: &rbacv1.ClusterRoleBinding{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-get-nodes"}},
 	}
 }
-*/

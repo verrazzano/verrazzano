@@ -14,8 +14,6 @@ alertmanager:
 prometheusOperator:
   admissionWebhooks:
     enabled: true
-    certManager:
-      enabled: true
     patch:
       enabled: true
   tls:

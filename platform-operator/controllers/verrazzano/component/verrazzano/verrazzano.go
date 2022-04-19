@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os/exec"
-	"strconv"
 	"strings"
 	"time"
 
@@ -105,13 +104,15 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 				Namespace: ComponentNamespace,
 			})
 	}
-	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments,
-			types.NamespacedName{
-				Name:      kibanaDeployment,
-				Namespace: ComponentNamespace,
-			})
-	}
+	/*
+		if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
+			deployments = append(deployments,
+				types.NamespacedName{
+					Name:      kibanaDeployment,
+					Namespace: ComponentNamespace,
+				})
+		}
+	*/
 	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments,
 			types.NamespacedName{
@@ -119,63 +120,65 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 				Namespace: ComponentNamespace,
 			})
 	}
-	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
-		if ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
-			esInstallArgs := ctx.EffectiveCR().Spec.Components.Elasticsearch.ESInstallArgs
-			for _, args := range esInstallArgs {
-				if args.Name == "nodes.data.replicas" {
-					replicas, _ := strconv.Atoi(args.Value)
-					for i := 0; replicas > 0 && i < replicas; i++ {
-						deployments = append(deployments,
-							types.NamespacedName{
-								Name:      fmt.Sprintf("%s-%d", esDataDeployment, i),
-								Namespace: ComponentNamespace,
-							})
+	/*
+		if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
+			if ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
+				esInstallArgs := ctx.EffectiveCR().Spec.Components.Elasticsearch.ESInstallArgs
+				for _, args := range esInstallArgs {
+					if args.Name == "nodes.data.replicas" {
+						replicas, _ := strconv.Atoi(args.Value)
+						for i := 0; replicas > 0 && i < replicas; i++ {
+							deployments = append(deployments,
+								types.NamespacedName{
+									Name:      fmt.Sprintf("%s-%d", esDataDeployment, i),
+									Namespace: ComponentNamespace,
+								})
+						}
+						continue
 					}
-					continue
-				}
-				if args.Name == "nodes.ingest.replicas" {
-					replicas, _ := strconv.Atoi(args.Value)
-					if replicas > 0 {
-						deployments = append(deployments,
-							types.NamespacedName{
-								Name:      esIngestDeployment,
-								Namespace: ComponentNamespace,
-							})
+					if args.Name == "nodes.ingest.replicas" {
+						replicas, _ := strconv.Atoi(args.Value)
+						if replicas > 0 {
+							deployments = append(deployments,
+								types.NamespacedName{
+									Name:      esIngestDeployment,
+									Namespace: ComponentNamespace,
+								})
+						}
 					}
 				}
 			}
 		}
-	}
-
+	*/
 	if !status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
 		return false
 	}
 
 	// Next, check statefulsets
-	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
-		if ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
-			esInstallArgs := ctx.EffectiveCR().Spec.Components.Elasticsearch.ESInstallArgs
-			for _, args := range esInstallArgs {
-				if args.Name == "nodes.master.replicas" {
-					var statefulsets []types.NamespacedName
-					replicas, _ := strconv.Atoi(args.Value)
-					if replicas > 0 {
-						statefulsets = append(statefulsets,
-							types.NamespacedName{
-								Name:      esMasterStatefulset,
-								Namespace: ComponentNamespace,
-							})
-						if !status.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulsets, 1, prefix) {
-							return false
+	/*
+		if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
+			if ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
+				esInstallArgs := ctx.EffectiveCR().Spec.Components.Elasticsearch.ESInstallArgs
+				for _, args := range esInstallArgs {
+					if args.Name == "nodes.master.replicas" {
+						var statefulsets []types.NamespacedName
+						replicas, _ := strconv.Atoi(args.Value)
+						if replicas > 0 {
+							statefulsets = append(statefulsets,
+								types.NamespacedName{
+									Name:      esMasterStatefulset,
+									Namespace: ComponentNamespace,
+								})
+							if !status.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulsets, 1, prefix) {
+								return false
+							}
 						}
+						break
 					}
-					break
 				}
 			}
 		}
-	}
-
+	*/
 	// Finally, check daemonsets
 	var daemonsets []types.NamespacedName
 	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
