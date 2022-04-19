@@ -626,6 +626,8 @@ github.com/ulikunitz/xz v0.5.5/go.mod h1:2bypXElzHzzJZwzH67Y6wb67pO62Rzfn7BSiF4A
 github.com/verrazzano/pkg v0.0.2/go.mod h1:l9utTv9KBQZlJI/HYnw2NQwisYTeHeHl82XOlCiZygM=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220324154616-c5e6f9e0fead h1:jTmfreFSIQSGI3kU8Odmy75OMz/XmRM7dVXW7wxnUfg=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220324154616-c5e6f9e0fead/go.mod h1:mzM50LGL8/NihjnqxF9JWyKBMBSGQ/UL8NLkqF5zGVQ=
+github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220411153627-17ca0f144e2b h1:+E0nED1g/AN6V9IT+IenqzadOveNubI/VnHGYHorEl0=
+github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220411153627-17ca0f144e2b/go.mod h1:kXpl4RiuS4cGhfT61BrF/XHpTZer91gH1jlPcaZ909o=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
 github.com/xlab/handysort v0.0.0-20150421192137-fb3537ed64a1/go.mod h1:QcJo0QPSfTONNIgpN5RA8prR7fF8nkF6cTWTcNerRO8=
 github.com/xlab/treeprint v0.0.0-20181112141820-a009c3971eca h1:1CFlNzQhALwjS9mBAUkycX616GzgsuYUOCHA5+HSlXI=
