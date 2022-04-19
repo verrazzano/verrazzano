@@ -28,7 +28,7 @@ func TestIsEnabled(t *testing.T) {
 			// THEN the call returns true
 			name:       "Test IsEnabled when using default Verrazzano CR",
 			actualCR:   vzapi.Verrazzano{},
-			expectTrue: true,
+			expectTrue: false,
 		},
 		{
 			// GIVEN a Verrazzano custom resource with KubeStateMetrics enabled
