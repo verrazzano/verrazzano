@@ -823,7 +823,7 @@ def emitJobMetrics() {
 }
 
 
-def getPlatformOperatorURLForReleaseBranch(upgradeTargetVersion){
+def getPlatformOperatorURLForNextRelease(upgradeTargetVersion){
     def operatorURL = "https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml"
 
         if(upgradeTargetVersion != "master"){
@@ -840,7 +840,7 @@ def getPlatformOperatorURLForReleaseBranch(upgradeTargetVersion){
 
 def upgradePlatformOperatorScript(upgradeTargetVersion){
 
-           def  operatorURL = getPlatformOperatorURLForReleaseBranch(upgradeTargetVersion)
+           def  operatorURL = getPlatformOperatorURLForNextRelease(upgradeTargetVersion)
 
                 sh """
                 # dump the app pods before updating the VPO so they can be compared after the VPO is updated
@@ -866,11 +866,11 @@ def upgradePlatformOperatorScript(upgradeTargetVersion){
 def upgradeVerrazzanoScript(upgradeTargetVersion){
 
          sh """
-            echo "Upgrading the Verrazzano installation to version" ${verrazzanoTargetVersion}
+            echo "Upgrading the Verrazzano installation to version" ${upgradeTargetVersion}
              # Modify the version field in the Verrazzano CR file to be this new Verrazzano version
              cd ${GO_REPO_PATH}/verrazzano
              cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/verrazzano-upgrade-cr.yaml
-             ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${verrazzanoTargetVersion}  ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+             ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${upgradeTargetVersion}  ${WORKSPACE}/verrazzano-upgrade-cr.yaml
              # Copy upgrade CR where it will be archived
              cp ${WORKSPACE}/verrazzano-upgrade-cr.yaml ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
 
