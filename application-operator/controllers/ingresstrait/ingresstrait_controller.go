@@ -7,14 +7,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
+	"strings"
+
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
@@ -1114,7 +1115,7 @@ func buildDomainNameForWildcard(cli client.Reader, trait *vzapi.IngressTrait, su
 		return "", err
 	}
 	var IP string
-	if istio.Spec.Type == corev1.ServiceTypeLoadBalancer {
+	if istio.Spec.Type == corev1.ServiceTypeLoadBalancer || istio.Spec.Type == corev1.ServiceTypeNodePort {
 		if len(istio.Spec.ExternalIPs) > 0 {
 			IP = istio.Spec.ExternalIPs[0]
 		} else if len(istio.Status.LoadBalancer.Ingress) > 0 {
@@ -1122,19 +1123,6 @@ func buildDomainNameForWildcard(cli client.Reader, trait *vzapi.IngressTrait, su
 		} else {
 			return "", fmt.Errorf("%s is missing loadbalancer IP", istioIngressGateway)
 		}
-	} else if istio.Spec.Type == corev1.ServiceTypeNodePort {
-		// Do the equiv of the following command to get the IP
-		// kubectl -n istio-system get pods --selector app=istio-ingressgateway,istio=ingressgateway -o jsonpath='{.items[0].status.hostIP}'
-		podList := corev1.PodList{}
-		listOptions := client.MatchingLabels{"app": "istio-ingressgateway", "istio": "ingressgateway"}
-		err := cli.List(context.TODO(), &podList, listOptions)
-		if err != nil {
-			return "", err
-		}
-		if len(podList.Items) == 0 {
-			return "", errors.New("Unable to find Istio ingressway pod")
-		}
-		IP = podList.Items[0].Status.HostIP
 	} else {
 		return "", fmt.Errorf("Unsupported service type %s for istio_ingress", string(istio.Spec.Type))
 	}
