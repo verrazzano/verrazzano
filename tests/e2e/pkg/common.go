@@ -510,8 +510,6 @@ func GetImagePrefix() string {
 	}
 	if len(privateRepo) > 0 {
 		imagePrefix += "/" + privateRepo
-	} else {
-		imagePrefix += "/verrazzano"
 	}
 	return imagePrefix
 }
