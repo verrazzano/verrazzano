@@ -49,8 +49,8 @@ var (
 	}
 	imagePrefix              = pkg.GetImagePrefix()
 	expectedPromOperatorArgs = []string{
-		"--prometheus-default-base-image=" + imagePrefix + "/prometheus",
-		"--alertmanager-default-base-image=" + imagePrefix + "/alertmanager",
+		"--prometheus-default-base-image=" + imagePrefix + "/verrazzano/prometheus",
+		"--alertmanager-default-base-image=" + imagePrefix + "/verrazzano/alertmanager",
 	}
 )
 
