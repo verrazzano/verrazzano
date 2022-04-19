@@ -72,7 +72,27 @@ const (
 	letsEncryptStageEndpoint = "https://acme-staging-v02.api.letsencrypt.org/directory"
 
 	certRequestNameAnnotation = "cert-manager.io/certificate-name"
+
+	// InstancePrincipal is used for instance principle auth type
+	instancePrincipal authenticationType = "instance_principal"
 )
+
+type authenticationType string
+
+// OCI DNS Secret Auth
+type authData struct {
+	Region      string             `json:"region"`
+	Tenancy     string             `json:"tenancy"`
+	User        string             `json:"user"`
+	Key         string             `json:"key"`
+	Fingerprint string             `json:"fingerprint"`
+	AuthType    authenticationType `json:"authtype"`
+}
+
+// OCI DNS Secret Auth Wrapper
+type ociAuth struct {
+	Auth authData `json:"auth"`
+}
 
 var (
 	// Statically define the well-known Let's Encrypt CA Common Names
@@ -103,7 +123,7 @@ spec:
     solvers:
       - dns01:
           ocidns:
-            useInstancePrincipals: false
+            useInstancePrincipals: {{ .UseInstancePrincipals}}
             serviceAccountSecretRef:
               name: {{.SecretName}}
               key: "oci.yaml"
@@ -142,12 +162,13 @@ var ociDNSSnippet = strings.Split(`ocidns:
 
 // Template data for ClusterIssuer
 type templateData struct {
-	ClusterIssuerName string
-	AcmeSecretName    string
-	Email             string
-	Server            string
-	SecretName        string
-	OCIZoneName       string
+	AcmeSecretName        string
+	ClusterIssuerName     string
+	Email                 string
+	Server                string
+	SecretName            string
+	OCIZoneName           string
+	UseInstancePrincipals bool
 }
 
 // CertIssuerType identifies the certificate issuer type
@@ -578,6 +599,17 @@ func createACMEIssuerObject(compContext spi.ComponentContext) (*unstructured.Uns
 		Server:            acmeServer,
 		SecretName:        ociDNSConfigSecret,
 		OCIZoneName:       ociDNSZoneName,
+	}
+
+	for key := range secret.Data {
+		var authProp ociAuth
+		if err := yaml.Unmarshal(secret.Data[key], &authProp); err != nil {
+			return nil, err
+		}
+		if authProp.Auth.AuthType == instancePrincipal {
+			clusterIssuerData.UseInstancePrincipals = true
+			break
+		}
 	}
 
 	ciObject, err := createAcmeClusterIssuer(compContext.Log(), clusterIssuerData)
