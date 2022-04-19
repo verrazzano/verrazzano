@@ -267,11 +267,6 @@ pipeline {
 
                 stage('Run Acceptance Tests Infra') {
                     parallel {
-                        stage('opensearch-topology') {
-                            steps {
-                                runGinkgoRandomize('opensearch/topology')
-                            }
-                        }
                         stage('verify-scripts') {
                             steps {
                                 runGinkgoRandomize('scripts', "${KUBECONFIG}")
@@ -341,6 +336,11 @@ pipeline {
 
                 stage('Run Acceptance Tests Deployments') {
                     parallel {
+                        stage('opensearch-topology') {
+                            steps {
+                                runGinkgoRandomize('opensearch/topology')
+                            }
+                        }
                         stage('istio authorization policy') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"

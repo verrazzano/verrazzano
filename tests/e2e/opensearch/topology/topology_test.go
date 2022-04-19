@@ -19,78 +19,120 @@ import (
 )
 
 const (
-	namespace    = "verrazzano-system"
-	vmiName      = "system"
-	timeout      = 15 * time.Minute
-	pollInterval = 15 * time.Second
+	systemNamespace = "verrazzano-system"
+	verrazzanoName  = "verrazzano"
+	vmiName         = "testing"
+	timeout         = 15 * time.Minute
+	pollInterval    = 15 * time.Second
 )
 
-var t = framework.NewTestFramework("topology")
-var client *vmoClient.Clientset
+var (
+	t             = framework.NewTestFramework("topology")
+	client        *vmoClient.Clientset
+	kubeClientSet *kubernetes.Clientset
+	namespace     string
+)
 
 var _ = t.BeforeSuite(func() {
 	var err error
 	client, err = vmiClientFromConfig()
 	Expect(err).To(BeNil())
+	kubeClientSet, err = k8sutil.GetKubernetesClientset()
+	Expect(err).To(BeNil())
+	namespace = pkg.GenerateNamespace("vmi")
+	nsLabels := map[string]string{
+		"verrazzano-managed": "true",
+		"istio-injection":    "enabled"}
+	_, err = pkg.CreateNamespace(namespace, nsLabels)
+	Expect(err).To(BeNil())
+	err = copySecret(verrazzanoName, systemNamespace, namespace)
+	Expect(err).To(BeNil())
+	err = copySecret("verrazzano-local-registration", systemNamespace, namespace)
+	Expect(err).To(BeNil())
+	_, err = kubeClientSet.CoreV1().ServiceAccounts(namespace).Create(context.TODO(), &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "verrazzano-monitoring-operator",
+		},
+	}, metav1.CreateOptions{})
+})
+
+var _ = t.AfterSuite(func() {
+	Eventually(func() bool {
+		if err := client.VerrazzanoV1().VerrazzanoMonitoringInstances(namespace).Delete(context.TODO(), vmiName, metav1.DeleteOptions{}); err != nil {
+			t.Logs.Errorf("failed to delete vmi: %v", err)
+			return false
+		}
+
+		if err := pkg.DeleteNamespace(namespace); err != nil {
+			t.Logs.Errorf("failed to cleanup namespace: %v", err)
+			return false
+		}
+		return true
+	}).Should(BeTrue())
 })
 
 var _ = t.Describe("OpenSearch Cluster Topology", func() {
-	if pkg.IsDevProfile() {
-		t.It("Scales the dev profile", func() {
-			eventuallyPodReady(1, 0, 0)
-			Eventually(func() bool {
-				vmi, err := getVMI()
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("failed to get vmi from dev profile: %v", err))
-					return false
-				}
-				vmi.Spec.Elasticsearch.MasterNode.Replicas = 3
-				vmi.Spec.Elasticsearch.MasterNode.Roles = []vmov1.NodeRole{
-					vmov1.MasterRole,
-					vmov1.DataRole,
-					vmov1.IngestRole,
-				}
-				if err := patchVMI(vmi); err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("failed to patch vmi from dev profile: %v", err))
-				}
-				return true
-			}, timeout, pollInterval).Should(BeTrue())
-			// 3 of each node role is expected, since we have a 3-node cluster with all roles on each node
-			eventuallyPodReady(3, 3, 3)
-		})
-	} else {
-		t.It("Adds node groups to the prod profile", func() bool {
-			eventuallyPodReady(3, 3, 1)
-			vmi, err := getVMI()
+	t.It("can scale the cluster", func() {
+		// Initialize the single node cluster
+		Eventually(func() bool {
+			_, err := createSingleNodeVMI()
 			if err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf("failed to get vmi from prod profile: %v", err))
+				t.Logs.Errorf("failed to create single node cluster: %v", err)
 				return false
 			}
-			vmi.Spec.Elasticsearch.Nodes = append(vmi.Spec.Elasticsearch.Nodes, vmov1.ElasticsearchNode{
-				Name:     "data-ingest",
-				Replicas: 3,
-				Roles: []vmov1.NodeRole{
-					vmov1.DataRole,
-					vmov1.IngestRole,
-				},
-				Resources: vmov1.Resources{
-					RequestMemory: "48Mi",
-				},
-				Storage: &vmov1.Storage{
-					Size: "3Gi",
-				},
-			})
-			if err := patchVMI(vmi); err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf("failed to patch vmi from prod profile: %v", err))
-			}
-			// prod has 3 master, 3 data, 1 ingest nodes. add 3 data+ingest nodes and you have 3 master, 6 data, and 4 ingest nodes.
-			eventuallyPodReady(3, 6, 4)
 			return true
+		}, timeout, pollInterval).Should(BeTrue())
+		eventuallyPodsReady(1, 1, 1)
+
+		t.Logs.Info("Adding 2 master/data/ingest nodes")
+		eventuallyUpdateVMI(t, func(vmi *vmov1.VerrazzanoMonitoringInstance) {
+			vmi.Spec.Elasticsearch.MasterNode.Replicas = 3
 		})
-	}
+		eventuallyPodsReady(3, 3, 3)
+
+		t.Logs.Info("Adding 3 data/ingest nodes and 3 master nodes")
+		eventuallyUpdateVMI(t, func(vmi *vmov1.VerrazzanoMonitoringInstance) {
+			vmi.Spec.Elasticsearch.Nodes = []vmov1.ElasticsearchNode{
+				{
+					Name:     "data-ingest",
+					Replicas: 3,
+					Roles: []vmov1.NodeRole{
+						vmov1.DataRole,
+						vmov1.IngestRole,
+					},
+					Resources: vmov1.Resources{
+						RequestMemory: "48Mi",
+					},
+					Storage: &vmov1.Storage{
+						Size: "5Gi",
+					},
+				},
+				{
+					Name:     "master",
+					Replicas: 4,
+					Roles: []vmov1.NodeRole{
+						vmov1.MasterRole,
+					},
+					Resources: vmov1.Resources{
+						RequestMemory: "48Mi",
+					},
+					Storage: &vmov1.Storage{
+						Size: "5Gi",
+					},
+				},
+			}
+		})
+		eventuallyPodsReady(7, 6, 6)
+
+		t.Logs.Info("Removing 3 master/data/ingest nodes")
+		eventuallyUpdateVMI(t, func(vmi *vmov1.VerrazzanoMonitoringInstance) {
+			vmi.Spec.Elasticsearch.MasterNode.Replicas = 0
+		})
+		eventuallyPodsReady(4, 3, 3)
+	})
 })
 
-func eventuallyPodReady(master, data, ingest int) {
+func eventuallyPodsReady(master, data, ingest int) {
 	Eventually(func() bool {
 		if err := verifyReadyReplicas(master, data, ingest); err != nil {
 			t.Logs.Errorf("pods not ready: %v", err)
@@ -101,17 +143,13 @@ func eventuallyPodReady(master, data, ingest int) {
 }
 
 func verifyReadyReplicas(master, data, ingest int) error {
-	client, err := k8sutil.GetKubernetesClientset()
-	if err != nil {
+	if err := assertPodsFound(kubeClientSet, master, labelSelector("master")); err != nil {
 		return err
 	}
-	if err := assertPodsFound(client, master, labelSelector("master")); err != nil {
+	if err := assertPodsFound(kubeClientSet, data, labelSelector("data")); err != nil {
 		return err
 	}
-	if err := assertPodsFound(client, data, labelSelector("data")); err != nil {
-		return err
-	}
-	if err := assertPodsFound(client, ingest, labelSelector("ingest")); err != nil {
+	if err := assertPodsFound(kubeClientSet, ingest, labelSelector("ingest")); err != nil {
 		return err
 	}
 	return nil
@@ -150,11 +188,79 @@ func vmiClientFromConfig() (*vmoClient.Clientset, error) {
 	return vmoClient.NewForConfig(config)
 }
 
+func eventuallyUpdateVMI(t *framework.TestFramework, updaterFunc func(vmi *vmov1.VerrazzanoMonitoringInstance)) {
+	Eventually(func() bool {
+		vmi, err := getVMI()
+		if err != nil {
+			t.Logs.Errorf("failed to get vmi: %v", err)
+			return false
+		}
+		updaterFunc(vmi)
+		if err := patchVMI(vmi); err != nil {
+			t.Logs.Errorf("failed to patch vmi: %v", err)
+			return false
+		}
+		return true
+	}).Should(BeTrue())
+}
+
 func getVMI() (*vmov1.VerrazzanoMonitoringInstance, error) {
 	return client.VerrazzanoV1().VerrazzanoMonitoringInstances(namespace).Get(context.TODO(), vmiName, metav1.GetOptions{})
 }
 
 func patchVMI(vmi *vmov1.VerrazzanoMonitoringInstance) error {
 	_, err := client.VerrazzanoV1().VerrazzanoMonitoringInstances(namespace).Update(context.TODO(), vmi, metav1.UpdateOptions{})
+	return err
+}
+
+func createSingleNodeVMI() (*vmov1.VerrazzanoMonitoringInstance, error) {
+	vmi := &vmov1.VerrazzanoMonitoringInstance{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: vmiName,
+			Labels: map[string]string{
+				"k8s-app":              "verrazzano.io",
+				"managed-cluster-name": "",
+				"verrazzano.binding":   vmiName,
+			},
+		},
+		Spec: vmov1.VerrazzanoMonitoringInstanceSpec{
+			SecretsName: verrazzanoName,
+			Elasticsearch: vmov1.Elasticsearch{
+				Enabled: true,
+				MasterNode: vmov1.ElasticsearchNode{
+					Name:     "es-master",
+					Replicas: 1,
+					Roles: []vmov1.NodeRole{
+						vmov1.MasterRole,
+						vmov1.DataRole,
+						vmov1.IngestRole,
+					},
+					Storage: &vmov1.Storage{
+						Size: "5Gi",
+					},
+					Resources: vmov1.Resources{
+						RequestMemory: "48Mi",
+					},
+				},
+			},
+		},
+	}
+
+	return client.VerrazzanoV1().VerrazzanoMonitoringInstances(namespace).Create(context.TODO(), vmi, metav1.CreateOptions{})
+}
+
+func copySecret(secretName, src, dest string) error {
+	secret, err := kubeClientSet.CoreV1().Secrets(src).Get(context.TODO(), secretName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	secretCopy := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: dest,
+		},
+		Data: secret.Data,
+	}
+	_, err = kubeClientSet.CoreV1().Secrets(dest).Create(context.TODO(), secretCopy, metav1.CreateOptions{})
 	return err
 }
