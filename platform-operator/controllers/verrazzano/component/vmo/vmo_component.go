@@ -4,6 +4,7 @@
 package vmo
 
 import (
+	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -11,7 +12,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"path/filepath"
@@ -42,7 +42,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall: true,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
 			AppendOverridesFunc:     appendVmoOverrides,
-			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
+			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
 			Dependencies:            []string{nginx.ComponentName},
 		},
 	}
@@ -63,32 +63,18 @@ func (c vmoComponent) IsReady(context spi.ComponentContext) bool {
 
 // PreInstall VMO pre-install processing
 func (c vmoComponent) PreInstall(context spi.ComponentContext) error {
-	//	found, err := helmcli.IsReleaseInstalled(vzconst.Verrazzano, vzconst.VerrazzanoSystemNamespace)
-	//	if err != nil {
-	//		return context.Log().ErrorfNewErr("Failed searching for release: %v", err)
-	//	}
-	//	if found {
-	return reassociateResources(context)
-	//	}
-	//
-	//	return nil
+	found, err := helmcli.IsReleaseInstalled(vzconst.Verrazzano, vzconst.VerrazzanoSystemNamespace)
+	if err != nil {
+		return context.Log().ErrorfNewErr("Failed searching for release: %v", err)
+	}
+	if found {
+		return reassociateResources(context)
+	}
+
+	return nil
 }
 
 // PreUpgrade VMO pre-upgrade processing
 func (c vmoComponent) PreUpgrade(context spi.ComponentContext) error {
-	//	found, err := helmcli.IsReleaseInstalled(vzconst.Verrazzano, vzconst.VerrazzanoSystemNamespace)
-	//	if err != nil {
-	//		return context.Log().ErrorfNewErr("Failed searching for release: %v", err)
-	//	}
-	//	if found {
-	if err := reassociateResources(context); err != nil {
-		return err
-	}
-	//	}
 	return common.ApplyCRDYaml(context, config.GetHelmVmoChartsDir())
 }
-
-// PostUpgrade VMO post-upgrade processing
-//func (c vmoComponent) PostUpgrade(context spi.ComponentContext) error {
-//	return common.ApplyCRDYaml(context, config.GetHelmVmoChartsDir())
-//}

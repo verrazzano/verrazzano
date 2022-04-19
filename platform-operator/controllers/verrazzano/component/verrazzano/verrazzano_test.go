@@ -1512,7 +1512,7 @@ func TestIsReadySecretNotReady(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
-			Name:      vmoDeployment,
+			Name:      verrazzanoConsoleDeployment,
 		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
@@ -1551,18 +1551,6 @@ func TestIsReady(t *testing.T) {
 			UpdatedReplicas:   1,
 		},
 	},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      vmoDeployment,
-				Labels:    map[string]string{"k8s-app": vmoDeployment},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,

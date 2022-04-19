@@ -60,7 +60,6 @@ const (
 	kibanaDeployment            = "vmi-system-kibana"
 	prometheusDeployment        = "vmi-system-prometheus-0"
 	verrazzanoConsoleDeployment = "verrazzano-console"
-	vmoDeployment               = "verrazzano-monitoring-operator"
 
 	esMasterStatefulset = "vmi-system-es-master"
 )
