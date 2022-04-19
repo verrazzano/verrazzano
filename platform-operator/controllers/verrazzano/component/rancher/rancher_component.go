@@ -199,13 +199,12 @@ func (r rancherComponent) Install(ctx spi.ComponentContext) error {
 	c := ctx.Client()
 	// Set MKNOD Cap on Rancher deployment
 	if err := patchRancherDeployment(c); err != nil {
-		log.Progressf("Error patching Rancher deployment: %s", err.Error())
-		return err
+		return log.ErrorfThrottledNewErr("Error patching Rancher deployment: %s", err.Error())
 	}
 	log.Debugf("Patched Rancher deployment to support MKNOD")
 	// Annotate Rancher ingress for NGINX/TLS
 	if err := patchRancherIngress(c, ctx.EffectiveCR()); err != nil {
-		return err
+		return log.ErrorfThrottledNewErr("Error patching Rancher ingress: %s", err.Error())
 	}
 	log.Debugf("Patched Rancher ingress")
 
