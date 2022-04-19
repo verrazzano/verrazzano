@@ -262,6 +262,7 @@ pipeline {
     }
     post {
         success {
+            // WARNING: Only do this object storage update here, do not copy to other jobs
             storePipelineArtifacts()
         }
         failure {
@@ -290,6 +291,7 @@ def isPagerDutyEnabled() {
 }
 
 // Called in final post success block of pipeline
+// WARNING: Only do this object storage update here, do not copy to other jobs
 def storePipelineArtifacts() {
     script {
         // If this was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of the branch
