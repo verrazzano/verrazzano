@@ -396,6 +396,7 @@ def allReleasesToRCStage(job) {
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERSION_FOR_INSTALL', value: job[0]),
                                     string(name: 'VERSION_FOR_UPGRADE', value: job[1]),
+                                    string(name: 'IS_TRIGGERED_MANUALLY', value: "NO"),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                     string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
