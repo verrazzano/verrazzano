@@ -25,7 +25,7 @@ var t = framework.NewTestFramework("verify")
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
-	recordConfigMapCreationTS()
+	updateConfigMap()
 	beforeSuitePassed = true
 	metrics.Emit(t.Metrics.With("before_suite_elapsed_time", time.Since(start).Milliseconds()))
 })
@@ -45,40 +45,52 @@ var _ = t.AfterSuite(func() {
 	metrics.Emit(t.Metrics.With("after_suite_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-func recordConfigMapCreationTS() {
-	t.Logs.Info("Recording prometheus Cretaion timestamp")
-	t.Logs.Info("Get Prometheus configmap creation timestamp")
+func updateConfigMap() {
+	t.Logs.Info("Update prometheus configmap")
 	Eventually(func() error {
 		configMap, scrapeConfigs, configYaml, err := pkg.GetPrometheusConfig()
 		if err != nil {
 			pkg.Log(pkg.Error, fmt.Sprintf("Failed getting prometheus config: %v", err))
 			return err
 		}
-
+		testJobFound := false
+		updateMap := false
 		for _, nsc := range scrapeConfigs {
 			scrapeConfig := nsc.(map[interface{}]interface{})
 			// Change the default value of an existing default job
-			if scrapeConfig["job_name"] == "prometheus" {
+			if scrapeConfig["job_name"] == "prometheus" && scrapeConfig["scrape_interval"].(string) != vzconst.TestPrometheusJobScrapeInterval {
 				scrapeConfig["scrape_interval"] = vzconst.TestPrometheusJobScrapeInterval
-				break
+				updateMap = true
+			}
+
+			// Create test job only once
+			if scrapeConfig["job_name"] == vzconst.TestPrometheusScrapeJob {
+				testJobFound = true
 			}
 		}
-		// Add a test scrape config
-		dummyScrapConfig := make(map[interface{}]interface{})
-		dummyScrapConfig["job_name"] = vzconst.TestPrometheusScrapeJob
-		scrapeConfigs = append(scrapeConfigs, dummyScrapConfig)
-		configYaml["scrape_configs"] = scrapeConfigs
-		newConfigYaml, err := yaml.Marshal(&configYaml)
-		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Failed updating configmap yaml: %v", err))
-			return err
+
+		if !testJobFound {
+			// Add a test scrape config
+			dummyScrapConfig := make(map[interface{}]interface{})
+			dummyScrapConfig["job_name"] = vzconst.TestPrometheusScrapeJob
+			scrapeConfigs = append(scrapeConfigs, dummyScrapConfig)
+			updateMap = true
 		}
 
-		configMap.Data["prometheus.yml"] = string(newConfigYaml)
-		err = pkg.UpdateConfigMap(configMap)
-		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Failed updating configmap: %v", err))
-			return err
+		if updateMap {
+			configYaml["scrape_configs"] = scrapeConfigs
+			newConfigYaml, err := yaml.Marshal(&configYaml)
+			if err != nil {
+				pkg.Log(pkg.Error, fmt.Sprintf("Failed updating configmap yaml: %v", err))
+				return err
+			}
+
+			configMap.Data["prometheus.yml"] = string(newConfigYaml)
+			err = pkg.UpdateConfigMap(configMap)
+			if err != nil {
+				pkg.Log(pkg.Error, fmt.Sprintf("Failed updating configmap: %v", err))
+				return err
+			}
 		}
 
 		return nil
