@@ -11,18 +11,19 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
+	"net/mail"
+	"os"
+	"path/filepath"
+	"strings"
+	"text/template"
+
 	cmutil "github.com/jetstack/cert-manager/pkg/api/util"
 	cmclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	"io"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"net/mail"
-	"os"
-	"path/filepath"
 	controllerruntime "sigs.k8s.io/controller-runtime"
-	"strings"
-	"text/template"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -32,7 +33,6 @@ import (
 	certv1client "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -41,7 +41,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	crtclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
 )
@@ -55,12 +55,15 @@ const (
 	caCertificateName           = "verrazzano-ca-certificate"
 	caCertCommonName            = "verrazzano-root-ca"
 	verrazzanoClusterIssuerName = "verrazzano-cluster-issuer"
+	clusterResourceNamespaceKey = "clusterResourceNamespace"
 
 	crdDirectory  = "/cert-manager/"
 	crdInputFile  = "cert-manager.crds.yaml"
 	crdOutputFile = "output.crd.yaml"
 
-	clusterResourceNamespaceKey = "clusterResourceNamespace"
+	// ACME-related constants
+	defaultCACertificateSecretName = "verrazzano-ca-certificate-secret" //nolint:gosec //#gosec G101
+	caAcmeSecretName               = "verrazzano-cert-acme-secret"      //nolint:gosec //#gosec G101
 
 	// Valid Let's Encrypt environment values
 	letsencryptProduction    = "production"
@@ -92,6 +95,7 @@ type ociAuth struct {
 }
 
 var (
+	// Statically define the well-known Let's Encrypt CA Common Names
 	letsEncryptProductionCACommonNames = []string{"R3", "E1", "R4", "E2"}
 	letsEncryptStagingCACommonNames    = []string{"(STAGING) Artificial Apricot R3", "(STAGING) Bogus Broccoli X2", "(STAGING) Ersatz Edamame E1"}
 )
@@ -115,7 +119,7 @@ spec:
     server: "{{.Server}}"
     preferredChain: ""
     privateKeySecretRef:
-      name: verrazzano-cert-acme-secret
+      name: {{.AcmeSecretName}}
     solvers:
       - dns01:
           ocidns:
@@ -158,6 +162,7 @@ var ociDNSSnippet = strings.Split(`ocidns:
 
 // Template data for ClusterIssuer
 type templateData struct {
+	AcmeSecretName        string
 	ClusterIssuerName     string
 	Email                 string
 	Server                string
@@ -168,15 +173,6 @@ type templateData struct {
 
 // CertIssuerType identifies the certificate issuer type
 type CertIssuerType string
-
-// Define bash function here for testing purposes
-type bashFuncSig func(inArgs ...string) (string, string, error)
-
-var bashFunc bashFuncSig = vzos.RunBash
-
-func setBashFunc(f bashFuncSig) {
-	bashFunc = f
-}
 
 type getCoreV1ClientFuncType func(log ...vzlog.VerrazzanoLogger) (corev1.CoreV1Interface, error)
 
@@ -545,7 +541,10 @@ func isLetsEncryptStaging(compContext spi.ComponentContext) bool {
 	return acmeEnvironment != "" && strings.ToLower(acmeEnvironment) != "production"
 }
 
-// createOrUpdateAcmeResources creates all of the post install resources necessary for cert-manager
+//createOrUpdateAcmeResources Create or update the ACME ClusterIssuer
+// - returns OperationResultNone/error on error
+// - returns OperationResultCreated/nil if the CI is created (initial install)
+// - returns OperationResultUpdated/nil if the CI is updated
 func createOrUpdateAcmeResources(compContext spi.ComponentContext) (opResult controllerutil.OperationResult, err error) {
 	opResult = controllerutil.OperationResultNone
 	// Create a lookup object
@@ -580,7 +579,7 @@ func createACMEIssuerObject(compContext spi.ComponentContext) (*unstructured.Uns
 	}
 	// Verify that the secret exists
 	secret := v1.Secret{}
-	if err := compContext.Client().Get(context.TODO(), client.ObjectKey{Name: ociDNSConfigSecret, Namespace: ComponentNamespace}, &secret); err != nil {
+	if err := compContext.Client().Get(context.TODO(), crtclient.ObjectKey{Name: ociDNSConfigSecret, Namespace: ComponentNamespace}, &secret); err != nil {
 		return nil, compContext.Log().ErrorfNewErr("Failed to retrieve the OCI DNS config secret: %v", err)
 	}
 
@@ -595,6 +594,7 @@ func createACMEIssuerObject(compContext spi.ComponentContext) (*unstructured.Uns
 	// Create the buffer and the cluster issuer data struct
 	clusterIssuerData := templateData{
 		ClusterIssuerName: verrazzanoClusterIssuerName,
+		AcmeSecretName:    caAcmeSecretName,
 		Email:             emailAddress,
 		Server:            acmeServer,
 		SecretName:        ociDNSConfigSecret,
@@ -619,13 +619,13 @@ func createACMEIssuerObject(compContext spi.ComponentContext) (*unstructured.Uns
 func createAcmeClusterIssuer(log vzlog.VerrazzanoLogger, clusterIssuerData templateData) (*unstructured.Unstructured, error) {
 	var buff bytes.Buffer
 	// Parse the template string and create the template object
-	template, err := template.New("clusterIssuer").Parse(clusterIssuerTemplate)
+	issuerTemplate, err := template.New("clusterIssuer").Parse(clusterIssuerTemplate)
 	if err != nil {
 		return nil, log.ErrorfNewErr("Failed to parse the ClusterIssuer yaml template: %v", err)
 	}
 
 	// Execute the template object with the given data
-	err = template.Execute(&buff, &clusterIssuerData)
+	err = issuerTemplate.Execute(&buff, &clusterIssuerData)
 	if err != nil {
 		return nil, log.ErrorfNewErr("Failed to execute the ClusterIssuer template: %v", err)
 	}
@@ -647,12 +647,16 @@ func createAcmeCusterIssuerLookupObject(log vzlog.VerrazzanoLogger) (*unstructur
 
 }
 
+//createOrUpdateCAResources Create or update the CA ClusterIssuer
+// - returns OperationResultNone/error on error
+// - returns OperationResultCreated/nil if the CI is created (initial install)
+// - returns OperationResultUpdated/nil if the CI is updated
 func createOrUpdateCAResources(compContext spi.ComponentContext) (controllerutil.OperationResult, error) {
 	vzCertCA := compContext.EffectiveCR().Spec.Components.CertManager.Certificate.CA
 
 	// if the CA cert secret does not exist, create the Issuer and Certificate resources
 	secret := v1.Secret{}
-	secretKey := client.ObjectKey{Name: vzCertCA.SecretName, Namespace: vzCertCA.ClusterResourceNamespace}
+	secretKey := crtclient.ObjectKey{Name: vzCertCA.SecretName, Namespace: vzCertCA.ClusterResourceNamespace}
 	if err := compContext.Client().Get(context.TODO(), secretKey, &secret); err != nil {
 		// Create the issuer resource for CA certs
 		compContext.Log().Debug("Applying Issuer for CA cert")
@@ -775,4 +779,46 @@ func extractCommonNameFromCertSecret(secret *v1.Secret) (string, error) {
 		return "", err
 	}
 	return cert.Issuer.CommonName, nil
+}
+
+func cleanupUnusedResources(compContext spi.ComponentContext, isCAValue bool) error {
+	defaultCANotUsed := func() bool {
+		// We're not using the default CA if we're either configured for ACME or it's a Customer-provided CA
+		return !isCAValue || compContext.EffectiveCR().Spec.Components.CertManager.Certificate.CA.SecretName != defaultCACertificateSecretName
+	}
+	client := compContext.Client()
+	log := compContext.Log()
+	if isCAValue {
+		log.Oncef("Clean up ACME issuer secret")
+		// clean up ACME secret if present
+		if err := deleteObject(client, caAcmeSecretName, ComponentNamespace, &v1.Secret{}); err != nil {
+			return err
+		}
+	}
+	if defaultCANotUsed() {
+		// Issuer is either the default or Custom issuer; clean up the default Verrazzano issuer resources
+		// - self-signed Issuer object
+		// - self-signed CA certificate
+		// - self-signed secret object
+		log.Oncef("Clean up Verrazzano self-signed issuer resources")
+		if err := deleteObject(client, caSelfSignedIssuerName, ComponentNamespace, &certv1.Issuer{}); err != nil {
+			return err
+		}
+		if err := deleteObject(client, caCertificateName, ComponentNamespace, &certv1.Certificate{}); err != nil {
+			return err
+		}
+		if err := deleteObject(client, defaultCACertificateSecretName, ComponentNamespace, &v1.Secret{}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func deleteObject(client crtclient.Client, name string, namespace string, object crtclient.Object) error {
+	object.SetName(name)
+	object.SetNamespace(namespace)
+	if err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, object); err == nil {
+		return client.Delete(context.TODO(), object)
+	}
+	return nil
 }

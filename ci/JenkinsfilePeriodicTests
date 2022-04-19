@@ -166,7 +166,7 @@ pipeline {
                 stage('OCI DNS tests') {
                     steps {
                         script {
-                            def builtOCIDNS = build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                            build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
@@ -174,8 +174,6 @@ pipeline {
                                     string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                     string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
                                 ], wait: true
-                            // The OCI DNS job is the one from which we get the verrazzano images file
-                            verrazzanoImagesBuildNumber = builtOCIDNS.number
                         }
                     }
                 }
@@ -365,7 +363,7 @@ pipeline {
                 stage('Verrazzano Examples') {
                     steps {
                         script {
-                            build job: "/verrazzano-examples/${CLEAN_BRANCH_NAME}",
+                            def builtExamples = build job: "/verrazzano-examples/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -373,6 +371,8 @@ pipeline {
                                     string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                     string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
                                 ], wait: true
+                            // The verrazzano-examples job is the one from which we get the verrazzano images file
+                            verrazzanoImagesBuildNumber = builtExamples.number
                         }
                     }
                     post {
