@@ -129,6 +129,7 @@ func TestReassociateResources(t *testing.T) {
 	assert.NoError(t, err)
 	service := corev1.Service{}
 	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &service)
+	assert.NoError(t, err)
 	assert.Contains(t, service.Labels["app.kubernetes.io/managed-by"], "Helm")
 	assert.Contains(t, service.Annotations["meta.helm.sh/release-name"], ComponentName)
 	assert.Contains(t, service.Annotations["meta.helm.sh/release-namespace"], ComponentNamespace)
@@ -155,6 +156,7 @@ func TestExportVmoHelmChart(t *testing.T) {
 	assert.NoError(t, err)
 	service := corev1.Service{}
 	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &service)
+	assert.NoError(t, err)
 	assert.Contains(t, service.Labels["app.kubernetes.io/managed-by"], "Helm")
 	assert.Contains(t, service.Annotations["meta.helm.sh/release-name"], ComponentName)
 	assert.Contains(t, service.Annotations["meta.helm.sh/release-namespace"], ComponentNamespace)
