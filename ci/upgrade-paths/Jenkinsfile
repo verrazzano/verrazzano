@@ -58,12 +58,19 @@ pipeline {
                 description: 'This is the Verrazzano version for install before doing an upgrade.  By default, the v1.0.2 release will be installed',
                 trim: true)
         string (name: 'VERSION_FOR_UPGRADE',
-                defaultValue: '',
+                defaultValue: 'NONE',
                 description: 'This is the Verrazzano version for Upgrade.  By default, the specified version will be the latest minor release candidate',
                 trim: true)
+        choice (name: 'IS_TRIGGERED_MANUALLY',
+                description: 'This flag is used to test upgrade within existing releases. the default value is set to YES to enable users to trigger customized version upgrades. Default: YES',
+                choices: [ "YES", "NO" ])
         string (name: 'GIT_COMMIT_TO_USE',
                 defaultValue: 'NONE',
                 description: 'This is the full git commit hash from the source build to be used for all jobs',
+                trim: true)
+        string (name: 'GIT_COMMIT_FOR_UPGRADE',
+                defaultValue: 'NONE',
+                description: 'This is the full git commit hash for the target upgrade.  By default, the Verrazzano tip will be used.',
                 trim: true)
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
                 defaultValue: 'NONE',
@@ -83,6 +90,8 @@ pipeline {
                 choices: [ "nip.io", "sslip.io"])
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', description: 'Whether to dump k8s cluster on success (off by default, can be useful to capture for comparing to failed cluster)', defaultValue: false)
+        booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
+        booleanParam (description: 'Whether to run BOM Validator after Upgrade', name: 'RUN_BOM_VALIDATOR', defaultValue: true)
         string (name: 'CONSOLE_REPO_BRANCH',
                 defaultValue: '',
                 description: 'The branch to check out after cloning the console repository.',
@@ -825,8 +834,28 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
     }
 }
 
+def getPlatformOperatorURLForRelease(upgradeTargetVersion){
+    
+    def operatorURL = "https://objectstorage.us-phoenix-1.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_BUCKET}/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml"
+
+        if(upgradeTargetVersion != "master" && params.IS_TRIGGERED_MANUALLY != "YES"){
+            def latestReleaseTagSplit = upgradeTargetVersion.split("\\.")
+            def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
+
+              operatorURL = "https://objectstorage.us-phoenix-1.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_BUCKET}/o/release-${latestReleaseBranch}/operator.yaml"
+        }else if(params.IS_TRIGGERED_MANUALLY == "YES" && VERSION_FOR_UPGRADE != "NONE" && upgradeTargetVersion != "master"){
+            operatorURL = "https://github.com/verrazzano/verrazzano/releases/download/v${upgradeTargetVersion}/operator.yaml"
+        }
+
+
+    return operatorURL
+}
+
+
 // Upgrade the verrazzano-platform-operator
 def upgradePlatformOperator() {
+
+    def  operatorURL = getPlatformOperatorURLForRelease(VERSION_FOR_UPGRADE)
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for (int count = 1; count <= clusterCount; count++) {
@@ -836,7 +865,7 @@ def upgradePlatformOperator() {
 
                 echo "Upgrading the Verrazzano platform operator"
                 # Download the operator.yaml for the target version that we are upgrading to
-                oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${upgradeOperatorFile}
+                curl -L ${operatorURL} --output ${upgradeOperatorFile}
                 kubectl apply -f ${upgradeOperatorFile}
 
                 # need to sleep since the old operator needs to transition to terminating state
@@ -855,6 +884,12 @@ def upgradeVerrazzano() {
         // Download the bom for the target version that we are upgrading to, then extract the version
         // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
         VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json | jq -r '.version'").trim()
+        
+        if(VERSION_FOR_UPGRADE == "NONE"){
+            VERSION_FOR_UPGRADE = VERRAZZANO_DEV_VERSION
+        } else if(params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "master"){
+            VERRAZZANO_DEV_VERSION = params.VERSION_FOR_UPGRADE
+        }      
 
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
