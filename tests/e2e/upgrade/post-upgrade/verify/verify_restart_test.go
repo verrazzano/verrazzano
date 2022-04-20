@@ -9,6 +9,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/istio"
@@ -302,6 +303,38 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 			t.Entry("Checking StatefulSet fluentd", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "fluentd"),
 			t.Entry("Checking StatefulSet node-exporter", vzconst.VerrazzanoMonitoringNamespace, verrazzano.ComponentName, "node-exporter"),
 		)
+	})
+})
+
+var _ = t.Describe("Verify prometheus configmap reconciliation,", Label("f:platform-lcm.upgrade", "f:observability.monitoring.prom"), func() {
+	// Verify prometheus configmap is reconciled correctly
+	// GIVEN upgrade has completed
+	// WHEN the vmo pod is restarted
+	// THEN the test job created before upgrade still exists and prometheus scrape job interval is corrected.
+	t.It("Verify prometheus configmap is not deleted on vmo restart.", func() {
+		Eventually(func() (bool, error) {
+			_, scrapeConfigs, _, err := pkg.GetPrometheusConfig()
+			if err != nil {
+				pkg.Log(pkg.Error, fmt.Sprintf("Failed getting prometheus config: %v", err))
+				return false, err
+			}
+
+			intervalUpdated := false
+			testJobFound := false
+			for _, nsc := range scrapeConfigs {
+				scrapeConfig := nsc.(map[interface{}]interface{})
+				// Check that interval is updated
+				if scrapeConfig["job_name"] == "prometheus" {
+					intervalUpdated = (scrapeConfig["scrape_interval"].(string) != vzconst.TestPrometheusJobScrapeInterval)
+				}
+
+				// Check that test scrape config is not removed
+				if scrapeConfig["job_name"] == vzconst.TestPrometheusScrapeJob {
+					testJobFound = true
+				}
+			}
+			return intervalUpdated && testJobFound, nil
+		}, twoMinutes, pollingInterval).Should(BeTrue(), "Prometheus scrape job default time interval not updated or the test job is removed after upgrade.")
 	})
 })
 

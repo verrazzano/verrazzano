@@ -411,7 +411,7 @@ pipeline {
             }
         }
 
-        stage('Kind Acceptance Tests on 1.20') {
+        stage('Kind Acceptance Tests on 1.22') {
             when {
                 allOf {
                     not { buildingTag() }
@@ -435,7 +435,7 @@ pipeline {
                     metricTimerStart("${VZ_TEST_METRIC}")
                     build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                         parameters: [
-                            string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
+                            string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
                             string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                             string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                             booleanParam(name: 'RUN_SLOW_TESTS', value: params.RUN_SLOW_TESTS),
