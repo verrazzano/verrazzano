@@ -515,6 +515,19 @@ func IsPrometheusPushgatewayEnabled(kubeconfigPath string) bool {
 	return *vz.Spec.Components.PrometheusPushgateway.Enabled
 }
 
+// IsPrometheusNodeExporterEnabled returns false if the Prometheus Node Exporter component is not set, or the value of its Enabled field otherwise
+func IsPrometheusNodeExporterEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.PrometheusNodeExporter == nil || vz.Spec.Components.PrometheusNodeExporter.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.PrometheusNodeExporter.Enabled
+}
+
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
 func APIExtensionsClientSet() (*apiextv1.ApiextensionsV1Client, error) {
 	config, err := k8sutil.GetKubeConfig()
