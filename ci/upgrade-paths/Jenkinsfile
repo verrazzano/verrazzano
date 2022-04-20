@@ -403,19 +403,15 @@ pipeline {
                     }
                 }
                 stage ('Pre-upgrade Acceptance tests') {
-                    parallel {
-                        stage ('Cluster registration') {
-                            stages {
-                                stage('Register managed clusters') {
-                                    steps {
-                                        registerManagedClusters()
-                                    }
-                                }
-                                stage('Verify Register') {
-                                    steps {
-                                        verifyRegisterManagedClusters()
-                                    }
-                                }
+                    stages {
+                        stage('Register managed clusters') {
+                            steps {
+                                registerManagedClusters()
+                            }
+                        }
+                        stage('Verify Register') {
+                            steps {
+                                verifyRegisterManagedClusters()
                             }
                         }
                         stage ('Deploy Sample Application') {
