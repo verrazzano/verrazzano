@@ -80,7 +80,7 @@ func TestAppendVmoOverrides(t *testing.T) {
 		},
 		Spec: corev1.ServiceSpec{
 			ExternalIPs: []string{
-				"99.98.97.96",
+				"nn.nn.nn.nn",
 			},
 		},
 	}).Build()
@@ -99,7 +99,7 @@ func TestAppendVmoOverrides(t *testing.T) {
 	})
 	a.Contains(kvs, bom.KeyValue{
 		Key:   "config.dnsSuffix",
-		Value: "99.98.97.96.nip.io",
+		Value: "nn.nn.nn.nn.nip.io",
 	})
 	a.Contains(kvs, bom.KeyValue{
 		Key:   "config.envName",
