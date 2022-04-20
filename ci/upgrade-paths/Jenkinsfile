@@ -36,8 +36,7 @@ pipeline {
         string (name: 'IS_TRIGGERED_MANUALLY',
                 defaultValue: 'YES',
                 description: 'This flag is used to test upgrade within existing releases. the default value is set to YES to enable users to trigger customized version upgrades. Default: YES',
-                trim: true, )
-                choices: [ "YES", "NO" ]
+                choices: [ "YES", "NO" ])
         string (name: 'GIT_COMMIT_FOR_UPGRADE',
                 defaultValue: 'NONE',
                 description: 'This is the full git commit hash for the target upgrade.  By default, the Verrazzano tip will be used.',
