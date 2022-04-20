@@ -523,18 +523,6 @@ pipeline {
                                 runGinkgo("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload")
                             }
                         }
-                        stage ('Examples Helidon Deprecated') {
-                            steps {
-                                runGinkgo("multicluster/examples/helidon-deprecated", "${TEST_DUMP_ROOT}/helidon-deprecated")
-                            }
-                        }
-                        stage ('Delete Deployed App NS') {
-                            steps {
-                                script {
-                                    runHelidonNsOpsTest()
-                                }
-                            }
-                        }
                         stage ('WebLogic Workload') {
                             steps {
                                 runGinkgo("multicluster/workloads/mcweblogic", "${TEST_DUMP_ROOT}/weblogic-workload")
@@ -1398,20 +1386,6 @@ def undeploySampleApp() {
       kubectl delete -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-sample/mc-hello-helidon-app.yaml
       kubectl delete -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-sample/hello-helidon-comp.yaml
       kubectl delete -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-sample/verrazzano-project.yaml
-    """
-}
-
-def runHelidonNsOpsTest() {
-    int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-    modifyHelloHelidonApp("hello-helidon-ns", "hello-helidon-ns")
-    sh """
-      export MANAGED_CLUSTER_NAME="managed1"
-      export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-      export CLUSTER_COUNT=$clusterCount
-      cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-      export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-      export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-ns-ops"
-      ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/examples/helidon-ns-ops/...
     """
 }
 
