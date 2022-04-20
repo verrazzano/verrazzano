@@ -6,10 +6,14 @@ package nginx
 import (
 	"testing"
 
+	"github.com/verrazzano/verrazzano/pkg/test/ip"
+
 	v1 "k8s.io/api/core/v1"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
+
+var testExternalIP = ip.RandomIP()
 
 func Test_nginxComponent_ValidateUpdate(t *testing.T) {
 	disabled := false
@@ -72,7 +76,7 @@ func Test_nginxComponent_ValidateUpdate(t *testing.T) {
 							NGINXInstallArgs: []vzapi.InstallArgs{
 								{
 									Name:      nginxExternalIPKey,
-									ValueList: []string{"1.1.1.1"},
+									ValueList: []string{testExternalIP},
 								},
 							},
 						},
@@ -177,7 +181,7 @@ func Test_nginxComponent_ValidateInstall(t *testing.T) {
 							NGINXInstallArgs: []vzapi.InstallArgs{
 								{
 									Name:      "foo",
-									ValueList: []string{"1.1.1.1"},
+									ValueList: []string{testExternalIP},
 								},
 							},
 						},
@@ -233,7 +237,7 @@ func Test_nginxComponent_ValidateInstall(t *testing.T) {
 							Type: vzapi.NodePort,
 							NGINXInstallArgs: []vzapi.InstallArgs{
 								{Name: nginxExternalIPKey},
-								{ValueList: []string{"1.1.1.1.1"}},
+								{ValueList: []string{testExternalIP + ".1"}},
 							},
 						},
 					},
@@ -251,7 +255,7 @@ func Test_nginxComponent_ValidateInstall(t *testing.T) {
 							NGINXInstallArgs: []vzapi.InstallArgs{
 								{
 									Name:      nginxExternalIPKey,
-									ValueList: []string{"1.1.1.1"},
+									ValueList: []string{testExternalIP},
 								},
 							},
 						},

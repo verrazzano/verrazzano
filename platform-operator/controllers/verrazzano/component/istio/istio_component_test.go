@@ -26,6 +26,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 
+	"github.com/verrazzano/verrazzano/pkg/test/ip"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,6 +41,8 @@ type fakeRunner struct {
 }
 
 const profilesRelativePath = "../../../../manifests/profiles"
+
+var testExternalIP = ip.RandomIP()
 
 var crEnabled = vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
@@ -627,7 +630,7 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 							IstioInstallArgs: []vzapi.InstallArgs{
 								{
 									Name:      ExternalIPArg,
-									ValueList: []string{"1.2.3.4"},
+									ValueList: []string{testExternalIP},
 								},
 							},
 						},
@@ -739,7 +742,7 @@ func Test_istioComponent_ValidateInstall(t *testing.T) {
 							IstioInstallArgs: []vzapi.InstallArgs{
 								{
 									Name:      "foo",
-									ValueList: []string{"1.1.1.1"},
+									ValueList: []string{testExternalIP},
 								},
 							},
 						},
@@ -760,7 +763,7 @@ func Test_istioComponent_ValidateInstall(t *testing.T) {
 							IstioInstallArgs: []vzapi.InstallArgs{
 								{
 									Name:  ExternalIPArg,
-									Value: "1.1.1.1",
+									Value: testExternalIP,
 								},
 							},
 						},
@@ -781,7 +784,7 @@ func Test_istioComponent_ValidateInstall(t *testing.T) {
 							IstioInstallArgs: []vzapi.InstallArgs{
 								{
 									Name:      ExternalIPArg,
-									ValueList: []string{"1.1.1.1.1"},
+									ValueList: []string{testExternalIP + ".1"},
 								},
 							},
 						},
@@ -802,7 +805,7 @@ func Test_istioComponent_ValidateInstall(t *testing.T) {
 							IstioInstallArgs: []vzapi.InstallArgs{
 								{
 									Name:      ExternalIPArg,
-									ValueList: []string{"1.2.3.4"},
+									ValueList: []string{testExternalIP},
 								},
 							},
 						},
