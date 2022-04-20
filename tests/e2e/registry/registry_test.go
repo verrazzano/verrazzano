@@ -23,7 +23,6 @@ const (
 )
 
 var registry = os.Getenv("REGISTRY")
-var privateRepo = os.Getenv("PRIVATE_REPO")
 
 // List of namespaces from which all the pods are queried to confirm the images are loaded from the target registry/repo
 var listOfNamespaces = []string{
@@ -56,13 +55,7 @@ var _ = t.Describe("Private Registry Verification", Label("f:platform-lcm.privat
 		t.It("All the pods in the cluster have the expected registry URLs",
 			func() {
 				var pod corev1.Pod
-				imagePrefix := "ghcr.io"
-				if len(registry) > 0 {
-					imagePrefix = registry
-				}
-				if len(privateRepo) > 0 {
-					imagePrefix += "/" + privateRepo
-				}
+				imagePrefix := pkg.GetImagePrefix()
 				for i, ns := range listOfNamespaces {
 					var pods *corev1.PodList
 					Eventually(func() (*corev1.PodList, error) {

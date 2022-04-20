@@ -47,9 +47,10 @@ var (
 		"servicemonitors.monitoring.coreos.com",
 		"thanosrulers.monitoring.coreos.com",
 	}
+	imagePrefix              = pkg.GetImagePrefix()
 	expectedPromOperatorArgs = []string{
-		"--prometheus-default-base-image=ghcr.io/verrazzano/prometheus",
-		"--alertmanager-default-base-image=ghcr.io/verrazzano/alertmanager",
+		"--prometheus-default-base-image=" + imagePrefix + "/verrazzano/prometheus",
+		"--alertmanager-default-base-image=" + imagePrefix + "/verrazzano/alertmanager",
 	}
 )
 
@@ -130,7 +131,7 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 		// GIVEN the Prometheus stack is installed
 		// WHEN we check to make sure the default images are from Verrazzano
 		// THEN we see that the arguments are correctly populated
-		WhenPromStackInstalledIt("should have the correct default images", func() {
+		WhenPromStackInstalledIt(fmt.Sprintf("should have the correct default image arguments: %s, %s", expectedPromOperatorArgs[0], expectedPromOperatorArgs[1]), func() {
 			promStackPodsRunning := func() (bool, error) {
 				if isPrometheusOperatorEnabled() {
 					return pkg.ContainerHasExpectedArgs(verrazzanoMonitoringNamespace, prometheusOperatorDeployment, prometheusOperatorContainerName, expectedPromOperatorArgs)

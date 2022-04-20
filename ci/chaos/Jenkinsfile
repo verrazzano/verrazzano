@@ -70,7 +70,6 @@ pipeline {
         DOCKER_REPO = 'ghcr.io'
         DOCKER_NAMESPACE = 'verrazzano'
         NETRC_FILE = credentials('netrc')
-        GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
 
         CLUSTER_NAME = 'verrazzano'
@@ -228,9 +227,10 @@ pipeline {
             }
         }
 
-        stage('Pre-upgrade examples helidon') {
+        stage('Pre-upgrade tests') {
             steps {
                 runGinkgoNamespace('examples/helidon', "false", "true", "hello-helidon")
+                runGinkgoRandomize('upgrade/pre-upgrade/verify')
             }
             post {
                 always {
@@ -363,7 +363,7 @@ pipeline {
 
                         # A successful completion of the upgrade means the Keycloak configuration was successfully rebuilt
                         kubectl wait --timeout=25m --for=condition=UpgradeComplete verrazzano/my-verrazzano
-                        
+
                         # Kill MySQL and wait for Keycloak to be healthy again
                         ${GO_REPO_PATH}/verrazzano/ci/scripts/chaos_test_ephemeral_storage.sh
                     fi
@@ -521,7 +521,7 @@ pipeline {
                         echo "Ensuring that the install job(s) in verrazzzano-system are identical pre and post install"
                         cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
                     fi
-                    
+
                 """
             }
             post {
