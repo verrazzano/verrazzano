@@ -36,7 +36,7 @@ pipeline {
                         description: 'This is the full git commit hash from the source build to be used for all jobs. A full pipeline specifies a valid commit hash here. NONE can be used for manually triggered jobs, however even for those a commit hash value is preferred to be supplied',
                         trim: true)
         string (name: 'N_JOBS_FOR_EACH_BATCH',
-                defaultValue: '6',
+                defaultValue: '3',
                 description: 'This is to define total number of jobs executed parallelly per each batch',
                 trim: true)
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
@@ -76,7 +76,7 @@ pipeline {
         OCI_OS_BUCKET="verrazzano-builds"
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
-        TARGET_UPGRADE_VERSION = ""
+        TARGET_UPGRADE_VERSION = "master"
     }
 
     stages {
@@ -137,7 +137,7 @@ pipeline {
             }
         }
 
-        stage ('Upgrade every release to Release Candidate') {
+        stage ('Upgrade every release to next Minor Release') {
             parallel {
                 stage('Compute required N Upgrade Jobs') {
                 steps {
@@ -150,8 +150,6 @@ pipeline {
                         final String fileContent = readFile(file: "${workspace}/tags.txt")
                         final List gitTags = extractReleaseTags(fileContent)
                         echo "gitTags = ${gitTags}"
-                        TARGET_UPGRADE_VERSION = gitTags.pop() - "v"
-                        TARGET_UPGRADE_VERSION = getNextPatchReleaseVersion(TARGET_UPGRADE_VERSION)
                         allReleasesToRCJobs = addTargetUpgradeVersion(gitTags)
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
                         echo "Number of jobs to be run in parallel : ${params.N_JOBS_FOR_EACH_BATCH}"
@@ -205,7 +203,6 @@ def isPagerDutyEnabled() {
     }
     return false
 }
-
 
 
 // Called in Stage Clean workspace and checkout steps
@@ -416,10 +413,3 @@ def allReleasesToRCStage(job) {
     }
 }
 
-def getNextPatchReleaseVersion(upgradeTargetVersion){
-
-    def latestReleaseTagSplit = upgradeTargetVersion.split("\\.")
-    int nextPatchVersion = Integer.parseInt(latestReleaseTagSplit[2]) + 1
-    def nextPatchRelease = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1] + "." + nextPatchVersion
-    return nextPatchRelease
-}
