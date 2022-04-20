@@ -78,7 +78,6 @@ pipeline {
         DOCKER_NAMESPACE = 'verrazzano'
         NETRC_FILE = credentials('netrc')
         GITHUB_PKGS_CREDS = credentials('github-packages-credentials-rw')
-        GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
 
         CLUSTER_NAME = 'verrazzano'
