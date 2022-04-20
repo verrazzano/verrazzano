@@ -48,13 +48,33 @@ func Test_nginxComponent_ValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "change-type-to-nodeport",
+			name: "change-type-to-nodeport-without-externalIPs",
 			old:  &vzapi.Verrazzano{},
 			new: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						Ingress: &vzapi.IngressNginxComponent{
 							Type: vzapi.NodePort,
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "change-type-to-nodeport-with-externalIPs",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Ingress: &vzapi.IngressNginxComponent{
+							Type: vzapi.NodePort,
+							NGINXInstallArgs: []vzapi.InstallArgs{
+								{
+									Name:      nginxExternalIPKey,
+									ValueList: []string{"1.1.1.1"},
+								},
+							},
 						},
 					},
 				},
@@ -175,7 +195,7 @@ func Test_nginxComponent_ValidateInstall(t *testing.T) {
 							Type: vzapi.NodePort,
 							NGINXInstallArgs: []vzapi.InstallArgs{
 								{
-									Name:  "controller.service.externalIPs",
+									Name:  nginxExternalIPKey,
 									Value: "1.1.1.1.1",
 								},
 							},
@@ -194,7 +214,7 @@ func Test_nginxComponent_ValidateInstall(t *testing.T) {
 							Type: vzapi.NodePort,
 							NGINXInstallArgs: []vzapi.InstallArgs{
 								{
-									Name:      "controller.service.externalIPs",
+									Name:      nginxExternalIPKey,
 									ValueList: []string{""},
 								},
 							},
@@ -212,7 +232,7 @@ func Test_nginxComponent_ValidateInstall(t *testing.T) {
 						Ingress: &vzapi.IngressNginxComponent{
 							Type: vzapi.NodePort,
 							NGINXInstallArgs: []vzapi.InstallArgs{
-								{Name: "controller.service.externalIPs"},
+								{Name: nginxExternalIPKey},
 								{ValueList: []string{"1.1.1.1.1"}},
 							},
 						},
@@ -230,7 +250,7 @@ func Test_nginxComponent_ValidateInstall(t *testing.T) {
 							Type: vzapi.NodePort,
 							NGINXInstallArgs: []vzapi.InstallArgs{
 								{
-									Name:      "controller.service.externalIPs",
+									Name:      nginxExternalIPKey,
 									ValueList: []string{"1.1.1.1"},
 								},
 							},
