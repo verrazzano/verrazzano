@@ -97,7 +97,7 @@ func updateConfigMap() {
 	}, waitTimeout, shortPollingInterval).Should(BeNil())
 }
 
-var _ = t.Describe("Update prometheus configmap", Label("f:pre-upgrade"), func() {
+var _ = t.Describe("Update prometheus configmap", Label("f:platform-lcm.upgrade", "f:observability.monitoring.prom"), func() {
 	// Verify that prometheus configmap is updated
 	// GIVEN the prometheus configmap is created
 	// WHEN the upgrade has not started and vmo pod is not restarted
