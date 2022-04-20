@@ -29,8 +29,9 @@ const (
 	nsLogIDEnvVar       = "NS_LOG_ID"
 	ociRegionEnvVar     = "OCI_CLI_REGION"
 
-	waitTimeout     = 10 * time.Minute
-	pollingInterval = 30 * time.Second
+	waitTimeout      = 10 * time.Minute
+	shortWaitTimeout = 3 * time.Minute
+	pollingInterval  = 30 * time.Second
 )
 
 var compartmentID string
@@ -125,22 +126,39 @@ var _ = t.Describe("OCI Logging", Label("f:oci-integration.logging"), func() {
 			}, waitTimeout, pollingInterval).Should(Not(BeZero()), "Expected to find verrazzano-system logs but found none")
 		})
 
-		// GIVEN a Verrazzano installation with no applications installed
-		// WHEN I search for log records in the default app Log object
-		// THEN I expect to find no records
-		t.It("the default app log object has no log records", func() {
-			logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, defaultAppLogID, "")
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(*logs.Summary.ResultCount).To(BeZero(), "Expected no default app logs but found at least one")
-		})
-
-		// GIVEN a Verrazzano installation with no applications installed
-		// WHEN I search for log records in the namespace-specific app Log object
-		// THEN I expect to find no records
-		t.It("the namespace-specific app log object has no log records", func() {
-			logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, nsLogID, "")
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(*logs.Summary.ResultCount).To(BeZero(), "Expected no namespace-specific app logs but found at least one")
+		t.It("the default and namespace-specific app log objects have no log records", func() {
+			pkg.Concurrently(
+				func() {
+					// GIVEN a Verrazzano installation with no applications installed
+					// WHEN I search for log records in the default app Log object
+					// THEN I expect to find no records
+					Consistently(func() (int, error) {
+						logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, defaultAppLogID, "")
+						if err != nil {
+							return 0, err
+						}
+						if *logs.Summary.ResultCount > 0 {
+							t.Logs.Infof("Log records: %+v", logs.Results)
+						}
+						return *logs.Summary.ResultCount, nil
+					}, shortWaitTimeout, pollingInterval).Should(BeZero(), "Expected no default app logs but found at least one")
+				},
+				func() {
+					// GIVEN a Verrazzano installation with no applications installed
+					// WHEN I search for log records in the namespace-specific app Log object
+					// THEN I expect to find no records
+					Consistently(func() (int, error) {
+						logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, nsLogID, "")
+						if err != nil {
+							return 0, err
+						}
+						if *logs.Summary.ResultCount > 0 {
+							t.Logs.Infof("Log records: %+v", logs.Results)
+						}
+						return *logs.Summary.ResultCount, nil
+					}, shortWaitTimeout, pollingInterval).Should(BeZero(), "Expected no namespace-specific app logs but found at least one")
+				},
+			)
 		})
 	})
 
