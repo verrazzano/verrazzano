@@ -114,7 +114,7 @@ func isOpensearchInstalled(ctx spi.ComponentContext) (bool, error) {
 		}
 	}
 
-	return vmi.IsVerrazzanoSecretReady(ctx), nil
+	return vmi.IsVMISecretReady(ctx), nil
 }
 
 // isOpensearchReady VMI components ready-check
@@ -187,7 +187,7 @@ func isOpensearchReady(ctx spi.ComponentContext) bool {
 		}
 	}
 
-	return vmi.IsVerrazzanoSecretReady(ctx)
+	return vmi.IsVMISecretReady(ctx)
 }
 
 func createAndLabelOSNamespaces(ctx spi.ComponentContext) error {

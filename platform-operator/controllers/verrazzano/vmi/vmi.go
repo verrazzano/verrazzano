@@ -138,8 +138,8 @@ func FindStorageOverride(effectiveCR *vzapi.Verrazzano) (*ResourceRequestValues,
 	return nil, fmt.Errorf("Failed, unsupported volume source: %v", defaultVolumeSource)
 }
 
-// IsVerrazzanoSecretReady returns true if the Verrazzano secret is present in the system namespace
-func IsVerrazzanoSecretReady(ctx spi.ComponentContext) bool {
+// IsVMISecretReady returns true if the VMI secret is present in the system namespace
+func IsVMISecretReady(ctx spi.ComponentContext) bool {
 	if err := ctx.Client().Get(context.TODO(),
 		types.NamespacedName{Name: "verrazzano", Namespace: globalconst.VerrazzanoSystemNamespace},
 		&v1.Secret{}); err != nil {

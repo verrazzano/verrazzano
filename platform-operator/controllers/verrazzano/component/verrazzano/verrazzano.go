@@ -128,7 +128,7 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 		return false
 	}
 
-	return vmi.IsVerrazzanoSecretReady(ctx)
+	return vmi.IsVMISecretReady(ctx)
 }
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart
