@@ -165,7 +165,7 @@ var _ = t.Describe("istioctl verify-install", func() {
 	})
 })
 
-var _ = t.Describe("Checking if Verrazzano system components are ready, post-upgrade", Label("f:platform-lcm.upgrade", "f:observability.monitoring.prom"), func() {
+var _ = t.Describe("Checking if Verrazzano system components are ready, post-upgrade", Label("f:platform-lcm.upgrade"), func() {
 	Context("Checking Deployments for post-upgrade", func() {
 		t.DescribeTable("Deployment should be ready post-upgrade",
 			func(namespace string, componentName string, deploymentName string) {
@@ -306,7 +306,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 	})
 })
 
-var _ = t.Describe("Verify prometheus configmap reconciliation,", Label("f:post-upgrade"), func() {
+var _ = t.Describe("Verify prometheus configmap reconciliation,", Label("f:platform-lcm.upgrade", "f:observability.monitoring.prom"), func() {
 	// Verify prometheus configmap is reconciled correctly
 	// GIVEN upgrade has completed
 	// WHEN the vmo pod is restarted
