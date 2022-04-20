@@ -20,7 +20,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 )
 
 // HelmComponent struct needed to implement a component
@@ -109,7 +108,7 @@ type appendOverridesSig func(context spi.ComponentContext, releaseName string, n
 type resolveNamespaceSig func(ns string) string
 
 // upgradeFuncSig is a function needed for unit test override
-type upgradeFuncSig func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error)
+type upgradeFuncSig func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helm.HelmOverrides) (stdout []byte, stderr []byte, err error)
 
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = helm.Upgrade
@@ -331,10 +330,8 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 		return context.Log().ErrorfNewErr("Failed to close temporary file: %v", err)
 	}
 
-	// Generate a list of override files making helm get values overrides first
-	overrides.FileOverrides = append(overrides.FileOverrides, "")
-	copy(overrides.FileOverrides[1:], overrides.FileOverrides[0:])
-	overrides.FileOverrides[0] = tmpFile.Name()
+	// Make helm get values overrides first
+	overrides = append([]helm.HelmOverrides{{FileOverride: tmpFile.Name()}}, overrides...)
 
 	_, _, err = upgradeFunc(context.Log(), h.ReleaseName, namespace, h.ChartDir, true, context.IsDryRun(), overrides)
 	return err
@@ -354,17 +351,20 @@ func (h HelmComponent) Reconcile(_ spi.ComponentContext) error {
 
 // buildCustomHelmOverrides Builds the helm overrides for a release, including image and file, and custom overrides
 // - returns an error and a HelmOverride struct with the field populated
-func (h HelmComponent) buildCustomHelmOverrides(context spi.ComponentContext, namespace string, additionalValues ...bom.KeyValue) (helm.HelmOverrides, error) {
+func (h HelmComponent) buildCustomHelmOverrides(context spi.ComponentContext, namespace string, additionalValues ...bom.KeyValue) ([]helm.HelmOverrides, error) {
 	// Optionally create a second override file.  This will contain both image setOverrides and any additional
 	// setOverrides required by a component.
 	// Get image setOverrides unless opt out
-	overrides := helm.HelmOverrides{}
 	var kvs []bom.KeyValue
 	var err error
+
+	// TODO: get the values from the override list and populate helm override values
+	// sort the kvs list by priority (0th term has the highest priority)
+
 	if !h.IgnoreImageOverrides {
 		kvs, err = getImageOverrides(h.ReleaseName)
 		if err != nil {
-			return overrides, err
+			return []helm.HelmOverrides{}, err
 		}
 	}
 
@@ -372,7 +372,7 @@ func (h HelmComponent) buildCustomHelmOverrides(context spi.ComponentContext, na
 	if h.AppendOverridesFunc != nil {
 		overrideValues, err := h.AppendOverridesFunc(context, h.ReleaseName, namespace, h.ChartDir, []bom.KeyValue{})
 		if err != nil {
-			return helm.HelmOverrides{}, err
+			return []helm.HelmOverrides{}, err
 		}
 		kvs = append(kvs, overrideValues...)
 	}
@@ -383,42 +383,35 @@ func (h HelmComponent) buildCustomHelmOverrides(context spi.ComponentContext, na
 	}
 
 	// Add the values file ot the file overrides
-	fileOverrides := []string{}
 	if len(h.ValuesFile) > 0 {
-		fileOverrides = []string{h.ValuesFile}
+		kvs = append(kvs, bom.KeyValue{Value: h.ValuesFile, IsFile: true})
 	}
-	if len(kvs) > 0 {
-		// Build comma-separated strings for the --set, --set-string, and --set-file overrides if they are passed in
-		// Add to files overrides if anything is passed in
-		setOverridesBldr := strings.Builder{}
-		setStringOverridesBldr := strings.Builder{}
-		setFileOverridesBldr := strings.Builder{}
-		for _, kv := range kvs {
-			if kv.SetString {
-				if setStringOverridesBldr.Len() > 0 {
-					setStringOverridesBldr.WriteString(",")
-				}
-				setStringOverridesBldr.WriteString(fmt.Sprintf("%s=%s", kv.Key, kv.Value))
-			} else if kv.SetFile {
-				if setFileOverridesBldr.Len() > 0 {
-					setFileOverridesBldr.WriteString(",")
-				}
-				setFileOverridesBldr.WriteString(fmt.Sprintf("%s=%s", kv.Key, kv.Value))
-			} else if kv.IsFile {
-				fileOverrides = append(fileOverrides, kv.Value)
-			} else {
-				if setOverridesBldr.Len() > 0 {
-					setOverridesBldr.WriteString(",")
-				}
-				setOverridesBldr.WriteString(fmt.Sprintf("%s=%s", kv.Key, kv.Value))
-			}
-		}
-		overrides.SetOverrides = setOverridesBldr.String()
-		overrides.SetStringOverrides = setStringOverridesBldr.String()
-		overrides.SetFileOverrides = setFileOverridesBldr.String()
-		overrides.FileOverrides = fileOverrides
-	}
+
+	// Convert the key value pairs to Helm overrides
+	overrides := h.organizeHelmOverrides(kvs)
 	return overrides, nil
+}
+
+// organizeHelmOverrides creates a list of Helm overrides from key value pairs in reverse precedence (0th value has the lowest precedence)
+// Each key value pair gets its own override object to keep strict precedence
+func (h HelmComponent) organizeHelmOverrides(kvs []bom.KeyValue) []helm.HelmOverrides {
+	var overrides []helm.HelmOverrides
+	for _, kv := range kvs {
+		if kv.SetString {
+			// Append in reverse order because helm precedence is right to left
+			overrides = append([]helm.HelmOverrides{{SetStringOverrides: fmt.Sprintf("%s=%s", kv.Key, kv.Value)}}, overrides...)
+		} else if kv.SetFile {
+			// Append in reverse order because helm precedence is right to left
+			overrides = append([]helm.HelmOverrides{{SetFileOverrides: fmt.Sprintf("%s=%s", kv.Key, kv.Value)}}, overrides...)
+		} else if kv.IsFile {
+			// Append in reverse order because helm precedence is right to left
+			overrides = append([]helm.HelmOverrides{{FileOverride: kv.Value}}, overrides...)
+		} else {
+			// Append in reverse order because helm precedence is right to left
+			overrides = append([]helm.HelmOverrides{{SetOverrides: fmt.Sprintf("%s=%s", kv.Key, kv.Value)}}, overrides...)
+		}
+	}
+	return overrides
 }
 
 // resolveNamespace Resolve/normalize the namespace for a Helm-based component
