@@ -11,6 +11,8 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
@@ -219,4 +221,91 @@ func TestHasDataNodeStorageOverride(t *testing.T) {
 			assert.Equal(t, tt.hasOverride, hasNodeStorageOverride(tt.cr, "nodes.data.requests.storage"))
 		})
 	}
+}
+
+func TestNodeAdapter(t *testing.T) {
+	vmiStorage := "50Gi"
+	vmi := &vmov1.VerrazzanoMonitoringInstance{
+		Spec: vmov1.VerrazzanoMonitoringInstanceSpec{
+			Elasticsearch: vmov1.Elasticsearch{
+				Enabled: true,
+				Nodes: []vmov1.ElasticsearchNode{
+					{
+						Name:     "a",
+						Replicas: 3,
+						Storage: &vmov1.Storage{
+							Size: vmiStorage,
+						},
+						Roles: []vmov1.NodeRole{
+							vmov1.MasterRole,
+						},
+						Resources: vmov1.Resources{
+							RequestMemory: "48Mi",
+						},
+					},
+					{
+						Name:     "b",
+						Replicas: 2,
+						Storage: &vmov1.Storage{
+							Size: "100Gi",
+							PvcNames: []string{
+								"1", "2",
+							},
+						},
+						Roles: []vmov1.NodeRole{
+							vmov1.DataRole,
+							vmov1.IngestRole,
+						},
+						Resources: vmov1.Resources{
+							RequestMemory: "48Mi",
+						},
+					},
+				},
+			},
+		},
+	}
+	nodes := []vzapi.OpenSearchNode{
+		{
+			Name:     "a",
+			Replicas: 3,
+			Roles: []vmov1.NodeRole{
+				vmov1.MasterRole,
+			},
+			Resources: &corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					"memory": resource.MustParse("48Mi"),
+				},
+			},
+		},
+		{
+			Name:     "b",
+			Replicas: 2,
+			Roles: []vmov1.NodeRole{
+				vmov1.DataRole,
+				vmov1.IngestRole,
+			},
+			Resources: &corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					"memory": resource.MustParse("48Mi"),
+				},
+			},
+			Storage: &vzapi.OpenSearchNodeStorage{
+				Size: "100Gi",
+			},
+		},
+	}
+
+	adaptedNodes := nodeAdapter(vmi, nodes, &common.ResourceRequestValues{Storage: vmiStorage})
+	compareNodes := func(n1, n2 *vmov1.ElasticsearchNode) {
+		assert.Equal(t, n1.Name, n2.Name)
+		assert.Equal(t, n1.Replicas, n2.Replicas)
+		assert.EqualValues(t, n1.Roles, n2.Roles)
+		if n1.Storage != nil {
+			assert.NotNil(t, n2.Storage)
+			assert.Equal(t, n1.Storage.Size, n2.Storage.Size)
+		}
+		assert.Equal(t, n1.Resources.RequestMemory, n2.Resources.RequestMemory)
+	}
+	compareNodes(&vmi.Spec.Elasticsearch.Nodes[0], &adaptedNodes[0])
+	compareNodes(&vmi.Spec.Elasticsearch.Nodes[1], &adaptedNodes[1])
 }
