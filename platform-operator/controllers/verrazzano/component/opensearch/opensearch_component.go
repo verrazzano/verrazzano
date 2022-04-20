@@ -6,6 +6,7 @@ package opensearch
 import (
 	"fmt"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vmi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"reflect"
 
@@ -24,12 +25,6 @@ const (
 
 	// ComponentNamespace is the namespace of the component
 	ComponentNamespace = constants.VerrazzanoSystemNamespace
-
-	// verrazzanoSecretName is the name of the VMI secret
-	verrazzanoSecretName       = "verrazzano"
-	verrazzanoBackupScrtName   = "verrazzano-backup"
-	objectstoreAccessKey       = "object_store_access_key"
-	objectstoreAccessSecretKey = "object_store_secret_key"
 
 	// Certificate names
 	osCertificateName  = "system-tls-es-ingest"
@@ -75,11 +70,16 @@ func NewComponent() spi.Component {
 // PreInstall Opensearch component pre-install processing; create and label required namespaces, copy any
 // required secrets
 func (o opensearchComponent) PreInstall(ctx spi.ComponentContext) error {
-	if err := setupSharedVMIResources(ctx); err != nil {
+	// create or update  VMI secret
+	if err := vmi.EnsureVMISecret(ctx.Client()); err != nil {
+		return err
+	}
+	// create or update backup VMI secret
+	if err := vmi.EnsureBackupSecret(ctx.Client()); err != nil {
 		return err
 	}
 	ctx.Log().Debug("OpenSearch pre-install")
-	if err := createAndLabelNamespaces(ctx); err != nil {
+	if err := createAndLabelOSNamespaces(ctx); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed creating/labeling namespace %s for OpenSearch : %v", ComponentNamespace, err)
 	}
 	return nil
@@ -87,17 +87,18 @@ func (o opensearchComponent) PreInstall(ctx spi.ComponentContext) error {
 
 // Install Opensearch component install processing
 func (o opensearchComponent) Install(ctx spi.ComponentContext) error {
-	return createVMI(ctx)
+	return createVMIforOS(ctx)
 }
 
 // PreUpgrade Opensearch component pre-upgrade processing
 func (o opensearchComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	return ensureVMISecret(ctx.Client())
+	// create or update  VMI secret
+	return vmi.EnsureVMISecret(ctx.Client())
 }
 
 // InstallUpgrade Opensearch component upgrade processing
 func (o opensearchComponent) Upgrade(ctx spi.ComponentContext) error {
-	return createVMI(ctx)
+	return createVMIforOS(ctx)
 }
 
 // IsReady component check
@@ -195,11 +196,11 @@ func (o opensearchComponent) Name() string {
 
 func compareStorageOverrides(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// compare the storage overrides and reject if the type or size is different
-	oldSetting, err := findStorageOverride(old)
+	oldSetting, err := vmi.FindStorageOverride(old)
 	if err != nil {
 		return err
 	}
-	newSetting, err := findStorageOverride(new)
+	newSetting, err := vmi.FindStorageOverride(new)
 	if err != nil {
 		return err
 	}

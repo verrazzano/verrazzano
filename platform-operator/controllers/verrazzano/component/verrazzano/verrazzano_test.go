@@ -17,6 +17,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vmi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"io/fs"
 	"io/ioutil"
@@ -504,7 +505,7 @@ func Test_appendVMIValues(t *testing.T) {
 				return nil
 			}
 
-			storageOverride, err := findStorageOverride(fakeContext.EffectiveCR())
+			storageOverride, err := vmi.FindStorageOverride(fakeContext.EffectiveCR())
 			a.NoError(err)
 
 			keyValues := appendVMIOverrides(fakeContext.EffectiveCR(), &values, storageOverride, []bom.KeyValue{})
@@ -806,8 +807,8 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 
 }
 
-// Test_findStorageOverride tests the findStorageOverride function
-// GIVEN a call to findStorageOverride
+// Test_findStorageOverride tests the vmi.FindStorageOverride function
+// GIVEN a call to vmi.FindStorageOverride
 //  WHEN I call with a ComponentContext with different profiles and overrides
 //  THEN the correct resource overrides or an error are returned
 func Test_findStorageOverride(t *testing.T) {
@@ -816,7 +817,7 @@ func Test_findStorageOverride(t *testing.T) {
 		name             string
 		description      string
 		actualCR         vzapi.Verrazzano
-		expectedOverride *ResourceRequestValues
+		expectedOverride *vmi.ResourceRequestValues
 		expectedErr      bool
 	}{
 		{
@@ -832,7 +833,7 @@ func Test_findStorageOverride(t *testing.T) {
 					DefaultVolumeSource: &corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
 				},
 			},
-			expectedOverride: &ResourceRequestValues{
+			expectedOverride: &vmi.ResourceRequestValues{
 				Storage: "",
 			},
 		},
@@ -856,7 +857,7 @@ func Test_findStorageOverride(t *testing.T) {
 					},
 				},
 			},
-			expectedOverride: &ResourceRequestValues{
+			expectedOverride: &vmi.ResourceRequestValues{
 				Storage: pvc100Gi.String(),
 			},
 		},
@@ -881,7 +882,7 @@ func Test_findStorageOverride(t *testing.T) {
 					},
 				},
 			},
-			expectedOverride: &ResourceRequestValues{
+			expectedOverride: &vmi.ResourceRequestValues{
 				Storage: pvc100Gi.String(),
 			},
 		},
@@ -938,7 +939,7 @@ func Test_findStorageOverride(t *testing.T) {
 
 			fakeContext := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &test.actualCR, false, profileDir)
 
-			override, err := findStorageOverride(fakeContext.EffectiveCR())
+			override, err := vmi.FindStorageOverride(fakeContext.EffectiveCR())
 			if test.expectedErr {
 				a.Error(err)
 			} else {

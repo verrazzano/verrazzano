@@ -7,15 +7,10 @@ import (
 	"context"
 	"fmt"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vmi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	controllerruntime "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -43,11 +38,11 @@ func createVMI(ctx spi.ComponentContext) error {
 	if err := appendVerrazzanoValues(ctx, values); err != nil {
 		return ctx.Log().ErrorfNewErr("failed to get Verrazzano values: %v", err)
 	}
-	storage, err := findStorageOverride(ctx.EffectiveCR())
+	storage, err := vmi.FindStorageOverride(ctx.EffectiveCR())
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("failed to get storage overrides: %v", err)
 	}
-	vmi := newVMI()
+	vmi := vmi.NewVMI()
 	_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), vmi, func() error {
 		var existingVMI *vmov1.VerrazzanoMonitoringInstance = nil
 		if len(vmi.Spec.URI) > 0 {
@@ -75,16 +70,7 @@ func createVMI(ctx spi.ComponentContext) error {
 	return nil
 }
 
-func newVMI() *vmov1.VerrazzanoMonitoringInstance {
-	return &vmov1.VerrazzanoMonitoringInstance{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      system,
-			Namespace: globalconst.VerrazzanoSystemNamespace,
-		},
-	}
-}
-
-func newGrafana(cr *vzapi.Verrazzano, storage *ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance) vmov1.Grafana {
+func newGrafana(cr *vzapi.Verrazzano, storage *vmi.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance) vmov1.Grafana {
 	if cr.Spec.Components.Grafana == nil {
 		return vmov1.Grafana{}
 	}
@@ -106,7 +92,7 @@ func newGrafana(cr *vzapi.Verrazzano, storage *ResourceRequestValues, vmi *vmov1
 	return grafana
 }
 
-func newPrometheus(cr *vzapi.Verrazzano, storage *ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance) vmov1.Prometheus {
+func newPrometheus(cr *vzapi.Verrazzano, storage *vmi.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance) vmov1.Prometheus {
 	if cr.Spec.Components.Prometheus == nil {
 		return vmov1.Prometheus{}
 	}
@@ -126,95 +112,10 @@ func newPrometheus(cr *vzapi.Verrazzano, storage *ResourceRequestValues, vmi *vm
 	return prometheus
 }
 
-func setStorageSize(storage *ResourceRequestValues, storageObject *vmov1.Storage) {
+func setStorageSize(storage *vmi.ResourceRequestValues, storageObject *vmov1.Storage) {
 	if storage == nil {
 		storageObject.Size = "50Gi"
 	} else {
 		storageObject.Size = storage.Storage
 	}
-}
-
-func setupSharedVMIResources(ctx spi.ComponentContext) error {
-	err := ensureVMISecret(ctx.Client())
-	if err != nil {
-		return err
-	}
-	err = ensureBackupSecret(ctx.Client())
-	if err != nil {
-		return err
-	}
-	return ensureGrafanaAdminSecret(ctx.Client())
-}
-
-func ensureVMISecret(cli client.Client) error {
-	secret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      ComponentName,
-			Namespace: globalconst.VerrazzanoSystemNamespace,
-		},
-		Data: map[string][]byte{},
-	}
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), cli, secret, func() error {
-		if secret.Data["username"] == nil || secret.Data["password"] == nil {
-			secret.Data["username"] = []byte(ComponentName)
-			pw, err := password.GeneratePassword(16)
-			if err != nil {
-				return err
-			}
-			secret.Data["password"] = []byte(pw)
-		}
-		return nil
-	}); err != nil {
-		return err
-	}
-	return nil
-}
-
-func ensureBackupSecret(cli client.Client) error {
-	secret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      verrazzanoBackupScrtName,
-			Namespace: globalconst.VerrazzanoSystemNamespace,
-		},
-		Data: map[string][]byte{},
-	}
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), cli, secret, func() error {
-		// Populating dummy keys for access and secret key so that they are never empty
-		if secret.Data[objectstoreAccessKey] == nil || secret.Data[objectstoreAccessSecretKey] == nil {
-			key, err := password.GeneratePassword(32)
-			if err != nil {
-				return err
-			}
-			secret.Data[objectstoreAccessKey] = []byte(key)
-			secret.Data[objectstoreAccessSecretKey] = []byte(key)
-		}
-		return nil
-	}); err != nil {
-		return err
-	}
-	return nil
-}
-
-func ensureGrafanaAdminSecret(cli client.Client) error {
-	secret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      grafanaScrtName,
-			Namespace: globalconst.VerrazzanoSystemNamespace,
-		},
-		Data: map[string][]byte{},
-	}
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), cli, secret, func() error {
-		if secret.Data["username"] == nil || secret.Data["password"] == nil {
-			secret.Data["username"] = []byte(ComponentName)
-			pw, err := password.GeneratePassword(32)
-			if err != nil {
-				return err
-			}
-			secret.Data["password"] = []byte(pw)
-		}
-		return nil
-	}); err != nil {
-		return err
-	}
-	return nil
 }

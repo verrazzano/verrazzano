@@ -145,3 +145,18 @@ const InitializeOperation = "initialize"
 
 // ReconcileLoopRequeueInterval is the interval before reconcile gets called again.
 const ReconcileLoopRequeueInterval = 3 * time.Minute
+
+// VMISecret is the secret used for VMI
+const VMISecret = "verrazzano"
+
+// VMISecret is the secret used for VMI
+const GrafanaSecret = "grafana-admin"
+
+// VMIBackupScrtName is the backup VMI secret
+const VMIBackupScrtName = "verrazzano-backup"
+
+// ObjectstoreAccessKey is used for the VMI backup secret
+const ObjectstoreAccessKey = "object_store_access_key"
+
+// ObjectstoreAccessSecretKey is used for the VMI backup secret
+const ObjectstoreAccessSecretKey = "object_store_secret_key"

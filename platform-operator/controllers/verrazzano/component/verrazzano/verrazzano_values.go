@@ -3,6 +3,8 @@
 
 package verrazzano
 
+import "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vmi"
+
 // verrazzanoValues Struct representing the Verrazzano Helm chart values
 //
 // In most cases, we only want to set overrides in this when they are present
@@ -12,7 +14,7 @@ package verrazzano
 // There are a few cases where this is not true
 // - "enabled" flags should always be written; if the user or profile specifies false it
 //   needs to be recorded in the overrides and not omitted
-// - "ResourceRequestValues.storage" should be allowed to record empty values, as it is a valid
+// - "vmi.ResourceRequestValues.storage" should be allowed to record empty values, as it is a valid
 //   value to the VMO to indicate ephemeral storage is to be used
 //
 type verrazzanoValues struct {
@@ -57,11 +59,6 @@ type volumeMount struct {
 	ReadOnly    bool   `json:"readOnly,omitempty"`
 }
 
-type ResourceRequestValues struct {
-	Memory  string `json:"memory,omitempty"`
-	Storage string `json:"storage"` // Empty string allowed
-}
-
 type imageValues struct {
 	PullPolicy                    string `json:"pullPolicy,omitempty"`
 	TerminationGracePeriodSeconds int    `json:"terminationGracePeriodSeconds"`
@@ -87,13 +84,13 @@ type esNodes struct {
 }
 
 type esNodeValues struct {
-	Replicas int                    `json:"replicas,omitempty"`
-	Requests *ResourceRequestValues `json:"requests,omitempty"`
+	Replicas int                        `json:"replicas,omitempty"`
+	Requests *vmi.ResourceRequestValues `json:"requests,omitempty"`
 }
 
 type prometheusValues struct {
-	Enabled  bool                   `json:"enabled"` // Always write
-	Requests *ResourceRequestValues `json:"requests,omitempty"`
+	Enabled  bool                       `json:"enabled"` // Always write
+	Requests *vmi.ResourceRequestValues `json:"requests,omitempty"`
 }
 
 type kialiValues struct {
@@ -110,13 +107,13 @@ type rancherValues struct {
 }
 
 type kibanaValues struct {
-	Enabled  bool                   `json:"enabled"` // Always write
-	Requests *ResourceRequestValues `json:"requests,omitempty"`
+	Enabled  bool                       `json:"enabled"` // Always write
+	Requests *vmi.ResourceRequestValues `json:"requests,omitempty"`
 }
 
 type grafanaValues struct {
-	Enabled  bool                   `json:"enabled"` // Always write
-	Requests *ResourceRequestValues `json:"requests,omitempty"`
+	Enabled  bool                       `json:"enabled"` // Always write
+	Requests *vmi.ResourceRequestValues `json:"requests,omitempty"`
 }
 
 type vmoValues struct {

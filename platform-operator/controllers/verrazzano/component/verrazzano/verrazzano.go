@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vmi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
@@ -127,7 +128,7 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 		return false
 	}
 
-	return isVerrazzanoSecretReady(ctx)
+	return vmi.IsVerrazzanoSecretReady(ctx)
 }
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart
@@ -141,37 +142,13 @@ func verrazzanoPreUpgrade(ctx spi.ComponentContext, namespace string) error {
 	if err := exportFromHelmChart(ctx.Client()); err != nil {
 		return err
 	}
-	if err := ensureVMISecret(ctx.Client()); err != nil {
+	if err := vmi.EnsureVMISecret(ctx.Client()); err != nil {
 		return err
 	}
-	if err := ensureGrafanaAdminSecret(ctx.Client()); err != nil {
+	if err := vmi.EnsureGrafanaAdminSecret(ctx.Client()); err != nil {
 		return err
 	}
 	return fixupFluentdDaemonset(ctx.Log(), ctx.Client(), namespace)
-}
-
-func findStorageOverride(effectiveCR *vzapi.Verrazzano) (*ResourceRequestValues, error) {
-	if effectiveCR == nil || effectiveCR.Spec.DefaultVolumeSource == nil {
-		return nil, nil
-	}
-	defaultVolumeSource := effectiveCR.Spec.DefaultVolumeSource
-	if defaultVolumeSource.EmptyDir != nil {
-		return &ResourceRequestValues{
-			Storage: "",
-		}, nil
-	}
-	if defaultVolumeSource.PersistentVolumeClaim != nil {
-		pvcClaim := defaultVolumeSource.PersistentVolumeClaim
-		storageSpec, found := vzconfig.FindVolumeTemplate(pvcClaim.ClaimName, effectiveCR.Spec.VolumeClaimSpecTemplates)
-		if !found {
-			return nil, fmt.Errorf("Failed, did not find matching storage volume template for claim %s", pvcClaim.ClaimName)
-		}
-		storageString := storageSpec.Resources.Requests.Storage().String()
-		return &ResourceRequestValues{
-			Storage: storageString,
-		}, nil
-	}
-	return nil, fmt.Errorf("Failed, unsupported volume source: %v", defaultVolumeSource)
 }
 
 // This function is used to fixup the fluentd daemonset on a managed cluster so that helm upgrade of Verrazzano does
@@ -361,21 +338,6 @@ func copySecret(ctx spi.ComponentContext, secretName string, logMsg string) erro
 	}
 
 	return nil
-}
-
-// isVerrazzanoSecretReady returns true if the Verrazzano secret is present in the system namespace
-func isVerrazzanoSecretReady(ctx spi.ComponentContext) bool {
-	if err := ctx.Client().Get(context.TODO(),
-		types.NamespacedName{Name: "verrazzano", Namespace: globalconst.VerrazzanoSystemNamespace},
-		&corev1.Secret{}); err != nil {
-		if !errors.IsNotFound(err) {
-			ctx.Log().Errorf("Failed, unexpected error getting verrazzano secret: %v", err)
-			return false
-		}
-		ctx.Log().Debugf("Verrazzano secret not found")
-		return false
-	}
-	return true
 }
 
 //cleanTempFiles - Clean up the override temp files in the temp dir

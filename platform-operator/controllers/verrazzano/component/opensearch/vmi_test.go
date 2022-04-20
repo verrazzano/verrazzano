@@ -10,7 +10,7 @@ import (
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vmi"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
@@ -78,7 +78,7 @@ var vmiEnabledCR = vzapi.Verrazzano{
 //  WHEN I create new VMI resources
 //  THEN the configuration in the CR is respected
 func TestNewVMIResources(t *testing.T) {
-	r := &verrazzano.ResourceRequestValues{
+	r := &vmi.ResourceRequestValues{
 		Memory:  "",
 		Storage: "50Gi",
 	}
@@ -100,7 +100,7 @@ func TestNewVMIResources(t *testing.T) {
 //  WHEN I create a new opensearch resource
 //  THEN the opensearch resource fails to create
 func TestOpenSearchInvalidArgs(t *testing.T) {
-	r := &verrazzano.ResourceRequestValues{}
+	r := &vmi.ResourceRequestValues{}
 	crBadArgs := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
@@ -126,7 +126,7 @@ func TestOpenSearchInvalidArgs(t *testing.T) {
 //  THEN the storage options from the existing VMi are preserved, and any policy values are copied.
 func TestNewOpenSearchValuesAreCopied(t *testing.T) {
 	age := "1d"
-	r := &verrazzano.ResourceRequestValues{}
+	r := &vmi.ResourceRequestValues{}
 	testvz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
@@ -168,7 +168,7 @@ func TestNewOpenSearchValuesAreCopied(t *testing.T) {
 //  THEN the configuration in the CR is respected
 func TestCreateVMI(t *testing.T) {
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vmiEnabledCR, false)
-	err := createVMI(ctx)
+	err := createVMIforOS(ctx)
 	assert.NoError(t, err)
 	vmi := &vmov1.VerrazzanoMonitoringInstance{}
 	namespacedName := types.NamespacedName{Name: system, Namespace: globalconst.VerrazzanoSystemNamespace}
@@ -219,21 +219,4 @@ func TestHasDataNodeStorageOverride(t *testing.T) {
 			assert.Equal(t, tt.hasOverride, hasNodeStorageOverride(tt.cr, "nodes.data.requests.storage"))
 		})
 	}
-}
-
-// TestBackupSecret tests whether ensureBackupSecret are created
-// GIVEN a kubernetes client
-func TestBackupSecret(t *testing.T) {
-	client := createPreInstallTestClient()
-	err := ensureBackupSecret(client)
-	assert.Nil(t, err)
-}
-
-// TestSetupSharedVmiResources tests whether secrets resources are created
-// GIVEN a controller run-time context
-func TestSetupSharedVmiResources(t *testing.T) {
-	client := createPreInstallTestClient()
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
-	err := setupSharedVMIResources(ctx)
-	assert.Nil(t, err)
 }

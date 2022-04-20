@@ -5,6 +5,7 @@ package verrazzano
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vmi"
 	"path/filepath"
 	"reflect"
 
@@ -35,13 +36,6 @@ const (
 	verrazzanoCertificateName = "verrazzano-tls"
 	grafanaCertificateName    = "system-tls-grafana"
 	prometheusCertificateName = "system-tls-prometheus"
-
-	verrazzanoBackupScrtName   = "verrazzano-backup"
-	objectstoreAccessKey       = "object_store_access_key"
-	objectstoreAccessSecretKey = "object_store_secret_key"
-
-	// Grafana admin secret data
-	grafanaScrtName = "grafana-admin"
 )
 
 // ComponentJSONName is the josn name of the verrazzano component in CRD
@@ -71,7 +65,16 @@ func NewComponent() spi.Component {
 // PreInstall Verrazzano component pre-install processing; create and label required namespaces, copy any
 // required secrets
 func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
-	if err := setupSharedVMIResources(ctx); err != nil {
+	// create or update  VMI secret
+	if err := vmi.EnsureVMISecret(ctx.Client()); err != nil {
+		return err
+	}
+	// create or update  backup secret
+	if err := vmi.EnsureBackupSecret(ctx.Client()); err != nil {
+		return err
+	}
+	// create or update  Grafana secret
+	if err := vmi.EnsureGrafanaAdminSecret(ctx.Client()); err != nil {
 		return err
 	}
 	ctx.Log().Debug("Verrazzano pre-install")
@@ -167,11 +170,11 @@ func (c verrazzanoComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 
 func compareStorageOverrides(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// compare the storage overrides and reject if the type or size is different
-	oldSetting, err := findStorageOverride(old)
+	oldSetting, err := vmi.FindStorageOverride(old)
 	if err != nil {
 		return err
 	}
-	newSetting, err := findStorageOverride(new)
+	newSetting, err := vmi.FindStorageOverride(new)
 	if err != nil {
 		return err
 	}

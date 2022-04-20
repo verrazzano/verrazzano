@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vmi"
 	"testing"
 )
 
@@ -37,7 +37,7 @@ var vmiEnabledCR = vzapi.Verrazzano{
 //  WHEN I create new VMI resources
 //  THEN the configuration in the CR is respected
 func TestNewVMIResources(t *testing.T) {
-	r := &ResourceRequestValues{
+	r := &vmi.ResourceRequestValues{
 		Memory:  "",
 		Storage: "50Gi",
 	}
@@ -89,23 +89,6 @@ func TestNewPrometheusWithDefaultStorage(t *testing.T) {
 // WHEN I create a new Prometheus resource
 //  THEN the storage is 100Gi
 func TestPrometheusWithStorageOverride(t *testing.T) {
-	prometheus := newPrometheus(&vmiEnabledCR, &ResourceRequestValues{Storage: "100Gi"}, nil)
+	prometheus := newPrometheus(&vmiEnabledCR, &vmi.ResourceRequestValues{Storage: "100Gi"}, nil)
 	assert.Equal(t, "100Gi", prometheus.Storage.Size)
-}
-
-// TestBackupSecret tests whether ensureBackupSecret are created
-// GIVEN a kubernetes client
-func TestBackupSecret(t *testing.T) {
-	client := createPreInstallTestClient()
-	err := ensureBackupSecret(client)
-	assert.Nil(t, err)
-}
-
-// TestSetupSharedVmiResources tests whether secrets resources are created
-// GIVEN a controller run-time context
-func TestSetupSharedVmiResources(t *testing.T) {
-	client := createPreInstallTestClient()
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
-	err := setupSharedVMIResources(ctx)
-	assert.Nil(t, err)
 }

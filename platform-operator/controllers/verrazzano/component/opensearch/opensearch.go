@@ -6,7 +6,7 @@ package opensearch
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vmi"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -14,19 +14,15 @@ import (
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/semver"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-// ComponentName is the name of the component
 
 const (
 	workloadName  = "system-es-master"
@@ -118,7 +114,7 @@ func isOpensearchInstalled(ctx spi.ComponentContext) (bool, error) {
 		}
 	}
 
-	return isVerrazzanoSecretReady(ctx), nil
+	return vmi.IsVerrazzanoSecretReady(ctx), nil
 }
 
 // isOpensearchReady VMI components ready-check
@@ -191,34 +187,10 @@ func isOpensearchReady(ctx spi.ComponentContext) bool {
 		}
 	}
 
-	return isVerrazzanoSecretReady(ctx)
+	return vmi.IsVerrazzanoSecretReady(ctx)
 }
 
-func findStorageOverride(effectiveCR *vzapi.Verrazzano) (*verrazzano.ResourceRequestValues, error) {
-	if effectiveCR == nil || effectiveCR.Spec.DefaultVolumeSource == nil {
-		return nil, nil
-	}
-	defaultVolumeSource := effectiveCR.Spec.DefaultVolumeSource
-	if defaultVolumeSource.EmptyDir != nil {
-		return &verrazzano.ResourceRequestValues{
-			Storage: "",
-		}, nil
-	}
-	if defaultVolumeSource.PersistentVolumeClaim != nil {
-		pvcClaim := defaultVolumeSource.PersistentVolumeClaim
-		storageSpec, found := vzconfig.FindVolumeTemplate(pvcClaim.ClaimName, effectiveCR.Spec.VolumeClaimSpecTemplates)
-		if !found {
-			return nil, fmt.Errorf("Failed, did not find matching storage volume template for claim %s", pvcClaim.ClaimName)
-		}
-		storageString := storageSpec.Resources.Requests.Storage().String()
-		return &verrazzano.ResourceRequestValues{
-			Storage: storageString,
-		}, nil
-	}
-	return nil, fmt.Errorf("Failed, unsupported volume source: %v", defaultVolumeSource)
-}
-
-func createAndLabelNamespaces(ctx spi.ComponentContext) error {
+func createAndLabelOSNamespaces(ctx spi.ComponentContext) error {
 	if err := namespace.CreateVerrazzanoSystemNamespace(ctx.Client()); err != nil {
 		return err
 	}
@@ -226,21 +198,6 @@ func createAndLabelNamespaces(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed checking for image pull secret: %v", err)
 	}
 	return nil
-}
-
-// isVerrazzanoSecretReady returns true if the Verrazzano secret is present in the system namespace
-func isVerrazzanoSecretReady(ctx spi.ComponentContext) bool {
-	if err := ctx.Client().Get(context.TODO(),
-		types.NamespacedName{Name: "verrazzano", Namespace: globalconst.VerrazzanoSystemNamespace},
-		&corev1.Secret{}); err != nil {
-		if !errors.IsNotFound(err) {
-			ctx.Log().Errorf("Failed, unexpected error getting verrazzano secret: %v", err)
-			return false
-		}
-		ctx.Log().Debugf("Verrazzano secret not found")
-		return false
-	}
-	return true
 }
 
 // fixupElasticSearchReplicaCount fixes the replica count set for single node Elasticsearch cluster

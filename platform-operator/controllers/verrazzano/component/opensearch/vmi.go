@@ -6,19 +6,14 @@ package opensearch
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vmi"
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	controllerruntime "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -26,8 +21,8 @@ const (
 	system = "system"
 )
 
-//createVMI instantiates the VMI resource
-func createVMI(ctx spi.ComponentContext) error {
+//createVMIforOS instantiates the VMI resource
+func createVMIforOS(ctx spi.ComponentContext) error {
 	if !vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
 		return nil
 	}
@@ -40,11 +35,11 @@ func createVMI(ctx spi.ComponentContext) error {
 	}
 	envName := vzconfig.GetEnvName(effectiveCR)
 
-	storage, err := findStorageOverride(ctx.EffectiveCR())
+	storage, err := vmi.FindStorageOverride(ctx.EffectiveCR())
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("failed to get storage overrides: %v", err)
 	}
-	vmi := newVMI()
+	vmi := vmi.NewVMI()
 	_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), vmi, func() error {
 		var existingVMI *vmov1.VerrazzanoMonitoringInstance = nil
 		if len(vmi.Spec.URI) > 0 {
@@ -60,7 +55,7 @@ func createVMI(ctx spi.ComponentContext) error {
 		vmi.Spec.IngressTargetDNSName = fmt.Sprintf("verrazzano-ingress.%s.%s", envName, dnsSuffix)
 		vmi.Spec.ServiceType = "ClusterIP"
 		vmi.Spec.AutoSecret = true
-		vmi.Spec.SecretsName = verrazzanoSecretName
+		vmi.Spec.SecretsName = constants.VMISecret
 		vmi.Spec.CascadingDelete = true
 		hasDataNodeOverride := hasNodeStorageOverride(ctx.ActualCR(), "nodes.data.requests.storage")
 		hasMasterNodeOverride := hasNodeStorageOverride(ctx.ActualCR(), "nodes.master.requests.storage")
@@ -76,15 +71,6 @@ func createVMI(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("failed to update VMI: %v", err)
 	}
 	return nil
-}
-
-func newVMI() *vmov1.VerrazzanoMonitoringInstance {
-	return &vmov1.VerrazzanoMonitoringInstance{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      system,
-			Namespace: globalconst.VerrazzanoSystemNamespace,
-		},
-	}
 }
 
 func hasNodeStorageOverride(cr *vzapi.Verrazzano, override string) bool {
@@ -107,7 +93,7 @@ func hasNodeStorageOverride(cr *vzapi.Verrazzano, override string) bool {
 // 2. VolumeClaimTemplate overrides
 // 3. Profile values (which show as ESInstallArgs in the ActualCR)
 // The data node storage may be changed on update. The master node storage may NOT.
-func newOpenSearch(cr *vzapi.Verrazzano, storage *verrazzano.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, hasDataOverride, hasMasterOverride bool) (*vmov1.Elasticsearch, error) {
+func newOpenSearch(cr *vzapi.Verrazzano, storage *vmi.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, hasDataOverride, hasMasterOverride bool) (*vmov1.Elasticsearch, error) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		return &vmov1.Elasticsearch{}, nil
 	}
@@ -233,64 +219,7 @@ func newOpenSearchDashboards(cr *vzapi.Verrazzano) vmov1.Kibana {
 	return opensearchDashboards
 }
 
-func setupSharedVMIResources(ctx spi.ComponentContext) error {
-	err := ensureVMISecret(ctx.Client())
-	if err != nil {
-		return err
-	}
-	return ensureBackupSecret(ctx.Client())
-}
-
-func ensureVMISecret(cli client.Client) error {
-	secret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      verrazzanoSecretName,
-			Namespace: globalconst.VerrazzanoSystemNamespace,
-		},
-		Data: map[string][]byte{},
-	}
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), cli, secret, func() error {
-		if secret.Data["username"] == nil || secret.Data["password"] == nil {
-			secret.Data["username"] = []byte(verrazzanoSecretName)
-			pw, err := password.GeneratePassword(16)
-			if err != nil {
-				return err
-			}
-			secret.Data["password"] = []byte(pw)
-		}
-		return nil
-	}); err != nil {
-		return err
-	}
-	return nil
-}
-
-func ensureBackupSecret(cli client.Client) error {
-	secret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      verrazzanoBackupScrtName,
-			Namespace: globalconst.VerrazzanoSystemNamespace,
-		},
-		Data: map[string][]byte{},
-	}
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), cli, secret, func() error {
-		// Populating dummy keys for access and secret key so that they are never empty
-		if secret.Data[objectstoreAccessKey] == nil || secret.Data[objectstoreAccessSecretKey] == nil {
-			key, err := password.GeneratePassword(32)
-			if err != nil {
-				return err
-			}
-			secret.Data[objectstoreAccessKey] = []byte(key)
-			secret.Data[objectstoreAccessSecretKey] = []byte(key)
-		}
-		return nil
-	}); err != nil {
-		return err
-	}
-	return nil
-}
-
-func nodeAdapter(vmi *vmov1.VerrazzanoMonitoringInstance, nodes []vzapi.OpenSearchNode, storage *verrazzano.ResourceRequestValues) []vmov1.ElasticsearchNode {
+func nodeAdapter(vmi *vmov1.VerrazzanoMonitoringInstance, nodes []vzapi.OpenSearchNode, storage *vmi.ResourceRequestValues) []vmov1.ElasticsearchNode {
 	getQuantity := func(q *resource.Quantity) string {
 		if q == nil || q.String() == "0" {
 			return ""
