@@ -138,8 +138,6 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			tracker.vzState = vzStateUpgradeDone
 
 		case vzStateUpgradeDone:
-			msg := fmt.Sprintf("Verrazzano successfully upgraded to version %s", cr.Spec.Version)
-			log.Once(msg)
 			cr.Status.Version = targetVersion
 			effectiveCR, _ := transform.GetEffectiveCR(cr)
 			for _, comp := range registry.GetComponents() {
@@ -150,9 +148,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 					componentStatus.LastReconciledGeneration = cr.Generation
 				}
 			}
-			if err := r.updateStatus(log, cr, msg, installv1alpha1.CondUpgradeComplete); err != nil {
-				return newRequeueWithDelay(), err
-			}
+
 			// Upgrade completely done
 			deleteUpgradeTracker(cr)
 			tracker.vzState = vzStateEnd
