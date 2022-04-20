@@ -71,8 +71,8 @@ func TestGetValues(t *testing.T) {
 //  WHEN I call Upgrade
 //  THEN the Helm upgrade returns success and the cmd object has correct values
 func TestUpgrade(t *testing.T) {
-	var overrides HelmOverrides
-	overrides.FileOverrides = []string{"my-override.yaml"}
+	var overrides []HelmOverrides
+	overrides = append(overrides, HelmOverrides{FileOverride: "my-override.yaml"})
 	assert := assert.New(t)
 	SetCmdRunner(upgradeRunner{
 		t: t,
@@ -97,8 +97,9 @@ func TestUpgrade(t *testing.T) {
 //  WHEN I call Upgrade
 //  THEN the Helm upgrade returns success and the cmd object has correct values
 func TestUpgradeCustomFileOverrides(t *testing.T) {
-	overrides := HelmOverrides{}
-	overrides.FileOverrides = []string{"my-override.yaml", "custom-override.yaml"}
+	var overrides []HelmOverrides
+	overrides = append(overrides, HelmOverrides{FileOverride: "my-override.yaml"})
+	overrides = append(overrides, HelmOverrides{FileOverride: "custom-override.yaml"})
 	assert := assert.New(t)
 	SetCmdRunner(upgradeRunner{
 		t: t,
@@ -125,7 +126,7 @@ func TestUpgradeCustomFileOverrides(t *testing.T) {
 //  WHEN I call Upgrade
 //  THEN the Helm upgrade returns an error
 func TestUpgradeFail(t *testing.T) {
-	var overrides HelmOverrides
+	var overrides []HelmOverrides
 	assert := assert.New(t)
 	SetCmdRunner(badRunner{t: t})
 	defer SetDefaultRunner()

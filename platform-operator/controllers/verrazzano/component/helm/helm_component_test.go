@@ -4,7 +4,6 @@
 package helm
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -30,7 +29,7 @@ import (
 )
 
 // Needed for unit tests
-var fakeOverrides string
+var fakeOverrides map[string]bool
 
 // helmFakeRunner is used to test helm without actually running an OS exec command
 type helmFakeRunner struct {
@@ -90,7 +89,10 @@ func TestUpgrade(t *testing.T) {
 	}
 
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
-	fakeOverrides = "rancherImageTag=v2.5.7-20210407205410-1c7b39d0c,rancherImage=ghcr.io/verrazzano/rancher"
+	fakeOverrides = map[string]bool{
+		"rancherImage=ghcr.io/verrazzano/rancher":         false,
+		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c": false,
+	}
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
@@ -114,7 +116,7 @@ func TestUpgradeIsInstalledUnexpectedError(t *testing.T) {
 
 	comp := HelmComponent{}
 
-	SetUpgradeFunc(func(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+	SetUpgradeFunc(func(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 		return nil, nil, nil
 	})
 	defer SetDefaultUpgradeFunc()
@@ -139,7 +141,7 @@ func TestUpgradeReleaseNotInstalled(t *testing.T) {
 
 	comp := HelmComponent{}
 
-	SetUpgradeFunc(func(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+	SetUpgradeFunc(func(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 		return nil, nil, nil
 	})
 	helm.SetCmdRunner(helmFakeRunner{})
@@ -175,7 +177,11 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 	defer func() { _ = os.Unsetenv(constants.ImageRepoOverrideEnvVar) }()
 
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
-	fakeOverrides = "rancherImageTag=v2.5.7-20210407205410-1c7b39d0c,rancherImage=myreg.io/myrepo/verrazzano/rancher,global.hub=myreg.io/myrepo/verrazzano"
+	fakeOverrides = map[string]bool{
+		"rancherImage=myreg.io/myrepo/verrazzano/rancher": false,
+		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c": false,
+		"global.hub=myreg.io/myrepo/verrazzano":           false,
+	}
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
@@ -209,7 +215,10 @@ func TestInstall(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
-	fakeOverrides = "rancherImageTag=v2.5.7-20210407205410-1c7b39d0c,rancherImage=ghcr.io/verrazzano/rancher"
+	fakeOverrides = map[string]bool{
+		"rancherImage=ghcr.io/verrazzano/rancher":         false,
+		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c": false,
+	}
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
@@ -254,17 +263,42 @@ func TestInstallWithAllOverride(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
-	fakeOverrides = "rancherImageTag=v2.5.7-20210407205410-1c7b39d0c,rancherImage=ghcr.io/verrazzano/rancher"
+	fakeOverrides = map[string]bool{
+		"rancherImage=ghcr.io/verrazzano/rancher":         false,
+		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c": false,
+	}
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
 
-	SetUpgradeFunc(func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
-		a.Contains(overrides.FileOverrides, "my-overrides.yaml", "Overrides file not found")
-		a.Contains(overrides.SetOverrides, "setKey=setValue", "Incorrect --set overrides")
-		a.Contains(overrides.SetStringOverrides, "setStringKey=setStringValue", "Incorrect --set overrides")
-		a.Contains(overrides.SetFileOverrides, "setFileKey=setFileValue", "Incorrect --set overrides")
+	SetUpgradeFunc(func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+		for _, override := range overrides {
+			foundInFake := false
+			for key, _ := range fakeOverrides {
+				if override.SetOverrides == key {
+					foundInFake = true
+				}
+			}
+			if foundInFake {
+				break
+			}
+			if override.FileOverride == comp.ValuesFile {
+				break
+			}
+			if override.FileOverride != "" {
+				a.Contains(override.FileOverride, "my-overrides.yaml", "Overrides file not found")
+			}
+			if override.SetOverrides != "" {
+				a.Contains(override.SetOverrides, "setKey=setValue", "Incorrect --set overrides")
+			}
+			if override.SetStringOverrides != "" {
+				a.Contains(override.SetStringOverrides, "setStringKey=setStringValue", "Incorrect --set overrides")
+			}
+			if override.SetFileOverrides != "" {
+				a.Contains(override.SetFileOverrides, "setFileKey=setFileValue", "Incorrect --set overrides")
+			}
+		}
 		return fakeUpgrade(log, releaseName, namespace, chartDir, wait, dryRun, overrides)
 	})
 	defer SetDefaultUpgradeFunc()
@@ -302,7 +336,10 @@ func TestInstallPreviousFailure(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
-	fakeOverrides = "rancherImageTag=v2.5.7-20210407205410-1c7b39d0c,rancherImage=ghcr.io/verrazzano/rancher"
+	fakeOverrides = map[string]bool{
+		"rancherImage=ghcr.io/verrazzano/rancher":         false,
+		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c": false,
+	}
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
@@ -347,26 +384,28 @@ func TestInstallWithPreInstallFunc(t *testing.T) {
 
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
-	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function,
-	// plus values returned from the preInstall function if present
-	var buffer bytes.Buffer
-	buffer.WriteString("rancherImageTag=v2.5.7-20210407205410-1c7b39d0c,rancherImage=ghcr.io/verrazzano/rancher,")
-	for i, kv := range preInstallKVPairs {
-		buffer.WriteString(kv.Key)
-		buffer.WriteString("=")
-		buffer.WriteString(kv.Value)
-		if i != len(preInstallKVPairs)-1 {
-			buffer.WriteString(",")
-		}
+	expectedOverrideValues := map[string]bool{
+		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c": false,
+		"rancherImage=ghcr.io/verrazzano/rancher":         false,
+		"preInstall1=value1":                              false,
+		"preInstall2=value2":                              false,
 	}
-	expectedOverridesString := buffer.String()
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
-	SetUpgradeFunc(func(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
-		if overrides.SetOverrides != expectedOverridesString {
-			return nil, nil, fmt.Errorf("Unexpected overrides string %s, expected %s", overrides, expectedOverridesString)
+	SetUpgradeFunc(func(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+		for _, override := range overrides {
+			for key, _ := range expectedOverrideValues {
+				if strings.Contains(override.SetOverrides, key) {
+					expectedOverrideValues[key] = true
+				}
+			}
+		}
+		for key, val := range expectedOverrideValues {
+			if !val {
+				return nil, nil, fmt.Errorf("Unexpected overrides, expected %s", key)
+			}
 		}
 		return []byte{}, []byte{}, nil
 	})
@@ -552,7 +591,7 @@ func TestReady(t *testing.T) {
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 	if releaseName != "rancher" {
 		return []byte("error"), []byte(""), errors.New("Invalid release name")
 	}
@@ -564,20 +603,28 @@ func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string,
 	}
 
 	foundChartOverridesFile := false
-	for _, file := range overrides.FileOverrides {
-		if file == "ValuesFile" {
+	for _, override := range overrides {
+		if override.FileOverride == "ValuesFile" {
 			foundChartOverridesFile = true
-			break
 		}
+
+		// This string is built from the Key:Value array returned by the bom.buildImageOverrides() function
+		for key, _ := range fakeOverrides {
+			if strings.Contains(override.SetOverrides, key) {
+				fakeOverrides[key] = true
+			}
+		}
+
 	}
 	if !foundChartOverridesFile {
 		return []byte("error"), []byte(""), errors.New("Invalid values file")
 	}
-
-	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
-	if !strings.Contains(overrides.SetOverrides, fakeOverrides) {
-		return []byte("error"), []byte(""), errors.New("Invalid overrides")
+	for _, val := range fakeOverrides {
+		if !val {
+			return []byte("error"), []byte(""), errors.New("Invalid overrides")
+		}
 	}
+
 	return []byte("success"), []byte(""), nil
 }
 
