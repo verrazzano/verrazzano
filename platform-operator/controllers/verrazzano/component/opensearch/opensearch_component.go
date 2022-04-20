@@ -172,7 +172,7 @@ func (o opensearchComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (o opensearchComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow disabling active components
-	if err := o.checkEnabled(old, new); err != nil {
+	if err := o.isOpensearchEnabled(old, new); err != nil {
 		return err
 	}
 	// Reject any other edits except InstallArgs
@@ -209,7 +209,7 @@ func compareStorageOverrides(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error
 	return nil
 }
 
-func (o opensearchComponent) checkEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (o opensearchComponent) isOpensearchEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow disabling of any component post-install for now
 	if vzconfig.IsElasticsearchEnabled(old) && !vzconfig.IsElasticsearchEnabled(new) {
 		return fmt.Errorf("Disabling component elasticsearch not allowed")
