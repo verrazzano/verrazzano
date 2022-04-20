@@ -196,6 +196,14 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 			r.updateVzState(log, actualCR, installv1alpha1.VzStateUpgrading)
 			return newRequeueWithDelay(), err
 		}
+		// Keep retrying to reconcile components until it completes
+		if result, err := r.reconcileComponents(vzctx); err != nil {
+			return newRequeueWithDelay(), err
+		} else if vzctrl.ShouldRequeue(result) {
+			return result, nil
+		}
+
+		return ctrl.Result{}, nil
 	}
 
 	// if an OCI DNS installation, make sure the secret required exists before proceeding
