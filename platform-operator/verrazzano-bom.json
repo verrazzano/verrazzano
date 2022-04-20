@@ -236,7 +236,7 @@
             },
             {
               "image": "prometheus",
-              "tag": "v2.31.1",
+              "tag": "v2.34.0",
               "helmFullImageKey": "monitoringOperator.prometheusImage"
             },
             {
