@@ -4,8 +4,20 @@
 package verrazzano
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
+	"io/fs"
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"strings"
+	"testing"
+	"text/template"
+	"time"
+
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
@@ -17,10 +29,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vmi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"io/fs"
-	"io/ioutil"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -28,15 +37,13 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
-	"strings"
-	"testing"
 )
 
 const (
@@ -283,6 +290,7 @@ func Test_appendVerrazzanoValues(t *testing.T) {
 						PrometheusAdapter:     &vzapi.PrometheusAdapterComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
 						KubeStateMetrics:      &vzapi.KubeStateMetricsComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
 						PrometheusPushgateway: &vzapi.PrometheusPushgatewayComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
+						PrometheusNodeExporter: &vzapi.PrometheusNodeExporterComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
 					},
 				},
 			},
@@ -586,6 +594,7 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 						PrometheusAdapter:     &vzapi.PrometheusAdapterComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
 						KubeStateMetrics:      &vzapi.KubeStateMetricsComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
 						PrometheusPushgateway: &vzapi.PrometheusPushgatewayComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
+						PrometheusNodeExporter: &vzapi.PrometheusNodeExporterComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
 					},
 				},
 			},
@@ -807,156 +816,6 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 
 }
 
-// Test_findStorageOverride tests the vmi.FindStorageOverride function
-// GIVEN a call to vmi.FindStorageOverride
-//  WHEN I call with a ComponentContext with different profiles and overrides
-//  THEN the correct resource overrides or an error are returned
-func Test_findStorageOverride(t *testing.T) {
-
-	tests := []struct {
-		name             string
-		description      string
-		actualCR         vzapi.Verrazzano
-		expectedOverride *vmi.ResourceRequestValues
-		expectedErr      bool
-	}{
-		{
-			name:        "TestProdNoOverrides",
-			description: "Test storage override with empty CR",
-			actualCR:    vzapi.Verrazzano{},
-		},
-		{
-			name:        "TestProdEmptyDirOverride",
-			description: "Test prod profile with empty dir storage override",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					DefaultVolumeSource: &corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
-				},
-			},
-			expectedOverride: &vmi.ResourceRequestValues{
-				Storage: "",
-			},
-		},
-		{
-			name:        "TestProdPVCOverride",
-			description: "Test prod profile with PVC storage override",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					DefaultVolumeSource: &corev1.VolumeSource{PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "vmi"}},
-					VolumeClaimSpecTemplates: []vzapi.VolumeClaimSpecTemplate{
-						{
-							ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
-							Spec: corev1.PersistentVolumeClaimSpec{
-								Resources: corev1.ResourceRequirements{
-									Requests: corev1.ResourceList{
-										"storage": pvc100Gi,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			expectedOverride: &vmi.ResourceRequestValues{
-				Storage: pvc100Gi.String(),
-			},
-		},
-		{
-			name:        "TestDevPVCOverride",
-			description: "Test dev profile with PVC storage override",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Profile:             vzapi.Dev,
-					DefaultVolumeSource: &corev1.VolumeSource{PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "vmi"}},
-					VolumeClaimSpecTemplates: []vzapi.VolumeClaimSpecTemplate{
-						{
-							ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
-							Spec: corev1.PersistentVolumeClaimSpec{
-								Resources: corev1.ResourceRequirements{
-									Requests: corev1.ResourceList{
-										"storage": pvc100Gi,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			expectedOverride: &vmi.ResourceRequestValues{
-				Storage: pvc100Gi.String(),
-			},
-		},
-		{
-			name:        "TestDevUnsupportedVolumeSource",
-			description: "Test dev profile with an unsupported default volume source",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Profile:             vzapi.Dev,
-					DefaultVolumeSource: &corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{}},
-					VolumeClaimSpecTemplates: []vzapi.VolumeClaimSpecTemplate{
-						{
-							ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
-							Spec: corev1.PersistentVolumeClaimSpec{
-								Resources: corev1.ResourceRequirements{
-									Requests: corev1.ResourceList{
-										"storage": pvc100Gi,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			expectedErr: true,
-		},
-		{
-			name:        "TestDevMismatchedPVCClaimName",
-			description: "Test dev profile with PVC default volume source and mismatched PVC claim name",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Profile:             vzapi.Dev,
-					DefaultVolumeSource: &corev1.VolumeSource{PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "foo"}},
-					VolumeClaimSpecTemplates: []vzapi.VolumeClaimSpecTemplate{
-						{
-							ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
-							Spec: corev1.PersistentVolumeClaimSpec{
-								Resources: corev1.ResourceRequirements{
-									Requests: corev1.ResourceList{
-										"storage": pvc100Gi,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			expectedErr: true,
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			a := assert.New(t)
-
-			fakeContext := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &test.actualCR, false, profileDir)
-
-			override, err := vmi.FindStorageOverride(fakeContext.EffectiveCR())
-			if test.expectedErr {
-				a.Error(err)
-			} else {
-				a.NoError(err)
-			}
-			if test.expectedOverride != nil {
-				if override == nil {
-					a.FailNow("Expected returned override to not be nil")
-				}
-				a.Equal(*test.expectedOverride, *override)
-			} else {
-				a.Nil(override)
-			}
-		})
-	}
-}
-
 // Test_loggingPreInstall tests the Verrazzano loggingPreInstall call
 func Test_loggingPreInstall(t *testing.T) {
 	// GIVEN a Verrazzano component
@@ -1082,6 +941,93 @@ func createFakeClientWithIngress() client.Client {
 		},
 	).Build()
 	return fakeClient
+}
+
+// newFakeRuntimeScheme creates a new fake scheme
+func newFakeRuntimeScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	_ = appsv1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+	return scheme
+}
+
+// createFakeComponentContext creates a fake component context
+func createFakeComponentContext() (spi.ComponentContext, error) {
+	c := fake.NewClientBuilder().WithScheme(newFakeRuntimeScheme()).Build()
+
+	vzTemplate := `---
+apiVersion: install.verrazzano.io/v1alpha1
+kind: Verrazzano
+metadata:
+  name: test-verrazzano
+  namespace: default
+spec:
+  version: 1.1.0
+  profile: dev
+  components:
+    elasticsearch:
+      enabled: true
+status:
+  version: 1.0.0
+`
+	vzObject := vzapi.Verrazzano{}
+	if err := createObjectFromTemplate(&vzObject, vzTemplate, nil); err != nil {
+		return nil, err
+	}
+
+	return spi.NewFakeContext(c, &vzObject, false), nil
+}
+
+// createPod creates a k8s pod
+func createPod(cli client.Client) {
+	_ = cli.Create(context.TODO(), newPod())
+}
+
+func newPod() *corev1.Pod {
+	labels := map[string]string{
+		"test-label-name": "test-label-value",
+	}
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "simple-pod",
+			Namespace: "test-namespace-name",
+			Labels:    labels,
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name: "test-ready-container-name",
+					Ports: []corev1.ContainerPort{
+						{
+							ContainerPort: 42,
+							Name:          "test-ready-port-name",
+						},
+					},
+				},
+				{
+					Name: "test-not-ready-container-name",
+					Ports: []corev1.ContainerPort{
+						{
+							ContainerPort: 777,
+							Name:          "test-not-ready-port-name",
+						},
+					},
+				},
+			},
+		},
+		Status: corev1.PodStatus{
+			ContainerStatuses: []corev1.ContainerStatus{
+				{
+					Name:  "test-ready-container-name",
+					Ready: true,
+				},
+				{
+					Name:  "test-not-ready-container-name",
+					Ready: false,
+				},
+			},
+		},
+	}
 }
 
 // TestFakeExecHandler is a test intended to be use to handle fake command execution
@@ -1310,10 +1256,10 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 	vz.Spec.Components = vzapi.ComponentSpec{
 		Console:       &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 		Fluentd:       &vzapi.FluentdComponent{Enabled: &falseValue},
-		Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 		Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 		Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &falseValue},
+		Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 	}
 	ctx := spi.NewFakeContext(c, vz, false)
 	assert.True(t, isVerrazzanoReady(ctx))
