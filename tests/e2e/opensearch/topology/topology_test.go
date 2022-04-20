@@ -187,9 +187,6 @@ func assertPodsFound(clientSet *kubernetes.Clientset, count int, selector string
 				return fmt.Errorf("container %s/%s is not yet ready", pod.Name, status.Name)
 			}
 		}
-		if pod.Status.Phase != corev1.PodRunning {
-
-		}
 	}
 	return nil
 }

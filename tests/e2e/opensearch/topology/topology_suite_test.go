@@ -11,5 +11,5 @@ import (
 
 func TestTopology(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "VMI Suite")
+	ginkgo.RunSpecs(t, "OpenSearch Topology Suite")
 }
