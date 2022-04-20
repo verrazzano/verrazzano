@@ -35,7 +35,6 @@ func appendVmoOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, 
 		return kvs, ctx.Log().ErrorfNewErr("Failed to append monitoring init image overrides: %v", err)
 	}
 
-	// Find any storage overrides for the VMI
 	effectiveCR := ctx.EffectiveCR()
 
 	// Get the dnsSuffix override
