@@ -5,11 +5,10 @@ package vmi
 
 import (
 	"github.com/stretchr/testify/assert"
-	"k8s.io/apimachinery/pkg/api/resource"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -19,6 +18,7 @@ import (
 
 const profileDir = "../../../manifests/profiles"
 
+var testScheme = runtime.NewScheme()
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
 // Test_FindStorageOverride tests the FindStorageOverride function
@@ -170,17 +170,3 @@ func Test_FindStorageOverride(t *testing.T) {
 		})
 	}
 }
-
-//
-//// TestSetupSharedVmiResources tests whether secrets resources are created
-//// GIVEN a controller run-time context
-//func TestSetupSharedVmiResources(t *testing.T) {
-//	client := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build()
-//	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
-//	err := EnsureVMISecret(ctx.Client())
-//	assert.Nil(t, err)
-//	err = EnsureBackupSecret(ctx.Client())
-//	assert.Nil(t, err)
-//	err = EnsureGrafanaAdminSecret(ctx.Client())
-//	assert.Nil(t, err)
-//}
