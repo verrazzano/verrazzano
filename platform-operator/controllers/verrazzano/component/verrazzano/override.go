@@ -129,6 +129,7 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *verrazzanoValue
 	overrides.PrometheusAdapter = &prometheusAdapterValues{Enabled: vzconfig.IsPrometheusAdapterEnabled(effectiveCR)}
 	overrides.KubeStateMetrics = &kubeStateMetricsValues{Enabled: vzconfig.IsKubeStateMetricsEnabled(effectiveCR)}
 	overrides.PrometheusPushgateway = &prometheusPushgatewayValues{Enabled: vzconfig.IsPrometheusPushgatewayEnabled(effectiveCR)}
+	overrides.PrometheusNodeExporter = &prometheusNodeExporterValues{Enabled: vzconfig.IsPrometheusNodeExporterEnabled(effectiveCR)}
 	return nil
 }
 
