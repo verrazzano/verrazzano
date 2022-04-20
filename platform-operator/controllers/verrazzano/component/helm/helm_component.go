@@ -330,7 +330,7 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 		return context.Log().ErrorfNewErr("Failed to close temporary file: %v", err)
 	}
 
-	// Make helm get values overrides first
+	// Generate a list of override files making helm get values overrides first
 	overrides = append([]helm.HelmOverrides{{FileOverride: tmpFile.Name()}}, overrides...)
 
 	_, _, err = upgradeFunc(context.Log(), h.ReleaseName, namespace, h.ChartDir, true, context.IsDryRun(), overrides)
