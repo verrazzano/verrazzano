@@ -237,6 +237,11 @@ pipeline {
                                 runGinkgoNamespace('examples/helidon', "false", "true", "hello-helidon")
                             }
                         }
+                        stage('pre-upgrade verify') {
+                            steps {
+                                runGinkgoRandomize('upgrade/pre-upgrade/verify')
+                            }
+                        }
                         // Re-enable this stage when a mechanism is in place to deploy different comp and app yamls based on VZ version
 //                         stage('examples socks') {
 //                             steps {

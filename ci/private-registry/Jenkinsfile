@@ -306,6 +306,10 @@ pipeline {
                     }
                 }
                 stage('Run Acceptance Tests') {
+                    environment {
+                        PRIVATE_REPO="${baseImageRepo}"
+                        REGISTRY="${ocirRegistry}"
+                    }
                     stages {
                         stage('verify-install') {
                             steps {
