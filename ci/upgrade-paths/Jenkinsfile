@@ -397,24 +397,27 @@ pipeline {
                         }
                     }
                 }
-                stage ('Register managed clusters') {
-                    steps {
-                        registerManagedClusters()
-                    }
-                }
-                stage ('Deploy Sample Application') {
-                    steps {
-                        deploySampleApp()
-                    }
-                }
-                stage ('Verify Register') {
-                    steps {
-                        verifyRegisterManagedClusters()
-                    }
-                }
-                stage ('Verify Metrics') {
-                    steps {
-                        runGinkgoRandomize('metrics/syscomponents')
+                stage ('Pre-upgrade Acceptance tests') {
+                    parallel {
+                        stage ('Cluster registration') {
+                            stages {
+                                stage('Register managed clusters') {
+                                    steps {
+                                        registerManagedClusters()
+                                    }
+                                }
+                                stage('Verify Register') {
+                                    steps {
+                                        verifyRegisterManagedClusters()
+                                    }
+                                }
+                            }
+                        }
+                        stage ('Deploy Sample Application') {
+                            steps {
+                                deploySampleApp()
+                            }
+                        }
                     }
                 }
                 stage("upgrade-platform-operator") {
