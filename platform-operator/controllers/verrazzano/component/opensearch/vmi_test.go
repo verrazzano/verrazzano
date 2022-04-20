@@ -9,8 +9,8 @@ import (
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vmi"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
@@ -78,7 +78,7 @@ var vmiEnabledCR = vzapi.Verrazzano{
 //  WHEN I create new VMI resources
 //  THEN the configuration in the CR is respected
 func TestNewVMIResources(t *testing.T) {
-	r := &vmi.ResourceRequestValues{
+	r := &common.ResourceRequestValues{
 		Memory:  "",
 		Storage: "50Gi",
 	}
@@ -100,7 +100,7 @@ func TestNewVMIResources(t *testing.T) {
 //  WHEN I create a new opensearch resource
 //  THEN the opensearch resource fails to create
 func TestOpenSearchInvalidArgs(t *testing.T) {
-	r := &vmi.ResourceRequestValues{}
+	r := &common.ResourceRequestValues{}
 	crBadArgs := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
@@ -126,7 +126,7 @@ func TestOpenSearchInvalidArgs(t *testing.T) {
 //  THEN the storage options from the existing VMi are preserved, and any policy values are copied.
 func TestNewOpenSearchValuesAreCopied(t *testing.T) {
 	age := "1d"
-	r := &vmi.ResourceRequestValues{}
+	r := &common.ResourceRequestValues{}
 	testvz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{

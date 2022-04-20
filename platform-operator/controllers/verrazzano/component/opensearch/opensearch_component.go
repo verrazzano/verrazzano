@@ -6,7 +6,7 @@ package opensearch
 import (
 	"fmt"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vmi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"reflect"
 
@@ -71,11 +71,11 @@ func NewComponent() spi.Component {
 // required secrets
 func (o opensearchComponent) PreInstall(ctx spi.ComponentContext) error {
 	// create or update  VMI secret
-	if err := vmi.EnsureVMISecret(ctx.Client()); err != nil {
+	if err := common.EnsureVMISecret(ctx.Client()); err != nil {
 		return err
 	}
 	// create or update backup VMI secret
-	if err := vmi.EnsureBackupSecret(ctx.Client()); err != nil {
+	if err := common.EnsureBackupSecret(ctx.Client()); err != nil {
 		return err
 	}
 	ctx.Log().Debug("OpenSearch pre-install")
@@ -93,7 +93,7 @@ func (o opensearchComponent) Install(ctx spi.ComponentContext) error {
 // PreUpgrade Opensearch component pre-upgrade processing
 func (o opensearchComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	// create or update  VMI secret
-	return vmi.EnsureVMISecret(ctx.Client())
+	return common.EnsureVMISecret(ctx.Client())
 }
 
 // InstallUpgrade Opensearch component upgrade processing
@@ -196,11 +196,11 @@ func (o opensearchComponent) Name() string {
 
 func compareStorageOverrides(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// compare the storage overrides and reject if the type or size is different
-	oldSetting, err := vmi.FindStorageOverride(old)
+	oldSetting, err := common.FindStorageOverride(old)
 	if err != nil {
 		return err
 	}
-	newSetting, err := vmi.FindStorageOverride(new)
+	newSetting, err := common.FindStorageOverride(new)
 	if err != nil {
 		return err
 	}

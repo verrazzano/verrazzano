@@ -3,7 +3,9 @@
 
 package verrazzano
 
-import "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vmi"
+import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+)
 
 // verrazzanoValues Struct representing the Verrazzano Helm chart values
 //
@@ -85,13 +87,13 @@ type esNodes struct {
 }
 
 type esNodeValues struct {
-	Replicas int                        `json:"replicas,omitempty"`
-	Requests *vmi.ResourceRequestValues `json:"requests,omitempty"`
+	Replicas int                           `json:"replicas,omitempty"`
+	Requests *common.ResourceRequestValues `json:"requests,omitempty"`
 }
 
 type prometheusValues struct {
-	Enabled  bool                       `json:"enabled"` // Always write
-	Requests *vmi.ResourceRequestValues `json:"requests,omitempty"`
+	Enabled  bool                          `json:"enabled"` // Always write
+	Requests *common.ResourceRequestValues `json:"requests,omitempty"`
 }
 
 type kialiValues struct {
@@ -108,13 +110,13 @@ type rancherValues struct {
 }
 
 type kibanaValues struct {
-	Enabled  bool                       `json:"enabled"` // Always write
-	Requests *vmi.ResourceRequestValues `json:"requests,omitempty"`
+	Enabled  bool                          `json:"enabled"` // Always write
+	Requests *common.ResourceRequestValues `json:"requests,omitempty"`
 }
 
 type grafanaValues struct {
-	Enabled  bool                       `json:"enabled"` // Always write
-	Requests *vmi.ResourceRequestValues `json:"requests,omitempty"`
+	Enabled  bool                          `json:"enabled"` // Always write
+	Requests *common.ResourceRequestValues `json:"requests,omitempty"`
 }
 
 type vmoValues struct {

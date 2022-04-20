@@ -8,8 +8,8 @@ import (
 	"fmt"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vmi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -38,11 +38,11 @@ func createVMI(ctx spi.ComponentContext) error {
 	if err := appendVerrazzanoValues(ctx, values); err != nil {
 		return ctx.Log().ErrorfNewErr("failed to get Verrazzano values: %v", err)
 	}
-	storage, err := vmi.FindStorageOverride(ctx.EffectiveCR())
+	storage, err := common.FindStorageOverride(ctx.EffectiveCR())
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("failed to get storage overrides: %v", err)
 	}
-	vmi := vmi.NewVMI()
+	vmi := common.NewVMI()
 	_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), vmi, func() error {
 		var existingVMI *vmov1.VerrazzanoMonitoringInstance = nil
 		if len(vmi.Spec.URI) > 0 {
@@ -70,7 +70,7 @@ func createVMI(ctx spi.ComponentContext) error {
 	return nil
 }
 
-func newGrafana(cr *vzapi.Verrazzano, storage *vmi.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance) vmov1.Grafana {
+func newGrafana(cr *vzapi.Verrazzano, storage *common.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance) vmov1.Grafana {
 	if cr.Spec.Components.Grafana == nil {
 		return vmov1.Grafana{}
 	}
@@ -92,7 +92,7 @@ func newGrafana(cr *vzapi.Verrazzano, storage *vmi.ResourceRequestValues, vmi *v
 	return grafana
 }
 
-func newPrometheus(cr *vzapi.Verrazzano, storage *vmi.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance) vmov1.Prometheus {
+func newPrometheus(cr *vzapi.Verrazzano, storage *common.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance) vmov1.Prometheus {
 	if cr.Spec.Components.Prometheus == nil {
 		return vmov1.Prometheus{}
 	}
@@ -112,7 +112,7 @@ func newPrometheus(cr *vzapi.Verrazzano, storage *vmi.ResourceRequestValues, vmi
 	return prometheus
 }
 
-func setStorageSize(storage *vmi.ResourceRequestValues, storageObject *vmov1.Storage) {
+func setStorageSize(storage *common.ResourceRequestValues, storageObject *vmov1.Storage) {
 	if storage == nil {
 		storageObject.Size = "50Gi"
 	} else {

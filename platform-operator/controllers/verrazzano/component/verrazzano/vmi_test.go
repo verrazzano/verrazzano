@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vmi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"testing"
 )
 
@@ -37,7 +37,7 @@ var vmiEnabledCR = vzapi.Verrazzano{
 //  WHEN I create new VMI resources
 //  THEN the configuration in the CR is respected
 func TestNewVMIResources(t *testing.T) {
-	r := &vmi.ResourceRequestValues{
+	r := &common.ResourceRequestValues{
 		Memory:  "",
 		Storage: "50Gi",
 	}
@@ -89,6 +89,6 @@ func TestNewPrometheusWithDefaultStorage(t *testing.T) {
 // WHEN I create a new Prometheus resource
 //  THEN the storage is 100Gi
 func TestPrometheusWithStorageOverride(t *testing.T) {
-	prometheus := newPrometheus(&vmiEnabledCR, &vmi.ResourceRequestValues{Storage: "100Gi"}, nil)
+	prometheus := newPrometheus(&vmiEnabledCR, &common.ResourceRequestValues{Storage: "100Gi"}, nil)
 	assert.Equal(t, "100Gi", prometheus.Storage.Size)
 }

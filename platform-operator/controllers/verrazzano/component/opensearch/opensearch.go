@@ -6,7 +6,7 @@ package opensearch
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vmi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -114,7 +114,7 @@ func isOpensearchInstalled(ctx spi.ComponentContext) (bool, error) {
 		}
 	}
 
-	return vmi.IsVMISecretReady(ctx), nil
+	return common.IsVMISecretReady(ctx), nil
 }
 
 // isOpensearchReady VMI components ready-check
@@ -187,7 +187,7 @@ func isOpensearchReady(ctx spi.ComponentContext) bool {
 		}
 	}
 
-	return vmi.IsVMISecretReady(ctx)
+	return common.IsVMISecretReady(ctx)
 }
 
 func createAndLabelOSNamespaces(ctx spi.ComponentContext) error {

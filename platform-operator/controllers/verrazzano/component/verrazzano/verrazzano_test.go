@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -21,7 +22,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vmi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
@@ -508,7 +508,7 @@ func Test_appendVMIValues(t *testing.T) {
 				return nil
 			}
 
-			storageOverride, err := vmi.FindStorageOverride(fakeContext.EffectiveCR())
+			storageOverride, err := common.FindStorageOverride(fakeContext.EffectiveCR())
 			a.NoError(err)
 
 			keyValues := appendVMIOverrides(fakeContext.EffectiveCR(), &values, storageOverride, []bom.KeyValue{})

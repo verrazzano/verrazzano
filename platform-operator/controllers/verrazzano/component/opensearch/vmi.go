@@ -6,12 +6,12 @@ package opensearch
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vmi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -36,11 +36,11 @@ func createVMIforOS(ctx spi.ComponentContext) error {
 	}
 	envName := vzconfig.GetEnvName(effectiveCR)
 
-	storage, err := vmi.FindStorageOverride(ctx.EffectiveCR())
+	storage, err := common.FindStorageOverride(ctx.EffectiveCR())
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("failed to get storage overrides: %v", err)
 	}
-	vmi := vmi.NewVMI()
+	vmi := common.NewVMI()
 	_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), vmi, func() error {
 		var existingVMI *vmov1.VerrazzanoMonitoringInstance = nil
 		if len(vmi.Spec.URI) > 0 {
@@ -94,7 +94,7 @@ func hasNodeStorageOverride(cr *vzapi.Verrazzano, override string) bool {
 // 2. VolumeClaimTemplate overrides
 // 3. Profile values (which show as ESInstallArgs in the ActualCR)
 // The data node storage may be changed on update. The master node storage may NOT.
-func newOpenSearch(cr *vzapi.Verrazzano, storage *vmi.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, hasDataOverride, hasMasterOverride bool) (*vmov1.Elasticsearch, error) {
+func newOpenSearch(cr *vzapi.Verrazzano, storage *common.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, hasDataOverride, hasMasterOverride bool) (*vmov1.Elasticsearch, error) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		return &vmov1.Elasticsearch{}, nil
 	}
@@ -220,7 +220,7 @@ func newOpenSearchDashboards(cr *vzapi.Verrazzano) vmov1.Kibana {
 	return opensearchDashboards
 }
 
-func nodeAdapter(vmi *vmov1.VerrazzanoMonitoringInstance, nodes []vzapi.OpenSearchNode, storage *vmi.ResourceRequestValues) []vmov1.ElasticsearchNode {
+func nodeAdapter(vmi *vmov1.VerrazzanoMonitoringInstance, nodes []vzapi.OpenSearchNode, storage *common.ResourceRequestValues) []vmov1.ElasticsearchNode {
 	getQuantity := func(q *resource.Quantity) string {
 		if q == nil || q.String() == "0" {
 			return ""

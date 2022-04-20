@@ -5,7 +5,7 @@ package verrazzano
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vmi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"path/filepath"
 	"reflect"
 
@@ -66,15 +66,15 @@ func NewComponent() spi.Component {
 // required secrets
 func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
 	// create or update  VMI secret
-	if err := vmi.EnsureVMISecret(ctx.Client()); err != nil {
+	if err := common.EnsureVMISecret(ctx.Client()); err != nil {
 		return err
 	}
 	// create or update  backup secret
-	if err := vmi.EnsureBackupSecret(ctx.Client()); err != nil {
+	if err := common.EnsureBackupSecret(ctx.Client()); err != nil {
 		return err
 	}
 	// create or update  Grafana secret
-	if err := vmi.EnsureGrafanaAdminSecret(ctx.Client()); err != nil {
+	if err := common.EnsureGrafanaAdminSecret(ctx.Client()); err != nil {
 		return err
 	}
 	ctx.Log().Debug("Verrazzano pre-install")
@@ -170,11 +170,11 @@ func (c verrazzanoComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 
 func compareStorageOverrides(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// compare the storage overrides and reject if the type or size is different
-	oldSetting, err := vmi.FindStorageOverride(old)
+	oldSetting, err := common.FindStorageOverride(old)
 	if err != nil {
 		return err
 	}
-	newSetting, err := vmi.FindStorageOverride(new)
+	newSetting, err := common.FindStorageOverride(new)
 	if err != nil {
 		return err
 	}

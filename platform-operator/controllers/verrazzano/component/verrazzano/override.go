@@ -5,7 +5,7 @@ package verrazzano
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vmi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"io/fs"
 	"os"
 
@@ -30,7 +30,7 @@ func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ s
 
 	effectiveCR := ctx.EffectiveCR()
 	// Find any storage overrides for the VMI, and
-	resourceRequestOverrides, err := vmi.FindStorageOverride(effectiveCR)
+	resourceRequestOverrides, err := common.FindStorageOverride(effectiveCR)
 	if err != nil {
 		return kvs, err
 	}
@@ -192,7 +192,7 @@ func appendVerrazzanoComponentOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom
 	return kvs
 }
 
-func appendVMIOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues, storageOverrides *vmi.ResourceRequestValues, kvs []bom.KeyValue) []bom.KeyValue {
+func appendVMIOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues, storageOverrides *common.ResourceRequestValues, kvs []bom.KeyValue) []bom.KeyValue {
 	overrides.Kibana = &kibanaValues{Enabled: vzconfig.IsKibanaEnabled(effectiveCR)}
 
 	overrides.ElasticSearch = &elasticsearchValues{

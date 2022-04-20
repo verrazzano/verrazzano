@@ -16,7 +16,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vmi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
@@ -128,7 +127,7 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 		return false
 	}
 
-	return vmi.IsVMISecretReady(ctx)
+	return common.IsVMISecretReady(ctx)
 }
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart
@@ -142,10 +141,10 @@ func verrazzanoPreUpgrade(ctx spi.ComponentContext, namespace string) error {
 	if err := exportFromHelmChart(ctx.Client()); err != nil {
 		return err
 	}
-	if err := vmi.EnsureVMISecret(ctx.Client()); err != nil {
+	if err := common.EnsureVMISecret(ctx.Client()); err != nil {
 		return err
 	}
-	if err := vmi.EnsureGrafanaAdminSecret(ctx.Client()); err != nil {
+	if err := common.EnsureGrafanaAdminSecret(ctx.Client()); err != nil {
 		return err
 	}
 	return fixupFluentdDaemonset(ctx.Log(), ctx.Client(), namespace)
