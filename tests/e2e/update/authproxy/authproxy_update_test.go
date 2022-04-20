@@ -103,11 +103,10 @@ var _ = t.AfterSuite(func() {
 	cr := update.GetCR()
 
 	expectedRunning := uint32(1)
-	expectedPending := uint32(0)
-	if cr.Spec.Profile == "production" || cr.Spec.Profile == "" {
+	if cr.Spec.Profile == "prod" || cr.Spec.Profile == "" {
 		expectedRunning = 2
 	}
-	validatePods(authProxyName, constants.VerrazzanoSystemNamespace, expectedRunning, expectedPending)
+	validatePods(authProxyName, constants.VerrazzanoSystemNamespace, expectedRunning, false)
 })
 
 var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
@@ -116,11 +115,10 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 			cr := update.GetCR()
 
 			expectedRunning := uint32(1)
-			expectedPending := uint32(0)
-			if cr.Spec.Profile == "production" || cr.Spec.Profile == "" {
+			if cr.Spec.Profile == "prod" || cr.Spec.Profile == "" {
 				expectedRunning = 2
 			}
-			validatePods(authProxyName, constants.VerrazzanoSystemNamespace, expectedRunning, expectedPending)
+			validatePods(authProxyName, constants.VerrazzanoSystemNamespace, expectedRunning, false)
 		})
 	})
 
@@ -130,8 +128,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 			update.UpdateCR(m)
 
 			expectedRunning := nodeCount
-			expectedPending := uint32(0)
-			validatePods(authProxyName, constants.VerrazzanoSystemNamespace, expectedRunning, expectedPending)
+			validatePods(authProxyName, constants.VerrazzanoSystemNamespace, expectedRunning, false)
 		})
 	})
 
@@ -141,17 +138,17 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 			update.UpdateCR(m)
 
 			expectedRunning := nodeCount - 1
-			expectedPending := uint32(2)
+			expectedPending := true
 			if nodeCount == 1 {
 				expectedRunning = nodeCount
-				expectedPending = uint32(0)
+				expectedPending = false
 			}
 			validatePods(authProxyName, constants.VerrazzanoSystemNamespace, expectedRunning, expectedPending)
 		})
 	})
 })
 
-func validatePods(deployName string, nameSpace string, expectedPodsRunning uint32, expectedPodsPending uint32) {
+func validatePods(deployName string, nameSpace string, expectedPodsRunning uint32, hasPending bool) {
 	Eventually(func() bool {
 		var err error
 		pods, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": deployName}}, nameSpace)
@@ -160,15 +157,15 @@ func validatePods(deployName string, nameSpace string, expectedPodsRunning uint3
 		}
 		// Compare the number of running/pending pods to the expected numbers
 		var runningPods uint32 = 0
-		var pendingPods uint32 = 0
+		var pendingPods = false
 		for _, pod := range pods {
 			if pod.Status.Phase == corev1.PodRunning {
 				runningPods++
 			}
 			if pod.Status.Phase == corev1.PodPending {
-				pendingPods++
+				pendingPods = true
 			}
 		}
-		return runningPods == expectedPodsRunning && pendingPods == expectedPodsPending
+		return runningPods == expectedPodsRunning && pendingPods == hasPending
 	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get correct number of running and pending pods")
 }
