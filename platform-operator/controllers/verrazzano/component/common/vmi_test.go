@@ -16,9 +16,8 @@ import (
 	"testing"
 )
 
-const profileDir = "../../../manifests/profiles"
+const profileDir = "../../../../manifests/profiles"
 
-var testScheme = runtime.NewScheme()
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
 // Test_FindStorageOverride tests the FindStorageOverride function
