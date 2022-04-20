@@ -4,6 +4,7 @@
 package v1alpha1
 
 import (
+	"encoding/json"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -438,7 +439,8 @@ type PrometheusNodeExporterComponent struct {
 // PrometheusOperatorComponent specifies the Prometheus Operator configuration
 type PrometheusOperatorComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled            *bool `json:"enabled,omitempty"`
+	HelmValueOverrides `json:",inline"`
 }
 
 // PrometheusPushgatewayComponent specifies the Prometheus Pushgateway configuration.
@@ -737,3 +739,10 @@ type OciLoggingConfiguration struct {
 	SystemLogID     string `json:"systemLogId"`
 	APISecret       string `json:"apiSecret,omitempty"`
 }
+
+type HelmValueOverrides struct {
+	MonitorChanges *WatchHelmValues `json:"monitorChanges,omitempty"`
+	ValueOverrides json.RawMessage  `json:"overrides,omitempty"`
+}
+
+type WatchHelmValues bool
