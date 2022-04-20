@@ -103,10 +103,9 @@ func reassociateResources(ctx spi.ComponentContext) error {
 // VMO helm chart
 func getHelmManagedResources() []common.HelmManagedResource {
 	return []common.HelmManagedResource{
-		// {Obj: &appsv1.Deployment{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator", Namespace: ComponentNamespace}},
 		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-config", Namespace: ComponentNamespace}},
-		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator", Namespace: ComponentNamespace}},
-		{Obj: &corev1.ServiceAccount{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator", Namespace: ComponentNamespace}},
+		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
+		{Obj: &corev1.ServiceAccount{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
 		{Obj: &rbacv1.ClusterRole{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-cluster-role"}},
 		{Obj: &rbacv1.ClusterRole{}, NamespacedName: types.NamespacedName{Name: "vmi-cluster-role-default"}},
 		{Obj: &rbacv1.ClusterRole{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-get-nodes"}},
