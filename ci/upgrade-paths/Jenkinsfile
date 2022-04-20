@@ -836,7 +836,7 @@ def getPlatformOperatorURLForNextRelease(upgradeTargetVersion){
             def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
 
               operatorURL = "https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/release-${latestReleaseBranch}/operator.yaml"
-        }else if(params.IS_TRIGGERED_MANUALLY == "YES"){
+        }else if(params.IS_TRIGGERED_MANUALLY == "YES" && VERSION_FOR_UPGRADE != "NONE" && upgradeTargetVersion != "master"){
             operatorURL = "https://github.com/verrazzano/verrazzano/releases/download/v${upgradeTargetVersion}/operator.yaml"
         }
 
@@ -891,7 +891,7 @@ def upgradeVerrazzanoScript(upgradeTargetVersion){
              kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
 
              # wait for the upgrade to complete
-             kubectl wait --timeout=35m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+             kubectl wait --timeout=45m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
              # Dump the resource to debug
              kubectl get -o yaml verrazzano/my-verrazzano || true
