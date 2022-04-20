@@ -132,11 +132,23 @@ func ValidateProfile(requestedProfile ProfileType) error {
 }
 
 // ValidateUpgradeRequest Ensures that for the upgrade case only the version field has changed
-func ValidateUpgradeRequest(currentSpec *VerrazzanoSpec, newSpec *VerrazzanoSpec) error {
+func ValidateUpgradeRequest(current *Verrazzano, new *Verrazzano) error {
+	installedVersion := current.Status.Version
+	currentSpec := current.Spec
+	newSpec := new.Spec
+
 	if !config.Get().VersionCheckEnabled {
 		zap.S().Infof("Version validation disabled")
 		return nil
 	}
+
+	// if the installed version is not == BOM version and newspec versiom isn't set,
+	// reject the update; upgrade needs to happen before any update
+	//
+	if len(newSpec.Version) == 0 {
+		semver.NewSemVersion(installedVersion)
+	}
+
 	// Short-circuit if the version strings are the same
 	if currentSpec.Version == newSpec.Version {
 		return nil
