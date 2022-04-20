@@ -34,7 +34,6 @@ pipeline {
                 description: 'This is the Verrazzano version for Upgrade.  By default, the specified version will be the latest minor release candidate',
                 trim: true)
         string (name: 'IS_TRIGGERED_MANUALLY',
-                defaultValue: 'YES',
                 description: 'This flag is used to test upgrade within existing releases. the default value is set to YES to enable users to trigger customized version upgrades. Default: YES',
                 choices: [ "YES", "NO" ])
         string (name: 'GIT_COMMIT_FOR_UPGRADE',
