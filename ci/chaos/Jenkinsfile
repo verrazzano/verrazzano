@@ -228,9 +228,10 @@ pipeline {
             }
         }
 
-        stage('Pre-upgrade examples helidon') {
+        stage('Pre-upgrade tests') {
             steps {
                 runGinkgoNamespace('examples/helidon', "false", "true", "hello-helidon")
+                runGinkgoRandomize('upgrade/pre-upgrade/verify')
             }
             post {
                 always {
