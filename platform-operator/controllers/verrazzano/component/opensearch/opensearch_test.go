@@ -492,18 +492,6 @@ func TestIsReady(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      kibanaDeployment,
-				Labels:    map[string]string{"app": "system-kibana"},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
 				Name:      fmt.Sprintf("%s-0", esDataDeployment),
 				Labels:    map[string]string{"app": "system-es-data", "index": "0"},
 			},
@@ -581,18 +569,7 @@ func TestIsReady(t *testing.T) {
 //  THEN false is returned
 func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      kibanaDeployment,
-				Labels:    map[string]string{"app": "system-kibana"},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   0,
-			},
-		},
+		&appsv1.Deployment{},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
@@ -602,7 +579,7 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
 				Replicas:          1,
-				UpdatedReplicas:   1,
+				UpdatedReplicas:   0,
 			},
 		},
 		&appsv1.Deployment{

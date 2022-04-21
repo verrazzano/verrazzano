@@ -153,7 +153,7 @@ func (d opensearchDashboardsComponent) PostUpgrade(ctx spi.ComponentContext) err
 	return nil
 }
 
-// IsEnabled OpenSearch-Dashboards-specific enabled check for installation
+// IsEnabled OpenSearch-Dashboards specific enabled check for installation
 func (d opensearchDashboardsComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	comp := effectiveCR.Spec.Components.Kibana
 	if comp == nil || comp.Enabled == nil {

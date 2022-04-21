@@ -92,9 +92,6 @@ func TestNewVMIResources(t *testing.T) {
 	assert.EqualValues(t, 3, opensearch.DataNode.Replicas)
 	assert.Equal(t, "100Gi", opensearch.DataNode.Storage.Size)
 	assert.Equal(t, "50Gi", opensearch.MasterNode.Storage.Size)
-
-	opensearchDashboards := newOpenSearchDashboards(&vmiEnabledCR)
-	assert.Equal(t, "192Mi", opensearchDashboards.Resources.RequestMemory)
 }
 
 // TestOpenSearchInvalidArgs tests trying to create an opensearch resource with invalid args

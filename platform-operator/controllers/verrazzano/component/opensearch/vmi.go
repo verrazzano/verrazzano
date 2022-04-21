@@ -65,7 +65,6 @@ func createVMIforOS(ctx spi.ComponentContext) error {
 			return err
 		}
 		vmi.Spec.Elasticsearch = *opensearch
-		vmi.Spec.Kibana = newOpenSearchDashboards(cr)
 		return nil
 	})
 	if err != nil {
@@ -204,20 +203,6 @@ func populateOpenSearchFromInstallArgs(opensearch *vmov1.Elasticsearch, opensear
 	}
 
 	return nil
-}
-
-func newOpenSearchDashboards(cr *vzapi.Verrazzano) vmov1.Kibana {
-	if cr.Spec.Components.Kibana == nil {
-		return vmov1.Kibana{}
-	}
-	kibanaValues := cr.Spec.Components.Kibana
-	opensearchDashboards := vmov1.Kibana{
-		Enabled: kibanaValues.Enabled != nil && *kibanaValues.Enabled,
-		Resources: vmov1.Resources{
-			RequestMemory: "192Mi",
-		},
-	}
-	return opensearchDashboards
 }
 
 func nodeAdapter(vmi *vmov1.VerrazzanoMonitoringInstance, nodes []vzapi.OpenSearchNode, storage *common.ResourceRequestValues) []vmov1.ElasticsearchNode {

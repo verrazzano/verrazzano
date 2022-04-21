@@ -29,7 +29,6 @@ const (
 
 	esDataDeployment   = "vmi-system-es-data"
 	esIngestDeployment = "vmi-system-es-ingest"
-	kibanaDeployment   = "vmi-system-kibana"
 
 	esMasterStatefulset = "vmi-system-es-master"
 )
@@ -45,13 +44,6 @@ func isOpensearchInstalled(ctx spi.ComponentContext) (bool, error) {
 
 	var deployments []types.NamespacedName
 
-	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments,
-			types.NamespacedName{
-				Name:      kibanaDeployment,
-				Namespace: ComponentNamespace,
-			})
-	}
 	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
 		if ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
 			esInstallArgs := ctx.EffectiveCR().Spec.Components.Elasticsearch.ESInstallArgs
@@ -120,13 +112,6 @@ func isOpensearchReady(ctx spi.ComponentContext) bool {
 
 	var deployments []types.NamespacedName
 
-	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments,
-			types.NamespacedName{
-				Name:      kibanaDeployment,
-				Namespace: ComponentNamespace,
-			})
-	}
 	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
 		if ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
 			esInstallArgs := ctx.EffectiveCR().Spec.Components.Elasticsearch.ESInstallArgs

@@ -25,8 +25,7 @@ const (
 	ComponentNamespace = constants.VerrazzanoSystemNamespace
 
 	// Certificate names
-	osCertificateName  = "system-tls-es-ingest"
-	osdCertificateName = "system-tls-kibana"
+	osCertificateName = "system-tls-es-ingest"
 )
 
 // ComponentJSONName is the josn name of the opensearch component in CRD
@@ -197,9 +196,6 @@ func (o opensearchComponent) isOpensearchEnabled(old *vzapi.Verrazzano, new *vza
 	if vzconfig.IsElasticsearchEnabled(old) && !vzconfig.IsElasticsearchEnabled(new) {
 		return fmt.Errorf("Disabling component OpenSearch not allowed")
 	}
-	if vzconfig.IsKibanaEnabled(old) && !vzconfig.IsKibanaEnabled(new) {
-		return fmt.Errorf("Disabling component kibana not allowed")
-	}
 	return nil
 }
 
@@ -214,13 +210,6 @@ func (o opensearchComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 		})
 	}
 
-	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
-		ingressNames = append(ingressNames, types.NamespacedName{
-			Namespace: ComponentNamespace,
-			Name:      constants.KibanaIngress,
-		})
-	}
-
 	return ingressNames
 }
 
@@ -232,13 +221,6 @@ func (o opensearchComponent) GetCertificateNames(ctx spi.ComponentContext) []typ
 		certificateNames = append(certificateNames, types.NamespacedName{
 			Namespace: ComponentNamespace,
 			Name:      osCertificateName,
-		})
-	}
-
-	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
-		certificateNames = append(certificateNames, types.NamespacedName{
-			Namespace: ComponentNamespace,
-			Name:      osdCertificateName,
 		})
 	}
 
