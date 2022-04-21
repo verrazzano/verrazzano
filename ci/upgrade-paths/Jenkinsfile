@@ -1487,4 +1487,3 @@ def upgradeVerrazzanoScript(verrazzanoTargetVersion) {
         cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
     """
 }
->>>>>>> e1d93434ae5fd6a741b1fa38c1ce42e33c3d3365
