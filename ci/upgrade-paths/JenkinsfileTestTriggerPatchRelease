@@ -440,5 +440,13 @@ def getLatestReleaseBranch(){
     def latestReleaseTagSplit = latestReleaseTag.split("\\.")
     def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
     latestReleaseBranch = "release-" + latestReleaseBranch
-    return latestReleaseBranch
+    scmReleaseBranchInfo = checkout([
+        $class: 'GitSCM',
+        branches: [[name: latestReleaseBranch]],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [],
+        submoduleCfg: [],
+        userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+        def releaseBranchCommitSHA = scmReleaseBranchInfo.GIT_COMMIT
+    return releaseBranchCommitSHA
 }
