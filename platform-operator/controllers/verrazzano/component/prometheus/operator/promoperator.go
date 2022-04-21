@@ -119,3 +119,9 @@ func appendDefaultImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, s
 
 	return kvs, nil
 }
+
+func ArbitraryOverrides(ctx spi.ComponentContext, namespace string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	// TODO: Once the API updates are in place, get the values from overrides list
+	// and populate key value pairs for helm override
+	return nil, nil
+}

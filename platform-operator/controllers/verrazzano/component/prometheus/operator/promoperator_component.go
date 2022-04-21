@@ -42,6 +42,7 @@ func NewComponent() spi.Component {
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-values.yaml"),
 			Dependencies:            []string{},
 			AppendOverridesFunc:     AppendOverrides,
+			ArbitraryOverridesFunc:  ArbitraryOverrides,
 		},
 	}
 }
