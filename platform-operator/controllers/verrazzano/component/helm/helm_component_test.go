@@ -4,9 +4,13 @@
 package helm
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"github.com/golang/mock/gomock"
+	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"os/exec"
 	"strings"
@@ -22,6 +26,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -586,6 +591,272 @@ func TestReady(t *testing.T) {
 			} else {
 				a.False(comp.IsReady(ctx))
 			}
+		})
+	}
+}
+
+// TestOrganizeHelmValues tests OrganizeHelmValues
+// GIVEN a key value list
+//  WHEN I call OrganizeHelmValues
+//  THEN I get a reverse list of my key value pairs as HelmComponent objects
+func TestOrganizeHelmValues(t *testing.T) {
+	tests := []struct {
+		name              string
+		kvs               []bom.KeyValue
+		expectedHelmOrder []string
+	}{
+		{
+			name:              "test empty values",
+			kvs:               []bom.KeyValue{},
+			expectedHelmOrder: []string{},
+		},
+		{
+			name: "test one value",
+			kvs: []bom.KeyValue{
+				{
+					Key:   "test1",
+					Value: "expect1",
+				},
+			},
+			expectedHelmOrder: []string{"test1=expect1"},
+		},
+		{
+			name: "test multiple values",
+			kvs: []bom.KeyValue{
+				{
+					Key:       "test1",
+					Value:     "expect1",
+					SetString: true,
+				},
+				{
+					Key:   "test2",
+					Value: "expect2",
+				},
+				{
+					Key:     "test3",
+					Value:   "expect3",
+					SetFile: true,
+				},
+			},
+			expectedHelmOrder: []string{"test3=expect3", "test2=expect2", "test1=expect1"},
+		},
+	}
+
+	a := assert.New(t)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			comp := HelmComponent{}
+			overrides := comp.organizeHelmOverrides(tt.kvs)
+			for i, override := range overrides {
+				if override.SetOverrides != "" {
+					a.Equal(tt.expectedHelmOrder[i], override.SetOverrides)
+				}
+				if override.FileOverride != "" {
+					a.Equal(tt.expectedHelmOrder[i], override.FileOverride)
+				}
+				if override.SetStringOverrides != "" {
+					a.Equal(tt.expectedHelmOrder[i], override.SetStringOverrides)
+				}
+				if override.SetFileOverrides != "" {
+					a.Equal(tt.expectedHelmOrder[i], override.SetFileOverrides)
+				}
+			}
+		})
+	}
+}
+
+// TestRetrieveHelmOverrideResources tests retrieveHelmOverrideResources
+// GIVEN an override list
+//  WHEN I call retrieveHelmOverrideResources
+//  THEN I get a list of key value pairs of files from the override sources
+func TestRetrieveHelmOverrideResources(t *testing.T) {
+	trueval := true
+	dataKey := "testKey"
+	wrongKey := "wrongKey"
+	testName := "testName"
+	dataVal := "dataVal"
+
+	tests := []struct {
+		name          string
+		overrides     []v1alpha1.Overrides
+		expectError   bool
+		expectCMGet   bool
+		expectSecGet  bool
+		expectCMData  map[string]string
+		expectSecData map[string][]byte
+	}{
+		{
+			name:        "test no overrides",
+			overrides:   []v1alpha1.Overrides{},
+			expectError: false,
+		},
+		{
+			name: "test nil refs",
+			overrides: []v1alpha1.Overrides{
+				{
+					ConfigMapRef: nil,
+					SecretRef:    nil,
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "test nil selectors",
+			overrides: []v1alpha1.Overrides{
+				{
+					ConfigMapRef: &v1alpha1.ConfigMapRef{
+						ConfigMapKeySelector: nil,
+					},
+					SecretRef: &v1alpha1.SecretRef{
+						SecretKeySelector: nil,
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "test configMap selectors",
+			overrides: []v1alpha1.Overrides{
+				{
+					ConfigMapRef: &v1alpha1.ConfigMapRef{
+						ConfigMapKeySelector: &corev1.ConfigMapKeySelector{
+							Key: dataKey,
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: testName,
+							},
+						},
+					},
+				},
+			},
+			expectError: false,
+			expectCMGet: true,
+			expectCMData: map[string]string{
+				dataKey: dataVal,
+			},
+		},
+		{
+			name: "test Secret selectors",
+			overrides: []v1alpha1.Overrides{
+				{
+					SecretRef: &v1alpha1.SecretRef{
+						SecretKeySelector: &corev1.SecretKeySelector{
+							Key: dataKey,
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: testName,
+							},
+						},
+					},
+				},
+			},
+			expectError:  false,
+			expectSecGet: true,
+			expectSecData: map[string][]byte{
+				dataKey: []byte(dataVal),
+			},
+		},
+		{
+			name: "test invalid data selectors",
+			overrides: []v1alpha1.Overrides{
+				{
+					SecretRef: &v1alpha1.SecretRef{
+						SecretKeySelector: &corev1.SecretKeySelector{
+							Key: dataKey,
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: testName,
+							},
+						},
+					},
+				},
+			},
+			expectError:  true,
+			expectSecGet: true,
+			expectSecData: map[string][]byte{
+				wrongKey: []byte(dataVal),
+			},
+		},
+		{
+			name: "test invalid data selectors optional",
+			overrides: []v1alpha1.Overrides{
+				{
+					ConfigMapRef: &v1alpha1.ConfigMapRef{
+						ConfigMapKeySelector: &corev1.ConfigMapKeySelector{
+							Key: dataKey,
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: testName,
+							},
+							Optional: &trueval,
+						},
+					},
+				},
+			},
+			expectError: false,
+			expectCMGet: true,
+			expectSecData: map[string][]byte{
+				wrongKey: []byte(dataVal),
+			},
+		},
+		{
+			name: "test valid data selectors optional",
+			overrides: []v1alpha1.Overrides{
+				{
+					ConfigMapRef: &v1alpha1.ConfigMapRef{
+						ConfigMapKeySelector: &corev1.ConfigMapKeySelector{
+							Key: dataKey,
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: testName,
+							},
+							Optional: &trueval,
+						},
+					},
+				},
+			},
+			expectError: false,
+			expectCMGet: true,
+			expectSecData: map[string][]byte{
+				dataKey: []byte(dataVal),
+			},
+		},
+	}
+
+	a := assert.New(t)
+	mock := gomock.NewController(t)
+	client := mocks.NewMockClient(mock)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.expectCMGet {
+				client.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).DoAndReturn(
+					func(ctx context.Context, nsn types.NamespacedName, configmap *corev1.ConfigMap) error {
+						configmap.Data = tt.expectCMData
+						return nil
+					})
+			}
+			if tt.expectSecGet {
+				client.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).DoAndReturn(
+					func(ctx context.Context, nsn types.NamespacedName, sec *corev1.Secret) error {
+						sec.Data = tt.expectSecData
+						return nil
+					})
+			}
+
+			ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)
+
+			comp := HelmComponent{}
+			kvs, tmpFiles, err := comp.retrieveHelmOverrideResources(ctx, tt.overrides)
+			if tt.expectError {
+				a.Error(err)
+			} else {
+				for _, file := range tmpFiles {
+					a.NotNil(file)
+				}
+				for _, kv := range kvs {
+					a.NotEqual(kv.Value, "")
+					a.True(kv.IsFile)
+				}
+				a.NoError(err)
+			}
+			a.NoError(freeOverrideFiles(tmpFiles))
 		})
 	}
 }
