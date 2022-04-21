@@ -92,17 +92,15 @@ pipeline {
                     if (params.GIT_COMMIT_TO_USE == "NONE") {
                         echo "Specific GIT commit was not specified, use current head"
                         def scmInfo = checkout scm
-                            scmInfoReleaseBranch = checkout([
+                            scmInfo = checkout([
                             $class: 'GitSCM',
-                            branches: [[name: getLatestReleaseBranch()]],
+                            branches: [[name: scmInfo.GIT_COMMIT]],
                             doGenerateSubmoduleConfigurations: false,
                             extensions: [],
                             submoduleCfg: [],
                             userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
-                        env.GIT_COMMIT = scmInfoReleaseBranch.GIT_COMMIT
-                        env.GIT_BRANCH = scmInfoReleaseBranch.GIT_BRANCH
-                        LATEST_RELEASE_COMMIT_SHA = scmInfoReleaseBranch.GIT_COMMIT
-                        echo "LATEST_RELEASE_COMMIT_SHA: ${LATEST_RELEASE_COMMIT_SHA}"
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
                     } else {
                         echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
                         def scmInfo = checkout([
@@ -124,6 +122,7 @@ pipeline {
                 }
 
                 script {
+                    LATEST_RELEASE_COMMIT_SHA = getLatestReleaseBranch()
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
