@@ -54,7 +54,7 @@ func (r genericTestRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err
 }
 
 // fakeUpgrade override the upgrade function during unit tests
-func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 	return []byte("success"), []byte(""), nil
 }
 
