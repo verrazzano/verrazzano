@@ -401,3 +401,23 @@ func ValidateVersionHigherOrEqual(currentVersion string, requestedVersion string
 	return currentSemVer.IsEqualTo(requestedSemVer) || currentSemVer.IsGreatherThan(requestedSemVer)
 
 }
+
+func ValidateHelmValueOverrides(Overrides []Overrides) error {
+	overridePerItem := 0
+	for _, override := range Overrides {
+		if override.Values != nil {
+			overridePerItem++
+		}
+		if override.ConfigMapRef != nil {
+			overridePerItem++
+		}
+		if override.SecretRef != nil {
+			overridePerItem++
+		}
+		if overridePerItem > 1 {
+			return fmt.Errorf("Invalid helm overrides list: Bad Format: cannot specify more than 1 override type in the same list element")
+		}
+		overridePerItem = 0
+	}
+	return nil
+}
