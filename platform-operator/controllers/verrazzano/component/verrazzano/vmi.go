@@ -212,11 +212,26 @@ func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 
 	if vmi != nil {
 		// We currently do not support resizing master node PVC
-		opensearch.MasterNode.Storage = &vmi.Spec.Elasticsearch.Storage
-		if vmi.Spec.Elasticsearch.MasterNode.Storage != nil {
-			opensearch.MasterNode.Storage = vmi.Spec.Elasticsearch.MasterNode.Storage.DeepCopy()
+		if vmi.Spec.Elasticsearch.MasterNode.Replicas > 0 {
+			// set to old storage if present
+			opensearch.MasterNode.Storage = &vmov1.Storage{
+				Size: vmi.Spec.Elasticsearch.Storage.Size,
+			}
+			// otherwise use node storage
+			if vmi.Spec.Elasticsearch.MasterNode.Storage != nil {
+				opensearch.MasterNode.Storage.Size = vmi.Spec.Elasticsearch.MasterNode.Storage.Size
+			}
 		}
+
 		// PVC Names should be preserved
+		if opensearch.DataNode.Storage == nil {
+			opensearch.DataNode.Storage = &vmov1.Storage{
+				Size: vmi.Spec.Elasticsearch.Storage.Size,
+			}
+		}
+		if vmi.Spec.Elasticsearch.Storage.PvcNames != nil {
+			opensearch.DataNode.Storage.PvcNames = vmi.Spec.Elasticsearch.Storage.PvcNames
+		}
 		if vmi.Spec.Elasticsearch.DataNode.Storage != nil {
 			opensearch.DataNode.Storage.PvcNames = vmi.Spec.Elasticsearch.DataNode.Storage.PvcNames
 		}

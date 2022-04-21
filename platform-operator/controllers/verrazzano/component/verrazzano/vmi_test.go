@@ -151,11 +151,19 @@ func TestNewOpenSearchValuesAreCopied(t *testing.T) {
 			},
 		},
 	}
+	pvcs := []string{"p1", "p2"}
 	testvmi := &vmov1.VerrazzanoMonitoringInstance{
 		Spec: vmov1.VerrazzanoMonitoringInstanceSpec{
 			Elasticsearch: vmov1.Elasticsearch{
+				MasterNode: vmov1.ElasticsearchNode{
+					Replicas: 1,
+				},
+				DataNode: vmov1.ElasticsearchNode{
+					Replicas: 1,
+				},
 				Storage: vmov1.Storage{
-					Size: "1Gi",
+					Size:     "1Gi",
+					PvcNames: pvcs,
 				},
 			},
 		},
@@ -165,6 +173,8 @@ func TestNewOpenSearchValuesAreCopied(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "1Gi", openSearch.MasterNode.Storage.Size)
 	assert.EqualValues(t, testvz.Spec.Components.Elasticsearch.Policies, openSearch.Policies)
+	assert.EqualValues(t, pvcs, openSearch.DataNode.Storage.PvcNames)
+	assert.Nil(t, openSearch.MasterNode.Storage.PvcNames)
 }
 
 // TestNewGrafanaWithExistingVMI tests that storage values in the VMI are not erased when a new Grafana is created
