@@ -132,32 +132,32 @@ var _ = t.Describe("OCI Logging", Label("f:oci-integration.logging"), func() {
 					// GIVEN a Verrazzano installation with no applications installed
 					// WHEN I search for log records in the default app Log object
 					// THEN I expect to find no records
-					Consistently(func() (int, error) {
+					Consistently(func() int {
 						logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, defaultAppLogID, "")
 						if err != nil {
 							pkg.Log(pkg.Error, fmt.Sprintf("Error getting log records: %+v", err))
-							return 0, err
+							return 0
 						}
 						if *logs.Summary.ResultCount > 0 {
-							pkg.Log(pkg.Info, fmt.Sprintf("Log records: %+v", logs.Results))
+							pkg.Log(pkg.Error, fmt.Sprintf("Log records: %+v", logs.Results))
 						}
-						return *logs.Summary.ResultCount, nil
+						return *logs.Summary.ResultCount
 					}, shortWaitTimeout, pollingInterval).Should(BeZero(), "Expected no default app logs but found at least one")
 				},
 				func() {
 					// GIVEN a Verrazzano installation with no applications installed
 					// WHEN I search for log records in the namespace-specific app Log object
 					// THEN I expect to find no records
-					Consistently(func() (int, error) {
+					Consistently(func() int {
 						logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, nsLogID, "")
 						if err != nil {
 							pkg.Log(pkg.Error, fmt.Sprintf("Error getting log records: %+v", err))
-							return 0, err
+							return 0
 						}
 						if *logs.Summary.ResultCount > 0 {
-							pkg.Log(pkg.Info, fmt.Sprintf("Log records: %+v", logs.Results))
+							pkg.Log(pkg.Error, fmt.Sprintf("Log records: %+v", logs.Results))
 						}
-						return *logs.Summary.ResultCount, nil
+						return *logs.Summary.ResultCount
 					}, shortWaitTimeout, pollingInterval).Should(BeZero(), "Expected no namespace-specific app logs but found at least one")
 				},
 			)
@@ -266,6 +266,8 @@ func getLogRecordsFromOCI(client *loggingsearch.LogSearchClient, compartmentID, 
 // use an instance principal auth provider, otherwise use the default provider (auth config comes from
 // an OCI config file or environment variables).
 func getLogSearchClient(region string) (loggingsearch.LogSearchClient, error) {
+	os.Setenv("OCI_GO_SDK_DEBUG", "v")
+
 	var provider common.ConfigurationProvider
 	var err error
 
