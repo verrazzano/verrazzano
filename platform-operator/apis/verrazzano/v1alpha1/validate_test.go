@@ -1458,6 +1458,32 @@ func Test_cleanTempFiles(t *testing.T) {
 	}
 }
 
+func TestValidateHelmValueOverrides(t *testing.T) {
+	assert := assert.New(t)
+
+	testOverrides := make([]Overrides, 1)
+	testOverrides = append(testOverrides, Overrides{
+		Values: []byte(`{"some":"json"}`),
+		ConfigMapRef: &ConfigMapRef{
+			ConfigMapKeySelector: &corev1.ConfigMapKeySelector{
+				LocalObjectReference: corev1.LocalObjectReference{},
+				Key:                  "",
+				Optional:             nil,
+			},
+		},
+		SecretRef: &SecretRef{
+			SecretKeySelector: &corev1.SecretKeySelector{
+				LocalObjectReference: corev1.LocalObjectReference{},
+				Key:                  "",
+				Optional:             nil,
+			},
+		},
+	})
+
+	err := ValidateHelmValueOverrides(testOverrides)
+	assert.Error(err)
+}
+
 var testKey = []byte{}
 
 // Generate RSA for testing.
