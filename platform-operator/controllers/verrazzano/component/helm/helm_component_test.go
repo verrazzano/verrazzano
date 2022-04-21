@@ -275,7 +275,7 @@ func TestInstallWithAllOverride(t *testing.T) {
 	SetUpgradeFunc(func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 		for _, override := range overrides {
 			foundInFake := false
-			for key, _ := range fakeOverrides {
+			for key := range fakeOverrides {
 				if override.SetOverrides == key {
 					foundInFake = true
 				}
@@ -396,7 +396,7 @@ func TestInstallWithPreInstallFunc(t *testing.T) {
 	defer helm.SetDefaultRunner()
 	SetUpgradeFunc(func(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 		for _, override := range overrides {
-			for key, _ := range expectedOverrideValues {
+			for key := range expectedOverrideValues {
 				if strings.Contains(override.SetOverrides, key) {
 					expectedOverrideValues[key] = true
 				}
@@ -609,7 +609,7 @@ func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string,
 		}
 
 		// This string is built from the Key:Value array returned by the bom.buildImageOverrides() function
-		for key, _ := range fakeOverrides {
+		for key := range fakeOverrides {
 			if strings.Contains(override.SetOverrides, key) {
 				fakeOverrides[key] = true
 			}
