@@ -1461,27 +1461,44 @@ func Test_cleanTempFiles(t *testing.T) {
 func TestValidateHelmValueOverrides(t *testing.T) {
 	assert := assert.New(t)
 
-	testOverrides := make([]Overrides, 1)
-	testOverrides = append(testOverrides, Overrides{
-		Values: []byte(`{"some":"json"}`),
-		ConfigMapRef: &ConfigMapRef{
+	testNoOverride := []Overrides{{}}
+
+	testBadOverride := []Overrides{
+		{ConfigMapRef: &ConfigMapRef{
 			ConfigMapKeySelector: &corev1.ConfigMapKeySelector{
 				LocalObjectReference: corev1.LocalObjectReference{},
 				Key:                  "",
 				Optional:             nil,
 			},
 		},
-		SecretRef: &SecretRef{
-			SecretKeySelector: &corev1.SecretKeySelector{
+			SecretRef: &SecretRef{
+				SecretKeySelector: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{},
+					Key:                  "",
+					Optional:             nil,
+				},
+			},
+		},
+	}
+
+	testGoodOverride := []Overrides{
+		{ConfigMapRef: &ConfigMapRef{
+			ConfigMapKeySelector: &corev1.ConfigMapKeySelector{
 				LocalObjectReference: corev1.LocalObjectReference{},
 				Key:                  "",
 				Optional:             nil,
 			},
 		},
-	})
+		},
+	}
 
-	err := ValidateHelmValueOverrides(testOverrides)
-	assert.Error(err)
+	err1 := ValidateHelmValueOverrides(testBadOverride)
+	err2 := ValidateHelmValueOverrides(testNoOverride)
+	err3 := ValidateHelmValueOverrides(testGoodOverride)
+
+	assert.Error(err1)
+	assert.Error(err2)
+	assert.NoError(err3)
 }
 
 var testKey = []byte{}

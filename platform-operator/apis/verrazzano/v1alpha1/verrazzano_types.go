@@ -4,7 +4,6 @@
 package v1alpha1
 
 import (
-	"encoding/json"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -746,9 +745,8 @@ type HelmValueOverrides struct {
 }
 
 type Overrides struct {
-	Values       json.RawMessage `json:"values,omitempty"`
-	ConfigMapRef *ConfigMapRef   `json:"configMapRef,omitempty"`
-	SecretRef    *SecretRef      `json:"secretRef,omitempty"`
+	ConfigMapRef *ConfigMapRef `json:"configMapRef,omitempty"`
+	SecretRef    *SecretRef    `json:"secretRef,omitempty"`
 }
 
 type ConfigMapRef struct {
