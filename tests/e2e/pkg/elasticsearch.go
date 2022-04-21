@@ -69,7 +69,7 @@ func isUsingDataStreams(kubeconfigPath string) (bool, error) {
 	var err error
 	kubeconfigPath, err = getKubeConfigPath(kubeconfigPath)
 	if err != nil {
-		Log(Error, fmt.Sprintf("error fetching kubeconfig path"))
+		Log(Error, fmt.Sprintf("Error fetching kubeconfig path: %v", err))
 		return false, err
 	}
 	return IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
