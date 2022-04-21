@@ -135,6 +135,7 @@ var _ = t.Describe("OCI Logging", Label("f:oci-integration.logging"), func() {
 					Consistently(func() (int, error) {
 						logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, defaultAppLogID, "")
 						if err != nil {
+							pkg.Log(pkg.Error, fmt.Sprintf("Error getting log records: %+v", err))
 							return 0, err
 						}
 						if *logs.Summary.ResultCount > 0 {
@@ -150,6 +151,7 @@ var _ = t.Describe("OCI Logging", Label("f:oci-integration.logging"), func() {
 					Consistently(func() (int, error) {
 						logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, nsLogID, "")
 						if err != nil {
+							pkg.Log(pkg.Error, fmt.Sprintf("Error getting log records: %+v", err))
 							return 0, err
 						}
 						if *logs.Summary.ResultCount > 0 {
