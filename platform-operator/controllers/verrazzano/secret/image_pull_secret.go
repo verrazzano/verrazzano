@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -19,16 +20,9 @@ const DefaultImagePullSecretKeyName = "imagePullSecrets[0].name"
 // CheckImagePullSecret Checks if the global image pull secret exists and copies it into the specified namespace; returns
 // true if the image pull secret exists and was copied successfully.
 func CheckImagePullSecret(client client.Client, targetNamespace string) (bool, error) {
-	var targetSecret v1.Secret
-	if err := client.Get(context.TODO(), types.NamespacedName{Namespace: targetNamespace, Name: constants.GlobalImagePullSecName}, &targetSecret); err == nil {
-		return true, nil
-	} else if !errors.IsNotFound(err) {
-		// Unexpected error
-		return false, err
-	}
 	// Did not find the secret in the target ns, check for global image pull secret in default ns to copy
-	var secret v1.Secret
-	if err := client.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: constants.GlobalImagePullSecName}, &secret); err != nil {
+	var sourceSecret v1.Secret
+	if err := client.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: constants.GlobalImagePullSecName}, &sourceSecret); err != nil {
 		if errors.IsNotFound(err) {
 			// Global secret not found
 			return false, nil
@@ -36,17 +30,20 @@ func CheckImagePullSecret(client client.Client, targetNamespace string) (bool, e
 		// we had an unexpected error
 		return false, err
 	}
-	// Copy the global secret to the target namespace
-	targetSecret = v1.Secret{
+
+	targetSecret := v1.Secret{
 		ObjectMeta: v12.ObjectMeta{
-			Name:      constants.GlobalImagePullSecName,
 			Namespace: targetNamespace,
+			Name:      constants.GlobalImagePullSecName,
 		},
-		Data: secret.Data,
-		Type: secret.Type,
 	}
-	if err := client.Create(context.TODO(), &targetSecret); err != nil && !errors.IsAlreadyExists(err) {
-		// An unexpected error occurred copying the secret
+
+	_, err := controllerruntime.CreateOrUpdate(context.TODO(), client, &targetSecret, func() error {
+		targetSecret.Data = sourceSecret.Data
+		targetSecret.Type = sourceSecret.Type
+		return nil
+	})
+	if err != nil {
 		return false, err
 	}
 	return true, nil

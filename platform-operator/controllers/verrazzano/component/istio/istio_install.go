@@ -190,9 +190,6 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 		compContext.Log().Debug("Error during istio install, retrying")
 	}
 
-	// This IstioOperator YAML uses this imagePullSecret key
-	const imagePullSecretHelmKey = "values.global.imagePullSecrets[0]"
-
 	var userFileCR *os.File
 	var kvs []bom.KeyValue
 	var err error
@@ -234,7 +231,7 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 	// Build comma separated string of overrides that will be passed to
 	// isioctl as --set values.
 	// This include BOM image overrides as well as other overrides
-	overrideStrings, err := buildOverridesString(log, client, IstioNamespace, kvs...)
+	overrideStrings, err := buildOverridesString(kvs...)
 	if err != nil {
 		return err
 	}
