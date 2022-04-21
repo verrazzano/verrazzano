@@ -4,7 +4,6 @@
 package vmo
 
 import (
-	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -23,6 +22,9 @@ const ComponentName = "verrazzano-monitoring-operator"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = vzconst.VerrazzanoSystemNamespace
 
+// ComponentJSONName is the json name of the verrazzano-monitoring-operator component
+const ComponentJSONName = "verrazzano-monitoring-operator"
+
 // vmoComponent represents a VMO component
 type vmoComponent struct {
 	helm.HelmComponent
@@ -36,6 +38,7 @@ func NewComponent() spi.Component {
 	return vmoComponent{
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
+			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetHelmChartsDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
@@ -63,15 +66,7 @@ func (c vmoComponent) IsReady(context spi.ComponentContext) bool {
 
 // PreInstall VMO pre-install processing
 func (c vmoComponent) PreInstall(context spi.ComponentContext) error {
-	found, err := helmcli.IsReleaseInstalled(vzconst.Verrazzano, vzconst.VerrazzanoSystemNamespace)
-	if err != nil {
-		return context.Log().ErrorfNewErr("Failed searching for release: %v", err)
-	}
-	if found {
-		return reassociateResources(context)
-	}
-
-	return nil
+	return reassociateResources(context)
 }
 
 // PreUpgrade VMO pre-upgrade processing

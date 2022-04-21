@@ -97,11 +97,16 @@ func (c verrazzanoComponent) Install(ctx spi.ComponentContext) error {
 
 // PreUpgrade Verrazzano component pre-upgrade processing
 func (c verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	if err := vmo.ExportVmoHelmChart(ctx); err != nil {
-		return err
-	}
-	if err := common.ApplyCRDYaml(ctx, config.GetHelmVmoChartsDir()); err != nil {
-		return err
+	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
+		if err := vmo.DeleteVMODeployment(ctx); err != nil {
+			return err
+		}
+		if err := vmo.ExportVMOHelmChart(ctx); err != nil {
+			return err
+		}
+		if err := common.ApplyCRDYaml(ctx, config.GetHelmVmoChartsDir()); err != nil {
+			return err
+		}
 	}
 	return verrazzanoPreUpgrade(ctx, ComponentNamespace)
 }
