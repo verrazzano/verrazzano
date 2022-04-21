@@ -50,7 +50,11 @@ var _ = t.Describe("Post upgrade", func() {
 	MinimumVerrazzanoIt("Old indices are deleted", func() {
 		Eventually(func() bool {
 			kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
-			if pkg.IsOpenSearchEnabled(kubeconfigPath) {
+			enabled, err := pkg.IsOpenSearchEnabled(kubeconfigPath)
+			if err != nil {
+				return false
+			}
+			if enabled {
 				oldIndicesPatterns := []string{"^verrazzano-namespace-.*$", "^verrazzano-systemd-journal$",
 					"^verrazzano-logstash-.*$"}
 				return pkg.IndicesNotExists(oldIndicesPatterns)
