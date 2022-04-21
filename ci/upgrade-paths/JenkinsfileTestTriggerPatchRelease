@@ -77,6 +77,7 @@ pipeline {
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
         TARGET_UPGRADE_VERSION = ""
+        LATEST_RELEASE_COMMIT_SHA = ""
 
     }
 
@@ -91,15 +92,17 @@ pipeline {
                     if (params.GIT_COMMIT_TO_USE == "NONE") {
                         echo "Specific GIT commit was not specified, use current head"
                         def scmInfo = checkout scm
-                            scmInfo = checkout([
+                            scmInfoReleaseBranch = checkout([
                             $class: 'GitSCM',
-                            branches: [[name: scmInfo.GIT_COMMIT]],
+                            branches: [[name: getLatestReleaseBranch()]],
                             doGenerateSubmoduleConfigurations: false,
                             extensions: [],
                             submoduleCfg: [],
                             userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
-                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                        env.GIT_COMMIT = scmInfoReleaseBranch.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfoReleaseBranch.GIT_BRANCH
+                        LATEST_RELEASE_COMMIT_SHA = scmInfoReleaseBranch.GIT_COMMIT
+                        echo "LATEST_RELEASE_COMMIT_SHA: ${LATEST_RELEASE_COMMIT_SHA}"
                     } else {
                         echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
                         def scmInfo = checkout([
@@ -397,6 +400,7 @@ def allReleasesToRCStage(job) {
                     echo "Running upgrade job from version ${job[0]} to ${job[1]}"
                     def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                     parameters: [
+                        string(name: 'GIT_COMMIT_TO_USE', value: ),
                         string(name: 'VERSION_FOR_INSTALL', value: job[0]),
                         string(name: 'VERSION_FOR_UPGRADE', value: job[1]),
                         string(name: 'IS_TRIGGERED_MANUALLY', value: "NO"),
@@ -422,4 +426,20 @@ def getNextPatchReleaseVersion(upgradeTargetVersion){
     int nextPatchVersion = Integer.parseInt(latestReleaseTagSplit[2]) + 1
     def nextPatchRelease = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1] + "." + nextPatchVersion
     return nextPatchRelease
+}
+
+def getLatestReleaseBranch(){
+    sh """
+        cd ${workspace}
+        git tag | awk '/v1[.]/' >  tags.txt
+        cat tags.txt
+    """
+    final String fileContent = readFile(file: "${workspace}/tags.txt")
+    final List gitTags = extractReleaseTags(fileContent)
+    echo "gitTags = ${gitTags}"
+    def latestReleaseTag = gitTags.pop() - "v"
+    def latestReleaseTagSplit = latestReleaseTag.split("\\.")
+    def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
+    latestReleaseBranch = "release-" + latestReleaseBranch
+    return latestReleaseBranch
 }
