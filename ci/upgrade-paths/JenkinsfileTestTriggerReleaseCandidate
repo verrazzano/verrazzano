@@ -36,7 +36,7 @@ pipeline {
                         description: 'This is the full git commit hash from the source build to be used for all jobs. A full pipeline specifies a valid commit hash here. NONE can be used for manually triggered jobs, however even for those a commit hash value is preferred to be supplied',
                         trim: true)
         string (name: 'N_JOBS_FOR_EACH_BATCH',
-                defaultValue: '6',
+                defaultValue: '3',
                 description: 'This is to define total number of jobs executed parallelly per each batch',
                 trim: true)
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
@@ -77,7 +77,6 @@ pipeline {
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
         TARGET_UPGRADE_VERSION = ""
-        GIT_COMMIT_TO_USE = "${params.GIT_COMMIT_TO_USE}"
 
     }
 
@@ -100,7 +99,6 @@ pipeline {
                             submoduleCfg: [],
                             userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
                         env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        GIT_COMMIT_TO_USE = scmInfo.GIT_COMMIT
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                     } else {
                         echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
@@ -399,7 +397,6 @@ def allReleasesToRCStage(job) {
                             echo "Running upgrade job from version ${job[0]} to ${job[1]}"
                            def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
-                                    string(name: 'GIT_COMMIT_TO_USE', value: GIT_COMMIT_TO_USE),
                                     string(name: 'VERSION_FOR_INSTALL', value: job[0]),
                                     string(name: 'VERSION_FOR_UPGRADE', value: job[1]),
                                     string(name: 'IS_TRIGGERED_MANUALLY', value: "NO"),
