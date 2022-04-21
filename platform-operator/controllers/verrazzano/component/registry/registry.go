@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
 	promadapter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/adapter"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/kubestatemetrics"
 	promnodeexporter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/nodeexporter"
@@ -64,6 +65,7 @@ func getComponents() []spi.Component {
 			rancher.NewComponent(),
 			verrazzano.NewComponent(),
 			opensearch.NewComponent(),
+			opensearchdashboards.NewComponent(),
 			authproxy.NewComponent(),
 			coherence.NewComponent(),
 			mysql.NewComponent(),

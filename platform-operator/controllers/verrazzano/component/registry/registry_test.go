@@ -4,6 +4,7 @@
 package registry
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -55,7 +56,7 @@ func TestGetComponents(t *testing.T) {
 	a := assert.New(t)
 	comps := GetComponents()
 
-	a.Len(comps, 20, "Wrong number of components")
+	a.Len(comps, 21, "Wrong number of components")
 	a.Equal(comps[0].Name(), oam.ComponentName)
 	a.Equal(comps[1].Name(), appoper.ComponentName)
 	a.Equal(comps[2].Name(), istio.ComponentName)
@@ -66,16 +67,17 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[7].Name(), rancher.ComponentName)
 	a.Equal(comps[8].Name(), verrazzano.ComponentName)
 	a.Equal(comps[9].Name(), opensearch.ComponentName)
-	a.Equal(comps[10].Name(), authproxy.ComponentName)
-	a.Equal(comps[11].Name(), coherence.ComponentName)
-	a.Equal(comps[12].Name(), mysql.ComponentName)
-	a.Equal(comps[13].Name(), keycloak.ComponentName)
-	a.Equal(comps[14].Name(), kiali.ComponentName)
-	a.Equal(comps[15].Name(), promoperator.ComponentName)
-	a.Equal(comps[16].Name(), promadapter.ComponentName)
-	a.Equal(comps[17].Name(), kubestatemetrics.ComponentName)
-	a.Equal(comps[18].Name(), pushgateway.ComponentName)
-	a.Equal(comps[19].Name(), promnodeexporter.ComponentName)
+	a.Equal(comps[10].Name(), opensearchdashboards.ComponentName)
+	a.Equal(comps[11].Name(), authproxy.ComponentName)
+	a.Equal(comps[12].Name(), coherence.ComponentName)
+	a.Equal(comps[13].Name(), mysql.ComponentName)
+	a.Equal(comps[14].Name(), keycloak.ComponentName)
+	a.Equal(comps[15].Name(), kiali.ComponentName)
+	a.Equal(comps[16].Name(), promoperator.ComponentName)
+	a.Equal(comps[17].Name(), promadapter.ComponentName)
+	a.Equal(comps[18].Name(), kubestatemetrics.ComponentName)
+	a.Equal(comps[19].Name(), pushgateway.ComponentName)
+	a.Equal(comps[20].Name(), promnodeexporter.ComponentName)
 
 }
 
