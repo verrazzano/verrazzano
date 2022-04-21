@@ -18,19 +18,17 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 )
 
-const (
-	// ComponentName is the name of the component
-	ComponentName = "ingress-controller"
+// ComponentName is the name of the component
+const ComponentName = "ingress-controller"
 
-	// ComponentNamespace is the namespace of the component
-	ComponentNamespace = "ingress-nginx"
+// ComponentNamespace is the namespace of the component
+const ComponentNamespace = "ingress-nginx"
 
-	// ComponentJSONName is the josn name of the verrazzano component in CRD
-	ComponentJSONName = "ingress"
+// ComponentJSONName is the josn name of the verrazzano component in CRD
+const ComponentJSONName = "ingress"
 
-	// nginxExternalIPKey is the nginxInstallArgs key for externalIPs
-	nginxExternalIPKey = "controller.service.externalIPs"
-)
+// nginxExternalIPKey is the nginxInstallArgs key for externalIPs
+const nginxExternalIPKey = "controller.service.externalIPs"
 
 // nginxComponent represents an Nginx component
 type nginxComponent struct {
