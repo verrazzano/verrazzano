@@ -60,6 +60,9 @@ type HelmComponent struct {
 	// AppendOverridesFunc is an optional function get additional override values
 	AppendOverridesFunc appendOverridesSig
 
+	// ArbitraryOverridesFunc is an optional function to get overrides from overrides list in the vz cr
+	ArbitraryOverridesFunc arbitraryOverridesSig
+
 	// ResolveNamespaceFunc is an optional function to process the namespace name
 	ResolveNamespaceFunc resolveNamespaceSig
 
@@ -103,6 +106,9 @@ type preUpgradeFuncSig func(log vzlog.VerrazzanoLogger, client clipkg.Client, re
 
 // appendOverridesSig is an optional function called to generate additional overrides.
 type appendOverridesSig func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error)
+
+// arbitraryOverrideSig is an optional function called to get overrides from the overrides list in the cr
+type arbitraryOverridesSig func(context spi.ComponentContext, namespace string, kvs []bom.KeyValue) ([]bom.KeyValue, error)
 
 // resolveNamespaceSig is an optional function called for special namespace processing
 type resolveNamespaceSig func(ns string) string
