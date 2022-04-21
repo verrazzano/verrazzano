@@ -234,11 +234,8 @@ func createAndLabelNamespaces(ctx spi.ComponentContext) error {
 	if err := LabelKubeSystemNamespace(ctx.Client()); err != nil {
 		return err
 	}
-	if err := namespace.CreateVerrazzanoSystemNamespace(ctx.Client()); err != nil {
+	if err := common.CreateAndLabelVMINamespaces(ctx); err != nil {
 		return err
-	}
-	if _, err := secret.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoSystemNamespace); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed checking for image pull secret: %v", err)
 	}
 	if err := namespace.CreateVerrazzanoMultiClusterNamespace(ctx.Client()); err != nil {
 		return err

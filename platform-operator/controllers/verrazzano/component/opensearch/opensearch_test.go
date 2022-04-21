@@ -37,8 +37,7 @@ import (
 )
 
 const (
-	testBomFilePath = "../../testdata/test_bom.json"
-	vmoDeployment   = "verrazzano-monitoring-operator"
+	vmoDeployment = "verrazzano-monitoring-operator"
 )
 
 var (
@@ -474,11 +473,11 @@ func TestIsReadySecretNotReady(t *testing.T) {
 	assert.False(t, isOpensearchReady(ctx))
 }
 
-// TestIsReadyChartNotInstalled tests the Opensearch isOpensearchReady call
+// TestIsReadyNotInstalled tests the Opensearch isOpensearchReady call
 // GIVEN an Opensearch component
 //  WHEN I call isOpensearchReady when it is not installed
 //  THEN false is returned
-func TestIsReadyChartNotInstalled(t *testing.T) {
+func TestIsReadyNotInstalled(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
 	assert.False(t, isOpensearchReady(ctx))
@@ -664,7 +663,7 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 			},
 		},
 	}
-	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
+	ctx := spi.NewFakeContext(c, vz, false)
 	assert.False(t, isOpensearchReady(ctx))
 }
 

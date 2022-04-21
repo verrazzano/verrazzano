@@ -12,11 +12,8 @@ import (
 	"strings"
 	"time"
 
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
@@ -188,16 +185,6 @@ func isOpensearchReady(ctx spi.ComponentContext) bool {
 	}
 
 	return common.IsVMISecretReady(ctx)
-}
-
-func createAndLabelOSNamespaces(ctx spi.ComponentContext) error {
-	if err := namespace.CreateVerrazzanoSystemNamespace(ctx.Client()); err != nil {
-		return err
-	}
-	if _, err := secret.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoSystemNamespace); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed checking for image pull secret: %v", err)
-	}
-	return nil
 }
 
 // fixupElasticSearchReplicaCount fixes the replica count set for single node Elasticsearch cluster

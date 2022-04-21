@@ -7,9 +7,12 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"reflect"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -151,4 +154,32 @@ func IsVMISecretReady(ctx spi.ComponentContext) bool {
 		return false
 	}
 	return true
+}
+
+// CreateAndLabelVMINamespaces creates and labels the namespaces needed for the VMI resources
+func CreateAndLabelVMINamespaces(ctx spi.ComponentContext) error {
+	if err := namespace.CreateVerrazzanoSystemNamespace(ctx.Client()); err != nil {
+		return err
+	}
+	if _, err := secret.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoSystemNamespace); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed checking for image pull secret: %v", err)
+	}
+	return nil
+}
+
+// CompareStorageOverrides compares storage override settings for the VMI components
+func CompareStorageOverrides(old *vzapi.Verrazzano, new *vzapi.Verrazzano, jsonName string) error {
+	// compare the storage overrides and reject if the type or size is different
+	oldSetting, err := FindStorageOverride(old)
+	if err != nil {
+		return err
+	}
+	newSetting, err := FindStorageOverride(new)
+	if err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(oldSetting, newSetting) {
+		return fmt.Errorf("Can not change volume settings for %s", jsonName)
+	}
+	return nil
 }

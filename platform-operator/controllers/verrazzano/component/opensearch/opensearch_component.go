@@ -6,15 +6,13 @@ package opensearch
 import (
 	"fmt"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	"reflect"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -32,7 +30,7 @@ const (
 )
 
 // ComponentJSONName is the josn name of the opensearch component in CRD
-const ComponentJSONName = "elasticsearch"
+const ComponentJSONName = "opensearch"
 
 type opensearchComponent struct{}
 
@@ -79,7 +77,7 @@ func (o opensearchComponent) PreInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 	ctx.Log().Debug("OpenSearch pre-install")
-	if err := createAndLabelOSNamespaces(ctx); err != nil {
+	if err := common.CreateAndLabelVMINamespaces(ctx); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed creating/labeling namespace %s for OpenSearch : %v", ComponentNamespace, err)
 	}
 	return nil
@@ -178,7 +176,7 @@ func (o opensearchComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 	}
 	// Reject any other edits except InstallArgs
 	// Do not allow any updates to storage settings via the volumeClaimSpecTemplates/defaultVolumeSource
-	if err := compareStorageOverrides(old, new); err != nil {
+	if err := common.CompareStorageOverrides(old, new, ComponentJSONName); err != nil {
 		return err
 	}
 	return nil
@@ -194,26 +192,10 @@ func (o opensearchComponent) Name() string {
 	return ComponentName
 }
 
-func compareStorageOverrides(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	// compare the storage overrides and reject if the type or size is different
-	oldSetting, err := common.FindStorageOverride(old)
-	if err != nil {
-		return err
-	}
-	newSetting, err := common.FindStorageOverride(new)
-	if err != nil {
-		return err
-	}
-	if !reflect.DeepEqual(oldSetting, newSetting) {
-		return fmt.Errorf("Can not change volume settings for %s", ComponentJSONName)
-	}
-	return nil
-}
-
 func (o opensearchComponent) isOpensearchEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow disabling of any component post-install for now
 	if vzconfig.IsElasticsearchEnabled(old) && !vzconfig.IsElasticsearchEnabled(new) {
-		return fmt.Errorf("Disabling component elasticsearch not allowed")
+		return fmt.Errorf("Disabling component OpenSearch not allowed")
 	}
 	if vzconfig.IsKibanaEnabled(old) && !vzconfig.IsKibanaEnabled(new) {
 		return fmt.Errorf("Disabling component kibana not allowed")

@@ -5,14 +5,11 @@ package verrazzano
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"path/filepath"
-	"reflect"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
@@ -20,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/types"
+	"path/filepath"
 )
 
 const (
@@ -151,7 +149,7 @@ func (c verrazzanoComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 	}
 	// Reject any other edits except InstallArgs
 	// Do not allow any updates to storage settings via the volumeClaimSpecTemplates/defaultVolumeSource
-	if err := compareStorageOverrides(old, new); err != nil {
+	if err := common.CompareStorageOverrides(old, new, ComponentJSONName); err != nil {
 		return err
 	}
 	if err := validateFluentd(new); err != nil {
@@ -164,22 +162,6 @@ func (c verrazzanoComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 func (c verrazzanoComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	if err := validateFluentd(vz); err != nil {
 		return err
-	}
-	return nil
-}
-
-func compareStorageOverrides(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	// compare the storage overrides and reject if the type or size is different
-	oldSetting, err := common.FindStorageOverride(old)
-	if err != nil {
-		return err
-	}
-	newSetting, err := common.FindStorageOverride(new)
-	if err != nil {
-		return err
-	}
-	if !reflect.DeepEqual(oldSetting, newSetting) {
-		return fmt.Errorf("Can not change volume settings for %s", ComponentJSONName)
 	}
 	return nil
 }

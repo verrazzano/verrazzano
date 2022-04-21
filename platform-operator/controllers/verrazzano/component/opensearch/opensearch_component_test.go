@@ -4,7 +4,6 @@ package opensearch
 
 import (
 	"context"
-	"os/exec"
 	"testing"
 
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
@@ -14,10 +13,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	v1 "k8s.io/api/networking/v1"
@@ -42,20 +38,6 @@ var crEnabled = vzapi.Verrazzano{
 			},
 		},
 	},
-}
-
-// genericTestRunner is used to run generic OS commands with expected results
-type genericTestRunner struct {
-}
-
-// Run genericTestRunner executor
-func (r genericTestRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
-	return nil, nil, nil
-}
-
-// fakeUpgrade override the upgrade function during unit tests
-func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
-	return []byte("success"), []byte(""), nil
 }
 
 // TestPreUpgrade tests the Opensearch PreUpgrade call
@@ -92,13 +74,6 @@ func TestInstall(t *testing.T) {
 			Components: dnsComponents,
 		},
 	}, false)
-	config.SetDefaultBomFilePath(testBomFilePath)
-	helm.SetUpgradeFunc(fakeUpgrade)
-	defer helm.SetDefaultUpgradeFunc()
-	helmcli.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
-		return helmcli.ChartStatusDeployed, nil
-	})
-	defer helmcli.SetDefaultChartStateFunction()
 	err := NewComponent().Install(ctx)
 	assert.NoError(t, err)
 }
@@ -235,15 +210,6 @@ func TestUpgrade(t *testing.T) {
 		},
 		Status: vzapi.VerrazzanoStatus{Version: "1.1.0"},
 	}, false)
-	config.SetDefaultBomFilePath(testBomFilePath)
-	helmcli.SetCmdRunner(genericTestRunner{})
-	defer helmcli.SetDefaultRunner()
-	helm.SetUpgradeFunc(fakeUpgrade)
-	defer helm.SetDefaultUpgradeFunc()
-	helmcli.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
-		return helmcli.ChartStatusDeployed, nil
-	})
-	defer helmcli.SetDefaultChartStateFunction()
 	err := NewComponent().Upgrade(ctx)
 	assert.NoError(t, err)
 }
@@ -258,11 +224,14 @@ func TestPostUpgrade(t *testing.T) {
 		Spec: vzapi.VerrazzanoSpec{
 			Components: dnsComponents,
 		},
+		Status: vzapi.VerrazzanoStatus{
+			Version: "v1.1.0",
+		},
 	}, false)
 	comp := NewComponent()
 
 	// PostUpgrade will fail because the expected VZ ingresses are not present in cluster
-	err := comp.PostInstall(ctx)
+	err := comp.PostUpgrade(ctx)
 	assert.IsType(t, spi2.RetryableError{}, err)
 
 	// now get all the ingresses for VZ and add them to the fake K8S and ensure that PostUpgrade succeeds
@@ -284,7 +253,7 @@ func TestPostUpgrade(t *testing.T) {
 			},
 		})
 	}
-	err = comp.PostInstall(ctx)
+	err = comp.PostUpgrade(ctx)
 	assert.NoError(t, err)
 }
 
