@@ -138,7 +138,7 @@ var _ = t.Describe("OCI Logging", Label("f:oci-integration.logging"), func() {
 							return 0, err
 						}
 						if *logs.Summary.ResultCount > 0 {
-							t.Logs.Infof("Log records: %+v", logs.Results)
+							pkg.Log(pkg.Info, fmt.Sprintf("Log records: %+v", logs.Results))
 						}
 						return *logs.Summary.ResultCount, nil
 					}, shortWaitTimeout, pollingInterval).Should(BeZero(), "Expected no default app logs but found at least one")
@@ -153,7 +153,7 @@ var _ = t.Describe("OCI Logging", Label("f:oci-integration.logging"), func() {
 							return 0, err
 						}
 						if *logs.Summary.ResultCount > 0 {
-							t.Logs.Infof("Log records: %+v", logs.Results)
+							pkg.Log(pkg.Info, fmt.Sprintf("Log records: %+v", logs.Results))
 						}
 						return *logs.Summary.ResultCount, nil
 					}, shortWaitTimeout, pollingInterval).Should(BeZero(), "Expected no namespace-specific app logs but found at least one")
@@ -279,5 +279,7 @@ func getLogSearchClient(region string) (loggingsearch.LogSearchClient, error) {
 		return loggingsearch.LogSearchClient{}, err
 	}
 
+	defaultRetryPolicy := common.DefaultRetryPolicy()
+	common.GlobalRetry = &defaultRetryPolicy
 	return loggingsearch.NewLogSearchClientWithConfigurationProvider(provider)
 }
