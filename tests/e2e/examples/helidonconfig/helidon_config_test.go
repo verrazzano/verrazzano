@@ -171,7 +171,8 @@ var _ = t.Describe("Helidon Config OAM App test", Label("f:app-lcm.oam",
 	})
 
 	t.Context("Logging.", Label("f:observability.logging.es"), func() {
-		indexName := pkg.GetOpenSearchAppIndex(namespace)
+		indexName, err := pkg.GetOpenSearchAppIndex(namespace)
+		Expect(err).To(BeNil())
 		// GIVEN an application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found

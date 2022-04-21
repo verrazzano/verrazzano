@@ -109,7 +109,8 @@ var _ = t.Describe("Spring Boot test", Label("f:app-lcm.oam",
 	})
 
 	t.Context("for Logging.", Label("f:observability.logging.es"), FlakeAttempts(5), func() {
-		indexName := pkg.GetOpenSearchAppIndex(namespace)
+		indexName, err := pkg.GetOpenSearchAppIndex(namespace)
+		Expect(err).To(BeNil())
 		t.It("Verify Elasticsearch index exists", func() {
 			Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)

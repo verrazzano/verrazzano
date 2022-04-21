@@ -28,45 +28,51 @@ const (
 
 //GetOpenSearchSystemIndex in Verrazzano 1.3.0, indices in the verrazzano-system namespace have been migrated
 // to the verrazzano-system data stream
-func GetOpenSearchSystemIndex(name string) string {
+func GetOpenSearchSystemIndex(name string) (string, error) {
 	return GetOpenSearchSystemIndexWithKC(name, "")
 }
 
 //GetOpenSearchSystemIndexWithKC is the same as GetOpenSearchSystemIndex but the kubeconfig may be specified for MC tests
-func GetOpenSearchSystemIndexWithKC(name, kubeconfigPath string) string {
-	kubeconfigPath = getKubeConfigPath(kubeconfigPath)
-	dataStreamVersion, err := IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
+func GetOpenSearchSystemIndexWithKC(name, kubeconfigPath string) (string, error) {
+	usingDataStreams, err := isUsingDataStreams(kubeconfigPath)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to check for Verrazzano version: %v", err))
-		return ""
+		return "", err
 	}
-	if dataStreamVersion {
-		return "verrazzano-system"
+	if usingDataStreams {
+		return "verrazzano-system", nil
 	}
 	if name == "systemd-journal" {
-		return "verrazzano-systemd-journal"
+		return "verrazzano-systemd-journal", nil
 	}
-	return "verrazzano-namespace-" + name
+	return "verrazzano-namespace-" + name, nil
 }
 
 //GetOpenSearchAppIndex in Verrazzano 1.3.0, application indices have been migrated to data streams
 // following the pattern 'verrazzano-application-<application name>'
-func GetOpenSearchAppIndex(namespace string) string {
+func GetOpenSearchAppIndex(namespace string) (string, error) {
 	return GetOpenSearchAppIndexWithKC(namespace, "")
 }
 
 //GetOpenSearchAppIndexWithKC is the same as GetOpenSearchAppIndex but kubeconfig may be specified for MC tests
-func GetOpenSearchAppIndexWithKC(namespace, kubeconfigPath string) string {
-	kubeconfigPath = getKubeConfigPath(kubeconfigPath)
-	dataStreamVersion, err := IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
+func GetOpenSearchAppIndexWithKC(namespace, kubeconfigPath string) (string, error) {
+	usingDataStreams, err := isUsingDataStreams(kubeconfigPath)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to check for Verrazzano version: %v", err))
-		return ""
+		return "", err
 	}
-	if dataStreamVersion {
-		return "verrazzano-application-" + namespace
+	if usingDataStreams {
+		return "verrazzanoapplication-" + namespace, nil
 	}
-	return "verrazzano-namespace-" + namespace
+	return "verrazzano-namespace-" + namespace, nil
+}
+
+func isUsingDataStreams(kubeconfigPath string) (bool, error) {
+	var err error
+	kubeconfigPath, err = getKubeConfigPath(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("error fetching kubeconfig path"))
+		return false, err
+	}
+	return IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
 }
 
 func UseExternalElasticsearch() bool {

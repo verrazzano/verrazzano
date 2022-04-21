@@ -72,7 +72,8 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// GIVEN existing system logs
 		// WHEN the Elasticsearch index for the verrazzano-system namespace is retrieved
 		// THEN verify that it is found
-		indexName := pkg.GetOpenSearchSystemIndex(systemNamespace)
+		indexName, err := pkg.GetOpenSearchSystemIndex(systemNamespace)
+		Expect(err).To(BeNil())
 		Eventually(func() bool {
 			return pkg.LogIndexFound(indexName)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index verrazzano-system")
@@ -99,7 +100,8 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// GIVEN existing system logs
 		// WHEN the Elasticsearch index for the verrazzano-install namespace is retrieved
 		// THEN verify that it is found
-		indexName := pkg.GetOpenSearchSystemIndex(installNamespace)
+		indexName, err := pkg.GetOpenSearchSystemIndex(installNamespace)
+		Expect(err).To(BeNil())
 		Eventually(func() bool {
 			return pkg.LogIndexFound(indexName)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index verrazzano-install")
@@ -120,7 +122,8 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// GIVEN existing system logs
 		// WHEN the Elasticsearch index for the verrazzano-system namespace is retrieved
 		// THEN verify that it is found
-		indexName := pkg.GetOpenSearchSystemIndex(systemNamespace)
+		indexName, err := pkg.GetOpenSearchSystemIndex(systemNamespace)
+		Expect(err).To(BeNil())
 		Eventually(func() bool {
 			return pkg.LogIndexFound(indexName)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index verrazzano-system")
@@ -146,7 +149,8 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// WHEN the Elasticsearch index for the cert-manager namespace is retrieved
 		// THEN verify that it is found
 
-		indexName := pkg.GetOpenSearchSystemIndex(certMgrNamespace)
+		indexName, err := pkg.GetOpenSearchSystemIndex(certMgrNamespace)
+		Expect(err).To(BeNil())
 		Eventually(func() bool {
 			return pkg.LogIndexFound(indexName)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index cert-manager")
@@ -173,7 +177,8 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// GIVEN existing system logs
 		// WHEN the Elasticsearch index for the Keycloak namespace is retrieved
 		// THEN verify that it is found
-		indexName := pkg.GetOpenSearchSystemIndex(keycloakNamespace)
+		indexName, err := pkg.GetOpenSearchSystemIndex(keycloakNamespace)
+		Expect(err).To(BeNil())
 		Eventually(func() bool {
 			return pkg.LogIndexFound(indexName)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index verrazzano-namepace-keycloak")
@@ -195,7 +200,8 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// GIVEN existing system logs
 		// WHEN the index for the ingress-nginx namespace is retrieved
 		// THEN verify that it is found
-		indexName := pkg.GetOpenSearchSystemIndex(nginxNamespace)
+		indexName, err := pkg.GetOpenSearchSystemIndex(nginxNamespace)
+		Expect(err).To(BeNil())
 		Eventually(func() bool {
 			return pkg.LogIndexFound(indexName)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find NGINX index ingress-nginx")
@@ -212,7 +218,8 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// GIVEN existing system logs
 		// WHEN the Elasticsearch index for the cattle-system namespace is retrieved
 		// THEN verify that it is found
-		indexName := pkg.GetOpenSearchSystemIndex(cattleSystemNamespace)
+		indexName, err := pkg.GetOpenSearchSystemIndex(cattleSystemNamespace)
+		Expect(err).To(BeNil())
 		Eventually(func() bool {
 			return pkg.LogIndexFound(indexName)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index cattle-system")
@@ -230,7 +237,8 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// GIVEN existing system logs
 		// WHEN the Elasticsearch index for the cattle-fleet-system namespace is retrieved
 		// THEN verify that it is found
-		indexName := pkg.GetOpenSearchSystemIndex(fleetLocalSystemIndex)
+		indexName, err := pkg.GetOpenSearchSystemIndex(fleetLocalSystemIndex)
+		Expect(err).To(BeNil())
 		Eventually(func() bool {
 			return pkg.LogIndexFound(indexName)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index cattle-fleet-local-system")
@@ -245,7 +253,8 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// GIVEN existing system logs
 		// WHEN the Elasticsearch index for the cattle-fleet-local-system namespace is retrieved
 		// THEN verify that it is found
-		indexName := pkg.GetOpenSearchSystemIndex(fleetLocalSystemNamespace)
+		indexName, err := pkg.GetOpenSearchSystemIndex(fleetLocalSystemNamespace)
+		Expect(err).To(BeNil())
 		Eventually(func() bool {
 			return pkg.LogIndexFound(indexName)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index cattle-fleet-local-system")
@@ -260,7 +269,8 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// GIVEN existing system logs
 		// WHEN the Elasticsearch index for the monitoring namespace is retrieved
 		// THEN verify that it is found
-		indexName := pkg.GetOpenSearchSystemIndex(monitoringNamespace)
+		indexName, err := pkg.GetOpenSearchSystemIndex(monitoringNamespace)
+		Expect(err).To(BeNil())
 		Eventually(func() bool {
 			return pkg.LogIndexFound(indexName)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index monitoring")
@@ -280,7 +290,7 @@ func validateAuthProxyLogs() bool {
 	exceptions = append(exceptions, istioExceptions...)
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		pkg.GetOpenSearchSystemIndex(systemNamespace),
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(systemNamespace) },
 		"kubernetes.labels.app.keyword",
 		"verrazzano-authproxy",
 		searchTimeWindow,
@@ -290,7 +300,7 @@ func validateAuthProxyLogs() bool {
 func validateCoherenceLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		pkg.GetOpenSearchSystemIndex(systemNamespace),
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(systemNamespace) },
 		"kubernetes.labels.app_kubernetes_io/name.keyword",
 		"coherence-operator",
 		searchTimeWindow,
@@ -300,7 +310,7 @@ func validateCoherenceLogs() bool {
 func validateOAMLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		pkg.GetOpenSearchSystemIndex(systemNamespace),
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(systemNamespace) },
 		"kubernetes.labels.app_kubernetes_io/name.keyword",
 		"oam-kubernetes-runtime",
 		searchTimeWindow,
@@ -311,7 +321,7 @@ func validateOAMLogs() bool {
 func validateIstioProxyLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		pkg.GetOpenSearchSystemIndex(systemNamespace),
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(systemNamespace) },
 		"kubernetes.container_name",
 		"istio-proxy",
 		searchTimeWindow,
@@ -321,7 +331,7 @@ func validateIstioProxyLogs() bool {
 func validateKialiLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		pkg.GetOpenSearchSystemIndex(systemNamespace),
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(systemNamespace) },
 		"kubernetes.labels.app_kubernetes_io/part-of",
 		"kiali",
 		searchTimeWindow,
@@ -331,7 +341,7 @@ func validateKialiLogs() bool {
 func validateVPOLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		pkg.GetOpenSearchSystemIndex(installNamespace),
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(installNamespace) },
 		"kubernetes.labels.app.keyword",
 		"verrazzano-platform-operator",
 		searchTimeWindow,
@@ -341,7 +351,7 @@ func validateVPOLogs() bool {
 func validateVAOLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		pkg.GetOpenSearchSystemIndex(systemNamespace),
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(systemNamespace) },
 		"kubernetes.labels.app.keyword",
 		"verrazzano-application-operator",
 		searchTimeWindow,
@@ -351,7 +361,7 @@ func validateVAOLogs() bool {
 func validateVMOLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		pkg.GetOpenSearchSystemIndex(systemNamespace),
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(systemNamespace) },
 		"kubernetes.labels.app.keyword",
 		"verrazzano-monitoring-operator",
 		searchTimeWindow,
@@ -361,7 +371,7 @@ func validateVMOLogs() bool {
 func validatePrometheusLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		pkg.GetOpenSearchSystemIndex(systemNamespace),
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(systemNamespace) },
 		"kubernetes.container_name",
 		"prometheus",
 		searchTimeWindow,
@@ -371,7 +381,7 @@ func validatePrometheusLogs() bool {
 func validatePrometheusConfigReloaderLogs() bool {
 	return validateElasticsearchRecords(
 		noLevelElasticsearchRecordValidator,
-		pkg.GetOpenSearchSystemIndex(systemNamespace),
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(systemNamespace) },
 		"kubernetes.container_name",
 		"config-reloader",
 		searchTimeWindow,
@@ -381,7 +391,7 @@ func validatePrometheusConfigReloaderLogs() bool {
 func validateCertManagerLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		pkg.GetOpenSearchSystemIndex(certMgrNamespace),
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(certMgrNamespace) },
 		"kubernetes.labels.app_kubernetes_io/instance",
 		"cert-manager",
 		searchTimeWindow,
@@ -391,7 +401,7 @@ func validateCertManagerLogs() bool {
 func validateExternalDNSLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		pkg.GetOpenSearchSystemIndex(certMgrNamespace),
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(certMgrNamespace) },
 		"kubernetes.labels.app_kubernetes_io/instance",
 		"external-dns",
 		searchTimeWindow,
@@ -401,7 +411,7 @@ func validateExternalDNSLogs() bool {
 func validateGrafanaLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		pkg.GetOpenSearchSystemIndex(systemNamespace),
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(systemNamespace) },
 		"kubernetes.labels.app.keyword",
 		"system-grafana",
 		searchTimeWindow,
@@ -414,7 +424,7 @@ func validateOpenSearchLogs() bool {
 	for _, appLabel := range openSearchAppComponents {
 		valid = validateElasticsearchRecords(
 			noLevelElasticsearchRecordValidator,
-			pkg.GetOpenSearchSystemIndex(systemNamespace),
+			func() (string, error) { return pkg.GetOpenSearchSystemIndex(systemNamespace) },
 			"kubernetes.labels.app.keyword",
 			appLabel,
 			searchTimeWindow,
@@ -426,7 +436,7 @@ func validateOpenSearchLogs() bool {
 func validateWeblogicOperatorLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		pkg.GetOpenSearchSystemIndex(systemNamespace),
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(systemNamespace) },
 		"kubernetes.labels.app.keyword",
 		"weblogic-operator",
 		searchTimeWindow,
@@ -436,7 +446,7 @@ func validateWeblogicOperatorLogs() bool {
 func validateKeycloakLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		pkg.GetOpenSearchSystemIndex(keycloakNamespace),
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(keycloakNamespace) },
 		"kubernetes.labels.app.kubernetes.io/name",
 		"keycloak",
 		searchTimeWindow,
@@ -446,7 +456,7 @@ func validateKeycloakLogs() bool {
 func validateIngressNginxLogs() bool {
 	return validateElasticsearchRecords(
 		noLevelElasticsearchRecordValidator,
-		pkg.GetOpenSearchSystemIndex(nginxNamespace),
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(nginxNamespace) },
 		"kubernetes.labels.app_kubernetes_io/name",
 		"ingress-nginx",
 		searchTimeWindow,
@@ -456,7 +466,7 @@ func validateIngressNginxLogs() bool {
 func validateKeycloakMySQLLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		pkg.GetOpenSearchSystemIndex(keycloakNamespace),
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(keycloakNamespace) },
 		"kubernetes.labels.app.keyword",
 		"mysql",
 		searchTimeWindow,
@@ -466,7 +476,7 @@ func validateKeycloakMySQLLogs() bool {
 func validateRancherLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		pkg.GetOpenSearchSystemIndex(cattleSystemNamespace),
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(cattleSystemNamespace) },
 		"kubernetes.labels.app.keyword",
 		"rancher",
 		searchTimeWindow,
@@ -476,7 +486,7 @@ func validateRancherLogs() bool {
 func validateRancherWebhookLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		pkg.GetOpenSearchSystemIndex(cattleSystemNamespace),
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(cattleSystemNamespace) },
 		"kubernetes.labels.app.keyword",
 		"rancher-webhook",
 		searchTimeWindow,
@@ -485,7 +495,7 @@ func validateRancherWebhookLogs() bool {
 func validateFleetSystemLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		pkg.GetOpenSearchSystemIndex(fleetLocalSystemNamespace),
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(fleetLocalSystemNamespace) },
 		"kubernetes.namespace_name",
 		"fleet-system",
 		searchTimeWindow,
@@ -495,15 +505,21 @@ func validateFleetSystemLogs() bool {
 func validateNodeExporterLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		pkg.GetOpenSearchSystemIndex(monitoringNamespace),
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(monitoringNamespace) },
 		"kubernetes.labels.app.keyword",
 		"node-exporter",
 		searchTimeWindow,
 		noExceptions)
 }
 
-func validateElasticsearchRecords(hitValidator pkg.ElasticsearchHitValidator, namespace string, appLabel string, appName string, timeRange string, exceptions []*regexp.Regexp) bool {
+func validateElasticsearchRecords(hitValidator pkg.ElasticsearchHitValidator, indexFunc func() (string, error), appLabel string, appName string, timeRange string, exceptions []*regexp.Regexp) bool {
 	pkg.Log(pkg.Info, fmt.Sprintf("Validating log records for %s", appName))
+	index, err := indexFunc()
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get OpenSearch index: %v", err))
+		return false
+	}
+
 	template :=
 		`{
 			"size": 1000,
@@ -518,7 +534,7 @@ func validateElasticsearchRecords(hitValidator pkg.ElasticsearchHitValidator, na
 			}
 		}`
 	query := fmt.Sprintf(template, appLabel, appName, timeRange)
-	resp, err := pkg.PostElasticsearch(fmt.Sprintf("%s/_search", namespace), query)
+	resp, err := pkg.PostElasticsearch(fmt.Sprintf("%s/_search", index), query)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to query Elasticsearch: %v", err))
 		return false

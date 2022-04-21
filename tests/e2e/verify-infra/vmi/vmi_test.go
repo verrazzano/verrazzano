@@ -174,7 +174,8 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 
 		t.It("Elasticsearch verrazzano-system Index should be accessible", Label("f:observability.logging.es"),
 			func() {
-				indexName := pkg.GetOpenSearchSystemIndex(verrazzanoNamespace)
+				indexName, err := pkg.GetOpenSearchSystemIndex(verrazzanoNamespace)
+				Expect(err).To(BeNil())
 				pkg.Concurrently(
 					func() {
 						Eventually(func() bool {
@@ -206,7 +207,8 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 
 		t.It("Elasticsearch systemd journal Index should be accessible", Label("f:observability.logging.es"),
 			func() {
-				indexName := pkg.GetOpenSearchSystemIndex("systemd-journal")
+				indexName, err := pkg.GetOpenSearchSystemIndex("systemd-journal")
+				Expect(err).To(BeNil())
 				Eventually(func() bool {
 					return pkg.FindAnyLog(indexName,
 						[]pkg.Match{

@@ -338,7 +338,8 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		})
 	})
 	t.Context("WebLogic logging.", Label("f:observability.logging.es"), func() {
-		bobsIndexName := pkg.GetOpenSearchAppIndex(namespace)
+		bobsIndexName, err := pkg.GetOpenSearchAppIndex(namespace)
+		Expect(err).To(BeNil())
 		// GIVEN a WebLogic application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
@@ -550,7 +551,8 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		)
 	})
 	t.Context("Coherence logging.", Label("f:observability.logging.es"), func() {
-		indexName := pkg.GetOpenSearchAppIndex(namespace)
+		indexName, err := pkg.GetOpenSearchAppIndex(namespace)
+		Expect(err).To(BeNil())
 		// GIVEN a Coherence application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found

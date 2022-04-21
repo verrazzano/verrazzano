@@ -500,15 +500,12 @@ func CheckNSFinalizerRemoved(ns string, clientset *kubernetes.Clientset) bool {
 	return namespace.Finalizers == nil
 }
 
-func getKubeConfigPath(kubeconfigPath string) string {
-	var err error
+func getKubeConfigPath(kubeconfigPath string) (string, error) {
 	if kubeconfigPath == "" {
-		kubeconfigPath, err = k8sutil.GetKubeConfigLocation()
-		if err != nil {
-			Log(Error, fmt.Sprintf("Failed to get default kubeconfig path: %v", err))
-		}
+		return k8sutil.GetKubeConfigLocation()
+
 	}
-	return kubeconfigPath
+	return kubeconfigPath, nil
 }
 
 // GetImagePrefix Gets the image prefix for container images (accounts for private registry)
