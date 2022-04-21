@@ -77,7 +77,7 @@ pipeline {
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
         TARGET_UPGRADE_VERSION = ""
-        GIT_COMMIT_TO_USE = params.GIT_COMMIT_TO_USE
+        GIT_COMMIT_TO_USE = "${params.GIT_COMMIT_TO_USE}"
 
     }
 
