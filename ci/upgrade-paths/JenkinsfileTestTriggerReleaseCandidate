@@ -77,6 +77,8 @@ pipeline {
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
         TARGET_UPGRADE_VERSION = ""
+        GIT_COMMIT_TO_USE = params.GIT_COMMIT_TO_USE
+
     }
 
     stages {
@@ -98,6 +100,7 @@ pipeline {
                             submoduleCfg: [],
                             userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
                         env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        GIT_COMMIT_TO_USE = scmInfo.GIT_COMMIT
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                     } else {
                         echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
@@ -396,7 +399,7 @@ def allReleasesToRCStage(job) {
                             echo "Running upgrade job from version ${job[0]} to ${job[1]}"
                            def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
-                                    //string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'GIT_COMMIT_TO_USE', value: GIT_COMMIT_TO_USE),
                                     string(name: 'VERSION_FOR_INSTALL', value: job[0]),
                                     string(name: 'VERSION_FOR_UPGRADE', value: job[1]),
                                     string(name: 'IS_TRIGGERED_MANUALLY', value: "NO"),
