@@ -400,7 +400,7 @@ def allReleasesToRCStage(job) {
                     echo "Running upgrade job from version ${job[0]} to ${job[1]}"
                     def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                     parameters: [
-                        string(name: 'GIT_COMMIT_TO_USE', value: ),
+                        string(name: 'GIT_COMMIT_TO_USE', value: LATEST_RELEASE_COMMIT_SHA ),
                         string(name: 'VERSION_FOR_INSTALL', value: job[0]),
                         string(name: 'VERSION_FOR_UPGRADE', value: job[1]),
                         string(name: 'IS_TRIGGERED_MANUALLY', value: "NO"),
