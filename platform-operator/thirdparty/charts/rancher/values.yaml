@@ -143,7 +143,7 @@ postDelete:
   enabled: false
   image:
     repository: rancher/shell
-    tag: v0.1.14
+    tag: v0.1.16
   namespaceList:
     - cattle-fleet-system
     - cattle-system

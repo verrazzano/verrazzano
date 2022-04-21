@@ -401,3 +401,24 @@ func ValidateVersionHigherOrEqual(currentVersion string, requestedVersion string
 	return currentSemVer.IsEqualTo(requestedSemVer) || currentSemVer.IsGreatherThan(requestedSemVer)
 
 }
+
+// ValidateHelmValueOverrides checks that the overrides slice has only one override type per slice item
+func ValidateHelmValueOverrides(Overrides []Overrides) error {
+	overridePerItem := 0
+	for _, override := range Overrides {
+		if override.ConfigMapRef != nil {
+			overridePerItem++
+		}
+		if override.SecretRef != nil {
+			overridePerItem++
+		}
+		if overridePerItem > 1 {
+			return fmt.Errorf("Invalid Helm overrides. Cannot specify more than one override type in the same list element")
+		}
+		if overridePerItem == 0 {
+			return fmt.Errorf("Invalid Helm overrides. No override specified")
+		}
+		overridePerItem = 0
+	}
+	return nil
+}

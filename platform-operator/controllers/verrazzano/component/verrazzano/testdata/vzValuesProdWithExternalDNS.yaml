@@ -23,3 +23,5 @@ kubeStateMetrics:
   enabled: false
 prometheusPushgateway:
   enabled: false
+prometheusNodeExporter:
+  enabled: false
