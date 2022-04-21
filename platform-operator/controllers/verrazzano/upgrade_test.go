@@ -118,7 +118,7 @@ func TestUpgradeNoVersion(t *testing.T) {
 			return nil
 		})
 
-	// The mocks are added to accomodate the expected calls to List instance when component is Ready
+	// The mocks are added to accommodate the expected calls to List instance when component is Ready
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList, opts ...client.ListOption) error {
@@ -419,8 +419,7 @@ func TestUpgradeStarted(t *testing.T) {
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			asserts.Len(verrazzano.Status.Conditions, 2, "Incorrect number of conditions")
-			asserts.Equal(verrazzano.Status.Conditions[1].Type, vzapi.CondUpgradeStarted)
+			asserts.Equal(verrazzano.Status.State, vzapi.VzStateUpgrading)
 			return nil
 		})
 
@@ -618,8 +617,7 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			asserts.Len(verrazzano.Status.Conditions, 8, "Incorrect number of conditions")
-			asserts.Equal(verrazzano.Status.Conditions[7].Type, vzapi.CondUpgradeStarted)
+			asserts.Equal(verrazzano.Status.State, vzapi.VzStateUpgrading)
 			return nil
 		})
 
@@ -683,9 +681,9 @@ func TestUpgradeCompleted(t *testing.T) {
 				Name:       name.Name,
 				Finalizers: []string{finalizerName}}
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
-				Version: "0.2.0"}
+				Version: "1.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State:      vzapi.VzStateReady,
+				State:      vzapi.VzStateUpgrading,
 				Components: makeVerrazzanoComponentStatusMap(),
 				Conditions: []vzapi.Condition{
 					{
@@ -787,9 +785,9 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 				Name:       name.Name,
 				Finalizers: []string{finalizerName}}
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
-				Version: "0.2.0"}
+				Version: "1.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State:      vzapi.VzStateReady,
+				State:      vzapi.VzStateUpgrading,
 				Components: makeVerrazzanoComponentStatusMap(),
 				Conditions: []vzapi.Condition{
 					{
@@ -891,9 +889,9 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 				Name:       name.Name,
 				Finalizers: []string{finalizerName}}
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
-				Version: "0.2.0"}
+				Version: "1.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State:      vzapi.VzStateReady,
+				State:      vzapi.VzStateUpgrading,
 				Components: makeVerrazzanoComponentStatusMap(),
 				Conditions: []vzapi.Condition{
 					{
@@ -992,7 +990,7 @@ func TestUpgradeHelmError(t *testing.T) {
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State:      vzapi.VzStateReady,
+				State:      vzapi.VzStateUpgrading,
 				Components: makeVerrazzanoComponentStatusMap(),
 				Conditions: []vzapi.Condition{
 					{
@@ -1021,6 +1019,13 @@ func TestUpgradeHelmError(t *testing.T) {
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to update the status of the Verrazzano resource
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			return nil
+		}).AnyTimes()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -1148,7 +1153,7 @@ func TestUpgradeComponent(t *testing.T) {
 		Finalizers: []string{finalizerName},
 	}
 	vz.Spec = vzapi.VerrazzanoSpec{
-		Version: "0.2.0"}
+		Version: "1.2.0"}
 	vz.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.VzStateUpgrading,
 		Conditions: []vzapi.Condition{
@@ -1191,19 +1196,9 @@ func TestUpgradeComponent(t *testing.T) {
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 
-	// Expect a call to update the status of the Verrazzano resource
-	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			asserts.Len(verrazzano.Status.Conditions, 2, "Incorrect number of conditions")
-			asserts.Equal(verrazzano.Status.Conditions[1].Type, vzapi.CondUpgradeComplete, "Incorrect condition")
-			assert.Equal(t, vzapi.VzStateReady, verrazzano.Status.State)
-			return nil
-		}).Times(1)
-
 	// Reconcile upgrade until state is done.  Put guard to prevent infinite loop
 	reconciler := newVerrazzanoReconciler(mock)
-	numComponentStates := 7
+	numComponentStates := 10
 	var result ctrl.Result
 	for i := 0; i < numComponentStates; i++ {
 		result, err = reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz)
@@ -1341,7 +1336,7 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 		Finalizers: []string{finalizerName},
 	}
 	vz.Spec = vzapi.VerrazzanoSpec{
-		Version: "0.2.0"}
+		Version: "1.2.0"}
 	vz.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.VzStateUpgrading,
 		Conditions: []vzapi.Condition{
@@ -1389,16 +1384,6 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, list *oamapi.ApplicationConfigurationList, opts ...client.ListOption) error {
 			return nil
 		}).AnyTimes()
-
-	// Expect a call to update the status of the Verrazzano resource
-	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			asserts.Len(verrazzano.Status.Conditions, 2, "Incorrect number of conditions")
-			asserts.Equal(verrazzano.Status.Conditions[1].Type, vzapi.CondUpgradeComplete, "Incorrect condition")
-			assert.Equal(t, vzapi.VzStateReady, verrazzano.Status.State)
-			return nil
-		}).Times(1)
 
 	// Reconcile upgrade
 	reconciler := newVerrazzanoReconciler(mock)

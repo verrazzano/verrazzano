@@ -17,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	promadapter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/adapter"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/kubestatemetrics"
+	promnodeexporter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/nodeexporter"
 	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/pushgateway"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
@@ -70,6 +71,7 @@ func getComponents() []spi.Component {
 			promadapter.NewComponent(),
 			kubestatemetrics.NewComponent(),
 			pushgateway.NewComponent(),
+			promnodeexporter.NewComponent(),
 		}
 	}
 	return componentsRegistry
