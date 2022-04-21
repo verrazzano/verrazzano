@@ -207,7 +207,7 @@ pipeline {
         TEST_REPORT = "test-report.xml"
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
-        VERSION_FOR_UPGRADE = "${params.VERSION_FOR_UPGRADE}" - "v"
+        VERSION_FOR_UPGRADE = "${params.VERSION_FOR_UPGRADE}"
         VERSION_FOR_INSTALL = "${params.VERSION_FOR_INSTALL}"
     }
 
@@ -279,7 +279,6 @@ pipeline {
                     // update the description with some meaningful info
                     setDisplayName()
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
-
                     if (params.TEST_ENV != "KIND") {
                         // derive the prefix for the OKE cluster
                         OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${GO_REPO_PATH}/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
@@ -830,17 +829,18 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
     }
 }
 
-def getPlatformOperatorURLForRelease(upgradeTargetVersion){
-    
+def getPlatformOperatorURLForRelease(){
+    //Removing v from the upgrade version for error handling.
+    VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
     def operatorURL = "https://objectstorage.us-phoenix-1.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_BUCKET}/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml"
 
-        if(upgradeTargetVersion != "master" && params.IS_TRIGGERED_MANUALLY != "YES"){
-            def latestReleaseTagSplit = upgradeTargetVersion.split("\\.")
+        if(VERSION_FOR_UPGRADE != "master" && params.IS_TRIGGERED_MANUALLY != "YES"){
+            def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
             def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
 
               operatorURL = "https://objectstorage.us-phoenix-1.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_BUCKET}/o/release-${latestReleaseBranch}/operator.yaml"
-        }else if(params.IS_TRIGGERED_MANUALLY == "YES" && VERSION_FOR_UPGRADE != "NONE" && upgradeTargetVersion != "master"){
-            operatorURL = "https://github.com/verrazzano/verrazzano/releases/download/v${upgradeTargetVersion}/operator.yaml"
+        }else if(params.IS_TRIGGERED_MANUALLY == "YES" && VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "master"){
+            operatorURL = "https://github.com/verrazzano/verrazzano/releases/download/v${VERSION_FOR_UPGRADE}/operator.yaml"
         }
 
 
@@ -851,7 +851,7 @@ def getPlatformOperatorURLForRelease(upgradeTargetVersion){
 // Upgrade the verrazzano-platform-operator
 def upgradePlatformOperator() {
 
-    def  operatorURL = getPlatformOperatorURLForRelease(VERSION_FOR_UPGRADE)
+    def  operatorURL = getPlatformOperatorURLForRelease()
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for (int count = 1; count <= clusterCount; count++) {
@@ -883,8 +883,8 @@ def upgradeVerrazzano() {
         
         if(VERSION_FOR_UPGRADE == "NONE"){
             VERSION_FOR_UPGRADE = VERRAZZANO_DEV_VERSION
-        } else if(params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "master"){
-            VERRAZZANO_DEV_VERSION = params.VERSION_FOR_UPGRADE
+        } else if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "master"){
+            VERRAZZANO_DEV_VERSION = VERSION_FOR_UPGRADE
         }      
 
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
