@@ -266,8 +266,6 @@ func getLogRecordsFromOCI(client *loggingsearch.LogSearchClient, compartmentID, 
 // use an instance principal auth provider, otherwise use the default provider (auth config comes from
 // an OCI config file or environment variables).
 func getLogSearchClient(region string) (loggingsearch.LogSearchClient, error) {
-	os.Setenv("OCI_GO_SDK_DEBUG", "v")
-
 	var provider common.ConfigurationProvider
 	var err error
 
