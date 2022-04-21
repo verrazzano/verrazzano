@@ -187,7 +187,7 @@
             },
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "1.3.0-20220415200051-44e364a",
+              "tag": "1.3.0-20220420045537-4b7610e",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -393,7 +393,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "15.0.2-20220225013936-a7c16adfc3",
+              "tag": "15.0.2-20220419170856-af1f9ba2fc",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -514,6 +514,23 @@
             {
               "image": "prometheus-pushgateway",
               "tag": "v1.4.2",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "node-exporter",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "prometheus-node-exporter",
+          "images": [
+            {
+              "image": "node-exporter",
+              "tag": "v1.3.1",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
