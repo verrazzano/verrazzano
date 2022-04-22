@@ -839,29 +839,30 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
     }
 }
 
-def getPlatformOperatorURLForRelease(){
+def getPlatformOperatorForRelease(){
     //Removing v from the upgrade version for error handling.
     VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
-    def operatorURL = "https://objectstorage.us-phoenix-1.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_BUCKET}/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml"
+    def operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file"
 
         if(VERSION_FOR_UPGRADE != "master" && params.IS_TRIGGERED_MANUALLY != "YES"){
             def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
             def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
 
-              operatorURL = "https://objectstorage.us-phoenix-1.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_BUCKET}/o/release-${latestReleaseBranch}/operator.yaml"
+              operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name release-${latestReleaseBranch}/operator.yaml --file"
+
         }else if(params.IS_TRIGGERED_MANUALLY == "YES" && VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "master"){
-            operatorURL = "https://github.com/verrazzano/verrazzano/releases/download/v${VERSION_FOR_UPGRADE}/operator.yaml"
+            operatorCMD = "curl -L https://github.com/verrazzano/verrazzano/releases/download/v${VERSION_FOR_UPGRADE}/operator.yaml --output"
         }
 
 
-    return operatorURL
+    return operatorCMD
 }
 
 
 // Upgrade the verrazzano-platform-operator
 def upgradePlatformOperator() {
 
-    def  operatorURL = getPlatformOperatorURLForRelease()
+    def  operatorCMD = getPlatformOperatorForRelease()
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for (int count = 1; count <= clusterCount; count++) {
@@ -871,7 +872,7 @@ def upgradePlatformOperator() {
 
                 echo "Upgrading the Verrazzano platform operator"
                 # Download the operator.yaml for the target version that we are upgrading to
-                curl -L ${operatorURL} --output ${upgradeOperatorFile}
+                ${operatorCMD}  ${upgradeOperatorFile}
                 kubectl apply -f ${upgradeOperatorFile}
 
                 # need to sleep since the old operator needs to transition to terminating state
