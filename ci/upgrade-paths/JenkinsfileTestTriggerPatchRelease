@@ -122,7 +122,7 @@ pipeline {
                 }
 
                 script {
-                    #Generate git tags and save it to tags.txt file
+                    echo "Generate git tags and save it to tags.txt file in the workspace"
                     sh """
                         cd ${workspace}
                         git tag | awk '/v1[.]/' >  tags.txt
