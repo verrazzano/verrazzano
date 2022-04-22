@@ -60,7 +60,7 @@ func GetOpenSearchAppIndexWithKC(namespace, kubeconfigPath string) (string, erro
 		return "", err
 	}
 	if usingDataStreams {
-		return "verrazzanoapplication-" + namespace, nil
+		return "verrazzano-application-" + namespace, nil
 	}
 	return "verrazzano-namespace-" + namespace, nil
 }
