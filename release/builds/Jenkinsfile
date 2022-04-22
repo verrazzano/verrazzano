@@ -40,7 +40,7 @@ pipeline {
         NETRC_FILE = credentials('netrc')
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
         DOCKER_REPO = 'ghcr.io'
-        GITHUB_CREDENTIALS = credentials('github-markxnelns-private-access-token')
+        GITHUB_CREDENTIALS = credentials('github_rw')
 
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
 

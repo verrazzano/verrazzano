@@ -186,6 +186,39 @@
               "helmTagKey": "nodeExporter.imageVersion"
             },
             {
+              "image": "proxyv2",
+              "tag": "1.11.4",
+              "helmFullImageKey": "monitoringOperator.istioProxyImage"
+            },
+            {
+              "image": "fluentd-kubernetes-daemonset",
+              "tag": "v1.12.3-20220225061210-0302423",
+              "helmFullImageKey": "logging.fluentdImage"
+            },
+            {
+              "image": "console",
+              "tag": "1.3.0-20220413232225-9d9bb79",
+              "helmFullImageKey": "console.imageName",
+              "helmTagKey": "console.imageVersion"
+            },
+            {
+              "image": "nginx-ingress-controller",
+              "tag": "1.1.1-20220413170248-b60724ed1",
+              "helmFullImageKey": "api.imageName",
+              "helmTagKey": "api.imageVersion"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "verrazzano-monitoring-operator",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "verrazzano-monitoring-operator",
+          "images": [
+            {
               "image": "verrazzano-monitoring-operator",
               "tag": "1.3.0-20220420045537-4b7610e",
               "helmFullImageKey": "monitoringOperator.imageName",
@@ -225,23 +258,6 @@
               "image": "nginx-ingress-controller",
               "tag": "1.1.1-20220413170248-b60724ed1",
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
-            },
-            {
-              "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.12.3-20220225061210-0302423",
-              "helmFullImageKey": "logging.fluentdImage"
-            },
-            {
-              "image": "console",
-              "tag": "1.3.0-20220413232225-9d9bb79",
-              "helmFullImageKey": "console.imageName",
-              "helmTagKey": "console.imageVersion"
-            },
-            {
-              "image": "nginx-ingress-controller",
-              "tag": "1.1.1-20220413170248-b60724ed1",
-              "helmFullImageKey": "api.imageName",
-              "helmTagKey": "api.imageVersion"
             }
           ]
         }
@@ -393,7 +409,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "15.0.2-20220419170856-af1f9ba2fc",
+              "tag": "15.0.2-20220421175248-fb20414612",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }

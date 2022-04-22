@@ -4,6 +4,7 @@
 package authproxy
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"io/fs"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/types"
@@ -259,7 +260,7 @@ func TestRemoveResourcePolicyAnnotation(t *testing.T) {
 	}
 
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(obj).Build()
-	res, err := removeResourcePolicyAnnotation(c, obj, namespacedName)
+	res, err := common.RemoveResourcePolicyAnnotation(c, obj, namespacedName)
 	assert.NoError(t, err)
 	assert.Equal(t, ComponentName, res.GetAnnotations()["meta.helm.sh/release-name"])
 	assert.Equal(t, globalconst.VerrazzanoSystemNamespace, res.GetAnnotations()["meta.helm.sh/release-namespace"])
