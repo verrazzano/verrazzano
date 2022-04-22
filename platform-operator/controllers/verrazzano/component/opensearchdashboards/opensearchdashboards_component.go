@@ -12,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/types"
@@ -35,7 +36,7 @@ type opensearchDashboardsComponent struct{}
 
 // GetDependencies returns the dependencies of the OpenSearch-Dashbaords component
 func (d opensearchDashboardsComponent) GetDependencies() []string {
-	return []string{istio.ComponentName, nginx.ComponentName}
+	return []string{istio.ComponentName, nginx.ComponentName, vmo.ComponentName}
 }
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the OpenSearch-Dashboards component
