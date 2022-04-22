@@ -149,7 +149,7 @@ const ReconcileLoopRequeueInterval = 3 * time.Minute
 // VMISecret is the secret used for VMI
 const VMISecret = "verrazzano"
 
-// VMISecret is the secret used for VMI
+// GrafanaSecret is the secret used for VMI
 const GrafanaSecret = "grafana-admin"
 
 // VMIBackupSecretName is the backup VMI secret
