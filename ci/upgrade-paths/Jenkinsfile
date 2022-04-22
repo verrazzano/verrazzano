@@ -190,7 +190,7 @@ pipeline {
 
         // sample app deployed before upgrade and UI console tests
         SAMPLE_APP_NAME="hello-helidon-appconf"
-        SAMPLE_APP_NAMESPACE="hello-helidon-sample"
+        SAMPLE_APP_NAMESPACE="hello-helidon"
         SAMPLE_APP_PROJECT="hello-helidon-sample-proj"
         SAMPLE_APP_COMPONENT="hello-helidon-component"
 
@@ -402,7 +402,7 @@ pipeline {
                         }
                     }
                 }
-                stage ('Pre-upgrade Acceptance tests') {
+                stage ('Pre-upgrade Acceptance Tests') {
                     stages {
                         stage('Register managed clusters') {
                             steps {
@@ -414,9 +414,10 @@ pipeline {
                                 verifyRegisterManagedClusters()
                             }
                         }
-                        stage ('Deploy Sample Application') {
+                        stage ('Deploy Examples Helidon') {
                             steps {
-                                deploySampleApp()
+                                runGinkgoVerify('examples/helidon', "false", "true", "true", "hello-helidon")
+                                runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true")
                             }
                         }
                     }
@@ -518,27 +519,8 @@ pipeline {
             }
         }
 
-        stage('Acceptance Tests') {
+        stage('Post-upgrade Acceptance Tests') {
             stages {
-                stage ('Example apps') {
-                    parallel {
-                        stage ('Examples Helidon') {
-                            steps {
-                                runGinkgo("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload")
-                            }
-                        }
-                        stage ('WebLogic Workload') {
-                            steps {
-                                runGinkgo("multicluster/workloads/mcweblogic", "${TEST_DUMP_ROOT}/weblogic-workload")
-                            }
-                        }
-                        stage ('Coherence Workload') {
-                            steps {
-                                runGinkgo("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload")
-                            }
-                        }
-                    }
-                }
                 stage ('Console') {
                     steps {
                         runConsoleTests()
@@ -549,11 +531,20 @@ pipeline {
                         }
                     }
                 }
-                stage ('Undeploy Sample Application') {
+                stage ('Verify Example Apps') {
+                    parallel {
+                        stage ('Examples Helidon') {
+                            steps {
+                                runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload", "true", "false", "false")
+                            }
+                        }
+                    }
+                }
+                /* stage ('Undeploy Sample Application') {
                     steps {
                         undeploySampleApp()
                     }
-                }
+                } */
                 stage ('Multi-cluster Verify Api') {
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
@@ -982,6 +973,22 @@ def runGinkgo(testSuitePath, clusterDumpDirectory) {
     }
 }
 
+// Run ginkgo test suites
+def runGinkgoVerifyManaged(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify) {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        sh """
+            export MANAGED_CLUSTER_NAME="managed1"
+            export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+            export CLUSTER_COUNT=$clusterCount
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+            export DUMP_DIRECTORY="${clusterDumpDirectory}"
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify}
+        """
+    }
+}
+
 // Run a test suite against all clusters
 def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
@@ -1015,6 +1022,17 @@ def runGinkgoRandomizeAdmin(testSuitePath) {
         cd ${GO_REPO_PATH}/verrazzano/tests/e2e
         ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
     """
+}
+
+def runGinkgoVerify(testSuitePath, skipDeploy, skipUndeploy, skipVerify, namespace) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+            export CLUSTER_NAME="admin"
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify} --namespace=${namespace}
+        """
+    }
 }
 
 // Configure the Admin and Managed cluster installer custom resources
