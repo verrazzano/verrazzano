@@ -4,7 +4,6 @@
 package authproxy
 
 import (
-	"context"
 	"fmt"
 	"io/fs"
 	"io/ioutil"
@@ -15,7 +14,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -151,7 +149,7 @@ func reassociateResources(cli clipkg.Client) error {
 
 	// namespaced resources
 	for _, obj := range objects {
-		if _, err := removeResourcePolicyAnnotation(cli, obj, namespacedName); err != nil {
+		if _, err := common.RemoveResourcePolicyAnnotation(cli, obj, namespacedName); err != nil {
 			return err
 		}
 	}
@@ -159,36 +157,18 @@ func reassociateResources(cli clipkg.Client) error {
 	// additional namespaced resources managed by this helm chart
 	authProxyResources := GetHelmManagedResources()
 	for _, managedResoure := range authProxyResources {
-		if _, err := removeResourcePolicyAnnotation(cli, managedResoure.Obj, managedResoure.NamespacedName); err != nil {
+		if _, err := common.RemoveResourcePolicyAnnotation(cli, managedResoure.Obj, managedResoure.NamespacedName); err != nil {
 			return err
 		}
 	}
 
 	// cluster resources
 	for _, obj := range noNamespaceObjects {
-		if _, err := removeResourcePolicyAnnotation(cli, obj, name); err != nil {
+		if _, err := common.RemoveResourcePolicyAnnotation(cli, obj, name); err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-// removeResourcePolicyAnnotation removes the resource policy annotation to allow the resource to be managed by helm
-func removeResourcePolicyAnnotation(cli clipkg.Client, obj clipkg.Object, namespacedName types.NamespacedName) (clipkg.Object, error) {
-	if err := cli.Get(context.TODO(), namespacedName, obj); err != nil {
-		if errors.IsNotFound(err) {
-			return obj, nil
-		}
-		return obj, err
-	}
-	annotations := obj.GetAnnotations()
-	if annotations == nil {
-		return obj, nil
-	}
-	delete(annotations, "helm.sh/resource-policy")
-	obj.SetAnnotations(annotations)
-	err := cli.Update(context.TODO(), obj)
-	return obj, err
 }
 
 // loadImageSettings loads the override values for the image name and version

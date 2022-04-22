@@ -43,7 +43,7 @@ func TestComponentValidatorImpl_ValidateInstall(t *testing.T) {
 					},
 				},
 			},
-			numberOfErrors: 8,
+			numberOfErrors: 9,
 		},
 	}
 	config.TestProfilesDir = "../../../manifests/profiles"
@@ -119,7 +119,7 @@ func TestComponentValidatorImpl_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			numberOfErrors: 10,
+			numberOfErrors: 11,
 		},
 	}
 	config.TestProfilesDir = "../../../manifests/profiles"
@@ -160,7 +160,7 @@ func Test_dependencyValidation(t *testing.T) {
 					},
 				},
 			},
-			numberOfErrors: 8,
+			numberOfErrors: 9,
 		},
 		{
 			name: "disabled istio",
