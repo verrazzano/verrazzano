@@ -153,7 +153,7 @@ const VMISecret = "verrazzano"
 const GrafanaSecret = "grafana-admin"
 
 // VMIBackupSecretName is the backup VMI secret
-const VMIBackupSecretName = "verrazzano-backup"
+const VMIBackupSecretName = "verrazzano-backup" //nolint:gosec //#gosec G101
 
 // ObjectStoreAccessKey is used for the VMI backup secret
 const ObjectStoreAccessKey = "object_store_access_key"
