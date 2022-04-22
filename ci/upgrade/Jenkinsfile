@@ -242,14 +242,14 @@ pipeline {
                                 runGinkgoRandomize('upgrade/pre-upgrade/verify')
                             }
                         }
-                        stage('opensearch post-upgrade') {
+                        stage('opensearch pre-upgrade') {
                             steps {
-                                runGinkgoRandomize('upgrade/post-upgrade/opensearch')
+                                runGinkgoRandomize('upgrade/pre-upgrade/opensearch')
                             }
                         }
-                        stage('opensearch-dashboards post-upgrade') {
+                        stage('opensearch-dashboards pre-upgrade') {
                             steps {
-                                runGinkgoRandomize('upgrade/post-upgrade/opensearch-dashboards')
+                                runGinkgoRandomize('upgrade/pre-upgrade/opensearch-dashboards')
                             }
                         }
                         // Re-enable this stage when a mechanism is in place to deploy different comp and app yamls based on VZ version
@@ -441,6 +441,16 @@ pipeline {
                         stage('verify-upgrade post-upgrade') {
                             steps {
                                 runGinkgoRandomize('upgrade/post-upgrade/verify')
+                            }
+                        }
+                        stage('opensearch post-upgrade') {
+                            steps {
+                                runGinkgoRandomize('upgrade/post-upgrade/opensearch')
+                            }
+                        }
+                        stage('opensearch-dashboards post-upgrade') {
+                            steps {
+                                runGinkgoRandomize('upgrade/post-upgrade/opensearch-dashboards')
                             }
                         }
                         stage('examples socks') {
