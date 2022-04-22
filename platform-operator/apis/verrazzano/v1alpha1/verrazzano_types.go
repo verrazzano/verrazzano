@@ -438,7 +438,8 @@ type PrometheusNodeExporterComponent struct {
 // PrometheusOperatorComponent specifies the Prometheus Operator configuration
 type PrometheusOperatorComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled            *bool `json:"enabled,omitempty"`
+	HelmValueOverrides `json:",inline"`
 }
 
 // PrometheusPushgatewayComponent specifies the Prometheus Pushgateway configuration.
@@ -737,3 +738,23 @@ type OciLoggingConfiguration struct {
 	SystemLogID     string `json:"systemLogId"`
 	APISecret       string `json:"apiSecret,omitempty"`
 }
+
+type HelmValueOverrides struct {
+	MonitorChanges *WatchHelmValues `json:"monitorChanges,omitempty"`
+	ValueOverrides []Overrides      `json:"overrides,omitempty"`
+}
+
+type Overrides struct {
+	ConfigMapRef *ConfigMapRef `json:"configMapRef,omitempty"`
+	SecretRef    *SecretRef    `json:"secretRef,omitempty"`
+}
+
+type ConfigMapRef struct {
+	ConfigMapKeySelector *corev1.ConfigMapKeySelector `json:",inline"`
+}
+
+type SecretRef struct {
+	SecretKeySelector *corev1.SecretKeySelector `json:",inline"`
+}
+
+type WatchHelmValues bool
