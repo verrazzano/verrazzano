@@ -295,6 +295,9 @@ var _ = t.Describe("In Multi-cluster, verify hello-helidon", Label("f:multiclust
 	} else{
 		t.Context("Skipped Verifications", Label("f:skip.verify"), func() {
 			t.It("Skip Verifications", func() {
+				// this function is empty
+				// execution of beforesuite must have atleast 1 context specifications
+				// skipped verifications of example app
 			})
 		})
 	}
@@ -333,6 +336,9 @@ var _ = t.Describe("In Multi-cluster, verify hello-helidon", Label("f:multiclust
 	} else {
 		t.Context("Skipped Deletion", Label("f:skip.undeploy"), func() {
 			t.It("Skip Deletion", func() {
+				// this function is empty
+				// execution of beforesuite must have atleast 1 context specifications
+				// skipped undeployment of example app
 			})
 		})
 	}

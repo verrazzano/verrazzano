@@ -164,6 +164,9 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	}else{
 		t.Context("Skipped Verifications", Label("f:skip.verify"), func() {
 			t.It("Skip Verifications", func() {
+				// this function is empty
+				// execution of beforesuite must have atleast 1 context specifications
+				// skipped verifications of example app
 			})
 		})
 	}
