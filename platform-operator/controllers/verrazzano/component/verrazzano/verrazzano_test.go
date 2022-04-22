@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -209,30 +210,6 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 	a.Nil(updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[0].ValueFrom)
 	a.Equal("some-url", updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[1].Value)
 	a.Nil(updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[1].ValueFrom)
-}
-
-// Test_appendCustomImageOverrides tests the appendCustomImageOverrides function
-// GIVEN a call to appendCustomImageOverrides
-//  WHEN I call with no extra kvs
-//  THEN the correct KeyValue objects are returned and no error occurs
-func Test_appendCustomImageOverrides(t *testing.T) {
-	a := assert.New(t)
-	config.SetDefaultBomFilePath(testBomFilePath)
-	defer func() {
-		config.SetDefaultBomFilePath("")
-	}()
-	kvs, err := appendCustomImageOverrides([]bom.KeyValue{})
-
-	a.NoError(err)
-	a.Len(kvs, 2)
-	a.Contains(kvs, bom.KeyValue{
-		Key:   "monitoringOperator.prometheusInitImage",
-		Value: "ghcr.io/oracle/oraclelinux:7-slim",
-	})
-	a.Contains(kvs, bom.KeyValue{
-		Key:   "monitoringOperator.esInitImage",
-		Value: "ghcr.io/oracle/oraclelinux:7.8",
-	})
 }
 
 // Test_appendVerrazzanoValues tests the appendVerrazzanoValues function
@@ -565,14 +542,14 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 			description:  "Test basic dev profile with no user overrides",
 			actualCR:     vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Profile: "dev"}},
 			expectedYAML: "testdata/vzOverridesDevDefault.yaml",
-			numKeyValues: 7,
+			numKeyValues: 5,
 		},
 		{
 			name:         "ManagedClusterDefault",
 			description:  "Test basic managed-cluster no user overrides",
 			actualCR:     vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Profile: "managed-cluster"}},
 			expectedYAML: "testdata/vzOverridesManagedClusterDefault.yaml",
-			numKeyValues: 3,
+			numKeyValues: 1,
 		},
 		{
 			name:        "DevWithOverrides",
@@ -599,7 +576,7 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 				},
 			},
 			expectedYAML: "testdata/vzOverridesDevWithOverrides.yaml",
-			numKeyValues: 7,
+			numKeyValues: 5,
 		},
 		{
 			name:        "ProdWithExternaDNSEnabled",
@@ -793,8 +770,8 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 			actualNumKvs := len(kvs)
 			expectedNumKvs := test.numKeyValues
 			if expectedNumKvs == 0 {
-				// default is 11, 2 file override + 1 custom image overrides + 8 ES
-				expectedNumKvs = 11
+				// default is 9, 2 file override + 1 custom image overrides + 8 ES
+				expectedNumKvs = 9
 			}
 			a.Equal(expectedNumKvs, actualNumKvs)
 			// Check Temp file
@@ -1521,7 +1498,7 @@ func TestAssociateHelmObjectAndKeep(t *testing.T) {
 	}
 
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(obj).Build()
-	_, err := associateHelmObject(c, obj, namespacedName, namespacedName, true)
+	_, err := common.AssociateHelmObject(c, obj, namespacedName, namespacedName, true)
 	assert.NoError(t, err)
 	assert.Equal(t, ComponentName, obj.Annotations["meta.helm.sh/release-name"])
 	assert.Equal(t, globalconst.VerrazzanoSystemNamespace, obj.Annotations["meta.helm.sh/release-namespace"])
@@ -1537,7 +1514,7 @@ func TestIsReadySecretNotReady(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
-			Name:      vmoDeployment,
+			Name:      verrazzanoConsoleDeployment,
 		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
@@ -1576,18 +1553,6 @@ func TestIsReady(t *testing.T) {
 			UpdatedReplicas:   1,
 		},
 	},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      vmoDeployment,
-				Labels:    map[string]string{"k8s-app": vmoDeployment},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
