@@ -6,13 +6,3 @@ rbac:
   create: true
   pspEnabled: false
   clusterRole: true
-
-extraEnv:
-  - name: "JAEGER-AGENT-IMAGE"
-    value: "ghcr.io/verrazzano/jaeger-agent"
-  - name: "JAEGER-QUERY-IMAGE"
-    value: "ghcr.io/verrazzano/jaeger-query"
-  - name: "JAEGER-COLLECTOR-IMAGE"
-    value: "ghcr.io/verrazzano/jaeger-collector"
-  - name: "JAEGER-INGESTER-IMAGE"
-    value: "ghcr.io/verrazzano/jaeger-ingester"

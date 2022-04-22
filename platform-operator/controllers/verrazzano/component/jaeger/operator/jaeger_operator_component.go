@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package jaegeroperator
+package operator
 
 import (
 	"path/filepath"
@@ -42,6 +42,7 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:  "image.imagePullSecrets[0].name",
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "jaeger-operator-values.yaml"),
 			Dependencies:            []string{certmanager.ComponentName},
+			AppendOverridesFunc:     AppendOverrides,
 		},
 	}
 }
