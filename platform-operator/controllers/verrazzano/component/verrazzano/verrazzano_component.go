@@ -59,7 +59,7 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:     appendVerrazzanoOverrides,
 			ImagePullSecretKeyname:  vzImagePullSecretKeyName,
 			SupportsOperatorInstall: true,
-			Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName, authproxy.ComponentName, vmo.ComponentName},
+			Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName, authproxy.ComponentName},
 		},
 	}
 }
