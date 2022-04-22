@@ -7,6 +7,8 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"io/ioutil"
+
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
@@ -16,11 +18,10 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"io/ioutil"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -48,7 +49,6 @@ const (
 	grafanaDeployment           = "vmi-system-grafana"
 	prometheusDeployment        = "vmi-system-prometheus-0"
 	verrazzanoConsoleDeployment = "verrazzano-console"
-	vmoDeployment               = "verrazzano-monitoring-operator"
 )
 
 var (
@@ -81,13 +81,7 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 				Namespace: ComponentNamespace,
 			})
 	}
-	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments,
-			types.NamespacedName{
-				Name:      vmoDeployment,
-				Namespace: ComponentNamespace,
-			})
-	}
+
 	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments,
 			types.NamespacedName{
@@ -132,9 +126,6 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart
 func verrazzanoPreUpgrade(ctx spi.ComponentContext, namespace string) error {
-	if err := common.ApplyCRDYaml(ctx, config.GetHelmVzChartsDir()); err != nil {
-		return err
-	}
 	if err := importToHelmChart(ctx.Client()); err != nil {
 		return err
 	}
@@ -394,21 +385,21 @@ func exportFromHelmChart(cli clipkg.Client) error {
 
 	// namespaced resources
 	for _, obj := range objects {
-		if _, err := associateHelmObject(cli, obj, authproxyReleaseName, namespacedName, true); err != nil {
+		if _, err := common.AssociateHelmObject(cli, obj, authproxyReleaseName, namespacedName, true); err != nil {
 			return err
 		}
 	}
 
 	authproxyManagedResources := authproxy.GetHelmManagedResources()
 	for _, managedResource := range authproxyManagedResources {
-		if _, err := associateHelmObject(cli, managedResource.Obj, authproxyReleaseName, managedResource.NamespacedName, true); err != nil {
+		if _, err := common.AssociateHelmObject(cli, managedResource.Obj, authproxyReleaseName, managedResource.NamespacedName, true); err != nil {
 			return err
 		}
 	}
 
 	// cluster resources
 	for _, obj := range noNamespaceObjects {
-		if _, err := associateHelmObject(cli, obj, authproxyReleaseName, name, true); err != nil {
+		if _, err := common.AssociateHelmObject(cli, obj, authproxyReleaseName, name, true); err != nil {
 			return err
 		}
 	}
@@ -417,36 +408,7 @@ func exportFromHelmChart(cli clipkg.Client) error {
 
 //associateHelmObjectToThisRelease annotates an object as being managed by the verrazzano helm chart
 func associateHelmObjectToThisRelease(cli clipkg.Client, obj clipkg.Object, namespacedName types.NamespacedName) (clipkg.Object, error) {
-	return associateHelmObject(cli, obj, types.NamespacedName{Name: ComponentName, Namespace: globalconst.VerrazzanoSystemNamespace}, namespacedName, false)
-}
-
-//associateHelmObject annotates an object as being managed by the specified release helm chart
-func associateHelmObject(cli clipkg.Client, obj clipkg.Object, releaseName types.NamespacedName, namespacedName types.NamespacedName, keepResource bool) (clipkg.Object, error) {
-	if err := cli.Get(context.TODO(), namespacedName, obj); err != nil {
-		if errors.IsNotFound(err) {
-			return obj, nil
-		}
-		return obj, err
-	}
-
-	annotations := obj.GetAnnotations()
-	if annotations == nil {
-		annotations = map[string]string{}
-	}
-	annotations["meta.helm.sh/release-name"] = releaseName.Name
-	annotations["meta.helm.sh/release-namespace"] = releaseName.Namespace
-	if keepResource {
-		annotations["helm.sh/resource-policy"] = "keep"
-	}
-	obj.SetAnnotations(annotations)
-	labels := obj.GetLabels()
-	if labels == nil {
-		labels = map[string]string{}
-	}
-	labels["app.kubernetes.io/managed-by"] = "Helm"
-	obj.SetLabels(labels)
-	err := cli.Update(context.TODO(), obj)
-	return obj, err
+	return common.AssociateHelmObject(cli, obj, types.NamespacedName{Name: ComponentName, Namespace: globalconst.VerrazzanoSystemNamespace}, namespacedName, false)
 }
 
 // GetProfile Returns the configured profile name, or "prod" if not specified in the configuration
