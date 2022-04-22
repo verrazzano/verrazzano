@@ -28,19 +28,27 @@ var t = framework.NewTestFramework("opensearch")
 var _ = t.BeforeSuite(func() {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		return
+		pkg.Log(pkg.Error, err.Error())
+		Fail(err.Error())
 	}
 	supported, err := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
 	if err != nil {
-		return
+		pkg.Log(pkg.Error, err.Error())
+		Fail(err.Error())
 	}
 	if supported {
+		pkg.Log(pkg.Info, "VZ version is greater than 1.3.0")
 		m := pkg.ElasticSearchISMPolicyAddModifier{}
 		update.UpdateCR(m)
+		pkg.Log(pkg.Info, "Update the VZ CR to add the required ISM Policies")
 	}
+	// Wait for sufficient time to allow the VMO reconciliation to complete
+	time.Sleep(threeMinutes)
+	pkg.Log(pkg.Info, "Before suite setup completed")
 })
 
 var _ = t.AfterSuite(func() {
+	pkg.Log(pkg.Info, "Cleaning up ISM policy in after test suite")
 	m := pkg.ElasticSearchISMPolicyRemoveModifier{}
 	update.UpdateCR(m)
 })
