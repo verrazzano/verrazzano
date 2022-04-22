@@ -247,9 +247,9 @@ pipeline {
                                 runGinkgoRandomize('upgrade/post-upgrade/opensearch')
                             }
                         }
-                        stage('opensearch-dashboard post-upgrade') {
+                        stage('opensearch-dashboards post-upgrade') {
                             steps {
-                                runGinkgoRandomize('upgrade/post-upgrade/opensearch-dashboard')
+                                runGinkgoRandomize('upgrade/post-upgrade/opensearch-dashboards')
                             }
                         }
                         // Re-enable this stage when a mechanism is in place to deploy different comp and app yamls based on VZ version
