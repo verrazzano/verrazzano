@@ -84,7 +84,7 @@ func (o opensearchComponent) PreInstall(ctx spi.ComponentContext) error {
 
 // Install OpenSearch component install processing
 func (o opensearchComponent) Install(ctx spi.ComponentContext) error {
-	return createVMIforOS(ctx)
+	return common.CreateVMI(ctx, updateFunc)
 }
 
 // PreUpgrade OpenSearch component pre-upgrade processing
@@ -95,7 +95,7 @@ func (o opensearchComponent) PreUpgrade(ctx spi.ComponentContext) error {
 
 // InstallUpgrade OpenSearch component upgrade processing
 func (o opensearchComponent) Upgrade(ctx spi.ComponentContext) error {
-	return createVMIforOS(ctx)
+	return common.CreateVMI(ctx, updateFunc)
 }
 
 // IsReady component check

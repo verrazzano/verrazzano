@@ -88,7 +88,7 @@ func (d opensearchDashboardsComponent) PreInstall(ctx spi.ComponentContext) erro
 
 // Install OpenSearch-Dashboards component install processing
 func (d opensearchDashboardsComponent) Install(ctx spi.ComponentContext) error {
-	return createVMIforOSD(ctx)
+	return common.CreateVMI(ctx, updateFunc)
 }
 
 // PreUpgrade OpenSearch-Dashboards component pre-upgrade processing
@@ -99,7 +99,7 @@ func (d opensearchDashboardsComponent) PreUpgrade(ctx spi.ComponentContext) erro
 
 // Upgrade OpenSearch-Dashboards component upgrade processing
 func (d opensearchDashboardsComponent) Upgrade(ctx spi.ComponentContext) error {
-	return createVMIforOSD(ctx)
+	return common.CreateVMI(ctx, updateFunc)
 }
 
 // IsReady component check

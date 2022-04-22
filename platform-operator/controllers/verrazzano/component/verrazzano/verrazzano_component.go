@@ -93,7 +93,7 @@ func (c verrazzanoComponent) Install(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.Install(ctx); err != nil {
 		return err
 	}
-	return createVMI(ctx)
+	return common.CreateVMI(ctx, updateFunc)
 }
 
 // PreUpgrade Verrazzano component pre-upgrade processing
@@ -114,7 +114,7 @@ func (c verrazzanoComponent) Upgrade(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.Upgrade(ctx); err != nil {
 		return err
 	}
-	return createVMI(ctx)
+	return common.CreateVMI(ctx, updateFunc)
 }
 
 // IsReady component check

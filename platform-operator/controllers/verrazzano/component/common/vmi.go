@@ -6,13 +6,15 @@ package common
 import (
 	"context"
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
+	vzsecret "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"reflect"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -34,6 +36,8 @@ type ResourceRequestValues struct {
 	Storage string `json:"storage"` // Empty string allowed
 }
 
+type VMIMutateFuncSig func(ctx spi.ComponentContext, storage *ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, existingVMI *vmov1.VerrazzanoMonitoringInstance) error
+
 func NewVMI() *vmov1.VerrazzanoMonitoringInstance {
 	return &vmov1.VerrazzanoMonitoringInstance{
 		ObjectMeta: metav1.ObjectMeta{
@@ -41,6 +45,49 @@ func NewVMI() *vmov1.VerrazzanoMonitoringInstance {
 			Namespace: globalconst.VerrazzanoSystemNamespace,
 		},
 	}
+}
+
+// CreateVMI instantiates the VMI resource
+func CreateVMI(ctx spi.ComponentContext, updateFunc func(spi.ComponentContext, *ResourceRequestValues, *vmov1.VerrazzanoMonitoringInstance, *vmov1.VerrazzanoMonitoringInstance) error) error {
+	if !vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
+		return nil
+	}
+
+	effectiveCR := ctx.EffectiveCR()
+
+	dnsSuffix, err := vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed getting DNS suffix: %v", err)
+	}
+	envName := vzconfig.GetEnvName(effectiveCR)
+
+	storage, err := FindStorageOverride(ctx.EffectiveCR())
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("failed to get storage overrides: %v", err)
+	}
+	vmi := NewVMI()
+	_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), vmi, func() error {
+		var existingVMI *vmov1.VerrazzanoMonitoringInstance = nil
+		if len(vmi.Spec.URI) > 0 {
+			existingVMI = vmi.DeepCopy()
+		}
+
+		vmi.Labels = map[string]string{
+			"k8s-app":            "verrazzano.io",
+			"verrazzano.binding": system,
+		}
+		vmi.Spec.URI = fmt.Sprintf("vmi.system.%s.%s", envName, dnsSuffix)
+		vmi.Spec.IngressTargetDNSName = fmt.Sprintf("verrazzano-ingress.%s.%s", envName, dnsSuffix)
+		vmi.Spec.ServiceType = "ClusterIP"
+		vmi.Spec.AutoSecret = true
+		vmi.Spec.SecretsName = constants.VMISecret
+		vmi.Spec.CascadingDelete = true
+		return updateFunc(ctx, storage, vmi, existingVMI)
+	})
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("failed to update VMI: %v", err)
+	}
+	return nil
 }
 
 func EnsureVMISecret(cli client.Client) error {
@@ -161,7 +208,7 @@ func CreateAndLabelVMINamespaces(ctx spi.ComponentContext) error {
 	if err := namespace.CreateVerrazzanoSystemNamespace(ctx.Client()); err != nil {
 		return err
 	}
-	if _, err := secret.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoSystemNamespace); err != nil {
+	if _, err := vzsecret.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoSystemNamespace); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed checking for image pull secret: %v", err)
 	}
 	return nil

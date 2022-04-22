@@ -4,72 +4,27 @@
 package opensearch
 
 import (
-	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-
 	"k8s.io/apimachinery/pkg/api/resource"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
 	system = "system"
 )
 
-//createVMIforOS instantiates the VMI resource
-func createVMIforOS(ctx spi.ComponentContext) error {
-	if !vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
-		return nil
-	}
-
-	effectiveCR := ctx.EffectiveCR()
-
-	dnsSuffix, err := vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
+var updateFunc common.VMIMutateFuncSig = func(ctx spi.ComponentContext, storage *common.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, existingVMI *vmov1.VerrazzanoMonitoringInstance) error {
+	hasDataNodeOverride := hasNodeStorageOverride(ctx.ActualCR(), "nodes.data.requests.storage")
+	hasMasterNodeOverride := hasNodeStorageOverride(ctx.ActualCR(), "nodes.master.requests.storage")
+	opensearch, err := newOpenSearch(ctx.EffectiveCR(), storage, existingVMI, hasDataNodeOverride, hasMasterNodeOverride)
 	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed getting DNS suffix: %v", err)
+		return err
 	}
-	envName := vzconfig.GetEnvName(effectiveCR)
-
-	storage, err := common.FindStorageOverride(ctx.EffectiveCR())
-	if err != nil {
-		return ctx.Log().ErrorfNewErr("failed to get storage overrides: %v", err)
-	}
-	vmi := common.NewVMI()
-	_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), vmi, func() error {
-		var existingVMI *vmov1.VerrazzanoMonitoringInstance = nil
-		if len(vmi.Spec.URI) > 0 {
-			existingVMI = vmi.DeepCopy()
-		}
-
-		vmi.Labels = map[string]string{
-			"k8s-app":            "verrazzano.io",
-			"verrazzano.binding": system,
-		}
-		cr := ctx.EffectiveCR()
-		vmi.Spec.URI = fmt.Sprintf("vmi.system.%s.%s", envName, dnsSuffix)
-		vmi.Spec.IngressTargetDNSName = fmt.Sprintf("verrazzano-ingress.%s.%s", envName, dnsSuffix)
-		vmi.Spec.ServiceType = "ClusterIP"
-		vmi.Spec.AutoSecret = true
-		vmi.Spec.SecretsName = constants.VMISecret
-		vmi.Spec.CascadingDelete = true
-		hasDataNodeOverride := hasNodeStorageOverride(ctx.ActualCR(), "nodes.data.requests.storage")
-		hasMasterNodeOverride := hasNodeStorageOverride(ctx.ActualCR(), "nodes.master.requests.storage")
-		opensearch, err := newOpenSearch(cr, storage, existingVMI, hasDataNodeOverride, hasMasterNodeOverride)
-		if err != nil {
-			return err
-		}
-		vmi.Spec.Elasticsearch = *opensearch
-		return nil
-	})
-	if err != nil {
-		return ctx.Log().ErrorfNewErr("failed to update VMI: %v", err)
-	}
+	vmi.Spec.Elasticsearch = *opensearch
 	return nil
 }
 
