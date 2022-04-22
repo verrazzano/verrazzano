@@ -120,6 +120,12 @@ pipeline {
                 }
 
                 script {
+                    echo "Generate git tags and save it to tags.txt file in the workspace"
+                    sh """
+                        cd ${workspace}
+                        git tag | awk '/v1[.]/' >  tags.txt
+                        cat tags.txt
+                    """
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
@@ -142,11 +148,6 @@ pipeline {
                 stage('Compute required N Upgrade Jobs') {
                 steps {
                     script {
-                           sh """
-                                cd ${workspace}
-                                git tag | awk '/v1[.]/' >  tags.txt
-                                cat tags.txt
-                            """
                         final String fileContent = readFile(file: "${workspace}/tags.txt")
                         final List gitTags = extractReleaseTags(fileContent)
                         echo "gitTags = ${gitTags}"
@@ -169,6 +170,7 @@ pipeline {
                     }
                     print mapOfJobsInBatches
                     for(batch in mapOfJobsInBatches){
+                        sleep 5
                         parallel batch
                     }
                     //parallel allReleasesToRCStagesMap
@@ -407,7 +409,7 @@ def allReleasesToRCStage(job) {
             }
         }catch(err){
             echo "Caught: ${err}"
-            //currentBuild.result = 'FAILURE'
+            currentBuild.result = 'FAILURE'
         }
     }
 }
