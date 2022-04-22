@@ -494,35 +494,44 @@ func LogIndexFoundInCluster(indexName, kubeconfigPath string) bool {
 	return false
 }
 
+// GetSystemIndices returns metadata of indices of all system indices
+func GetSystemIndices() ([]IndexMetadata, error) {
+	systemIndices, err := GetIndexMetadataList(ListSystemIndices())
+	if err != nil {
+		return []IndexMetadata{}, err
+	}
+	return systemIndices, nil
+}
+
+// GetApplicationIndices returns the metadata of indices used by application indices
+func GetApplicationIndices() ([]IndexMetadata, error) {
+	applicationIndices, err := GetIndexMetadataList(ListApplicationIndices())
+	if err != nil {
+		return []IndexMetadata{}, err
+	}
+	return applicationIndices, nil
+}
+
+// GetBackingIndicesForDataStream returns metadata of all backing indices for a given data stream
+func GetBackingIndicesForDataStream(dataStreamName string) ([]IndexMetadata, error) {
+	dataStream, err := GetDataStream(dataStreamName)
+	if err != nil {
+		return []IndexMetadata{}, err
+	}
+	var indexMetadataList []IndexMetadata
+	for _, index := range dataStream.Indices {
+		indexMetadata, err := GetIndexMetadata(index.IndexName)
+		if err != nil {
+			return indexMetadataList, err
+		}
+		indexMetadataList = append(indexMetadataList, indexMetadata)
+	}
+	return indexMetadataList, nil
+}
+
 // ContainsIndicesOlderThanRetentionPeriod returns true if there are any old (backing) indices present for
 // the given data stream that is older than the retention period. Returns false otherwise.
-func ContainsIndicesOlderThanRetentionPeriod(dataStreamName string, oldestTimestamp int64) (bool, error) {
-	var indexMetadataList []IndexMetadata
-	if !IsDataStreamSupported() {
-		if strings.HasPrefix(dataStreamName, SystemLogIsmPolicyName) {
-			systemIndices, err := GetIndexMetadataList(ListSystemIndices())
-			if err != nil {
-				return false, err
-			}
-			indexMetadataList = systemIndices
-		} else {
-			applicationIndices, err := GetIndexMetadataList(ListApplicationIndices())
-			if err != nil {
-				return false, err
-			}
-			indexMetadataList = applicationIndices
-		}
-	} else {
-		dataStream, err := GetDataStream(dataStreamName)
-		if err != nil {
-			return false, err
-		}
-		backingIndices, err := GetBackingIndicesOfDataStream(dataStream)
-		if err != nil {
-			return false, err
-		}
-		indexMetadataList = backingIndices
-	}
+func ContainsIndicesOlderThanRetentionPeriod(indexMetadataList []IndexMetadata, oldestTimestamp int64) (bool, error) {
 	for _, indexMetadata := range indexMetadataList {
 		Log(Info, fmt.Sprintf("Checking if creation time of index %s is older than %d", indexMetadata.ProvidedName, oldestTimestamp))
 		indexCreationTime, _ := strconv.ParseInt(indexMetadata.CreationDate, 10, 64)
@@ -643,19 +652,6 @@ func doGetElasticSearchURL(urlFormat string) (*HTTPResponse, error) {
 		return nil, err
 	}
 	return getElasticSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
-}
-
-// GetBackingIndicesOfDataStream returns the metadata of all the backing indices of a given datastream
-func GetBackingIndicesOfDataStream(dataStream DataStream) ([]IndexMetadata, error) {
-	var indexMetadataList []IndexMetadata
-	for _, index := range dataStream.Indices {
-		indexMetadata, err := GetIndexMetadata(index.IndexName)
-		if err != nil {
-			return indexMetadataList, err
-		}
-		indexMetadataList = append(indexMetadataList, indexMetadata)
-	}
-	return indexMetadataList, nil
 }
 
 // GetApplicationDataStreamNames returns the data stream names of all application logs having
