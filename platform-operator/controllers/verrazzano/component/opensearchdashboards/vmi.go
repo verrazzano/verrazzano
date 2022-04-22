@@ -11,10 +11,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 )
 
-const (
-	system = "system"
-)
-
 var updateFunc common.VMIMutateFuncSig = func(ctx spi.ComponentContext, storage *common.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, existingVMI *vmov1.VerrazzanoMonitoringInstance) error {
 	vmi.Spec.Kibana = newOpenSearchDashboards(ctx.EffectiveCR())
 	return nil
