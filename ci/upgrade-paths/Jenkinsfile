@@ -369,10 +369,10 @@ pipeline {
                                     VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
                                     def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
                                     def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
-                                    if(VERSION_FOR_UPGRADE){
+                                    if(latestReleaseBranch == "1.2"){
                                         ADMIN_CLUSTER_PROFILE = "dev"
                                         MANAGED_CLUSTER_PROFILE = "dev"
-                                        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-upgrade.yaml"
+                                        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
                                     }
                                 }
                                 configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
