@@ -4,7 +4,6 @@
 package vmo
 
 import (
-	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -12,10 +11,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -82,24 +79,6 @@ func ExportVMOHelmChart(ctx spi.ComponentContext) error {
 		if _, err := common.AssociateHelmObject(ctx.Client(), managedResource.Obj, releaseName, managedResource.NamespacedName, true); err != nil {
 			return err
 		}
-	}
-
-	return nil
-}
-
-// DeleteVMODeployment deletes the VMO deployment.  This is needed during upgrade to avoid an old version of VMO running
-// with an updated VMI CR which is problematic.
-func DeleteVMODeployment(ctx spi.ComponentContext) error {
-	deployment := &appsv1.Deployment{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, deployment)
-	if errors.IsNotFound(err) {
-		return nil
-	}
-	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to get verrazzano-monitoring-operator deployment during upgrade: %v", err)
-	}
-	if err := ctx.Client().Delete(context.TODO(), deployment); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to delete verrazzano-monitoring-operator deployment during upgrade: %v", err)
 	}
 
 	return nil

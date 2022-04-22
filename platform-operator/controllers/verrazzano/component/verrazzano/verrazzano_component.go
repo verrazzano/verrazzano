@@ -98,9 +98,6 @@ func (c verrazzanoComponent) Install(ctx spi.ComponentContext) error {
 // PreUpgrade Verrazzano component pre-upgrade processing
 func (c verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
-		if err := vmo.DeleteVMODeployment(ctx); err != nil {
-			return err
-		}
 		if err := vmo.ExportVMOHelmChart(ctx); err != nil {
 			return err
 		}
