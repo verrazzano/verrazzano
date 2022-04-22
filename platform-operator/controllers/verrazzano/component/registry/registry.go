@@ -23,6 +23,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 )
 
@@ -61,6 +62,7 @@ func getComponents() []spi.Component {
 			certmanager.NewComponent(),
 			externaldns.NewComponent(),
 			rancher.NewComponent(),
+			vmo.NewComponent(),
 			verrazzano.NewComponent(),
 			authproxy.NewComponent(),
 			coherence.NewComponent(),

@@ -4,8 +4,6 @@
 package registry
 
 import (
-	"testing"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -29,12 +27,14 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"testing"
 )
 
 const (
@@ -53,7 +53,7 @@ func TestGetComponents(t *testing.T) {
 	a := assert.New(t)
 	comps := GetComponents()
 
-	a.Len(comps, 19, "Wrong number of components")
+	a.Len(comps, 20, "Wrong number of components")
 	a.Equal(comps[0].Name(), oam.ComponentName)
 	a.Equal(comps[1].Name(), appoper.ComponentName)
 	a.Equal(comps[2].Name(), istio.ComponentName)
@@ -62,17 +62,18 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[5].Name(), certmanager.ComponentName)
 	a.Equal(comps[6].Name(), externaldns.ComponentName)
 	a.Equal(comps[7].Name(), rancher.ComponentName)
-	a.Equal(comps[8].Name(), verrazzano.ComponentName)
-	a.Equal(comps[9].Name(), authproxy.ComponentName)
-	a.Equal(comps[10].Name(), coherence.ComponentName)
-	a.Equal(comps[11].Name(), mysql.ComponentName)
-	a.Equal(comps[12].Name(), keycloak.ComponentName)
-	a.Equal(comps[13].Name(), kiali.ComponentName)
-	a.Equal(comps[14].Name(), promoperator.ComponentName)
-	a.Equal(comps[15].Name(), promadapter.ComponentName)
-	a.Equal(comps[16].Name(), kubestatemetrics.ComponentName)
-	a.Equal(comps[17].Name(), pushgateway.ComponentName)
-	a.Equal(comps[18].Name(), promnodeexporter.ComponentName)
+	a.Equal(comps[8].Name(), vmo.ComponentName)
+	a.Equal(comps[9].Name(), verrazzano.ComponentName)
+	a.Equal(comps[10].Name(), authproxy.ComponentName)
+	a.Equal(comps[11].Name(), coherence.ComponentName)
+	a.Equal(comps[12].Name(), mysql.ComponentName)
+	a.Equal(comps[13].Name(), keycloak.ComponentName)
+	a.Equal(comps[14].Name(), kiali.ComponentName)
+	a.Equal(comps[15].Name(), promoperator.ComponentName)
+	a.Equal(comps[16].Name(), promadapter.ComponentName)
+	a.Equal(comps[17].Name(), kubestatemetrics.ComponentName)
+	a.Equal(comps[18].Name(), pushgateway.ComponentName)
+	a.Equal(comps[19].Name(), promnodeexporter.ComponentName)
 }
 
 // TestFindComponent tests FindComponent
