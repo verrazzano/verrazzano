@@ -36,7 +36,10 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 )
 
-const dockerconfigjsonTemplate string = "{\"auths\":{\"%v\":{\"username\":\"%v\",\"password\":\"%v\",\"auth\":\"%v\"}}}"
+const (
+	dockerconfigjsonTemplate string = "{\"auths\":{\"%v\":{\"username\":\"%v\",\"password\":\"%v\",\"auth\":\"%v\"}}}"
+	verrazzanoErrorTemplate         = "Error Verrazzano Resource: %v"
+)
 
 // DoesCRDExist returns whether a CRD with the given name exists for the cluster
 func DoesCRDExist(crdName string) (bool, error) {
@@ -389,6 +392,26 @@ func IsVerrazzanoMinVersion(minVersion string, kubeconfigPath string) (bool, err
 	return !vzSemver.IsLessThan(minSemver), nil
 }
 
+// IsVerrazzanoBelowVersion returns true if the Verrazzano version < belowVersion
+func IsVerrazzanoBelowVersion(belowVersion string, kubeconfigpath string) (bool, error) {
+	vzVersion, err := GetVerrazzanoVersion(kubeconfigpath)
+	if err != nil {
+		return false, err
+	}
+	if len(vzVersion) == 0 {
+		return false, nil
+	}
+	vzSemver, err := semver.NewSemVersion(vzVersion)
+	if err != nil {
+		return false, err
+	}
+	maxSemver, err := semver.NewSemVersion(belowVersion)
+	if err != nil {
+		return false, err
+	}
+	return vzSemver.IsLessThan(maxSemver), nil
+}
+
 // IsProdProfile returns true if the deployed resource is a 'prod' profile
 func IsProdProfile() bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -454,7 +477,7 @@ func IsCoherenceOperatorEnabled(kubeconfigPath string) bool {
 func IsWebLogicOperatorEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
 		return true
 	}
 	if vz.Spec.Components.WebLogicOperator == nil || vz.Spec.Components.WebLogicOperator.Enabled == nil {
@@ -480,7 +503,7 @@ func IsOpenSearchEnabled(kubeconfigPath string) (bool, error) {
 func IsPrometheusAdapterEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
 		return false
 	}
 	if vz.Spec.Components.PrometheusAdapter == nil || vz.Spec.Components.PrometheusAdapter.Enabled == nil {
@@ -493,7 +516,7 @@ func IsPrometheusAdapterEnabled(kubeconfigPath string) bool {
 func IsPrometheusOperatorEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
 		return false
 	}
 	if vz.Spec.Components.PrometheusOperator == nil || vz.Spec.Components.PrometheusOperator.Enabled == nil {
@@ -506,7 +529,7 @@ func IsPrometheusOperatorEnabled(kubeconfigPath string) bool {
 func IsKubeStateMetricsEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
 		return false
 	}
 	if vz.Spec.Components.KubeStateMetrics == nil || vz.Spec.Components.KubeStateMetrics.Enabled == nil {
@@ -519,7 +542,7 @@ func IsKubeStateMetricsEnabled(kubeconfigPath string) bool {
 func IsPrometheusPushgatewayEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
 		return false
 	}
 	if vz.Spec.Components.PrometheusPushgateway == nil || vz.Spec.Components.PrometheusPushgateway.Enabled == nil {
@@ -539,6 +562,33 @@ func IsPrometheusNodeExporterEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	return *vz.Spec.Components.PrometheusNodeExporter.Enabled
+}
+
+// IsOpenSearchDashboardsEnabled returns true if the OpenSearchDashboards component is not set, or the value of its Enabled field otherwise
+func IsOpenSearchDashboardsEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
+		return true
+	}
+	if vz != nil && vz.Spec.Components.Kibana != nil && vz.Spec.Components.Kibana.Enabled != nil {
+		return *vz.Spec.Components.Kibana.Enabled
+	}
+	return true
+}
+
+// IsOpenSearchEnabled returns true if the OpenSearch component is using the default values, or the value of its
+// Enabled field is explicitly set to true It returns false otherwise
+func IsOpenSearchEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
+		return true
+	}
+	if vz != nil && vz.Spec.Components.Elasticsearch != nil && vz.Spec.Components.Elasticsearch.Enabled != nil {
+		return *vz.Spec.Components.Elasticsearch.Enabled
+	}
+	return true
 }
 
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
