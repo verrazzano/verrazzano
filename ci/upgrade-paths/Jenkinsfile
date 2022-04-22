@@ -59,7 +59,7 @@ pipeline {
                 trim: true)
         string (name: 'VERSION_FOR_UPGRADE',
                 defaultValue: 'NONE',
-                description: 'This is the Verrazzano version for Upgrade.  By default, the specified version will be the latest minor release candidate',
+                description: 'This is the Verrazzano version for Upgrade. By default, the Verrazzano tip will be used.',
                 trim: true)
         choice (name: 'IS_TRIGGERED_MANUALLY',
                 description: 'This flag is used to test upgrade within existing releases. the default value is set to YES to enable users to trigger customized version upgrades. Default: YES',
@@ -85,8 +85,6 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
-        booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', description: 'Whether to dump k8s cluster on success (off by default, can be useful to capture for comparing to failed cluster)', defaultValue: false)
-        booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
         booleanParam (description: 'Whether to run BOM Validator after Upgrade', name: 'RUN_BOM_VALIDATOR', defaultValue: true)
         string (name: 'CONSOLE_REPO_BRANCH',
                 defaultValue: '',
@@ -365,7 +363,18 @@ pipeline {
                         stage("Configure KinD") {
                             when { expression { return params.TEST_ENV == 'KIND' } }
                             steps {
-                                configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
+                                 script{
+                                    if(VERSION_FOR_UPGRADE != "NONE"){
+                                        VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
+                                        def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
+                                        def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
+                                        if(latestReleaseBranch == "1.2"){
+                                            ADMIN_CLUSTER_PROFILE = "dev"
+                                            MANAGED_CLUSTER_PROFILE = "managed-cluster"
+                                            INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
+                                   }   }
+                                }
+                                configureVerrazzanoInstallers(INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
                             }
                         }
                         stage("Configure OKE/MagicDNS") {
@@ -829,29 +838,33 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
     }
 }
 
-def getPlatformOperatorURLForRelease(){
-    //Removing v from the upgrade version for error handling.
-    VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
-    def operatorURL = "https://objectstorage.us-phoenix-1.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_BUCKET}/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml"
 
-        if(VERSION_FOR_UPGRADE != "master" && params.IS_TRIGGERED_MANUALLY != "YES"){
+def getPlatformOperatorForRelease(){
+    //Removing v from the upgrade version for error handling.
+
+    VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
+    def operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file"
+
+        if(VERSION_FOR_UPGRADE != "master" && params.IS_TRIGGERED_MANUALLY != "YES" && VERSION_FOR_UPGRADE != "NONE"){
             def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
             def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
 
-              operatorURL = "https://objectstorage.us-phoenix-1.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_BUCKET}/o/release-${latestReleaseBranch}/operator.yaml"
+              operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name release-${latestReleaseBranch}/operator.yaml --file"
+
         }else if(params.IS_TRIGGERED_MANUALLY == "YES" && VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "master"){
-            operatorURL = "https://github.com/verrazzano/verrazzano/releases/download/v${VERSION_FOR_UPGRADE}/operator.yaml"
+            operatorCMD = "curl -L https://github.com/verrazzano/verrazzano/releases/download/v${VERSION_FOR_UPGRADE}/operator.yaml --output"
         }
 
 
-    return operatorURL
+    return operatorCMD
 }
 
 
 // Upgrade the verrazzano-platform-operator
 def upgradePlatformOperator() {
 
-    def  operatorURL = getPlatformOperatorURLForRelease()
+    def  operatorCMD = getPlatformOperatorForRelease()
+
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for (int count = 1; count <= clusterCount; count++) {
@@ -861,7 +874,7 @@ def upgradePlatformOperator() {
 
                 echo "Upgrading the Verrazzano platform operator"
                 # Download the operator.yaml for the target version that we are upgrading to
-                curl -L ${operatorURL} --output ${upgradeOperatorFile}
+                ${operatorCMD}  ${upgradeOperatorFile}
                 kubectl apply -f ${upgradeOperatorFile}
 
                 # need to sleep since the old operator needs to transition to terminating state
@@ -879,8 +892,10 @@ def upgradeVerrazzano() {
     script {
         // Download the bom for the target version that we are upgrading to, then extract the version
         // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
-        VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json | jq -r '.version'").trim()
-        
+
+        VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
+
+
         if(VERSION_FOR_UPGRADE == "NONE"){
             VERSION_FOR_UPGRADE = VERRAZZANO_DEV_VERSION
         } else if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "master"){

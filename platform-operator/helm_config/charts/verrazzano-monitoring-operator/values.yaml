@@ -1,0 +1,26 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+global:
+  imagePullSecrets: []
+
+image:
+  pullPolicy: IfNotPresent
+
+monitoringOperator:
+  name: verrazzano-monitoring-operator
+  metricsPort: 8090
+  defaultSimpleCompReplicas: 1
+  defaultPrometheusReplicas: 1
+  alertManagerImage: "noimage"
+  esWaitTargetVersion: 1.2.3
+  oidcAuthEnabled: true
+  RequestMemory: 48Mi
+
+config:
+  envName:
+  dnsSuffix:
+
+api:
+  name: verrazzano-authproxy
+  port: 8775
