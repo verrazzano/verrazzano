@@ -5,6 +5,7 @@ package verrazzano
 
 import (
 	"fmt"
+	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
@@ -97,7 +98,12 @@ func (c verrazzanoComponent) Install(ctx spi.ComponentContext) error {
 
 // PreUpgrade Verrazzano component pre-upgrade processing
 func (c verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
+	vmoChartFound, err := helmcli.IsReleaseInstalled(vmo.ComponentName, ComponentNamespace)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed searching for release: %v", err)
+	}
+	// Do VMO related pre-upgrade tasks only if the VMO chart is not install and VMO is enabled
+	if !vmoChartFound && vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
 		if err := vmo.ExportVMOHelmChart(ctx); err != nil {
 			return err
 		}

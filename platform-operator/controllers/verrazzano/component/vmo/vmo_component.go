@@ -44,7 +44,7 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
-			AppendOverridesFunc:     appendVmoOverrides,
+			AppendOverridesFunc:     appendVMOOverrides,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
 			Dependencies:            []string{nginx.ComponentName},
 		},
@@ -59,7 +59,7 @@ func (c vmoComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 // IsReady calls VMO isVmoReady function
 func (c vmoComponent) IsReady(context spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(context) {
-		return isVmoReady(context)
+		return isVMOReady(context)
 	}
 	return false
 }

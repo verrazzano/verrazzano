@@ -22,11 +22,11 @@ import (
 
 const testBomFilePath = "../../testdata/test_bom.json"
 
-// TestIsVmoReady tests the isVmoReady function
-// GIVEN a call to isVmoReady
+// TestIsVMOReady tests the isVMOReady function
+// GIVEN a call to isVMOReady
 //  WHEN the deployment object has enough replicas available
 //  THEN true is returned
-func TestIsVmoReady(t *testing.T) {
+func TestIsVMOReady(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
@@ -39,14 +39,14 @@ func TestIsVmoReady(t *testing.T) {
 			UpdatedReplicas:   1,
 		},
 	}).Build()
-	assert.True(t, isVmoReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
+	assert.True(t, isVMOReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
 }
 
-// TestIsVmoNotReady tests the isVmoReady function
-// GIVEN a call to isVmoReady
+// TestIsVMONotReady tests the isVMOReady function
+// GIVEN a call to isVMOReady
 //  WHEN the deployment object does not have enough replicas available
 //  THEN true is returned
-func TestIsVmoNotReady(t *testing.T) {
+func TestIsVMONotReady(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
@@ -59,14 +59,14 @@ func TestIsVmoNotReady(t *testing.T) {
 			UpdatedReplicas:   1,
 		},
 	}).Build()
-	assert.False(t, isVmoReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
+	assert.False(t, isVMOReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
 }
 
-// TestAppendVmoOverrides tests the appendInitImageOverrides function
-// GIVEN a call to appendVmoOverrides
+// TestAppendVMOOverrides tests the appendVMOOverrides function
+// GIVEN a call to appendVMOOverrides
 //  WHEN I call with no extra kvs
 //  THEN the correct KeyValue objects are returned and no error occurs
-func TestAppendVmoOverrides(t *testing.T) {
+func TestAppendVMOOverrides(t *testing.T) {
 	a := assert.New(t)
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
@@ -85,7 +85,7 @@ func TestAppendVmoOverrides(t *testing.T) {
 		},
 	}).Build()
 
-	kvs, err := appendVmoOverrides(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false), "", "", "", []bom.KeyValue{})
+	kvs, err := appendVMOOverrides(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false), "", "", "", []bom.KeyValue{})
 
 	a.NoError(err)
 	a.Len(kvs, 4)
@@ -136,11 +136,11 @@ func TestReassociateResources(t *testing.T) {
 	assert.NotContains(t, service.Annotations["helm.sh/resource-policy"], "keep")
 }
 
-// TestExportVmoHelmChart tests the VMO ExportVmoHelmChart function
+// TestExportVMOHelmChart tests the VMO ExportVMOHelmChart function
 // GIVEN a VMO component
-//  WHEN I call ExportVmoHelmChart with a VMO service resource
+//  WHEN I call ExportVMOHelmChart with a VMO service resource
 //  THEN no error is returned and the VMO service contains expected Helm labels and annotations
-func TestExportVmoHelmChart(t *testing.T) {
+func TestExportVMOHelmChart(t *testing.T) {
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
 	scheme := runtime.NewScheme()
