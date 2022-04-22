@@ -31,7 +31,7 @@ pipeline {
         NETRC_FILE = credentials('netrc')
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
         DOCKER_REPO = 'ghcr.io'
-        GITHUB_CREDENTIALS = credentials('github-markxnelns-private-access-token')
+        GITHUB_CREDENTIALS = credentials('github_rw')
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
         OCI_CLI_AUTH="api_key"
