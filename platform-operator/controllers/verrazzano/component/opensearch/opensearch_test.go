@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"os"
 	"os/exec"
@@ -72,7 +73,7 @@ func Test_fixupElasticSearchReplicaCount(t *testing.T) {
 	execCommand = fakeExecCommand
 	fakeExecScenarioNames = []string{"fixupElasticSearchReplicaCount/get", "fixupElasticSearchReplicaCount/put"} // nolint
 	fakeExecScenarioIndex = 0                                                                                    // nolint
-	err = fixupElasticSearchReplicaCount(ctx, "verrazzano-system")
+	err = fixupElasticSearchReplicaCount(ctx, constants.VerrazzanoSystemNamespace)
 	a.NoError(err, "Failed to fixup Elasticsearch index template")
 
 	// GIVEN an Elasticsearch pod with no http port
@@ -84,7 +85,7 @@ func Test_fixupElasticSearchReplicaCount(t *testing.T) {
 	ctx, err = createFakeComponentContext()
 	a.NoError(err, "Failed to create fake component context.")
 	createElasticsearchPod(ctx.Client(), "tcp")
-	err = fixupElasticSearchReplicaCount(ctx, "verrazzano-system")
+	err = fixupElasticSearchReplicaCount(ctx, constants.VerrazzanoSystemNamespace)
 	a.Error(err, "Error should be returned if there is no http port for elasticsearch pods")
 
 	// GIVEN an OpenSearch resource with version 1.1.0 in the status
@@ -96,7 +97,7 @@ func Test_fixupElasticSearchReplicaCount(t *testing.T) {
 	ctx, err = createFakeComponentContext()
 	a.NoError(err, "Unexpected error")
 	ctx.ActualCR().Status.Version = "1.1.0"
-	err = fixupElasticSearchReplicaCount(ctx, "verrazzano-system")
+	err = fixupElasticSearchReplicaCount(ctx, constants.VerrazzanoSystemNamespace)
 	a.NoError(err, "No error should be returned if the source version is 1.1.0 or later")
 
 	// GIVEN an OpenSearch resource with Elasticsearch disabled
@@ -109,7 +110,7 @@ func Test_fixupElasticSearchReplicaCount(t *testing.T) {
 	ctx, err = createFakeComponentContext()
 	a.NoError(err, "Unexpected error")
 	ctx.EffectiveCR().Spec.Components.Elasticsearch.Enabled = &falseValue
-	err = fixupElasticSearchReplicaCount(ctx, "verrazzano-system")
+	err = fixupElasticSearchReplicaCount(ctx, constants.VerrazzanoSystemNamespace)
 	a.NoError(err, "No error should be returned if the elasticsearch is not enabled")
 }
 
@@ -312,7 +313,7 @@ func createElasticsearchPod(cli client.Client, portName string) {
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "es-pod",
-			Namespace: "verrazzano-system",
+			Namespace: constants.VerrazzanoSystemNamespace,
 			Labels:    labels,
 		},
 		Spec: corev1.PodSpec{
