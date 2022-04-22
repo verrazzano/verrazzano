@@ -42,9 +42,7 @@ func TestIsEnabled(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						Elasticsearch: &vzapi.ElasticsearchComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{
-								Enabled: &falseValue,
-							},
+							Enabled: &falseValue,
 						},
 						Kibana: &vzapi.KibanaComponent{
 							MonitoringComponent: vzapi.MonitoringComponent{
