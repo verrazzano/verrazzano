@@ -122,6 +122,12 @@ pipeline {
                 }
 
                 script {
+                    #Generate git tags and save it to tags.txt file
+                    sh """
+                        cd ${workspace}
+                        git tag | awk '/v1[.]/' >  tags.txt
+                        cat tags.txt
+                    """
                     LATEST_RELEASE_COMMIT_SHA = getLatestReleaseBranch()
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
@@ -145,11 +151,6 @@ pipeline {
                 stage('Compute required N Upgrade Jobs') {
                 steps {
                     script {
-                           sh """
-                                cd ${workspace}
-                                git tag | awk '/v1[.]/' >  tags.txt
-                                cat tags.txt
-                            """
                         final String fileContent = readFile(file: "${workspace}/tags.txt")
                         final List gitTags = extractReleaseTags(fileContent)
                         echo "gitTags = ${gitTags}"
@@ -428,11 +429,6 @@ def getNextPatchReleaseVersion(upgradeTargetVersion){
 }
 
 def getLatestReleaseBranch(){
-    sh """
-        cd ${workspace}
-        git tag | awk '/v1[.]/' >  tags.txt
-        cat tags.txt
-    """
     final String fileContent = readFile(file: "${workspace}/tags.txt")
     final List gitTags = extractReleaseTags(fileContent)
     echo "gitTags = ${gitTags}"

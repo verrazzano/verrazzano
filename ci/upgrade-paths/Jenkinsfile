@@ -366,14 +366,15 @@ pipeline {
                             when { expression { return params.TEST_ENV == 'KIND' } }
                             steps {
                                  script{
-                                    VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
-                                    def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
-                                    def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
-                                    if(latestReleaseBranch == "1.2"){
-                                        ADMIN_CLUSTER_PROFILE = "dev"
-                                        MANAGED_CLUSTER_PROFILE = "dev"
-                                        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
-                                    }
+                                    if(VERSION_FOR_UPGRADE != "NONE"){
+                                        VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
+                                        def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
+                                        def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
+                                        if(latestReleaseBranch == "1.2"){
+                                            ADMIN_CLUSTER_PROFILE = "dev"
+                                            MANAGED_CLUSTER_PROFILE = "managed-cluster"
+                                            INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
+                                   }   }
                                 }
                                 configureVerrazzanoInstallers(INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
                             }
@@ -841,10 +842,11 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
 
 def getPlatformOperatorForRelease(){
     //Removing v from the upgrade version for error handling.
+
     VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
     def operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file"
 
-        if(VERSION_FOR_UPGRADE != "master" && params.IS_TRIGGERED_MANUALLY != "YES"){
+        if(VERSION_FOR_UPGRADE != "master" && params.IS_TRIGGERED_MANUALLY != "YES" && VERSION_FOR_UPGRADE != "NONE"){
             def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
             def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
 
