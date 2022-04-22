@@ -152,11 +152,11 @@ const VMISecret = "verrazzano"
 // VMISecret is the secret used for VMI
 const GrafanaSecret = "grafana-admin"
 
-// VMIBackupScrtName is the backup VMI secret
-const VMIBackupScrtName = "verrazzano-backup"
+// VMIBackupSecretName is the backup VMI secret
+const VMIBackupSecretName = "verrazzano-backup"
 
-// ObjectstoreAccessKey is used for the VMI backup secret
-const ObjectstoreAccessKey = "object_store_access_key"
+// ObjectStoreAccessKey is used for the VMI backup secret
+const ObjectStoreAccessKey = "object_store_access_key"
 
-// ObjectstoreAccessSecretKey is used for the VMI backup secret
-const ObjectstoreAccessSecretKey = "object_store_secret_key"
+// ObjectStoreAccessSecretKey is used for the VMI backup secret
+const ObjectStoreAccessSecretKey = "object_store_secret_key"

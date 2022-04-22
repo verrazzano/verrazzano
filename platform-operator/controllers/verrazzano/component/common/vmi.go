@@ -94,20 +94,20 @@ func EnsureGrafanaAdminSecret(cli client.Client) error {
 func EnsureBackupSecret(cli client.Client) error {
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.VMIBackupScrtName,
+			Name:      constants.VMIBackupSecretName,
 			Namespace: globalconst.VerrazzanoSystemNamespace,
 		},
 		Data: map[string][]byte{},
 	}
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), cli, secret, func() error {
 		// Populating dummy keys for access and secret key so that they are never empty
-		if secret.Data[constants.ObjectstoreAccessKey] == nil || secret.Data[constants.ObjectstoreAccessSecretKey] == nil {
+		if secret.Data[constants.ObjectStoreAccessKey] == nil || secret.Data[constants.ObjectStoreAccessSecretKey] == nil {
 			key, err := password.GeneratePassword(32)
 			if err != nil {
 				return err
 			}
-			secret.Data[constants.ObjectstoreAccessKey] = []byte(key)
-			secret.Data[constants.ObjectstoreAccessSecretKey] = []byte(key)
+			secret.Data[constants.ObjectStoreAccessKey] = []byte(key)
+			secret.Data[constants.ObjectStoreAccessSecretKey] = []byte(key)
 		}
 		return nil
 	}); err != nil {
