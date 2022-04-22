@@ -107,7 +107,7 @@ func (d opensearchDashboardsComponent) IsReady(ctx spi.ComponentContext) bool {
 	return checkOpenSearchDashboardsStatus(ctx, status.DeploymentsAreReady)
 }
 
-// PostInstall - post-install, clean up temp files
+// PostInstall OpenSearch-Dashboards post-install processing
 func (d opensearchDashboardsComponent) PostInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("OpenSearch-Dashboards component post-upgrade")
 	return common.CheckIngressesAndCerts(ctx, d)

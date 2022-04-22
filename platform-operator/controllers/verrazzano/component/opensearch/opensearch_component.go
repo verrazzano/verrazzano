@@ -103,7 +103,7 @@ func (o opensearchComponent) IsReady(ctx spi.ComponentContext) bool {
 	return checkOpenSearchStatus(ctx, status.DeploymentsAreReady, status.StatefulSetsAreReady)
 }
 
-// PostInstall - post-install, clean up temp files
+// PostInstall OpenSearch post-upgrade processing
 func (o opensearchComponent) PostInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("OpenSearch component post-upgrade")
 	return common.CheckIngressesAndCerts(ctx, o)
