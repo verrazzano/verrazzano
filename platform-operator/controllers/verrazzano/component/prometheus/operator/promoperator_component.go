@@ -69,3 +69,13 @@ func (c prometheusComponent) IsReady(ctx spi.ComponentContext) bool {
 func (c prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preInstall(ctx)
 }
+
+// ValidateInstall verifies the installation of the Verrazzano object
+func (c prometheusComponent) ValidateInstall(effectiveCR *vzapi.Verrazzano) error {
+	return vzapi.ValidateHelmValueOverrides(effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides)
+}
+
+// ValidateUpgrade verifies the upgrade of the Verrazzano object
+func (c prometheusComponent) ValidateUpgrade(effectiveCR *vzapi.Verrazzano) error {
+	return vzapi.ValidateHelmValueOverrides(effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides)
+}
