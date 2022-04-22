@@ -6,6 +6,8 @@ package common
 import (
 	"context"
 	"fmt"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	vzsecret "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
@@ -227,6 +229,25 @@ func CompareStorageOverrides(old *vzapi.Verrazzano, new *vzapi.Verrazzano, jsonN
 	}
 	if !reflect.DeepEqual(oldSetting, newSetting) {
 		return fmt.Errorf("Can not change volume settings for %s", jsonName)
+	}
+	return nil
+}
+
+func CheckIngressesAndCerts(ctx spi.ComponentContext, comp spi.Component) error {
+	prefix := fmt.Sprintf("Component %s", comp.Name())
+	if !status.IngressesPresent(ctx.Log(), ctx.Client(), comp.GetIngressNames(ctx), prefix) {
+		return ctrlerrors.RetryableError{
+			Source:    comp.Name(),
+			Operation: "Check if Ingresses are present",
+		}
+	}
+
+	if readyStatus, certsNotReady := status.CertificatesAreReady(ctx.Client(), ctx.Log(), ctx.EffectiveCR(), comp.GetCertificateNames(ctx)); !readyStatus {
+		ctx.Log().Progressf("Certificates not ready for component %s: %v", comp.Name(), certsNotReady)
+		return ctrlerrors.RetryableError{
+			Source:    comp.Name(),
+			Operation: "Check if certificates are ready",
+		}
 	}
 	return nil
 }

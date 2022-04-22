@@ -5,7 +5,6 @@ package opensearchdashboards
 
 import (
 	"fmt"
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -111,47 +110,15 @@ func (d opensearchDashboardsComponent) IsReady(ctx spi.ComponentContext) bool {
 // PostInstall - post-install, clean up temp files
 func (d opensearchDashboardsComponent) PostInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("OpenSearch-Dashboards component post-upgrade")
+	return common.CheckIngressesAndCerts(ctx, d)
 
-	// Check if the ingresses and certs are present
-	prefix := fmt.Sprintf("Component %s", ComponentName)
-	if !status.IngressesPresent(ctx.Log(), ctx.Client(), d.GetIngressNames(ctx), prefix) {
-		return ctrlerrors.RetryableError{
-			Source:    ComponentName,
-			Operation: "Check if Ingresses are present",
-		}
-	}
-
-	if readyStatus, certsNotReady := status.CertificatesAreReady(ctx.Client(), ctx.Log(), ctx.EffectiveCR(), d.GetCertificateNames(ctx)); !readyStatus {
-		ctx.Log().Progressf("Certificates not ready for component %s: %v", ComponentName, certsNotReady)
-		return ctrlerrors.RetryableError{
-			Source:    ComponentName,
-			Operation: "Check if certificates are ready",
-		}
-	}
-	return nil
 }
 
 // PostUpgrade OpenSearch-Dashboards post-upgrade processing
 func (d opensearchDashboardsComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("OpenSearch-Dashboards component post-upgrade")
+	return common.CheckIngressesAndCerts(ctx, d)
 
-	// Check if the ingresses and certs are present
-	prefix := fmt.Sprintf("Component %s", ComponentName)
-	if !status.IngressesPresent(ctx.Log(), ctx.Client(), d.GetIngressNames(ctx), prefix) {
-		return ctrlerrors.RetryableError{
-			Source:    ComponentName,
-			Operation: "Check if Ingresses are present",
-		}
-	}
-
-	if readyStatus, certsNotReady := status.CertificatesAreReady(ctx.Client(), ctx.Log(), ctx.EffectiveCR(), d.GetCertificateNames(ctx)); !readyStatus {
-		ctx.Log().Progressf("Certificates not ready for component %s: %v", ComponentName, certsNotReady)
-		return ctrlerrors.RetryableError{
-			Source:    ComponentName,
-			Operation: "Check if certificates are ready",
-		}
-	}
-	return nil
 }
 
 // IsEnabled OpenSearch-Dashboards specific enabled check for installation
