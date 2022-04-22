@@ -5,6 +5,7 @@ package verrazzano
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"io/fs"
 	"os"
 
