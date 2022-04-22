@@ -63,6 +63,9 @@ type DomainSpec struct {
 	// DomainUID The name of the WebLogic domain
 	DomainUID string `json:"domainUID,omitempty"`
 
+	// FluentdSpecification The Fluentd specification for sidecar logging
+	FluentdSpecification FluentdSpecification `json:"fluentdSpecification,omitempty"`
+
 	// HTTPAccessLogInLogHome specifies whether the server HTTP access log files will be written to the same directory specified in logHome.
 	// Otherwise, server HTTP access log files will be written to the directory configured in the WebLogic domain
 	// configuration. Defaults to true.
