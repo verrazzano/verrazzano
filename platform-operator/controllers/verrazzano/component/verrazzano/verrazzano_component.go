@@ -5,20 +5,21 @@ package verrazzano
 
 import (
 	"fmt"
-	"path/filepath"
-	"reflect"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/types"
+	"path/filepath"
+	"reflect"
 )
 
 const (
@@ -96,6 +97,14 @@ func (c verrazzanoComponent) Install(ctx spi.ComponentContext) error {
 
 // PreUpgrade Verrazzano component pre-upgrade processing
 func (c verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
+		if err := vmo.ExportVMOHelmChart(ctx); err != nil {
+			return err
+		}
+		if err := common.ApplyCRDYaml(ctx, config.GetHelmVmoChartsDir()); err != nil {
+			return err
+		}
+	}
 	return verrazzanoPreUpgrade(ctx, ComponentNamespace)
 }
 

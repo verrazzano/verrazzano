@@ -27,13 +27,11 @@ type verrazzanoValues struct {
 	Kiali                  *kialiValues                  `json:"kiali,omitempty"`
 	Keycloak               *keycloakValues               `json:"keycloak,omitempty"`
 	Rancher                *rancherValues                `json:"rancher,omitempty"`
-	MonitoringOperator     *vmoValues                    `json:"monitoringOperator,omitempty"`
 	NodeExporter           *nodeExporterValues           `json:"nodeExporter,omitempty"`
 	Logging                *loggingValues                `json:"logging,omitempty"`
 	Fluentd                *fluentdValues                `json:"fluentd,omitempty"`
 	Console                *consoleValues                `json:"console,omitempty"`
 	API                    *apiValues                    `json:"api,omitempty"`
-	OCI                    *ociValues                    `json:"oci,omitempty"`
 	Config                 *configValues                 `json:"config,omitempty"`
 	Security               *securityRoleBindingValues    `json:"security,omitempty"`
 	Kubernetes             *kubernetesValues             `json:"kubernetes,omitempty"`
@@ -120,18 +118,6 @@ type grafanaValues struct {
 	Requests *resourceRequestValues `json:"requests,omitempty"`
 }
 
-type vmoValues struct {
-	Name                      string `json:"name,omitempty"`
-	Enabled                   bool   `json:"enabled"` // Always write
-	MetricsPort               int    `json:"metricsPort,omitempty"`
-	DefaultSimpleCompReplicas int    `json:"defaultSimpleCompReplicas,omitempty"`
-	DefaultPrometheusReplicas int    `json:"defaultPrometheusReplicas,omitempty"`
-	AlertManagerImage         string `json:"alertManagerImage,omitempty"`
-	EsWaitTargetVersion       string `json:"esWaitTargetVersion,omitempty"`
-	OidcAuthEnabled           bool   `json:"oidcAuthEnabled,omitempty"`
-	RequestMemory             string `json:"RequestMemory,omitempty"`
-}
-
 type nodeExporterValues struct {
 	Enabled bool `json:"enabled"` // Always write
 }
@@ -157,22 +143,6 @@ type consoleValues struct {
 type apiValues struct {
 	Name string `json:"name,omitempty"`
 	Port int    `json:"port,omitempty"`
-}
-
-type ociValues struct {
-	Region      string               `json:"region,omitempty"`
-	TenancyOcid string               `json:"tenancyOcid,omitempty"`
-	UserOcid    string               `json:"userOcid,omitempty"`
-	Fingerprint string               `json:"fingerprint,omitempty"`
-	PrivateKey  string               `json:"privateKey,omitempty"`
-	Compartment string               `json:"compartment,omitempty"`
-	ClusterOcid string               `json:"clusterOcid,omitempty"`
-	ObjectStore *objectStoreSettings `json:"objectStore,omitempty"`
-}
-
-type objectStoreSettings struct {
-	BucketName string `json:"bucketName,omitempty"`
-	Namespace  string `json:"namespace,omitempty"`
 }
 
 type configValues struct {
