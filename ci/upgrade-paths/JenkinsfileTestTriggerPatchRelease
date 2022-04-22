@@ -415,7 +415,7 @@ def allReleasesToRCStage(job) {
             }
         }catch(err){
             echo "Caught: ${err}"
-            //currentBuild.result = 'FAILURE'
+            currentBuild.result = 'FAILURE'
         }
     }
 }
