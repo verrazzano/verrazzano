@@ -14,8 +14,8 @@ import (
 
 const kibanaDeployment = "vmi-system-kibana"
 
-// areOpenSearchDashboardsInstalled checks if OpenSearch-Dashboards has been installed yet
-func areOpenSearchDashboardsInstalled(ctx spi.ComponentContext) (bool, error) {
+// checkOpenSearchDashboardsStatus checks performs checks on the OpenSearch-Dashboards resources
+func checkOpenSearchDashboardsStatus(ctx spi.ComponentContext, deploymentFunc status.DeploymentFunc) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 
 	var deployments []types.NamespacedName
@@ -28,29 +28,7 @@ func areOpenSearchDashboardsInstalled(ctx spi.ComponentContext) (bool, error) {
 			})
 	}
 
-	deploymentsExist, err := status.DoDeploymentsExist(ctx.Log(), ctx.Client(), deployments, prefix)
-	if !deploymentsExist {
-		return false, err
-	}
-
-	return common.IsVMISecretReady(ctx), nil
-}
-
-// areOpenSearchDashboardsReady VMI components ready-check
-func areOpenSearchDashboardsReady(ctx spi.ComponentContext) bool {
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-
-	var deployments []types.NamespacedName
-
-	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments,
-			types.NamespacedName{
-				Name:      kibanaDeployment,
-				Namespace: ComponentNamespace,
-			})
-	}
-
-	if !status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
+	if !deploymentFunc(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
 		return false
 	}
 

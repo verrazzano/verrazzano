@@ -68,8 +68,8 @@ func resolveVerrazzanoNamespace(ns string) string {
 	return globalconst.VerrazzanoSystemNamespace
 }
 
-// isVerrazzanoReady Verrazzano components ready-check
-func isVerrazzanoReady(ctx spi.ComponentContext) bool {
+// checkVerrazzanoComponentStatus checks performs checks on the OpenSearch resources
+func checkVerrazzanoComponentStatus(ctx spi.ComponentContext, deploymentFunc status.DeploymentFunc, daemonsetFunc status.DaemonSetFunc) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 
 	// First, check deployments
@@ -97,7 +97,7 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 			})
 	}
 
-	if !status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
+	if !deploymentFunc(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
 		return false
 	}
 
@@ -117,7 +117,7 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 				Namespace: ComponentNamespace,
 			})
 	}
-	if !status.DaemonSetsAreReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {
+	if !daemonsetFunc(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {
 		return false
 	}
 

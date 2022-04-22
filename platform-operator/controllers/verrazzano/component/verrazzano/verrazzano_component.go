@@ -5,6 +5,7 @@ package verrazzano
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -126,9 +127,18 @@ func (c verrazzanoComponent) Upgrade(ctx spi.ComponentContext) error {
 // IsReady component check
 func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		return isVerrazzanoReady(ctx)
+		return checkVerrazzanoComponentStatus(ctx, status.DeploymentsAreReady, status.DaemonSetsAreReady)
 	}
 	return false
+}
+
+// IsInstalled component check
+func (c verrazzanoComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
+	installed, _ := c.HelmComponent.IsInstalled(ctx)
+	if installed {
+		return checkVerrazzanoComponentStatus(ctx, status.DoDeploymentsExist, status.DoDaemonSetsExist), nil
+	}
+	return false, nil
 }
 
 // PostInstall - post-install, clean up temp files

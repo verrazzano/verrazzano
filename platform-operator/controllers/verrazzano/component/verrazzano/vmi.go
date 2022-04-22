@@ -14,7 +14,7 @@ const (
 	nodeExporter = "node-exporter"
 )
 
-var updateFunc common.VMIMutateFuncSig = func(ctx spi.ComponentContext, storage *common.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, existingVMI *vmov1.VerrazzanoMonitoringInstance) error {
+var updateFunc common.VMIMutateFunc = func(ctx spi.ComponentContext, storage *common.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, existingVMI *vmov1.VerrazzanoMonitoringInstance) error {
 	vmi.Spec.Grafana = newGrafana(ctx.EffectiveCR(), storage, existingVMI)
 	vmi.Spec.Prometheus = newPrometheus(ctx.EffectiveCR(), storage, existingVMI)
 	return nil

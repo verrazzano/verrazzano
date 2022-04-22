@@ -56,7 +56,7 @@ func (d opensearchDashboardsComponent) IsOperatorInstallSupported() bool {
 
 // IsInstalled OpenSearch-Dashboards component function
 func (d opensearchDashboardsComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
-	return areOpenSearchDashboardsInstalled(ctx)
+	return checkOpenSearchDashboardsStatus(ctx, status.DoDeploymentsExist), nil
 }
 
 // Reconcile OpenSearch-Dashboards component function
@@ -105,7 +105,7 @@ func (d opensearchDashboardsComponent) Upgrade(ctx spi.ComponentContext) error {
 
 // IsReady component check
 func (d opensearchDashboardsComponent) IsReady(ctx spi.ComponentContext) bool {
-	return areOpenSearchDashboardsReady(ctx)
+	return checkOpenSearchDashboardsStatus(ctx, status.DeploymentsAreReady)
 }
 
 // PostInstall - post-install, clean up temp files

@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -992,19 +993,66 @@ func TestAssociateHelmObjectAndKeep(t *testing.T) {
 //  WHEN I call isVerrazzanoReady when it is installed and the deployment availability criteria are met, but the secret is not found
 //  THEN false is returned
 func TestIsReadySecretNotReady(t *testing.T) {
-	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ComponentNamespace,
-			Name:      verrazzanoConsoleDeployment,
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      verrazzanoConsoleDeployment,
+				Labels:    map[string]string{"app": verrazzanoConsoleDeployment},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
 		},
-		Status: appsv1.DeploymentStatus{
-			AvailableReplicas: 1,
-			Replicas:          1,
-			UpdatedReplicas:   1,
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      grafanaDeployment,
+				Labels:    map[string]string{"app": "system-grafana"},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
 		},
-	}).Build()
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      prometheusDeployment,
+				Labels:    map[string]string{"app": "system-prometheus"},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&appsv1.DaemonSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: globalconst.VerrazzanoSystemNamespace,
+				Name:      fluentDaemonset,
+			},
+			Status: appsv1.DaemonSetStatus{
+				UpdatedNumberScheduled: 1,
+				NumberAvailable:        1,
+			},
+		},
+		&appsv1.DaemonSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: globalconst.VerrazzanoMonitoringNamespace,
+				Name:      nodeExporterDaemonset,
+			},
+			Status: appsv1.DaemonSetStatus{
+				UpdatedNumberScheduled: 1,
+				NumberAvailable:        1,
+			},
+		},
+	).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, isVerrazzanoReady(ctx))
+	assert.False(t, checkVerrazzanoComponentStatus(ctx, status.DeploymentsAreReady, status.DaemonSetsAreReady))
 }
 
 // TestIsReadyChartNotInstalled tests the Verrazzano isVerrazzanoReady call
@@ -1014,7 +1062,7 @@ func TestIsReadySecretNotReady(t *testing.T) {
 func TestIsReadyChartNotInstalled(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, isVerrazzanoReady(ctx))
+	assert.False(t, checkVerrazzanoComponentStatus(ctx, status.DeploymentsAreReady, status.DaemonSetsAreReady))
 }
 
 // TestIsReady tests the Verrazzano isVerrazzanoReady call
@@ -1022,18 +1070,19 @@ func TestIsReadyChartNotInstalled(t *testing.T) {
 //  WHEN I call isVerrazzanoReady when all requirements are met
 //  THEN false is returned
 func TestIsReady(t *testing.T) {
-	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ComponentNamespace,
-			Name:      verrazzanoConsoleDeployment,
-			Labels:    map[string]string{"app": verrazzanoConsoleDeployment},
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      verrazzanoConsoleDeployment,
+				Labels:    map[string]string{"app": verrazzanoConsoleDeployment},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
 		},
-		Status: appsv1.DeploymentStatus{
-			AvailableReplicas: 1,
-			Replicas:          1,
-			UpdatedReplicas:   1,
-		},
-	},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
@@ -1085,7 +1134,7 @@ func TestIsReady(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	vz.Spec.Components = vzapi.ComponentSpec{}
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.True(t, isVerrazzanoReady(ctx))
+	assert.True(t, checkVerrazzanoComponentStatus(ctx, status.DeploymentsAreReady, status.DaemonSetsAreReady))
 }
 
 // TestIsReadyDeploymentNotAvailable tests the Verrazzano isVerrazzanoReady call
@@ -1093,22 +1142,68 @@ func TestIsReady(t *testing.T) {
 //  WHEN I call isVerrazzanoReady when the Verrazzano console deployment is not available
 //  THEN false is returned
 func TestIsReadyDeploymentNotAvailable(t *testing.T) {
-	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ComponentNamespace,
-			Name:      verrazzanoConsoleDeployment,
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      verrazzanoConsoleDeployment,
+				Labels:    map[string]string{"app": verrazzanoConsoleDeployment},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   0,
+			},
 		},
-		Status: appsv1.DeploymentStatus{
-			Replicas:          1,
-			AvailableReplicas: 1,
-			UpdatedReplicas:   0,
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      grafanaDeployment,
+				Labels:    map[string]string{"app": "system-grafana"},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
 		},
-	},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      prometheusDeployment,
+				Labels:    map[string]string{"app": "system-prometheus"},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&appsv1.DaemonSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: globalconst.VerrazzanoSystemNamespace,
+				Name:      fluentDaemonset,
+			},
+			Status: appsv1.DaemonSetStatus{
+				UpdatedNumberScheduled: 1,
+				NumberAvailable:        1,
+			},
+		},
+		&appsv1.DaemonSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: globalconst.VerrazzanoMonitoringNamespace,
+				Name:      nodeExporterDaemonset,
+			},
+			Status: appsv1.DaemonSetStatus{
+				UpdatedNumberScheduled: 1,
+				NumberAvailable:        1,
+			},
+		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
 			Namespace: ComponentNamespace}},
 	).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, isVerrazzanoReady(ctx))
+	assert.False(t, checkVerrazzanoComponentStatus(ctx, status.DeploymentsAreReady, status.DaemonSetsAreReady))
 }
 
 // TestIsReadyDeploymentVMIDisabled tests the Verrazzano isVerrazzanoReady call
@@ -1134,7 +1229,7 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 	}
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.True(t, isVerrazzanoReady(ctx))
+	assert.True(t, checkVerrazzanoComponentStatus(ctx, status.DeploymentsAreReady, status.DaemonSetsAreReady))
 }
 
 func TestConfigHashSum(t *testing.T) {

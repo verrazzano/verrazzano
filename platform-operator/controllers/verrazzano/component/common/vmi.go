@@ -36,7 +36,7 @@ type ResourceRequestValues struct {
 	Storage string `json:"storage"` // Empty string allowed
 }
 
-type VMIMutateFuncSig func(ctx spi.ComponentContext, storage *ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, existingVMI *vmov1.VerrazzanoMonitoringInstance) error
+type VMIMutateFunc func(ctx spi.ComponentContext, storage *ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, existingVMI *vmov1.VerrazzanoMonitoringInstance) error
 
 func NewVMI() *vmov1.VerrazzanoMonitoringInstance {
 	return &vmov1.VerrazzanoMonitoringInstance{
@@ -48,7 +48,7 @@ func NewVMI() *vmov1.VerrazzanoMonitoringInstance {
 }
 
 // CreateVMI instantiates the VMI resource
-func CreateVMI(ctx spi.ComponentContext, updateFunc func(spi.ComponentContext, *ResourceRequestValues, *vmov1.VerrazzanoMonitoringInstance, *vmov1.VerrazzanoMonitoringInstance) error) error {
+func CreateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error {
 	if !vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
 		return nil
 	}

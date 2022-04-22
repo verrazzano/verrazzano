@@ -54,7 +54,7 @@ func (o opensearchComponent) IsOperatorInstallSupported() bool {
 }
 
 func (o opensearchComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
-	return isOpenSearchInstalled(ctx)
+	return checkOpenSearchStatus(ctx, status.DoDeploymentsExist, status.DoStatefulSetsExist), nil
 }
 
 func (o opensearchComponent) Reconcile(ctx spi.ComponentContext) error {
@@ -94,14 +94,14 @@ func (o opensearchComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return common.EnsureVMISecret(ctx.Client())
 }
 
-// InstallUpgrade OpenSearch component upgrade processing
+// Upgrade OpenSearch component upgrade processing
 func (o opensearchComponent) Upgrade(ctx spi.ComponentContext) error {
 	return common.CreateVMI(ctx, updateFunc)
 }
 
 // IsReady component check
 func (o opensearchComponent) IsReady(ctx spi.ComponentContext) bool {
-	return isOpenSearchReady(ctx)
+	return checkOpenSearchStatus(ctx, status.DeploymentsAreReady, status.StatefulSetsAreReady)
 }
 
 // PostInstall - post-install, clean up temp files

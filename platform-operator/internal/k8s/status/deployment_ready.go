@@ -16,6 +16,8 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+type DeploymentFunc func(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedNames []types.NamespacedName, expectedReplicas int32, prefix string) bool
+
 // DeploymentsAreReady check that the named deployments have the minimum number of specified replicas ready and available
 func DeploymentsAreReady(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedNames []types.NamespacedName, expectedReplicas int32, prefix string) bool {
 	for _, namespacedName := range namespacedNames {
@@ -46,20 +48,20 @@ func DeploymentsAreReady(log vzlog.VerrazzanoLogger, client clipkg.Client, names
 	return true
 }
 
-// DoDeploymentsExist check that the named deployments have the minimum number of specified replicas ready and available
-func DoDeploymentsExist(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedNames []types.NamespacedName, prefix string) (bool, error) {
+// DoDeploymentsExist checks if the named deployments exist
+func DoDeploymentsExist(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedNames []types.NamespacedName, _ int32, prefix string) bool {
 	for _, namespacedName := range namespacedNames {
 		deployment := appsv1.Deployment{}
 		if err := client.Get(context.TODO(), namespacedName, &deployment); err != nil {
 			if errors.IsNotFound(err) {
 				log.Progressf("%s is waiting for deployment %v to exist", prefix, namespacedName)
-				return false, nil
+				return false
 			}
 			log.Errorf("%s failed getting deployment %v: %v", prefix, namespacedName, err)
-			return false, err
+			return false
 		}
 	}
-	return true, nil
+	return true
 }
 
 // podsReadyDeployment checks for an expected number of pods to be using the latest replicaset revision and are

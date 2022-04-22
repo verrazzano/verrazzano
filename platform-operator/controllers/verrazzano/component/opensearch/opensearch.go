@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -38,8 +39,8 @@ var (
 	execCommand = exec.Command
 )
 
-// isOpenSearchInstalled checks if OpenSearch has been installed yet
-func isOpenSearchInstalled(ctx spi.ComponentContext) (bool, error) {
+// checkOpenSearchStatus checks performs checks on the OpenSearch resources
+func checkOpenSearchStatus(ctx spi.ComponentContext, deploymentFunc status.DeploymentFunc, statefulsetFunc status.StatefulSetFunc) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 
 	var deployments []types.NamespacedName
@@ -73,75 +74,7 @@ func isOpenSearchInstalled(ctx spi.ComponentContext) (bool, error) {
 		}
 	}
 
-	deploymentsExist, err := status.DoDeploymentsExist(ctx.Log(), ctx.Client(), deployments, prefix)
-	if !deploymentsExist {
-		return false, err
-	}
-
-	// Next, check statefulsets
-	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
-		if ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
-			esInstallArgs := ctx.EffectiveCR().Spec.Components.Elasticsearch.ESInstallArgs
-			for _, args := range esInstallArgs {
-				if args.Name == "nodes.master.replicas" {
-					var statefulsets []types.NamespacedName
-					replicas, _ := strconv.Atoi(args.Value)
-					if replicas > 0 {
-						statefulsets = append(statefulsets,
-							types.NamespacedName{
-								Name:      esMasterStatefulset,
-								Namespace: ComponentNamespace,
-							})
-						statefulsetsExist, err := status.DoStatefulSetsExist(ctx.Log(), ctx.Client(), statefulsets, prefix)
-						if !statefulsetsExist {
-							return false, err
-						}
-					}
-					break
-				}
-			}
-		}
-	}
-
-	return common.IsVMISecretReady(ctx), nil
-}
-
-// isOpenSearchReady VMI components ready-check
-func isOpenSearchReady(ctx spi.ComponentContext) bool {
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-
-	var deployments []types.NamespacedName
-
-	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
-		if ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
-			esInstallArgs := ctx.EffectiveCR().Spec.Components.Elasticsearch.ESInstallArgs
-			for _, args := range esInstallArgs {
-				if args.Name == "nodes.data.replicas" {
-					replicas, _ := strconv.Atoi(args.Value)
-					for i := 0; replicas > 0 && i < replicas; i++ {
-						deployments = append(deployments,
-							types.NamespacedName{
-								Name:      fmt.Sprintf("%s-%d", esDataDeployment, i),
-								Namespace: ComponentNamespace,
-							})
-					}
-					continue
-				}
-				if args.Name == "nodes.ingest.replicas" {
-					replicas, _ := strconv.Atoi(args.Value)
-					if replicas > 0 {
-						deployments = append(deployments,
-							types.NamespacedName{
-								Name:      esIngestDeployment,
-								Namespace: ComponentNamespace,
-							})
-					}
-				}
-			}
-		}
-	}
-
-	if !status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
+	if !deploymentFunc(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
 		return false
 	}
 
@@ -159,7 +92,7 @@ func isOpenSearchReady(ctx spi.ComponentContext) bool {
 								Name:      esMasterStatefulset,
 								Namespace: ComponentNamespace,
 							})
-						if !status.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulsets, 1, prefix) {
+						if !statefulsetFunc(ctx.Log(), ctx.Client(), statefulsets, 1, prefix) {
 							return false
 						}
 					}

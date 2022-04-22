@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"os"
 	"os/exec"
 	"strings"
@@ -470,7 +471,7 @@ func TestIsReadySecretNotReady(t *testing.T) {
 		},
 	}).Build()
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.False(t, isOpenSearchReady(ctx))
+	assert.False(t, checkOpenSearchStatus(ctx, status.DeploymentsAreReady, status.StatefulSetsAreReady))
 }
 
 // TestIsReadyNotInstalled tests the OpenSearch isOpenSearchReady call
@@ -480,7 +481,7 @@ func TestIsReadySecretNotReady(t *testing.T) {
 func TestIsReadyNotInstalled(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, isOpenSearchReady(ctx))
+	assert.False(t, checkOpenSearchStatus(ctx, status.DeploymentsAreReady, status.StatefulSetsAreReady))
 }
 
 // TestIsReady tests the isOpenSearchReady call
@@ -560,7 +561,7 @@ func TestIsReady(t *testing.T) {
 		},
 	}
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.True(t, isOpenSearchReady(ctx))
+	assert.True(t, checkOpenSearchStatus(ctx, status.DeploymentsAreReady, status.StatefulSetsAreReady))
 }
 
 // TestIsReadyDeploymentNotAvailable tests the OpenSearch isOpenSearchReady call
@@ -641,7 +642,7 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 		},
 	}
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.False(t, isOpenSearchReady(ctx))
+	assert.False(t, checkOpenSearchStatus(ctx, status.DeploymentsAreReady, status.StatefulSetsAreReady))
 }
 
 // TestIsReadyDeploymentVMIDisabled tests the OpenSearch isOpenSearchReady call
@@ -667,5 +668,5 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 	}
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.True(t, isOpenSearchReady(ctx))
+	assert.True(t, checkOpenSearchStatus(ctx, status.DeploymentsAreReady, status.StatefulSetsAreReady))
 }
