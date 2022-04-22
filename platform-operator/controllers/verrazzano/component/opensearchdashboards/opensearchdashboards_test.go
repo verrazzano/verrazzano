@@ -42,8 +42,8 @@ func init() {
 	// +kubebuilder:scaffold:testScheme
 }
 
-// TestIsReadySecretNotReady tests the Opensearch areOpenSearchDashboardsReady call
-// GIVEN an Opensearch component
+// TestIsReadySecretNotReady tests the OpenSearch-Dashboards areOpenSearchDashboardsReady call
+// GIVEN an OpenSearch-Dashboards component
 //  WHEN I call areOpenSearchDashboardsReady when it is installed and the deployment availability criteria are met, but the secret is not found
 //  THEN false is returned
 func TestIsReadySecretNotReady(t *testing.T) {
@@ -72,8 +72,8 @@ func TestIsReadySecretNotReady(t *testing.T) {
 	assert.False(t, areOpenSearchDashboardsReady(ctx))
 }
 
-// TestIsReadyNotInstalled tests the Opensearch areOpenSearchDashboardsReady call
-// GIVEN an Opensearch component
+// TestIsReadyNotInstalled tests the OpenSearch-Dashboards areOpenSearchDashboardsReady call
+// GIVEN an OpenSearch-Dashboards component
 //  WHEN I call areOpenSearchDashboardsReady when it is not installed
 //  THEN false is returned
 func TestIsReadyNotInstalled(t *testing.T) {
@@ -83,7 +83,7 @@ func TestIsReadyNotInstalled(t *testing.T) {
 }
 
 // TestIsReady tests the areOpenSearchDashboardsReady call
-// GIVEN Opensearch components that are all enabled by default
+// GIVEN OpenSearch-Dashboards components that are all enabled by default
 //  WHEN I call areOpenSearchDashboardsReady when all requirements are met
 //  THEN false is returned
 func TestIsReady(t *testing.T) {
@@ -109,8 +109,8 @@ func TestIsReady(t *testing.T) {
 	assert.True(t, areOpenSearchDashboardsReady(ctx))
 }
 
-// TestIsReadyDeploymentNotAvailable tests the Opensearch areOpenSearchDashboardsReady call
-// GIVEN an Opensearch component
+// TestIsReadyDeploymentNotAvailable tests the OpenSearch-Dashboards areOpenSearchDashboardsReady call
+// GIVEN an OpenSearch-Dashboards component
 //  WHEN I call areOpenSearchDashboardsReady when the Kibana deployment is not available
 //  THEN false is returned
 func TestIsReadyDeploymentNotAvailable(t *testing.T) {
@@ -135,8 +135,8 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 	assert.False(t, areOpenSearchDashboardsReady(ctx))
 }
 
-// TestIsReadyDeploymentVMIDisabled tests the Opensearch areOpenSearchDashboardsReady call
-// GIVEN an Opensearch component with all VMI components disabled
+// TestIsReadyDeploymentVMIDisabled tests the OpenSearch-Dashboards areOpenSearchDashboardsReady call
+// GIVEN an OpenSearch-Dashboards component with all VMI components disabled
 //  WHEN I call areOpenSearchDashboardsReady
 //  THEN true is returned
 func TestIsReadyDeploymentVMIDisabled(t *testing.T) {

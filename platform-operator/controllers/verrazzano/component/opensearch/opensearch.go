@@ -38,8 +38,8 @@ var (
 	execCommand = exec.Command
 )
 
-// isOpensearchInstalled checks if Opensearch has been installed yet
-func isOpensearchInstalled(ctx spi.ComponentContext) (bool, error) {
+// isOpenSearchInstalled checks if OpenSearch has been installed yet
+func isOpenSearchInstalled(ctx spi.ComponentContext) (bool, error) {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 
 	var deployments []types.NamespacedName
@@ -106,8 +106,8 @@ func isOpensearchInstalled(ctx spi.ComponentContext) (bool, error) {
 	return common.IsVMISecretReady(ctx), nil
 }
 
-// isOpensearchReady VMI components ready-check
-func isOpensearchReady(ctx spi.ComponentContext) bool {
+// isOpenSearchReady VMI components ready-check
+func isOpenSearchReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 
 	var deployments []types.NamespacedName

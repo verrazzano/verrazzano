@@ -43,27 +43,27 @@ func (d opensearchDashboardsComponent) GetMinVerrazzanoVersion() string {
 	return constants.VerrazzanoVersion1_3_0
 }
 
-// GetJSONName returns the json name of the OpenSearch component in CRD
+// GetJSONName returns the json name of the OpenSearch-Dashboards component in CRD
 func (d opensearchDashboardsComponent) GetJSONName() string {
 	return ComponentJSONName
 }
 
-// IsOperatorInstallSupported OpenSearch-Dashboard component function
+// IsOperatorInstallSupported OpenSearch-Dashboards component function
 func (d opensearchDashboardsComponent) IsOperatorInstallSupported() bool {
 	return true
 }
 
-// IsInstalled OpenSearch-Dashboard component function
+// IsInstalled OpenSearch-Dashboards component function
 func (d opensearchDashboardsComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	return areOpenSearchDashboardsInstalled(ctx)
 }
 
-// Reconcile OpenSearch-Dashboard component function
+// Reconcile OpenSearch-Dashboards component function
 func (d opensearchDashboardsComponent) Reconcile(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// NewComponent OpenSearch-Dashboard component function
+// NewComponent OpenSearch-Dashboards component function
 func NewComponent() spi.Component {
 	return opensearchDashboardsComponent{}
 }
@@ -81,7 +81,7 @@ func (d opensearchDashboardsComponent) PreInstall(ctx spi.ComponentContext) erro
 	}
 	ctx.Log().Debug("OpenSearch-Dashboards pre-install")
 	if err := common.CreateAndLabelVMINamespaces(ctx); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed creating/labeling namespace %s for OpenSearch : %v", ComponentNamespace, err)
+		return ctx.Log().ErrorfNewErr("Failed creating/labeling namespace %s for OpenSearch-Dashboards : %v", ComponentNamespace, err)
 	}
 	return nil
 }
@@ -189,7 +189,7 @@ func (d opensearchDashboardsComponent) Name() string {
 func (d opensearchDashboardsComponent) isOpenSearchDashboardEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow disabling of any component post-install for now
 	if vzconfig.IsKibanaEnabled(old) && !vzconfig.IsKibanaEnabled(new) {
-		return fmt.Errorf("Disabling component Opensearch Dashboards not allowed")
+		return fmt.Errorf("Disabling component OpenSearch-Dashboards not allowed")
 	}
 	return nil
 }

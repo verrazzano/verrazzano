@@ -40,8 +40,8 @@ var crEnabled = vzapi.Verrazzano{
 	},
 }
 
-// TestPreUpgrade tests the Opensearch PreUpgrade call
-// GIVEN an Opensearch component
+// TestPreUpgrade tests the OpenSearch PreUpgrade call
+// GIVEN an OpenSearch component
 //  WHEN I call PreUpgrade with defaults
 //  THEN no error is returned
 func TestPreUpgrade(t *testing.T) {
@@ -52,8 +52,8 @@ func TestPreUpgrade(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestPreInstall tests the Opensearch PreInstall call
-// GIVEN an Opensearch component
+// TestPreInstall tests the OpenSearch PreInstall call
+// GIVEN an OpenSearch component
 //  WHEN I call PreInstall when dependencies are met
 //  THEN no error is returned
 func TestPreInstall(t *testing.T) {
@@ -63,8 +63,8 @@ func TestPreInstall(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestInstall tests the Opensearch Install call
-// GIVEN an Opensearch component
+// TestInstall tests the OpenSearch Install call
+// GIVEN an OpenSearch component
 //  WHEN I call Install when dependencies are met
 //  THEN no error is returned
 func TestInstall(t *testing.T) {
@@ -78,8 +78,8 @@ func TestInstall(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestPostInstall tests the Opensearch PostInstall call
-// GIVEN an Opensearch component
+// TestPostInstall tests the OpenSearch PostInstall call
+// GIVEN an OpenSearch component
 //  WHEN I call PostInstall
 //  THEN no error is returned
 func TestPostInstall(t *testing.T) {
@@ -118,8 +118,8 @@ func TestPostInstall(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestPostInstallCertsNotReady tests the Opensearch PostInstall call
-// GIVEN an Opensearch component
+// TestPostInstallCertsNotReady tests the OpenSearch PostInstall call
+// GIVEN an OpenSearch component
 //  WHEN I call PostInstall and the certificates aren't ready
 //  THEN a retryable error is returned
 func TestPostInstallCertsNotReady(t *testing.T) {
@@ -164,8 +164,8 @@ func TestPostInstallCertsNotReady(t *testing.T) {
 	assert.Equal(t, expectedErr, err)
 }
 
-// TestGetCertificateNames tests the Opensearch GetCertificateNames call
-// GIVEN an Opensearch component
+// TestGetCertificateNames tests the OpenSearch GetCertificateNames call
+// GIVEN an OpenSearch component
 //  WHEN I call GetCertificateNames
 //  THEN the correct number of certificate names are returned based on what is enabled
 func TestGetCertificateNames(t *testing.T) {
@@ -195,8 +195,8 @@ func TestGetCertificateNames(t *testing.T) {
 	assert.Len(t, certNames, 1, "Unexpected number of cert names")
 }
 
-// TestUpgrade tests the Opensearch Upgrade call; simple wrapper exercise, more detailed testing is done elsewhere
-// GIVEN an Opensearch component upgrading from 1.1.0 to 1.2.0
+// TestUpgrade tests the OpenSearch Upgrade call; simple wrapper exercise, more detailed testing is done elsewhere
+// GIVEN an OpenSearch component upgrading from 1.1.0 to 1.2.0
 //  WHEN I call Upgrade
 //  THEN no error is returned
 func TestUpgrade(t *testing.T) {
@@ -212,8 +212,8 @@ func TestUpgrade(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestPostUpgrade tests the Opensearch PostUpgrade call; simple wrapper exercise, more detailed testing is done elsewhere
-// GIVEN an Opensearch component upgrading from 1.1.0 to 1.2.0
+// TestPostUpgrade tests the OpenSearch PostUpgrade call; simple wrapper exercise, more detailed testing is done elsewhere
+// GIVEN an OpenSearch component upgrading from 1.1.0 to 1.2.0
 //  WHEN I call PostUpgrade
 //  THEN no error is returned
 func TestPostUpgrade(t *testing.T) {
@@ -262,11 +262,11 @@ func createPreInstallTestClient(extraObjs ...client.Object) client.Client {
 	return c
 }
 
-// TestIsEnabledNilOpensearch tests the IsEnabled function
+// TestIsEnabledNilOpenSearch tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Opensearch component is enabled
+//  WHEN The OpenSearch component is enabled
 //  THEN true is returned
-func TestIsEnabledNilOpensearch(t *testing.T) {
+func TestIsEnabledNilOpenSearch(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Elasticsearch = nil
 	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
@@ -274,7 +274,7 @@ func TestIsEnabledNilOpensearch(t *testing.T) {
 
 // TestIsEnabledNilComponent tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Opensearch component is nil
+//  WHEN The OpenSearch component is nil
 //  THEN true is returned
 func TestIsEnabledNilComponent(t *testing.T) {
 	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath).EffectiveCR()))
@@ -282,7 +282,7 @@ func TestIsEnabledNilComponent(t *testing.T) {
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Opensearch component enabled is nil
+//  WHEN The OpenSearch component enabled is nil
 //  THEN true is returned
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
@@ -292,7 +292,7 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 
 // TestIsEnabledExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Opensearch component is explicitly enabled
+//  WHEN The OpenSearch component is explicitly enabled
 //  THEN true is returned
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
@@ -302,7 +302,7 @@ func TestIsEnabledExplicit(t *testing.T) {
 
 // TestIsDisableExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Opensearch component is explicitly disabled
+//  WHEN The OpenSearch component is explicitly disabled
 //  THEN false is returned
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled

@@ -33,17 +33,17 @@ const ComponentJSONName = "opensearch"
 
 type opensearchComponent struct{}
 
-// GetDependencies returns the dependencies of the Opensearch component
+// GetDependencies returns the dependencies of the OpenSearch component
 func (o opensearchComponent) GetDependencies() []string {
 	return []string{istio.ComponentName, nginx.ComponentName}
 }
 
-// GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the Opensearch component
+// GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the OpenSearch component
 func (o opensearchComponent) GetMinVerrazzanoVersion() string {
 	return constants.VerrazzanoVersion1_3_0
 }
 
-// GetJSONName returns the josn name of the Opensearch component in CRD
+// GetJSONName returns the josn name of the OpenSearch component in CRD
 func (o opensearchComponent) GetJSONName() string {
 	return ComponentJSONName
 }
@@ -53,7 +53,7 @@ func (o opensearchComponent) IsOperatorInstallSupported() bool {
 }
 
 func (o opensearchComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
-	return isOpensearchInstalled(ctx)
+	return isOpenSearchInstalled(ctx)
 }
 
 func (o opensearchComponent) Reconcile(ctx spi.ComponentContext) error {
@@ -64,7 +64,7 @@ func NewComponent() spi.Component {
 	return opensearchComponent{}
 }
 
-// PreInstall Opensearch component pre-install processing; create and label required namespaces, copy any
+// PreInstall OpenSearch component pre-install processing; create and label required namespaces, copy any
 // required secrets
 func (o opensearchComponent) PreInstall(ctx spi.ComponentContext) error {
 	// create or update  VMI secret
@@ -82,30 +82,30 @@ func (o opensearchComponent) PreInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// Install Opensearch component install processing
+// Install OpenSearch component install processing
 func (o opensearchComponent) Install(ctx spi.ComponentContext) error {
 	return createVMIforOS(ctx)
 }
 
-// PreUpgrade Opensearch component pre-upgrade processing
+// PreUpgrade OpenSearch component pre-upgrade processing
 func (o opensearchComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	// create or update  VMI secret
 	return common.EnsureVMISecret(ctx.Client())
 }
 
-// InstallUpgrade Opensearch component upgrade processing
+// InstallUpgrade OpenSearch component upgrade processing
 func (o opensearchComponent) Upgrade(ctx spi.ComponentContext) error {
 	return createVMIforOS(ctx)
 }
 
 // IsReady component check
 func (o opensearchComponent) IsReady(ctx spi.ComponentContext) bool {
-	return isOpensearchReady(ctx)
+	return isOpenSearchReady(ctx)
 }
 
 // PostInstall - post-install, clean up temp files
 func (o opensearchComponent) PostInstall(ctx spi.ComponentContext) error {
-	ctx.Log().Debugf("Opensearch component post-upgrade")
+	ctx.Log().Debugf("OpenSearch component post-upgrade")
 
 	// Check if the ingresses and certs are present
 	prefix := fmt.Sprintf("Component %s", ComponentName)
@@ -126,9 +126,9 @@ func (o opensearchComponent) PostInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// PostUpgrade Opensearch post-upgrade processing
+// PostUpgrade OpenSearch post-upgrade processing
 func (o opensearchComponent) PostUpgrade(ctx spi.ComponentContext) error {
-	ctx.Log().Debugf("Opensearch component post-upgrade")
+	ctx.Log().Debugf("OpenSearch component post-upgrade")
 
 	// Check if the ingresses and certs are present
 	prefix := fmt.Sprintf("Component %s", ComponentName)
@@ -170,7 +170,7 @@ func (o opensearchComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (o opensearchComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow disabling active components
-	if err := o.isOpensearchEnabled(old, new); err != nil {
+	if err := o.isOpenSearchEnabled(old, new); err != nil {
 		return err
 	}
 	// Reject any other edits except InstallArgs
@@ -191,7 +191,7 @@ func (o opensearchComponent) Name() string {
 	return ComponentName
 }
 
-func (o opensearchComponent) isOpensearchEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (o opensearchComponent) isOpenSearchEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow disabling of any component post-install for now
 	if vzconfig.IsElasticsearchEnabled(old) && !vzconfig.IsElasticsearchEnabled(new) {
 		return fmt.Errorf("Disabling component OpenSearch not allowed")

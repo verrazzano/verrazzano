@@ -14,7 +14,7 @@ import (
 
 const kibanaDeployment = "vmi-system-kibana"
 
-// areOpenSearchDashboardsInstalled checks if Opensearch has been installed yet
+// areOpenSearchDashboardsInstalled checks if OpenSearch-Dashboards has been installed yet
 func areOpenSearchDashboardsInstalled(ctx spi.ComponentContext) (bool, error) {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 

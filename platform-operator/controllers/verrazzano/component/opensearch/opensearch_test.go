@@ -86,7 +86,7 @@ func Test_fixupElasticSearchReplicaCount(t *testing.T) {
 	err = fixupElasticSearchReplicaCount(ctx, "verrazzano-system")
 	a.Error(err, "Error should be returned if there is no http port for elasticsearch pods")
 
-	// GIVEN an Opensearch resource with version 1.1.0 in the status
+	// GIVEN an OpenSearch resource with version 1.1.0 in the status
 	//  WHEN fixupElasticSearchReplicaCount is called
 	//  THEN no error should be returned
 	//   AND no commands should be invoked
@@ -98,7 +98,7 @@ func Test_fixupElasticSearchReplicaCount(t *testing.T) {
 	err = fixupElasticSearchReplicaCount(ctx, "verrazzano-system")
 	a.NoError(err, "No error should be returned if the source version is 1.1.0 or later")
 
-	// GIVEN an Opensearch resource with Elasticsearch disabled
+	// GIVEN an OpenSearch resource with Elasticsearch disabled
 	//  WHEN fixupElasticSearchReplicaCount is called
 	//  THEN no error should be returned
 	//   AND no commands should be invoked
@@ -443,9 +443,9 @@ func createObjectFromTemplate(obj runtime.Object, template string, data interfac
 	return runtime.DefaultUnstructuredConverter.FromUnstructured(uns.Object, obj)
 }
 
-// TestIsReadySecretNotReady tests the Opensearch isOpensearchReady call
-// GIVEN an Opensearch component
-//  WHEN I call isOpensearchReady when it is installed and the deployment availability criteria are met, but the secret is not found
+// TestIsReadySecretNotReady tests the OpenSearch isOpenSearchReady call
+// GIVEN an OpenSearch component
+//  WHEN I call isOpenSearchReady when it is installed and the deployment availability criteria are met, but the secret is not found
 //  THEN false is returned
 func TestIsReadySecretNotReady(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
@@ -470,22 +470,22 @@ func TestIsReadySecretNotReady(t *testing.T) {
 		},
 	}).Build()
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.False(t, isOpensearchReady(ctx))
+	assert.False(t, isOpenSearchReady(ctx))
 }
 
-// TestIsReadyNotInstalled tests the Opensearch isOpensearchReady call
-// GIVEN an Opensearch component
-//  WHEN I call isOpensearchReady when it is not installed
+// TestIsReadyNotInstalled tests the OpenSearch isOpenSearchReady call
+// GIVEN an OpenSearch component
+//  WHEN I call isOpenSearchReady when it is not installed
 //  THEN false is returned
 func TestIsReadyNotInstalled(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, isOpensearchReady(ctx))
+	assert.False(t, isOpenSearchReady(ctx))
 }
 
-// TestIsReady tests the isOpensearchReady call
-// GIVEN Opensearch components that are all enabled by default
-//  WHEN I call isOpensearchReady when all requirements are met
+// TestIsReady tests the isOpenSearchReady call
+// GIVEN OpenSearch components that are all enabled by default
+//  WHEN I call isOpenSearchReady when all requirements are met
 //  THEN false is returned
 func TestIsReady(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
@@ -560,12 +560,12 @@ func TestIsReady(t *testing.T) {
 		},
 	}
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.True(t, isOpensearchReady(ctx))
+	assert.True(t, isOpenSearchReady(ctx))
 }
 
-// TestIsReadyDeploymentNotAvailable tests the Opensearch isOpensearchReady call
-// GIVEN an Opensearch component
-//  WHEN I call isOpensearchReady when the Kibana deployment is not available
+// TestIsReadyDeploymentNotAvailable tests the OpenSearch isOpenSearchReady call
+// GIVEN an OpenSearch component
+//  WHEN I call isOpenSearchReady when the Kibana deployment is not available
 //  THEN false is returned
 func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
@@ -641,12 +641,12 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 		},
 	}
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.False(t, isOpensearchReady(ctx))
+	assert.False(t, isOpenSearchReady(ctx))
 }
 
-// TestIsReadyDeploymentVMIDisabled tests the Opensearch isOpensearchReady call
-// GIVEN an Opensearch component with all VMI components disabled
-//  WHEN I call isOpensearchReady
+// TestIsReadyDeploymentVMIDisabled tests the OpenSearch isOpenSearchReady call
+// GIVEN an OpenSearch component with all VMI components disabled
+//  WHEN I call isOpenSearchReady
 //  THEN true is returned
 func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
@@ -667,5 +667,5 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 	}
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.True(t, isOpensearchReady(ctx))
+	assert.True(t, isOpenSearchReady(ctx))
 }

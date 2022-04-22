@@ -94,10 +94,10 @@ func TestNewVMIResources(t *testing.T) {
 	assert.Equal(t, "50Gi", opensearch.MasterNode.Storage.Size)
 }
 
-// TestOpenSearchInvalidArgs tests trying to create an opensearch resource with invalid args
+// TestOpenSearchInvalidArgs tests trying to create an OpenSearch resource with invalid args
 // GIVEN a Verrazzano CR with invalid install args
-//  WHEN I create a new opensearch resource
-//  THEN the opensearch resource fails to create
+//  WHEN I create a new OpenSearch resource
+//  THEN the OpenSearch resource fails to create
 func TestOpenSearchInvalidArgs(t *testing.T) {
 	r := &common.ResourceRequestValues{}
 	crBadArgs := &vzapi.Verrazzano{
@@ -119,7 +119,7 @@ func TestOpenSearchInvalidArgs(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// TestNewOpenSearchValuesAreCopied tests that VMI and policy values are copied over to the new opensearch
+// TestNewOpenSearchValuesAreCopied tests that VMI and policy values are copied over to the new OpenSearch
 // GIVEN a Verrazzano CR and an existing VMI
 //  WHEN I create a new OpenSearch resource
 //  THEN the storage options from the existing VMi are preserved, and any policy values are copied.
