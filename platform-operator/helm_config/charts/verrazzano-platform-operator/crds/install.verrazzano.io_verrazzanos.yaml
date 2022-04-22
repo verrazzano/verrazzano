@@ -5285,6 +5285,7 @@ spec:
                         items:
                           properties:
                             configMapRef:
+                              description: Selects a key from a ConfigMap.
                               properties:
                                 key:
                                   description: The key to select.
@@ -5302,6 +5303,7 @@ spec:
                               - key
                               type: object
                             secretRef:
+                              description: SecretKeySelector selects a key of a Secret.
                               properties:
                                 key:
                                   description: The key of the secret to select from.  Must

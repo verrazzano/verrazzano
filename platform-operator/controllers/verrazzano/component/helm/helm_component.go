@@ -446,10 +446,10 @@ func (h HelmComponent) retrieveHelmOverrideResources(ctx spi.ComponentContext, o
 	var overrideFiles []*os.File
 	for _, override := range overrides {
 		// Check if ConfigMapRef is populated and gather helm file
-		if override.ConfigMapRef != nil && override.ConfigMapRef.ConfigMapKeySelector != nil {
+		if override.ConfigMapRef != nil {
 			// Get the ConfigMap
 			configMap := &corev1.ConfigMap{}
-			selector := override.ConfigMapRef.ConfigMapKeySelector
+			selector := override.ConfigMapRef
 			nsn := types.NamespacedName{Name: selector.Name, Namespace: ctx.EffectiveCR().Namespace}
 			optional := selector.Optional
 			err := ctx.Client().Get(context.TODO(), nsn, configMap)
@@ -474,10 +474,10 @@ func (h HelmComponent) retrieveHelmOverrideResources(ctx spi.ComponentContext, o
 			}
 		}
 		// Check if SecretRef is populated and gather helm file
-		if override.SecretRef != nil && override.SecretRef.SecretKeySelector != nil {
+		if override.SecretRef != nil {
 			// Get the Secret
 			sec := &corev1.Secret{}
-			selector := override.SecretRef.SecretKeySelector
+			selector := override.SecretRef
 			nsn := types.NamespacedName{Name: selector.Name, Namespace: ctx.EffectiveCR().Namespace}
 			optional := selector.Optional
 			err := ctx.Client().Get(context.TODO(), nsn, sec)

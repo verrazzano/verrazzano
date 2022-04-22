@@ -740,21 +740,11 @@ type OciLoggingConfiguration struct {
 }
 
 type HelmValueOverrides struct {
-	MonitorChanges *WatchHelmValues `json:"monitorChanges,omitempty"`
-	ValueOverrides []Overrides      `json:"overrides,omitempty"`
+	MonitorChanges *bool       `json:"monitorChanges,omitempty"`
+	ValueOverrides []Overrides `json:"overrides,omitempty"`
 }
 
 type Overrides struct {
-	ConfigMapRef *ConfigMapRef `json:"configMapRef,omitempty"`
-	SecretRef    *SecretRef    `json:"secretRef,omitempty"`
+	ConfigMapRef *corev1.ConfigMapKeySelector `json:"configMapRef,omitempty"`
+	SecretRef    *corev1.SecretKeySelector    `json:"secretRef,omitempty"`
 }
-
-type ConfigMapRef struct {
-	ConfigMapKeySelector *corev1.ConfigMapKeySelector `json:",inline"`
-}
-
-type SecretRef struct {
-	SecretKeySelector *corev1.SecretKeySelector `json:",inline"`
-}
-
-type WatchHelmValues bool

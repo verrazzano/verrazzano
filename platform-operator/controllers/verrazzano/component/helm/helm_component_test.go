@@ -705,12 +705,8 @@ func TestRetrieveHelmOverrideResources(t *testing.T) {
 			name: "test nil selectors",
 			overrides: []v1alpha1.Overrides{
 				{
-					ConfigMapRef: &v1alpha1.ConfigMapRef{
-						ConfigMapKeySelector: nil,
-					},
-					SecretRef: &v1alpha1.SecretRef{
-						SecretKeySelector: nil,
-					},
+					ConfigMapRef: nil,
+					SecretRef:    nil,
 				},
 			},
 			expectError: false,
@@ -719,12 +715,10 @@ func TestRetrieveHelmOverrideResources(t *testing.T) {
 			name: "test configMap selectors",
 			overrides: []v1alpha1.Overrides{
 				{
-					ConfigMapRef: &v1alpha1.ConfigMapRef{
-						ConfigMapKeySelector: &corev1.ConfigMapKeySelector{
-							Key: dataKey,
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: testName,
-							},
+					ConfigMapRef: &corev1.ConfigMapKeySelector{
+						Key: dataKey,
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testName,
 						},
 					},
 				},
@@ -739,12 +733,10 @@ func TestRetrieveHelmOverrideResources(t *testing.T) {
 			name: "test Secret selectors",
 			overrides: []v1alpha1.Overrides{
 				{
-					SecretRef: &v1alpha1.SecretRef{
-						SecretKeySelector: &corev1.SecretKeySelector{
-							Key: dataKey,
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: testName,
-							},
+					SecretRef: &corev1.SecretKeySelector{
+						Key: dataKey,
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testName,
 						},
 					},
 				},
@@ -759,12 +751,10 @@ func TestRetrieveHelmOverrideResources(t *testing.T) {
 			name: "test invalid data selectors",
 			overrides: []v1alpha1.Overrides{
 				{
-					SecretRef: &v1alpha1.SecretRef{
-						SecretKeySelector: &corev1.SecretKeySelector{
-							Key: dataKey,
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: testName,
-							},
+					SecretRef: &corev1.SecretKeySelector{
+						Key: dataKey,
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testName,
 						},
 					},
 				},
@@ -779,14 +769,12 @@ func TestRetrieveHelmOverrideResources(t *testing.T) {
 			name: "test invalid data selectors optional",
 			overrides: []v1alpha1.Overrides{
 				{
-					ConfigMapRef: &v1alpha1.ConfigMapRef{
-						ConfigMapKeySelector: &corev1.ConfigMapKeySelector{
-							Key: dataKey,
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: testName,
-							},
-							Optional: &trueval,
+					ConfigMapRef: &corev1.ConfigMapKeySelector{
+						Key: dataKey,
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testName,
 						},
+						Optional: &trueval,
 					},
 				},
 			},
@@ -800,14 +788,12 @@ func TestRetrieveHelmOverrideResources(t *testing.T) {
 			name: "test valid data selectors optional",
 			overrides: []v1alpha1.Overrides{
 				{
-					ConfigMapRef: &v1alpha1.ConfigMapRef{
-						ConfigMapKeySelector: &corev1.ConfigMapKeySelector{
-							Key: dataKey,
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: testName,
-							},
-							Optional: &trueval,
+					ConfigMapRef: &corev1.ConfigMapKeySelector{
+						Key: dataKey,
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testName,
 						},
+						Optional: &trueval,
 					},
 				},
 			},
