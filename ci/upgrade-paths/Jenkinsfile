@@ -364,7 +364,7 @@ pipeline {
                             when { expression { return params.TEST_ENV == 'KIND' } }
                             steps {
                                  script{
-                                    if(VERSION_FOR_UPGRADE != "NONE"){
+                                    if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "master"){
                                         VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
                                         def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
                                         def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
