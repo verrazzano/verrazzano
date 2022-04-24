@@ -138,15 +138,8 @@ func TestUnexpectedErrorGetSourceSecret(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	targetSecretName := types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: constants.VerrazzanoSystemNamespace}
 	defaultName := types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: "default"}
 
-	// Expect a call to get the target ns secret first, return not found
-	mock.EXPECT().
-		Get(gomock.Any(), targetSecretName, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *corev1.Secret) error {
-			return errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.GlobalImagePullSecName)
-		})
 	// Expect a call to get the default ns secret.
 	mock.EXPECT().
 		Get(gomock.Any(), defaultName, gomock.Not(gomock.Nil())).

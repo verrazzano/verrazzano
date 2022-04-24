@@ -333,10 +333,10 @@ func IstiodReadyCheck(ctx spi.ComponentContext, _ string, namespace string) bool
 		{Name: "istiod", Namespace: namespace},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
-func buildOverridesString(_ vzlog.VerrazzanoLogger, client clipkg.Client, namespace string, additionalValues ...bom.KeyValue) (string, error) {
+func buildOverridesString(additionalValues ...bom.KeyValue) (string, error) {
 	// Get the image overrides from the BOM
 	kvs, err := getImageOverrides()
 	if err != nil {

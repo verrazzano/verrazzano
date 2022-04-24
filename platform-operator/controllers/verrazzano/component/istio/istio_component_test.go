@@ -304,12 +304,6 @@ func getMock(t *testing.T) *mocks.MockClient {
 		}).AnyTimes()
 
 	mock.EXPECT().
-		Delete(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, secret *v1.Secret) error {
-			return nil
-		}).Times(2)
-
-	mock.EXPECT().
 		Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *v1.Secret, opts ...client.DeleteOption) error {
 			return nil
