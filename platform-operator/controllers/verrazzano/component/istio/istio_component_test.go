@@ -6,11 +6,11 @@ package istio
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
-	"k8s.io/apimachinery/pkg/types"
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
+	"io/ioutil"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
