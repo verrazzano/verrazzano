@@ -540,11 +540,6 @@ pipeline {
                         }
                     }
                 }
-                /* stage ('Undeploy Sample Application') {
-                    steps {
-                        undeploySampleApp()
-                    }
-                } */
                 stage ('Multi-cluster Verify Api') {
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
@@ -856,7 +851,7 @@ def upgradeVerrazzano() {
 
                 # Get the install job in verrazzano-install namespace
                 kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out
-                  
+
                 echo "Upgrading the Verrazzano installation to version" $VERRAZZANO_DEV_VERSION
                 # Modify the version field in the Verrazzano CR file to be this new Verrazzano version
                 cd ${GO_REPO_PATH}/verrazzano
@@ -868,10 +863,10 @@ def upgradeVerrazzano() {
                 kubectl apply -f ${v8oUpgradeFile}
                 # wait for the upgrade to complete
                 kubectl wait --timeout=25m --for=condition=UpgradeComplete verrazzano/my-verrazzano
-                            
+
                 # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
                 kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
-             
+
                 echo "Ensuring that the install job(s) in verrazzzano-system are identical pre and post install"
                 cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
 
@@ -954,22 +949,6 @@ def verifyManagedClusterPermissions() {
                 """
             }
         }
-    }
-}
-
-// Run ginkgo test suites
-def runGinkgo(testSuitePath, clusterDumpDirectory) {
-    script {
-        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-        sh """
-            export MANAGED_CLUSTER_NAME="managed1"
-            export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-            export CLUSTER_COUNT=$clusterCount
-            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-            export DUMP_DIRECTORY="${clusterDumpDirectory}"
-            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
-        """
     }
 }
 
@@ -1389,25 +1368,6 @@ def modifyHelloHelidonApp(newNamespace, newProjName) {
       export MC_APP_NAMESPACE="${newNamespace}"
       export MC_PROJ_NAME="${newProjName}"
       ${GO_REPO_PATH}/verrazzano/ci/scripts/generate_mc_hello_deployment_files.sh
-    """
-}
-
-def deploySampleApp() {
-    modifyHelloHelidonApp("${SAMPLE_APP_NAMESPACE}", "${SAMPLE_APP_PROJECT}")
-    sh """
-      export KUBECONFIG=$ADMIN_KUBECONFIG
-      kubectl apply -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-sample/verrazzano-project.yaml
-      kubectl apply -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-sample/hello-helidon-comp.yaml
-      kubectl apply -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-sample/mc-hello-helidon-app.yaml
-    """
-}
-
-def undeploySampleApp() {
-    sh """
-      export KUBECONFIG=$ADMIN_KUBECONFIG
-      kubectl delete -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-sample/mc-hello-helidon-app.yaml
-      kubectl delete -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-sample/hello-helidon-comp.yaml
-      kubectl delete -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-sample/verrazzano-project.yaml
     """
 }
 
