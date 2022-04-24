@@ -13,7 +13,7 @@ pipeline {
 
     agent {
        docker {
-            image "${EXPERIMENTAL_RUNNER_DOCKER_IMAGE}"
+            image "${RUNNER_DOCKER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
@@ -36,7 +36,7 @@ pipeline {
                         description: 'This is the full git commit hash from the source build to be used for all jobs. A full pipeline specifies a valid commit hash here. NONE can be used for manually triggered jobs, however even for those a commit hash value is preferred to be supplied',
                         trim: true)
         string (name: 'N_JOBS_FOR_EACH_BATCH',
-                defaultValue: '6',
+                defaultValue: '3',
                 description: 'This is to define total number of jobs executed parallelly per each batch',
                 trim: true)
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
@@ -76,7 +76,9 @@ pipeline {
         OCI_OS_BUCKET="verrazzano-builds"
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
-        TARGET_UPGRADE_VERSION = "v1.5.0"
+        TARGET_UPGRADE_VERSION = ""
+        LATEST_RELEASE_COMMIT_SHA = ""
+
     }
 
     stages {
@@ -86,13 +88,6 @@ pipeline {
                     echo "${NODE_LABELS}"
                 """
 
-                // REVIEW: I'm not sure that we actually need to fetch the sources here, but I'm doing here as it was easier
-                // to test working with the SCM checkout settings starting from this job. We should be able to trigger this job
-                // with parameters directly (ie: based on a previous build), in that situation doing this gives us a single point
-                // to ensure the commit matches what was intended before triggering a bunch of downstream jobs that will
-                // all fail if it wasn't correct. So we may want to keep it here unless there is a compelling reason not to do so.
-                // I haven't looked at the executor resource usage yet in all of this, so it may be that could have constraints for
-                // using flyweight executors (still need to look at that)
                 script {
                     if (params.GIT_COMMIT_TO_USE == "NONE") {
                         echo "Specific GIT commit was not specified, use current head"
@@ -127,6 +122,13 @@ pipeline {
                 }
 
                 script {
+                    echo "Generate git tags and save it to tags.txt file in the workspace"
+                    sh """
+                        cd ${workspace}
+                        git tag | awk '/v1[.]/' >  tags.txt
+                        cat tags.txt
+                    """
+                    LATEST_RELEASE_COMMIT_SHA = getLatestReleaseBranch()
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
@@ -149,15 +151,11 @@ pipeline {
                 stage('Compute required N Upgrade Jobs') {
                 steps {
                     script {
-                           sh """
-                                cd ${workspace}
-                                git tag | awk '/v1[.]/' >  tags.txt
-                                cat tags.txt
-                            """
                         final String fileContent = readFile(file: "${workspace}/tags.txt")
                         final List gitTags = extractReleaseTags(fileContent)
                         echo "gitTags = ${gitTags}"
                         TARGET_UPGRADE_VERSION = gitTags.pop() - "v"
+                        TARGET_UPGRADE_VERSION = getNextPatchReleaseVersion(TARGET_UPGRADE_VERSION)
                         allReleasesToRCJobs = addTargetUpgradeVersion(gitTags)
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
                         echo "Number of jobs to be run in parallel : ${params.N_JOBS_FOR_EACH_BATCH}"
@@ -396,27 +394,55 @@ List extractReleaseTags(final String fileContent) {
 
 def allReleasesToRCStage(job) {
     return {
-                try {
-                        stage("Upgrade Verrazzano from version ${job[0]} to  ${job[1]}"){
-                        script {
-                            echo "Running upgrade job from version ${job[0]} to ${job[1]}"
-                           def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
-                                parameters: [
-                                    string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
-                                    string(name: 'VERSION_FOR_INSTALL', value: job[0]),
-                                    string(name: 'VERSION_FOR_UPGRADE', value: job[1]),
-                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
-                                ],  wait: true, propagate: true
-                        }
+        try {
+            stage("Upgrade Verrazzano from version ${job[0]} to  ${job[1]}"){
+                script {
+                    echo "Running upgrade job from version ${job[0]} to ${job[1]}"
+                    def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
+                    parameters: [
+                        string(name: 'GIT_COMMIT_TO_USE', value: LATEST_RELEASE_COMMIT_SHA ),
+                        string(name: 'VERSION_FOR_INSTALL', value: job[0]),
+                        string(name: 'VERSION_FOR_UPGRADE', value: job[1]),
+                        string(name: 'IS_TRIGGERED_MANUALLY', value: "NO"),
+                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                    ],  wait: true, propagate: true
                 }
-             }catch(err){
-                echo "Caught: ${err}"
-                //currentBuild.result = 'FAILURE'
-             }
+            }
+        }catch(err){
+            echo "Caught: ${err}"
+            currentBuild.result = 'FAILURE'
+        }
     }
+}
+
+def getNextPatchReleaseVersion(upgradeTargetVersion){
+
+    def latestReleaseTagSplit = upgradeTargetVersion.split("\\.")
+    int nextPatchVersion = Integer.parseInt(latestReleaseTagSplit[2]) + 1
+    def nextPatchRelease = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1] + "." + nextPatchVersion
+    return nextPatchRelease
+}
+
+def getLatestReleaseBranch(){
+    final String fileContent = readFile(file: "${workspace}/tags.txt")
+    final List gitTags = extractReleaseTags(fileContent)
+    echo "gitTags = ${gitTags}"
+    def latestReleaseTag = gitTags.pop() - "v"
+    def latestReleaseTagSplit = latestReleaseTag.split("\\.")
+    def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
+    latestReleaseBranch = "release-" + latestReleaseBranch
+    scmReleaseBranchInfo = checkout([
+        $class: 'GitSCM',
+        branches: [[name: latestReleaseBranch]],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [],
+        submoduleCfg: [],
+        userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+        def releaseBranchCommitSHA = scmReleaseBranchInfo.GIT_COMMIT
+    return releaseBranchCommitSHA
 }
