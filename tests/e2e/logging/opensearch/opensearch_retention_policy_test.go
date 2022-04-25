@@ -137,18 +137,20 @@ var _ = t.Describe("Opensearch Retention Policies Suite", Label("f:observability
 			}
 		}
 		for _, applicationDataStream := range applicationDataStreams {
-			indexMetadataList, err = pkg.GetBackingIndicesForDataStream(applicationDataStream)
+			indicesPerDataStream, err := pkg.GetBackingIndicesForDataStream(applicationDataStream)
 			if err != nil {
 				pkg.Log(pkg.Error, err.Error())
 				Fail(err.Error())
 			}
-			oldIndexFound, err := pkg.ContainsIndicesOlderThanRetentionPeriod(indexMetadataList, oldestAllowedTimestamp)
-			if err != nil {
-				pkg.Log(pkg.Error, err.Error())
-				Fail(err.Error())
-			}
-			Expect(oldIndexFound).To(Equal(false))
+			indexMetadataList = append(indexMetadataList, indicesPerDataStream...)
 		}
+		oldIndexFound, err := pkg.ContainsIndicesOlderThanRetentionPeriod(indexMetadataList, oldestAllowedTimestamp)
+		if err != nil {
+			pkg.Log(pkg.Error, err.Error())
+			Fail(err.Error())
+		}
+		Expect(oldIndexFound).To(Equal(false))
+
 	})
 
 })

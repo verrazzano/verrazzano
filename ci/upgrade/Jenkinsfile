@@ -443,16 +443,6 @@ pipeline {
                                 runGinkgoRandomize('upgrade/post-upgrade/verify')
                             }
                         }
-                        stage('opensearch post-upgrade') {
-                            steps {
-                                runGinkgoRandomize('upgrade/post-upgrade/opensearch')
-                            }
-                        }
-                        stage('opensearch-dashboards post-upgrade') {
-                            steps {
-                                runGinkgoRandomize('upgrade/post-upgrade/opensearch-dashboards')
-                            }
-                        }
                         stage('examples socks') {
                             steps {
                                 runGinkgoNamespace('examples/socks', "false", "false", "sockshop")

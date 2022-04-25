@@ -39,13 +39,10 @@ var _ = t.BeforeSuite(func() {
 		Fail(err.Error())
 	}
 	if supported {
-		Eventually(func() bool {
-			pkg.Log(pkg.Info, "VZ version is greater than 1.3.0")
-			m := pkg.ElasticSearchISMPolicyAddModifier{}
-			update.UpdateCR(m)
-			pkg.Log(pkg.Info, "Update the VZ CR to add the required ISM Policies")
-			return true
-		}, pollingInterval, threeMinutes).Should(BeTrue())
+		pkg.Log(pkg.Info, "VZ version is greater than 1.3.0")
+		m := pkg.ElasticSearchISMPolicyAddModifier{}
+		update.UpdateCR(m)
+		pkg.Log(pkg.Info, "Update the VZ CR to add the required ISM Policies")
 	}
 	// Wait for sufficient time to allow the VMO reconciliation to complete
 	time.Sleep(threeMinutes)
