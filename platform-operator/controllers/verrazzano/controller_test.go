@@ -1850,7 +1850,7 @@ func TestChangedValueMergeNestedMap(t *testing.T) {
 	var updated bool
 	myInstance := mytype{}
 	myInstance.MyMap = map[string]string{
-		"istio-injection": "enabled",
+		"istio-injection":         "enabled",
 		"verrazzano.io/namespace": constants.VerrazzanoSystemNamespace,
 	}
 
