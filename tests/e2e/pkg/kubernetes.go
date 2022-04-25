@@ -463,6 +463,19 @@ func IsWebLogicOperatorEnabled(kubeconfigPath string) bool {
 	return *vz.Spec.Components.WebLogicOperator.Enabled
 }
 
+// IsOpenSearchEnabled returns true if the OpenSearch component is not set, or the value of its Enabled field otherwise
+func IsOpenSearchEnabled(kubeconfigPath string) (bool, error) {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false, err
+	}
+	if vz != nil && vz.Spec.Components.Elasticsearch != nil && vz.Spec.Components.Elasticsearch.Enabled != nil {
+		return *vz.Spec.Components.Elasticsearch.Enabled, nil
+	}
+	return false, nil
+}
+
 // IsPrometheusAdapterEnabled returns false if the Prometheus Adapter component is not set, or the value of its Enabled field otherwise
 func IsPrometheusAdapterEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
