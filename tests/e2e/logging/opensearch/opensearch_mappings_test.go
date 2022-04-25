@@ -19,6 +19,7 @@ const (
 	shortWaitTimeout     = 1 * time.Minute
 	longWaitTimeout      = 3 * time.Minute
 	indexDocumentURL     = "%s/_doc"
+	maxRetries           = 10
 )
 
 var t = framework.NewTestFramework("field-mappings")
@@ -41,7 +42,7 @@ var _ = t.BeforeSuite(func() {
 		pkg.Log(pkg.Info, "Update the VZ CR to add the required ISM Policies")
 	}
 	// Wait for sufficient time to allow the VMO reconciliation to complete
-	time.Sleep(longWaitTimeout)
+	pkg.WaitForISMPolicyUpdate(maxRetries, shortPollingInterval)
 	pkg.Log(pkg.Info, "Before suite setup completed")
 })
 

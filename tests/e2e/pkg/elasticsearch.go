@@ -580,6 +580,15 @@ func IsDataStreamSupported() bool {
 	return false
 }
 
+//WaitForISMPolicyUpdate waits for the VMO reconcile to complete and the ISM policies are created
+func WaitForISMPolicyUpdate(maxRetries int, pollingInterval time.Duration) {
+	i := 0
+	for i < maxRetries || IsDataStreamSupported() {
+		time.Sleep(pollingInterval)
+		i++
+	}
+}
+
 func ListSystemIndices() []string {
 	return []string{
 		"verrazzano-namespace-cert-manager",

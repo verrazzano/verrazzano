@@ -8,7 +8,7 @@ from os.path import exists
 
 def get_vulnerability_url(id):
     if (id.lower().startswith("cve")) :
-        return 'https://nvd.nist.gov/' + '/vuln/detail/'+ id
+        return 'https://nvd.nist.gov/' + 'vuln/detail/'+ id
     elif (id.lower().startswith("elsa")):
         return 'https://linux.oracle.com/errata/'+ id + '.html'
     elif (id.lower().startswith("ghsa")):

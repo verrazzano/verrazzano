@@ -18,6 +18,7 @@ import (
 )
 
 const (
+	maxRetries      = 10
 	threeMinutes    = 3 * time.Minute
 	pollingInterval = 10 * time.Second
 	documentFile    = "testdata/upgrade/opensearch/document1.json"
@@ -43,7 +44,7 @@ var _ = t.BeforeSuite(func() {
 		pkg.Log(pkg.Info, "Update the VZ CR to add the required ISM Policies")
 	}
 	// Wait for sufficient time to allow the VMO reconciliation to complete
-	time.Sleep(threeMinutes)
+	pkg.WaitForISMPolicyUpdate(maxRetries, pollingInterval)
 	pkg.Log(pkg.Info, "Before suite setup completed")
 })
 
