@@ -5,7 +5,6 @@ package yaml
 
 import (
 	"errors"
-	"regexp"
 	"strings"
 )
 
@@ -55,7 +54,10 @@ func Expand(leftMargin int, forceList bool, name string, vals ...string) (string
 	}
 	// Remove any trailing dot and split the first part of the string at the dots.
 	unquotedPart := strings.TrimRight(quoteSegs[0], ".")
-	nameSegs := regexp.MustCompile(`[^\\]\.`).Split(unquotedPart, -1)
+	// Replace backslashed dots because of no negative lookbehind
+	placeholder := "/*placeholder*/"
+	unquotedPart = strings.Replace(unquotedPart, "\\.", placeholder, -1)
+	nameSegs := strings.Split(unquotedPart, ".")
 	if len(quoteSegs) == 2 {
 		// Add back the original quoted string if it existed
 		// e.g. change service\.beta\.kubernetes\.io/oci-load-balancer-shape to
@@ -69,8 +71,8 @@ func Expand(leftMargin int, forceList bool, name string, vals ...string) (string
 	nextValueList := false
 	indentVal := " "
 	for i, seg := range nameSegs {
-		// Get rid of escape characters for dots
-		seg = strings.Replace(seg, "\\.", ".", -1)
+		// Get rid of placeholder
+		seg = strings.Replace(seg, placeholder, ".", -1)
 
 		// Create the padded indent
 		pad := strings.Repeat(indentVal, leftMargin+(indent*(i+listIndents)))
