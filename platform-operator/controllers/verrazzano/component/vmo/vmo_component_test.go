@@ -115,6 +115,7 @@ func TestPostUpgrade(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = rbacv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
+	_ = appsv1.AddToScheme(scheme)
 	err := NewComponent().PostUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(scheme).Build(), nil, false))
 	assert.NoError(t, err)
 }
@@ -130,6 +131,7 @@ func TestPreUpgrade(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = rbacv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
+	_ = appsv1.AddToScheme(scheme)
 	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(scheme).Build(), nil, false))
 	assert.NoError(t, err)
 }

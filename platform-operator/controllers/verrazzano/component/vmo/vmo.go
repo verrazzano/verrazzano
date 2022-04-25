@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -103,6 +104,7 @@ func reassociateResources(ctx spi.ComponentContext) error {
 func getHelmManagedResources() []common.HelmManagedResource {
 	return []common.HelmManagedResource{
 		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-config", Namespace: ComponentNamespace}},
+		{Obj: &appsv1.Deployment{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
 		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
 		{Obj: &corev1.ServiceAccount{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
 		{Obj: &rbacv1.ClusterRole{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-cluster-role"}},
