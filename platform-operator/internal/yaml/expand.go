@@ -73,7 +73,7 @@ func Expand(leftMargin int, forceList bool, name string, vals ...string) (string
 		// Check if current value is a new list value
 		if nextValueList {
 			pad += "- "
-			listIndents += 1
+			listIndents++
 			nextValueList = false
 		}
 

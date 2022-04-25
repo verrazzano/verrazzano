@@ -332,6 +332,9 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	}
 
 	tmpFile, err := vzos.CreateTempFile(context.Log(), "values-*.yaml", stdout)
+	if err != nil {
+		return err
+	}
 
 	// Generate a list of override files making helm get values overrides first
 	overrides = append([]helm.HelmOverrides{{FileOverride: tmpFile.Name()}}, overrides...)
@@ -563,19 +566,6 @@ func createHelmOverrideFile(ctx spi.ComponentContext, nsn types.NamespacedName, 
 		return file, err
 	}
 	return file, nil
-}
-
-// freeOverrideFiles frees the created Override files immediately from a failure
-func freeOverrideFiles(files []*os.File) error {
-	for _, file := range files {
-		if file != nil {
-			err := os.Remove(file.Name())
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
 }
 
 // resolveNamespace Resolve/normalize the namespace for a Helm-based component
