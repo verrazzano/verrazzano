@@ -101,6 +101,7 @@ func Expand(leftMargin int, forceList bool, name string, vals ...string) (string
 		}
 		// If this is the last segment then write the value, else LF
 		if lastVal {
+			// indent is different based on if the last value was a list
 			indentSize := 1
 			if nextValueList {
 				indentSize = 2
@@ -121,6 +122,12 @@ func Expand(leftMargin int, forceList bool, name string, vals ...string) (string
 // writeVals writes a single value or a list of values to the string builder.
 // If forcelist is true then always use the list format.
 func writeVals(b *strings.Builder, forceList bool, pad string, vals ...string) error {
+	// check for multiline value
+	if len(vals) == 1 && strings.Contains(vals[0], "\n") {
+		b.WriteString(" |\n")
+		b.WriteString(pad + strings.Replace(vals[0], "\n", "\n"+pad, -1))
+		return nil
+	}
 	if len(vals) == 1 && !forceList {
 		// Write the single value, for example:
 		// key: val1

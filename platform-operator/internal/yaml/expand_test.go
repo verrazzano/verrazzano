@@ -72,6 +72,27 @@ const name9 = "aa\\.bb"
 const val9 = `val_9`
 const expanded9 = `aa.bb: val_9`
 
+// Multiline value
+const name10 = "aa"
+const val10 = `val_10
+val_10
+val_10`
+const expanded10 = `aa: |
+  val_10
+  val_10
+  val_10`
+
+// Nested value
+const name11 = "aa.bb"
+const val11 = `val_11
+val_11
+val_11`
+const expanded11 = `aa:
+  bb: |
+    val_11
+    val_11
+    val_11`
+
 // TestExpand tests the Expand function
 // GIVEN a set of dot seperated names
 // WHEN Expand is called
@@ -146,6 +167,20 @@ func TestExpand(t *testing.T) {
 			forceList: false,
 			values:    []string{val9},
 			expected:  expanded9,
+		},
+		{
+			testName:  "10",
+			name:      name10,
+			forceList: false,
+			values:    []string{val10},
+			expected:  expanded10,
+		},
+		{
+			testName:  "11",
+			name:      name11,
+			forceList: false,
+			values:    []string{val11},
+			expected:  expanded11,
 		},
 	}
 	for _, test := range tests {
