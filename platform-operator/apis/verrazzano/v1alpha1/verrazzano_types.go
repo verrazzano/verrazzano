@@ -389,6 +389,20 @@ type ElasticsearchComponent struct {
 	// +patchStrategy=merge,retainKeys
 	ESInstallArgs []InstallArgs                 `json:"installArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 	Policies      []vmov1.IndexManagementPolicy `json:"policies,omitempty"`
+	Nodes         []OpenSearchNode              `json:"nodes,omitempty"`
+}
+
+//OpenSearchNode specifies a node group in the OpenSearch cluster
+type OpenSearchNode struct {
+	Name      string                       `json:"name,omitempty"`
+	Replicas  int32                        `json:"replicas,omitempty"`
+	Roles     []vmov1.NodeRole             `json:"roles,omitempty"`
+	Storage   *OpenSearchNodeStorage       `json:"storage,omitempty"`
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+}
+
+type OpenSearchNodeStorage struct {
+	Size string `json:"size"`
 }
 
 // KibanaComponent specifies the Kibana configuration.
@@ -424,7 +438,8 @@ type PrometheusNodeExporterComponent struct {
 // PrometheusOperatorComponent specifies the Prometheus Operator configuration
 type PrometheusOperatorComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled            *bool `json:"enabled,omitempty"`
+	HelmValueOverrides `json:",inline"`
 }
 
 // PrometheusPushgatewayComponent specifies the Prometheus Pushgateway configuration.
@@ -723,3 +738,23 @@ type OciLoggingConfiguration struct {
 	SystemLogID     string `json:"systemLogId"`
 	APISecret       string `json:"apiSecret,omitempty"`
 }
+
+type HelmValueOverrides struct {
+	MonitorChanges *WatchHelmValues `json:"monitorChanges,omitempty"`
+	ValueOverrides []Overrides      `json:"overrides,omitempty"`
+}
+
+type Overrides struct {
+	ConfigMapRef *ConfigMapRef `json:"configMapRef,omitempty"`
+	SecretRef    *SecretRef    `json:"secretRef,omitempty"`
+}
+
+type ConfigMapRef struct {
+	ConfigMapKeySelector *corev1.ConfigMapKeySelector `json:",inline"`
+}
+
+type SecretRef struct {
+	SecretKeySelector *corev1.SecretKeySelector `json:",inline"`
+}
+
+type WatchHelmValues bool

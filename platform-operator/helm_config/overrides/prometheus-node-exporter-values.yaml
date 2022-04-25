@@ -1,0 +1,11 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+# Set the port to 9400 instead of the default 9100 so as not to clash with the node-exporter installed in
+# the monitoring namespace (this one is for the verrazzano-monitoring namespace).
+service:
+  port: 9400
+
+# The way the daemonset name is defined results in a very long name with duplication (using the Chart name +
+# release name). Instead override the full name of the daemonset to what we want.
+fullName: prometheus-node-exporter

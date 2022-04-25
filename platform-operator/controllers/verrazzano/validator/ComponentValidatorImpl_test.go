@@ -102,7 +102,7 @@ func TestComponentValidatorImpl_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			numberOfErrors: 6,
+			numberOfErrors: 5,
 		},
 		{
 			name: "disabled cert and ingress",

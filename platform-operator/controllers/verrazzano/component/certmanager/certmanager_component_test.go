@@ -53,7 +53,7 @@ func TestValidateUpdate(t *testing.T) {
 //  WHEN for various CM configurations
 //  THEN an error is returned if anything is misconfigured
 func TestValidateInstall(t *testing.T) {
-	validationTests(t, true)
+	validationTests(t, false)
 }
 
 // TestPostInstallCA tests the PostInstall function
@@ -61,11 +61,11 @@ func TestValidateInstall(t *testing.T) {
 //  WHEN the cert type is CA
 //  THEN no error is returned
 func TestPostInstallCA(t *testing.T) {
-	localvz := vz.DeepCopy()
+	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
 
 	defer func() { getClientFunc = k8sutil.GetCoreV1Client }()
-	getClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA, "vz-cn")
+	getClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA, "defaultVZConfig-cn")
 
 	defer func() { getCMClientFunc = GetCertManagerClientset }()
 	getCMClientFunc = func() (certv1client.CertmanagerV1Interface, error) {
@@ -95,20 +95,20 @@ func TestPostInstallUpdateCA(t *testing.T) {
 }
 
 func runCAUpdateTest(t *testing.T, upgrade bool) {
-	localvz := vz.DeepCopy()
+	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
 
-	updatedVZ := vz.DeepCopy()
+	updatedVZ := defaultVZConfig.DeepCopy()
 	newCA := vzapi.CA{
 		SecretName:               "newsecret",
 		ClusterResourceNamespace: "newnamespace",
 	}
 	updatedVZ.Spec.Components.CertManager.Certificate.CA = newCA
 
-	//vzCertSecret := createCertSecret("verrazzano-ca-certificate-secret", constants2.CertManagerNamespace, "vz-cn")
-	//caSecret := createCertSecret("newsecret", "newnamespace", "vz-cn")
+	//vzCertSecret := createCertSecret("verrazzano-ca-certificate-secret", constants2.CertManagerNamespace, "defaultVZConfig-cn")
+	//caSecret := createCertSecret("newsecret", "newnamespace", "defaultVZConfig-cn")
 	defer func() { getClientFunc = k8sutil.GetCoreV1Client }()
-	getClientFunc = createClientFunc(updatedVZ.Spec.Components.CertManager.Certificate.CA, "vz-cn")
+	getClientFunc = createClientFunc(updatedVZ.Spec.Components.CertManager.Certificate.CA, "defaultVZConfig-cn")
 
 	defer func() { getCMClientFunc = GetCertManagerClientset }()
 	cmClient := certv1fake.NewSimpleClientset()
@@ -147,7 +147,7 @@ func runCAUpdateTest(t *testing.T, upgrade bool) {
 //  WHEN the cert type is Acme
 //  THEN no error is returned
 func TestPostInstallAcme(t *testing.T) {
-	localvz := vz.DeepCopy()
+	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	// set OCI DNS secret value and create secret
@@ -184,7 +184,7 @@ func TestPostInstallAcmeUpdate(t *testing.T) {
 }
 
 func runAcmeUpdateTest(t *testing.T, upgrade bool) {
-	localvz := vz.DeepCopy()
+	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
 	// set OCI DNS secret value and create secret
 	oci := &vzapi.OCI{
@@ -210,13 +210,14 @@ func runAcmeUpdateTest(t *testing.T, upgrade bool) {
 	}
 
 	existingIssuer, _ := createAcmeClusterIssuer(vzlog.DefaultLogger(), templateData{
-		Email:       acme.EmailAddress,
-		Server:      acme.Environment,
-		SecretName:  oci.OCIConfigSecret,
-		OCIZoneName: oci.DNSZoneName,
+		Email:          acme.EmailAddress,
+		AcmeSecretName: caAcmeSecretName,
+		Server:         acme.Environment,
+		SecretName:     oci.OCIConfigSecret,
+		OCIZoneName:    oci.DNSZoneName,
 	})
 
-	updatedVz := vz.DeepCopy()
+	updatedVz := defaultVZConfig.DeepCopy()
 	newAcme := vzapi.Acme{
 		Provider:     "letsEncrypt",
 		EmailAddress: "slbronkowitz@gmail.com",
@@ -231,10 +232,11 @@ func runAcmeUpdateTest(t *testing.T, upgrade bool) {
 	updatedVz.Spec.Components.DNS = &vzapi.DNSComponent{OCI: newOCI}
 
 	expectedIssuer, _ := createAcmeClusterIssuer(vzlog.DefaultLogger(), templateData{
-		Email:       newAcme.EmailAddress,
-		Server:      letsEncryptProdEndpoint,
-		SecretName:  newOCI.OCIConfigSecret,
-		OCIZoneName: newOCI.DNSZoneName,
+		Email:          newAcme.EmailAddress,
+		AcmeSecretName: caAcmeSecretName,
+		Server:         letsEncryptProdEndpoint,
+		SecretName:     newOCI.OCIConfigSecret,
+		OCIZoneName:    newOCI.DNSZoneName,
 	})
 
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(localvz, oldSecret, newSecret, existingIssuer).Build()
@@ -261,7 +263,7 @@ func runAcmeUpdateTest(t *testing.T, upgrade bool) {
 func TestClusterIssuerUpdated(t *testing.T) {
 	asserts := assert.New(t)
 
-	localvz := vz.DeepCopy()
+	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
 	// set OCI DNS secret value and create secret
 	oci := &vzapi.OCI{
@@ -428,7 +430,7 @@ func TestClusterIssuerUpdated(t *testing.T) {
 //  THEN no error is returned
 func TestDryRun(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(client, vz, true)
+	ctx := spi.NewFakeContext(client, defaultVZConfig, true)
 
 	assert.NoError(t, fakeComponent.PreInstall(ctx))
 	assert.NoError(t, fakeComponent.PostInstall(ctx))
@@ -859,7 +861,8 @@ func runValidationTest(t *testing.T, tt validationTestStruct, isUpdate bool, c s
 			t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 		}
 	} else {
-		if err := c.ValidateInstall(tt.new); (err != nil) != tt.wantErr {
+		wantErr := tt.name != "disable" && tt.wantErr // hack for disable validation, allowed on initial install but not on update
+		if err := c.ValidateInstall(tt.new); (err != nil) != wantErr {
 			t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 		}
 	}
