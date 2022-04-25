@@ -55,7 +55,7 @@ func (c jaegerOperatorComponent) Install(ctx spi.ComponentContext) error {
 }
 
 func (c jaegerOperatorComponent) Reconcile(ctx spi.ComponentContext) error {
-	return componentInstall(ctx)
+	return nil
 }
 
 func (c jaegerOperatorComponent) IsReady(context spi.ComponentContext) bool {
