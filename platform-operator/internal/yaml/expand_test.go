@@ -67,6 +67,11 @@ const expanded8 = `aa:
       - cc:
           - val_8`
 
+// Escaped characters
+const name9 = "aa\\.bb"
+const val9 = `val_9`
+const expanded9 = `aa.bb: val_9`
+
 // TestExpand tests the Expand function
 // GIVEN a set of dot seperated names
 // WHEN Expand is called
@@ -134,6 +139,13 @@ func TestExpand(t *testing.T) {
 			forceList: false,
 			values:    []string{val8},
 			expected:  expanded8,
+		},
+		{
+			testName:  "9",
+			name:      name9,
+			forceList: false,
+			values:    []string{val9},
+			expected:  expanded9,
 		},
 	}
 	for _, test := range tests {
