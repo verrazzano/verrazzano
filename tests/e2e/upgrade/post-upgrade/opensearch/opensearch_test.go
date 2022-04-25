@@ -47,11 +47,6 @@ var _ = t.BeforeSuite(func() {
 	pkg.Log(pkg.Info, "Before suite setup completed")
 })
 
-var _ = t.AfterSuite(func() {
-	pkg.Log(pkg.Info, "Cleaning up ISM policy in after test suite")
-	m := pkg.ElasticSearchISMPolicyRemoveModifier{}
-	update.UpdateCR(m)
-})
 var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"), func() {
 	// It Wrapper to only run spec if component is supported on the current Verrazzano installation
 	MinimumVerrazzanoIt := func(description string, f func()) {
