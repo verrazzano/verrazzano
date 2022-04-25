@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"path/filepath"
 
@@ -147,6 +148,10 @@ func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	cleanTempFiles(ctx)
 	c.HelmComponent.IngressNames = c.GetIngressNames(ctx)
 	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
+	err := vmo.ReassociateResources(ctx)
+	if err != nil {
+		return err
+	}
 	return c.HelmComponent.PostUpgrade(ctx)
 }
 

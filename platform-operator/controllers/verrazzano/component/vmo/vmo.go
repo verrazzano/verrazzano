@@ -85,10 +85,10 @@ func exportVMOHelmChart(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// reassociateResources updates the resources to ensure they are managed by the VMO release/component.  The resource policy
+// ReassociateResources updates the resources to ensure they are managed by the VMO release/component.  The resource policy
 // annotation is removed to ensure that helm manages the lifecycle of the resources (the resource policy annotation is
 // added to ensure the resources are disassociated from the VZ chart which used to manage these resources)
-func reassociateResources(ctx spi.ComponentContext) error {
+func ReassociateResources(ctx spi.ComponentContext) error {
 	managedResources := getHelmManagedResources()
 	for _, managedResource := range managedResources {
 		if _, err := common.RemoveResourcePolicyAnnotation(ctx.Client(), managedResource.Obj, managedResource.NamespacedName); err != nil {
