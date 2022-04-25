@@ -64,9 +64,25 @@ func Expand(leftMargin int, forceList bool, name string, vals ...string) (string
 	}
 	// Loop through all the name segments, for example, these 4:
 	//    controller, service, annotations, service.beta.kubernetes.io/oci-load-balancer-shape
+	listIndents := 0
+	nextValueList := false
 	for i, seg := range nameSegs {
 		// Create the padded indent
-		pad := strings.Repeat(" ", leftMargin+indent*i)
+		pad := strings.Repeat(" ", leftMargin+(indent*(i+listIndents)))
+
+		// Check if current value is a new list value
+		if nextValueList {
+			pad += "- "
+			listIndents += 1
+			nextValueList = false
+		}
+
+		// Check if internal list value next
+		splitList := strings.Split(seg, `[`)
+		if len(splitList) > 1 {
+			seg = splitList[0]
+			nextValueList = true
+		}
 
 		// Write the indent padding, then name followed by colon
 		if _, err := b.WriteString(pad + seg + ":"); err != nil {
@@ -84,7 +100,6 @@ func Expand(leftMargin int, forceList bool, name string, vals ...string) (string
 		}
 	}
 	return b.String(), nil
-	// TODO add valueList
 }
 
 // writeVals writes a single value or a list of values to the string builder.

@@ -45,6 +45,20 @@ const expanded5 = `aa:
   bb:
   - val_5a`
 
+// Name with list internal
+const name6 = `aa.bb[0].cc`
+const val6 = `val_6`
+const expanded6 = `aa:
+  bb:
+    - cc: val_6`
+
+// Name with multiple list internal
+const name7 = `aa[0].bb[0].cc`
+const val7 = `val_7`
+const expanded7 = `aa:
+  - bb:
+      - cc: val_7`
+
 // TestExpand tests the Expand function
 // GIVEN a set of dot seperated names
 // WHEN Expand is called
@@ -91,6 +105,20 @@ func TestExpand(t *testing.T) {
 			forceList: true,
 			values:    []string{val5},
 			expected:  expanded5,
+		},
+		{
+			testName:  "6",
+			name:      name6,
+			forceList: false,
+			values:    []string{val6},
+			expected:  expanded6,
+		},
+		{
+			testName:  "7",
+			name:      name7,
+			forceList: false,
+			values:    []string{val7},
+			expected:  expanded7,
 		},
 	}
 	for _, test := range tests {
