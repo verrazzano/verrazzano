@@ -92,3 +92,7 @@ func (c vmoComponent) PreUpgrade(context spi.ComponentContext) error {
 func (c vmoComponent) PostUpgrade(context spi.ComponentContext) error {
 	return reassociateResources(context)
 }
+
+func (c vmoComponent) Upgrade(context spi.ComponentContext) error {
+	return c.HelmComponent.Install(context)
+}
