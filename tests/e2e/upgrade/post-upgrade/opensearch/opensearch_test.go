@@ -37,10 +37,12 @@ var _ = t.BeforeSuite(func() {
 		Fail(err.Error())
 	}
 	if supported {
-		pkg.Log(pkg.Info, "VZ version is greater than 1.3.0")
-		m := pkg.ElasticSearchISMPolicyAddModifier{}
-		update.UpdateCR(m)
-		pkg.Log(pkg.Info, "Update the VZ CR to add the required ISM Policies")
+		Eventually(func() {
+			pkg.Log(pkg.Info, "VZ version is greater than 1.3.0")
+			m := pkg.ElasticSearchISMPolicyAddModifier{}
+			update.UpdateCR(m)
+			pkg.Log(pkg.Info, "Update the VZ CR to add the required ISM Policies")
+		})
 	}
 	// Wait for sufficient time to allow the VMO reconciliation to complete
 	time.Sleep(threeMinutes)
@@ -75,6 +77,10 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 	// THEN verify that they do not have the old indices
 	MinimumVerrazzanoIt("Old indices are deleted", func() {
 		Eventually(func() bool {
+			if !pkg.IsDataStreamSupported() {
+				pkg.Log(pkg.Info, "Data stream not supported, skipping the tests")
+				return true
+			}
 			kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
 			if pkg.IsOpenSearchEnabled(kubeconfigPath) {
 				oldIndicesPatterns := []string{"^verrazzano-namespace-.*$", "^verrazzano-systemd-journal$",
@@ -90,6 +96,10 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 	// THEN verify that they have data streams
 	MinimumVerrazzanoIt("Data streams are created", func() {
 		Eventually(func() bool {
+			if !pkg.IsDataStreamSupported() {
+				pkg.Log(pkg.Info, "Data stream not supported, skipping the tests")
+				return true
+			}
 			kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
 			if pkg.IsOpenSearchEnabled(kubeconfigPath) {
 				return pkg.CheckForDataStream(pkg.VerrazzanoNamespace)
@@ -102,6 +112,10 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 	// THEN verify that the data can be retrieved successfully
 	MinimumVerrazzanoIt("OpenSearch get old data", func() {
 		Eventually(func() bool {
+			if !pkg.IsDataStreamSupported() {
+				pkg.Log(pkg.Info, "Data stream not supported, skipping the tests")
+				return true
+			}
 			kubeConfigPath, _ := k8sutil.GetKubeConfigLocation()
 			if pkg.IsOpenSearchEnabled(kubeConfigPath) {
 				indexName, err := pkg.GetOpenSearchSystemIndex(pkg.VerrazzanoNamespace)
@@ -145,6 +159,10 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 	// THEN only the system logs that are as old as the retention period
 	//      is migrated and older logs are purged
 	MinimumVerrazzanoIt("OpenSearch system logs older than retention period is not available post upgrade", func() {
+		if !pkg.IsDataStreamSupported() {
+			pkg.Log(pkg.Info, "Data stream not supported, skipping the tests")
+			return
+		}
 		systemRetentionPolicy, err := pkg.GetVerrazzanoRetentionPolicy(pkg.SystemLogIsmPolicyName)
 		if err != nil {
 			Fail("Error getting retention period for system logs from VZ CR - " + err.Error())
@@ -161,6 +179,10 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 	// THEN only the application logs that are as old as the retention period
 	//      is migrated and older logs are purged
 	MinimumVerrazzanoIt("OpenSearch application logs older than retention period is not available post upgrade", func() {
+		if !pkg.IsDataStreamSupported() {
+			pkg.Log(pkg.Info, "Data stream not supported, skipping the tests")
+			return
+		}
 		applicationRetentionPolicy, err := pkg.GetVerrazzanoRetentionPolicy(pkg.ApplicationLogIsmPolicyName)
 		if err != nil {
 			Fail("Error getting retention period for system logs from VZ CR - " + err.Error())

@@ -39,10 +39,12 @@ var _ = t.BeforeSuite(func() {
 		Fail(err.Error())
 	}
 	if supported {
-		pkg.Log(pkg.Info, "VZ version is greater than 1.3.0")
-		m := pkg.ElasticSearchISMPolicyAddModifier{}
-		update.UpdateCR(m)
-		pkg.Log(pkg.Info, "Update the VZ CR to add the required ISM Policies")
+		Eventually(func() {
+			pkg.Log(pkg.Info, "VZ version is greater than 1.3.0")
+			m := pkg.ElasticSearchISMPolicyAddModifier{}
+			update.UpdateCR(m)
+			pkg.Log(pkg.Info, "Update the VZ CR to add the required ISM Policies")
+		}, pollingInterval, threeMinutes)
 	}
 	// Wait for sufficient time to allow the VMO reconciliation to complete
 	time.Sleep(threeMinutes)
@@ -76,6 +78,10 @@ var _ = t.Describe("Index Patterns", Label("f:observability.logging.kibana"), fu
 	// THEN verify that they are as expected
 	MinimumVerrazzanoIt("Verify Index Patterns", func() {
 		Eventually(func() bool {
+			if !pkg.IsDataStreamSupported() {
+				pkg.Log(pkg.Info, "Data Stream not supported")
+				return true
+			}
 			kubeConfigPath, _ := k8sutil.GetKubeConfigLocation()
 			if pkg.IsOpenSearchDashboardsEnabled(kubeConfigPath) {
 				isVersionAbove1_3_0, err := pkg.IsVerrazzanoMinVersion("1.3.0", kubeConfigPath)
