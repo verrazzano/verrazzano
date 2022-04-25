@@ -338,7 +338,7 @@ pipeline {
                     kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
 
                     # wait for the upgrade to complete
-                    kubectl wait --timeout=40m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                    kubectl wait --timeout=25m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
                     # Dump the resource to debug
                     kubectl get -o yaml verrazzano/my-verrazzano || true
