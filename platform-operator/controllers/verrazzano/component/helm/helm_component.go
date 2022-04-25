@@ -241,7 +241,7 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 
 	// vz-specific chart overrides file
 	overrides, err := h.buildCustomHelmOverrides(context, resolvedNamespace, kvs...)
-	defer vzos.RemoveTempFiles(context.Log().GetZapLogger(), "*")
+	defer vzos.RemoveTempFiles(context.Log().GetZapLogger(), `\w*`)
 	if err != nil {
 		return err
 	}
@@ -321,7 +321,7 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	}
 
 	overrides, err := h.buildCustomHelmOverrides(context, namespace)
-	defer vzos.RemoveTempFiles(context.Log().GetZapLogger(), "*")
+	defer vzos.RemoveTempFiles(context.Log().GetZapLogger(), `\w*`)
 	if err != nil {
 		return err
 	}
