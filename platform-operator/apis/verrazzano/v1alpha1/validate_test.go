@@ -33,9 +33,9 @@ import (
 
 // For unit testing
 const actualBomFilePath = "../../../verrazzano-bom.json"
-const testBomFilePath = "../../../controllers//verrazzano/testdata/test_bom.json"
-const invalidTestBomFilePath = "../../../controllers//verrazzano/testdata/invalid_test_bom.json"
-const invalidPathTestBomFilePath = "../../../controllers//verrazzano/testdata/invalid_test_bom_path.json"
+const testBomFilePath = "../../../controllers/verrazzano/testdata/test_bom.json"
+const invalidTestBomFilePath = "../../../controllers/verrazzano/testdata/invalid_test_bom.json"
+const invalidPathTestBomFilePath = "../../../controllers/verrazzano/testdata/invalid_test_bom_path.json"
 
 // TestValidUpgradeRequestNoCurrentVersion Tests the condition for valid upgrade where the version is not specified in the current spec
 // GIVEN an edit to update a Verrazzano spec to a new version
@@ -61,6 +61,125 @@ func TestValidUpgradeRequestNoCurrentVersion(t *testing.T) {
 		},
 	}
 	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
+}
+
+// TestUpdateBeforeUpgrade Tests ValidateUpgradeRequest
+// GIVEN an edit to update a Verrazzano spec
+// WHEN no new version is requested and the spec has been modified
+// THEN ensure an error is returned
+func TestUpdateBeforeUpgrade(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	currentSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: "dev",
+		},
+		Status: VerrazzanoStatus{
+			Version: "v1.0.0",
+		},
+	}
+	newSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: "dev",
+			Components: ComponentSpec{
+				DNS: &DNSComponent{
+					Wildcard: &Wildcard{
+						Domain: "sslip.io",
+					},
+				},
+			},
+		},
+	}
+	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
+}
+
+// TestUpdateWithUpgrade Tests ValidateUpgradeRequest
+// GIVEN an edit to update a Verrazzano spec
+// WHEN a valid new version is requested and the spec has been modified
+// THEN ensure no error is returned
+func TestUpdateWithUpgrade(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	currentSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: "dev",
+		},
+		Status: VerrazzanoStatus{
+			Version: "v1.0.0",
+		},
+	}
+	newSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: "dev",
+			Version: "v1.1.0",
+			Components: ComponentSpec{
+				DNS: &DNSComponent{
+					Wildcard: &Wildcard{
+						Domain: "sslip.io",
+					},
+				},
+			},
+		},
+	}
+	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
+}
+
+// TestUpgradeNewVerDoesNotMatchBOMVer Tests ValidateUpgradeRequest
+// GIVEN an edit to update a Verrazzano spec
+// WHEN a valid new version is requested that is less than the BOM version
+// THEN ensure an error is returned
+func TestUpgradeNewVerDoesNotMatchBOMVer(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	currentSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: "dev",
+		},
+		Status: VerrazzanoStatus{
+			Version: "v1.0.0",
+		},
+	}
+	newSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: "dev",
+			Version: "v0.9.0",
+		},
+	}
+	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
+}
+
+// TestUpgradeNewVerLessThanCurrentCer Tests ValidateUpgradeRequest
+// GIVEN an edit to update a Verrazzano spec
+// WHEN a valid new version is requested that is less than the current spec version
+// THEN ensure an error is returned
+func TestUpgradeNewVerLessThanCurrentCer(t *testing.T) {
+	// This case can probably never happen in reality?
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	currentSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Version: "v1.2.0",
+			Profile: "dev",
+		},
+		Status: VerrazzanoStatus{
+			Version: "v1.2.0",
+		},
+	}
+	newSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: "dev",
+			Version: "v1.1.0",
+		},
+	}
+	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestValidUpgradeRequestCurrentVersionExists Tests the condition for valid upgrade where versions are specified in both specs
@@ -103,6 +222,9 @@ func TestValidUpgradeNotNecessary(t *testing.T) {
 		Spec: VerrazzanoSpec{
 			Version: "v0.17.0",
 			Profile: "dev",
+		},
+		Status: VerrazzanoStatus{
+			Version: "v0.17.0",
 		},
 	}
 	newSpec := &Verrazzano{
@@ -162,10 +284,10 @@ func TestValidateUpgradeBadNewVersion(t *testing.T) {
 	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
-// TestNoVersionsSpecified Tests the validate passes if no versions are specified in either spec
+// TestNoVersionsSpecified Tests ValidateUpgradeRequest
 // GIVEN an edit to update a Verrazzano spec
-// WHEN the new version and the current version are not specified
-// THEN ensure no error is returned from ValidateUpgradeRequest
+// WHEN the new version and the current version are not specified, but the installed version is up to date
+// THEN no error is returned from ValidateUpgradeRequest
 func TestNoVersionsSpecified(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
@@ -174,6 +296,9 @@ func TestNoVersionsSpecified(t *testing.T) {
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Profile: "dev",
+		},
+		Status: VerrazzanoStatus{
+			Version: "v1.1.0",
 		},
 	}
 	newSpec := &Verrazzano{
@@ -205,53 +330,6 @@ func TestValidVersionWithProfileChange(t *testing.T) {
 		},
 	}
 	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
-}
-
-// TestProfileChangeOnlyNoVersions Tests the validate fails if no versions specified but the profile is changed
-// GIVEN an edit to update a Verrazzano spec
-// WHEN only the profile has changed
-// THEN no error is returned from ValidateUpgradeRequest
-func TestProfileChangeOnlyNoVersions(t *testing.T) {
-	config.SetDefaultBomFilePath(testBomFilePath)
-	defer func() {
-		config.SetDefaultBomFilePath("")
-	}()
-	currentSpec := &Verrazzano{
-		Spec: VerrazzanoSpec{
-			Profile: "dev",
-		},
-	}
-	newSpec := &Verrazzano{
-		Spec: VerrazzanoSpec{
-			Profile: "prod",
-		},
-	}
-	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
-}
-
-// TestProfileChangeOnlyNoNewVersionString Tests the validate fails if the old spec has a version but the new one doesn't
-// GIVEN an edit to update a Verrazzano spec to change a profile value
-// WHEN the old spec specifies a version but the new one does not
-// THEN an error is returned from ValidateUpgradeRequest
-func TestProfileChangeOnlyNoNewVersionString(t *testing.T) {
-	config.SetDefaultBomFilePath(testBomFilePath)
-	defer func() {
-		config.SetDefaultBomFilePath("")
-	}()
-	currentSpec := &Verrazzano{
-		Spec: VerrazzanoSpec{
-			Profile: "dev",
-			Version: "v0.16.0",
-		},
-	}
-	newSpec := &Verrazzano{
-		Spec: VerrazzanoSpec{
-			Profile: "prod",
-		},
-	}
-	err := ValidateUpgradeRequest(currentSpec, newSpec)
-	assert.Error(t, err)
-	assert.Equal(t, "Requested version is not specified", err.Error())
 }
 
 // TestValidVersionWithEnvNameChange Tests the validate fails if the upgrade version is OK but the EnvironmentName is changed

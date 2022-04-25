@@ -141,15 +141,6 @@ func ValidateUpgradeRequest(current *Verrazzano, new *Verrazzano) error {
 		return nil
 	}
 
-	// Short-circuit if the version strings are the same
-	if currentSpec.Version == newSpec.Version {
-		return nil
-	}
-	if len(newSpec.Version) == 0 {
-		// if we get here, the current version is not empty, but the new version is
-		return fmt.Errorf("Requested version is not specified")
-	}
-
 	// if the installed version is not == BOM version and newspec versiom isn't set,
 	// reject the update; upgrade needs to happen before any update
 	bomVersion, err := GetCurrentBomVersion()
@@ -160,34 +151,31 @@ func ValidateUpgradeRequest(current *Verrazzano, new *Verrazzano) error {
 	if err != nil {
 		return err
 	}
-	if len(newSpec.Version) == 0 && !bomVersion.IsEqualTo(installedVersion) {
-		return fmt.Errorf("Upgrade required for update, set version field to %v to upgrade", bomVersion.ToString())
+	if len(newSpec.Version) == 0 && bomVersion.IsGreatherThan(installedVersion) {
+		// Attempted an update before an upgrade has been done, reject the edit
+		return fmt.Errorf("Upgrade required for update, set version field to v%v to upgrade", bomVersion.ToString())
 	}
 
-	if err := ValidateVersion(newSpec.Version); err != nil {
-		// new version is not nil, but we couldn't parse it
-		return err
-	}
-
-	if len(newSpec.Version) == 0 {
+	// New version is a non-zero-len string, short-circuit if the version strings are the same
+	if currentSpec.Version == newSpec.Version {
 		return nil
 	}
 
+	// Make sure the requested version matches what's in the BOM
 	requestedSemVer, err := semver.NewSemVersion(newSpec.Version)
 	if err != nil {
 		return err
 	}
-
 	if !requestedSemVer.IsEqualTo(bomVersion) {
 		return fmt.Errorf("Requested version %s does not match BOM version %s",
 			requestedSemVer.ToString(), bomVersion.ToString())
 	}
 
 	// Verify that the new version request is > than the current version
+	// - in reality, this should probably never happen
 	if len(currentSpec.Version) > 0 {
 		currentSemVer, err := semver.NewSemVersion(currentSpec.Version)
 		if err != nil {
-			// Unable to parse the current spec version; this should never happen
 			return err
 		}
 		if requestedSemVer.IsLessThan(currentSemVer) {
