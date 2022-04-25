@@ -22,15 +22,12 @@ const (
 	longPollingInterval  = 20 * time.Second
 )
 
-func DeployApplication(namespace, yamlPath, podPrefix string, istioEnabled bool, t framework.TestFramework) {
+func DeployApplication(namespace, yamlPath, podPrefix, istioEnabled string, t framework.TestFramework) {
 	t.Logs.Info("Deploy test application")
 
 	t.Logs.Info("Create namespace")
 	gomega.Eventually(func() (*v1.Namespace, error) {
-		nsLabels := map[string]string{"verrazzano-managed": "true"}
-		if istioEnabled {
-			nsLabels["istio-injection"] = "enabled"
-		}
+		nsLabels := map[string]string{"verrazzano-managed": "true", "istio-injeciton": istioEnabled}
 		return pkg.CreateNamespace(namespace, nsLabels)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
 

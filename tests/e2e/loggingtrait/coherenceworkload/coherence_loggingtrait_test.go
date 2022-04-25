@@ -33,7 +33,7 @@ var (
 )
 
 var _ = t.BeforeSuite(func() {
-	loggingtrait.DeployApplication(namespace, componentsPath, applicationPath, applicationPodName, t)
+	loggingtrait.DeployApplication(namespace, istioInjection, componentsPath, applicationPath, applicationPodName, t)
 	beforeSuitePassed = true
 })
 

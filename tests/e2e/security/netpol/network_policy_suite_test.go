@@ -12,9 +12,11 @@ import (
 )
 
 var namespace string
+var istioInjection bool
 
 func init() {
 	flag.StringVar(&namespace, "namespace", generatedNamespace, "namespace is the app namespace")
+	flag.BoolVar(&istioInjection, "istioInjection", true, "istioInjection enables the injection of istio side cars")
 }
 
 func TestSecurityNetworkPolicies(t *testing.T) {

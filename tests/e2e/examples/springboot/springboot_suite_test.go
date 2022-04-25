@@ -14,11 +14,13 @@ import (
 var skipDeploy bool
 var skipUndeploy bool
 var namespace string
+var istioInjection string
 
 func init() {
 	flag.BoolVar(&skipDeploy, "skipDeploy", false, "skipDeploy skips the call to install the application")
 	flag.BoolVar(&skipUndeploy, "skipUndeploy", false, "skipUndeploy skips the call to install the application")
 	flag.StringVar(&namespace, "namespace", generatedNamespace, "namespace is the app namespace")
+	flag.StringVar(&istioInjection, "istioInjection", "enabled", "istioInjection enables the injection of istio side cars")
 }
 
 func TestSpringBootExample(t *testing.T) {
