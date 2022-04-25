@@ -44,7 +44,7 @@ var _ = t.BeforeSuite(func() {
 		pkg.Log(pkg.Info, "Update the VZ CR to add the required ISM Policies")
 	}
 	// Wait for sufficient time to allow the VMO reconciliation to complete
-	pkg.WaitForISMPolicyUpdate(maxRetries, pollingInterval)
+	pkg.WaitForISMPolicyUpdate(pollingInterval, threeMinutes)
 	pkg.Log(pkg.Info, "Before suite setup completed")
 })
 

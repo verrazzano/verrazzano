@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/onsi/gomega"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/application-operator/test/integ/util"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -567,6 +568,7 @@ func GetDataStream(dataStreamName string) (DataStream, error) {
 func IsDataStreamSupported() bool {
 	resp, err := doGetElasticSearchURL(listDataStreamURLFormat)
 	if err != nil {
+		Log(Error, err.Error())
 		return false
 	}
 	if resp.StatusCode == http.StatusOK {
@@ -577,16 +579,15 @@ func IsDataStreamSupported() bool {
 			return true
 		}
 	}
+	Log(Error, "No data streams created")
 	return false
 }
 
 //WaitForISMPolicyUpdate waits for the VMO reconcile to complete and the ISM policies are created
-func WaitForISMPolicyUpdate(maxRetries int, pollingInterval time.Duration) {
-	i := 0
-	for i < maxRetries || IsDataStreamSupported() {
-		time.Sleep(pollingInterval)
-		i++
-	}
+func WaitForISMPolicyUpdate(pollingInterval time.Duration, timeout time.Duration) {
+	gomega.Eventually(func() bool {
+		return IsDataStreamSupported()
+	}, pollingInterval, timeout).Should(gomega.BeTrue())
 }
 
 func ListSystemIndices() []string {
