@@ -34,7 +34,7 @@ func TestCreateCallbackSuccessWithVersion(t *testing.T) {
 
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: v1_1_0,
+			Version: v110,
 			Profile: Dev,
 		},
 	}
@@ -118,12 +118,12 @@ func TestUpdateCallbackSuccessWithNewVersion(t *testing.T) {
 			Profile: Dev,
 		},
 		Status: VerrazzanoStatus{
-			Version: v1_0_0,
+			Version: v100,
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: v1_1_0,
+			Version: v110,
 			Profile: Dev,
 		},
 	}
@@ -156,7 +156,7 @@ func TestUpdateCallbackSuccessWithOldAndNewVersion(t *testing.T) {
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: v1_1_0,
+			Version: v110,
 			Profile: Dev,
 		},
 	}
@@ -180,13 +180,13 @@ func TestUpdateCallbackFailsWithOldGreaterThanNewVersion(t *testing.T) {
 	}()
 	oldSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: "v1.2.0",
+			Version: v120,
 			Profile: Dev,
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: v1_1_0,
+			Version: v110,
 			Profile: Dev,
 		},
 	}
@@ -291,7 +291,7 @@ func TestDeleteCallbackDisabled(t *testing.T) {
 func runDeleteCallbackTest() error {
 	deletedSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: v1_1_0,
+			Version: v110,
 			Profile: Dev,
 		},
 	}

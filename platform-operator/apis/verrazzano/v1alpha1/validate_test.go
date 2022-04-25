@@ -32,13 +32,16 @@ import (
 )
 
 // For unit testing
-const actualBomFilePath = "../../../verrazzano-bom.json"
-const testBomFilePath = "../../../controllers/verrazzano/testdata/test_bom.json"
-const invalidTestBomFilePath = "../../../controllers/verrazzano/testdata/invalid_test_bom.json"
-const invalidPathTestBomFilePath = "../../../controllers/verrazzano/testdata/invalid_test_bom_path.json"
+const (
+	actualBomFilePath          = "../../../verrazzano-bom.json"
+	testBomFilePath            = "../../../controllers/verrazzano/testdata/test_bom.json"
+	invalidTestBomFilePath     = "../../../controllers/verrazzano/testdata/invalid_test_bom.json"
+	invalidPathTestBomFilePath = "../../../controllers/verrazzano/testdata/invalid_test_bom_path.json"
 
-const v1_0_0 = "v1.0.0"
-const v1_1_0 = "v1.1.0"
+	v100 = "v1.0.0"
+	v110 = "v1.1.0"
+	v120 = "v1.2.0"
+)
 
 // TestValidUpgradeRequestNoCurrentVersion Tests the condition for valid upgrade where the version is not specified in the current spec
 // GIVEN an edit to update a Verrazzano spec to a new version
@@ -54,12 +57,12 @@ func TestValidUpgradeRequestNoCurrentVersion(t *testing.T) {
 			Profile: "dev",
 		},
 		Status: VerrazzanoStatus{
-			Version: v1_0_0,
+			Version: v100,
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: v1_1_0,
+			Version: v110,
 			Profile: "dev",
 		},
 	}
@@ -80,7 +83,7 @@ func TestUpdateBeforeUpgrade(t *testing.T) {
 			Profile: "dev",
 		},
 		Status: VerrazzanoStatus{
-			Version: v1_0_0,
+			Version: v100,
 		},
 	}
 	newSpec := &Verrazzano{
@@ -112,13 +115,13 @@ func TestUpdateWithUpgrade(t *testing.T) {
 			Profile: "dev",
 		},
 		Status: VerrazzanoStatus{
-			Version: v1_0_0,
+			Version: v100,
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Profile: "dev",
-			Version: v1_1_0,
+			Version: v110,
 			Components: ComponentSpec{
 				DNS: &DNSComponent{
 					Wildcard: &Wildcard{
@@ -145,7 +148,7 @@ func TestUpgradeNewVerDoesNotMatchBOMVer(t *testing.T) {
 			Profile: "dev",
 		},
 		Status: VerrazzanoStatus{
-			Version: v1_0_0,
+			Version: v100,
 		},
 	}
 	newSpec := &Verrazzano{
@@ -167,20 +170,19 @@ func TestUpgradeNewVerLessThanCurrentCer(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
-	const v1_2_0 = "v1.2.0"
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: v1_2_0,
+			Version: v120,
 			Profile: Dev,
 		},
 		Status: VerrazzanoStatus{
-			Version: v1_2_0,
+			Version: v120,
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Profile: Dev,
-			Version: v1_1_0,
+			Version: v110,
 		},
 	}
 	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
@@ -206,7 +208,7 @@ func TestValidUpgradeRequestCurrentVersionExists(t *testing.T) {
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: v1_1_0,
+			Version: v110,
 			Profile: Dev,
 		},
 	}
@@ -302,7 +304,7 @@ func TestNoVersionsSpecified(t *testing.T) {
 			Profile: Dev,
 		},
 		Status: VerrazzanoStatus{
-			Version: v1_1_0,
+			Version: v110,
 		},
 	}
 	newSpec := &Verrazzano{
@@ -549,7 +551,7 @@ func TestGetCurrentBomVersion(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
-	expectedVersion, err := semver.NewSemVersion(v1_1_0)
+	expectedVersion, err := semver.NewSemVersion(v110)
 	assert.NoError(t, err)
 
 	version, err := GetCurrentBomVersion()
