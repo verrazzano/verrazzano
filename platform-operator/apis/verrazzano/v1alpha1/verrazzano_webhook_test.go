@@ -117,6 +117,9 @@ func TestUpdateCallbackSuccessWithNewVersion(t *testing.T) {
 		Spec: VerrazzanoSpec{
 			Profile: "dev",
 		},
+		Status: VerrazzanoStatus{
+			Version: "v1.0.0",
+		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
@@ -146,6 +149,9 @@ func TestUpdateCallbackSuccessWithOldAndNewVersion(t *testing.T) {
 		Spec: VerrazzanoSpec{
 			Version: "v0.16.0",
 			Profile: "dev",
+		},
+		Status: VerrazzanoStatus{
+			Version: "v0.16.0",
 		},
 	}
 	newSpec := &Verrazzano{

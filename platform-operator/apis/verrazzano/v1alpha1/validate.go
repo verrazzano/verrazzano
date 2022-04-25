@@ -6,11 +6,9 @@ package v1alpha1
 import (
 	"context"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"io/fs"
 	"os"
-	"reflect"
 	"strings"
 
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
@@ -131,22 +129,16 @@ func ValidateProfile(requestedProfile ProfileType) error {
 	return nil
 }
 
-// ValidateUpgradeRequest Ensures that for the upgrade case only the version field has changed
+// ValidateUpgradeRequest Ensures hat an upgrade is requested as part of an update if necessary,
+// and that the version of an upgrade request is valid.
+// - an upgrade must be performed with or before the next update to the configuration after the VPO has been updated
 func ValidateUpgradeRequest(current *Verrazzano, new *Verrazzano) error {
-	installedVersion := current.Status.Version
 	currentSpec := current.Spec
 	newSpec := new.Spec
 
 	if !config.Get().VersionCheckEnabled {
 		zap.S().Infof("Version validation disabled")
 		return nil
-	}
-
-	// if the installed version is not == BOM version and newspec versiom isn't set,
-	// reject the update; upgrade needs to happen before any update
-	//
-	if len(newSpec.Version) == 0 {
-		semver.NewSemVersion(installedVersion)
 	}
 
 	// Short-circuit if the version strings are the same
@@ -157,18 +149,41 @@ func ValidateUpgradeRequest(current *Verrazzano, new *Verrazzano) error {
 		// if we get here, the current version is not empty, but the new version is
 		return fmt.Errorf("Requested version is not specified")
 	}
+
+	// if the installed version is not == BOM version and newspec versiom isn't set,
+	// reject the update; upgrade needs to happen before any update
+	bomVersion, err := GetCurrentBomVersion()
+	if err != nil {
+		return err
+	}
+	installedVersion, err := semver.NewSemVersion(current.Status.Version)
+	if err != nil {
+		return err
+	}
+	if len(newSpec.Version) == 0 && !bomVersion.IsEqualTo(installedVersion) {
+		return fmt.Errorf("Upgrade required for update, set version field to %v to upgrade", bomVersion.ToString())
+	}
+
 	if err := ValidateVersion(newSpec.Version); err != nil {
 		// new version is not nil, but we couldn't parse it
 		return err
 	}
 
+	if len(newSpec.Version) == 0 {
+		return nil
+	}
+
 	requestedSemVer, err := semver.NewSemVersion(newSpec.Version)
 	if err != nil {
-		// parse error on new version string
 		return err
 	}
 
-	// Verify that the new version request is > than the currently version
+	if !requestedSemVer.IsEqualTo(bomVersion) {
+		return fmt.Errorf("Requested version %s does not match BOM version %s",
+			requestedSemVer.ToString(), bomVersion.ToString())
+	}
+
+	// Verify that the new version request is > than the current version
 	if len(currentSpec.Version) > 0 {
 		currentSemVer, err := semver.NewSemVersion(currentSpec.Version)
 		if err != nil {
@@ -176,15 +191,9 @@ func ValidateUpgradeRequest(current *Verrazzano, new *Verrazzano) error {
 			return err
 		}
 		if requestedSemVer.IsLessThan(currentSemVer) {
-			return fmt.Errorf("Requested version %s is not newer than current version %s", requestedSemVer.ToString(), currentSemVer.ToString())
+			return fmt.Errorf("Requested version %s is not newer than current version %s",
+				requestedSemVer.ToString(), currentSemVer.ToString())
 		}
-	}
-
-	// If any other field has changed from the stored spec return false
-	if newSpec.Profile != currentSpec.Profile ||
-		newSpec.EnvironmentName != currentSpec.EnvironmentName ||
-		!reflect.DeepEqual(newSpec.Components, currentSpec.Components) {
-		return errors.New("Configuration updates not allowed during upgrade between Verrazzano versions")
 	}
 	return nil
 }
