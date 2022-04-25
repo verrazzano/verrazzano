@@ -26,19 +26,69 @@ const (
 	ISO8601Layout = "2006-01-02T15:04:05.999999999-07:00"
 )
 
+//GetOpenSearchSystemIndex in Verrazzano 1.3.0, indices in the verrazzano-system namespace have been migrated
+// to the verrazzano-system data stream
+func GetOpenSearchSystemIndex(name string) (string, error) {
+	return GetOpenSearchSystemIndexWithKC(name, "")
+}
+
+//GetOpenSearchSystemIndexWithKC is the same as GetOpenSearchSystemIndex but the kubeconfig may be specified for MC tests
+func GetOpenSearchSystemIndexWithKC(name, kubeconfigPath string) (string, error) {
+	usingDataStreams, err := isUsingDataStreams(kubeconfigPath)
+	if err != nil {
+		return "", err
+	}
+	if usingDataStreams {
+		return "verrazzano-system", nil
+	}
+	if name == "systemd-journal" {
+		return "verrazzano-systemd-journal", nil
+	}
+	return "verrazzano-namespace-" + name, nil
+}
+
+//GetOpenSearchAppIndex in Verrazzano 1.3.0, application indices have been migrated to data streams
+// following the pattern 'verrazzano-application-<application name>'
+func GetOpenSearchAppIndex(namespace string) (string, error) {
+	return GetOpenSearchAppIndexWithKC(namespace, "")
+}
+
+//GetOpenSearchAppIndexWithKC is the same as GetOpenSearchAppIndex but kubeconfig may be specified for MC tests
+func GetOpenSearchAppIndexWithKC(namespace, kubeconfigPath string) (string, error) {
+	usingDataStreams, err := isUsingDataStreams(kubeconfigPath)
+	if err != nil {
+		return "", err
+	}
+	if usingDataStreams {
+		return "verrazzano-application-" + namespace, nil
+	}
+	return "verrazzano-namespace-" + namespace, nil
+}
+
+func isUsingDataStreams(kubeconfigPath string) (bool, error) {
+	var err error
+	kubeconfigPath, err = getKubeConfigPath(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error fetching kubeconfig path: %v", err))
+		return false, err
+	}
+	return IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
+}
+
 func UseExternalElasticsearch() bool {
 	return os.Getenv("EXTERNAL_ELASTICSEARCH") == "true"
 }
 
-// GetExternalElasticSearchURL gets the external Elasticsearch URL
-func GetExternalElasticSearchURL(kubeconfigPath string) string {
-	// the equivalent of kubectl get svc quickstart-es-http -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
+// GetExternalOpenSearchURL gets the external Elasticsearch URL
+func GetExternalOpenSearchURL(kubeconfigPath string) string {
+	opensearchSvc := "opensearch-cluster-master"
+	// the equivalent of kubectl get svc opensearchSvc -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get clientset for cluster %v", err))
 		return ""
 	}
-	svc, err := clientset.CoreV1().Services("default").Get(context.TODO(), "quickstart-es-http", metav1.GetOptions{})
+	svc, err := clientset.CoreV1().Services("default").Get(context.TODO(), opensearchSvc, metav1.GetOptions{})
 	if err != nil {
 		Log(Info, fmt.Sprintf("Could not get services quickstart-es-http in sockshop: %v\n", err.Error()))
 		return ""
@@ -49,8 +99,8 @@ func GetExternalElasticSearchURL(kubeconfigPath string) string {
 	return ""
 }
 
-// GetSystemElasticSearchIngressURL gets the system Elasticsearch Ingress host in the given cluster
-func GetSystemElasticSearchIngressURL(kubeconfigPath string) string {
+// GetSystemOpenSearchIngressURL gets the system Elasticsearch Ingress host in the given cluster
+func GetSystemOpenSearchIngressURL(kubeconfigPath string) string {
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get clientset for cluster %v", err))
@@ -69,9 +119,9 @@ func GetSystemElasticSearchIngressURL(kubeconfigPath string) string {
 // getElasticSearchURL returns VMI or external ES URL depending on env var EXTERNAL_ELASTICSEARCH
 func getElasticSearchURL(kubeconfigPath string) string {
 	if UseExternalElasticsearch() {
-		return GetExternalElasticSearchURL(kubeconfigPath)
+		return GetExternalOpenSearchURL(kubeconfigPath)
 	}
-	return GetSystemElasticSearchIngressURL(kubeconfigPath)
+	return GetSystemOpenSearchIngressURL(kubeconfigPath)
 }
 
 func getElasticSearchUsernamePassword(kubeconfigPath string) (username, password string, err error) {
@@ -218,7 +268,9 @@ func LogIndexFound(indexName string) bool {
 func LogIndexFoundInCluster(indexName, kubeconfigPath string) bool {
 	Log(Info, fmt.Sprintf("Looking for log index %s in cluster with kubeconfig %s", indexName, kubeconfigPath))
 	for _, name := range listSystemElasticSearchIndices(kubeconfigPath) {
-		if name == indexName {
+		// If old index or data stream backend index, return true
+		backendIndexRe := regexp.MustCompile(`^\.ds-` + indexName + `-\d+$`)
+		if name == indexName || backendIndexRe.MatchString(name) {
 			return true
 		}
 	}
@@ -454,6 +506,25 @@ func PostElasticsearch(path string, body string) (*HTTPResponse, error) {
 	Log(Debug, fmt.Sprintf("REST API path: %v \nQuery: \n%v", url, body))
 	resp, err := postElasticSearchWithBasicAuth(url, body, username, password, configPath)
 	return resp, err
+}
+
+func IndicesNotExists(patterns []string) bool {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return false
+	}
+	Log(Debug, fmt.Sprintf("Looking for indices in cluster using kubeconfig %s", kubeconfigPath))
+	for _, name := range listSystemElasticSearchIndices(kubeconfigPath) {
+		for _, pattern := range patterns {
+			matched, _ := regexp.MatchString(pattern, name)
+			if matched {
+				Log(Error, fmt.Sprintf("Index %s matching the pattern %s still exists", name, pattern))
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // ElasticQuery describes an Elasticsearch Query
