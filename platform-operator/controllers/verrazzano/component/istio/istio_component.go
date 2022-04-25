@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package istio
@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"io/ioutil"
 	v1 "k8s.io/api/core/v1"
 	"os"
@@ -44,6 +45,9 @@ const IstioCoreDNSReleaseName = "istiocoredns"
 
 // HelmScrtType is the secret type that helm uses to specify its releases
 const HelmScrtType = "helm.sh/release.v1"
+
+// This IstioOperator YAML uses this imagePullSecret key
+const imagePullSecretHelmKey = "values.global.imagePullSecrets[0]"
 
 // istioComponent represents an Istio component
 type istioComponent struct {
@@ -155,8 +159,15 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 		log.Infof("Created values file from Istio install args: %s", tmpFile.Name())
 	}
 
+	// check for global image pull secret
+	var kvs []bom.KeyValue
+	kvs, err = secret.AddGlobalImagePullSecretHelmOverride(log, context.Client(), IstioNamespace, kvs, imagePullSecretHelmKey)
+	if err != nil {
+		return err
+	}
+
 	// images overrides to get passed into the istioctl command
-	imageOverrides, err := buildImageOverridesString(log)
+	imageOverrides, err := buildOverridesString(kvs...)
 	if err != nil {
 		log.Errorf("Error building image overrides from BOM for Istio: %v", err)
 		return err
@@ -342,30 +353,6 @@ func removeIstioHelmSecrets(compContext spi.ComponentContext) error {
 	return nil
 }
 
-func buildImageOverridesString(_ *zap.SugaredLogger) (string, error) {
-	// Get the image overrides from the BOM
-	var kvs []bom.KeyValue
-	var err error
-	kvs, err = getImageOverrides()
-	if err != nil {
-		return "", err
-	}
-
-	// If there are overridesString the create a comma separated string
-	var overridesString string
-	if len(kvs) > 0 {
-		bldr := strings.Builder{}
-		for i, kv := range kvs {
-			if i > 0 {
-				bldr.WriteString(",")
-			}
-			bldr.WriteString(fmt.Sprintf("%s=%s", kv.Key, kv.Value))
-		}
-		overridesString = bldr.String()
-	}
-	return overridesString, nil
-}
-
 // AppendIstioOverrides appends the Keycloak theme for the Key keycloak.extraInitContainers.
 // A go template is used to replace the image in the init container spec.
 func AppendIstioOverrides(_ spi.ComponentContext, releaseName string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
@@ -404,7 +391,7 @@ func IstiodReadyCheck(ctx spi.ComponentContext, _ string, namespace string) bool
 	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1)
 }
 
-func buildOverridesString(log *zap.SugaredLogger, client clipkg.Client, namespace string, additionalValues ...bom.KeyValue) (string, error) {
+func buildOverridesString(additionalValues ...bom.KeyValue) (string, error) {
 	// Get the image overrides from the BOM
 	kvs, err := getImageOverrides()
 	if err != nil {

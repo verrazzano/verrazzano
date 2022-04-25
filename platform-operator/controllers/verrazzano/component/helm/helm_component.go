@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helm
@@ -262,11 +262,11 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 		return nil
 	}
 
-	// Resolve the namespace
-	namespace := h.resolveNamespace(context.EffectiveCR().Namespace)
+	// Resolve the resolvedNamespace
+	resolvedNamespace := h.resolveNamespace(context.EffectiveCR().Namespace)
 
 	// Check if the component is installed before trying to upgrade
-	found, err := helm.IsReleaseInstalled(h.ReleaseName, namespace)
+	found, err := helm.IsReleaseInstalled(h.ReleaseName, resolvedNamespace)
 	if err != nil {
 		return err
 	}
@@ -278,18 +278,25 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	// Do the preUpgrade if the function is defined
 	if h.PreUpgradeFunc != nil && UpgradePrehooksEnabled {
 		context.Log().Infof("Running preUpgrade function for %s", h.ReleaseName)
-		err := h.PreUpgradeFunc(context.Log(), context.Client(), h.ReleaseName, namespace, h.ChartDir)
+		err := h.PreUpgradeFunc(context.Log(), context.Client(), h.ReleaseName, resolvedNamespace, h.ChartDir)
 		if err != nil {
 			return err
 		}
 	}
 
-	overrides, err := h.buildCustomHelmOverrides(context, namespace)
+	// check for global image pull secret
+	var kvs []bom.KeyValue
+	kvs, err = secret.AddGlobalImagePullSecretHelmOverride(context.Log(), context.Client(), resolvedNamespace, kvs, h.ImagePullSecretKeyname)
 	if err != nil {
 		return err
 	}
 
-	stdout, err := helm.GetValues(context.Log(), h.ReleaseName, namespace)
+	overrides, err := h.buildCustomHelmOverrides(context, resolvedNamespace, kvs...)
+	if err != nil {
+		return err
+	}
+
+	stdout, err := helm.GetValues(context.Log(), h.ReleaseName, resolvedNamespace)
 	if err != nil {
 		return err
 	}
@@ -318,7 +325,7 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	overrides.FileOverrides = append(overrides.FileOverrides, tmpFile.Name())
 
 	// Perform a helm upgrade --install
-	_, _, err = upgradeFunc(context.Log(), h.ReleaseName, namespace, h.ChartDir, true, context.IsDryRun(), overrides)
+	_, _, err = upgradeFunc(context.Log(), h.ReleaseName, resolvedNamespace, h.ChartDir, true, context.IsDryRun(), overrides)
 	return err
 }
 

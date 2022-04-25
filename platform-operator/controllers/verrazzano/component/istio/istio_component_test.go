@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package istio
@@ -8,7 +8,9 @@ import (
 	"fmt"
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
+	"io/ioutil"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -24,7 +26,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 
 	"go.uber.org/zap"
-	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -183,6 +184,18 @@ func getMock(t *testing.T) *mocks.MockClient {
 			secretList.Items = []v1.Secret{{Type: HelmScrtType}, {Type: "generic"}, {Type: HelmScrtType}}
 			return nil
 		})
+
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: "default"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, _ *v1.Secret) error {
+			return nil
+		}).AnyTimes()
+
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: IstioNamespace}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, _ *v1.Secret) error {
+			return nil
+		}).AnyTimes()
 
 	mock.EXPECT().
 		Delete(gomock.Any(), gomock.Not(gomock.Nil())).
