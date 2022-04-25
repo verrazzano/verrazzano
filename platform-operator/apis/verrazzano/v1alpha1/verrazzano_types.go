@@ -566,9 +566,16 @@ type IstioComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 	// +optional
+	InjectionEnabled *bool `json:"injection-enabled,omitempty"`
+	// +optional
 	Ingress *IstioIngressSection `json:"ingress,omitempty"`
 	// +optional
 	Egress *IstioEgressSection `json:"egress,omitempty"`
+}
+
+// IsInjectionEnabled is istio sidecar injection enabled check
+func (c *IstioComponent) IsInjectionEnabled() bool {
+	return c.InjectionEnabled == nil || *c.InjectionEnabled
 }
 
 // KeycloakComponent specifies the Keycloak configuration

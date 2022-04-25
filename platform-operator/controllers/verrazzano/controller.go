@@ -216,7 +216,7 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 
 	// Pre-create the Verrazzano System namespace if it doesn't already exist, before kicking off the install job,
 	// since it is needed for the subsequent step to syncLocalRegistration secret.
-	if err := r.createVerrazzanoSystemNamespace(ctx, log); err != nil {
+	if err := r.createVerrazzanoSystemNamespace(ctx, actualCR, log); err != nil {
 		return newRequeueWithDelay(), err
 	}
 
@@ -915,17 +915,26 @@ func (r *Reconciler) getInternalConfigMap(ctx context.Context, vz *installv1alph
 }
 
 // createVerrazzanoSystemNamespace creates the Verrazzano system namespace if it does not already exist
-func (r *Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, log vzlog.VerrazzanoLogger) error {
+func (r *Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, cr *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) error {
+	// remove injection label if disabled
+	istio := cr.Spec.Components.Istio
+	if istio != nil && !istio.IsInjectionEnabled() {
+		log.Infof("Disabling istio sidecar injection for Verrazzano system components")
+		systemNamespaceLabels["istio-injection"] = "disabled"
+	}
+	log.Infof("Verrazzano system namespace labels: %v", systemNamespaceLabels)
 	// First check if VZ system namespace exists. If not, create it.
 	var vzSystemNS corev1.Namespace
 	err := r.Get(ctx, types.NamespacedName{Name: vzconst.VerrazzanoSystemNamespace}, &vzSystemNS)
 	if err != nil {
+		log.Infof("Creating Verrazzano system namespace")
 		if !errors.IsNotFound(err) {
 			log.Errorf("Failed to get namespace %s: %v", vzconst.VerrazzanoSystemNamespace, err)
 			return err
 		}
 		vzSystemNS.Name = vzconst.VerrazzanoSystemNamespace
 		vzSystemNS.Labels, _ = mergeMaps(nil, systemNamespaceLabels)
+		log.Infof("Creating Verrazzano system namespace. Labels: %v", vzSystemNS.Labels)
 		if err := r.Create(ctx, &vzSystemNS); err != nil {
 			log.Errorf("Failed to create namespace %s: %v", vzconst.VerrazzanoSystemNamespace, err)
 			return err
@@ -933,6 +942,7 @@ func (r *Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, log vz
 		return nil
 	}
 	// Namespace exists, see if we need to add the label
+	log.Infof("Updating Verrazzano system namespace")
 	var updated bool
 	vzSystemNS.Labels, updated = mergeMaps(vzSystemNS.Labels, systemNamespaceLabels)
 	if !updated {
@@ -953,9 +963,14 @@ func mergeMaps(to map[string]string, from map[string]string) (map[string]string,
 	}
 	var updated bool
 	for k, v := range from {
-		if _, ok := mergedMap[k]; !ok {
+		if existingVal, ok := mergedMap[k]; !ok {
 			mergedMap[k] = v
 			updated = true
+		} else {
+			if v != existingVal {
+				mergedMap[k] = v
+				updated = true
+			}
 		}
 	}
 	return mergedMap, updated

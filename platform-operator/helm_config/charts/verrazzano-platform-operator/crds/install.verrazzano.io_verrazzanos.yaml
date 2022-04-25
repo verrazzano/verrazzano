@@ -3511,6 +3511,8 @@ spec:
                                 type: integer
                             type: object
                         type: object
+                      injection-enabled:
+                        type: boolean
                       istioInstallArgs:
                         description: Arguments for installing Istio
                         items:

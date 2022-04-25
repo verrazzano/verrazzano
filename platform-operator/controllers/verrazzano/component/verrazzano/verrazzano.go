@@ -324,7 +324,8 @@ func createAndLabelNamespaces(ctx spi.ComponentContext) error {
 	if err := LabelKubeSystemNamespace(ctx.Client()); err != nil {
 		return err
 	}
-	if err := namespace.CreateVerrazzanoSystemNamespace(ctx.Client()); err != nil {
+	istio := ctx.EffectiveCR().Spec.Components.Istio
+	if err := namespace.CreateVerrazzanoSystemNamespace(ctx.Client(), istio != nil && istio.IsInjectionEnabled()); err != nil {
 		return err
 	}
 	if _, err := secret.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoSystemNamespace); err != nil {
@@ -343,7 +344,8 @@ func createAndLabelNamespaces(ctx spi.ComponentContext) error {
 		}
 	}
 	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
-		if err := namespace.CreateKeycloakNamespace(ctx.Client()); err != nil {
+		istio := ctx.EffectiveCR().Spec.Components.Istio
+		if err := namespace.CreateKeycloakNamespace(ctx.Client(), istio != nil && istio.IsInjectionEnabled()); err != nil {
 			return ctx.Log().ErrorfNewErr("Failed creating Keycloak namespace: %v", err)
 		}
 	}

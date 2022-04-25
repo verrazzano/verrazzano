@@ -700,6 +700,11 @@ func (in *IstioComponent) DeepCopyInto(out *IstioComponent) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.InjectionEnabled != nil {
+		in, out := &in.InjectionEnabled, &out.InjectionEnabled
+		*out = new(bool)
+		**out = **in
+	}
 	if in.Ingress != nil {
 		in, out := &in.Ingress, &out.Ingress
 		*out = new(IstioIngressSection)
