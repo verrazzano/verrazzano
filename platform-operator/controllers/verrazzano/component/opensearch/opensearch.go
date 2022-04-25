@@ -45,7 +45,7 @@ func doesOSExist(ctx spi.ComponentContext) bool {
 		Name:      esIngestDeployment,
 		Namespace: ComponentNamespace,
 	}}
-	return !status.DoDeploymentsExist(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	return status.DoDeploymentsExist(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
 // checkOpenSearchStatus checks performs checks on the OpenSearch resources
