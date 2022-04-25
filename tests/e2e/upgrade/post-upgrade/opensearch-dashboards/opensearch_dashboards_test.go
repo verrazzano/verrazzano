@@ -19,7 +19,6 @@ import (
 )
 
 const (
-	maxRetries                  = 10
 	threeMinutes                = 3 * time.Minute
 	pollingInterval             = 10 * time.Second
 	oldPatternsTestDataFile     = "testdata/upgrade/opensearch-dashboards/old-index-patterns.txt"

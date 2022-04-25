@@ -18,7 +18,6 @@ import (
 )
 
 const (
-	maxRetries      = 10
 	threeMinutes    = 3 * time.Minute
 	pollingInterval = 10 * time.Second
 	documentFile    = "testdata/upgrade/opensearch/document1.json"

@@ -19,7 +19,6 @@ const (
 	shortWaitTimeout     = 1 * time.Minute
 	longWaitTimeout      = 3 * time.Minute
 	indexDocumentURL     = "%s/_doc"
-	maxRetries           = 10
 )
 
 var t = framework.NewTestFramework("field-mappings")
