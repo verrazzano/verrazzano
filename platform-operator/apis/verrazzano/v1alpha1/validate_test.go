@@ -37,6 +37,9 @@ const testBomFilePath = "../../../controllers/verrazzano/testdata/test_bom.json"
 const invalidTestBomFilePath = "../../../controllers/verrazzano/testdata/invalid_test_bom.json"
 const invalidPathTestBomFilePath = "../../../controllers/verrazzano/testdata/invalid_test_bom_path.json"
 
+const v1_0_0 = "v1.0.0"
+const v1_1_0 = "v1.1.0"
+
 // TestValidUpgradeRequestNoCurrentVersion Tests the condition for valid upgrade where the version is not specified in the current spec
 // GIVEN an edit to update a Verrazzano spec to a new version
 // WHEN the new version is valid and the current version is not specified
@@ -51,12 +54,12 @@ func TestValidUpgradeRequestNoCurrentVersion(t *testing.T) {
 			Profile: "dev",
 		},
 		Status: VerrazzanoStatus{
-			Version: "v1.0.0",
+			Version: v1_0_0,
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: "v1.1.0",
+			Version: v1_1_0,
 			Profile: "dev",
 		},
 	}
@@ -77,7 +80,7 @@ func TestUpdateBeforeUpgrade(t *testing.T) {
 			Profile: "dev",
 		},
 		Status: VerrazzanoStatus{
-			Version: "v1.0.0",
+			Version: v1_0_0,
 		},
 	}
 	newSpec := &Verrazzano{
@@ -109,13 +112,13 @@ func TestUpdateWithUpgrade(t *testing.T) {
 			Profile: "dev",
 		},
 		Status: VerrazzanoStatus{
-			Version: "v1.0.0",
+			Version: v1_0_0,
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Profile: "dev",
-			Version: "v1.1.0",
+			Version: v1_1_0,
 			Components: ComponentSpec{
 				DNS: &DNSComponent{
 					Wildcard: &Wildcard{
@@ -142,7 +145,7 @@ func TestUpgradeNewVerDoesNotMatchBOMVer(t *testing.T) {
 			Profile: "dev",
 		},
 		Status: VerrazzanoStatus{
-			Version: "v1.0.0",
+			Version: v1_0_0,
 		},
 	}
 	newSpec := &Verrazzano{
@@ -164,19 +167,20 @@ func TestUpgradeNewVerLessThanCurrentCer(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
+	const v1_2_0 = "v1.2.0"
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: "v1.2.0",
-			Profile: "dev",
+			Version: v1_2_0,
+			Profile: Dev,
 		},
 		Status: VerrazzanoStatus{
-			Version: "v1.2.0",
+			Version: v1_2_0,
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Profile: "dev",
-			Version: "v1.1.0",
+			Profile: Dev,
+			Version: v1_1_0,
 		},
 	}
 	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
@@ -194,7 +198,7 @@ func TestValidUpgradeRequestCurrentVersionExists(t *testing.T) {
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Version: "v0.16.0",
-			Profile: "dev",
+			Profile: Dev,
 		},
 		Status: VerrazzanoStatus{
 			Version: "v0.16.0",
@@ -202,8 +206,8 @@ func TestValidUpgradeRequestCurrentVersionExists(t *testing.T) {
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: "v1.1.0",
-			Profile: "dev",
+			Version: v1_1_0,
+			Profile: Dev,
 		},
 	}
 	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
@@ -221,7 +225,7 @@ func TestValidUpgradeNotNecessary(t *testing.T) {
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Version: "v0.17.0",
-			Profile: "dev",
+			Profile: Dev,
 		},
 		Status: VerrazzanoStatus{
 			Version: "v0.17.0",
@@ -230,7 +234,7 @@ func TestValidUpgradeNotNecessary(t *testing.T) {
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Version: "v0.17.0",
-			Profile: "dev",
+			Profile: Dev,
 		},
 	}
 	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
@@ -248,13 +252,13 @@ func TestValidateUpgradeBadOldVersion(t *testing.T) {
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Version: "blah",
-			Profile: "dev",
+			Profile: Dev,
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Version: "v0.17.0",
-			Profile: "dev",
+			Profile: Dev,
 		},
 	}
 	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
@@ -272,13 +276,13 @@ func TestValidateUpgradeBadNewVersion(t *testing.T) {
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Version: "v0.16.0",
-			Profile: "dev",
+			Profile: Dev,
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Version: "blah",
-			Profile: "dev",
+			Profile: Dev,
 		},
 	}
 	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
@@ -295,15 +299,15 @@ func TestNoVersionsSpecified(t *testing.T) {
 	}()
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Profile: "dev",
+			Profile: Dev,
 		},
 		Status: VerrazzanoStatus{
-			Version: "v1.1.0",
+			Version: v1_1_0,
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Profile: "dev",
+			Profile: Dev,
 		},
 	}
 	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
@@ -320,13 +324,13 @@ func TestValidVersionWithProfileChange(t *testing.T) {
 	}()
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Profile: "dev",
+			Profile: Dev,
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Version: "v0.17.0",
-			Profile: "prod",
+			Profile: Prod,
 		},
 	}
 	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
@@ -343,13 +347,13 @@ func TestValidVersionWithEnvNameChange(t *testing.T) {
 	}()
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Profile: "dev",
+			Profile: Dev,
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Version:         "v0.17.0",
-			Profile:         "dev",
+			Profile:         Dev,
 			EnvironmentName: "newEnv",
 		},
 	}
@@ -367,7 +371,7 @@ func TestValidVersionWithCertManagerChange(t *testing.T) {
 	}()
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Profile: "dev",
+			Profile: Dev,
 			Components: ComponentSpec{
 				CertManager: &CertManagerComponent{
 					Certificate: Certificate{
@@ -384,7 +388,7 @@ func TestValidVersionWithCertManagerChange(t *testing.T) {
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Version: "v0.17.0",
-			Profile: "dev",
+			Profile: Dev,
 			Components: ComponentSpec{
 				CertManager: &CertManagerComponent{
 					Certificate: Certificate{
@@ -412,7 +416,7 @@ func TestValidVersionWithNewDNS(t *testing.T) {
 	}()
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Profile: "dev",
+			Profile: Dev,
 			Components: ComponentSpec{
 				CertManager: &CertManagerComponent{
 					Certificate: Certificate{
@@ -429,7 +433,7 @@ func TestValidVersionWithNewDNS(t *testing.T) {
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Version: "v0.17.0",
-			Profile: "dev",
+			Profile: Dev,
 			Components: ComponentSpec{
 				CertManager: &CertManagerComponent{
 					Certificate: Certificate{
@@ -480,7 +484,7 @@ func runValidateWithIngressChangeTest() error {
 	}()
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Profile: "dev",
+			Profile: Dev,
 			Components: ComponentSpec{
 				Ingress: &IngressNginxComponent{
 					Type: "sometype",
@@ -505,7 +509,7 @@ func runValidateWithIngressChangeTest() error {
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Version: "v0.17.0",
-			Profile: "dev",
+			Profile: Dev,
 			Components: ComponentSpec{
 				Ingress: &IngressNginxComponent{
 					Type: "sometype",
@@ -545,7 +549,7 @@ func TestGetCurrentBomVersion(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
-	expectedVersion, err := semver.NewSemVersion("v1.1.0")
+	expectedVersion, err := semver.NewSemVersion(v1_1_0)
 	assert.NoError(t, err)
 
 	version, err := GetCurrentBomVersion()
@@ -1560,7 +1564,7 @@ func TestValidateProfileEmptyProfile(t *testing.T) {
 // WHEN the profile provided is dev
 // THEN no error is returned
 func TestValidateProfileDevProfile(t *testing.T) {
-	assert.NoError(t, ValidateProfile("dev"))
+	assert.NoError(t, ValidateProfile(Dev))
 }
 
 // TestValidateProfileInvalidProfile Tests ValidateProfile() for invalid profile
