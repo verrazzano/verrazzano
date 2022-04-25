@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -250,4 +252,23 @@ func CheckIngressesAndCerts(ctx spi.ComponentContext, comp spi.Component) error 
 		}
 	}
 	return nil
+}
+
+func IsVersionOk(log vzlog.VerrazzanoLogger, compVersion string, vzVersion string) bool {
+	if len(vzVersion) == 0 {
+		return true
+	}
+	vzSemver, err := semver.NewSemVersion(vzVersion)
+	if err != nil {
+		log.Errorf("Failed getting semver from status: %v", err)
+		return false
+	}
+	compSemver, err := semver.NewSemVersion(compVersion)
+	if err != nil {
+		log.Errorf("Failed creating new semver for component: %v", err)
+		return false
+	}
+
+	// return false if VZ version is too low to install component, else true
+	return !vzSemver.IsLessThan(compSemver)
 }
