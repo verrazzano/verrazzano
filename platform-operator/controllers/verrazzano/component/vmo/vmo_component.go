@@ -4,8 +4,8 @@
 package vmo
 
 import (
+	"context"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -13,6 +13,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 )
 
@@ -43,7 +46,6 @@ func NewComponent() spi.Component {
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
-			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
 			AppendOverridesFunc:     appendVmoOverrides,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
 			Dependencies:            []string{nginx.ComponentName},
@@ -64,12 +66,29 @@ func (c vmoComponent) IsReady(context spi.ComponentContext) bool {
 	return false
 }
 
-// PreInstall VMO pre-install processing
-func (c vmoComponent) PreInstall(context spi.ComponentContext) error {
-	return reassociateResources(context)
+// IsInstalled checks if VMO is installed
+func (c vmoComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
+	deployment := &appsv1.Deployment{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, deployment)
+	if errors.IsNotFound(err) {
+		return false, nil
+	}
+	if err != nil {
+		ctx.Log().Errorf("Failed to get %s/%s deployment: %v", ComponentNamespace, ComponentName, err)
+		return false, err
+	}
+	return true, nil
 }
 
 // PreUpgrade VMO pre-upgrade processing
 func (c vmoComponent) PreUpgrade(context spi.ComponentContext) error {
+	if err := exportVMOHelmChart(context); err != nil {
+		return err
+	}
 	return common.ApplyCRDYaml(context, config.GetHelmVmoChartsDir())
+}
+
+// PostUpgrade VMO post-upgrade processing
+func (c vmoComponent) PostUpgrade(context spi.ComponentContext) error {
+	return reassociateResources(context)
 }
