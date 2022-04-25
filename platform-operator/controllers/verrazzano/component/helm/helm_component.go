@@ -386,11 +386,6 @@ func (h HelmComponent) buildCustomHelmOverrides(context spi.ComponentContext, na
 		kvs = append(kvs, bom.KeyValue{Value: h.ValuesFile, IsFile: true})
 	}
 
-	for _, kv := range kvs {
-		d, _ := os.ReadFile(kv.Value)
-		context.Log().Infof("Helm File: \nKey: %s, \nFile data: %s", kv.Key, string(d))
-	}
-
 	// Convert the key value pairs to Helm overrides
 	overrides = h.organizeHelmOverrides(kvs)
 	return overrides, nil
@@ -447,6 +442,8 @@ func (h HelmComponent) filesFromVerrazzanoHelm(context spi.ComponentContext, nam
 		}
 		yamlValues = append(yamlValues, yamlValue)
 	}
+
+	context.Log().Infof("YAML Values: %v", yamlValues)
 
 	// Take the yaml values and construct a yaml file
 	// Each value is overalyed by the next value, and lists are replaced
