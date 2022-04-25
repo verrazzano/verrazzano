@@ -16,3 +16,5 @@ spec:
       enabled: true
     prometheusPushgateway:
       enabled: true
+    prometheusNodeExporter:
+      enabled: true

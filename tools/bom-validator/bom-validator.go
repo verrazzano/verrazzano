@@ -71,7 +71,7 @@ func main() {
 	// Write to stdout
 	reportResults(imagesNotFound, imageTagErrors, isBOMValid)
 
-	//Failure
+	// Failure
 	if !isBOMValid {
 		os.Exit(1)
 	}
@@ -193,7 +193,7 @@ func validateBOM(vBom *verrazzanoBom, clusterImageMap map[string][tagLen]string,
 	return !errorsFound
 }
 
-//ignoreSubComponent - checks to see if a particular subcomponent is to be ignored
+// ignoreSubComponent - checks to see if a particular subcomponent is to be ignored
 func ignoreSubComponent(name string) bool {
 	for _, subComp := range ignoreSubComponents {
 		if subComp == name {

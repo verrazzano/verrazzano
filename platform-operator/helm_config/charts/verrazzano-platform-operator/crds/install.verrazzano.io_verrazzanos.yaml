@@ -1162,6 +1162,57 @@ spec:
                           - name
                           type: object
                         type: array
+                      nodes:
+                        items:
+                          description: OpenSearchNode specifies a node group in the
+                            OpenSearch cluster
+                          properties:
+                            name:
+                              type: string
+                            replicas:
+                              format: int32
+                              type: integer
+                            resources:
+                              description: ResourceRequirements describes the compute
+                                resource requirements.
+                              properties:
+                                limits:
+                                  additionalProperties:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                  description: 'Limits describes the maximum amount
+                                    of compute resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                                  type: object
+                                requests:
+                                  additionalProperties:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                  description: 'Requests describes the minimum amount
+                                    of compute resources required. If Requests is
+                                    omitted for a container, it defaults to Limits
+                                    if that is explicitly specified, otherwise to
+                                    an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                                  type: object
+                              type: object
+                            roles:
+                              items:
+                                type: string
+                              type: array
+                            storage:
+                              properties:
+                                size:
+                                  type: string
+                              required:
+                              - size
+                              type: object
+                          type: object
+                        type: array
                       policies:
                         items:
                           description: IndexManagementPolicy Defines a policy for
@@ -5228,6 +5279,48 @@ spec:
                     properties:
                       enabled:
                         type: boolean
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          properties:
+                            configMapRef:
+                              properties:
+                                key:
+                                  description: The key to select.
+                                  type: string
+                                name:
+                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind,
+                                    uid?'
+                                  type: string
+                                optional:
+                                  description: Specify whether the ConfigMap or its
+                                    key must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                            secretRef:
+                              properties:
+                                key:
+                                  description: The key of the secret to select from.  Must
+                                    be a valid secret key.
+                                  type: string
+                                name:
+                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind,
+                                    uid?'
+                                  type: string
+                                optional:
+                                  description: Specify whether the Secret or its key
+                                    must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                          type: object
+                        type: array
                     type: object
                   prometheusPushgateway:
                     description: PrometheusPushgateway configuration

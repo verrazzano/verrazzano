@@ -234,9 +234,6 @@ pipeline {
         }
     }
     post {
-        success {
-            storePipelineArtifacts()
-        }
         failure {
             script {
                 if (env.JOB_NAME == "verrazzano-upgrade-resiliency-tests/master" || env.JOB_NAME ==~ "verrazzano-upgrade-resiliency-tests/release-1.*") {
@@ -260,19 +257,6 @@ def isPagerDutyEnabled() {
         return true
     }
     return false
-}
-
-// Called in final post success block of pipeline
-def storePipelineArtifacts() {
-    script {
-        // If this was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of the branch
-        // NOTE: Normally master and release-* branches are the only ones doing this, but when we need to test out pipeline changes we can make use
-        // as well
-        sh """
-            echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
-            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
-        """
-    }
 }
 
 // Called in Stage Clean workspace and checkout steps

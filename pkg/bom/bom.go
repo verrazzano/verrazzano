@@ -244,8 +244,10 @@ func (b *Bom) BuildImageStrings(subComponentName string) ([]KeyValue, []string, 
 				Value: repo,
 			})
 		} else {
-			partialImageNameBldr.WriteString(repo)
-			partialImageNameBldr.WriteString(slash)
+			if len(repo) > 0 {
+				partialImageNameBldr.WriteString(repo)
+				partialImageNameBldr.WriteString(slash)
+			}
 		}
 
 		// If the Registry/Repo key is defined then set it

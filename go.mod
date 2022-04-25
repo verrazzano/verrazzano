@@ -24,7 +24,7 @@ require (
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.1
-	github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220324154616-c5e6f9e0fead
+	github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220411153627-17ca0f144e2b
 	go.uber.org/zap v1.21.0
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
 	golang.org/x/tools v0.1.10
@@ -48,9 +48,11 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/emicklei/go-restful v2.9.5+incompatible // indirect
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
+	github.com/go-bindata/go-bindata/v3 v3.1.3 // indirect
 	github.com/go-errors/errors v1.0.1 // indirect
 	github.com/go-logr/zapr v1.2.3 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
@@ -117,15 +119,15 @@ require (
 	sigs.k8s.io/kustomize/api v0.10.1 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.13.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
-	github.com/go-bindata/go-bindata/v3 v3.1.3 // indirect
-	github.com/emicklei/go-restful v2.9.5+incompatible // indirect
 
 )
 
 replace (
 	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
 	github.com/onsi/ginkgo/v2 => github.com/onsi/ginkgo/v2 v2.0.0
+	github.com/spf13/cobra => github.com/spf13/cobra v1.1.1
 	golang.org/x/lint => golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
+	golang.org/x/tools => golang.org/x/tools v0.0.0-20210106214847-113979e3529a
 	gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.8
 	k8s.io/api => k8s.io/api v0.23.5
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.23.5
@@ -133,7 +135,5 @@ replace (
 	k8s.io/cli-runtime => k8s.io/cli-runtime v0.23.5
 	k8s.io/client-go => k8s.io/client-go v0.23.5
 	k8s.io/code-generator => k8s.io/code-generator v0.23.5
-	github.com/spf13/cobra => github.com/spf13/cobra v1.1.1
-	golang.org/x/tools => golang.org/x/tools v0.0.0-20210106214847-113979e3529a
 
 )
