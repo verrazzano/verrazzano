@@ -149,9 +149,9 @@ func TestExpand(t *testing.T) {
 // Expanded results with a left margin of 4
 const lmExpanded4 = `    aa:
       bb:
-      - val_4a
-      - val_4b
-      - val_4c`
+        - val_4a
+        - val_4b
+        - val_4c`
 
 // TestLeftMargin tests the Expand function
 // GIVEN a set of dot seperated names
