@@ -555,7 +555,7 @@
       ]
     },
     {
-      "name": "jaeger-operator",
+      "name": "jaeger",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -563,17 +563,10 @@
           "images": [
             {
               "image": "jaeger-operator",
-              "tag": "1.32.0",
-              "helmFullImageKey": "image.repository",
-              "helmTagKey": "image.tag"
+              "tag": "1.32.0"
             }
           ]
-        }
-      ]
-    },
-    {
-      "name": "jaeger-agent",
-      "subcomponents": [
+        },
         {
           "repository": "verrazzano",
           "name": "jaeger-agent",
@@ -583,12 +576,7 @@
               "tag": "1.32.0"
             }
           ]
-        }
-      ]
-    },
-    {
-      "name": "jaeger-collector",
-      "subcomponents": [
+        },
         {
           "repository": "verrazzano",
           "name": "jaeger-collector",
@@ -598,12 +586,7 @@
               "tag": "1.32.0"
             }
           ]
-        }
-      ]
-    },
-    {
-      "name": "jaeger-query",
-      "subcomponents": [
+        },
         {
           "repository": "verrazzano",
           "name": "jaeger-query",
@@ -613,18 +596,13 @@
               "tag": "1.32.0"
             }
           ]
-        }
-      ]
-    },
-    {
-      "name": "jaeger-ingester",
-      "subcomponents": [
+        },
         {
           "repository": "verrazzano",
-          "name": "jaeger-ingester",
+          "name": "jaeger-ingest",
           "images": [
             {
-              "image": "jaeger-ingester",
+              "image": "jaeger-ingest",
               "tag": "1.32.0"
             }
           ]

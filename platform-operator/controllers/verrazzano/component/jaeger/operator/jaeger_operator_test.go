@@ -4,8 +4,9 @@
 package operator
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/bom"
+	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,31 +16,62 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const (
-	testBomFilePath         = "../../../testdata/test_bom.json"
-)
-
-const extraEnvValue= `
-  - name: "JAEGER-AGENT-IMAGE"
-    value: "ghcr.io/verrazzano/jaeger-agent:1.32.0"
-  - name: "JAEGER-QUERY-IMAGE"
-    value: "ghcr.io/verrazzano/jaeger-query:1.32.0"
-  - name: "JAEGER-COLLECTOR-IMAGE"
-    value: "ghcr.io/verrazzano/jaeger-collector:1.32.0"
-  - name: "JAEGER-INGESTER-IMAGE"
-    value: "ghcr.io/verrazzano/jaeger-ingester:1.32.0"
-`
+const testBomPath = "../../../../../verrazzano-bom.json"
 
 var testScheme = runtime.NewScheme()
 
 func init() {
 	_ = clientgoscheme.AddToScheme(testScheme)
 	_ = vzapi.AddToScheme(testScheme)
+	_ = appsv1.AddToScheme(testScheme)
+}
+
+//TestBuildInstallArgs verifies the install args are present as expected from the BOM
+func TestBuildInstallArgs(t *testing.T) {
+	defer config.Set(config.Get())
+
+	var tests = []struct {
+		name     string
+		bomFile  string
+		hasError bool
+	}{
+		{
+			"build install args from valid bom",
+			testBomPath,
+			false,
+		},
+		{
+			"fails to build install args when bomfile doesn't exist",
+			"invalid bom file",
+			true,
+		},
+		{
+			"fails to build install args when bomfile doesn't have jaeger subcomponent",
+			"invalid bom file",
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config.SetDefaultBomFilePath(tt.bomFile)
+			args, err := buildInstallArgs()
+			if tt.hasError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				for _, subcomponent := range subcomponentNames {
+					img, ok := args[strings.ReplaceAll(subcomponent, "-", "")]
+					assert.True(t, ok, fmt.Sprintf("couldn't find subcomponent image: %s", img))
+					assert.Contains(t, img, subcomponent)
+				}
+			}
+		})
+	}
 }
 
 // TestIsJaegerOperatorReady tests the isJaegerOperatorReady function for the Jaeger Operator
@@ -104,31 +136,9 @@ func TestIsJaegerOperatorReady(t *testing.T) {
 	}
 }
 
-// TestAppendOverrides tests that the Jaeger Operator overrides are generated correctly.
-// GIVEN a Verrazzano BOM
-// WHEN I call AppendOverrides
-// THEN the Jaeger Operator overrides Key:Value array has the expected content.
-func TestAppendOverrides(t *testing.T) {
-	a := assert.New(t)
-
-	const env = "test-env"
-	vz := &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			EnvironmentName: env,
-		},
-	}
-
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-
-	config.SetDefaultBomFilePath(testBomFilePath)
-	kvs, err := AppendOverrides(spi.NewFakeContext(c, vz, false), "", "", "", nil)
-
-	a.NoError(err, "AppendOverrides returned an error")
-	a.Len(kvs, 1, "AppendOverrides returned wrong number of Key:Value pairs")
-
-	a.Contains(kvs, bom.KeyValue{
-		Key:       extraEnvKey,
-		Value:     extraEnvValue,
-		SetString: true,
-	})
+// TestEnsureMonitoringOperatorNamespace asserts the verrazzano-monitoring namespaces can be created
+func TestEnsureMonitoringOperatorNamespace(t *testing.T) {
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), jaegerEnabledCR, false)
+	err := ensureVerrazzanoMonitoringNamespace(ctx)
+	assert.NoError(t, err)
 }
