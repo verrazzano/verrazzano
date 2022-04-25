@@ -53,7 +53,7 @@ func (o opensearchComponent) IsOperatorInstallSupported() bool {
 }
 
 func (o opensearchComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
-	return checkOpenSearchStatus(ctx, status.DoDeploymentsExist, status.DoStatefulSetsExist), nil
+	return doesOSExist(ctx), nil
 }
 
 func (o opensearchComponent) Reconcile(ctx spi.ComponentContext) error {

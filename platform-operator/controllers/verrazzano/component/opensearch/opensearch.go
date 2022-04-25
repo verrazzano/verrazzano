@@ -39,9 +39,27 @@ var (
 	execCommand = exec.Command
 )
 
+func doesOSExist(ctx spi.ComponentContext) bool {
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	deployments := []types.NamespacedName{{
+		Name:      esIngestDeployment,
+		Namespace: ComponentNamespace,
+	}}
+	return !status.DoDeploymentsExist(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+}
+
 // checkOpenSearchStatus checks performs checks on the OpenSearch resources
 func checkOpenSearchStatus(ctx spi.ComponentContext, deploymentFunc status.DeploymentFunc, statefulsetFunc status.StatefulSetFunc) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+
+	vmi := common.NewVMI()
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{
+		Name:      vmi.Name,
+		Namespace: vmi.Namespace,
+	}, vmi); err != nil {
+		ctx.Log().Errorf("Error finding VMI %s: %v", vmi.Name, err)
+		return false
+	}
 
 	var deployments []types.NamespacedName
 
