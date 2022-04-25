@@ -34,16 +34,16 @@ const val4b = `val_4b`
 const val4c = `val_4c`
 const expanded4 = `aa:
   bb:
-  - val_4a
-  - val_4b
-  - val_4c`
+    - val_4a
+    - val_4b
+    - val_4c`
 
 // Name value with valuelist
 const name5 = `aa.bb`
 const val5 = `val_5a`
 const expanded5 = `aa:
   bb:
-  - val_5a`
+    - val_5a`
 
 // Name with list internal
 const name6 = `aa.bb[0].cc`
@@ -58,6 +58,14 @@ const val7 = `val_7`
 const expanded7 = `aa:
   - bb:
       - cc: val_7`
+
+// Final object list
+const name8 = `aa[0].bb[0].cc[0]`
+const val8 = `val_8`
+const expanded8 = `aa:
+  - bb:
+      - cc:
+          - val_8`
 
 // TestExpand tests the Expand function
 // GIVEN a set of dot seperated names
@@ -119,6 +127,13 @@ func TestExpand(t *testing.T) {
 			forceList: false,
 			values:    []string{val7},
 			expected:  expanded7,
+		},
+		{
+			testName:  "8",
+			name:      name8,
+			forceList: false,
+			values:    []string{val8},
+			expected:  expanded8,
 		},
 	}
 	for _, test := range tests {

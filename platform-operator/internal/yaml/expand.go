@@ -66,13 +66,18 @@ func Expand(leftMargin int, forceList bool, name string, vals ...string) (string
 	//    controller, service, annotations, service.beta.kubernetes.io/oci-load-balancer-shape
 	listIndents := 0
 	nextValueList := false
+	indentVal := " "
 	for i, seg := range nameSegs {
 		// Create the padded indent
-		pad := strings.Repeat(" ", leftMargin+(indent*(i+listIndents)))
+		pad := strings.Repeat(indentVal, leftMargin+(indent*(i+listIndents)))
+
+		// last value for formatting
+		lastVal := i == len(nameSegs)-1
 
 		// Check if current value is a new list value
+		listValueString := ""
 		if nextValueList {
-			pad += "- "
+			listValueString = "- "
 			listIndents++
 			nextValueList = false
 		}
@@ -85,12 +90,17 @@ func Expand(leftMargin int, forceList bool, name string, vals ...string) (string
 		}
 
 		// Write the indent padding, then name followed by colon
-		if _, err := b.WriteString(pad + seg + ":"); err != nil {
+		if _, err := b.WriteString(pad + listValueString + seg + ":"); err != nil {
 			return "", err
 		}
 		// If this is the last segment then write the value, else LF
-		if i == len(nameSegs)-1 {
-			if err := writeVals(&b, forceList, pad, vals...); err != nil {
+		if lastVal {
+			indentSize := 1
+			if nextValueList {
+				indentSize = 2
+			}
+			pad += strings.Repeat(indentVal, indent*indentSize)
+			if err := writeVals(&b, forceList || nextValueList, pad, vals...); err != nil {
 				return "", err
 			}
 		} else {
