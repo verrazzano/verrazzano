@@ -116,6 +116,9 @@ func (s *Syncer) ProcessAgentThread() error {
 		s.Log.Errorf("Failed to update VMC status on admin cluster: %v", err)
 	}
 
+	// Sync multi-cluster objects
+	s.SyncMultiClusterResources()
+
 	// Check whether the admin or local clusters' CA certs have rolled, and sync as necessary
 	err = s.syncClusterCAs()
 	if err != nil {
@@ -123,8 +126,6 @@ func (s *Syncer) ProcessAgentThread() error {
 		s.Log.Errorf("Failed to synchronize cluster CA certificates: %v", err)
 	}
 
-	// Sync multi-cluster objects
-	s.SyncMultiClusterResources()
 	return nil
 }
 
