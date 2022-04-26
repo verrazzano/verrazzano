@@ -102,11 +102,7 @@ func (c nginxComponent) validateForExternalIPSWithNodePort(vz *vzapi.VerrazzanoS
 
 	// look for externalIPs if NodePort
 	if vz.Components.Ingress.Type == vzapi.NodePort {
-		if vz.Components.Ingress.NGINXInstallArgs != nil {
-			return vzconfig.CheckArgs(vz.Components.Ingress.NGINXInstallArgs, nginxExternalIPKey, c.Name())
-		}
-		// if ingress args are not set at all, then external ips will not be set
-		return fmt.Errorf("'nginxInstallArgs' cannot be empty. ExternalIPs needs to be specified here as type is NodePort")
+		return vzconfig.CheckArgs(vz.Components.Ingress.NGINXInstallArgs, nginxExternalIPKey, c.Name())
 	}
 
 	return nil

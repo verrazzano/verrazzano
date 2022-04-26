@@ -6,11 +6,12 @@ package istio
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
@@ -160,10 +161,7 @@ func (i istioComponent) validateForExternalIPSWithNodePort(vz *vzapi.VerrazzanoS
 
 	// look for externalIPs if NodePort
 	if vz.Components.Istio.Ingress.Type == vzapi.NodePort {
-		if vz.Components.Istio.IstioInstallArgs != nil {
-			return vzconfig.CheckArgs(vz.Components.Istio.IstioInstallArgs, ExternalIPArg, i.Name())
-		}
-		return fmt.Errorf("'istioInstallArgs' cannot be empty. ExternalIPs needs to be specified here as type is NodePort")
+		return vzconfig.CheckArgs(vz.Components.Istio.IstioInstallArgs, ExternalIPArg, i.Name())
 	}
 
 	return nil
