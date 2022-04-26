@@ -134,7 +134,7 @@ endif
 
 .PHONY: assets
 assets: go-bindata
-	$(GO_BINDATA) -pkg verrazzano -o generated_assets.go ./manifests/dashboards/...
+	$(GO_BINDATA) -modtime 1647457998 -pkg verrazzano -o generated_assets.go ./manifests/dashboards/...
 	echo '// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.' | cat - generated_assets.go > tmp && mv tmp generated_assets.go
 	echo '// Copyright (C) 2022, Oracle and/or its affiliates.' | cat - generated_assets.go > tmp && mv tmp generated_assets.go
 	mv ./generated_assets.go ./controllers/verrazzano/component/verrazzano/
