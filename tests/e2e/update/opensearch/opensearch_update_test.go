@@ -32,8 +32,6 @@ const (
 
 )
 
-var ()
-
 type OpensearchMasterNodeArgsModifier struct {
 	NodeReplicas uint64
 	NodeMemory   string

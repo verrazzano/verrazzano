@@ -10,7 +10,7 @@ import (
 	"github.com/onsi/gomega"
 )
 
-func TestAuthProxyUpdate(t *testing.T) {
+func TestOpenSearchPostInstallUpdate(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "Post Install Update Opensearch Suite")
 }
