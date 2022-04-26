@@ -110,7 +110,7 @@ function delete_rancher() {
     | xargsr -n 1 kubectl get --all-namespaces --ignore-not-found -o custom-columns=":kind,:metadata.name,:metadata.namespace" \
     | awk '{res="";if ($1 != "") res=tolower($1)".management.cattle.io "tolower($2); if ($3 != "<none>" && res != "") res=res" -n "$3; if (res != "") cmd="kubectl patch "res" -p \x027{\"metadata\":{\"finalizers\":null}}\x027 --type=merge;kubectl delete --ignore-not-found "res; print cmd}' \
     | sh \
-    || err_return $? "Could not delete rancher CRs" || return 0 # ignore failures
+    || err_return $? "There were errors deleting rancher CRs"  # Continue if failures
 
   log "Deleting CRDs from Rancher"
 
