@@ -6,7 +6,6 @@ package helm
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/yaml"
 	"os"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -21,6 +20,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/yaml"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -66,9 +66,6 @@ type HelmComponent struct {
 
 	// SupportsHelmValueOverrides Indicates whether or not the component supports helm value overrides
 	GetHelmValueOverrides getHelmValueOverridesSig
-
-	// ArbitraryOverridesFunc is an optional function to get overrides from overrides list in the vz cr
-	ArbitraryOverridesFunc arbitraryOverridesSig
 
 	// ResolveNamespaceFunc is an optional function to process the namespace name
 	ResolveNamespaceFunc resolveNamespaceSig
@@ -116,9 +113,6 @@ type appendOverridesSig func(context spi.ComponentContext, releaseName string, n
 
 // getHelmValueOverridesSig is the signature for providing the list of Helm value overrides.
 type getHelmValueOverridesSig func(context spi.ComponentContext) []vzapi.Overrides
-
-// arbitraryOverrideSig is an optional function called to get overrides from the overrides list in the cr
-type arbitraryOverridesSig func(context spi.ComponentContext, namespace string, kvs []bom.KeyValue) ([]bom.KeyValue, error)
 
 // resolveNamespaceSig is an optional function called for special namespace processing
 type resolveNamespaceSig func(ns string) string
