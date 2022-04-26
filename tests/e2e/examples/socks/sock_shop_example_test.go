@@ -272,34 +272,22 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 				} else if getVariant() == "spring" {
 					pkg.Concurrently(
 						func() {
-							Eventually(func() bool {
-								return pkg.MetricsExist(sampleSpringMetric, oamComponent, "carts")
-							}, waitTimeout, pollingInterval).Should(BeTrue())
+							Eventually(springMetricExists("carts"), waitTimeout, pollingInterval).Should(BeTrue())
 						},
 						func() {
-							Eventually(func() bool {
-								return pkg.MetricsExist(sampleSpringMetric, oamComponent, "catalog")
-							}, waitTimeout, pollingInterval).Should(BeTrue())
+							Eventually(springMetricExists("catalog"), waitTimeout, pollingInterval).Should(BeTrue())
 						},
 						func() {
-							Eventually(func() bool {
-								return pkg.MetricsExist(sampleSpringMetric, oamComponent, "orders")
-							}, waitTimeout, pollingInterval).Should(BeTrue())
+							Eventually(springMetricExists("orders"), waitTimeout, pollingInterval).Should(BeTrue())
 						},
 						func() {
-							Eventually(func() bool {
-								return pkg.MetricsExist(sampleSpringMetric, oamComponent, "payment")
-							}, waitTimeout, pollingInterval).Should(BeTrue())
+							Eventually(springMetricExists("payment"), waitTimeout, pollingInterval).Should(BeTrue())
 						},
 						func() {
-							Eventually(func() bool {
-								return pkg.MetricsExist(sampleSpringMetric, oamComponent, "shipping")
-							}, waitTimeout, pollingInterval).Should(BeTrue())
+							Eventually(springMetricExists("shipping"), waitTimeout, pollingInterval).Should(BeTrue())
 						},
 						func() {
-							Eventually(func() bool {
-								return pkg.MetricsExist(sampleSpringMetric, oamComponent, "users")
-							}, waitTimeout, pollingInterval).Should(BeTrue())
+							Eventually(springMetricExists("users"), waitTimeout, pollingInterval).Should(BeTrue())
 						},
 						func() {
 							Eventually(coherenceMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
@@ -397,6 +385,11 @@ func appComponentMetricExists() bool {
 // appConfigMetricExists checks whether config metrics are available
 func appConfigMetricExists() bool {
 	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "orders")
+}
+
+// springMetricExists checks whether sample Spring metrics is available for a given component
+func springMetricExists(comp string) bool {
+	return pkg.MetricsExist(sampleSpringMetric, oamComponent, comp)
 }
 
 // getVariant returns the variant of the sock shop application being tested
