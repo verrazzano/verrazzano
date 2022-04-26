@@ -4,7 +4,6 @@
 package opensearch
 
 import (
-	"k8s.io/apimachinery/pkg/api/resource"
 	"strconv"
 	"time"
 
@@ -210,55 +209,55 @@ func validatePods(deployName string, nameSpace string, expectedPodsRunning uint3
 	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get correct number of running and pending pods")
 }
 
-func validatePodMemoryRequest(deployName string, nameSpace string, containerName string, expectedMemoryRequest string, hasPending bool) {
-	Eventually(func() bool {
-		var err error
-		pods, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": deployName}}, nameSpace)
-		if err != nil {
-			return false
-		}
-		// Compare the number of running/pending pods to the expected numbers
-		var runningPods uint32 = 0
-		var pendingPods = false
-		for _, pod := range pods {
-			if pod.Status.Phase == corev1.PodRunning {
-				runningPods++
-			}
-			if pod.Status.Phase == corev1.PodPending {
-				pendingPods = true
-			}
-			for _, container := range pod.Spec.Containers {
-				if container.Name != containerName {
-					continue
-				}
-				expectedNodeMemory, err := resource.ParseQuantity(updatedNodeMemory)
-				if err != nil {
-					pkg.Log(pkg.Error, err.Error())
-					return false
-				}
-				if container.Resources.Requests.Memory() != &expectedNodeMemory {
-					return false
-				}
-			}
-		}
-		return  pendingPods == hasPending
-	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get correct number of running and pending pods")
-}
+//func validatePodMemoryRequest(deployName string, nameSpace string, containerName string, expectedMemoryRequest string, hasPending bool) {
+//	Eventually(func() bool {
+//		var err error
+//		pods, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": deployName}}, nameSpace)
+//		if err != nil {
+//			return false
+//		}
+//		// Compare the number of running/pending pods to the expected numbers
+//		var runningPods uint32 = 0
+//		var pendingPods = false
+//		for _, pod := range pods {
+//			if pod.Status.Phase == corev1.PodRunning {
+//				runningPods++
+//			}
+//			if pod.Status.Phase == corev1.PodPending {
+//				pendingPods = true
+//			}
+//			for _, container := range pod.Spec.Containers {
+//				if container.Name != containerName {
+//					continue
+//				}
+//				expectedNodeMemory, err := resource.ParseQuantity(updatedNodeMemory)
+//				if err != nil {
+//					pkg.Log(pkg.Error, err.Error())
+//					return false
+//				}
+//				if container.Resources.Requests.Memory() != &expectedNodeMemory {
+//					return false
+//				}
+//			}
+//		}
+//		return  pendingPods == hasPending
+//	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get correct number of running and pending pods")
+//}
 
-func validatePodStorage(deployName string, nameSpace string, expectedStorage uint32, hasPending bool) {
-	Eventually(func() bool {
-		var err error
-		pods, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": deployName}}, nameSpace)
-		if err != nil {
-			return false
-		}
-		// Compare the number of running/pending pods to the expected numbers
-		var runningPods uint32 = 0
-		for _, pod := range pods {
-			if pod.Status.Phase == corev1.PodRunning {
-				runningPods++
-			}
-		}
-		return true
-	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get correct number of running and pending pods")
-}
+//func validatePodStorage(deployName string, nameSpace string, expectedStorage uint32, hasPending bool) {
+//	Eventually(func() bool {
+//		var err error
+//		pods, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": deployName}}, nameSpace)
+//		if err != nil {
+//			return false
+//		}
+//		// Compare the number of running/pending pods to the expected numbers
+//		var runningPods uint32 = 0
+//		for _, pod := range pods {
+//			if pod.Status.Phase == corev1.PodRunning {
+//				runningPods++
+//			}
+//		}
+//		return true
+//	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get correct number of running and pending pods")
+//}
