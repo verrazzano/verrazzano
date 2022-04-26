@@ -500,6 +500,14 @@ func CheckNSFinalizerRemoved(ns string, clientset *kubernetes.Clientset) bool {
 	return namespace.Finalizers == nil
 }
 
+func getKubeConfigPath(kubeconfigPath string) (string, error) {
+	if kubeconfigPath == "" {
+		return k8sutil.GetKubeConfigLocation()
+
+	}
+	return kubeconfigPath, nil
+}
+
 // GetImagePrefix Gets the image prefix for container images (accounts for private registry)
 func GetImagePrefix() string {
 	imagePrefix := "ghcr.io"

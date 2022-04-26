@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"os/exec"
 	"strings"
@@ -287,6 +288,18 @@ func getMock(t *testing.T) *mocks.MockClient {
 		List(gomock.Any(), &v1.SecretList{}, gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secretList *v1.SecretList, options ...client.ListOption) error {
 			secretList.Items = []v1.Secret{{Type: HelmScrtType}, {Type: "generic"}, {Type: HelmScrtType}}
+			return nil
+		}).AnyTimes()
+
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: "default"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, _ *v1.Secret) error {
+			return nil
+		}).AnyTimes()
+
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: IstioNamespace}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, _ *v1.Secret) error {
 			return nil
 		}).AnyTimes()
 
