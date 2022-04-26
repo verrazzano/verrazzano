@@ -577,20 +577,6 @@ func IsOpenSearchDashboardsEnabled(kubeconfigPath string) bool {
 	return true
 }
 
-// IsOpenSearchEnabled returns true if the OpenSearch component is using the default values, or the value of its
-// Enabled field is explicitly set to true It returns false otherwise
-func IsOpenSearchEnabled(kubeconfigPath string) bool {
-	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
-	if err != nil {
-		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
-		return true
-	}
-	if vz != nil && vz.Spec.Components.Elasticsearch != nil && vz.Spec.Components.Elasticsearch.Enabled != nil {
-		return *vz.Spec.Components.Elasticsearch.Enabled
-	}
-	return true
-}
-
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
 func APIExtensionsClientSet() (*apiextv1.ApiextensionsV1Client, error) {
 	config, err := k8sutil.GetKubeConfig()

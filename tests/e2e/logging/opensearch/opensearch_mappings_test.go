@@ -83,7 +83,10 @@ var _ = t.Describe("OpenSearch field mappings", Label("f:observability.logging.e
 		// GIVEN OpenSearch verrazzano application index
 		// WHEN the documents with same field name but different data types are written
 		// THEN verify that both the docs are written successfully
-		indexName := pkg.GetOpenSearchAppIndex("test")
+		indexName, err := pkg.GetOpenSearchAppIndex("test")
+		if err != nil {
+			Fail(err.Error())
+		}
 		Eventually(func() bool {
 			doc1 := `{"key":2,"@timestamp":"2022-03-15T19:55:54Z"}`
 			resp, err := pkg.PostElasticsearch(fmt.Sprintf(indexDocumentURL, indexName), doc1)
@@ -138,7 +141,10 @@ var _ = t.Describe("OpenSearch field mappings", Label("f:observability.logging.e
 		// GIVEN OpenSearch verrazzano application index
 		// WHEN the documents with same field name but one with object and the other one with concrete value are written
 		// THEN verify that the second document insertion fails
-		indexName := pkg.GetOpenSearchAppIndex("test")
+		indexName, err := pkg.GetOpenSearchAppIndex("test")
+		if err != nil {
+			Fail(err.Error())
+		}
 		Eventually(func() bool {
 			doc1 := `{"keyObject":{"name":"unit-test-cluster"},"@timestamp":"2022-03-15T19:55:54Z"}`
 			resp, err := pkg.PostElasticsearch(fmt.Sprintf(indexDocumentURL, indexName), doc1)

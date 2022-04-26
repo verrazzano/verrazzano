@@ -71,7 +71,12 @@ var _ = t.Describe("Pre Upgrade OpenSearch", Label("f:observability.logging.es")
 	MinimumVerrazzanoIt("OpenSearch Write data", func() {
 		Eventually(func() bool {
 			kubeConfigPath, _ := k8sutil.GetKubeConfigLocation()
-			if pkg.IsOpenSearchEnabled(kubeConfigPath) {
+			isOSEnabled, err := pkg.IsOpenSearchEnabled(kubeConfigPath)
+			if err != nil {
+				pkg.Log(pkg.Error, err.Error())
+				return false
+			}
+			if isOSEnabled {
 				indexName, err := pkg.GetOpenSearchSystemIndex(pkg.VerrazzanoNamespace)
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("error getting the system index: %v", err))

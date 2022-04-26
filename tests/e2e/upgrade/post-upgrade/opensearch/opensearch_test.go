@@ -80,7 +80,12 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 				return true
 			}
 			kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
-			if pkg.IsOpenSearchEnabled(kubeconfigPath) {
+			isOSEnabled, err := pkg.IsOpenSearchEnabled(kubeconfigPath)
+			if err != nil {
+				pkg.Log(pkg.Error, err.Error())
+				return false
+			}
+			if isOSEnabled {
 				oldIndicesPatterns := []string{"^verrazzano-namespace-.*$", "^verrazzano-systemd-journal$",
 					"^verrazzano-logstash-.*$"}
 				return pkg.IndicesNotExists(oldIndicesPatterns)
@@ -99,7 +104,12 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 				return true
 			}
 			kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
-			if pkg.IsOpenSearchEnabled(kubeconfigPath) {
+			isOSEnabled, err := pkg.IsOpenSearchEnabled(kubeconfigPath)
+			if err != nil {
+				pkg.Log(pkg.Error, err.Error())
+				return false
+			}
+			if isOSEnabled {
 				return pkg.CheckForDataStream(pkg.VerrazzanoNamespace)
 			}
 			return true
@@ -115,7 +125,12 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 				return true
 			}
 			kubeConfigPath, _ := k8sutil.GetKubeConfigLocation()
-			if pkg.IsOpenSearchEnabled(kubeConfigPath) {
+			isOSEnabled, err := pkg.IsOpenSearchEnabled(kubeConfigPath)
+			if err != nil {
+				pkg.Log(pkg.Error, err.Error())
+				return false
+			}
+			if isOSEnabled {
 				indexName, err := pkg.GetOpenSearchSystemIndex(pkg.VerrazzanoNamespace)
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("error getting the system index: %v", err))
