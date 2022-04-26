@@ -49,8 +49,8 @@ func NewVMI() *vmov1.VerrazzanoMonitoringInstance {
 	}
 }
 
-// CreateVMI instantiates the VMI resource
-func CreateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error {
+// CreateOrUpdateVMI instantiates the VMI resource
+func CreateOrUpdateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error {
 	if !vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
 		return nil
 	}

@@ -88,7 +88,7 @@ func (d opensearchDashboardsComponent) PreInstall(ctx spi.ComponentContext) erro
 
 // Install OpenSearch-Dashboards component install processing
 func (d opensearchDashboardsComponent) Install(ctx spi.ComponentContext) error {
-	return common.CreateVMI(ctx, updateFunc)
+	return common.CreateOrUpdateVMI(ctx, updateFunc)
 }
 
 // PreUpgrade OpenSearch-Dashboards component pre-upgrade processing
@@ -99,7 +99,7 @@ func (d opensearchDashboardsComponent) PreUpgrade(ctx spi.ComponentContext) erro
 
 // Upgrade OpenSearch-Dashboards component upgrade processing
 func (d opensearchDashboardsComponent) Upgrade(ctx spi.ComponentContext) error {
-	return common.CreateVMI(ctx, updateFunc)
+	return common.CreateOrUpdateVMI(ctx, updateFunc)
 }
 
 // IsReady component check
@@ -164,28 +164,16 @@ func (d opensearchDashboardsComponent) isOpenSearchDashboardEnabled(old *vzapi.V
 
 // GetIngressNames - gets the names of the ingresses associated with this component
 func (d opensearchDashboardsComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
-	var ingressNames []types.NamespacedName
-
-	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
-		ingressNames = append(ingressNames, types.NamespacedName{
-			Namespace: ComponentNamespace,
-			Name:      constants.KibanaIngress,
-		})
-	}
-
-	return ingressNames
+	return []types.NamespacedName{{
+		Namespace: ComponentNamespace,
+		Name:      constants.KibanaIngress,
+	}}
 }
 
 // GetCertificateNames - gets the names of the ingresses associated with this component
 func (d opensearchDashboardsComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
-	var certificateNames []types.NamespacedName
-
-	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
-		certificateNames = append(certificateNames, types.NamespacedName{
-			Namespace: ComponentNamespace,
-			Name:      osdCertificateName,
-		})
-	}
-
-	return certificateNames
+	return []types.NamespacedName{{
+		Namespace: ComponentNamespace,
+		Name:      osdCertificateName,
+	}}
 }

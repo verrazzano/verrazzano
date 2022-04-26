@@ -104,7 +104,7 @@ func (c verrazzanoComponent) Install(ctx spi.ComponentContext) error {
 	if err := createGrafanaConfigMaps(ctx); err != nil {
 		return err
 	}
-	return common.CreateVMI(ctx, updateFunc)
+	return common.CreateOrUpdateVMI(ctx, updateFunc)
 }
 
 // PreUpgrade Verrazzano component pre-upgrade processing
@@ -128,7 +128,7 @@ func (c verrazzanoComponent) Upgrade(ctx spi.ComponentContext) error {
 	if err := createGrafanaConfigMaps(ctx); err != nil {
 		return err
 	}
-	return common.CreateVMI(ctx, updateFunc)
+	return common.CreateOrUpdateVMI(ctx, updateFunc)
 }
 
 // IsReady component check

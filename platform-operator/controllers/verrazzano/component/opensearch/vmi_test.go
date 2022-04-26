@@ -167,7 +167,7 @@ func TestNewOpenSearchValuesAreCopied(t *testing.T) {
 //  THEN the configuration in the CR is respected
 func TestCreateVMI(t *testing.T) {
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vmiEnabledCR, false)
-	err := common.CreateVMI(ctx, updateFunc)
+	err := common.CreateOrUpdateVMI(ctx, updateFunc)
 	assert.NoError(t, err)
 	vmi := &vmov1.VerrazzanoMonitoringInstance{}
 	namespacedName := types.NamespacedName{Name: system, Namespace: globalconst.VerrazzanoSystemNamespace}
