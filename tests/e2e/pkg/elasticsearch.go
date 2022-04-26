@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"github.com/onsi/gomega"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
-	"github.com/verrazzano/verrazzano/application-operator/test/integ/util"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"html/template"
 	"net/http"
@@ -34,7 +33,7 @@ const (
 //GetOpenSearchSystemIndex in Verrazzano 1.3.0, indices in the verrazzano-system namespace have been migrated
 // to the verrazzano-system data stream
 func GetOpenSearchSystemIndex(name string) (string, error) {
-	return GetOpenSearchSystemIndexWithKC(name, util.GetKubeconfig())
+	return GetOpenSearchSystemIndexWithKC(name, "")
 }
 
 //GetOpenSearchSystemIndexWithKC is the same as GetOpenSearchSystemIndex but the kubeconfig may be specified for MC tests
@@ -232,7 +231,7 @@ func (u ElasticSearchISMPolicyRemoveModifier) ModifyCR(cr *vzapi.Verrazzano) {
 //GetOpenSearchAppIndex in Verrazzano 1.3.0, application indices have been migrated to data streams
 // following the pattern 'verrazzano-application-<application name>'
 func GetOpenSearchAppIndex(namespace string) (string, error) {
-	return GetOpenSearchAppIndexWithKC(namespace, util.GetKubeconfig())
+	return GetOpenSearchAppIndexWithKC(namespace, "")
 }
 
 //GetOpenSearchAppIndexWithKC is the same as GetOpenSearchAppIndex but kubeconfig may be specified for MC tests
@@ -248,7 +247,11 @@ func GetOpenSearchAppIndexWithKC(namespace, kubeconfigPath string) (string, erro
 }
 
 func isUsingDataStreams(kubeconfigPath string) (bool, error) {
-	return IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
+	kubeConfig, err := getKubeConfigPath(kubeconfigPath)
+	if err != nil {
+		return false, err
+	}
+	return IsVerrazzanoMinVersion("1.3.0", kubeConfig)
 }
 
 func UseExternalElasticsearch() bool {

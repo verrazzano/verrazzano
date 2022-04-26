@@ -597,7 +597,6 @@ func CheckNSFinalizerRemoved(ns string, clientset *kubernetes.Clientset) bool {
 func getKubeConfigPath(kubeconfigPath string) (string, error) {
 	if kubeconfigPath == "" {
 		return k8sutil.GetKubeConfigLocation()
-
 	}
 	return kubeconfigPath, nil
 }
