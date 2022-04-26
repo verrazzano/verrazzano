@@ -88,6 +88,7 @@ func TestUpgrade(t *testing.T) {
 		ChartDir:                "ChartDir",
 		ChartNamespace:          "chartNS",
 		IgnoreNamespaceOverride: true,
+		ImagePullSecretKeyname:  "imagePullSecrets",
 		ValuesFile:              "ValuesFile",
 		PreUpgradeFunc:          fakePreUpgrade,
 	}
@@ -176,6 +177,7 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 		ChartDir:                "ChartDir",
 		ChartNamespace:          "chartNS",
 		IgnoreNamespaceOverride: true,
+		ImagePullSecretKeyname:  "imagePullSecrets",
 		ValuesFile:              "ValuesFile",
 		PreUpgradeFunc:          fakePreUpgrade,
 		AppendOverridesFunc:     istio.AppendIstioOverrides,
