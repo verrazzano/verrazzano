@@ -81,7 +81,7 @@ func DeployApplicationAndTemplate(namespace, appYamlPath, templateYamlPath, podP
 	gomega.Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
-			"istio-injection":    "enabled"}
+			"istio-injection":    istioInjection}
 		return pkg.CreateNamespaceWithAnnotations(namespace, nsLabels, nsAnnotations)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
 

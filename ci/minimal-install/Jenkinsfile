@@ -377,7 +377,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
                             }
                             steps {
-                                runGinkgoNoFlags('workloads/weblogic')
+                                runGinkgo('workloads/weblogic')
                             }
                         }
                         stage('coherence workload') {
