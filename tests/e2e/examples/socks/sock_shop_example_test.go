@@ -272,22 +272,34 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 				} else if getVariant() == "spring" {
 					pkg.Concurrently(
 						func() {
-							Eventually(springMetricExists("carts"), waitTimeout, pollingInterval).Should(BeTrue())
+							Eventually(func() bool {
+								return springMetricExists("carts")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
 						},
 						func() {
-							Eventually(springMetricExists("catalog"), waitTimeout, pollingInterval).Should(BeTrue())
+							Eventually(func() bool {
+								return springMetricExists("catalog")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
 						},
 						func() {
-							Eventually(springMetricExists("orders"), waitTimeout, pollingInterval).Should(BeTrue())
+							Eventually(func() bool {
+								return springMetricExists("orders")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
 						},
 						func() {
-							Eventually(springMetricExists("payment"), waitTimeout, pollingInterval).Should(BeTrue())
+							Eventually(func() bool {
+								return springMetricExists("payment")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
 						},
 						func() {
-							Eventually(springMetricExists("shipping"), waitTimeout, pollingInterval).Should(BeTrue())
+							Eventually(func() bool {
+								return springMetricExists("shipping")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
 						},
 						func() {
-							Eventually(springMetricExists("users"), waitTimeout, pollingInterval).Should(BeTrue())
+							Eventually(func() bool {
+								return springMetricExists("users")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
 						},
 						func() {
 							Eventually(coherenceMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
