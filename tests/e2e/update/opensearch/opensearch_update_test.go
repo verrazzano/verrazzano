@@ -28,13 +28,11 @@ const (
 	pollingInterval     = 5 * time.Second
 	updatedReplicaCount = 5
 	updatedNodeMemory   = "512Mi"
-	updatedNodeStorage  = "2Gi"
+	//updatedNodeStorage  = "2Gi"
 
 )
 
-var(
-
-)
+var ()
 
 type OpensearchMasterNodeArgsModifier struct {
 	NodeReplicas uint64
