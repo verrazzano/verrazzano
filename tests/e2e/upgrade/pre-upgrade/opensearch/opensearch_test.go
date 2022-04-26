@@ -20,6 +20,7 @@ const (
 	threeMinutes    = 3 * time.Minute
 	pollingInterval = 10 * time.Second
 	documentFile    = "testdata/upgrade/opensearch/document1.json"
+	longTimeout     = 10 * time.Minute
 )
 
 var t = framework.NewTestFramework("opensearch")
@@ -37,6 +38,7 @@ var _ = t.BeforeSuite(func() {
 		m := pkg.ElasticSearchISMPolicyAddModifier{}
 		update.UpdateCR(m)
 	}
+	pkg.WaitForISMPolicyUpdate(pollingInterval, longTimeout)
 })
 
 var _ = t.AfterSuite(func() {

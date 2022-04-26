@@ -21,6 +21,7 @@ const (
 	threeMinutes    = 3 * time.Minute
 	pollingInterval = 10 * time.Second
 	documentFile    = "testdata/upgrade/opensearch/document1.json"
+	longTimeout     = 10 * time.Minute
 )
 
 var t = framework.NewTestFramework("opensearch")
@@ -43,7 +44,7 @@ var _ = t.BeforeSuite(func() {
 		pkg.Log(pkg.Info, "Update the VZ CR to add the required ISM Policies")
 	}
 	// Wait for sufficient time to allow the VMO reconciliation to complete
-	pkg.WaitForISMPolicyUpdate(pollingInterval, threeMinutes)
+	pkg.WaitForISMPolicyUpdate(pollingInterval, longTimeout)
 	pkg.Log(pkg.Info, "Before suite setup completed")
 })
 
