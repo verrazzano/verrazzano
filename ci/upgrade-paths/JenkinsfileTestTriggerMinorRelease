@@ -40,7 +40,7 @@ pipeline {
                         trim: true)
         string (name: 'N_JOBS_FOR_EACH_BATCH',
                 defaultValue: '3',
-                description: 'This is to define total number of jobs executed parallelly per each batch',
+                description: 'This is to define total number of jobs executed in parallel per each batch',
                 trim: true)
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
                         defaultValue: 'NONE',
@@ -173,8 +173,8 @@ pipeline {
                     }
                     print mapOfJobsInBatches
                     for(batch in mapOfJobsInBatches){
-                        sleep 5
                         parallel batch
+                        sleep 5
                     }
                     //parallel upgradeJobsStageMapping
                      }
