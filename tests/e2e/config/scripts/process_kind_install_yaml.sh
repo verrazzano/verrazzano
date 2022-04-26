@@ -13,7 +13,7 @@ yq -i eval ".spec.components.dns.wildcard.domain = \"${DNS_WILDCARD_DOMAIN}\"" $
 
 if [ "$VZ_ENVIRONMENT_NAME" == "admin" ] && [ "$EXTERNAL_ELASTICSEARCH" == "true" ]; then
   EXTERNAL_ES_SECRET=external-es-secret
-  EXTERNAL_ES_URL=https://$(KUBECONFIG=${ADMIN_KUBECONFIG} kubectl get svc quickstart-es-http -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'):9200
+  EXTERNAL_ES_URL=https://$(KUBECONFIG=${ADMIN_KUBECONFIG} kubectl get svc opensearch-cluster-master -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'):9200
   yq -i eval ".spec.components.fluentd.elasticsearchSecret = \"${EXTERNAL_ES_SECRET}\"" ${INSTALL_CONFIG_TO_EDIT}
   yq -i eval ".spec.components.fluentd.elasticsearchURL = \"${EXTERNAL_ES_URL}\"" ${INSTALL_CONFIG_TO_EDIT}
 fi

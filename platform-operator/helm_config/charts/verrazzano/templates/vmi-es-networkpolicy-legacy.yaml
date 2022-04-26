@@ -1,0 +1,246 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+# Network policy for Elasticsearch master single pod installation
+# Ingress:
+#          allow from Verrazzano Monitoring Operator to port 9200
+#          allow from auth proxy to port 9200
+#          allow from Kibana to port 9200
+#          allow from Prometheus to scrape Envoy stats on port 15090
+# Egress: allow all
+  {{- if .Values.elasticSearch.enabled}}
+  {{- if eq (int .Values.elasticSearch.nodes.data.replicas) 0}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vmi-system-es-master-legacy
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: system-es-master
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow ingress from Verrazzano Monitoring Operator
+    - from:
+      - podSelector:
+          matchLabels:
+            k8s-app: verrazzano-monitoring-operator
+      ports:
+      - port: 9200
+        protocol: TCP
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: verrazzano-authproxy
+      ports:
+      - protocol: TCP
+        port: 9200
+    # Allow ingress from Kibana
+    - from:
+        - podSelector:
+            matchLabels:
+              app: system-kibana
+      ports:
+        - protocol: TCP
+          port: 9200
+    # Allow ingress from ES master to itself
+    - from:
+        - podSelector:
+            matchLabels:
+              app: system-es-master
+    - ports:
+        - protocol: TCP
+          port: 9200
+    # Allow ingress from Prometheus to scrape Envoy stats
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: system-prometheus
+      ports:
+        - port: 15090
+          protocol: TCP
+  {{- else }}
+# Network policy for Elasticsearch full multi-pod installation
+
+# Network policy for Elasticsearch master
+# Ingress: allow from ES pods to port 9300
+#          allow from Verrazzano Monitoring Operator to port 9200
+#          allow from Prometheus to scrape Envoy stats on port 15090
+# Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vmi-system-es-master-legacy
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: system-es-master
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow ingress from Verrazzano Monitoring Operator
+    - from:
+        - podSelector:
+            matchLabels:
+              k8s-app: verrazzano-monitoring-operator
+      ports:
+        - port: 9200
+          protocol: TCP
+    # Allow ingress from ES pods to cluster port
+    - from:
+        - podSelector:
+            matchLabels:
+              app: system-es-master
+        - podSelector:
+            matchLabels:
+              app: system-es-data
+        - podSelector:
+            matchLabels:
+              app: system-es-ingest
+      ports:
+        - protocol: TCP
+          port: 9300
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: system-prometheus
+      ports:
+        - port: 15090
+          protocol: TCP
+---
+# Network policy for Elasticsearch Data
+# Ingress: allow from ES master to port 9300
+#          allow from ES data to port 9300
+#          allow from ES ingest to port 9200 and 9300
+#          allow from Kibana to port 9200
+#          allow from Prometheus to scrape Envoy stats on port 15090
+# Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vmi-system-es-data-legacy
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: system-es-data
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow ingress from ES master
+    - from:
+        - podSelector:
+            matchLabels:
+              app: system-es-master
+      ports:
+        - protocol: TCP
+          port: 9300
+    # Allow ingress from ES data
+    - from:
+        - podSelector:
+            matchLabels:
+              app: system-es-data
+      ports:
+        - protocol: TCP
+          port: 9300
+    # Allow ingress from ES ingest
+    - from:
+        - podSelector:
+            matchLabels:
+              app: system-es-ingest
+      ports:
+        - protocol: TCP
+          port: 9200
+        - protocol: TCP
+          port: 9300
+    # Allow ingress from Kibana
+    - from:
+        - podSelector:
+            matchLabels:
+              app: system-kibana
+      ports:
+        - protocol: TCP
+          port: 9200
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: system-prometheus
+      ports:
+        - port: 15090
+          protocol: TCP
+---
+# Network policy for Elasticsearch Ingest
+# Ingress: allow from auth proxy to port 9200
+#          allow from ES master and ES data to port 9300
+#          allow from Kibana to port 9200
+#          allow from Prometheus to scrape Envoy stats on port 15090
+# Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vmi-system-es-ingest-legacy
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: system-es-ingest
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: verrazzano-authproxy
+      ports:
+        - protocol: TCP
+          port: 9200
+    # Allow ingress from ES master and ES data on cluster port
+    - from:
+        - podSelector:
+            matchLabels:
+              app: system-es-master
+        - podSelector:
+            matchLabels:
+              app: system-es-data
+      ports:
+        - protocol: TCP
+          port: 9300
+    # Allow ingress from Kibana
+    - from:
+        - podSelector:
+            matchLabels:
+              app: system-kibana
+      ports:
+        - protocol: TCP
+          port: 9200
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: system-prometheus
+      ports:
+        - port: 15090
+          protocol: TCP
+  # end else
+  {{- end }}
+  {{- end }}
