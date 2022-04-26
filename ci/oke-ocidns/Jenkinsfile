@@ -203,7 +203,6 @@ pipeline {
                     chmod 600 $HOME/.netrc
                 """
                 println("${params.LOCK_REGION}")
-                println("agentlabel: ${agentLabel}")
                 sh """
                     echo "${NODE_LABELS}"
                 """
