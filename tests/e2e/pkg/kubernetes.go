@@ -577,6 +577,19 @@ func IsOpenSearchDashboardsEnabled(kubeconfigPath string) bool {
 	return true
 }
 
+// IsJaegerOperatorEnabled returns false if the Jaeger Operator component is not set, or the value of its Enabled field otherwise
+func IsJaegerOperatorEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.JaegerOperator == nil || vz.Spec.Components.JaegerOperator.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.JaegerOperator.Enabled
+}
+
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
 func APIExtensionsClientSet() (*apiextv1.ApiextensionsV1Client, error) {
 	config, err := k8sutil.GetKubeConfig()
@@ -1230,4 +1243,36 @@ func UpdateConfigMap(configMap *corev1.ConfigMap) error {
 		return err
 	}
 	return nil
+}
+
+// ContainerHasExpectedEnv returns true if each of the envs matches a substring of one of the env found in the deployment
+func ContainerHasExpectedEnv(namespace string, deploymentName string, containerName string, envMap map[string]string) (bool, error) {
+	deployment, err := GetDeployment(namespace, deploymentName)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Deployment %v is not found in the namespace: %v, error: %v", deploymentName, namespace, err))
+		return false, nil
+	}
+	for _, container := range deployment.Spec.Template.Spec.Containers {
+		if container.Name == containerName {
+			for env, val := range envMap {
+				found := false
+				for _, containerEnv := range container.Env {
+					if containerEnv.Name == env {
+						if containerEnv.Value != val {
+							Log(Error, fmt.Sprintf("The value %v of the env %v for the container %v is not set as expected: %v",
+								containerEnv.Value, containerEnv.Name, containerName, val))
+							return false, nil
+						}
+						found = true
+					}
+				}
+				if !found {
+					Log(Error, fmt.Sprintf("The env %v not set for the container %v", env, containerName))
+					return false, nil
+				}
+			}
+			return true, nil
+		}
+	}
+	return false, nil
 }
