@@ -133,11 +133,3 @@ func newSecretsReconciler(c client.Client) VerrazzanoSecretsReconciler {
 		Scheme: scheme}
 	return reconciler
 }
-
-// getCaCrt returns a fake certificate
-func getCaCrt() string {
-	// this is fake data
-	return "    -----BEGIN CERTIFICATE-----\n" +
-		"    MIIBiDCCAS6gAwIBAgIBADAKBggqhkjOPQQDAjA7MRwwGgYDVQQKExNkeW5hbWlj\n" +
-		"    -----END CERTIFICATE-----"
-}
