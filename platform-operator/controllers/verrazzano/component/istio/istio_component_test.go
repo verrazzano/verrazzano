@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"os/exec"
 	"strings"
@@ -291,6 +292,18 @@ func getMock(t *testing.T) *mocks.MockClient {
 		}).AnyTimes()
 
 	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: "default"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, _ *v1.Secret) error {
+			return nil
+		}).AnyTimes()
+
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: IstioNamespace}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, _ *v1.Secret) error {
+			return nil
+		}).AnyTimes()
+
+	mock.EXPECT().
 		Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *v1.Secret, opts ...client.DeleteOption) error {
 			return nil
@@ -523,7 +536,7 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "change-ingress-affinity",
@@ -543,7 +556,7 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "change-egress-replicas",
@@ -563,7 +576,7 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "change-eggress-affinity",
@@ -583,7 +596,7 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name:    "no change",

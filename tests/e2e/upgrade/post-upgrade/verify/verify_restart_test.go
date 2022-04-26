@@ -9,12 +9,11 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"k8s.io/apimachinery/pkg/api/errors"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/istio"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -34,6 +33,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 const (
@@ -216,10 +216,9 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 
 			t.Entry("Checking Deployment rancher", rancher.ComponentNamespace, rancher.ComponentName, "rancher"),
 			t.Entry("Checking Deployment rancher", rancher.ComponentNamespace, rancher.ComponentName, "rancher-webhook"),
-			t.Entry("Checking Deployment fleet-agent", "fleet-system", rancher.ComponentName, "fleet-agent"),
-			t.Entry("Checking Deployment fleet-controller", "fleet-system", rancher.ComponentName, "fleet-controller"),
-			t.Entry("Checking Deployment gitjob", "fleet-system", rancher.ComponentName, "gitjob"),
-			t.Entry("Checking Deployment rancher-operator", "rancher-operator-system", rancher.ComponentName, "rancher-operator"),
+			t.Entry("Checking Deployment fleet-agent", rancher.FleetLocalSystemNamespace, rancher.ComponentName, "fleet-agent"),
+			t.Entry("Checking Deployment fleet-controller", rancher.FleetSystemNamespace, rancher.ComponentName, "fleet-controller"),
+			t.Entry("Checking Deployment gitjob", rancher.FleetSystemNamespace, rancher.ComponentName, "gitjob"),
 		)
 	})
 
@@ -304,6 +303,38 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 			t.Entry("Checking StatefulSet fluentd", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "fluentd"),
 			t.Entry("Checking StatefulSet node-exporter", vzconst.VerrazzanoMonitoringNamespace, verrazzano.ComponentName, "node-exporter"),
 		)
+	})
+})
+
+var _ = t.Describe("Verify prometheus configmap reconciliation,", Label("f:platform-lcm.upgrade", "f:observability.monitoring.prom"), func() {
+	// Verify prometheus configmap is reconciled correctly
+	// GIVEN upgrade has completed
+	// WHEN the vmo pod is restarted
+	// THEN the test job created before upgrade still exists and prometheus scrape job interval is corrected.
+	t.It("Verify prometheus configmap is not deleted on vmo restart.", func() {
+		Eventually(func() (bool, error) {
+			_, scrapeConfigs, _, err := pkg.GetPrometheusConfig()
+			if err != nil {
+				pkg.Log(pkg.Error, fmt.Sprintf("Failed getting prometheus config: %v", err))
+				return false, err
+			}
+
+			intervalUpdated := false
+			testJobFound := false
+			for _, nsc := range scrapeConfigs {
+				scrapeConfig := nsc.(map[interface{}]interface{})
+				// Check that interval is updated
+				if scrapeConfig["job_name"] == "prometheus" {
+					intervalUpdated = (scrapeConfig["scrape_interval"].(string) != vzconst.TestPrometheusJobScrapeInterval)
+				}
+
+				// Check that test scrape config is not removed
+				if scrapeConfig["job_name"] == vzconst.TestPrometheusScrapeJob {
+					testJobFound = true
+				}
+			}
+			return intervalUpdated && testJobFound, nil
+		}, twoMinutes, pollingInterval).Should(BeTrue(), "Prometheus scrape job default time interval not updated or the test job is removed after upgrade.")
 	})
 })
 

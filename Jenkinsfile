@@ -83,9 +83,6 @@ pipeline {
         DOCKER_NAMESPACE = 'verrazzano'
         NETRC_FILE = credentials('netrc')
         GITHUB_PKGS_CREDS = credentials('github-packages-credentials-rw')
-        GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
-        GITHUB_RELEASE_USERID = credentials('github-userid-release')
-        GITHUB_RELEASE_EMAIL = credentials('github-email-release')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
 
         CLUSTER_NAME = 'verrazzano'
@@ -418,7 +415,7 @@ pipeline {
             }
         }
 
-        stage('Kind Acceptance Tests on 1.20') {
+        stage('Kind Acceptance Tests on 1.22') {
             when {
                 allOf {
                     not { buildingTag() }
@@ -443,7 +440,7 @@ pipeline {
                     build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                         parameters: [
                             string(name: 'LOCK_REGION', value: params.LOCK_REGION),
-                            string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
+                            string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
                             string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                             string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                             booleanParam(name: 'RUN_SLOW_TESTS', value: params.RUN_SLOW_TESTS),

@@ -463,6 +463,84 @@ func IsWebLogicOperatorEnabled(kubeconfigPath string) bool {
 	return *vz.Spec.Components.WebLogicOperator.Enabled
 }
 
+// IsOpenSearchEnabled returns true if the OpenSearch component is not set, or the value of its Enabled field otherwise
+func IsOpenSearchEnabled(kubeconfigPath string) (bool, error) {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false, err
+	}
+	if vz != nil && vz.Spec.Components.Elasticsearch != nil && vz.Spec.Components.Elasticsearch.Enabled != nil {
+		return *vz.Spec.Components.Elasticsearch.Enabled, nil
+	}
+	return false, nil
+}
+
+// IsPrometheusAdapterEnabled returns false if the Prometheus Adapter component is not set, or the value of its Enabled field otherwise
+func IsPrometheusAdapterEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.PrometheusAdapter == nil || vz.Spec.Components.PrometheusAdapter.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.PrometheusAdapter.Enabled
+}
+
+// IsPrometheusOperatorEnabled returns false if the Prometheus Operator component is not set, or the value of its Enabled field otherwise
+func IsPrometheusOperatorEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.PrometheusOperator == nil || vz.Spec.Components.PrometheusOperator.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.PrometheusOperator.Enabled
+}
+
+// IsKubeStateMetricsEnabled returns false if the Kube State Metrics component is not set, or the value of its Enabled field otherwise
+func IsKubeStateMetricsEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.KubeStateMetrics == nil || vz.Spec.Components.KubeStateMetrics.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.KubeStateMetrics.Enabled
+}
+
+// IsPrometheusPushgatewayEnabled returns false if the Prometheus Pushgateway component is not set, or the value of its Enabled field otherwise
+func IsPrometheusPushgatewayEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.PrometheusPushgateway == nil || vz.Spec.Components.PrometheusPushgateway.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.PrometheusPushgateway.Enabled
+}
+
+// IsPrometheusNodeExporterEnabled returns false if the Prometheus Node Exporter component is not set, or the value of its Enabled field otherwise
+func IsPrometheusNodeExporterEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.PrometheusNodeExporter == nil || vz.Spec.Components.PrometheusNodeExporter.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.PrometheusNodeExporter.Enabled
+}
+
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
 func APIExtensionsClientSet() (*apiextv1.ApiextensionsV1Client, error) {
 	config, err := k8sutil.GetKubeConfig()
@@ -1099,4 +1177,21 @@ func ContainerHasExpectedArgs(namespace string, deploymentName string, container
 		}
 	}
 	return false, nil
+}
+
+// UpdateConfigMap updates the config map
+func UpdateConfigMap(configMap *corev1.ConfigMap) error {
+	// Get the Kubernetes clientset
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return err
+	}
+
+	cmi := clientset.CoreV1().ConfigMaps(configMap.GetNamespace())
+	_, err = cmi.Update(context.TODO(), configMap, metav1.UpdateOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to update Config Map %s from namespace %s: %v ", configMap.GetName(), configMap.GetNamespace(), err))
+		return err
+	}
+	return nil
 }

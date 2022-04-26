@@ -191,16 +191,10 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 
 	// If Verrazzano is installed see if upgrade is needed
 	if isInstalled(actualCR.Status) {
-		// If the version is specified and different from the current version of the installation
-		// then proceed with upgrade
 		if len(actualCR.Spec.Version) > 0 && actualCR.Spec.Version != actualCR.Status.Version {
-			result, err := r.reconcileUpgrade(log, actualCR)
-			// Keep retrying the upgrade until it completes.
-			if err != nil {
-				return newRequeueWithDelay(), err
-			} else if vzctrl.ShouldRequeue(result) {
-				return result, nil
-			}
+			// Transition to upgrade state
+			r.updateVzState(log, actualCR, installv1alpha1.VzStateUpgrading)
+			return newRequeueWithDelay(), err
 		}
 		// Keep retrying to reconcile components until it completes
 		if result, err := r.reconcileComponents(vzctx); err != nil {
@@ -322,9 +316,21 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 	} else if vzctrl.ShouldRequeue(result) {
 		return result, nil
 	}
-	// Upgrade should always requeue to ensure that reconciler runs post upgrade to install
-	// components that may have been waiting for upgrade
-	return newRequeueWithDelay(), nil
+
+	// Install any new components and do any updates to existing components
+	if result, err := r.reconcileComponents(vzctx); err != nil {
+		return newRequeueWithDelay(), err
+	} else if vzctrl.ShouldRequeue(result) {
+		return result, nil
+	}
+
+	// Upgrade done along with any post-upgrade installations of new components that are enabled by default.
+	msg := fmt.Sprintf("Verrazzano successfully upgraded to version %s", vz.Spec.Version)
+	log.Once(msg)
+	if err := r.updateStatus(log, vz, msg, installv1alpha1.CondUpgradeComplete); err != nil {
+		return newRequeueWithDelay(), err
+	}
+	return ctrl.Result{}, nil
 }
 
 // ProcPausedUpgradeState processes the CR while in the paused upgrade state

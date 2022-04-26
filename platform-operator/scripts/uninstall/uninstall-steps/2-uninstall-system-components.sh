@@ -66,55 +66,37 @@ function delete_cert_manager() {
   kubectl delete namespace cert-manager --ignore-not-found=true || err_return $? "Could not delete namespace cert-manager" || return $?
 }
 
-function cleanup_rancher_local_cluster() {
-  if kubectl get cluster local > /dev/null 2>&1 ; then
-    # Occasionally we have problems deleting 'local' Rancher cluster object nicely, and it gets stuck and puts any
-    # re-installed cluster in a bad state.  So here we force the delete of the object, wait for it, and then
-    # patch out any remaining finalizers and check one more time for delete success.
-    log "Found 'local' cluster object still present, removing..."
-    kubectl delete --wait=false clusters.management.cattle.io local || true
-    kubectl wait --for=delete -n kube-system clusters.management.cattle.io/local --timeout=2m || true
-    # Patch any dangling finalizers
-    kubectl patch clusters.management.cattle.io local -p '{"metadata":{"finalizers":null}}' --type=merge || true
-    kubectl wait --for=delete -n kube-system clusters.management.cattle.io/local --timeout=1m || true
-    if kubectl get cluster local > /dev/null 2>&1 ; then
-      log "Unable to delete Rancher 'local' cluster object"
-    else
-      log "Rancher 'local' cluster deleted successfully"
-    fi
-  fi
-}
-
 function delete_rancher() {
   local rancher_exists=$(kubectl get namespace cattle-system --ignore-not-found)
   if [ -z "$rancher_exists" ] ; then
+    log "Rancher not found"
     return 0
   fi
 
   # Clean up the local rancher cluster object if necessary
-  cleanup_rancher_local_cluster
+#  cleanup_rancher_local_cluster
+  log "Running Rancher system-tools remove"
+  /usr/local/bin/system-tools remove -c /home/verrazzano/kubeconfig --force || err_return $? "Failed to run Rancher system-tools remove"
+
+  # wait for the cleanup to be complete (enough) for us to proceed
+  kubectl wait --for=delete ns/cattle-system --timeout=120s
 
   # Deleting rancher components
-  log "Deleting rancher"
+  log "Deleting rancher helm charts (if any left over)"
   helm ls -n fleet-system | awk '/fleet/ {print $1}' | xargsr helm uninstall -n fleet-system \
     || err_return $? "Could not delete fleet-system charts from helm" || return $? # return on pipefail
-    helm ls -n fleet-system | awk '/fleet/ {print $1}' | xargsr helm -n fleet-system uninstall fleet-crd \
+  helm ls -n cattle-fleet-system | awk '/fleet/ {print $1}' | xargsr helm uninstall -n cattle-fleet-system \
+    || err_return $? "Could not delete cattle-fleet-system charts from helm" || return $? # return on pipefail
+  helm ls -n cattle-fleet-local-system | awk '/fleet/ {print $1}' | xargsr helm uninstall -n cattle-fleet-local-system \
+    || err_return $? "Could not delete cattle-fleet-local-system charts from helm" || return $? # return on pipefail
+  helm ls -n fleet-system | awk '/fleet/ {print $1}' | xargsr helm -n fleet-system uninstall \
     || err_return $? "Could not delete fleet-system charts from helm" || return $? # return on pipefail
-  helm ls -n rancher-operator-system | awk '/rancher/ {print $1}' | xargsr helm uninstall -n rancher-operator-system \
-    || err_return $? "Could not delete rancher-operator-system charts from helm" || return $? # return on pipefail
   helm ls -n cattle-system | awk '/rancher/ {print $1}' | xargsr helm uninstall -n cattle-system \
     || err_return $? "Could not delete cattle-system from helm" || return $? # return on pipefail
 
   log "Delete the additional CA secret for Rancher"
   kubectl -n cattle-system delete secret tls-ca-additional 2>&1 > /dev/null || true
   kubectl -n cattle-system delete secret tls-ca --ignore-not-found=true
-
-  log "Deleting CRs from rancher"
-  kubectl api-resources --api-group=management.cattle.io --verbs=delete -o name \
-    | xargsr -n 1 kubectl get --all-namespaces --ignore-not-found -o custom-columns=":kind,:metadata.name,:metadata.namespace" \
-    | awk '{res="";if ($1 != "") res=tolower($1)".management.cattle.io "tolower($2); if ($3 != "<none>" && res != "") res=res" -n "$3; if (res != "") cmd="kubectl patch "res" -p \x027{\"metadata\":{\"finalizers\":null}}\x027 --type=merge;kubectl delete "res; print cmd}' \
-    | sh \
-    || err_return $? "Could not delete rancher CRs" || return $? # return on pipefail
 
   log "Deleting CRDs from rancher"
 
@@ -138,7 +120,7 @@ function delete_rancher() {
 
   # delete clusterrolebindings deployed by rancher
   log "Deleting ClusterRoleBindings"
-  delete_k8s_resources clusterrolebinding ":metadata.name,:metadata.labels" "Could not delete ClusterRoleBindings from Rancher" '/cattle.io|app:rancher|fleetworkspace-|fleet-|gitjob/ {print $1}' \
+  delete_k8s_resources clusterrolebinding ":metadata.name,:metadata.labels" "Could not delete ClusterRoleBindings from Rancher" '/cattle.io|app:rancher|rancher-webhook|fleetworkspace-|fleet-|gitjob/ {print $1}' \
     || return $? # return on pipefail
 
   # delete clusterroles
@@ -161,6 +143,14 @@ function delete_rancher() {
   log "Deleting ConfigMap"
   kubectl delete configmap cattle-controllers -n kube-system  --ignore-not-found=true || err_return $? "Could not delete ConfigMap from Rancher in namespace kube-system" || return $?
   kubectl delete configmap rancher-controller-lock -n kube-system --ignore-not-found=true || err_return $? "Could not delete ConfigMap rancher-controller-lock in namespace kube-system" || return $?
+
+  log "Delete the Rancher webhooks and left over charts"
+  # delete mutatingwebhookconfigurations
+  delete_k8s_resources mutatingwebhookconfigurations ":metadata.name,:metadata.labels" "Could not delete MutatingWebhookConfigurations from Rancher" '/cattle.io|app:rancher/ {print $1}' \
+    || return $? # return on pipefail
+  # delete validatingwebhookconfigurations
+  delete_k8s_resources validatingwebhookconfigurations ":metadata.name,:metadata.labels" "Could not delete ValidatingWebhookConfigurations from Rancher" '/cattle.io|app:rancher/ {print $1}' \
+    || return $? # return on pipefail
 
   log "Removing Rancher namespace finalizers"
   # delete namespace finalizers
@@ -188,7 +178,7 @@ function delete_rancher() {
 
   # delete cattle namespaces
   log "Delete rancher namespace"
-  delete_k8s_resources namespaces ":metadata.name" "Could not delete namespaces from Rancher" '/cattle-|local|p-|user-|fleet|rancher/ {print $1}' \
+  delete_k8s_resources namespaces ":metadata.name" "Could not delete namespaces from Rancher" '/cattle-|p-|user-|fleet|rancher/ {print $1}' \
     || return $? # return on pipefail
 
   # delete annotations left in kube-system secrets

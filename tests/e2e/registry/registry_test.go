@@ -5,13 +5,13 @@ package registry
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"os"
 	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,7 +23,6 @@ const (
 )
 
 var registry = os.Getenv("REGISTRY")
-var privateRepo = os.Getenv("PRIVATE_REPO")
 
 // List of namespaces from which all the pods are queried to confirm the images are loaded from the target registry/repo
 var listOfNamespaces = []string{
@@ -40,7 +39,6 @@ var listOfNamespaces = []string{
 	"keycloak",
 	"local",
 	"monitoring",
-	"rancher-operator-system",
 	"verrazzano-install",
 	"verrazzano-mc",
 	"verrazzano-system",
@@ -57,13 +55,7 @@ var _ = t.Describe("Private Registry Verification", Label("f:platform-lcm.privat
 		t.It("All the pods in the cluster have the expected registry URLs",
 			func() {
 				var pod corev1.Pod
-				imagePrefix := "ghcr.io"
-				if len(registry) > 0 {
-					imagePrefix = registry
-				}
-				if len(privateRepo) > 0 {
-					imagePrefix += "/" + privateRepo
-				}
+				imagePrefix := pkg.GetImagePrefix()
 				for i, ns := range listOfNamespaces {
 					var pods *corev1.PodList
 					Eventually(func() (*corev1.PodList, error) {
