@@ -586,7 +586,15 @@ func IsDataStreamSupported() bool {
 //WaitForISMPolicyUpdate waits for the VMO reconcile to complete and the ISM policies are created
 func WaitForISMPolicyUpdate(pollingInterval time.Duration, timeout time.Duration) {
 	gomega.Eventually(func() bool {
-		return IsDataStreamSupported()
+		resp, err := doGetElasticSearchURL(getDataStreamURLFormat + "verrazzano-system")
+		if err != nil {
+			Log(Error, err.Error())
+			return false
+		}
+		if resp.StatusCode != http.StatusOK {
+			return false
+		}
+		return true
 	}, pollingInterval, timeout).Should(gomega.BeTrue())
 }
 
