@@ -35,7 +35,7 @@ const verrazzanoSystemNamespace = "verrazzano-system"
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var vmiEsIngressURL = getVmiEsIngressURL()
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
-var externalEsURL = pkg.GetExternalElasticSearchURL(adminKubeconfig)
+var externalEsURL = pkg.GetExternalOpenSearchURL(adminKubeconfig)
 
 var t = framework.NewTestFramework("register_test")
 
@@ -138,8 +138,10 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 		})
 
 		t.It("has the expected system logs from admin and managed cluster", func() {
-			verrazzanoIndex := "verrazzano-namespace-verrazzano-system"
-			systemdIndex := "verrazzano-systemd-journal"
+			verrazzanoIndex, err := pkg.GetOpenSearchSystemIndex("verrazzano-system")
+			Expect(err).To(BeNil())
+			systemdIndex, err := pkg.GetOpenSearchSystemIndex("systemd-journal")
+			Expect(err).To(BeNil())
 			pkg.Concurrently(
 				func() {
 					Eventually(func() bool {
@@ -384,7 +386,7 @@ func assertRegistrationSecret() {
 }
 
 func getVmiEsIngressURL() string {
-	return fmt.Sprintf("%s:443", pkg.GetSystemElasticSearchIngressURL(adminKubeconfig))
+	return fmt.Sprintf("%s:443", pkg.GetSystemOpenSearchIngressURL(adminKubeconfig))
 }
 
 func getClusterNameMetricLabel(kubeconfigPath string) string {
