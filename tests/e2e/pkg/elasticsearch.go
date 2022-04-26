@@ -206,7 +206,7 @@ func (u ElasticSearchISMPolicyAddModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		cr.Spec.Components.Elasticsearch.Policies = []vmov1.IndexManagementPolicy{
 			{
 				PolicyName:   "verrazzano-system",
-				IndexPattern: "verrazzano-namespace*",
+				IndexPattern: "verrazzano-system*",
 				MinIndexAge:  &DefaultRetentionPeriod,
 				Rollover: vmov1.RolloverPolicy{
 					MinIndexAge: &DefaultRolloverPeriod,
@@ -589,7 +589,7 @@ func IsDataStreamSupported() bool {
 //WaitForISMPolicyUpdate waits for the VMO reconcile to complete and the ISM policies are created
 func WaitForISMPolicyUpdate(pollingInterval time.Duration, timeout time.Duration) {
 	gomega.Eventually(func() bool {
-		ismPolicyExists, err := ISMPolicyExists(SystemLogIsmPolicyName)
+		ismPolicyExists, err := ISMPolicyExists(ApplicationLogIsmPolicyName)
 		if err != nil {
 			Log(Error, err.Error())
 			return false
