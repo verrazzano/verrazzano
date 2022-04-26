@@ -104,7 +104,7 @@ func deployWebLogicApp(namespace string) {
 	Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
-			"istio-injection":    "enabled"}
+			"istio-injection":    istioInjection}
 		return pkg.CreateNamespace(namespace, nsLabels)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
