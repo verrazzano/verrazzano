@@ -118,6 +118,6 @@ var _ = t.Describe("Pre Upgrade OpenSearch Dashboards Setup", Label("f:observabi
 				}
 			}
 			return true
-		}, threeMinutes, pollingInterval).Should(BeTrue(), "Expected not to fail creation of index patterns")
+		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(), "Expected not to fail creation of index patterns")
 	})
 })

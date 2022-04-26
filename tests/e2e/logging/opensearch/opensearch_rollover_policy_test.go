@@ -54,7 +54,7 @@ var _ = t.Describe("Opensearch Rollover Policies Suite", Label("f:observability.
 				return false
 			}
 			return rolloverPeriod == *rollOverISMPolicy.MinIndexAge
-		}, shortPollingInterval, shortWaitTimeout, "ISM rollover policy for system logs should match user configured value in VZ")
+		}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue(), "ISM rollover policy for system logs should match user configured value in VZ")
 	})
 
 	MinimumVerrazzanoIt("Application log Rollover policy in ISM should match configuration value in VZ CR", func() {
@@ -70,7 +70,7 @@ var _ = t.Describe("Opensearch Rollover Policies Suite", Label("f:observability.
 				return false
 			}
 			return rolloverPeriod == *rollOverISMPolicy.MinIndexAge
-		}, shortPollingInterval, shortWaitTimeout, "ISM rollover policy for application logs should match user configured value in VZ")
+		}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue(), "ISM rollover policy for application logs should match user configured value in VZ")
 	})
 
 	MinimumVerrazzanoIt("Data Stream for system logs if older than rollover period should be having more than 1 indices (one per rollover period)", func() {

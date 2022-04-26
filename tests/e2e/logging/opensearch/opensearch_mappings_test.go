@@ -134,7 +134,7 @@ var _ = t.Describe("OpenSearch field mappings", Label("f:observability.logging.e
 				}
 			}
 			return true
-		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to write data successfully to OpenSearch with different data types")
+		}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue(), "Expected to write data successfully to OpenSearch with different data types")
 	})
 
 	MinimumVerrazzanoIt("Documents with object fields get stored as objects", func() {

@@ -53,7 +53,7 @@ var _ = t.Describe("Opensearch Retention Policies Suite", Label("f:observability
 				return false
 			}
 			return policyExists && minIndexAge == *systemRetentionPolicy.MinIndexAge
-		}, shortPollingInterval, longWaitTimeout).Should(BeTrue(), "ISM policy for system indices should be created")
+		}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue(), "ISM policy for system indices should be created")
 	})
 
 	MinimumVerrazzanoIt("Application log Retention policy in ISM should match configuration value in VZ CR", func() {
@@ -74,7 +74,7 @@ var _ = t.Describe("Opensearch Retention Policies Suite", Label("f:observability
 				return false
 			}
 			return policyExists && minIndexAge == *applicationRetentionPolicy.MinIndexAge
-		}, shortPollingInterval, longWaitTimeout).Should(BeTrue(), "ISM policy for application indices should be created")
+		}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue(), "ISM policy for application indices should be created")
 	})
 
 	MinimumVerrazzanoIt("Check no system indices exists older than the retention period specified", func() {

@@ -103,6 +103,6 @@ var _ = t.Describe("Pre Upgrade OpenSearch", Label("f:observability.logging.es")
 				}
 			}
 			return true
-		}, threeMinutes, pollingInterval).Should(BeTrue(), "Expected not to fail while writing data to OpenSearch")
+		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(), "Expected not to fail while writing data to OpenSearch")
 	})
 })
