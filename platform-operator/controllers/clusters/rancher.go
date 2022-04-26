@@ -17,12 +17,12 @@ import (
 	"strings"
 	"time"
 
+	cons "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	corev1 "k8s.io/api/core/v1"
-
-	"github.com/verrazzano/verrazzano/pkg/httputil"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	k8net "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -30,11 +30,10 @@ import (
 )
 
 const (
-	rancherNamespace     = "cattle-system"
-	rancherIngressName   = "rancher"
-	rancherAdminSecret   = "rancher-admin-secret" //nolint:gosec //#gosec G101
-	rancherTLSSecret     = "tls-rancher-ingress"  //nolint:gosec //#gosec G101
-	rancherTLSAdditional = "tls-ca-additional"
+	rancherNamespace   = "cattle-system"
+	rancherIngressName = "rancher"
+	rancherAdminSecret = "rancher-admin-secret" //nolint:gosec //#gosec G101
+	rancherTLSSecret   = "tls-rancher-ingress"  //nolint:gosec //#gosec G101
 
 	clusterPath         = "/v3/cluster"
 	clustersByNamePath  = "/v3/clusters?name="
@@ -101,7 +100,7 @@ func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, lo
 	}
 	rc.certificateAuthorityData = caCert
 
-	log.Debugf("Checking for Rancher additional CA in secret %s", rancherTLSAdditional)
+	log.Debugf("Checking for Rancher additional CA in secret %s", cons.AdditionalTLS)
 	rc.additionalCA = common.GetAdditionalCA(rdr)
 
 	log.Once("Getting admin token from Rancher")

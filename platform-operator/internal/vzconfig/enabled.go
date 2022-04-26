@@ -155,3 +155,11 @@ func IsPrometheusNodeExporterEnabled(vz *vzapi.Verrazzano) bool {
 	}
 	return false
 }
+
+// IsJaegerOperatorEnabled returns true only if the Jaeger Operator is explicitly enabled in the CR
+func IsJaegerOperatorEnabled(vz *vzapi.Verrazzano) bool {
+	if vz != nil && vz.Spec.Components.JaegerOperator != nil && vz.Spec.Components.JaegerOperator.Enabled != nil {
+		return *vz.Spec.Components.JaegerOperator.Enabled
+	}
+	return false
+}

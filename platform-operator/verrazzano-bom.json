@@ -241,7 +241,7 @@
             },
             {
               "image": "opensearch",
-              "tag": "1.2.3-20220414183247-3456fb02cde",
+              "tag": "1.2.3-20220426040255-3456fb02cde",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
@@ -549,6 +549,61 @@
               "tag": "v1.3.1",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "jaeger",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "jaeger-operator",
+          "images": [
+            {
+              "image": "jaeger-operator",
+              "tag": "1.32.0"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "jaeger-agent",
+          "images": [
+            {
+              "image": "jaeger-agent",
+              "tag": "1.32.0"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "jaeger-collector",
+          "images": [
+            {
+              "image": "jaeger-collector",
+              "tag": "1.32.0"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "jaeger-query",
+          "images": [
+            {
+              "image": "jaeger-query",
+              "tag": "1.32.0"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "jaeger-ingest",
+          "images": [
+            {
+              "image": "jaeger-ingest",
+              "tag": "1.32.0"
             }
           ]
         }

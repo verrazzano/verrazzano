@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -23,15 +24,14 @@ const (
 	// RancherName is the name of the component
 	RancherName = "rancher"
 	// CattleSystem is the namespace of the component
-	CattleSystem                   = "cattle-system"
-	RancherIngressCAName           = "tls-rancher-ingress"
-	RancherAdditionalIngressCAName = "tls-ca-additional"
-	RancherAdminSecret             = "rancher-admin-secret"
-	RancherCACert                  = "ca.crt"
-	RancherCAAdditionalPem         = "ca-additional.pem"
-	contentTypeHeader              = "Content-Type"
-	authorizationHeader            = "Authorization"
-	applicationJSON                = "application/json"
+	CattleSystem           = "cattle-system"
+	RancherIngressCAName   = "tls-rancher-ingress"
+	RancherAdminSecret     = "rancher-admin-secret"
+	RancherCACert          = "ca.crt"
+	RancherCAAdditionalPem = "ca-additional.pem"
+	contentTypeHeader      = "Content-Type"
+	authorizationHeader    = "Authorization"
+	applicationJSON        = "application/json"
 	// Path to get a login token
 	loginActionPath = "/v3-public/localProviders/local?action=login"
 	// Template body to POST for a login token
@@ -121,7 +121,7 @@ func GetAdditionalCA(c client.Reader) []byte {
 	secret := &corev1.Secret{}
 	nsName := types.NamespacedName{
 		Namespace: CattleSystem,
-		Name:      RancherAdditionalIngressCAName}
+		Name:      constants.AdditionalTLS}
 
 	if err := c.Get(context.TODO(), nsName, secret); err != nil {
 		return []byte{}
