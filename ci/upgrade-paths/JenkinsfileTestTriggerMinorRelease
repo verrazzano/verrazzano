@@ -5,7 +5,7 @@ def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 
 def allReleasesToRCJobs
 def allReleasesToRCStagesMap
-
+def branchSpecificSchedule = getCronSchedule()
 pipeline {
     options {
         skipDefaultCheckout true
@@ -20,7 +20,9 @@ pipeline {
             label "${agentLabel}"
         }
     }
-
+    triggers {
+        cron(branchSpecificSchedule)
+    }
     // Use cases:
     //        1) (automatic) master, release* will trigger this job by default on successful runs and supply GIT_COMMIT_TO_USE with the exact GIT commit to use for all testing (same as the upstream build)
     //        2) (automatic) branch builds with TRIGGER_FULL_TESTS enabled will trigger this job by default on successful runs and supply GIT_COMMIT_TO_USE with the exact GIT commit to use for all testing (same as the upstream build)
@@ -414,3 +416,9 @@ def allReleasesToRCStage(job) {
     }
 }
 
+def getCronSchedule() {
+    if (env.BRANCH_NAME.equals("master")) {
+        return "0 9 * * 1-5"
+    }
+    return ""
+}
