@@ -4,7 +4,6 @@
 package socks
 
 import (
-	"context"
 	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -21,8 +20,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
@@ -31,9 +28,11 @@ const (
 	waitTimeout              = 10 * time.Minute
 	longWaitTimeout          = 20 * time.Minute
 	pollingInterval          = 30 * time.Second
-	sockshopAppName          = "sockshop-appconfig"
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
+	sockshopAppName          = "sockshop-appconfig"
+	sampleSpringMetric       = "http_server_requests_seconds_count"
+	oamComponent             = "app_oam_dev_component"
 )
 
 var sockShop SockShop
@@ -270,13 +269,48 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 							Eventually(appConfigMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
 						},
 					)
+				} else if getVariant() == "spring" {
+					pkg.Concurrently(
+						func() {
+							Eventually(func() bool {
+								return pkg.MetricsExist(sampleSpringMetric, oamComponent, "carts")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return pkg.MetricsExist(sampleSpringMetric, oamComponent, "catalog")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return pkg.MetricsExist(sampleSpringMetric, oamComponent, "orders")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return pkg.MetricsExist(sampleSpringMetric, oamComponent, "payment")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return pkg.MetricsExist(sampleSpringMetric, oamComponent, "shipping")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return pkg.MetricsExist(sampleSpringMetric, oamComponent, "users")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(coherenceMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+					)
 				} else {
 					Eventually(coherenceMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
 				}
 			})
 		}
 	})
-
 })
 
 var _ = clusterDump.AfterEach(func() {})
@@ -336,24 +370,6 @@ var _ = clusterDump.AfterSuite(func() {
 		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
-
-// isSockShopServiceReady checks if the service is ready
-func isSockShopServiceReady(name string) bool {
-	clientset, err := k8sutil.GetKubernetesClientset()
-	if err != nil {
-		t.Logs.Infof("Could not get Kubernetes clientset: %v\n", err.Error())
-		return false
-	}
-	svc, err := clientset.CoreV1().Services(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	if err != nil {
-		t.Logs.Infof("Could not get services %v in sockshop: %v\n", name, err.Error())
-		return false
-	}
-	if len(svc.Spec.Ports) > 0 {
-		return svc.Spec.Ports[0].Port == 80 && svc.Spec.Ports[0].TargetPort == intstr.FromInt(7001)
-	}
-	return false
-}
 
 // sockshopPodsRunning checks whether the application pods are ready
 func sockshopPodsRunning() bool {
