@@ -595,7 +595,7 @@ func WaitForISMPolicyUpdate(pollingInterval time.Duration, timeout time.Duration
 			return false
 		}
 		return ismPolicyExists
-	}, pollingInterval, timeout).Should(gomega.BeTrue())
+	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(gomega.BeTrue())
 }
 
 func ListSystemIndices() []string {
