@@ -305,6 +305,18 @@ pipeline {
                         stage('Create Kind Clusters') {
                             when { expression { return params.TEST_ENV == 'KIND' } }
                             steps {
+                                 script{
+                                    if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "master"){
+                                        VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
+                                        def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
+                                        def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
+                                        if(latestReleaseBranch == "1.2"){
+                                            ADMIN_CLUSTER_PROFILE = "dev"
+                                            MANAGED_CLUSTER_PROFILE = "managed-cluster"
+                                            INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
+                                            CREATE_EXTERNAL_OPENSEARCH = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create-external-es.sh"
+                                   }   }
+                                }
                                 createKindClusters()
                             }
                         }
@@ -365,18 +377,6 @@ pipeline {
                         stage("Configure KinD") {
                             when { expression { return params.TEST_ENV == 'KIND' } }
                             steps {
-                                 script{
-                                    if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "master"){
-                                        VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
-                                        def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
-                                        def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
-                                        if(latestReleaseBranch == "1.2"){
-                                            ADMIN_CLUSTER_PROFILE = "dev"
-                                            MANAGED_CLUSTER_PROFILE = "managed-cluster"
-                                            INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
-                                            CREATE_EXTERNAL_OPENSEARCH = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create-external-es.sh"
-                                   }   }
-                                }
                                 configureVerrazzanoInstallers(INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
                             }
                         }
@@ -749,7 +749,7 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
                 cd ${GO_REPO_PATH}/verrazzano
                 ./tests/e2e/config/scripts/install-metallb.sh $metallbAddressRange
                 echo "Deploy external es and create its secret on the admin cluster if EXTERNAL_ELASTICSEARCH is true"
-                CLUSTER_NUMBER=${count}  ./tests/e2e/config/scripts/create-external-os.sh
+                CLUSTER_NUMBER=${count}  ${CREATE_EXTERNAL_OPENSEARCH}
             """
     }
 }
