@@ -21,7 +21,7 @@ const pollingInterval = 10 * time.Second
 
 const verrazzanoSystemNamespace = "verrazzano-system"
 
-var externalEsURL = pkg.GetExternalElasticSearchURL(os.Getenv("ADMIN_KUBECONFIG"))
+var externalEsURL = pkg.GetExternalOpenSearchURL(os.Getenv("ADMIN_KUBECONFIG"))
 
 var t = framework.NewTestFramework("deregister_test")
 

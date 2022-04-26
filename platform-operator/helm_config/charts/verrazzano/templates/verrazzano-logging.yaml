@@ -167,7 +167,7 @@ data:
        @type record_transformer
        @id systemd_index
        <record>
-          target_index verrazzano-systemd-journal
+          tag systemd
        </record>
     </filter>
 
@@ -863,27 +863,18 @@ data:
     </filter>
 
   es-output.conf: |
-    <match **>
-      @type elasticsearch
-      @id out_elasticsearch
+    # Matches anything that Verrazzano installs
+    <match kubernetes.**kube-** kubernetes.**verrazzano-system** kubernetes.**verrazzano-install** kubernetes.**cattle-** kubernetes.**rancher-** kubernetes.**fleet-** kubernetes.**ingress-nginx** kubernetes.**istio-system** kubernetes.**keycloak** kubernetes.**cert-manager**  kubernetes.**_monitoring_** kubernetes.**_metallb-** kubernetes.**_local-path-storage_** systemd.** fluentd.monitor.metrics>
+      @type opensearch_data_stream
+      @id out_systemd
       @log_level info
       log_es_400_reason true
-      include_timestamp true
-      target_index_key target_index
-      index_name verrazzano-namespace-verrazzano-system
-      include_tag_key true
 
-      template_file /fluentd/etc/elasticsearch-template-verrazzano.json
-      template_name elasticsearch-template-verrazzano.json
-      template_overwrite true
+      data_stream_name verrazzano-system
+      data_stream_template_name verrazzano-data-stream
+      template_file /fluentd/etc/opensearch-template-verrazzano.json
 
-      # time_as_integer needs to be set to false in order for Fluentd
-      # to convert timestamps to Fluent::EventTime objects instead of
-      # integers. Thus allowing Fluentd to preserve/transmit
-      # nanosecond-precision values.
-      time_as_integer false
-
-      time_key timestamp
+      time_precision 9
 
       # Prevent reloading connections to Elasticsearch
       reload_connections false
@@ -896,14 +887,51 @@ data:
       # ssl_version TLSv1_2
       user "#{ENV['ELASTICSEARCH_USER']}"
       password "#{ENV['ELASTICSEARCH_PASSWORD']}"
+
       bulk_message_request_threshold 16M
-      suppress_type_name true
-      type_name _doc
-      # 2 ^ 31
       request_timeout 2147483648
       <buffer>
         @type file
-        path /fluentd/log/elastic-buffer
+        path /fluentd/log/system-buffer
+        flush_thread_count 8
+        flush_interval 5s
+        retry_forever
+        retry_max_interval 10
+        # Cap buffer memory usage to 16MiB/chunk * 10 chunks = 160 MiB
+        chunk_limit_size 16M
+        queue_limit_length 10
+        chunk_full_threshold 0.9
+        overflow_action drop_oldest_chunk
+      </buffer>
+    </match>
+    <match **>
+      @type opensearch_data_stream
+      @id out_all
+      @log_level info
+      log_es_400_reason true
+
+      data_stream_name verrazzano-application-${$.kubernetes.namespace_name}
+      data_stream_template_name verrazzano-data-stream
+      template_file /fluentd/etc/opensearch-template-verrazzano.json
+
+      time_precision 9
+      # Prevent reloading connections to Elasticsearch
+      reload_connections false
+      reconnect_on_error true
+      reload_on_failure true
+      slow_flush_log_threshold 120s
+
+      hosts "#{ENV['ELASTICSEARCH_URL']}"
+      ca_file "#{ENV['CA_FILE']}"
+      # ssl_version TLSv1_2
+      user "#{ENV['ELASTICSEARCH_USER']}"
+      password "#{ENV['ELASTICSEARCH_PASSWORD']}"
+
+      bulk_message_request_threshold 16M
+      request_timeout 2147483648
+      <buffer tag, $.kubernetes.namespace_name>
+        @type file
+        path /fluentd/log/output-buffer
         flush_thread_count 8
         flush_interval 5s
         retry_forever
@@ -951,46 +979,64 @@ data:
     </match>
 {{- end }}
 
-  elasticsearch-template-verrazzano.json: |
+  opensearch-template-verrazzano.json: |
     {
-      "index_patterns":"verrazzano-*",
+      "index_patterns":[
+          "verrazzano-system",
+          "verrazzano-application*"
+      ],
       "version":60001,
-      "settings":{
-        "index.refresh_interval":"5s",
-        "index.mapping.total_fields.limit":"2000",
-        "number_of_shards":5,
-        "index.number_of_replicas":0,
-        "index.auto_expand_replicas":"0-1"
-      },
-      "mappings":{
-        "dynamic_templates":[
-          {
-            "message_field":{
-              "path_match":"message",
-              "match_mapping_type":"string",
-              "mapping":{
-                "type":"text",
-                "norms":false
+      "priority": 101,
+      "data_stream": {},
+      "template": {
+        "settings":{
+          "index.refresh_interval":"5s",
+          "index.mapping.total_fields.limit":"2000",
+          "number_of_shards":5,
+          "index.number_of_replicas":0,
+          "index.auto_expand_replicas":"0-1"
+        },
+        "mappings":{
+          "dynamic_templates":[
+            {
+              "message_field":{
+                "path_match":"message",
+                "match_mapping_type":"string",
+                "mapping":{
+                  "type":"text",
+                  "norms":false
+                }
               }
-            }
-          },
-          {
-            "string_fields":{
-              "match":"*",
-              "match_mapping_type":"string",
-              "mapping":{
-                "type":"text",
-                "norms":false,
-                "fields":{
-                  "keyword":{
-                    "type":"keyword",
-                    "ignore_above":256
+            },
+            {
+              "object_fields": {
+                "match": "*",
+                "match_mapping_type": "object",
+                "mapping": {
+                  "type": "object"
+                }
+              }
+            },
+            {
+              "all_non_object_fields":{
+                "match":"*",
+                "mapping":{
+                  "type":"text",
+                  "norms":false,
+                  "fields":{
+                    "keyword":{
+                      "type":"keyword",
+                      "ignore_above":256
+                    }
                   }
                 }
               }
             }
+          ],
+          "properties" : {
+            "@timestamp": { "type": "date", "format": "strict_date_time||strict_date_optional_time||epoch_millis"}
           }
-        ]
+        }
       }
     }
 ---

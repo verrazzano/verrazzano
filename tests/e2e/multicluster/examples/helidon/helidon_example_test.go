@@ -147,8 +147,8 @@ var _ = t.Describe("In Multi-cluster, verify hello-helidon", Label("f:multiclust
 		})
 
 		t.Context("for Logging", Label("f:observability.logging.es"), func() {
-			indexName := "verrazzano-namespace-hello-helidon"
-
+			indexName, err := pkg.GetOpenSearchAppIndexWithKC(testNamespace, adminKubeconfig)
+			Expect(err).To(BeNil())
 			// GIVEN an admin cluster and at least one managed cluster
 			// WHEN the example application has been deployed to the admin cluster
 			// THEN expect the Elasticsearch index for the app exists on the admin cluster Elasticsearch
@@ -156,19 +156,6 @@ var _ = t.Describe("In Multi-cluster, verify hello-helidon", Label("f:multiclust
 				Eventually(func() bool {
 					return pkg.LogIndexFoundInCluster(indexName, adminKubeconfig)
 				}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for hello helidon")
-			})
-
-			// GIVEN an admin cluster and at least one managed cluster
-			// WHEN the example application has been deployed to the admin cluster
-			// THEN expect recent Elasticsearch logs for the app exist on the admin cluster Elasticsearch
-			t.It("Verify recent Elasticsearch log record exists on admin cluster", func() {
-				Eventually(func() bool {
-					return pkg.LogRecordFoundInCluster(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-						"kubernetes.labels.app_oam_dev\\/component": "hello-helidon-component",
-						"kubernetes.labels.app_oam_dev\\/name":      "hello-helidon-appconf",
-						"kubernetes.container_name":                 "hello-helidon-container",
-					}, adminKubeconfig)
-				}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
 			})
 		})
 

@@ -103,6 +103,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 			})
 		})
 
+<<<<<<< HEAD
 		// Verify Prometheus scraped metrics
 		// GIVEN OAM hello-helidon app is deployed
 		// WHEN the component and appconfig without metrics-trait(using default) are created
@@ -131,8 +132,8 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 
 		t.Context("Logging.", Label("f:observability.logging.es"), FlakeAttempts(5), func() {
 
-			indexName := "verrazzano-namespace-" + namespace
-
+			indexName, err := pkg.GetOpenSearchAppIndex(namespace)
+			Expect(err).To(BeNil())
 			// GIVEN an application with logging enabled
 			// WHEN the Elasticsearch index is retrieved
 			// THEN verify that it is found
