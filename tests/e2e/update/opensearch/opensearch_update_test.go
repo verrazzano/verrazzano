@@ -24,8 +24,8 @@ const (
 	masterNodeName      = "vmi-system-es-master"
 	ingestNodeName      = "vmi-system-es-ingest"
 	dataNodeName        = "vmi-system-es-data"
-	waitTimeout         = 5 * time.Minute
-	pollingInterval     = 5 * time.Second
+	waitTimeout         = 15 * time.Minute
+	pollingInterval     = 10 * time.Second
 	updatedReplicaCount = 5
 	updatedNodeMemory   = "512Mi"
 	//updatedNodeStorage  = "2Gi"
