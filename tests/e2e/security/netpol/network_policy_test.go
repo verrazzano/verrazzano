@@ -447,6 +447,9 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 
 // testAccess attempts to access a given pod from another pod on a given port and tests for the expected result
 func testAccess(fromSelector metav1.LabelSelector, fromNamespace string, toSelector metav1.LabelSelector, toNamespace string, port int, expectAccess bool) error {
+	if istioInjection == "disabled" && port == envoyStatsMetricsPort {
+		return nil
+	}
 	return doAccessCheck(accessCheckConfig{
 		fromSelector:       fromSelector,
 		fromNamespace:      fromNamespace,
