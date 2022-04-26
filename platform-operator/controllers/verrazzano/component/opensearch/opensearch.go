@@ -39,6 +39,15 @@ var (
 	execCommand = exec.Command
 )
 
+func doesOSExist(ctx spi.ComponentContext) bool {
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	sts := []types.NamespacedName{{
+		Name:      esMasterStatefulset,
+		Namespace: ComponentNamespace,
+	}}
+	return status.DoStatefulSetsExist(ctx.Log(), ctx.Client(), sts, 1, prefix)
+}
+
 // checkOpenSearchStatus checks performs checks on the OpenSearch resources
 func checkOpenSearchStatus(ctx spi.ComponentContext, deploymentFunc status.DeploymentFunc, statefulsetFunc status.StatefulSetFunc) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())

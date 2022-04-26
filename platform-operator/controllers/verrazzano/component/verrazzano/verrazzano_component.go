@@ -5,6 +5,8 @@ package verrazzano
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"path/filepath"
 
@@ -12,12 +14,10 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 
@@ -67,6 +67,13 @@ func NewComponent() spi.Component {
 // PreInstall Verrazzano component pre-install processing; create and label required namespaces, copy any
 // required secrets
 func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
+	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
+		// Make sure the VMI CRD is installed since the Verrazzano component may create/update
+		// a VMI CR
+		if err := common.ApplyCRDYaml(ctx, config.GetHelmVmoChartsDir()); err != nil {
+			return err
+		}
+	}
 	// create or update  VMI secret
 	if err := common.EnsureVMISecret(ctx.Client()); err != nil {
 		return err
@@ -156,6 +163,11 @@ func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	cleanTempFiles(ctx)
 	c.HelmComponent.IngressNames = c.GetIngressNames(ctx)
 	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
+	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
+		if err := vmo.ReassociateResources(ctx); err != nil {
+			return err
+		}
+	}
 	return c.HelmComponent.PostUpgrade(ctx)
 }
 

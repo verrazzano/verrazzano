@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -69,7 +70,7 @@ func appendInitImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	return kvs, nil
 }
 
-// ExportVmoHelmChart adds necessary annotations to verrazzano-monitoring-operator objects which allows them to be
+// ExportVMOHelmChart adds necessary annotations to verrazzano-monitoring-operator objects which allows them to be
 // managed by the verrazzano-monitoring-operator helm chart.  This is needed for the case when VMO was
 // previously installed by the verrazzano helm charrt.
 func ExportVMOHelmChart(ctx spi.ComponentContext) error {
@@ -84,10 +85,10 @@ func ExportVMOHelmChart(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// reassociateResources updates the resources to ensure they are managed by the VMO release/component.  The resource policy
+// ReassociateResources updates the resources to ensure they are managed by the VMO release/component.  The resource policy
 // annotation is removed to ensure that helm manages the lifecycle of the resources (the resource policy annotation is
 // added to ensure the resources are disassociated from the VZ chart which used to manage these resources)
-func reassociateResources(ctx spi.ComponentContext) error {
+func ReassociateResources(ctx spi.ComponentContext) error {
 	managedResources := getHelmManagedResources()
 	for _, managedResource := range managedResources {
 		if _, err := common.RemoveResourcePolicyAnnotation(ctx.Client(), managedResource.Obj, managedResource.NamespacedName); err != nil {
@@ -103,6 +104,7 @@ func reassociateResources(ctx spi.ComponentContext) error {
 func getHelmManagedResources() []common.HelmManagedResource {
 	return []common.HelmManagedResource{
 		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-config", Namespace: ComponentNamespace}},
+		{Obj: &appsv1.Deployment{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
 		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
 		{Obj: &corev1.ServiceAccount{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
 		{Obj: &rbacv1.ClusterRole{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-cluster-role"}},

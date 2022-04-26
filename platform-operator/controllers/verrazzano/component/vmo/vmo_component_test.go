@@ -105,17 +105,18 @@ func TestIsNotReady(t *testing.T) {
 	assert.False(t, NewComponent().IsReady(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false)))
 }
 
-// TestPreInstall tests the VMO PreInstall call
+// TestPostUpgrade tests the VMO PostUpgrade call
 // GIVEN a VMO component
-//  WHEN I call PreInstall with defaults
+//  WHEN I call PostUpgrade with defaults
 //  THEN no error is returned
-func TestPreInstall(t *testing.T) {
-	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
+func TestPostUpgrade(t *testing.T) {
+	// The actual post-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
 	scheme := runtime.NewScheme()
 	_ = rbacv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
-	err := NewComponent().PreInstall(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(scheme).Build(), nil, false))
+	_ = appsv1.AddToScheme(scheme)
+	err := NewComponent().PostUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(scheme).Build(), nil, false))
 	assert.NoError(t, err)
 }
 
@@ -127,6 +128,10 @@ func TestPreUpgrade(t *testing.T) {
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
 	config.TestHelmConfigDir = "../../../../helm_config"
-	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build(), nil, false))
+	scheme := runtime.NewScheme()
+	_ = rbacv1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+	_ = appsv1.AddToScheme(scheme)
+	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(scheme).Build(), nil, false))
 	assert.NoError(t, err)
 }

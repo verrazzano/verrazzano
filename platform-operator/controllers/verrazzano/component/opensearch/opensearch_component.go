@@ -53,10 +53,7 @@ func (o opensearchComponent) IsOperatorInstallSupported() bool {
 }
 
 func (o opensearchComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
-	if ctx.ActualCR().Status.Version < constants.VerrazzanoVersion1_3_0 {
-		return false, nil
-	}
-	return checkOpenSearchStatus(ctx, status.DoDeploymentsExist, status.DoStatefulSetsExist), nil
+	return doesOSExist(ctx), nil
 }
 
 func (o opensearchComponent) Reconcile(ctx spi.ComponentContext) error {
