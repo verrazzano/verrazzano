@@ -424,7 +424,7 @@ pipeline {
                         }
                         stage('Verify Register') {
                             steps {
-                                verifyRegisterManagedClusters()
+                                verifyRegisterManagedClusters(true)
                             }
                         }
                         stage ('Deploy Sample Application') {
@@ -459,7 +459,7 @@ pipeline {
             parallel {
                 stage ('Verify Register') {
                     steps {
-                        verifyRegisterManagedClusters()
+                        verifyRegisterManagedClusters(false)
                     }
                 }
                 stage ('Verify Managed Cluster Permissions') {
@@ -746,7 +746,7 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
                 cd ${GO_REPO_PATH}/verrazzano
                 ./tests/e2e/config/scripts/install-metallb.sh $metallbAddressRange
                 echo "Deploy external es and create its secret on the admin cluster if EXTERNAL_ELASTICSEARCH is true"
-                CLUSTER_NUMBER=${count}  ./tests/e2e/config/scripts/create-external-es.sh
+                CLUSTER_NUMBER=${count}  ./tests/e2e/config/scripts/create-external-os.sh
             """
     }
 }
@@ -955,7 +955,7 @@ def registerManagedClusters() {
 }
 
 // Verify the register of the managed clusters
-def verifyRegisterManagedClusters() {
+def verifyRegisterManagedClusters(minimalVerification) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         script {
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
@@ -964,7 +964,7 @@ def verifyRegisterManagedClusters() {
                     export MANAGED_CLUSTER_NAME="managed${count-1}"
                     export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-register/...
+                    ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-register/... -- --minimalVerification=${minimalVerification}
                 """
             }
         }

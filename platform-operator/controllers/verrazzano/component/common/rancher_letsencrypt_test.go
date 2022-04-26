@@ -1,16 +1,16 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package rancher
+package common
 
 import (
 	"errors"
-	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // TestCertBuilder verifies downloading certs from the web
@@ -20,7 +20,7 @@ import (
 func TestCertBuilder(t *testing.T) {
 	var tests = []struct {
 		testName string
-		httpDo   common.HTTPDoSig
+		httpDo   HTTPDoSig
 		isErr    bool
 	}{
 		{
@@ -55,7 +55,7 @@ func TestCertBuilder(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
 			c := certBuilder{hc: &http.Client{}}
-			common.HTTPDo = tt.httpDo
+			HTTPDo = tt.httpDo
 			err := c.appendCertWithHTTP(rootX1PEM)
 			if tt.isErr {
 				assert.NotNil(t, err)
@@ -71,7 +71,7 @@ func TestCertBuilder(t *testing.T) {
 //  WHEN buildLetsEncryptStagingChain is called
 //  THEN buildLetsEncryptStagingChain should build the cert chain for LetsEncrypt
 func TestBuildLetsEncryptChain(t *testing.T) {
-	common.HTTPDo = func(hc *http.Client, req *http.Request) (*http.Response, error) {
+	HTTPDo = func(hc *http.Client, req *http.Request) (*http.Response, error) {
 		return &http.Response{
 			Body:       io.NopCloser(strings.NewReader("cert")),
 			StatusCode: http.StatusOK,

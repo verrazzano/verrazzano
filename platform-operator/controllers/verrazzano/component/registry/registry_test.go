@@ -4,10 +4,7 @@
 package registry
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
-	"testing"
-
+	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
@@ -17,12 +14,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	promadapter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/adapter"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/kubestatemetrics"
 	promnodeexporter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/nodeexporter"
@@ -31,14 +28,14 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
-
-	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"testing"
 )
 
 const (
@@ -57,7 +54,7 @@ func TestGetComponents(t *testing.T) {
 	a := assert.New(t)
 	comps := GetComponents()
 
-	a.Len(comps, 22, "Wrong number of components")
+	a.Len(comps, 23, "Wrong number of components")
 	a.Equal(comps[0].Name(), oam.ComponentName)
 	a.Equal(comps[1].Name(), appoper.ComponentName)
 	a.Equal(comps[2].Name(), istio.ComponentName)
@@ -80,7 +77,7 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[19].Name(), kubestatemetrics.ComponentName)
 	a.Equal(comps[20].Name(), pushgateway.ComponentName)
 	a.Equal(comps[21].Name(), promnodeexporter.ComponentName)
-
+	a.Equal(comps[22].Name(), jaegeroperator.ComponentName)
 }
 
 // TestFindComponent tests FindComponent

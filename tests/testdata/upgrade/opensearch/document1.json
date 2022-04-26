@@ -1,0 +1,9 @@
+{
+  "@timestamp": "2022-02-14T13:12:00",
+  "type": "verrazzano-test-data",
+  "message": "GET /search HTTP/1.1 200 1070000",
+  "testField": "2",
+  "user": {
+    "id": "test"
+  }
+}

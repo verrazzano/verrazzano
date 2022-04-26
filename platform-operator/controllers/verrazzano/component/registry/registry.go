@@ -10,6 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
@@ -78,6 +79,7 @@ func getComponents() []spi.Component {
 			kubestatemetrics.NewComponent(),
 			pushgateway.NewComponent(),
 			promnodeexporter.NewComponent(),
+			jaegeroperator.NewComponent(),
 		}
 	}
 	return componentsRegistry

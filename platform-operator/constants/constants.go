@@ -160,3 +160,9 @@ const ObjectStoreAccessKey = "object_store_access_key"
 
 // ObjectStoreAccessSecretKey is used for the VMI backup secret
 const ObjectStoreAccessSecretKey = "object_store_secret_key"
+
+// VerrazzanoIngressSecret is the secret where the verrazzano/console TLS cert, key, and CA(s) are stored
+const VerrazzanoIngressSecret = "verrazzano-tls" //nolint:gosec //#gosec G101
+
+// VerrazzanoLocalCABundleSecret is a secret containing the admin ca bundle
+const VerrazzanoLocalCABundleSecret = "verrazzano-local-ca-bundle" //nolint:gosec //#gosec G101

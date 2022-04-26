@@ -1664,8 +1664,8 @@ func expectRegisterClusterWithRancherK8sCalls(t *testing.T, k8sMock *mocks.MockC
 
 	// Expect a call to get the Rancher additional CA secret
 	k8sMock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherTLSAdditional}), gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: rancherNamespace, Resource: "Secret"}, rancherTLSAdditional))
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: constants.AdditionalTLS}), gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: rancherNamespace, Resource: "Secret"}, constants.AdditionalTLS))
 }
 
 // expectRegisterClusterWithRancherHTTPCalls asserts all of the expected calls on the HTTP client mock
