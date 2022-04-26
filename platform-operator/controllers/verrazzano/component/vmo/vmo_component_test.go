@@ -77,6 +77,33 @@ func TestIsEnabled(t *testing.T) {
 	}
 }
 
+// TestIsInstalled tests the IsInstalled function
+// GIVEN a call to IsInstalled
+//  WHEN the deployment object is found
+//  THEN true is returned
+func TestIsInstalled(t *testing.T) {
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      ComponentName,
+		},
+	}).Build()
+	installed, err := NewComponent().IsInstalled(spi.NewFakeContext(fakeClient, nil, false))
+	assert.NoError(t, err)
+	assert.True(t, installed)
+}
+
+// TestIsNotInstalled tests the IsInstalled function
+// GIVEN a call to IsInstalled
+//  WHEN the deployment object is not found
+//  THEN false is returned
+func TestIsNotInstalled(t *testing.T) {
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	installed, err := NewComponent().IsInstalled(spi.NewFakeContext(fakeClient, nil, false))
+	assert.NoError(t, err)
+	assert.False(t, installed)
+}
+
 // TestIsReady tests the IsReady function
 // GIVEN a call to IsReady
 //  WHEN the deployment object has enough replicas available

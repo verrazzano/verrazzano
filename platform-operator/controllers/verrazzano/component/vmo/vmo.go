@@ -70,10 +70,10 @@ func appendInitImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	return kvs, nil
 }
 
-// exportVMOHelmChart adds necessary annotations to verrazzano-monitoring-operator objects which allows them to be
+// ExportVMOHelmChart adds necessary annotations to verrazzano-monitoring-operator objects which allows them to be
 // managed by the verrazzano-monitoring-operator helm chart.  This is needed for the case when VMO was
 // previously installed by the verrazzano helm charrt.
-func exportVMOHelmChart(ctx spi.ComponentContext) error {
+func ExportVMOHelmChart(ctx spi.ComponentContext) error {
 	releaseName := types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}
 	managedResources := getHelmManagedResources()
 	for _, managedResource := range managedResources {

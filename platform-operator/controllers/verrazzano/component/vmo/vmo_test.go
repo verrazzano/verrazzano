@@ -123,7 +123,7 @@ func TestReassociateResources(t *testing.T) {
 			Name:      ComponentName,
 		},
 	}).Build()
-	err := exportVMOHelmChart(spi.NewFakeContext(fakeClient, nil, false))
+	err := ExportVMOHelmChart(spi.NewFakeContext(fakeClient, nil, false))
 	assert.NoError(t, err)
 	err = ReassociateResources(spi.NewFakeContext(fakeClient, nil, false))
 	assert.NoError(t, err)
@@ -152,7 +152,7 @@ func TestExportVmoHelmChart(t *testing.T) {
 			Name:      ComponentName,
 		},
 	}).Build()
-	err := exportVMOHelmChart(spi.NewFakeContext(fakeClient, nil, false))
+	err := ExportVMOHelmChart(spi.NewFakeContext(fakeClient, nil, false))
 	assert.NoError(t, err)
 	service := corev1.Service{}
 	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &service)

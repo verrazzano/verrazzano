@@ -82,9 +82,6 @@ func (c vmoComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 
 // PreUpgrade VMO pre-upgrade processing
 func (c vmoComponent) PreUpgrade(context spi.ComponentContext) error {
-	if err := exportVMOHelmChart(context); err != nil {
-		return err
-	}
 	return common.ApplyCRDYaml(context, config.GetHelmVmoChartsDir())
 }
 
