@@ -321,7 +321,7 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 		return err
 	}
 
-	overrides, err := h.buildCustomHelmOverrides(context, resolvedNamespace)
+	overrides, err := h.buildCustomHelmOverrides(context, resolvedNamespace, kvs...)
 	defer vzos.RemoveTempFiles(context.Log().GetZapLogger(), `\w*`)
 	if err != nil {
 		return err
