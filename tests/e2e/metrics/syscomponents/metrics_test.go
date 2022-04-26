@@ -168,11 +168,13 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
-		t.It("Verify envoy stats", func() {
-			Eventually(func() bool {
-				return verifyEnvoyStats(envoyStatsRecentLookups)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-		})
+		if istioInjection == "enabled" {
+			t.It("Verify envoy stats", func() {
+				Eventually(func() bool {
+					return verifyEnvoyStats(envoyStatsRecentLookups)
+				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+			})
+		}
 	})
 })
 
