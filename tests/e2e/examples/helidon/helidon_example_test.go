@@ -103,7 +103,6 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 			})
 		})
 
-<<<<<<< HEAD
 		// Verify Prometheus scraped metrics
 		// GIVEN OAM hello-helidon app is deployed
 		// WHEN the component and appconfig without metrics-trait(using default) are created
