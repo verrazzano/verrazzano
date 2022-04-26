@@ -280,7 +280,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
                             }
                             steps {
-                                runGinkgo('security/rbac')
+                                runGinkgoNoFlags('security/rbac')
                             }
                         }
                         stage('system component metrics') {
@@ -288,7 +288,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-component-metrics"
                             }
                             steps {
-                                runGinkgo('metrics/syscomponents')
+                                runGinkgoNoFlags('metrics/syscomponents')
                             }
                         }
                         stage ('console') {
@@ -320,14 +320,14 @@ pipeline {
                                 runGinkgoRandomize('opensearch/topology')
                             }
                         }
-                        stage('istio authorization policy') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"
-                            }
-                            steps {
-                                runGinkgo('istio/authz')
-                            }
-                        }
+//                         stage('istio authorization policy') {
+//                             environment {
+//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"
+//                             }
+//                             steps {
+//                                 runGinkgo('istio/authz')
+//                             }
+//                         }
                         stage('security network policies') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/netpol"
@@ -353,7 +353,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-logging"
                             }
                             steps {
-                                runGinkgo('logging/system')
+                                runGinkgoNoFlags('logging/system')
                             }
                         }
                         stage('examples logging helidon') {
@@ -377,7 +377,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
                             }
                             steps {
-                                runGinkgo('workloads/weblogic')
+                                runGinkgoNoFlags('workloads/weblogic')
                             }
                         }
                         stage('coherence workload') {
@@ -385,7 +385,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
                             }
                             steps {
-                                runGinkgo('workloads/coherence')
+                                runGinkgoNoFlags('workloads/coherence')
                             }
                         }
                         stage('examples helidon-metrics') {
@@ -556,6 +556,15 @@ def runGinkgo(testSuitePath) {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...  -- --istioInjection="disabled"
+        """
+    }
+}
+
+def runGinkgoNoFlags(testSuitePath) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
