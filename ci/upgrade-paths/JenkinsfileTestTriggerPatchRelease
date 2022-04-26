@@ -451,7 +451,7 @@ def getLatestReleaseBranch(){
 
 def getCronSchedule() {
     if (env.BRANCH_NAME.equals("master")) {
-        //Set cron job to run every week at 9 AM on Fridays.
+        //At 09:00 AM, only on Friday
         return "0 9 * * fri"
     }
     return ""
