@@ -6,18 +6,19 @@ package certmanager
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"path/filepath"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // ComponentName is the name of the component
@@ -95,6 +96,10 @@ func (c certManagerComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 // The cert-manager namespace is created
 // The cert-manager manifest is patched if needed and applied to create necessary CRDs
 func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error {
+
+	vz := compContext.EffectiveCR()
+	cli := compContext.Client()
+	log := compContext.Log()
 	// If it is a dry-run, do nothing
 	if compContext.IsDryRun() {
 		compContext.Log().Debug("cert-manager PreInstall dry run")
@@ -102,19 +107,22 @@ func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error
 	}
 
 	// create cert-manager namespace
-	compContext.Log().Debug("Adding label needed by network policies to cert-manager namespace")
+	log.Debug("Adding label needed by network policies to cert-manager namespace")
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ComponentNamespace}}
-	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &ns, func() error {
+	if _, err := controllerutil.CreateOrUpdate(context.TODO(), cli, &ns, func() error {
 		return nil
 	}); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to create or update the cert-manager namespace: %v", err)
+		return log.ErrorfNewErr("Failed to create or update the cert-manager namespace: %v", err)
 	}
 
 	// Apply the cert-manager manifest, patching if needed
-	compContext.Log().Debug("Applying cert-manager crds")
+	log.Debug("Applying cert-manager crds")
 	err := c.applyManifest(compContext)
 	if err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to apply the cert-manager manifest: %v", err)
+		return log.ErrorfNewErr("Failed to apply the cert-manager manifest: %v", err)
+	}
+	if err := common.ProcessAdditionalCertificates(log, cli, vz); err != nil {
+		return err
 	}
 	return nil
 }

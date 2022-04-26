@@ -181,9 +181,6 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := copyDefaultCACertificate(log, c, vz); err != nil {
 		return err
 	}
-	if err := createAdditionalCertificates(log, c, vz); err != nil {
-		return err
-	}
 	return nil
 }
 
