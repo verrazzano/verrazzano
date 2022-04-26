@@ -288,7 +288,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-component-metrics"
                             }
                             steps {
-                                runGinkgoNoFlags('metrics/syscomponents')
+                                runGinkgo('metrics/syscomponents')
                             }
                         }
                         stage ('console') {
