@@ -446,7 +446,7 @@ func (h HelmComponent) filesFromVerrazzanoHelm(context spi.ComponentContext, nam
 
 	context.Log().Infof("YAML Values: %v", yamlValues)
 
-	// Take the yaml values and construct a YAML file
+	// Take the YAML values and construct a YAML file
 	// Each value is overalyed by the next value, and lists are replaced
 	fileString, err := yaml.ReplacementMerge(yamlValues...)
 	if err != nil {
