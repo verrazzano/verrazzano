@@ -33,13 +33,11 @@ const (
 	system = "system"
 )
 
-// ResourceRequestValues defines the storage information that will be passed to VMI instance
 type ResourceRequestValues struct {
 	Memory  string `json:"memory,omitempty"`
 	Storage string `json:"storage"` // Empty string allowed
 }
 
-// VMIMutateFunc is the function used to populate the components in VMI
 type VMIMutateFunc func(ctx spi.ComponentContext, storage *ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, existingVMI *vmov1.VerrazzanoMonitoringInstance) error
 
 // NewVMI creates a new VerrazzanoMonitoringInstance object with default values
