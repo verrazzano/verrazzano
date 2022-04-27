@@ -409,6 +409,7 @@ def getStageOfUpgradeJob(job) {
                         string(name: 'GIT_COMMIT_TO_USE', value: LATEST_RELEASE_COMMIT_SHA ),
                         string(name: 'VERSION_FOR_INSTALL', value: job[0]),
                         string(name: 'VERSION_FOR_UPGRADE', value: job[1]),
+                        string(name: 'VZ_SETUP_CONFIG', value: "dev-kind-all-default"),
                         string(name: 'IS_TRIGGERED_MANUALLY', value: "NO"),
                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
