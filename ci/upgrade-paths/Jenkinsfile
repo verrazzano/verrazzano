@@ -55,7 +55,7 @@ pipeline {
                 choices: [ "1.20", "1.21", "1.22" ])
         string (name: 'VERSION_FOR_INSTALL',
                 defaultValue: 'v1.1.2',
-                description: 'This is the Verrazzano version for install before doing an upgrade.  By default, the v1.0.2 release will be installed',
+                description: 'This is the Verrazzano version for install before doing an upgrade.  By default, the v1.1.2 release will be installed',
                 trim: true)
         string (name: 'VERSION_FOR_UPGRADE',
                 defaultValue: 'NONE',
@@ -160,6 +160,7 @@ pipeline {
         INSTALL_CONFIG_FILE_NIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
         OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
         ACME_ENVIRONMENT="${params.ACME_ENVIRONMENT}"
+        CREATE_EXTERNAL_OPENSEARCH = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create-external-os.sh"
 
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         SHORT_TIME_STAMP = sh(returnStdout: true, script: "date +%m%d%H%M%S").trim()
@@ -193,7 +194,7 @@ pipeline {
 
         // sample app deployed before upgrade and UI console tests
         SAMPLE_APP_NAME="hello-helidon-appconf"
-        SAMPLE_APP_NAMESPACE="hello-helidon-sample"
+        SAMPLE_APP_NAMESPACE="hello-helidon"
         SAMPLE_APP_PROJECT="hello-helidon-sample-proj"
         SAMPLE_APP_COMPONENT="hello-helidon-component"
 
@@ -205,6 +206,7 @@ pipeline {
         TEST_REPORT = "test-report.xml"
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
+
         VERSION_FOR_UPGRADE = "${params.VERSION_FOR_UPGRADE}"
         VERSION_FOR_INSTALL = "${params.VERSION_FOR_INSTALL}"
 
@@ -305,6 +307,18 @@ pipeline {
                         stage('Create Kind Clusters') {
                             when { expression { return params.TEST_ENV == 'KIND' } }
                             steps {
+                                 script{
+                                    if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "master"){
+                                        VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
+                                        def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
+                                        def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
+                                        if(latestReleaseBranch == "1.2"){
+                                            ADMIN_CLUSTER_PROFILE = "dev"
+                                            MANAGED_CLUSTER_PROFILE = "managed-cluster"
+                                            INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
+                                            CREATE_EXTERNAL_OPENSEARCH = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create-external-es.sh"
+                                   }   }
+                                }
                                 createKindClusters()
                             }
                         }
@@ -365,17 +379,6 @@ pipeline {
                         stage("Configure KinD") {
                             when { expression { return params.TEST_ENV == 'KIND' } }
                             steps {
-                                 script{
-                                    if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "master"){
-                                        VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
-                                        def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
-                                        def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
-                                        if(latestReleaseBranch == "1.2"){
-                                            ADMIN_CLUSTER_PROFILE = "dev"
-                                            MANAGED_CLUSTER_PROFILE = "managed-cluster"
-                                            INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
-                                   }   }
-                                }
                                 configureVerrazzanoInstallers(INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
                             }
                         }
@@ -417,7 +420,7 @@ pipeline {
                         }
                     }
                 }
-                stage ('Pre-upgrade Acceptance tests') {
+                stage ('Pre-upgrade Acceptance Tests') {
                     stages {
                         stage('Register managed clusters') {
                             steps {
@@ -429,9 +432,10 @@ pipeline {
                                 verifyRegisterManagedClusters(true)
                             }
                         }
-                        stage ('Deploy Sample Application') {
+                        stage ('Deploy Examples Helidon') {
                             steps {
-                                deploySampleApp()
+                                runGinkgoVerify('examples/helidon', "false", "true", "true", "hello-helidon")
+                                runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true")
                             }
                         }
                     }
@@ -533,27 +537,8 @@ pipeline {
             }
         }
 
-        stage('Acceptance Tests') {
+        stage('Post-upgrade Acceptance Tests') {
             stages {
-                stage ('Example apps') {
-                    parallel {
-                        stage ('Examples Helidon') {
-                            steps {
-                                runGinkgo("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload")
-                            }
-                        }
-                        stage ('WebLogic Workload') {
-                            steps {
-                                runGinkgo("multicluster/workloads/mcweblogic", "${TEST_DUMP_ROOT}/weblogic-workload")
-                            }
-                        }
-                        stage ('Coherence Workload') {
-                            steps {
-                                runGinkgo("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload")
-                            }
-                        }
-                    }
-                }
                 stage ('Console') {
                     steps {
                         runConsoleTests()
@@ -564,9 +549,13 @@ pipeline {
                         }
                     }
                 }
-                stage ('Undeploy Sample Application') {
-                    steps {
-                        undeploySampleApp()
+                stage ('Verify Example Apps') {
+                    parallel {
+                        stage ('Examples Helidon') {
+                            steps {
+                                runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload", "true", "false", "false")
+                            }
+                        }
                     }
                 }
                 stage ('Multi-cluster Verify Api') {
@@ -748,7 +737,7 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
                 cd ${GO_REPO_PATH}/verrazzano
                 ./tests/e2e/config/scripts/install-metallb.sh $metallbAddressRange
                 echo "Deploy external es and create its secret on the admin cluster if EXTERNAL_ELASTICSEARCH is true"
-                CLUSTER_NUMBER=${count}  ./tests/e2e/config/scripts/create-external-os.sh
+                CLUSTER_NUMBER=${count}  ${CREATE_EXTERNAL_OPENSEARCH}
             """
     }
 }
@@ -1054,7 +1043,7 @@ def verifyManagedClusterPermissions() {
 }
 
 // Run ginkgo test suites
-def runGinkgo(testSuitePath, clusterDumpDirectory) {
+def runGinkgoVerifyManaged(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify) {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         sh """
@@ -1064,7 +1053,7 @@ def runGinkgo(testSuitePath, clusterDumpDirectory) {
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
-            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify}
         """
     }
 }
@@ -1102,6 +1091,17 @@ def runGinkgoRandomizeAdmin(testSuitePath) {
         cd ${GO_REPO_PATH}/verrazzano/tests/e2e
         ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
     """
+}
+
+def runGinkgoVerify(testSuitePath, skipDeploy, skipUndeploy, skipVerify, namespace) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+            export CLUSTER_NAME="admin"
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify} --namespace=${namespace}
+        """
+    }
 }
 
 // Configure the Admin and Managed cluster installer custom resources
@@ -1458,25 +1458,6 @@ def modifyHelloHelidonApp(newNamespace, newProjName) {
       export MC_APP_NAMESPACE="${newNamespace}"
       export MC_PROJ_NAME="${newProjName}"
       ${GO_REPO_PATH}/verrazzano/ci/scripts/generate_mc_hello_deployment_files.sh
-    """
-}
-
-def deploySampleApp() {
-    modifyHelloHelidonApp("${SAMPLE_APP_NAMESPACE}", "${SAMPLE_APP_PROJECT}")
-    sh """
-      export KUBECONFIG=$ADMIN_KUBECONFIG
-      kubectl apply -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-sample/verrazzano-project.yaml
-      kubectl apply -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-sample/hello-helidon-comp.yaml
-      kubectl apply -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-sample/mc-hello-helidon-app.yaml
-    """
-}
-
-def undeploySampleApp() {
-    sh """
-      export KUBECONFIG=$ADMIN_KUBECONFIG
-      kubectl delete -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-sample/mc-hello-helidon-app.yaml
-      kubectl delete -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-sample/hello-helidon-comp.yaml
-      kubectl delete -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon-sample/verrazzano-project.yaml
     """
 }
 

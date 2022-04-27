@@ -599,10 +599,10 @@
         },
         {
           "repository": "verrazzano",
-          "name": "jaeger-ingest",
+          "name": "jaeger-ingester",
           "images": [
             {
-              "image": "jaeger-ingest",
+              "image": "jaeger-ingester",
               "tag": "1.32.0"
             }
           ]
