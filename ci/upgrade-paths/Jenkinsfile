@@ -35,6 +35,8 @@ pipeline {
     parameters {
         booleanParam (description: 'Whether to use External Elasticsearch', name: 'EXTERNAL_ELASTICSEARCH', defaultValue: false)
         choice (description: 'Number of Cluster', name: 'TOTAL_CLUSTERS', choices: ["2", "1", "3"])
+        choice (description: 'Verrazzano Config Permutations', name: 'VZ_SETUP_PROFILE',
+                choices: ["None","dev-kind-all-default"])
         choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
                 choices: ["KIND", "magicdns_oke", "ocidns_oke"])
         choice (description: 'ACME Certificate Environment (Staging or Production)', name: 'ACME_ENVIRONMENT',
@@ -287,6 +289,13 @@ pipeline {
                     }
                     // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
                     env.K8S_VERSION_LABEL = "${params.TEST_ENV == 'KIND' ? params.KIND_CLUSTER_VERSION : sh(returnStdout: true, script: '${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}').trim()}"
+                    def latestReleaseBranch = getLatestReleaseVersion()
+                    if(latestReleaseBranch == "1.2"){
+                        ADMIN_CLUSTER_PROFILE = "dev"
+                        MANAGED_CLUSTER_PROFILE = "managed-cluster"
+                        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
+                        CREATE_EXTERNAL_OPENSEARCH = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create-external-es.sh"
+                   }
                 }
             }
         }
@@ -307,17 +316,8 @@ pipeline {
                         stage('Create Kind Clusters') {
                             when { expression { return params.TEST_ENV == 'KIND' } }
                             steps {
-                                 script{
-                                    if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "master"){
-                                        VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
-                                        def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
-                                        def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
-                                        if(latestReleaseBranch == "1.2"){
-                                            ADMIN_CLUSTER_PROFILE = "dev"
-                                            MANAGED_CLUSTER_PROFILE = "managed-cluster"
-                                            INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
-                                            CREATE_EXTERNAL_OPENSEARCH = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create-external-es.sh"
-                                   }   }
+                                script{
+                                    setVZConfigForInstallation()
                                 }
                                 createKindClusters()
                             }
@@ -836,8 +836,8 @@ def getPlatformOperatorForRelease(){
         def operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file"
 
         if(VERSION_FOR_UPGRADE != "master" && params.IS_TRIGGERED_MANUALLY != "YES" && VERSION_FOR_UPGRADE != "NONE"){
-            def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
-            def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
+
+            def latestReleaseBranch = getLatestReleaseVersion()
 
             operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name release-${latestReleaseBranch}/operator.yaml --file"
 
@@ -849,6 +849,15 @@ def getPlatformOperatorForRelease(){
     }
 }
 
+def getLatestReleaseVersion(){
+    def latestReleaseBranch
+    if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "master"){
+        VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
+        def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
+        latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
+    }
+    return latestReleaseBranch
+}
 
 // Upgrade the verrazzano-platform-operator for all clusters
 def upgradePlatformOperator() {
@@ -1114,14 +1123,14 @@ def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
             def destinationPath = "${env.KUBECONFIG_DIR}/${count}/${installerFileName}"
-            def installProfile = env.MANAGED_CLUSTER_PROFILE
+            def installProfile = MANAGED_CLUSTER_PROFILE
             // Installs using OCI DNS require a unique domain per cluster
             // - also, the env name must be <= 10 chars for some reason.
             def envName = "mgd${count-1}"
             if (count == 1) {
                 // Cluster "1" is always the admin cluster, use the chosen profile for the VZ install
                 // with the env name "admin"
-                installProfile = env.ADMIN_CLUSTER_PROFILE
+                installProfile = ADMIN_CLUSTER_PROFILE
                 envName = "admin"
             }
             sh """
@@ -1497,4 +1506,20 @@ def emitJobMetrics() {
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
     env.TIME_WAITING = startTimeInMillis-timeInMillis
     runGinkgoRandomizeAdmin('jobmetrics')
+}
+
+def setVZConfigForInstallation(){
+
+    if(params.VZ_SETUP_PROFILE == "dev-kind-all-default"){
+        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-no-persistence.yaml"
+        ADMIN_CLUSTER_PROFILE = "dev"
+        MANAGED_CLUSTER_PROFILE = "managed-cluster"
+    }
+    def latestRelease = getLatestReleaseVersion()
+    if(latestRelease == "1.2"){
+        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind.yaml"
+        CREATE_EXTERNAL_OPENSEARCH = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create-external-es.sh"
+        ADMIN_CLUSTER_PROFILE = "dev"
+        MANAGED_CLUSTER_PROFILE = "managed-cluster"
+    }
 }
