@@ -1467,6 +1467,8 @@ def setVZConfigForInstallation(){
 
     if(params.VZ_SETUP_CONFIG == "dev-kind-all-default"){
         INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-with-ephemeral-storage.yaml"
+        ADMIN_CLUSTER_PROFILE = "dev"
+        MANAGED_CLUSTER_PROFILE = "managed-cluster"
     }
     def latestRelease = getLatestReleaseVersion()
     if(latestRelease == "1.2"){
