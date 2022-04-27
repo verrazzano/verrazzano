@@ -1078,14 +1078,14 @@ def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
             def destinationPath = "${env.KUBECONFIG_DIR}/${count}/${installerFileName}"
-            def installProfile = env.MANAGED_CLUSTER_PROFILE
+            def installProfile = MANAGED_CLUSTER_PROFILE
             // Installs using OCI DNS require a unique domain per cluster
             // - also, the env name must be <= 10 chars for some reason.
             def envName = "mgd${count-1}"
             if (count == 1) {
                 // Cluster "1" is always the admin cluster, use the chosen profile for the VZ install
                 // with the env name "admin"
-                installProfile = env.ADMIN_CLUSTER_PROFILE
+                installProfile = ADMIN_CLUSTER_PROFILE
                 envName = "admin"
             }
             sh """
