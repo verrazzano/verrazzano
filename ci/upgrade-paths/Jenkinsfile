@@ -1466,7 +1466,7 @@ def emitJobMetrics() {
 def setVZConfigForInstallation(){
 
     if(params.VZ_SETUP_CONFIG == "dev-kind-all-default"){
-        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-no-persistence.yaml"
+        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-with-ephemeral-storage.yaml"
     }
     def latestRelease = getLatestReleaseVersion()
     if(latestRelease == "1.2"){
