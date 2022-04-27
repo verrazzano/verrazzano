@@ -288,14 +288,7 @@ pipeline {
                 }
             }
         }
-        stage("Troubleshooting") {
-            steps {
-                script {
-                    echo "start Troubleshooting"
-                    getPlatformOperatorForRelease()
-                }
-            }
-        }
+
         stage('Install and Configure') {
             when {
                 allOf {
@@ -852,7 +845,7 @@ def getPlatformOperatorForRelease(){
         //Removing v from the upgrade version for error handling.
         VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
         def operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file"
-        println("before if")
+
         if(VERSION_FOR_UPGRADE != "master" && params.IS_TRIGGERED_MANUALLY != "YES" && VERSION_FOR_UPGRADE != "NONE"){
             def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
             def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
@@ -862,16 +855,18 @@ def getPlatformOperatorForRelease(){
         }else if(params.IS_TRIGGERED_MANUALLY == "YES" && VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "master"){
             operatorCMD = "curl -L https://github.com/verrazzano/verrazzano/releases/download/v${VERSION_FOR_UPGRADE}/operator.yaml --output"
         }
-        println("before script")
 
         sh(script: "$operatorCMD $TARGET_UPGRADE_OPERATOR_YAML")
     }
 }
 
 
-// Upgrade the verrazzano-platform-operator
+// Upgrade the verrazzano-platform-operator for all clusters
 def upgradePlatformOperator() {
     script {
+        echo "Downloading target upgrade operator yaml"
+        getPlatformOperatorForRelease()
+
         // Create a dictionary of Verrazzano Platform Operator upgrade steps to be executed in parallel
         // - the first one will always be the Admin cluster
         // - clusters 2-max are managed clusters
@@ -890,6 +885,7 @@ def upgradePlatformOperator() {
 }
 
 // Upgrade the verrazzano-platform-operator for a given cluster
+// - count is the cluster index into the $KUBECONFIG_DIR
 def upgradePlatformOperatorOnCluster(count) {
     // For parallel execution, wrap this in a Groovy enclosure {}
     return {
