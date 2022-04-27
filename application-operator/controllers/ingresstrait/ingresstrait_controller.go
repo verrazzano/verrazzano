@@ -7,14 +7,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
+	"strings"
+
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
@@ -67,6 +68,7 @@ const (
 	destinationRuleKind       = "DestinationRule"
 	controllerName            = "ingresstrait"
 	httpsProtocol             = "HTTPS"
+	istioIngressGateway       = "istio-ingressgateway"
 )
 
 // The port names used by WebLogic operator that do not have http prefix.
@@ -674,7 +676,7 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 // setupWatches Sets up watches for the IngressTrait controller
 func (r *Reconciler) setupWatches() error {
 	// Set up a watch on the Console/Authproxy ingress to watch for changes in the Domain name;
-	return r.Controller.Watch(
+	err := r.Controller.Watch(
 		&source.Kind{Type: &k8net.Ingress{}},
 		// The handler for the Watch is a map function to map the detected change into requests to reconcile any
 		// existing ingress traits and invoke the IngressTrait Reconciler; this should cause us to update the
@@ -688,6 +690,28 @@ func (r *Reconciler) setupWatches() error {
 			},
 		},
 	)
+	if err != nil {
+		return err
+	}
+	// Set up a watch on the istio-ingressgateway service to watch for changes in the address;
+	err = r.Controller.Watch(
+		&source.Kind{Type: &corev1.Service{}},
+		// The handler for the Watch is a map function to map the detected change into requests to reconcile any
+		// existing ingress traits and invoke the IngressTrait Reconciler; this should cause us to update the
+		// VS and GW records for the associated apps.
+		handler.EnqueueRequestsFromMapFunc(func(a client.Object) []reconcile.Request {
+			return r.createIngressTraitReconcileRequests()
+		}),
+		predicate.Funcs{
+			UpdateFunc: func(updateEvent event.UpdateEvent) bool {
+				return r.isIstioIngressGatewayUpdated(updateEvent)
+			},
+		},
+	)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // isConsoleIngressUpdated Predicate func used by the Ingress watcher, returns true if the TLS settings have changed;
@@ -698,9 +722,26 @@ func (r *Reconciler) isConsoleIngressUpdated(updateEvent event.UpdateEvent) bool
 	if oldIngress.Namespace != vzconst.VerrazzanoSystemNamespace || oldIngress.Name != constants.VzConsoleIngress {
 		return false
 	}
-	r.Log.Debugf("Checking object %s/%s", oldIngress.Namespace, oldIngress.Name)
 	newIngress := updateEvent.ObjectNew.(*k8net.Ingress)
-	return !reflect.DeepEqual(oldIngress.Spec, newIngress.Spec)
+	if !reflect.DeepEqual(oldIngress.Spec, newIngress.Spec) {
+		r.Log.Infof("Ingress %s/%s has changed", oldIngress.Namespace, oldIngress.Name)
+		return true
+	}
+	return false
+}
+
+// isIstioIngressGatewayUpdated Predicate func used by the watcher
+func (r *Reconciler) isIstioIngressGatewayUpdated(updateEvent event.UpdateEvent) bool {
+	oldSvc := updateEvent.ObjectOld.(*corev1.Service)
+	if oldSvc.Namespace != vzconst.IstioSystemNamespace || oldSvc.Name != istioIngressGateway {
+		return false
+	}
+	newSvc := updateEvent.ObjectNew.(*corev1.Service)
+	if !reflect.DeepEqual(oldSvc.Spec, newSvc.Spec) {
+		r.Log.Infof("Service %s/%s has changed", oldSvc.Namespace, oldSvc.Name)
+		return true
+	}
+	return false
 }
 
 //createIngressTraitReconcileRequests Used by the Console ingress watcher to map a detected change in the ingress
@@ -722,6 +763,7 @@ func (r *Reconciler) createIngressTraitReconcileRequests() []reconcile.Request {
 			},
 		})
 	}
+	r.Log.Infof("Requesting ingress trait reconcile: %v", requests)
 	return requests
 }
 
@@ -1106,35 +1148,20 @@ func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (st
 // buildDomainNameForWildcard generates a domain name in the format of "<IP>.<wildcard-domain>"
 // Get the IP from Istio resources
 func buildDomainNameForWildcard(cli client.Reader, trait *vzapi.IngressTrait, suffix string) (string, error) {
-	const istioIngressGateway = "istio-ingressgateway"
-
 	istio := corev1.Service{}
 	err := cli.Get(context.TODO(), types.NamespacedName{Name: istioIngressGateway, Namespace: constants.IstioSystemNamespace}, &istio)
 	if err != nil {
 		return "", err
 	}
 	var IP string
-	if istio.Spec.Type == corev1.ServiceTypeLoadBalancer {
-		if len(istio.Status.LoadBalancer.Ingress) > 0 {
-			IP = istio.Status.LoadBalancer.Ingress[0].IP
-		} else if len(istio.Spec.ExternalIPs) > 0 {
+	if istio.Spec.Type == corev1.ServiceTypeLoadBalancer || istio.Spec.Type == corev1.ServiceTypeNodePort {
+		if len(istio.Spec.ExternalIPs) > 0 {
 			IP = istio.Spec.ExternalIPs[0]
+		} else if len(istio.Status.LoadBalancer.Ingress) > 0 {
+			IP = istio.Status.LoadBalancer.Ingress[0].IP
 		} else {
 			return "", fmt.Errorf("%s is missing loadbalancer IP", istioIngressGateway)
 		}
-	} else if istio.Spec.Type == corev1.ServiceTypeNodePort {
-		// Do the equiv of the following command to get the IP
-		// kubectl -n istio-system get pods --selector app=istio-ingressgateway,istio=ingressgateway -o jsonpath='{.items[0].status.hostIP}'
-		podList := corev1.PodList{}
-		listOptions := client.MatchingLabels{"app": "istio-ingressgateway", "istio": "ingressgateway"}
-		err := cli.List(context.TODO(), &podList, listOptions)
-		if err != nil {
-			return "", err
-		}
-		if len(podList.Items) == 0 {
-			return "", errors.New("Unable to find Istio ingressway pod")
-		}
-		IP = podList.Items[0].Status.HostIP
 	} else {
 		return "", fmt.Errorf("Unsupported service type %s for istio_ingress", string(istio.Spec.Type))
 	}
