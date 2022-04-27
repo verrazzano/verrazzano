@@ -37,19 +37,23 @@ func appendVmoOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, 
 
 	effectiveCR := ctx.EffectiveCR()
 
-	// Get the dnsSuffix override
-	dnsSuffix, err := vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
-	if err != nil {
-		return kvs, ctx.Log().ErrorfNewErr("Failed getting DNS suffix: %v", err)
+	// If NGINX is enabled, then get the values used to build up the defaultIngressTargetDNSName
+	// value in the VMO config map.  Otherwise, the value is not set in the VMO config map.
+	if vzconfig.IsNGINXEnabled(effectiveCR) {
+		// Get the dnsSuffix override
+		dnsSuffix, err := vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
+		if err != nil {
+			return kvs, ctx.Log().ErrorfNewErr("Failed getting DNS suffix: %v", err)
+		}
+		kvs = append(kvs, bom.KeyValue{Key: "config.dnsSuffix", Value: dnsSuffix})
+
+		// Get the env name
+		envName := vzconfig.GetEnvName(effectiveCR)
+
+		kvs = append(kvs, bom.KeyValue{Key: "config.envName", Value: envName})
 	}
-	kvs = append(kvs, bom.KeyValue{Key: "config.dnsSuffix", Value: dnsSuffix})
 
-	// Get the env name
-	envName := vzconfig.GetEnvName(effectiveCR)
-
-	kvs = append(kvs, bom.KeyValue{Key: "config.envName", Value: envName})
 	kvs = append(kvs, vzkvs...)
-
 	return kvs, nil
 }
 
