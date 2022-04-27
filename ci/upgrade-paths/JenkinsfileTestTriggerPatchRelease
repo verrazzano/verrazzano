@@ -159,7 +159,7 @@ pipeline {
                         final String fileContent = readFile(file: "${workspace}/tags.txt")
                         final List gitTags = extractReleaseTags(fileContent)
                         echo "gitTags = ${gitTags}"
-                        TARGET_UPGRADE_VERSION = gitTags.pop() - "v"
+                        TARGET_UPGRADE_VERSION = gitTags.get(gitTags.size()-1) - "v"
                         TARGET_UPGRADE_VERSION = getNextPatchReleaseVersion(TARGET_UPGRADE_VERSION)
                         listOfUpgradeJobs = addTargetUpgradeVersion(gitTags)
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
