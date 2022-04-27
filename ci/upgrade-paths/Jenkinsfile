@@ -217,6 +217,11 @@ pipeline {
                 sh """
                     echo "${NODE_LABELS}"
                 """
+                script {
+                    def operatorCMD= getPlatformOperatorForRelease()
+                    operatorCMD ${TARGET_UPGRADE_OPERATOR_YAML}
+                    echo "after operator download - clean"
+                }
 
                 script {
                     EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
