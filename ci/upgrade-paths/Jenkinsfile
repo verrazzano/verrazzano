@@ -215,6 +215,7 @@ pipeline {
         stage("Troubleshooting") {
             steps {
                 script {
+                    echo "start Troubleshooting"
                     getPlatformOperatorForRelease()
                 }
             }
