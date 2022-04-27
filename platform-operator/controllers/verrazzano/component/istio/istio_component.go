@@ -161,7 +161,7 @@ func (i istioComponent) validateForExternalIPSWithNodePort(vz *vzapi.VerrazzanoS
 
 	// look for externalIPs if NodePort
 	if vz.Components.Istio.Ingress.Type == vzapi.NodePort {
-		return vzconfig.CheckArgs(vz.Components.Istio.IstioInstallArgs, ExternalIPArg, i.Name())
+		return vzconfig.CheckExternalIPsArgs(vz.Components.Istio.IstioInstallArgs, ExternalIPArg, i.Name())
 	}
 
 	return nil

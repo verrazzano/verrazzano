@@ -3511,7 +3511,7 @@ spec:
                                 type: integer
                             type: object
                           ports:
-                            description: Ports to be used for NGINX
+                            description: Ports to be used for Istio Ingress Gateway
                             items:
                               description: ServicePort contains information on service's
                                 port.

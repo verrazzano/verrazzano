@@ -102,7 +102,7 @@ func (c nginxComponent) validateForExternalIPSWithNodePort(vz *vzapi.VerrazzanoS
 
 	// look for externalIPs if NodePort
 	if vz.Components.Ingress.Type == vzapi.NodePort {
-		return vzconfig.CheckArgs(vz.Components.Ingress.NGINXInstallArgs, nginxExternalIPKey, c.Name())
+		return vzconfig.CheckExternalIPsArgs(vz.Components.Ingress.NGINXInstallArgs, nginxExternalIPKey, c.Name())
 	}
 
 	return nil
