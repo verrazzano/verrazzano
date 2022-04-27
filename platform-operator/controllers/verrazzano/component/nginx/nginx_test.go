@@ -109,13 +109,13 @@ func TestAppendNGINXOverridesExtraKVs(t *testing.T) {
 	assert.Len(t, kvs, 2)
 }
 
-// TestNGINXPreInstall tests the PreInstall fn
+// TestNGINXPreInstall tests the preInstall fn
 // GIVEN a call to this fn
-//  WHEN I call PreInstall
+//  WHEN I call preInstall
 //  THEN no errors are returned
 func TestNGINXPreInstall(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	err := PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false), ComponentNamespace)
+	err := preInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false), ComponentNamespace)
 	assert.NoError(t, err)
 }
 
@@ -183,8 +183,8 @@ func TestIsNGINXNotReady(t *testing.T) {
 	assert.False(t, isNginxReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
-// TestPostInstallWithPorts tests the PostInstall function
-// GIVEN a call to PostInstall
+// TestPostInstallWithPorts tests the postInstall function
+// GIVEN a call to postInstall
 //  WHEN the VZ ingress has port overrides configured
 //  THEN no error is returned
 func TestPostInstallWithPorts(t *testing.T) {
@@ -235,12 +235,12 @@ func TestPostInstallWithPorts(t *testing.T) {
 		},
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(svc).Build()
-	err := PostInstall(spi.NewFakeContext(fakeClient, vz, false))
+	err := postInstall(spi.NewFakeContext(fakeClient, vz, false))
 	assert.NoError(t, err)
 }
 
-// TestPostInstallNoPorts tests the PostInstall function
-// GIVEN a call to PostInstall
+// TestPostInstallNoPorts tests the postInstall function
+// GIVEN a call to postInstall
 //  WHEN the VZ ingress has no port overrides configured
 //  THEN no error is returned
 func TestPostInstallNoPorts(t *testing.T) {
@@ -255,16 +255,16 @@ func TestPostInstallNoPorts(t *testing.T) {
 		},
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	assert.NoError(t, PostInstall(spi.NewFakeContext(fakeClient, vz, false)))
+	assert.NoError(t, postInstall(spi.NewFakeContext(fakeClient, vz, false)))
 }
 
-// TestPostInstallDryRun tests the PostInstall function
-// GIVEN a call to PostInstall
+// TestPostInstallDryRun tests the postInstall function
+// GIVEN a call to postInstall
 //  WHEN the context DryRun flag is true
 //  THEN no error is returned
 func TestPostInstallDryRun(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	assert.NoError(t, PostInstall(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
+	assert.NoError(t, postInstall(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
 }
 
 // TestNewComponent tests the NewComponent function

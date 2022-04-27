@@ -64,10 +64,10 @@ func AppendOverrides(context spi.ComponentContext, _ string, _ string, _ string,
 	return newKvs, nil
 }
 
-// PreInstall Create and label the NGINX namespace, and create any override helm args needed
-func PreInstall(compContext spi.ComponentContext, namespace string) error {
+// preInstall Create and label the NGINX namespace, and create any override helm args needed
+func preInstall(compContext spi.ComponentContext, namespace string) error {
 	if compContext.IsDryRun() {
-		compContext.Log().Debug("NGINX PostInstall dry run")
+		compContext.Log().Debug("NGINX postInstall dry run")
 		return nil
 	}
 	compContext.Log().Debug("Adding label needed by network policies to ingress-nginx namespace")
@@ -85,10 +85,10 @@ func PreInstall(compContext spi.ComponentContext, namespace string) error {
 	return nil
 }
 
-// PostInstall Patch the controller service ports based on any user-supplied overrides
-func PostInstall(ctx spi.ComponentContext) error {
+// postInstall Patch the controller service ports based on any user-supplied overrides
+func postInstall(ctx spi.ComponentContext) error {
 	if ctx.IsDryRun() {
-		ctx.Log().Debug("NGINX PostInstall dry run")
+		ctx.Log().Debug("NGINX postInstall dry run")
 		return nil
 	}
 	// Add any port specs needed to the service after boot

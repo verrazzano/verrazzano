@@ -85,9 +85,9 @@ func (c nginxComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 }
 
 func (c nginxComponent) PreInstall(context spi.ComponentContext) error {
-	return PreInstall(context, c.HelmComponent.ResolveNamespace(c.ChartNamespace))
+	return preInstall(context, c.HelmComponent.ResolveNamespace(c.ChartNamespace))
 }
 
 func (c nginxComponent) PostInstall(context spi.ComponentContext) error {
-	return PostInstall(context)
+	return postInstall(context)
 }
