@@ -5,6 +5,7 @@ package main
 
 import (
 	"flag"
+
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
 
@@ -16,6 +17,7 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	clusterscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
+	secretscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
 	vzcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano"
 	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
@@ -196,6 +198,15 @@ func main() {
 			os.Exit(1)
 		}
 		mgr.GetWebhookServer().CertDir = config.CertDir
+	}
+
+	// Setup secrets reconciler
+	if err = (&secretscontroller.VerrazzanoSecretsReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoSecrets")
+		os.Exit(1)
 	}
 
 	// +kubebuilder:scaffold:builder

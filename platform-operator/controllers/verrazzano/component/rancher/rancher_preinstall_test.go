@@ -175,7 +175,7 @@ func TestCreateAdditionalCertificates(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
 			common.HTTPDo = tt.httpDo
-			err := createAdditionalCertificates(log, c, tt.vz)
+			err := common.ProcessAdditionalCertificates(log, c, tt.vz)
 			if tt.isErr {
 				assert.NotNil(t, err)
 			} else {

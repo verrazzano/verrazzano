@@ -5,6 +5,7 @@ package mchelidon
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"os"
 	"strconv"
 	"time"
@@ -20,7 +21,7 @@ import (
 
 const (
 	longPollingInterval          = 20 * time.Second
-	longWaitTimeout              = 10 * time.Minute
+	longWaitTimeout              = 20 * time.Minute
 	pollingInterval              = 5 * time.Second
 	waitTimeout                  = 5 * time.Minute
 	consistentlyDuration         = 1 * time.Minute
@@ -77,6 +78,9 @@ var _ = t.BeforeSuite(func() {
 var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("Multi-cluster verify hello-helidon", func() {
+	t.BeforeEach(func() {
+		Expect(os.Setenv(k8sutil.EnvVarTestKubeConfig, adminKubeconfig)).To(BeNil())
+	})
 	t.Context("Admin Cluster", func() {
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster
@@ -156,8 +160,8 @@ var _ = t.Describe("Multi-cluster verify hello-helidon", func() {
 	})
 
 	t.Context("Logging", func() {
-		indexName := "verrazzano-namespace-hello-helidon-dep"
-
+		indexName, err := pkg.GetOpenSearchAppIndexWithKC(testNamespace, adminKubeconfig)
+		Expect(err).To(BeNil())
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster
 		// THEN expect the Elasticsearch index for the app exists on the admin cluster Elasticsearch
