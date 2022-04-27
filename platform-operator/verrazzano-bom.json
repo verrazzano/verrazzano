@@ -191,8 +191,8 @@
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
-              "image": "fluentd-kubernetes-daemonset-jenkins",
-              "tag": "20220427142650-0b790e5",
+              "image": "fluentd-kubernetes-daemonset",
+              "tag": "v1.14.5-20220427170000-87ed055",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
