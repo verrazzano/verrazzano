@@ -212,16 +212,20 @@ pipeline {
     }
 
     stages {
-        stage('Clean workspace and checkout') {
+        stage("Troubleshooting") {
             steps {
-                sh """
-                    echo "${NODE_LABELS}"
-                """
                 script {
                     def operatorCMD= getPlatformOperatorForRelease()
                     operatorCMD ${TARGET_UPGRADE_OPERATOR_YAML}
                     echo "after operator download - clean"
                 }
+            }
+        }
+        stage('Clean workspace and checkout') {
+            steps {
+                sh """
+                    echo "${NODE_LABELS}"
+                """
 
                 script {
                     EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
