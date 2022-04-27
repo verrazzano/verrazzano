@@ -35,7 +35,7 @@ pipeline {
     parameters {
         booleanParam (description: 'Whether to use External Elasticsearch', name: 'EXTERNAL_ELASTICSEARCH', defaultValue: false)
         choice (description: 'Number of Cluster', name: 'TOTAL_CLUSTERS', choices: ["2", "1", "3"])
-        choice (description: 'Verrazzano Config Permutations', name: 'VZ_SETUP_CONFIG',
+        choice (description: 'Verrazzano Config Permutations', name: 'VZ_SETUP_PROFILE',
                 choices: ["None","dev-kind-all-default"])
         choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
                 choices: ["KIND", "magicdns_oke", "ocidns_oke"])
@@ -1465,8 +1465,8 @@ def emitJobMetrics() {
 
 def setVZConfigForInstallation(){
 
-    if(params.VZ_SETUP_CONFIG == "dev-kind-all-default"){
-        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-with-ephemeral-storage.yaml"
+    if(params.VZ_SETUP_PROFILE == "dev-kind-all-default"){
+        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-no-persistence.yaml"
         ADMIN_CLUSTER_PROFILE = "dev"
         MANAGED_CLUSTER_PROFILE = "managed-cluster"
     }
