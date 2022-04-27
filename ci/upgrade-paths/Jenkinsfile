@@ -1466,7 +1466,7 @@ def setVZConfigForInstallation(){
         INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-no-persistence.yaml"
     }
     def latestRelease = getLatestReleaseVersion()
-    if(latestRelease = "1.2"){
+    if(latestRelease == "1.2"){
         INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind.yaml"
         CREATE_EXTERNAL_OPENSEARCH = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create-external-es.sh"
         ADMIN_CLUSTER_PROFILE = "dev"
