@@ -328,19 +328,18 @@ pipeline {
 //                                 runGinkgo('istio/authz')
 //                             }
 //                         }
-// Following test is disabled for now while the test code is assessed for validity in the absence of istio side cars
-//                         stage('security network policies') {
-//                             environment {
-//                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/netpol"
-//                             }
-//                             steps {
-//                                 script {
-//                                     if (params.CREATE_CLUSTER_USE_CALICO == true) {
-//                                         runGinkgo('security/netpol')
-//                                     }
-//                                 }
-//                             }
-//                         }
+                        stage('security network policies') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/netpol"
+                            }
+                            steps {
+                                script {
+                                    if (params.CREATE_CLUSTER_USE_CALICO == true) {
+                                        runGinkgo('security/netpol')
+                                    }
+                                }
+                            }
+                        }
                         stage('k8s deployment workload metrics') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/k8sdeploy-workload-metrics"
