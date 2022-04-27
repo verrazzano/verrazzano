@@ -376,6 +376,14 @@ pipeline {
                                 runGinkgo('logging/system')
                             }
                         }
+                        stage('opensearch logging') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-logging"
+                            }
+                            steps {
+                                runGinkgo('logging/opensearch')
+                            }
+                        }
                         stage('examples logging helidon') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"

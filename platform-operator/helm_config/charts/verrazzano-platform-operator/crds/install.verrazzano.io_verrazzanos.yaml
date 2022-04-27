@@ -3537,6 +3537,12 @@ spec:
                           type: object
                         type: array
                     type: object
+                  jaegerOperator:
+                    description: JaegerOperator configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   keycloak:
                     description: Keycloak contains the Keycloak component configuration
                     properties:
