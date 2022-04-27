@@ -92,6 +92,7 @@ func CreateOrUpdateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error
 	return nil
 }
 
+// EnsureVMISecret creates or updates the VMI secret
 func EnsureVMISecret(cli client.Client) error {
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -116,6 +117,7 @@ func EnsureVMISecret(cli client.Client) error {
 	return nil
 }
 
+// EnsureGrafanaAdminSecret creates or updates the Grafana admin secret
 func EnsureGrafanaAdminSecret(cli client.Client) error {
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -140,6 +142,7 @@ func EnsureGrafanaAdminSecret(cli client.Client) error {
 	return nil
 }
 
+// EnsureBackupSecret creates or updates the VMI backup secret
 func EnsureBackupSecret(cli client.Client) error {
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -233,6 +236,7 @@ func CompareStorageOverrides(old *vzapi.Verrazzano, new *vzapi.Verrazzano, jsonN
 	return nil
 }
 
+// CheckIngressesAndCerts checks the Ingress and Certs for the VMI components in the Post- function
 func CheckIngressesAndCerts(ctx spi.ComponentContext, comp spi.Component) error {
 	prefix := fmt.Sprintf("Component %s", comp.Name())
 	if !status.IngressesPresent(ctx.Log(), ctx.Client(), comp.GetIngressNames(ctx), prefix) {
