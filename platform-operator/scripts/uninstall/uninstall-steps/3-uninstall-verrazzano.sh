@@ -6,6 +6,7 @@
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 INSTALL_DIR=$SCRIPT_DIR/../../install
 UNINSTALL_DIR=$SCRIPT_DIR/..
+MANIFESTS_DIR=$SCRIPT_DIR/../../../thirdparty/manifests
 
 . $INSTALL_DIR/common.sh
 . $INSTALL_DIR/config.sh
@@ -193,6 +194,16 @@ function delete_prometheus_pushgateway {
 }
 
 action "Deleting Prometheus Pushgateway " delete_prometheus_pushgateway || exit 1
+function delete_jaeger_operator {
+  log "Uninstall the Jaeger operator"
+  local JAEGER_TEMPLATE_FILE=$MANIFESTS_DIR/jaeger/jaeger-operator.yaml
+  sed 's/{{.*}}/verrazzano-monitoring/g' "$JAEGER_TEMPLATE_FILE" > jaeger.yaml
+  kubectl delete -f jaeger.yaml --ignore-not-found || err_return $? "Could not delete Jaeger Operator" || return $?
+  rm -f jaeger.yaml
+
+}
+
+action "Deleting Jaeger operator " delete_jaeger_operator || exit 1
 action "Deleting Prometheus adapter " delete_prometheus_adapter || exit 1
 action "Deleting kube-state-metrics " delete_kube_state_metrics || exit 1
 action "Deleting Prometheus node-exporter " delete_prometheus_node_exporter || exit 1

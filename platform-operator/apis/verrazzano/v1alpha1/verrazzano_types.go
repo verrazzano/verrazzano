@@ -324,6 +324,10 @@ type ComponentSpec struct {
 	// +optional
 	Istio *IstioComponent `json:"istio,omitempty"`
 
+	// JaegerOperator configuration
+	// +optional
+	JaegerOperator *JaegerOperatorComponent `json:"jaegerOperator,omitempty"`
+
 	// Kiali contains the Kiali component configuration
 	// +optional
 	Kiali *KialiComponent `json:"kiali,omitempty"`
@@ -576,6 +580,12 @@ type IstioComponent struct {
 // IsInjectionEnabled is istio sidecar injection enabled check
 func (c *IstioComponent) IsInjectionEnabled() bool {
 	return c.InjectionEnabled == nil || *c.InjectionEnabled
+}
+
+// JaegerOperatorComponent specifies the Jaeger Operator configuration
+type JaegerOperatorComponent struct {
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // KeycloakComponent specifies the Keycloak configuration
