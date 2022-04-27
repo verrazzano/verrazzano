@@ -864,7 +864,7 @@ def upgradePlatformOperator() {
     def operatorCMD= getPlatformOperatorForRelease()
     script {
         //Download the operator.yaml for the target version that we are upgrading to
-        ${operatorCMD} ${env.TARGET_UPGRADE_OPERATOR_YAML}
+        operatorCMD ${env.TARGET_UPGRADE_OPERATOR_YAML}
 
         // Create a dictionary of Verrazzano Platform Operator upgrade steps to be executed in parallel
         // - the first one will always be the Admin cluster
