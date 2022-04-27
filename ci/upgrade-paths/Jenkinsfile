@@ -212,14 +212,6 @@ pipeline {
     }
 
     stages {
-        stage("Troubleshooting") {
-            steps {
-                script {
-                    echo "start Troubleshooting"
-                    getPlatformOperatorForRelease()
-                }
-            }
-        }
         stage('Clean workspace and checkout') {
             steps {
                 sh """
@@ -296,7 +288,14 @@ pipeline {
                 }
             }
         }
-
+        stage("Troubleshooting") {
+            steps {
+                script {
+                    echo "start Troubleshooting"
+                    getPlatformOperatorForRelease()
+                }
+            }
+        }
         stage('Install and Configure') {
             when {
                 allOf {
