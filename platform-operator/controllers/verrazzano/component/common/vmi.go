@@ -40,6 +40,7 @@ type ResourceRequestValues struct {
 
 type VMIMutateFunc func(ctx spi.ComponentContext, storage *ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, existingVMI *vmov1.VerrazzanoMonitoringInstance) error
 
+// NewVMI creates a new VerrazzanoMonitoringInstance object with default values
 func NewVMI() *vmov1.VerrazzanoMonitoringInstance {
 	return &vmov1.VerrazzanoMonitoringInstance{
 		ObjectMeta: metav1.ObjectMeta{
