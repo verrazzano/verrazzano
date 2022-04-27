@@ -212,20 +212,22 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 		// GIVEN the sample WebLogic app is deployed
 		// WHEN the application configuration is deployed
 		// THEN confirm that Istio metrics are being collected
-		t.It("Retrieve Istio Prometheus scraped metrics", func() {
-			pkg.Concurrently(
-				func() {
-					Eventually(func() bool {
-						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "hello-domain")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(func() bool {
-						return pkg.MetricsExist("envoy_cluster_http2_pending_send_bytes", "pod_name", wlsAdminServer)
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-				},
-			)
-		})
+		if istioInjection == "enabled" {
+			t.It("Retrieve Istio Prometheus scraped metrics", func() {
+				pkg.Concurrently(
+					func() {
+						Eventually(func() bool {
+							return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "hello-domain")
+						}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+					},
+					func() {
+						Eventually(func() bool {
+							return pkg.MetricsExist("envoy_cluster_http2_pending_send_bytes", "pod_name", wlsAdminServer)
+						}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+					},
+				)
+			})
+		}
 	})
 
 	t.Context("WebLogic logging", Label("f:observability.logging.es"), func() {
