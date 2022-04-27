@@ -32,6 +32,7 @@ const (
 	imagePullPollingInterval = 30 * time.Second
 	sockshopAppName          = "sockshop-appconfig"
 	sampleSpringMetric       = "http_server_requests_seconds_count"
+	sampleMicronautMetric    = "process_start_time_seconds"
 	oamComponent             = "app_oam_dev_component"
 )
 
@@ -305,8 +306,42 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 							Eventually(coherenceMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
 						},
 					)
-				} else {
-					Eventually(coherenceMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
+				} else if getVariant() == "micronaut" {
+					pkg.Concurrently(
+						func() {
+							Eventually(func() bool {
+								return springMicronautExists("carts")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return springMicronautExists("catalog")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return springMicronautExists("orders")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return springMicronautExists("payment")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return springMicronautExists("shipping")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return springMicronautExists("users")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(coherenceMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+					)
 				}
 			})
 		}
@@ -402,6 +437,11 @@ func appConfigMetricExists() bool {
 // springMetricExists checks whether sample Spring metrics is available for a given component
 func springMetricExists(comp string) bool {
 	return pkg.MetricsExist(sampleSpringMetric, oamComponent, comp)
+}
+
+// springMicronautExists checks whether sample Micronaut metrics is available for a given component
+func springMicronautExists(comp string) bool {
+	return pkg.MetricsExist(sampleMicronautMetric, oamComponent, comp)
 }
 
 // getVariant returns the variant of the sock shop application being tested

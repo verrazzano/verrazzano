@@ -29,6 +29,7 @@ spec:
             spec:
               ports:
                 - port: 8080
+                  path: "/prometheus"
                 - port: 9612
     - componentName: catalog
       traits:
@@ -50,6 +51,7 @@ spec:
             spec:
               ports:
                 - port: 8080
+                  path: "/prometheus"
                 - port: 9612
     - componentName: orders
       traits:
@@ -71,6 +73,7 @@ spec:
             spec:
               ports:
                 - port: 8080
+                  path: "/prometheus"
                 - port: 9612
     - componentName: payment
       traits:
@@ -92,6 +95,7 @@ spec:
             spec:
               ports:
                 - port: 8080
+                  path: "/prometheus"
                 - port: 9612
     - componentName: shipping
       traits:
@@ -113,6 +117,7 @@ spec:
             spec:
               ports:
                 - port: 8080
+                  path: "/prometheus"
                 - port: 9612
     - componentName: users
       traits:
@@ -142,4 +147,5 @@ spec:
             spec:
               ports:
                 - port: 8080
+                  path: "/prometheus"
                 - port: 9612
