@@ -167,7 +167,7 @@ func TestPostInstallCertsNotReady(t *testing.T) {
 //  WHEN I call GetCertificateNames
 //  THEN the correct number of certificate names are returned based on what is enabled
 func TestGetCertificateNames(t *testing.T) {
-	vmiEnabled := false
+	vmiEnabled := true
 	vz := vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			EnvironmentName: "myenv",
@@ -184,12 +184,6 @@ func TestGetCertificateNames(t *testing.T) {
 	vzComp := NewComponent()
 
 	certNames := vzComp.GetCertificateNames(ctx)
-	assert.Len(t, certNames, 0, "Unexpected number of cert names")
-
-	vmiEnabled = true
-	vz.Spec.Components.Kibana.Enabled = &vmiEnabled
-
-	certNames = vzComp.GetCertificateNames(ctx)
 	assert.Len(t, certNames, 1, "Unexpected number of cert names")
 }
 
