@@ -310,32 +310,32 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 					pkg.Concurrently(
 						func() {
 							Eventually(func() bool {
-								return springMicronautExists("carts")
+								return micronautMetricExists("carts")
 							}, waitTimeout, pollingInterval).Should(BeTrue())
 						},
 						func() {
 							Eventually(func() bool {
-								return springMicronautExists("catalog")
+								return micronautMetricExists("catalog")
 							}, waitTimeout, pollingInterval).Should(BeTrue())
 						},
 						func() {
 							Eventually(func() bool {
-								return springMicronautExists("orders")
+								return micronautMetricExists("orders")
 							}, waitTimeout, pollingInterval).Should(BeTrue())
 						},
 						func() {
 							Eventually(func() bool {
-								return springMicronautExists("payment")
+								return micronautMetricExists("payment")
 							}, waitTimeout, pollingInterval).Should(BeTrue())
 						},
 						func() {
 							Eventually(func() bool {
-								return springMicronautExists("shipping")
+								return micronautMetricExists("shipping")
 							}, waitTimeout, pollingInterval).Should(BeTrue())
 						},
 						func() {
 							Eventually(func() bool {
-								return springMicronautExists("users")
+								return micronautMetricExists("users")
 							}, waitTimeout, pollingInterval).Should(BeTrue())
 						},
 						func() {
@@ -439,8 +439,8 @@ func springMetricExists(comp string) bool {
 	return pkg.MetricsExist(sampleSpringMetric, oamComponent, comp)
 }
 
-// springMicronautExists checks whether sample Micronaut metrics is available for a given component
-func springMicronautExists(comp string) bool {
+// micronautMetricExists checks whether sample Micronaut metrics is available for a given component
+func micronautMetricExists(comp string) bool {
 	return pkg.MetricsExist(sampleMicronautMetric, oamComponent, comp)
 }
 
