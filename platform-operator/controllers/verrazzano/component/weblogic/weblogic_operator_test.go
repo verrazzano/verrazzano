@@ -45,7 +45,7 @@ func Test_appendWeblogicOperatorOverridesExtraKVs(t *testing.T) {
 //  THEN no errors are returned
 func Test_weblogicOperatorPreInstall(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	err := WeblogicOperatorPreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false), "weblogic-operator", "verrazzano-system", "")
+	err := WeblogicOperatorPreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false), "verrazzano-system")
 	assert.NoError(t, err)
 }
 

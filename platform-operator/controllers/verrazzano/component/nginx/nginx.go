@@ -65,7 +65,7 @@ func AppendOverrides(context spi.ComponentContext, _ string, _ string, _ string,
 }
 
 // PreInstall Create and label the NGINX namespace, and create any override helm args needed
-func PreInstall(compContext spi.ComponentContext, name string, namespace string, dir string) error {
+func PreInstall(compContext spi.ComponentContext, namespace string) error {
 	if compContext.IsDryRun() {
 		compContext.Log().Debug("NGINX PostInstall dry run")
 		return nil
@@ -86,7 +86,7 @@ func PreInstall(compContext spi.ComponentContext, name string, namespace string,
 }
 
 // PostInstall Patch the controller service ports based on any user-supplied overrides
-func PostInstall(ctx spi.ComponentContext, _ string, _ string) error {
+func PostInstall(ctx spi.ComponentContext) error {
 	if ctx.IsDryRun() {
 		ctx.Log().Debug("NGINX PostInstall dry run")
 		return nil

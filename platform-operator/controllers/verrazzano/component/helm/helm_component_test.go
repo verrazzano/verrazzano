@@ -87,7 +87,6 @@ func TestUpgrade(t *testing.T) {
 		ChartNamespace:          "chartNS",
 		IgnoreNamespaceOverride: true,
 		ValuesFile:              "ValuesFile",
-		PreUpgradeFunc:          fakePreUpgrade,
 	}
 
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
@@ -134,7 +133,7 @@ func TestUpgradeIsInstalledUnexpectedError(t *testing.T) {
 	})
 	defer helm.SetDefaultRunner()
 
-	err := comp.Upgrade(spi.NewFakeContext(nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
+	err := comp.Upgrade(spi.NewFakeContext(newFakeClient(), &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
 	a.Error(err)
 }
 
@@ -172,7 +171,6 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 		ChartNamespace:          "chartNS",
 		IgnoreNamespaceOverride: true,
 		ValuesFile:              "ValuesFile",
-		PreUpgradeFunc:          fakePreUpgrade,
 		AppendOverridesFunc:     istio.AppendIstioOverrides,
 	}
 
@@ -211,7 +209,6 @@ func TestInstall(t *testing.T) {
 		ChartNamespace:          "chartNS",
 		IgnoreNamespaceOverride: true,
 		ValuesFile:              "ValuesFile",
-		PreUpgradeFunc:          fakePreUpgrade,
 	}
 
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
@@ -249,7 +246,6 @@ func TestInstallWithAllOverride(t *testing.T) {
 		ChartNamespace:          "chartNS",
 		IgnoreNamespaceOverride: true,
 		ValuesFile:              "ValuesFile",
-		PreUpgradeFunc:          fakePreUpgrade,
 		AppendOverridesFunc: func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 			kvs = append(kvs, bom.KeyValue{Key: "", Value: "my-overrides.yaml", IsFile: true})
 			kvs = append(kvs, bom.KeyValue{Key: "setKey", Value: "setValue"})
@@ -304,7 +300,6 @@ func TestInstallPreviousFailure(t *testing.T) {
 		ChartNamespace:          "chartNS",
 		IgnoreNamespaceOverride: true,
 		ValuesFile:              "ValuesFile",
-		PreUpgradeFunc:          fakePreUpgrade,
 	}
 
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
@@ -560,7 +555,7 @@ func TestReady(t *testing.T) {
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, _ bool, _ bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 	if releaseName != "rancher" {
 		return []byte("error"), []byte(""), errors.New("Invalid release name")
 	}
@@ -590,20 +585,6 @@ func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string,
 }
 
 // helmFakeRunner overrides the helm run command
-func (r helmFakeRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+func (r helmFakeRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 	return []byte("success"), []byte(""), nil
-}
-
-func fakePreUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, release string, namespace string, chartDir string) error {
-	if release != "rancher" {
-		return fmt.Errorf("Incorrect release name %s", release)
-	}
-	if chartDir != "ChartDir" {
-		return fmt.Errorf("Incorrect chart directory %s", chartDir)
-	}
-	if namespace != "chartNS" {
-		return fmt.Errorf("Incorrect namespace %s", namespace)
-	}
-
-	return nil
 }

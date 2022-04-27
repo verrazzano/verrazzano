@@ -93,6 +93,8 @@ func TestInstall(t *testing.T) {
 		},
 	}, false)
 	config.SetDefaultBomFilePath(testBomFilePath)
+	helmcli.SetCmdRunner(genericTestRunner{})
+	defer helmcli.SetDefaultRunner()
 	helm.SetUpgradeFunc(fakeUpgrade)
 	defer helm.SetDefaultUpgradeFunc()
 	helmcli.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {

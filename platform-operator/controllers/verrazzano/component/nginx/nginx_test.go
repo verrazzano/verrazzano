@@ -115,7 +115,7 @@ func TestAppendNGINXOverridesExtraKVs(t *testing.T) {
 //  THEN no errors are returned
 func TestNGINXPreInstall(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	err := PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false), ComponentName, ComponentNamespace, "")
+	err := PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false), ComponentNamespace)
 	assert.NoError(t, err)
 }
 
@@ -235,7 +235,7 @@ func TestPostInstallWithPorts(t *testing.T) {
 		},
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(svc).Build()
-	err := PostInstall(spi.NewFakeContext(fakeClient, vz, false), ComponentName, ComponentNamespace)
+	err := PostInstall(spi.NewFakeContext(fakeClient, vz, false))
 	assert.NoError(t, err)
 }
 
@@ -255,7 +255,7 @@ func TestPostInstallNoPorts(t *testing.T) {
 		},
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	assert.NoError(t, PostInstall(spi.NewFakeContext(fakeClient, vz, false), ComponentName, ComponentNamespace))
+	assert.NoError(t, PostInstall(spi.NewFakeContext(fakeClient, vz, false)))
 }
 
 // TestPostInstallDryRun tests the PostInstall function
@@ -264,7 +264,7 @@ func TestPostInstallNoPorts(t *testing.T) {
 //  THEN no error is returned
 func TestPostInstallDryRun(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	assert.NoError(t, PostInstall(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false), ComponentName, ComponentNamespace))
+	assert.NoError(t, PostInstall(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
 }
 
 // TestNewComponent tests the NewComponent function

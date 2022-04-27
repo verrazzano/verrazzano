@@ -48,9 +48,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), ValuesFileOverride),
-			PreInstallFunc:          PreInstall,
 			AppendOverridesFunc:     AppendOverrides,
-			PostInstallFunc:         PostInstall,
 			Dependencies:            []string{istio.ComponentName},
 		},
 	}
@@ -84,4 +82,12 @@ func (c nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
 func (c nginxComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	return k8s.ValidateForExternalIPSWithNodePort(&vz.Spec, c.Name())
+}
+
+func (c nginxComponent) PreInstall(context spi.ComponentContext) error {
+	return PreInstall(context, c.HelmComponent.ResolveNamespace(c.ChartNamespace))
+}
+
+func (c nginxComponent) PostInstall(context spi.ComponentContext) error {
+	return PostInstall(context)
 }

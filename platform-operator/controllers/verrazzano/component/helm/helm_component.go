@@ -19,7 +19,6 @@ import (
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 )
 
@@ -48,15 +47,6 @@ type HelmComponent struct {
 
 	// ValuesFile is the helm chart values override file
 	ValuesFile string
-
-	// PreInstallFunc is an optional function to run before installing
-	PreInstallFunc preInstallFuncSig
-
-	// PostInstallFunc is an optional function to run after installing
-	PostInstallFunc postInstallFuncSig
-
-	// PreUpgradeFunc is an optional function to run before upgrading
-	PreUpgradeFunc preUpgradeFuncSig
 
 	// AppendOverridesFunc is an optional function get additional override values
 	AppendOverridesFunc appendOverridesSig
@@ -93,15 +83,6 @@ type HelmComponent struct {
 // Verify that HelmComponent implements Component
 var _ spi.Component = HelmComponent{}
 
-// preInstallFuncSig is the signature for the optional function to run before installing; any KeyValue pairs should be prepended to the Helm overrides list
-type preInstallFuncSig func(context spi.ComponentContext, releaseName string, namespace string, chartDir string) error
-
-// postInstallFuncSig is the signature for the optional function to run before installing; any KeyValue pairs should be prepended to the Helm overrides list
-type postInstallFuncSig func(context spi.ComponentContext, releaseName string, namespace string) error
-
-// preUpgradeFuncSig is the signature for the optional preUgrade function
-type preUpgradeFuncSig func(log vzlog.VerrazzanoLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) error
-
 // appendOverridesSig is an optional function called to generate additional overrides.
 type appendOverridesSig func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error)
 
@@ -121,9 +102,6 @@ func SetUpgradeFunc(f upgradeFuncSig) {
 func SetDefaultUpgradeFunc() {
 	upgradeFunc = helm.Upgrade
 }
-
-// UpgradePrehooksEnabled is needed so that higher level units tests can disable as needed
-var UpgradePrehooksEnabled = true
 
 // Name returns the component name
 func (h HelmComponent) Name() string {
@@ -164,7 +142,7 @@ func (h HelmComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
 		context.Log().Debugf("IsInstalled() dry run for %s", h.ReleaseName)
 		return true, nil
 	}
-	installed, _ := helm.IsReleaseInstalled(h.ReleaseName, h.resolveNamespace(context.EffectiveCR().Namespace))
+	installed, _ := helm.IsReleaseInstalled(h.ReleaseName, h.ResolveNamespace(context.EffectiveCR().Namespace))
 	return installed, nil
 }
 
@@ -188,7 +166,7 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 		return false
 	}
 
-	ns := h.resolveNamespace(context.EffectiveCR().Namespace)
+	ns := h.ResolveNamespace(context.EffectiveCR().Namespace)
 	if deployed, _ := helm.IsReleaseDeployed(h.ReleaseName, ns); !deployed {
 		return false
 	}
@@ -197,61 +175,30 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 }
 
 // IsEnabled Indicates whether a component is enabled for installation
-func (h HelmComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+func (h HelmComponent) IsEnabled(_ *vzapi.Verrazzano) bool {
 	return true
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (h HelmComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+func (h HelmComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
 	return nil
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (h HelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (h HelmComponent) ValidateUpdate(_ *vzapi.Verrazzano, _ *vzapi.Verrazzano) error {
 	return nil
 }
 
 // Install installs the component using Helm
 func (h HelmComponent) Install(context spi.ComponentContext) error {
-
-	// Resolve the namespace
-	resolvedNamespace := h.resolveNamespace(context.EffectiveCR().Namespace)
-
-	var kvs []bom.KeyValue
-	// check for global image pull secret
-	kvs, err := secret.AddGlobalImagePullSecretHelmOverride(context.Log(), context.Client(), resolvedNamespace, kvs, h.ImagePullSecretKeyname)
-	if err != nil {
-		return err
-	}
-
-	// vz-specific chart overrides file
-	overrides, err := h.buildCustomHelmOverrides(context, resolvedNamespace, kvs...)
-	if err != nil {
-		return err
-	}
-
-	// Perform an install using the helm upgrade --install command
-	_, _, err = upgradeFunc(context.Log(), h.ReleaseName, resolvedNamespace, h.ChartDir, h.WaitForInstall, context.IsDryRun(), overrides)
-	return err
+	return h.runInstallOrUpgrade(context)
 }
 
-func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
-	if h.PreInstallFunc != nil {
-		err := h.PreInstallFunc(context, h.ReleaseName, h.resolveNamespace(context.EffectiveCR().Namespace), h.ChartDir)
-		if err != nil {
-			return err
-		}
-	}
+func (h HelmComponent) PreInstall(_ spi.ComponentContext) error {
 	return nil
 }
 
 func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
-	if h.PostInstallFunc != nil {
-		if err := h.PostInstallFunc(context, h.ReleaseName, h.resolveNamespace(context.EffectiveCR().Namespace)); err != nil {
-			return err
-		}
-	}
-
 	// If the component has any ingresses associated, those should be present
 	prefix := fmt.Sprintf("Component %s", h.Name())
 	if !status.IngressesPresent(context.Log(), context.Client(), h.GetIngressNames(context), prefix) {
@@ -268,7 +215,6 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 			Operation: "Check if certificates are ready",
 		}
 	}
-
 	return nil
 }
 
@@ -282,31 +228,16 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 		return nil
 	}
 
+	return h.runInstallOrUpgrade(context)
+}
+
+func (h HelmComponent) runInstallOrUpgrade(context spi.ComponentContext) error {
 	// Resolve the resolvedNamespace
-	resolvedNamespace := h.resolveNamespace(context.EffectiveCR().Namespace)
-
-	// Check if the component is installed before trying to upgrade
-	found, err := helm.IsReleaseInstalled(h.ReleaseName, resolvedNamespace)
-	if err != nil {
-		return err
-	}
-	if !found {
-		context.Log().Infof("Skipping upgrade of component %s since it is not installed", h.ReleaseName)
-		return nil
-	}
-
-	// Do the preUpgrade if the function is defined
-	if h.PreUpgradeFunc != nil && UpgradePrehooksEnabled {
-		context.Log().Infof("Running preUpgrade function for %s", h.ReleaseName)
-		err := h.PreUpgradeFunc(context.Log(), context.Client(), h.ReleaseName, resolvedNamespace, h.ChartDir)
-		if err != nil {
-			return err
-		}
-	}
+	resolvedNamespace := h.ResolveNamespace(context.EffectiveCR().Namespace)
 
 	// check for global image pull secret
 	var kvs []bom.KeyValue
-	kvs, err = secret.AddGlobalImagePullSecretHelmOverride(context.Log(), context.Client(), resolvedNamespace, kvs, h.ImagePullSecretKeyname)
+	kvs, err := secret.AddGlobalImagePullSecretHelmOverride(context.Log(), context.Client(), resolvedNamespace, kvs, h.ImagePullSecretKeyname)
 	if err != nil {
 		return err
 	}
@@ -316,35 +247,50 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 		return err
 	}
 
-	stdout, err := helm.GetValues(context.Log(), h.ReleaseName, resolvedNamespace)
+	// Check if the component is installed before trying to upgrade
+	releaseFound, err := helm.IsReleaseInstalled(h.ReleaseName, resolvedNamespace)
 	if err != nil {
 		return err
+	}
+	var tmpFile *os.File
+	if releaseFound {
+		tmpFile, err = h.generateCurrentValuesFile(context.Log(), resolvedNamespace)
+		if err != nil {
+			return err
+		}
+		// Generate a list of override files making helm get values overrides first
+		overrides.FileOverrides = append(overrides.FileOverrides, "")
+		copy(overrides.FileOverrides[1:], overrides.FileOverrides[0:])
+		overrides.FileOverrides[0] = tmpFile.Name()
+
+		defer os.Remove(tmpFile.Name())
+	}
+
+	_, _, err = upgradeFunc(context.Log(), h.ReleaseName, resolvedNamespace, h.ChartDir, true, context.IsDryRun(), overrides)
+	return err
+}
+
+func (h HelmComponent) generateCurrentValuesFile(log vzlog.VerrazzanoLogger, resolvedNamespace string) (*os.File, error) {
+	stdout, err := helm.GetValues(log, h.ReleaseName, resolvedNamespace)
+	if err != nil {
+		return nil, err
 	}
 
 	var tmpFile *os.File
 	tmpFile, err = ioutil.TempFile(os.TempDir(), "values-*.yaml")
 	if err != nil {
-		return context.Log().ErrorfNewErr("Failed to create temporary file: %v", err)
+		return nil, log.ErrorfNewErr("Failed to create temporary file: %v", err)
 	}
 
-	defer os.Remove(tmpFile.Name())
-
 	if _, err = tmpFile.Write(stdout); err != nil {
-		return context.Log().ErrorfNewErr("Failed to write to temporary file: %v", err)
+		return nil, log.ErrorfNewErr("Failed to write to temporary file: %v", err)
 	}
 
 	// Close the file
 	if err := tmpFile.Close(); err != nil {
-		return context.Log().ErrorfNewErr("Failed to close temporary file: %v", err)
+		return nil, log.ErrorfNewErr("Failed to close temporary file: %v", err)
 	}
-
-	// Generate a list of override files making helm get values overrides first
-	overrides.FileOverrides = append(overrides.FileOverrides, "")
-	copy(overrides.FileOverrides[1:], overrides.FileOverrides[0:])
-	overrides.FileOverrides[0] = tmpFile.Name()
-
-	_, _, err = upgradeFunc(context.Log(), h.ReleaseName, resolvedNamespace, h.ChartDir, true, context.IsDryRun(), overrides)
-	return err
+	return tmpFile, nil
 }
 
 func (h HelmComponent) PreUpgrade(_ spi.ComponentContext) error {
@@ -428,11 +374,11 @@ func (h HelmComponent) buildCustomHelmOverrides(context spi.ComponentContext, na
 	return overrides, nil
 }
 
-// resolveNamespace Resolve/normalize the namespace for a Helm-based component
+// ResolveNamespace Resolve/normalize the namespace for a Helm-based component
 //
 // The need for this stems from an issue with the Verrazzano component and the fact
 // that component charts underneath VZ component need to have the ns overridden
-func (h HelmComponent) resolveNamespace(ns string) string {
+func (h HelmComponent) ResolveNamespace(ns string) string {
 	namespace := ns
 	if h.ResolveNamespaceFunc != nil {
 		namespace = h.ResolveNamespaceFunc(namespace)
@@ -467,7 +413,7 @@ func (h HelmComponent) GetSkipUpgrade() bool {
 	return h.SkipUpgrade
 }
 
-func (h HelmComponent) GetIngressNames(context spi.ComponentContext) []types.NamespacedName {
+func (h HelmComponent) GetIngressNames(_ spi.ComponentContext) []types.NamespacedName {
 	return h.IngressNames
 }
 

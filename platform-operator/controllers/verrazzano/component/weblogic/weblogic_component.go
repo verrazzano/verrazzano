@@ -41,7 +41,6 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "weblogic-values.yaml"),
-			PreInstallFunc:          WeblogicOperatorPreInstall,
 			AppendOverridesFunc:     AppendWeblogicOperatorOverrides,
 			Dependencies:            []string{istio.ComponentName},
 		},
@@ -72,4 +71,12 @@ func (c weblogicComponent) IsReady(ctx spi.ComponentContext) bool {
 		return isWeblogicOperatorReady(ctx)
 	}
 	return false
+}
+
+func (c weblogicComponent) PreInstall(context spi.ComponentContext) error {
+	return WeblogicOperatorPreInstall(context, c.HelmComponent.ResolveNamespace(c.ChartNamespace))
+}
+
+func (c weblogicComponent) PreUpgrade(context spi.ComponentContext) error {
+	return WeblogicOperatorPreInstall(context, c.HelmComponent.ResolveNamespace(c.ChartNamespace))
 }

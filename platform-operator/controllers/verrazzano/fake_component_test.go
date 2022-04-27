@@ -50,10 +50,7 @@ func (f fakeComponent) GetDependencies() []string {
 	return f.Dependencies
 }
 
-func (f fakeComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	if f.PreUpgradeFunc != nil {
-		return f.PreUpgrade(ctx)
-	}
+func (f fakeComponent) PreUpgrade(_ spi.ComponentContext) error {
 	return nil
 }
 
@@ -69,9 +66,6 @@ func (f fakeComponent) PostUpgrade(_ spi.ComponentContext) error {
 }
 
 func (f fakeComponent) PreInstall(ctx spi.ComponentContext) error {
-	if f.PreInstallFunc != nil {
-		return f.PreInstallFunc(ctx, f.ReleaseName, f.ChartNamespace, f.ChartDir)
-	}
 	return nil
 }
 
@@ -83,9 +77,6 @@ func (f fakeComponent) Install(ctx spi.ComponentContext) error {
 }
 
 func (f fakeComponent) PostInstall(ctx spi.ComponentContext) error {
-	if f.PostInstallFunc != nil {
-		return f.PostInstallFunc(ctx, f.ReleaseName, f.ChartNamespace)
-	}
 	return nil
 }
 
@@ -96,11 +87,11 @@ func (f fakeComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	return getBool(f.installed, "installed"), nil
 }
 
-func (f fakeComponent) IsReady(x spi.ComponentContext) bool {
+func (f fakeComponent) IsReady(_ spi.ComponentContext) bool {
 	return getBool(f.ready, "ready")
 }
 
-func (f fakeComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+func (f fakeComponent) IsEnabled(_ *vzapi.Verrazzano) bool {
 	return getBool(f.enabled, "enabled")
 }
 

@@ -46,7 +46,7 @@ func AppendWeblogicOperatorOverrides(_ spi.ComponentContext, _ string, _ string,
 	return kvs, nil
 }
 
-func WeblogicOperatorPreInstall(ctx spi.ComponentContext, _ string, namespace string, _ string) error {
+func WeblogicOperatorPreInstall(ctx spi.ComponentContext, namespace string) error {
 	var serviceAccount corev1.ServiceAccount
 	const accountName = "weblogic-operator-sa"
 	c := ctx.Client()
