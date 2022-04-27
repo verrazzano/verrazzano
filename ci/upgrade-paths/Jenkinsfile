@@ -216,7 +216,7 @@ pipeline {
             steps {
                 script {
                     echo "start Troubleshooting"
-                    //getPlatformOperatorForRelease()
+                    getPlatformOperatorForRelease()
                 }
             }
         }
@@ -849,22 +849,22 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
 }
 
 def getPlatformOperatorForRelease(){
-    //Removing v from the upgrade version for error handling.
-
-    VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
-    def operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file"
-    println("before if")
-    if(VERSION_FOR_UPGRADE != "master" && params.IS_TRIGGERED_MANUALLY != "YES" && VERSION_FOR_UPGRADE != "NONE"){
-        def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
-        def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
-
-        operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name release-${latestReleaseBranch}/operator.yaml --file"
-
-    }else if(params.IS_TRIGGERED_MANUALLY == "YES" && VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "master"){
-        operatorCMD = "curl -L https://github.com/verrazzano/verrazzano/releases/download/v${VERSION_FOR_UPGRADE}/operator.yaml --output"
-    }
-    println("before script")
     script {
+        //Removing v from the upgrade version for error handling.
+        VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
+        def operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file"
+        println("before if")
+        if(VERSION_FOR_UPGRADE != "master" && params.IS_TRIGGERED_MANUALLY != "YES" && VERSION_FOR_UPGRADE != "NONE"){
+            def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
+            def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
+
+            operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name release-${latestReleaseBranch}/operator.yaml --file"
+
+        }else if(params.IS_TRIGGERED_MANUALLY == "YES" && VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "master"){
+            operatorCMD = "curl -L https://github.com/verrazzano/verrazzano/releases/download/v${VERSION_FOR_UPGRADE}/operator.yaml --output"
+        }
+        println("before script")
+
         sh(script: "$operatorCMD $TARGET_UPGRADE_OPERATOR_YAML")
     }
 }
