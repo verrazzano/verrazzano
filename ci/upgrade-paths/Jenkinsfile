@@ -314,6 +314,9 @@ pipeline {
                         stage('Create Kind Clusters') {
                             when { expression { return params.TEST_ENV == 'KIND' } }
                             steps {
+                                script{
+                                    setVZConfigForInstallation()
+                                }
                                 createKindClusters()
                             }
                         }
