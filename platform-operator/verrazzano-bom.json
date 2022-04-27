@@ -192,7 +192,7 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.12.3-20220413200722-44962a3",
+              "tag": "v1.14.5-20220427170000-87ed055",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
@@ -599,10 +599,10 @@
         },
         {
           "repository": "verrazzano",
-          "name": "jaeger-ingest",
+          "name": "jaeger-ingester",
           "images": [
             {
-              "image": "jaeger-ingest",
+              "image": "jaeger-ingester",
               "tag": "1.32.0"
             }
           ]

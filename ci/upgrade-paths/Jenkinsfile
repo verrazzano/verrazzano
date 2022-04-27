@@ -35,6 +35,8 @@ pipeline {
     parameters {
         booleanParam (description: 'Whether to use External Elasticsearch', name: 'EXTERNAL_ELASTICSEARCH', defaultValue: false)
         choice (description: 'Number of Cluster', name: 'TOTAL_CLUSTERS', choices: ["2", "1", "3"])
+        choice (description: 'Verrazzano Config Permutations', name: 'VZ_SETUP_PROFILE',
+                choices: ["None","dev-kind-all-default"])
         choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
                 choices: ["KIND", "magicdns_oke", "ocidns_oke"])
         choice (description: 'ACME Certificate Environment (Staging or Production)', name: 'ACME_ENVIRONMENT',
@@ -209,6 +211,8 @@ pipeline {
 
         VERSION_FOR_UPGRADE = "${params.VERSION_FOR_UPGRADE}"
         VERSION_FOR_INSTALL = "${params.VERSION_FOR_INSTALL}"
+
+        TARGET_UPGRADE_OPERATOR_YAML = "${WORKSPACE}/target-upgrade-operator.yaml"
     }
 
     stages {
@@ -285,6 +289,13 @@ pipeline {
                     }
                     // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
                     env.K8S_VERSION_LABEL = "${params.TEST_ENV == 'KIND' ? params.KIND_CLUSTER_VERSION : sh(returnStdout: true, script: '${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}').trim()}"
+                    def latestReleaseBranch = getLatestReleaseVersion()
+                    if(latestReleaseBranch == "1.2"){
+                        ADMIN_CLUSTER_PROFILE = "dev"
+                        MANAGED_CLUSTER_PROFILE = "managed-cluster"
+                        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
+                        CREATE_EXTERNAL_OPENSEARCH = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create-external-es.sh"
+                   }
                 }
             }
         }
@@ -305,17 +316,8 @@ pipeline {
                         stage('Create Kind Clusters') {
                             when { expression { return params.TEST_ENV == 'KIND' } }
                             steps {
-                                 script{
-                                    if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "master"){
-                                        VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
-                                        def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
-                                        def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
-                                        if(latestReleaseBranch == "1.2"){
-                                            ADMIN_CLUSTER_PROFILE = "dev"
-                                            MANAGED_CLUSTER_PROFILE = "managed-cluster"
-                                            INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
-                                            CREATE_EXTERNAL_OPENSEARCH = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create-external-es.sh"
-                                   }   }
+                                script{
+                                    setVZConfigForInstallation()
                                 }
                                 createKindClusters()
                             }
@@ -828,47 +830,76 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
 }
 
 def getPlatformOperatorForRelease(){
-    //Removing v from the upgrade version for error handling.
-
-    VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
-    def operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file"
+    script {
+        //Removing v from the upgrade version for error handling.
+        VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
+        def operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file"
 
         if(VERSION_FOR_UPGRADE != "master" && params.IS_TRIGGERED_MANUALLY != "YES" && VERSION_FOR_UPGRADE != "NONE"){
-            def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
-            def latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
 
-              operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name release-${latestReleaseBranch}/operator.yaml --file"
+            def latestReleaseBranch = getLatestReleaseVersion()
+
+            operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name release-${latestReleaseBranch}/operator.yaml --file"
 
         }else if(params.IS_TRIGGERED_MANUALLY == "YES" && VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "master"){
             operatorCMD = "curl -L https://github.com/verrazzano/verrazzano/releases/download/v${VERSION_FOR_UPGRADE}/operator.yaml --output"
         }
 
-
-    return operatorCMD
+        sh(script: "$operatorCMD $TARGET_UPGRADE_OPERATOR_YAML")
+    }
 }
 
+def getLatestReleaseVersion(){
+    def latestReleaseBranch
+    if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "master"){
+        VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
+        def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
+        latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
+    }
+    return latestReleaseBranch
+}
 
-// Upgrade the verrazzano-platform-operator
+// Upgrade the verrazzano-platform-operator for all clusters
 def upgradePlatformOperator() {
-
-    def  operatorCMD = getPlatformOperatorForRelease()
     script {
-        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-        for (int count = 1; count <= clusterCount; count++) {
-            def upgradeOperatorFile="${KUBECONFIG_DIR}/${count}/upgrade-operator.yaml"
-            sh """
-                export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
+        echo "Downloading target upgrade operator yaml"
+        getPlatformOperatorForRelease()
 
+        // Create a dictionary of Verrazzano Platform Operator upgrade steps to be executed in parallel
+        // - the first one will always be the Admin cluster
+        // - clusters 2-max are managed clusters
+        def verrazzanoPlatformOperatorUpgradeStages= [:]
+
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for(int count = 1; count <= clusterCount; count++) {
+            def key = "vz-mgd-${count-1}"
+            if (count == 1) {
+                key = "vz-admin"
+            }
+            verrazzanoPlatformOperatorUpgradeStages["${key}"] = upgradePlatformOperatorOnCluster(count)
+        }
+        parallel verrazzanoPlatformOperatorUpgradeStages
+    }
+}
+
+// Upgrade the verrazzano-platform-operator for a given cluster
+// - count is the cluster index into the $KUBECONFIG_DIR
+def upgradePlatformOperatorOnCluster(count) {
+    // For parallel execution, wrap this in a Groovy enclosure {}
+    return {
+        script {
+            def upgradeOperatorFile = "${KUBECONFIG_DIR}/${count}/upgrade-operator.yaml"
+            def kubeClusterConfig="${KUBECONFIG_DIR}/${count}/kube_config"
+            sh """
+                cp ${TARGET_UPGRADE_OPERATOR_YAML} ${upgradeOperatorFile}
                 echo "Upgrading the Verrazzano platform operator"
-                # Download the operator.yaml for the target version that we are upgrading to
-                ${operatorCMD}  ${upgradeOperatorFile}
-                kubectl apply -f ${upgradeOperatorFile}
+                kubectl --kubeconfig=${kubeClusterConfig} apply -f ${upgradeOperatorFile}
 
                 # need to sleep since the old operator needs to transition to terminating state
                 sleep 15
 
                 # ensure operator pod is up
-                kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+                kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install rollout status deployment/verrazzano-platform-operator
             """
         }
     }
@@ -885,40 +916,63 @@ def upgradeVerrazzano() {
             VERSION_FOR_UPGRADE = VERRAZZANO_DEV_VERSION
         } else if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "master"){
             VERRAZZANO_DEV_VERSION = VERSION_FOR_UPGRADE
-        }      
+        }
+
+        // Create a dictionary of Verrazzano upgrade steps to be executed in parallel
+        // - the first one will always be the Admin cluster
+        // - clusters 2-max are managed clusters
+        def verrazzanoUpgradeStages = [:]
 
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
+            def key = "vz-mgd-${count-1}"
+            if (count == 1) {
+                key = "vz-admin"
+            }
+            verrazzanoUpgradeStages["${key}"] = upgradeVerrazzanoOnCluster(count, "${VERRAZZANO_DEV_VERSION}")
+        }
+        parallel verrazzanoUpgradeStages
+    }
+}
+
+// Upgrade Verrazzano on a target cluster
+// - count is the cluster index into the $KUBECONFIG_DIR
+// - verrazzanoDevVersion is the Verrazzano version to be upgraded to
+def upgradeVerrazzanoOnCluster(count, verrazzanoDevVersion) {
+    // For parallel execution, wrap this in a Groovy enclosure {}
+    return {
+        script {
             def v8oInstallFile="${KUBECONFIG_DIR}/${count}/${installerFileName}"
             def v8oUpgradeFile="${KUBECONFIG_DIR}/${count}/verrazzano-upgrade-cr.yaml"
+            def kubeClusterConfig="${KUBECONFIG_DIR}/${count}/kube_config"
             sh """
-                export KUBECONFIG=${KUBECONFIG_DIR}/${count}/kube_config
+                mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}
 
                 # Get the install job in verrazzano-install namespace
-                kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out
-
-                echo "Upgrading the Verrazzano installation to version" ${VERRAZZANO_DEV_VERSION}
+                kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-pre-upgrade-job.out
+                  
+                echo "Upgrading the Verrazzano installation to version" ${verrazzanoDevVersion}
                 # Modify the version field in the Verrazzano CR file to be this new Verrazzano version
                 cd ${GO_REPO_PATH}/verrazzano
                 cp ${v8oInstallFile} ${v8oUpgradeFile}
-                ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${v8oUpgradeFile}
+                ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${verrazzanoDevVersion}  ${v8oUpgradeFile}
                 # Do the upgrade
                 echo "Following is the verrazzano CR file with the new version:"
                 cat ${v8oUpgradeFile}
-                kubectl apply -f ${v8oUpgradeFile}
+                kubectl --kubeconfig=${kubeClusterConfig} apply -f ${v8oUpgradeFile}
                 # wait for the upgrade to complete
-                kubectl wait --timeout=25m --for=condition=UpgradeComplete verrazzano/my-verrazzano
-
+                kubectl --kubeconfig=${kubeClusterConfig} wait --timeout=25m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                            
                 # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
-                kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
-
+                kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-post-upgrade-job.out
+             
                 echo "Ensuring that the install job(s) in verrazzzano-system are identical pre and post install"
-                cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
+                cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-post-upgrade-job.out
 
                 # ideally we don't need to wait here
                 sleep 15
                 echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
-                helm list -A
+                helm --kubeconfig=${kubeClusterConfig} list -A
             """
         }
     }
@@ -1069,14 +1123,14 @@ def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
             def destinationPath = "${env.KUBECONFIG_DIR}/${count}/${installerFileName}"
-            def installProfile = env.MANAGED_CLUSTER_PROFILE
+            def installProfile = MANAGED_CLUSTER_PROFILE
             // Installs using OCI DNS require a unique domain per cluster
             // - also, the env name must be <= 10 chars for some reason.
             def envName = "mgd${count-1}"
             if (count == 1) {
                 // Cluster "1" is always the admin cluster, use the chosen profile for the VZ install
                 // with the env name "admin"
-                installProfile = env.ADMIN_CLUSTER_PROFILE
+                installProfile = ADMIN_CLUSTER_PROFILE
                 envName = "admin"
             }
             sh """
@@ -1454,59 +1508,18 @@ def emitJobMetrics() {
     runGinkgoRandomizeAdmin('jobmetrics')
 }
 
-def upgradePlatformOperatorScript(upgradeTargetVersion) {
-    sh """
-        # dump the app pods before updating the VPO so they can be compared after the VPO is updated
-        echo "Application pods before VPO update:"
-        ${TEST_SCRIPTS_DIR}/dump_pods.sh ${APP_NAMEPACES} > ${OLD_PODS_FILE}
-        cat ${OLD_PODS_FILE}
-        echo "Upgrading the Verrazzano platform operator"
-        # Download the operator.yaml for the target version that we are upgrading to
-        curl -L https://github.com/verrazzano/verrazzano/releases/download/v${upgradeTargetVersion}/operator.yaml --output ${WORKSPACE}/downloaded-operator.yaml
-        cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/upgrade-test-operator.yaml
-        kubectl apply -f ${WORKSPACE}/upgrade-test-operator.yaml
+def setVZConfigForInstallation(){
 
-        # ensure operator pod is up
-        kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-
-        # need to sleep since the old operator needs to transition to terminating state
-        sleep 45
-    """
-}
-
-def upgradeVerrazzanoScript(verrazzanoTargetVersion) {
-    sh """
-        echo "Upgrading the Verrazzano installation to version" ${verrazzanoTargetVersion}
-        # Modify the version field in the Verrazzano CR file to be this new Verrazzano version
-        cd ${GO_REPO_PATH}/verrazzano
-        cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/verrazzano-upgrade-cr.yaml
-        ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${verrazzanoTargetVersion}  ${WORKSPACE}/verrazzano-upgrade-cr.yaml
-        # Copy upgrade CR where it will be archived
-        cp ${WORKSPACE}/verrazzano-upgrade-cr.yaml ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
-        
-        # Get the install job in verrazzano-install namespace
-        kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out
-        
-        # Do the upgrade
-        echo "Following is the verrazzano CR file with the new version:"
-        cat ${WORKSPACE}/verrazzano-upgrade-cr.yaml
-        kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
-        
-        # wait for the upgrade to complete
-        kubectl wait --timeout=25m --for=condition=UpgradeComplete verrazzano/my-verrazzano
-        
-        # Dump the resource to debug
-        kubectl get -o yaml verrazzano/my-verrazzano || true
-        
-        # ideally we don't need to wait here
-        sleep 15
-        echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
-        helm list -A
-        
-        # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
-        kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
-        
-        echo "Ensuring that the install job(s) in verrazzzano-system are identical pre and post install"
-        cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
-    """
+    if(params.VZ_SETUP_PROFILE == "dev-kind-all-default"){
+        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-no-persistence.yaml"
+        ADMIN_CLUSTER_PROFILE = "dev"
+        MANAGED_CLUSTER_PROFILE = "managed-cluster"
+    }
+    def latestRelease = getLatestReleaseVersion()
+    if(latestRelease == "1.2"){
+        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind.yaml"
+        CREATE_EXTERNAL_OPENSEARCH = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create-external-es.sh"
+        ADMIN_CLUSTER_PROFILE = "dev"
+        MANAGED_CLUSTER_PROFILE = "managed-cluster"
+    }
 }

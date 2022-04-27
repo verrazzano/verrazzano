@@ -42,6 +42,8 @@ pipeline {
                 defaultValue: '3',
                 description: 'This is to define total number of jobs executed in parallel per each batch',
                 trim: true)
+        choice (description: 'Verrazzano Config Permutations', name: 'VZ_SETUP_CONFIG',
+                choices: ["None","dev-kind-all-default"])
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
                         defaultValue: 'NONE',
                         description: 'This is for manually testing only where someone needs to use a specific operator image, otherwise the default value of NONE is used',
@@ -400,6 +402,7 @@ def getStageOfUpgradeJob(job) {
                     parameters: [
                         string(name: 'VERSION_FOR_INSTALL', value: job[0]),
                         string(name: 'VERSION_FOR_UPGRADE', value: job[1]),
+                        string(name: 'VZ_SETUP_CONFIG', value: "dev-kind-all-default"),
                         string(name: 'IS_TRIGGERED_MANUALLY', value: "NO"),
                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),

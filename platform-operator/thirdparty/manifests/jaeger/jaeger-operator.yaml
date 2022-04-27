@@ -13220,7 +13220,7 @@ spec:
         - name: OPERATOR_NAME
           value: jaeger-operator
         - name: JAEGER-INGESTER-IMAGE
-          value: {{.jaegeringest}}
+          value: {{.jaegeringester}}
         - name: JAEGER-AGENT-IMAGE
           value: {{.jaegeragent}}
         - name: JAEGER-QUERY-IMAGE
