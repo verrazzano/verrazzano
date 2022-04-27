@@ -215,9 +215,7 @@ pipeline {
         stage("Troubleshooting") {
             steps {
                 script {
-                    def operatorCMD= getPlatformOperatorForRelease()
-                    sh(script: "$operatorCMD ${TARGET_UPGRADE_OPERATOR_YAML}")
-                    echo "after operator download - troubleshooting"
+                    getPlatformOperatorForRelease()
                 }
             }
         }
@@ -864,17 +862,16 @@ def getPlatformOperatorForRelease(){
     }else if(params.IS_TRIGGERED_MANUALLY == "YES" && VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "master"){
         operatorCMD = "curl -L https://github.com/verrazzano/verrazzano/releases/download/v${VERSION_FOR_UPGRADE}/operator.yaml --output"
     }
-    return operatorCMD
+
+    script {
+        sh(script: "$operatorCMD $TARGET_UPGRADE_OPERATOR_YAML")
+    }
 }
 
 
 // Upgrade the verrazzano-platform-operator
 def upgradePlatformOperator() {
-    def operatorCMD= getPlatformOperatorForRelease()
     script {
-        //Download the operator.yaml for the target version that we are upgrading to
-        operatorCMD ${TARGET_UPGRADE_OPERATOR_YAML}
-        echo "after operator download"
         // Create a dictionary of Verrazzano Platform Operator upgrade steps to be executed in parallel
         // - the first one will always be the Admin cluster
         // - clusters 2-max are managed clusters
@@ -900,7 +897,7 @@ def upgradePlatformOperatorOnCluster(count) {
             def upgradeOperatorFile = "${KUBECONFIG_DIR}/${count}/upgrade-operator.yaml"
             def kubeClusterConfig="${KUBECONFIG_DIR}/${count}/kube_config"
             sh """
-                cp ${env.TARGET_UPGRADE_OPERATOR_YAML} ${upgradeOperatorFile}
+                cp ${TARGET_UPGRADE_OPERATOR_YAML} ${upgradeOperatorFile}
                 echo "Upgrading the Verrazzano platform operator"
                 kubectl --kubeconfig=${kubeClusterConfig} apply -f ${upgradeOperatorFile}
 
