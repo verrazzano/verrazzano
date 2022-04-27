@@ -216,8 +216,8 @@ pipeline {
             steps {
                 script {
                     def operatorCMD= getPlatformOperatorForRelease()
-                    operatorCMD ${TARGET_UPGRADE_OPERATOR_YAML}
-                    echo "after operator download - clean"
+                    sh(script: "$operatorCMD ${TARGET_UPGRADE_OPERATOR_YAML}")
+                    echo "after operator download - troubleshooting"
                 }
             }
         }
