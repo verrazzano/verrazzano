@@ -1509,10 +1509,8 @@ def emitJobMetrics() {
 }
 
 def setVZConfigForInstallation(){
-    echo "Inside VZCONFIG block"
-    echo "Printing param VZ_SETUP_PROFILE: ${params.VZ_SETUP_PROFILE}"
+
     if(params.VZ_SETUP_PROFILE == "dev-kind-all-default"){
-        echo "Inside dev-kind-all-default profile"
         INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-no-persistence.yaml"
         ADMIN_CLUSTER_PROFILE = "dev"
         MANAGED_CLUSTER_PROFILE = "managed-cluster"
