@@ -27,6 +27,7 @@ const (
 	shortWaitTimeout         = 5 * time.Minute
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
+	skipVerifications	     = "Skip Verifications"
 )
 
 var (
@@ -96,7 +97,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	t.Describe("for Ingress.", Label("f:mesh.ingress"), func() {
 		t.It("Access /greet App Url.", func() {
 			if skipVerify {
-				Skip("Skip Verifications")
+				Skip(skipVerifications)
 			}
 			url := fmt.Sprintf("https://%s/greet", host)
 			Eventually(func() bool {
@@ -112,7 +113,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	t.Describe("for Metrics.", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
 		t.It("Retrieve Prometheus scraped metrics", func() {
 			if skipVerify {
-				Skip("Skip Verifications")
+				Skip(skipVerifications)
 			}
 			pkg.Concurrently(
 				func() {
@@ -143,7 +144,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 		// THEN verify that it is found
 		t.It("Verify Elasticsearch index exists", func() {
 			if skipVerify {
-				Skip("Skip Verifications")
+				Skip(skipVerifications)
 			}
 			Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
@@ -155,7 +156,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 		// THEN verify that at least one recent log record is found
 		t.It("Verify recent Elasticsearch log record exists", func() {
 			if skipVerify {
-				Skip("Skip Verifications")
+				Skip(skipVerifications)
 			}
 			Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
