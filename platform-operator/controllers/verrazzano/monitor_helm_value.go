@@ -14,6 +14,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
+const (
+	secret    = "Secret"
+	configMap = "ConfigMap"
+)
+
 // Watch configmaps that hold helm values
 // The reconciler will be called if these are referenced in the Verrazzano CR
 func (r *Reconciler) watchConfigMaps(namespace string, name string, log vzlog.VerrazzanoLogger) error {
@@ -133,7 +138,9 @@ func vzContainsResource(vz *installv1alpha1.Verrazzano, object client.Object) bo
 	// TODO: verify that the Verrazzano contains the object in a component helm config
 	checkResource := false
 	if vz.Spec.Components.PrometheusOperator.ValueOverrides != nil {
-		checkResource = checkResource || componentContainsResource(vz.Spec.Components.PrometheusOperator.ValueOverrides, object)
+		if vz.Spec.Components.PrometheusOperator.MonitorChanges != nil && *vz.Spec.Components.PrometheusOperator.MonitorChanges {
+			checkResource = checkResource || componentContainsResource(vz.Spec.Components.PrometheusOperator.ValueOverrides, object)
+		}
 	}
 	return checkResource
 }
@@ -141,15 +148,15 @@ func vzContainsResource(vz *installv1alpha1.Verrazzano, object client.Object) bo
 // Look through the component override list see if the resource is listed
 func componentContainsResource(Overrides []installv1alpha1.Overrides, object client.Object) bool {
 	switch object.GetObjectKind().GroupVersionKind().Kind {
-	case "ConfigMap":
+	case configMap:
 		for _, override := range Overrides {
-			if object.GetName() == override.ConfigMapRef.ConfigMapKeySelector.Name {
+			if object.GetName() == override.ConfigMapRef.Name {
 				return true
 			}
 		}
-	case "Secret":
+	case secret:
 		for _, override := range Overrides {
-			if object.GetName() == override.SecretRef.SecretKeySelector.Name {
+			if object.GetName() == override.SecretRef.Name {
 				return true
 			}
 		}
