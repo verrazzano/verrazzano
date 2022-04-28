@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
@@ -123,9 +124,9 @@ func TestReassociateResources(t *testing.T) {
 			Name:      ComponentName,
 		},
 	}).Build()
-	err := ExportVMOHelmChart(spi.NewFakeContext(fakeClient, nil, false))
+	err := common.ExportVMOHelmChart(spi.NewFakeContext(fakeClient, nil, false))
 	assert.NoError(t, err)
-	err = ReassociateResources(spi.NewFakeContext(fakeClient, nil, false))
+	err = common.ReassociateVMOResources(spi.NewFakeContext(fakeClient, nil, false))
 	assert.NoError(t, err)
 	service := corev1.Service{}
 	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &service)
@@ -152,7 +153,7 @@ func TestExportVmoHelmChart(t *testing.T) {
 			Name:      ComponentName,
 		},
 	}).Build()
-	err := ExportVMOHelmChart(spi.NewFakeContext(fakeClient, nil, false))
+	err := common.ExportVMOHelmChart(spi.NewFakeContext(fakeClient, nil, false))
 	assert.NoError(t, err)
 	service := corev1.Service{}
 	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &service)
