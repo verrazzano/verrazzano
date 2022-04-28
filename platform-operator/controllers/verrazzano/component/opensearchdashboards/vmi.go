@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 )
 
+// updateFunc is passed into CreateOrUpdateVMI to create the necessary VMI resources
 func updateFunc(ctx spi.ComponentContext, storage *common.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, existingVMI *vmov1.VerrazzanoMonitoringInstance) error {
 	vmi.Spec.Kibana = newOpenSearchDashboards(ctx.EffectiveCR())
 	return nil

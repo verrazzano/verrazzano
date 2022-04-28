@@ -14,6 +14,7 @@ const (
 	nodeExporter = "node-exporter"
 )
 
+// updateFunc is passed into CreateOrUpdateVMI to create the necessary VMI resources
 func updateFunc(ctx spi.ComponentContext, storage *common.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, existingVMI *vmov1.VerrazzanoMonitoringInstance) error {
 	vmi.Spec.Grafana = newGrafana(ctx.EffectiveCR(), storage, existingVMI)
 	vmi.Spec.Prometheus = newPrometheus(ctx.EffectiveCR(), storage, existingVMI)

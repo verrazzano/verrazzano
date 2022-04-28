@@ -17,6 +17,7 @@ const (
 	system = "system"
 )
 
+// updateFunc is passed into CreateOrUpdateVMI to create the necessary VMI resources
 func updateFunc(ctx spi.ComponentContext, storage *common.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, existingVMI *vmov1.VerrazzanoMonitoringInstance) error {
 	hasDataNodeOverride := hasNodeStorageOverride(ctx.ActualCR(), "nodes.data.requests.storage")
 	hasMasterNodeOverride := hasNodeStorageOverride(ctx.ActualCR(), "nodes.master.requests.storage")
