@@ -256,6 +256,9 @@ func TestValidateUpgradeBadOldVersion(t *testing.T) {
 			Version: "blah",
 			Profile: Dev,
 		},
+		Status: VerrazzanoStatus{
+			Version: "v0.16.0",
+		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
@@ -279,6 +282,9 @@ func TestValidateUpgradeBadNewVersion(t *testing.T) {
 		Spec: VerrazzanoSpec{
 			Version: "v0.16.0",
 			Profile: Dev,
+		},
+		Status: VerrazzanoStatus{
+			Version: "v0.16.0",
 		},
 	}
 	newSpec := &Verrazzano{
@@ -328,6 +334,9 @@ func TestValidVersionWithProfileChange(t *testing.T) {
 		Spec: VerrazzanoSpec{
 			Profile: Dev,
 		},
+		Status: VerrazzanoStatus{
+			Version: "v0.16.0",
+		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
@@ -350,6 +359,9 @@ func TestValidVersionWithEnvNameChange(t *testing.T) {
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Profile: Dev,
+		},
+		Status: VerrazzanoStatus{
+			Version: "v0.16.0",
 		},
 	}
 	newSpec := &Verrazzano{
@@ -385,6 +397,9 @@ func TestValidVersionWithCertManagerChange(t *testing.T) {
 					},
 				},
 			},
+		},
+		Status: VerrazzanoStatus{
+			Version: "v0.16.0",
 		},
 	}
 	newSpec := &Verrazzano{
@@ -430,6 +445,9 @@ func TestValidVersionWithNewDNS(t *testing.T) {
 					},
 				},
 			},
+		},
+		Status: VerrazzanoStatus{
+			Version: "v0.16.0",
 		},
 	}
 	newSpec := &Verrazzano{
@@ -506,6 +524,9 @@ func runValidateWithIngressChangeTest() error {
 					},
 				},
 			},
+		},
+		Status: VerrazzanoStatus{
+			Version: "v0.16.0",
 		},
 	}
 	newSpec := &Verrazzano{

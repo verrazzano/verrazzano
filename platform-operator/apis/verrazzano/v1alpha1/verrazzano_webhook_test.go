@@ -34,8 +34,8 @@ func TestCreateCallbackSuccessWithVersion(t *testing.T) {
 
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: v110,
-			Profile: Dev,
+			Version: "v1.1.0",
+			Profile: "dev",
 		},
 	}
 	assert.NoError(t, currentSpec.ValidateCreate())
@@ -58,7 +58,7 @@ func TestCreateCallbackSuccessWithoutVersion(t *testing.T) {
 
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Profile: Dev,
+			Profile: "dev",
 		},
 	}
 	assert.NoError(t, currentSpec.ValidateCreate())
@@ -97,7 +97,7 @@ func runCreateCallbackWithInvalidVersion(t *testing.T) error {
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Version: "v0.18.0",
-			Profile: Dev,
+			Profile: "dev",
 		},
 	}
 	err := currentSpec.ValidateCreate()
@@ -115,16 +115,13 @@ func TestUpdateCallbackSuccessWithNewVersion(t *testing.T) {
 	}()
 	oldSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Profile: Dev,
-		},
-		Status: VerrazzanoStatus{
-			Version: v100,
+			Profile: "dev",
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: v110,
-			Profile: Dev,
+			Version: "v1.1.0",
+			Profile: "dev",
 		},
 	}
 
@@ -148,16 +145,13 @@ func TestUpdateCallbackSuccessWithOldAndNewVersion(t *testing.T) {
 	oldSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Version: "v0.16.0",
-			Profile: Dev,
-		},
-		Status: VerrazzanoStatus{
-			Version: "v0.16.0",
+			Profile: "dev",
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: v110,
-			Profile: Dev,
+			Version: "v1.1.0",
+			Profile: "dev",
 		},
 	}
 
@@ -180,14 +174,17 @@ func TestUpdateCallbackFailsWithOldGreaterThanNewVersion(t *testing.T) {
 	}()
 	oldSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: v120,
-			Profile: Dev,
+			Version: "v1.2.0",
+			Profile: "dev",
+		},
+		Status: VerrazzanoStatus{
+			Version: "v1.2.0",
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: v110,
-			Profile: Dev,
+			Version: "v1.1.0",
+			Profile: "dev",
 		},
 	}
 	assert.Error(t, newSpec.ValidateUpdate(oldSpec))
@@ -219,13 +216,16 @@ func runUpdateWithInvalidVersionTest(t *testing.T) error {
 	}()
 	oldSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Profile: Dev,
+			Profile: "dev",
+		},
+		Status: VerrazzanoStatus{
+			Version: "v0.16.0",
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Version: "v0.18.0",
-			Profile: Dev,
+			Profile: "dev",
 		},
 	}
 	return newSpec.ValidateUpdate(oldSpec)
@@ -257,12 +257,12 @@ func runUpdateCallbackChangedProfileTest() error {
 	}()
 	oldSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Profile: Dev,
+			Profile: "dev",
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Profile: Prod,
+			Profile: "prod",
 		},
 	}
 	err := newSpec.ValidateUpdate(oldSpec)
@@ -291,8 +291,8 @@ func TestDeleteCallbackDisabled(t *testing.T) {
 func runDeleteCallbackTest() error {
 	deletedSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: v110,
-			Profile: Dev,
+			Version: "v1.1.0",
+			Profile: "dev",
 		},
 	}
 	return deletedSpec.ValidateDelete()
@@ -394,10 +394,10 @@ func Test_combineErrors(t *testing.T) {
 // THEN validation error is returned
 func TestUpdateMissingOciLoggingApiSecret(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
-	oldSpec := &Verrazzano{Spec: VerrazzanoSpec{Profile: Dev}}
+	oldSpec := &Verrazzano{Spec: VerrazzanoSpec{Profile: "dev"}}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Profile: Dev,
+			Profile: "dev",
 			Components: ComponentSpec{
 				Fluentd: &FluentdComponent{
 					OCI: &OciLoggingConfiguration{

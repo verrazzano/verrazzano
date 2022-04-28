@@ -141,13 +141,19 @@ func ValidateUpgradeRequest(current *Verrazzano, new *Verrazzano) error {
 		return nil
 	}
 
+	installedVerString := current.Status.Version
+	if len(strings.TrimSpace(installedVerString)) == 0 {
+		// Boundary condition -- likely just created and install hasn't started yet
+		return nil
+	}
+
 	// if the installed version is not == BOM version and newspec versiom isn't set,
 	// reject the update; upgrade needs to happen before any update
 	bomVersion, err := GetCurrentBomVersion()
 	if err != nil {
 		return err
 	}
-	installedVersion, err := semver.NewSemVersion(current.Status.Version)
+	installedVersion, err := semver.NewSemVersion(installedVerString)
 	if err != nil {
 		return err
 	}
