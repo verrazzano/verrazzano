@@ -169,16 +169,28 @@ func (o opensearchComponent) isOpenSearchEnabled(old *vzapi.Verrazzano, new *vza
 
 // GetIngressNames - gets the names of the ingresses associated with this component
 func (o opensearchComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
-	return []types.NamespacedName{{
-		Namespace: ComponentNamespace,
-		Name:      constants.ElasticsearchIngress,
-	}}
+	var ingressNames []types.NamespacedName
+
+	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
+		ingressNames = append(ingressNames, types.NamespacedName{
+			Namespace: ComponentNamespace,
+			Name:      constants.ElasticsearchIngress,
+		})
+	}
+
+	return ingressNames
 }
 
 // GetCertificateNames - gets the names of the ingresses associated with this component
 func (o opensearchComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
-	return []types.NamespacedName{{
-		Namespace: ComponentNamespace,
-		Name:      osCertificateName,
-	}}
+	var certificateNames []types.NamespacedName
+
+	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
+		certificateNames = append(certificateNames, types.NamespacedName{
+			Namespace: ComponentNamespace,
+			Name:      osCertificateName,
+		})
+	}
+
+	return certificateNames
 }

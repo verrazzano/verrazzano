@@ -164,16 +164,28 @@ func (d opensearchDashboardsComponent) isOpenSearchDashboardEnabled(old *vzapi.V
 
 // GetIngressNames - gets the names of the ingresses associated with this component
 func (d opensearchDashboardsComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
-	return []types.NamespacedName{{
-		Namespace: ComponentNamespace,
-		Name:      constants.KibanaIngress,
-	}}
+	var ingressNames []types.NamespacedName
+
+	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
+		ingressNames = append(ingressNames, types.NamespacedName{
+			Namespace: ComponentNamespace,
+			Name:      constants.KibanaIngress,
+		})
+	}
+
+	return ingressNames
 }
 
 // GetCertificateNames - gets the names of the ingresses associated with this component
 func (d opensearchDashboardsComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
-	return []types.NamespacedName{{
-		Namespace: ComponentNamespace,
-		Name:      osdCertificateName,
-	}}
+	var certificateNames []types.NamespacedName
+
+	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
+		certificateNames = append(certificateNames, types.NamespacedName{
+			Namespace: ComponentNamespace,
+			Name:      osdCertificateName,
+		})
+	}
+
+	return certificateNames
 }
