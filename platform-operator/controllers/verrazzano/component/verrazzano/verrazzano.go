@@ -123,7 +123,7 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 	return common.IsVMISecretReady(ctx)
 }
 
-// doesPromExist is the IsInstalled check
+// doesPromExist is the verrazzano IsInstalled check
 func doesPromExist(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	deploy := []types.NamespacedName{{

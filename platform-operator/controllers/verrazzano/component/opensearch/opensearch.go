@@ -49,7 +49,7 @@ func doesOSExist(ctx spi.ComponentContext) bool {
 	return status.DoStatefulSetsExist(ctx.Log(), ctx.Client(), sts, 1, prefix)
 }
 
-// checkOpenSearchStatus checks performs checks on the OpenSearch resources
+// isOSReady checks if the OpenSearch resources are ready
 func isOSReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 
