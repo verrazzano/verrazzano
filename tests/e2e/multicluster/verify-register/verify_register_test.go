@@ -50,6 +50,9 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 		})
 
 		t.It("create VerrazzanoProject", func() {
+			if minimalVerification {
+				Skip("Skipping since not part of minimal verification")
+			}
 			// create a project
 			Eventually(func() error {
 				return pkg.CreateOrUpdateResourceFromFile(fmt.Sprintf("testdata/multicluster/verrazzanoproject-%s.yaml", managedClusterName))
@@ -60,6 +63,7 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find VerrazzanoProject")
 		})
 
+		// This test is part of the minimal verification.
 		t.It("has the expected VerrazzanoManagedCluster", func() {
 			var client *vmcClient.Clientset
 			Eventually(func() (*vmcClient.Clientset, error) {
@@ -77,6 +81,9 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 		})
 
 		t.It("has the expected ServiceAccounts", func() {
+			if minimalVerification {
+				Skip("Skipping since not part of minimal verification")
+			}
 			pkg.Concurrently(
 				func() {
 					Eventually(func() (bool, error) {
@@ -87,6 +94,9 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 		})
 
 		t.It("no longer has a ClusterRoleBinding for a managed cluster", func() {
+			if minimalVerification {
+				Skip("Skipping since not part of minimal verification")
+			}
 			supported, err := pkg.IsVerrazzanoMinVersion("1.1.0", adminKubeconfig)
 			if err != nil {
 				Fail(err.Error())
@@ -101,6 +111,9 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 		})
 
 		t.It("has a ClusterRoleBinding for a managed cluster", func() {
+			if minimalVerification {
+				Skip("Skipping since not part of minimal verification")
+			}
 			supported, err := pkg.IsVerrazzanoMinVersion("1.1.0", adminKubeconfig)
 			if err != nil {
 				Fail(err.Error())
@@ -115,6 +128,9 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 		})
 
 		t.It("has the expected secrets", func() {
+			if minimalVerification {
+				Skip("Skipping since not part of minimal verification")
+			}
 			pkg.Concurrently(
 				func() {
 					secretName := fmt.Sprintf("verrazzano-cluster-%s-manifest", managedClusterName)
@@ -138,6 +154,9 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 		})
 
 		t.It("has the expected system logs from admin and managed cluster", func() {
+			if minimalVerification {
+				Skip("Skipping since not part of minimal verification")
+			}
 			verrazzanoIndex, err := pkg.GetOpenSearchSystemIndex("verrazzano-system")
 			Expect(err).To(BeNil())
 			systemdIndex, err := pkg.GetOpenSearchSystemIndex("systemd-journal")
@@ -189,6 +208,9 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 		})
 
 		t.It("has the expected metrics from managed cluster", func() {
+			if minimalVerification {
+				Skip("Skipping since not part of minimal verification")
+			}
 			clusterNameMetricsLabel := getClusterNameMetricLabel(adminKubeconfig)
 			pkg.Log(pkg.Info, fmt.Sprintf("Looking for metric with label %s with value %s", clusterNameMetricsLabel, managedClusterName))
 			Eventually(func() bool {
@@ -197,6 +219,9 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 		})
 
 		t.It("Fluentd should point to the correct ES", func() {
+			if minimalVerification {
+				Skip("Skipping since not part of minimal verification")
+			}
 			supported, err := pkg.IsVerrazzanoMinVersion("1.3.0", adminKubeconfig)
 			if err != nil {
 				Fail(err.Error())
@@ -225,6 +250,9 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 		})
 
 		t.It("has the expected secrets", func() {
+			if minimalVerification {
+				Skip("Skipping since not part of minimal verification")
+			}
 			pkg.Concurrently(
 				func() {
 					Eventually(func() bool {
@@ -241,18 +269,27 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 		})
 
 		t.It("has the expected VerrazzanoProject", func() {
+			if minimalVerification {
+				Skip("Skipping since not part of minimal verification")
+			}
 			Eventually(func() (bool, error) {
 				return findVerrazzanoProject(fmt.Sprintf("project-%s", managedClusterName))
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find VerrazzanoProject")
 		})
 
 		t.It("has the expected namespace", func() {
+			if minimalVerification {
+				Skip("Skipping since not part of minimal verification")
+			}
 			Eventually(func() bool {
 				return findNamespace(fmt.Sprintf("ns-%s", managedClusterName))
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find namespace")
 		})
 
 		t.It("has the expected RoleBindings", func() {
+			if minimalVerification {
+				Skip("Skipping since not part of minimal verification")
+			}
 			namespace := fmt.Sprintf("ns-%s", managedClusterName)
 			pkg.Concurrently(
 				func() {
@@ -279,6 +316,9 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 		})
 
 		t.It("Fluentd should point to the correct ES", func() {
+			if minimalVerification {
+				Skip("Skipping since not part of minimal verification")
+			}
 			if pkg.UseExternalElasticsearch() {
 				Eventually(func() bool {
 					return pkg.AssertFluentdURLAndSecret(externalEsURL, "verrazzano-cluster-registration")

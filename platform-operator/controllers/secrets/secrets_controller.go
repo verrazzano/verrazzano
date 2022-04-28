@@ -81,7 +81,7 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			return newRequeueWithDelay(), nil
 		}
 		// Secret was not found, make a new one
-		mcCASecret := corev1.Secret{}
+		mcCASecret = corev1.Secret{}
 		mcCASecret.Name = constants.VerrazzanoLocalCABundleSecret
 		mcCASecret.Namespace = constants.VerrazzanoMultiClusterNamespace
 	}

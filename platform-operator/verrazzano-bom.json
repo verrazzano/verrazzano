@@ -192,7 +192,7 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.12.3-20220413200722-44962a3",
+              "tag": "v1.14.5-20220427170000-87ed055",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
@@ -241,7 +241,7 @@
             },
             {
               "image": "opensearch",
-              "tag": "1.2.3-20220414183247-3456fb02cde",
+              "tag": "1.2.3-20220426040255-3456fb02cde",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
@@ -326,12 +326,12 @@
           "images": [
             {
               "image": "weblogic-kubernetes-operator",
-              "tag": "3.3.8",
+              "tag": "3.4.0",
               "helmFullImageKey": "image"
             },
             {
               "image": "weblogic-monitoring-exporter",
-              "tag": "2.0.4",
+              "tag": "2.0.5",
               "helmFullImageKey": "weblogicMonitoringExporterImage"
             }
           ]
@@ -409,7 +409,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "15.0.2-20220422161653-620b97bc83",
+              "tag": "15.0.2-20220428013239-620b97bc83",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -549,6 +549,61 @@
               "tag": "v1.3.1",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "jaeger",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "jaeger-operator",
+          "images": [
+            {
+              "image": "jaeger-operator",
+              "tag": "1.32.0"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "jaeger-agent",
+          "images": [
+            {
+              "image": "jaeger-agent",
+              "tag": "1.32.0"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "jaeger-collector",
+          "images": [
+            {
+              "image": "jaeger-collector",
+              "tag": "1.32.0"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "jaeger-query",
+          "images": [
+            {
+              "image": "jaeger-query",
+              "tag": "1.32.0"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "jaeger-ingester",
+          "images": [
+            {
+              "image": "jaeger-ingester",
+              "tag": "1.32.0"
             }
           ]
         }

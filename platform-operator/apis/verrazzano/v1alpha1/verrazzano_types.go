@@ -324,6 +324,10 @@ type ComponentSpec struct {
 	// +optional
 	Istio *IstioComponent `json:"istio,omitempty"`
 
+	// JaegerOperator configuration
+	// +optional
+	JaegerOperator *JaegerOperatorComponent `json:"jaegerOperator,omitempty"`
+
 	// Kiali contains the Kiali component configuration
 	// +optional
 	Kiali *KialiComponent `json:"kiali,omitempty"`
@@ -543,11 +547,19 @@ type IngressNginxComponent struct {
 
 // IstioIngressSection specifies the specific config options available for the Istio Ingress Gateways.
 type IstioIngressSection struct {
+	// Type of ingress.  Default is LoadBalancer
+	// +optional
+	Type IngressType `json:"type,omitempty"`
+	// Ports to be used for Istio Ingress Gateway
+	// +optional
+	Ports []corev1.ServicePort `json:"ports,omitempty"`
+	// +optional
 	Kubernetes *IstioKubernetesSection `json:"kubernetes,omitempty"`
 }
 
 // IstioEgressSection specifies the specific config options available for the Istio Egress Gateways.
 type IstioEgressSection struct {
+	// +optional
 	Kubernetes *IstioKubernetesSection `json:"kubernetes,omitempty"`
 }
 
@@ -569,6 +581,12 @@ type IstioComponent struct {
 	Ingress *IstioIngressSection `json:"ingress,omitempty"`
 	// +optional
 	Egress *IstioEgressSection `json:"egress,omitempty"`
+}
+
+// JaegerOperatorComponent specifies the Jaeger Operator configuration
+type JaegerOperatorComponent struct {
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // KeycloakComponent specifies the Keycloak configuration

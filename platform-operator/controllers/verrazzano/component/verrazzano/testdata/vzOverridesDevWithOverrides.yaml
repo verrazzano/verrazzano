@@ -48,3 +48,5 @@ prometheusPushgateway:
   enabled: true
 prometheusNodeExporter:
   enabled: true
+jaegerOperator:
+  enabled: true
