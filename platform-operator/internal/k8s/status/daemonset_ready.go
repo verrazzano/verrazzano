@@ -17,6 +17,8 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+type DaemonSetFunc func(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedNames []types.NamespacedName, expectedNodes int32, prefix string) bool
+
 // DaemonSetsAreReady Check that the named daemonsets have the minimum number of specified nodes ready and available
 func DaemonSetsAreReady(log vzlog.VerrazzanoLogger, client client.Client, namespacedNames []types.NamespacedName, expectedNodes int32, prefix string) bool {
 	for _, namespacedName := range namespacedNames {
@@ -24,7 +26,6 @@ func DaemonSetsAreReady(log vzlog.VerrazzanoLogger, client client.Client, namesp
 		if err := client.Get(context.TODO(), namespacedName, &daemonset); err != nil {
 			if errors.IsNotFound(err) {
 				log.Progressf("%s is waiting for daemonsets %v to exist", prefix, namespacedName)
-				// StatefulSet not found
 				return false
 			}
 			log.Errorf("Failed getting daemonset %v: %v", namespacedName, err)
@@ -45,6 +46,22 @@ func DaemonSetsAreReady(log vzlog.VerrazzanoLogger, client client.Client, namesp
 			return false
 		}
 		log.Oncef("%s has enough nodes for daemonsets %v", prefix, namespacedName)
+	}
+	return true
+}
+
+// DoDaemonSetsExist checks if the named daemonsets exist
+func DoDaemonSetsExist(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedNames []types.NamespacedName, _ int32, prefix string) bool {
+	for _, namespacedName := range namespacedNames {
+		daemonset := appsv1.DaemonSet{}
+		if err := client.Get(context.TODO(), namespacedName, &daemonset); err != nil {
+			if errors.IsNotFound(err) {
+				log.Progressf("%s is waiting for daemonset %v to exist", prefix, namespacedName)
+				return false
+			}
+			log.Errorf("%s failed getting daemonset %v: %v", prefix, namespacedName, err)
+			return false
+		}
 	}
 	return true
 }
