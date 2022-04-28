@@ -26,7 +26,7 @@ const (
 )
 
 var subcomponentNames = []string{
-	"jaeger-ingest",
+	"jaeger-ingester",
 	"jaeger-agent",
 	"jaeger-query",
 	"jaeger-collector",

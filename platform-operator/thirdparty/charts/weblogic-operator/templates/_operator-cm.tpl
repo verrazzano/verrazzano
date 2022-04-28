@@ -1,4 +1,4 @@
-# Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2018, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 {{- define "operator.operatorConfigMap" }}
@@ -54,6 +54,12 @@ data:
   {{- end }}
   {{- if .kubernetesPlatform }}
   kubernetesPlatform: {{ .kubernetesPlatform | quote }}
+  {{- end }}
+  {{- if .domainPresenceFailureRetryMaxCount }}
+  domainPresenceFailureRetryMaxCount: {{ .domainPresenceFailureRetryMaxCount | quote }}
+  {{- end }}
+  {{- if .domainPresenceFailureRetrySeconds }}
+  domainPresenceFailureRetrySeconds: {{ .domainPresenceFailureRetrySeconds | quote }}
   {{- end }}
 kind: "ConfigMap"
 metadata:
