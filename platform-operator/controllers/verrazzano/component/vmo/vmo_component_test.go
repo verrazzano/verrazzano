@@ -42,9 +42,7 @@ func TestIsEnabled(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						Elasticsearch: &vzapi.ElasticsearchComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{
-								Enabled: &falseValue,
-							},
+							Enabled: &falseValue,
 						},
 						Kibana: &vzapi.KibanaComponent{
 							MonitoringComponent: vzapi.MonitoringComponent{
@@ -79,6 +77,33 @@ func TestIsEnabled(t *testing.T) {
 	}
 }
 
+// TestIsInstalled tests the IsInstalled function
+// GIVEN a call to IsInstalled
+//  WHEN the deployment object is found
+//  THEN true is returned
+func TestIsInstalled(t *testing.T) {
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      ComponentName,
+		},
+	}).Build()
+	installed, err := NewComponent().IsInstalled(spi.NewFakeContext(fakeClient, nil, false))
+	assert.NoError(t, err)
+	assert.True(t, installed)
+}
+
+// TestIsNotInstalled tests the IsInstalled function
+// GIVEN a call to IsInstalled
+//  WHEN the deployment object is not found
+//  THEN false is returned
+func TestIsNotInstalled(t *testing.T) {
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	installed, err := NewComponent().IsInstalled(spi.NewFakeContext(fakeClient, nil, false))
+	assert.NoError(t, err)
+	assert.False(t, installed)
+}
+
 // TestIsReady tests the IsReady function
 // GIVEN a call to IsReady
 //  WHEN the deployment object has enough replicas available
@@ -107,17 +132,18 @@ func TestIsNotReady(t *testing.T) {
 	assert.False(t, NewComponent().IsReady(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false)))
 }
 
-// TestPreInstall tests the VMO PreInstall call
+// TestPostUpgrade tests the VMO PostUpgrade call
 // GIVEN a VMO component
-//  WHEN I call PreInstall with defaults
+//  WHEN I call PostUpgrade with defaults
 //  THEN no error is returned
-func TestPreInstall(t *testing.T) {
-	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
+func TestPostUpgrade(t *testing.T) {
+	// The actual post-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
 	scheme := runtime.NewScheme()
 	_ = rbacv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
-	err := NewComponent().PreInstall(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(scheme).Build(), nil, false))
+	_ = appsv1.AddToScheme(scheme)
+	err := NewComponent().PostUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(scheme).Build(), nil, false))
 	assert.NoError(t, err)
 }
 
@@ -129,6 +155,10 @@ func TestPreUpgrade(t *testing.T) {
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
 	config.TestHelmConfigDir = "../../../../helm_config"
-	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build(), nil, false))
+	scheme := runtime.NewScheme()
+	_ = rbacv1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+	_ = appsv1.AddToScheme(scheme)
+	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(scheme).Build(), nil, false))
 	assert.NoError(t, err)
 }

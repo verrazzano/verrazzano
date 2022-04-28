@@ -163,7 +163,7 @@ func TestReassociateResources(t *testing.T) {
 	}).Build()
 	err := ExportVMOHelmChart(spi.NewFakeContext(fakeClient, nil, false))
 	assert.NoError(t, err)
-	err = reassociateResources(spi.NewFakeContext(fakeClient, nil, false))
+	err = ReassociateResources(spi.NewFakeContext(fakeClient, nil, false))
 	assert.NoError(t, err)
 	service := corev1.Service{}
 	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &service)
@@ -174,9 +174,9 @@ func TestReassociateResources(t *testing.T) {
 	assert.NotContains(t, service.Annotations["helm.sh/resource-policy"], "keep")
 }
 
-// TestExportVmoHelmChart tests the VMO ExportVmoHelmChart function
+// TestExportVmoHelmChart tests the VMO exportVMOHelmChart function
 // GIVEN a VMO component
-//  WHEN I call ExportVmoHelmChart with a VMO service resource
+//  WHEN I call exportVMOHelmChart with a VMO service resource
 //  THEN no error is returned and the VMO service contains expected Helm labels and annotations
 func TestExportVmoHelmChart(t *testing.T) {
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage

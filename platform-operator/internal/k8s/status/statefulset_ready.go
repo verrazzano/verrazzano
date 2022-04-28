@@ -16,6 +16,8 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+type StatefulSetFunc func(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedNames []types.NamespacedName, expectedReplicas int32, prefix string) bool
+
 // StatefulSetsAreReady Check that the named statefulsets have the minimum number of specified replicas ready and available
 func StatefulSetsAreReady(log vzlog.VerrazzanoLogger, client client.Client, namespacedNames []types.NamespacedName, expectedReplicas int32, prefix string) bool {
 	for _, namespacedName := range namespacedNames {
@@ -43,6 +45,22 @@ func StatefulSetsAreReady(log vzlog.VerrazzanoLogger, client client.Client, name
 			return false
 		}
 		log.Oncef("%s has enough replicas for statefulsets %v", prefix, namespacedName)
+	}
+	return true
+}
+
+// DoStatefulSetsExist checks if the named statefulsets exist
+func DoStatefulSetsExist(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedNames []types.NamespacedName, _ int32, prefix string) bool {
+	for _, namespacedName := range namespacedNames {
+		statuefulset := appsv1.StatefulSet{}
+		if err := client.Get(context.TODO(), namespacedName, &statuefulset); err != nil {
+			if errors.IsNotFound(err) {
+				log.Progressf("%s is waiting for statuefulset %v to exist", prefix, namespacedName)
+				return false
+			}
+			log.Errorf("%s failed getting statuefulset %v: %v", prefix, namespacedName, err)
+			return false
+		}
 	}
 	return true
 }
