@@ -133,9 +133,6 @@ func ValidateProfile(requestedProfile ProfileType) error {
 // and that the version of an upgrade request is valid.
 // - an upgrade must be performed with or before the next update to the configuration after the VPO has been updated
 func ValidateUpgradeRequest(current *Verrazzano, new *Verrazzano) error {
-	currentSpec := current.Spec
-	newSpec := new.Spec
-
 	if !config.Get().VersionCheckEnabled {
 		zap.S().Infof("Version validation disabled")
 		return nil
@@ -146,6 +143,9 @@ func ValidateUpgradeRequest(current *Verrazzano, new *Verrazzano) error {
 		// Boundary condition -- likely just created and install hasn't started yet
 		return nil
 	}
+
+	currentSpec := current.Spec
+	newSpec := new.Spec
 
 	// if the installed version is not == BOM version and newspec versiom isn't set,
 	// reject the update; upgrade needs to happen before any update
