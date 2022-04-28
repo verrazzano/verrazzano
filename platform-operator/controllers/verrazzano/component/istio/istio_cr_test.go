@@ -6,6 +6,8 @@ package istio
 import (
 	"testing"
 
+	"k8s.io/apimachinery/pkg/util/intstr"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -68,6 +70,19 @@ var cr1 = vzapi.IstioComponent{
 							},
 						},
 					},
+				},
+			},
+		},
+		Type: vzapi.NodePort,
+		Ports: []corev1.ServicePort{
+			{
+				Name:     "port1",
+				Protocol: "TCP",
+				Port:     8000,
+				NodePort: 32443,
+				TargetPort: intstr.IntOrString{
+					Type:   intstr.Int,
+					IntVal: 2000,
 				},
 			},
 		},
@@ -147,6 +162,13 @@ spec:
               weight: 100
         replicaCount: 2
         service:
+          type: NodePort
+          ports:
+          - name: port1
+            protocol: TCP
+            port: 8000
+            nodePort: 32443
+            targetPort: 2000
           externalIPs:
           - 1.2.3.4
       name: istio-ingressgateway
@@ -294,6 +316,7 @@ spec:
               weight: 100
         replicaCount: 1
         service:
+          type: LoadBalancer
           externalIPs:
           - 1.2.3.4
       name: istio-ingressgateway
@@ -433,6 +456,8 @@ spec:
       - name: istio-ingressgateway
         enabled: true
         k8s:
+          service:
+            type: LoadBalancer
           replicaCount: 3
           affinity:
             nodeAffinity:
