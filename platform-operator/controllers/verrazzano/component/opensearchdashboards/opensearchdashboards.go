@@ -34,3 +34,13 @@ func checkOpenSearchDashboardsStatus(ctx spi.ComponentContext, deploymentFunc st
 
 	return common.IsVMISecretReady(ctx)
 }
+
+// doesOSDExist is the IsInstalled check
+func doesOSDExist(ctx spi.ComponentContext) bool {
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	deploy := []types.NamespacedName{{
+		Name:      kibanaDeployment,
+		Namespace: ComponentNamespace,
+	}}
+	return status.DoDeploymentsExist(ctx.Log(), ctx.Client(), deploy, 1, prefix)
+}

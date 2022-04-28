@@ -39,6 +39,7 @@ var (
 	execCommand = exec.Command
 )
 
+// doesOSExist is the IsInstalled check
 func doesOSExist(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	sts := []types.NamespacedName{{

@@ -55,7 +55,7 @@ func (d opensearchDashboardsComponent) IsOperatorInstallSupported() bool {
 
 // IsInstalled OpenSearch-Dashboards component function
 func (d opensearchDashboardsComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
-	return checkOpenSearchDashboardsStatus(ctx, status.DoDeploymentsExist), nil
+	return doesOSDExist(ctx), nil
 }
 
 // Reconcile OpenSearch-Dashboards component function
