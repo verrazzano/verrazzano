@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -1054,7 +1053,7 @@ func TestIsReadySecretNotReady(t *testing.T) {
 		},
 	).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, checkVerrazzanoComponentStatus(ctx, status.DeploymentsAreReady, status.DaemonSetsAreReady))
+	assert.False(t, doesPromExist(ctx))
 }
 
 // TestIsReadyChartNotInstalled tests the Verrazzano isVerrazzanoReady call
@@ -1064,7 +1063,7 @@ func TestIsReadySecretNotReady(t *testing.T) {
 func TestIsReadyChartNotInstalled(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, checkVerrazzanoComponentStatus(ctx, status.DeploymentsAreReady, status.DaemonSetsAreReady))
+	assert.False(t, doesPromExist(ctx))
 }
 
 // TestIsReady tests the Verrazzano isVerrazzanoReady call
@@ -1136,7 +1135,7 @@ func TestIsReady(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	vz.Spec.Components = vzapi.ComponentSpec{}
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.True(t, checkVerrazzanoComponentStatus(ctx, status.DeploymentsAreReady, status.DaemonSetsAreReady))
+	assert.True(t, doesPromExist(ctx))
 }
 
 // TestIsReadyDeploymentNotAvailable tests the Verrazzano isVerrazzanoReady call
@@ -1205,7 +1204,7 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 			Namespace: ComponentNamespace}},
 	).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, checkVerrazzanoComponentStatus(ctx, status.DeploymentsAreReady, status.DaemonSetsAreReady))
+	assert.False(t, doesPromExist(ctx))
 }
 
 // TestIsReadyDeploymentVMIDisabled tests the Verrazzano isVerrazzanoReady call
@@ -1231,7 +1230,7 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 	}
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.True(t, checkVerrazzanoComponentStatus(ctx, status.DeploymentsAreReady, status.DaemonSetsAreReady))
+	assert.True(t, doesPromExist(ctx))
 }
 
 func TestConfigHashSum(t *testing.T) {

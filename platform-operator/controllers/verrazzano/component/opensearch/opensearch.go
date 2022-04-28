@@ -50,7 +50,7 @@ func doesOSExist(ctx spi.ComponentContext) bool {
 }
 
 // checkOpenSearchStatus checks performs checks on the OpenSearch resources
-func checkOpenSearchStatus(ctx spi.ComponentContext, deploymentFunc status.DeploymentFunc, statefulsetFunc status.StatefulSetFunc) bool {
+func isOSReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 
 	var deployments []types.NamespacedName
@@ -84,7 +84,7 @@ func checkOpenSearchStatus(ctx spi.ComponentContext, deploymentFunc status.Deplo
 		}
 	}
 
-	if !deploymentFunc(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
+	if !status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
 		return false
 	}
 
@@ -102,7 +102,7 @@ func checkOpenSearchStatus(ctx spi.ComponentContext, deploymentFunc status.Deplo
 								Name:      esMasterStatefulset,
 								Namespace: ComponentNamespace,
 							})
-						if !statefulsetFunc(ctx.Log(), ctx.Client(), statefulsets, 1, prefix) {
+						if !status.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulsets, 1, prefix) {
 							return false
 						}
 					}

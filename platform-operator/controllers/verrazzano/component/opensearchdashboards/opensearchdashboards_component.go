@@ -12,7 +12,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -104,7 +103,7 @@ func (d opensearchDashboardsComponent) Upgrade(ctx spi.ComponentContext) error {
 
 // IsReady component check
 func (d opensearchDashboardsComponent) IsReady(ctx spi.ComponentContext) bool {
-	return checkOpenSearchDashboardsStatus(ctx, status.DeploymentsAreReady)
+	return isOSDReady(ctx)
 }
 
 // PostInstall OpenSearch-Dashboards post-install processing
