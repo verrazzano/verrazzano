@@ -42,7 +42,7 @@ pipeline {
                 defaultValue: '3',
                 description: 'This is to define total number of jobs executed in parallel per each batch',
                 trim: true)
-        choice (description: 'Verrazzano Config Permutations', name: 'VZ_SETUP_PROFILE',
+        choice (description: 'Predefined config permutations for Verrazzano installation', name: 'VZ_SETUP_PROFILE',
                 choices: ["NONE","dev-kind-all-default"])
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
                         defaultValue: 'NONE',
