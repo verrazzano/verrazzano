@@ -152,9 +152,11 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 						}
 						foundAnnotation := false
 						for _, pod := range pods {
-							if pod.Annotations[]
+							if val, ok := pod.Annotations[overrideKey]; ok && val == overrideValue {
+								foundAnnotation = true
+							}
 						}
-						return len(result) == 1
+						return len(pods) == 1 && foundAnnotation
 					} else if !k8serrors.IsNotFound(err) {
 						AbortSuite(fmt.Sprintf("Error retrieving the override ConfigMap: %v", err))
 					}
