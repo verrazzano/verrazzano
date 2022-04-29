@@ -440,8 +440,6 @@ func (h HelmComponent) filesFromVerrazzanoHelm(context spi.ComponentContext, nam
 		fileValues = append(fileValues, kv)
 	}
 
-	context.Log().Infof("YAML Values: %v", yamlValues)
-
 	// Take the YAML values and construct a YAML file
 	// This uses the Helm YAML formatting
 	fileString, err := yaml.HelmValueFileConstructor(fileValues)
