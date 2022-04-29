@@ -4,6 +4,7 @@
 package vmo
 
 import (
+	"context"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -12,6 +13,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
@@ -59,7 +62,7 @@ func TestIsVmoNotReady(t *testing.T) {
 	assert.False(t, isVmoReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
 }
 
-// TestAppendVmoOverrides tests the appendInitImageOverrides function
+// TestAppendVmoOverrides tests the appendVmoOverrides function
 // GIVEN a call to appendVmoOverrides
 //  WHEN I call with no extra kvs
 //  THEN the correct KeyValue objects are returned and no error occurs
@@ -101,5 +104,43 @@ func TestAppendVmoOverrides(t *testing.T) {
 	a.Contains(kvs, bom.KeyValue{
 		Key:   "config.envName",
 		Value: "default",
+	})
+}
+
+// TestAppendVMOOverridesNoNGINX tests the appendVmoOverrides function
+// GIVEN a call to appendVmoOverrides
+//  WHEN I call with no extra kvs and NGINX is disabled
+//  THEN the correct KeyValue objects are returned and no error occurs
+func TestAppendVmoOverridesNoNGINX(t *testing.T) {
+	a := assert.New(t)
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+
+	enabled := false
+	kvs, err := appendVmoOverrides(spi.NewFakeContext(fakeClient,
+		&vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					Ingress: &vzapi.IngressNginxComponent{
+						Enabled: &enabled,
+					},
+				},
+			},
+		},
+		false), "", "", "", []bom.KeyValue{})
+
+	a.NoError(err)
+	a.Len(kvs, 2)
+	a.Contains(kvs, bom.KeyValue{
+		Key:   "monitoringOperator.prometheusInitImage",
+		Value: "ghcr.io/oracle/oraclelinux:7-slim",
+	})
+	a.Contains(kvs, bom.KeyValue{
+		Key:   "monitoringOperator.esInitImage",
+		Value: "ghcr.io/oracle/oraclelinux:7.8",
 	})
 }

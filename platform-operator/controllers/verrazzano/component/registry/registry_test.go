@@ -179,6 +179,36 @@ func TestComponentDependenciesNotMet(t *testing.T) {
 	assert.False(t, ready)
 }
 
+// TestComponentOptionalDependenciesMet tests ComponentDependenciesMet
+// GIVEN a component
+//  WHEN I call ComponentDependenciesMet for it
+//  THEN true is still returned if the dependency is not enabled
+func TestComponentOptionalDependenciesMet(t *testing.T) {
+	comp := helm2.HelmComponent{
+		ReleaseName:    "foo",
+		ChartDir:       "chartDir",
+		ChartNamespace: "bar",
+		Dependencies:   []string{istio.ComponentName},
+	}
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	enabled := false
+	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client,
+		&v1alpha1.Verrazzano{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "foo",
+			},
+			Spec: v1alpha1.VerrazzanoSpec{
+				Components: v1alpha1.ComponentSpec{
+					Istio: &v1alpha1.IstioComponent{
+						Enabled: &enabled,
+					},
+				},
+			},
+		},
+		false))
+	assert.True(t, ready)
+}
+
 // TestComponentDependenciesDependencyChartNotInstalled tests ComponentDependenciesMet
 // GIVEN a component
 //  WHEN I call ComponentDependenciesMet for it

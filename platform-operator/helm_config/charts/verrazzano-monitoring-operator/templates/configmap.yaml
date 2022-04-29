@@ -13,4 +13,8 @@ data:
     metricsPort: {{ .Values.monitoringOperator.metricsPort }}
     defaultSimpleCompReplicas: {{ .Values.monitoringOperator.defaultSimpleCompReplicas }}
     defaultPrometheusReplicas: {{ .Values.monitoringOperator.defaultPrometheusReplicas }}
+    {{- if .Values.config.envName }}
+    {{- if .Values.config.dnsSuffix }}
     defaultIngressTargetDNSName: {{ .Values.config.envName }}-verrazzano-ingress.{{ .Values.config.dnsSuffix }}
+    {{- end }}
+    {{- end }}
