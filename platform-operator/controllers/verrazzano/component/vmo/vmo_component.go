@@ -46,7 +46,7 @@ func NewComponent() spi.Component {
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
-			AppendOverridesFunc:     appendVmoOverrides,
+			AppendOverridesFunc:     appendVMOOverrides,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
 			Dependencies:            []string{nginx.ComponentName},
 		},
@@ -61,7 +61,7 @@ func (c vmoComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 // IsReady calls VMO isVmoReady function
 func (c vmoComponent) IsReady(context spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(context) {
-		return isVmoReady(context)
+		return isVMOReady(context)
 	}
 	return false
 }
@@ -82,7 +82,7 @@ func (c vmoComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 
 // PreUpgrade VMO pre-upgrade processing
 func (c vmoComponent) PreUpgrade(context spi.ComponentContext) error {
-	return common.ApplyCRDYaml(context, config.GetHelmVmoChartsDir())
+	return common.ApplyCRDYaml(context, config.GetHelmVMOChartsDir())
 }
 
 // Upgrade VMO processing
