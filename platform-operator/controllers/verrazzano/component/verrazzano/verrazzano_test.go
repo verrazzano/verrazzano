@@ -1053,7 +1053,7 @@ func TestIsReadySecretNotReady(t *testing.T) {
 		},
 	).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, doesPromExist(ctx))
+	assert.False(t, isVerrazzanoReady(ctx))
 }
 
 // TestIsReadyChartNotInstalled tests the Verrazzano isVerrazzanoReady call
@@ -1063,7 +1063,7 @@ func TestIsReadySecretNotReady(t *testing.T) {
 func TestIsReadyChartNotInstalled(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, doesPromExist(ctx))
+	assert.False(t, isVerrazzanoReady(ctx))
 }
 
 // TestIsReady tests the Verrazzano isVerrazzanoReady call
@@ -1135,7 +1135,7 @@ func TestIsReady(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	vz.Spec.Components = vzapi.ComponentSpec{}
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.True(t, doesPromExist(ctx))
+	assert.True(t, isVerrazzanoReady(ctx))
 }
 
 // TestIsReadyDeploymentNotAvailable tests the Verrazzano isVerrazzanoReady call
@@ -1204,7 +1204,7 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 			Namespace: ComponentNamespace}},
 	).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, doesPromExist(ctx))
+	assert.False(t, isVerrazzanoReady(ctx))
 }
 
 // TestIsReadyDeploymentVMIDisabled tests the Verrazzano isVerrazzanoReady call
@@ -1230,7 +1230,7 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 	}
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.True(t, doesPromExist(ctx))
+	assert.True(t, isVerrazzanoReady(ctx))
 }
 
 func TestConfigHashSum(t *testing.T) {
@@ -1252,4 +1252,27 @@ func TestConfigHashSum(t *testing.T) {
 	assert.NotEqual(t, HashSum(f1), HashSum(f2))
 	f2.Enabled = &b
 	assert.Equal(t, HashSum(f1), HashSum(f2))
+}
+
+// TestIsinstalled tests the Verrazzano doesPromExist call
+// GIVEN a Verrazzano component
+//  WHEN I call doesPromExist
+//  THEN true is returned
+func TestIsinstalled(t *testing.T) {
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      prometheusDeployment,
+				Labels:    map[string]string{"app": "system-prometheus"},
+			},
+		},
+	).Build()
+	vz := &vzapi.Verrazzano{}
+	ctx := spi.NewFakeContext(c, vz, false)
+	assert.True(t, doesPromExist(ctx))
 }
