@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/update"
 	"os"
 	"strings"
@@ -40,9 +41,11 @@ var _ = t.BeforeSuite(func() {
 		Fail(err.Error())
 	}
 	if supported {
+		pkg.Log(pkg.Info, "Waiting for upgrade to Complete")
+		pkg.WaitForVZCondition(vzapi.CondUpgradeComplete, pollingInterval, longTimeout)
 		pkg.Log(pkg.Info, "VZ version is greater than 1.3.0")
 		m := pkg.ElasticSearchISMPolicyAddModifier{}
-		update.UpdateCR(m)
+		update.UpdateCRWithRetries(m, pollingInterval, longTimeout)
 		pkg.Log(pkg.Info, "Update the VZ CR to add the required ISM Policies")
 	}
 	// Wait for sufficient time to allow the VMO reconciliation to complete
@@ -77,10 +80,6 @@ var _ = t.Describe("Index Patterns", Label("f:observability.logging.kibana"), fu
 	// THEN verify that they are as expected
 	MinimumVerrazzanoIt("Verify Index Patterns", func() {
 		Eventually(func() bool {
-			if !pkg.IsDataStreamSupported() {
-				pkg.Log(pkg.Info, "Data Stream not supported")
-				return true
-			}
 			kubeConfigPath, _ := k8sutil.GetKubeConfigLocation()
 			if pkg.IsOpenSearchDashboardsEnabled(kubeConfigPath) {
 				isVersionAbove1_3_0, err := pkg.IsVerrazzanoMinVersion("1.3.0", kubeConfigPath)
@@ -119,7 +118,7 @@ var _ = t.Describe("Index Patterns", Label("f:observability.logging.kibana"), fu
 					expectedPatterns = append(expectedPatterns, line)
 				}
 				actualPatterns := pkg.ListIndexPatterns(kubeConfigPath)
-				pkg.Log(pkg.Debug, fmt.Sprintf("Expected Patterns: %v, Actual Patterns: %v", expectedPatterns, actualPatterns))
+				pkg.Log(pkg.Info, fmt.Sprintf("Expected Patterns: %v, Actual Patterns: %v", expectedPatterns, actualPatterns))
 				return pkg.SlicesContainSameStrings(expectedPatterns, actualPatterns)
 			}
 			return true
