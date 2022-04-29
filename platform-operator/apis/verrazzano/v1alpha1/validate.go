@@ -163,9 +163,9 @@ func ValidateUpgradeRequest(current *Verrazzano, new *Verrazzano) error {
 	}
 
 	// New version is a non-zero-len string, short-circuit if the version strings are the same
-	if currentSpec.Version == newSpec.Version {
-		return nil
-	}
+	//if currentSpec.Version == newSpec.Version {
+	//	return nil
+	//}
 
 	// Make sure the requested version matches what's in the BOM
 	newSpecVer, err := semver.NewSemVersion(newSpec.Version)
