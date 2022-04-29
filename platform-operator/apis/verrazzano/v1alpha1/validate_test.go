@@ -34,13 +34,17 @@ import (
 // For unit testing
 const (
 	actualBomFilePath          = "../../../verrazzano-bom.json"
-	testBomFilePath            = "../../../controllers/verrazzano/testdata/test_bom.json"
-	invalidTestBomFilePath     = "../../../controllers/verrazzano/testdata/invalid_test_bom.json"
-	invalidPathTestBomFilePath = "../../../controllers/verrazzano/testdata/invalid_test_bom_path.json"
+	testBomFilePath            = "testdata/test_bom.json"
+	testRollbackBomFilePath    = "testdata/rollback_bom.json"
+	invalidTestBomFilePath     = "testdata/invalid_test_bom.json"
+	invalidPathTestBomFilePath = "testdata/invalid_test_bom_path.json"
 
-	v100 = "v1.0.0"
-	v110 = "v1.1.0"
-	v120 = "v1.2.0"
+	v0160 = "v0.16.0"
+	v0170 = "v0.17.0"
+	v0180 = "v0.18.0"
+	v100  = "v1.0.0"
+	v110  = "v1.1.0"
+	v120  = "v1.2.0"
 )
 
 // TestValidUpgradeRequestNoCurrentVersion Tests the condition for valid upgrade where the version is not specified in the current spec
@@ -199,11 +203,11 @@ func TestValidUpgradeRequestCurrentVersionExists(t *testing.T) {
 	}()
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: "v0.16.0",
+			Version: v0160,
 			Profile: Dev,
 		},
 		Status: VerrazzanoStatus{
-			Version: "v0.16.0",
+			Version: v0160,
 		},
 	}
 	newSpec := &Verrazzano{
@@ -226,11 +230,11 @@ func TestValidUpgradeNotNecessary(t *testing.T) {
 	}()
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: "v0.17.0",
+			Version: v0170,
 			Profile: Dev,
 		},
 		Status: VerrazzanoStatus{
-			Version: "v0.17.0",
+			Version: v0170,
 		},
 	}
 	newSpec := &Verrazzano{
@@ -257,12 +261,12 @@ func TestValidateUpgradeBadOldVersion(t *testing.T) {
 			Profile: Dev,
 		},
 		Status: VerrazzanoStatus{
-			Version: "v0.16.0",
+			Version: v0160,
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: "v0.17.0",
+			Version: v0170,
 			Profile: Dev,
 		},
 	}
@@ -280,11 +284,11 @@ func TestValidateUpgradeBadNewVersion(t *testing.T) {
 	}()
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: "v0.16.0",
+			Version: v0160,
 			Profile: Dev,
 		},
 		Status: VerrazzanoStatus{
-			Version: "v0.16.0",
+			Version: v0160,
 		},
 	}
 	newSpec := &Verrazzano{
@@ -335,12 +339,12 @@ func TestValidVersionWithProfileChange(t *testing.T) {
 			Profile: Dev,
 		},
 		Status: VerrazzanoStatus{
-			Version: "v0.16.0",
+			Version: v0160,
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: "v0.17.0",
+			Version: v0170,
 			Profile: Prod,
 		},
 	}
@@ -361,12 +365,12 @@ func TestValidVersionWithEnvNameChange(t *testing.T) {
 			Profile: Dev,
 		},
 		Status: VerrazzanoStatus{
-			Version: "v0.16.0",
+			Version: v0160,
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version:         "v0.17.0",
+			Version:         v0170,
 			Profile:         Dev,
 			EnvironmentName: "newEnv",
 		},
@@ -399,12 +403,12 @@ func TestValidVersionWithCertManagerChange(t *testing.T) {
 			},
 		},
 		Status: VerrazzanoStatus{
-			Version: "v0.16.0",
+			Version: v0160,
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: "v0.17.0",
+			Version: v0170,
 			Profile: Dev,
 			Components: ComponentSpec{
 				CertManager: &CertManagerComponent{
@@ -447,12 +451,12 @@ func TestValidVersionWithNewDNS(t *testing.T) {
 			},
 		},
 		Status: VerrazzanoStatus{
-			Version: "v0.16.0",
+			Version: v0160,
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: "v0.17.0",
+			Version: v0170,
 			Profile: Dev,
 			Components: ComponentSpec{
 				CertManager: &CertManagerComponent{
@@ -526,12 +530,12 @@ func runValidateWithIngressChangeTest() error {
 			},
 		},
 		Status: VerrazzanoStatus{
-			Version: "v0.16.0",
+			Version: v0160,
 		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: "v0.17.0",
+			Version: v0170,
 			Profile: Dev,
 			Components: ComponentSpec{
 				Ingress: &IngressNginxComponent{
@@ -650,7 +654,7 @@ func TestValidateVersionBadBomfile(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
-	err := ValidateVersion("v0.17.0")
+	err := ValidateVersion(v0170)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "unexpected end of JSON input")
 }
