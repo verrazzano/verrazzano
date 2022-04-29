@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	v12 "k8s.io/api/apps/v1"
 	v13 "k8s.io/api/rbac/v1"
@@ -33,7 +32,9 @@ import (
 )
 
 const (
-	system = "system"
+	system                = "system"
+	vmoComponentName      = "verrazzano-monitoring-operator"
+	vmoComponentNamespace = constants.VerrazzanoSystemNamespace
 )
 
 // ResourceRequestValues defines the storage information that will be passed to VMI instance
@@ -266,7 +267,7 @@ func CheckIngressesAndCerts(ctx spi.ComponentContext, comp spi.Component) error 
 // managed by the verrazzano-monitoring-operator helm chart.  This is needed for the case when VMO was
 // previously installed by the verrazzano helm charrt.
 func ExportVMOHelmChart(ctx spi.ComponentContext) error {
-	releaseName := types.NamespacedName{Name: vmo.ComponentName, Namespace: vmo.ComponentNamespace}
+	releaseName := types.NamespacedName{Name: vmoComponentName, Namespace: vmoComponentNamespace}
 	managedResources := getVMOHelmManagedResources()
 	for _, managedResource := range managedResources {
 		if _, err := AssociateHelmObject(ctx.Client(), managedResource.Obj, releaseName, managedResource.NamespacedName, true); err != nil {
@@ -295,10 +296,10 @@ func ReassociateVMOResources(ctx spi.ComponentContext) error {
 // VMO helm chart
 func getVMOHelmManagedResources() []HelmManagedResource {
 	return []HelmManagedResource{
-		{Obj: &v1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-config", Namespace: vmo.ComponentNamespace}},
-		{Obj: &v12.Deployment{}, NamespacedName: types.NamespacedName{Name: vmo.ComponentName, Namespace: vmo.ComponentNamespace}},
-		{Obj: &v1.Service{}, NamespacedName: types.NamespacedName{Name: vmo.ComponentName, Namespace: vmo.ComponentNamespace}},
-		{Obj: &v1.ServiceAccount{}, NamespacedName: types.NamespacedName{Name: vmo.ComponentName, Namespace: vmo.ComponentNamespace}},
+		{Obj: &v1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-config", Namespace: vmoComponentNamespace}},
+		{Obj: &v12.Deployment{}, NamespacedName: types.NamespacedName{Name: vmoComponentName, Namespace: vmoComponentNamespace}},
+		{Obj: &v1.Service{}, NamespacedName: types.NamespacedName{Name: vmoComponentName, Namespace: vmoComponentNamespace}},
+		{Obj: &v1.ServiceAccount{}, NamespacedName: types.NamespacedName{Name: vmoComponentName, Namespace: vmoComponentNamespace}},
 		{Obj: &v13.ClusterRole{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-cluster-role"}},
 		{Obj: &v13.ClusterRole{}, NamespacedName: types.NamespacedName{Name: "vmi-cluster-role-default"}},
 		{Obj: &v13.ClusterRole{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-get-nodes"}},
