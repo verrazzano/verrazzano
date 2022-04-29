@@ -7,10 +7,7 @@ import (
 	"context"
 	"fmt"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	v12 "k8s.io/api/apps/v1"
-	v13 "k8s.io/api/rbac/v1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	vzsecret "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
@@ -260,50 +257,4 @@ func CheckIngressesAndCerts(ctx spi.ComponentContext, comp spi.Component) error 
 		}
 	}
 	return nil
-}
-
-// ExportVMOHelmChart adds necessary annotations to verrazzano-monitoring-operator objects which allows them to be
-// managed by the verrazzano-monitoring-operator helm chart.  This is needed for the case when VMO was
-// previously installed by the verrazzano helm charrt.
-func ExportVMOHelmChart(ctx spi.ComponentContext) error {
-	releaseName := types.NamespacedName{Name: vmo.ComponentName, Namespace: vmo.ComponentNamespace}
-	managedResources := getVMOHelmManagedResources()
-	for _, managedResource := range managedResources {
-		if _, err := AssociateHelmObject(ctx.Client(), managedResource.Obj, releaseName, managedResource.NamespacedName, true); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// ReassociateVMOResources updates the resources to ensure they are managed by the VMO release/component.  The resource policy
-// annotation is removed to ensure that helm manages the lifecycle of the resources (the resource policy annotation is
-// added to ensure the resources are disassociated from the VZ chart which used to manage these resources)
-func ReassociateVMOResources(ctx spi.ComponentContext) error {
-	managedResources := getVMOHelmManagedResources()
-	for _, managedResource := range managedResources {
-		if _, err := RemoveResourcePolicyAnnotation(ctx.Client(), managedResource.Obj, managedResource.NamespacedName); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// getVMOHelmManagedResources returns a list of resource types and their namespaced names that are managed by the
-// VMO helm chart
-func getVMOHelmManagedResources() []HelmManagedResource {
-	return []HelmManagedResource{
-		{Obj: &v1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-config", Namespace: vmo.ComponentNamespace}},
-		{Obj: &v12.Deployment{}, NamespacedName: types.NamespacedName{Name: vmo.ComponentName, Namespace: vmo.ComponentNamespace}},
-		{Obj: &v1.Service{}, NamespacedName: types.NamespacedName{Name: vmo.ComponentName, Namespace: vmo.ComponentNamespace}},
-		{Obj: &v1.ServiceAccount{}, NamespacedName: types.NamespacedName{Name: vmo.ComponentName, Namespace: vmo.ComponentNamespace}},
-		{Obj: &v13.ClusterRole{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-cluster-role"}},
-		{Obj: &v13.ClusterRole{}, NamespacedName: types.NamespacedName{Name: "vmi-cluster-role-default"}},
-		{Obj: &v13.ClusterRole{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-get-nodes"}},
-		{Obj: &v13.ClusterRoleBinding{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-cluster-role-binding"}},
-		{Obj: &v13.ClusterRoleBinding{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-cluster-role-default-binding"}},
-		{Obj: &v13.ClusterRoleBinding{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-get-nodes"}},
-	}
 }
