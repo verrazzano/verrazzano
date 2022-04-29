@@ -25,7 +25,6 @@ const (
 	prometheusOperatorDeployment    = "prometheus-operator-kube-p-operator"
 	prometheusOperatorContainerName = "kube-prometheus-stack"
 	overrideConfigMap               = "test-overrides"
-	overrideKey                     = "test-overrides.yaml"
 )
 
 type enabledFunc func(string) bool
