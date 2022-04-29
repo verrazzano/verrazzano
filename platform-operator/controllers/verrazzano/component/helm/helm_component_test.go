@@ -4,14 +4,16 @@
 package helm
 
 import (
-	"context"
+	"bytes"
 	"errors"
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -22,18 +24,14 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/mocks"
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 // Needed for unit tests
-var fakeOverrides []string
+var fakeOverrides string
 
 // helmFakeRunner is used to test helm without actually running an OS exec command
 type helmFakeRunner struct {
@@ -88,16 +86,12 @@ func TestUpgrade(t *testing.T) {
 		ChartDir:                "ChartDir",
 		ChartNamespace:          "chartNS",
 		IgnoreNamespaceOverride: true,
-		ImagePullSecretKeyname:  "imagePullSecrets",
 		ValuesFile:              "ValuesFile",
 		PreUpgradeFunc:          fakePreUpgrade,
 	}
 
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
-	fakeOverrides = []string{
-		"rancherImage=ghcr.io/verrazzano/rancher",
-		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c",
-	}
+	fakeOverrides = "rancherImageTag=v2.5.7-20210407205410-1c7b39d0c,rancherImage=ghcr.io/verrazzano/rancher"
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
@@ -128,7 +122,7 @@ func TestUpgradeIsInstalledUnexpectedError(t *testing.T) {
 
 	comp := HelmComponent{}
 
-	SetUpgradeFunc(func(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+	SetUpgradeFunc(func(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 		return nil, nil, nil
 	})
 	defer SetDefaultUpgradeFunc()
@@ -153,7 +147,7 @@ func TestUpgradeReleaseNotInstalled(t *testing.T) {
 
 	comp := HelmComponent{}
 
-	SetUpgradeFunc(func(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+	SetUpgradeFunc(func(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 		return nil, nil, nil
 	})
 	helm.SetCmdRunner(helmFakeRunner{})
@@ -177,7 +171,6 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 		ChartDir:                "ChartDir",
 		ChartNamespace:          "chartNS",
 		IgnoreNamespaceOverride: true,
-		ImagePullSecretKeyname:  "imagePullSecrets",
 		ValuesFile:              "ValuesFile",
 		PreUpgradeFunc:          fakePreUpgrade,
 		AppendOverridesFunc:     istio.AppendIstioOverrides,
@@ -190,11 +183,7 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 	defer func() { _ = os.Unsetenv(constants.ImageRepoOverrideEnvVar) }()
 
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
-	fakeOverrides = []string{
-		"rancherImage=myreg.io/myrepo/verrazzano/rancher",
-		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c",
-		"global.hub=myreg.io/myrepo/verrazzano",
-	}
+	fakeOverrides = "rancherImageTag=v2.5.7-20210407205410-1c7b39d0c,rancherImage=myreg.io/myrepo/verrazzano/rancher,global.hub=myreg.io/myrepo/verrazzano"
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
@@ -228,10 +217,7 @@ func TestInstall(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
-	fakeOverrides = []string{
-		"rancherImage=ghcr.io/verrazzano/rancher",
-		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c",
-	}
+	fakeOverrides = "rancherImageTag=v2.5.7-20210407205410-1c7b39d0c,rancherImage=ghcr.io/verrazzano/rancher"
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
@@ -253,7 +239,7 @@ func TestInstall(t *testing.T) {
 // TestInstallWithFileOverride tests the component install
 // GIVEN a component
 //  WHEN I call Install and the chart is not installed and has a custom overrides
-//  THEN the overrides struct is populated correctly there is an error for trying to read a file that does not exist
+//  THEN the overrides struct is populated correctly and there are no errors
 func TestInstallWithAllOverride(t *testing.T) {
 	a := assert.New(t)
 
@@ -276,16 +262,19 @@ func TestInstallWithAllOverride(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
-	fakeOverrides = []string{
-		"rancherImage=ghcr.io/verrazzano/rancher",
-		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c",
-	}
+	fakeOverrides = "rancherImageTag=v2.5.7-20210407205410-1c7b39d0c,rancherImage=ghcr.io/verrazzano/rancher"
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
 
-	SetUpgradeFunc(fakeUpgrade)
+	SetUpgradeFunc(func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+		a.Contains(overrides.FileOverrides, "my-overrides.yaml", "Overrides file not found")
+		a.Contains(overrides.SetOverrides, "setKey=setValue", "Incorrect --set overrides")
+		a.Contains(overrides.SetStringOverrides, "setStringKey=setStringValue", "Incorrect --set overrides")
+		a.Contains(overrides.SetFileOverrides, "setFileKey=setFileValue", "Incorrect --set overrides")
+		return fakeUpgrade(log, releaseName, namespace, chartDir, wait, dryRun, overrides)
+	})
 	defer SetDefaultUpgradeFunc()
 
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
@@ -299,8 +288,7 @@ func TestInstallWithAllOverride(t *testing.T) {
 	defer helm.SetDefaultChartStateFunction()
 
 	err := comp.Install(spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
-	a.Error(err, "Install did not return an open file error")
-	a.Equal(err.Error(), "Could not open file setFileValue: open setFileValue: no such file or directory")
+	a.NoError(err, "Install returned an error")
 }
 
 // TestInstallPreviousFailure tests the component install
@@ -322,10 +310,7 @@ func TestInstallPreviousFailure(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
-	fakeOverrides = []string{
-		"rancherImage=ghcr.io/verrazzano/rancher",
-		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c",
-	}
+	fakeOverrides = "rancherImageTag=v2.5.7-20210407205410-1c7b39d0c,rancherImage=ghcr.io/verrazzano/rancher"
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
@@ -370,10 +355,29 @@ func TestInstallWithPreInstallFunc(t *testing.T) {
 
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
+	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function,
+	// plus values returned from the preInstall function if present
+	var buffer bytes.Buffer
+	buffer.WriteString("rancherImageTag=v2.5.7-20210407205410-1c7b39d0c,rancherImage=ghcr.io/verrazzano/rancher,")
+	for i, kv := range preInstallKVPairs {
+		buffer.WriteString(kv.Key)
+		buffer.WriteString("=")
+		buffer.WriteString(kv.Value)
+		if i != len(preInstallKVPairs)-1 {
+			buffer.WriteString(",")
+		}
+	}
+	expectedOverridesString := buffer.String()
+
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
-	SetUpgradeFunc(fakeUpgrade)
+	SetUpgradeFunc(func(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+		if overrides.SetOverrides != expectedOverridesString {
+			return nil, nil, fmt.Errorf("Unexpected overrides string %s, expected %s", overrides, expectedOverridesString)
+		}
+		return []byte{}, []byte{}, nil
+	})
 	defer SetDefaultUpgradeFunc()
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartNotFound, nil
@@ -555,381 +559,8 @@ func TestReady(t *testing.T) {
 	}
 }
 
-// TestOrganizeHelmValues tests OrganizeHelmValues
-// GIVEN a key value list
-//  WHEN I call OrganizeHelmValues
-//  THEN I get a reverse list of my key value pairs as HelmComponent objects
-func TestOrganizeHelmValues(t *testing.T) {
-	tests := []struct {
-		name              string
-		kvs               []bom.KeyValue
-		expectedHelmOrder []string
-	}{
-		{
-			name:              "test empty values",
-			kvs:               []bom.KeyValue{},
-			expectedHelmOrder: []string{},
-		},
-		{
-			name: "test one value",
-			kvs: []bom.KeyValue{
-				{
-					Key:   "test1",
-					Value: "expect1",
-				},
-			},
-			expectedHelmOrder: []string{"test1=expect1"},
-		},
-		{
-			name: "test multiple values",
-			kvs: []bom.KeyValue{
-				{
-					Key:       "test1",
-					Value:     "expect1",
-					SetString: true,
-				},
-				{
-					Key:   "test2",
-					Value: "expect2",
-				},
-				{
-					Key:     "test3",
-					Value:   "expect3",
-					SetFile: true,
-				},
-			},
-			expectedHelmOrder: []string{"test3=expect3", "test2=expect2", "test1=expect1"},
-		},
-	}
-
-	a := assert.New(t)
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			comp := HelmComponent{}
-			overrides := comp.organizeHelmOverrides(tt.kvs)
-			for i, override := range overrides {
-				if override.SetOverrides != "" {
-					a.Equal(tt.expectedHelmOrder[i], override.SetOverrides)
-				}
-				if override.FileOverride != "" {
-					a.Equal(tt.expectedHelmOrder[i], override.FileOverride)
-				}
-				if override.SetStringOverrides != "" {
-					a.Equal(tt.expectedHelmOrder[i], override.SetStringOverrides)
-				}
-				if override.SetFileOverrides != "" {
-					a.Equal(tt.expectedHelmOrder[i], override.SetFileOverrides)
-				}
-			}
-		})
-	}
-}
-
-//  TestFilesFromVerrazzanoHelm tests filesFromVerrazzanoHelm
-//  GIVEN an override list
-//  WHEN I call retrieveHelmOverrideResources
-//  THEN I get a list of key value pairs of files from the override sources
-func TestFilesFromVerrazzanoHelm(t *testing.T) {
-
-	tests := []struct {
-		name             string
-		expectError      bool
-		component        *HelmComponent
-		additionalValues []bom.KeyValue
-		kvsLen           int
-	}{
-		{
-			name:             "test no overrides",
-			expectError:      false,
-			component:        &HelmComponent{},
-			additionalValues: []bom.KeyValue{},
-			kvsLen:           1,
-		},
-		{
-			name:        "test append overrides",
-			expectError: false,
-			component: &HelmComponent{
-				AppendOverridesFunc: func(_ spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-					kvs = append(kvs, bom.KeyValue{Key: "testKey1", Value: "testValue1"})
-					kvs = append(kvs, bom.KeyValue{Key: "testKey2.testdir", Value: "testValue2"})
-					return kvs, nil
-				},
-			},
-			additionalValues: []bom.KeyValue{},
-			kvsLen:           1,
-		},
-		{
-			name:        "test image overrides",
-			expectError: false,
-			component: &HelmComponent{
-				ReleaseName: "prometheus-operator",
-			},
-			additionalValues: []bom.KeyValue{},
-			kvsLen:           1,
-		},
-		{
-			name:        "test extra overrides",
-			expectError: false,
-			component:   &HelmComponent{},
-			additionalValues: []bom.KeyValue{
-				{Key: "test1", Value: "test1Value"},
-				{Key: "test2", Value: "test2Value"},
-			},
-			kvsLen: 1,
-		},
-		{
-			name:        "test file overrides",
-			expectError: false,
-			component: &HelmComponent{
-				AppendOverridesFunc: func(_ spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-					kvs = append(kvs, bom.KeyValue{Value: "file1", IsFile: true})
-					kvs = append(kvs, bom.KeyValue{Value: "file2", IsFile: true})
-					return kvs, nil
-				},
-			},
-			additionalValues: []bom.KeyValue{
-				{Value: "file3", IsFile: true},
-				{Value: "file4", IsFile: true},
-			},
-			kvsLen: 5,
-		},
-		{
-			name:        "test get file error",
-			expectError: true,
-			component:   &HelmComponent{},
-			additionalValues: []bom.KeyValue{
-				{Key: "key1", Value: "randomPath", SetFile: true},
-			},
-			kvsLen: 0,
-		},
-		{
-			name:        "test everything",
-			expectError: false,
-			component: &HelmComponent{
-				AppendOverridesFunc: func(_ spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-					kvs = append(kvs, bom.KeyValue{Value: "file1", IsFile: true})
-					kvs = append(kvs, bom.KeyValue{Key: "key2", Value: "string2", SetString: true})
-					return kvs, nil
-				},
-				ReleaseName: "prometheus-operator",
-			},
-			additionalValues: []bom.KeyValue{
-				{Value: "file3", IsFile: true},
-				{Key: "bomFile", Value: testBomFilePath, SetFile: true},
-			},
-			kvsLen: 3,
-		},
-	}
-
-	a := assert.New(t)
-	mock := gomock.NewController(t)
-	client := mocks.NewMockClient(mock)
-	config.SetDefaultBomFilePath(testBomFilePath)
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			verrazzano := &v1alpha1.Verrazzano{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "test",
-					Namespace: "testns",
-				},
-			}
-
-			ctx := spi.NewFakeContext(client, verrazzano, false)
-
-			kvs, err := tt.component.filesFromVerrazzanoHelm(ctx, verrazzano.Namespace, tt.additionalValues)
-			a.Equal(tt.kvsLen, len(kvs))
-			for _, kv := range kvs {
-				a.True(kv.IsFile)
-			}
-			if tt.expectError {
-				a.Error(err)
-			} else {
-				a.NoError(err)
-			}
-		})
-	}
-}
-
-// TestRetrieveHelmOverrideResources tests retrieveHelmOverrideResources
-// GIVEN an override list
-//  WHEN I call retrieveHelmOverrideResources
-//  THEN I get a list of key value pairs of files from the override sources
-func TestRetrieveHelmOverrideResources(t *testing.T) {
-	trueval := true
-	dataKey := "testKey"
-	wrongKey := "wrongKey"
-	testName := "testName"
-	dataVal := "dataVal"
-
-	tests := []struct {
-		name          string
-		overrides     []v1alpha1.Overrides
-		expectError   bool
-		expectCMGet   bool
-		expectSecGet  bool
-		expectCMData  map[string]string
-		expectSecData map[string][]byte
-	}{
-		{
-			name:        "test no overrides",
-			overrides:   []v1alpha1.Overrides{},
-			expectError: false,
-		},
-		{
-			name: "test nil refs",
-			overrides: []v1alpha1.Overrides{
-				{
-					ConfigMapRef: nil,
-					SecretRef:    nil,
-				},
-			},
-			expectError: false,
-		},
-		{
-			name: "test nil selectors",
-			overrides: []v1alpha1.Overrides{
-				{
-					ConfigMapRef: nil,
-					SecretRef:    nil,
-				},
-			},
-			expectError: false,
-		},
-		{
-			name: "test configMap selectors",
-			overrides: []v1alpha1.Overrides{
-				{
-					ConfigMapRef: &corev1.ConfigMapKeySelector{
-						Key: dataKey,
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testName,
-						},
-					},
-				},
-			},
-			expectError: false,
-			expectCMGet: true,
-			expectCMData: map[string]string{
-				dataKey: dataVal,
-			},
-		},
-		{
-			name: "test Secret selectors",
-			overrides: []v1alpha1.Overrides{
-				{
-					SecretRef: &corev1.SecretKeySelector{
-						Key: dataKey,
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testName,
-						},
-					},
-				},
-			},
-			expectError:  false,
-			expectSecGet: true,
-			expectSecData: map[string][]byte{
-				dataKey: []byte(dataVal),
-			},
-		},
-		{
-			name: "test invalid data selectors",
-			overrides: []v1alpha1.Overrides{
-				{
-					SecretRef: &corev1.SecretKeySelector{
-						Key: dataKey,
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testName,
-						},
-					},
-				},
-			},
-			expectError:  true,
-			expectSecGet: true,
-			expectSecData: map[string][]byte{
-				wrongKey: []byte(dataVal),
-			},
-		},
-		{
-			name: "test invalid data selectors optional",
-			overrides: []v1alpha1.Overrides{
-				{
-					ConfigMapRef: &corev1.ConfigMapKeySelector{
-						Key: dataKey,
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testName,
-						},
-						Optional: &trueval,
-					},
-				},
-			},
-			expectError: false,
-			expectCMGet: true,
-			expectSecData: map[string][]byte{
-				wrongKey: []byte(dataVal),
-			},
-		},
-		{
-			name: "test valid data selectors optional",
-			overrides: []v1alpha1.Overrides{
-				{
-					ConfigMapRef: &corev1.ConfigMapKeySelector{
-						Key: dataKey,
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testName,
-						},
-						Optional: &trueval,
-					},
-				},
-			},
-			expectError: false,
-			expectCMGet: true,
-			expectSecData: map[string][]byte{
-				dataKey: []byte(dataVal),
-			},
-		},
-	}
-
-	a := assert.New(t)
-	mock := gomock.NewController(t)
-	client := mocks.NewMockClient(mock)
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.expectCMGet {
-				client.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).DoAndReturn(
-					func(ctx context.Context, nsn types.NamespacedName, configmap *corev1.ConfigMap) error {
-						configmap.Data = tt.expectCMData
-						return nil
-					})
-			}
-			if tt.expectSecGet {
-				client.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).DoAndReturn(
-					func(ctx context.Context, nsn types.NamespacedName, sec *corev1.Secret) error {
-						sec.Data = tt.expectSecData
-						return nil
-					})
-			}
-
-			ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)
-
-			comp := HelmComponent{}
-			kvs, err := comp.retrieveHelmOverrideResources(ctx, tt.overrides)
-			if tt.expectError {
-				a.Error(err)
-			} else {
-				for _, kv := range kvs {
-					a.NotEqual(kv.Value, "")
-					a.True(kv.IsFile)
-				}
-				a.NoError(err)
-			}
-		})
-	}
-}
-
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 	if releaseName != "rancher" {
 		return []byte("error"), []byte(""), errors.New("Invalid release name")
 	}
@@ -940,11 +571,20 @@ func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string,
 		return []byte("error"), []byte(""), errors.New("Invalid chart namespace")
 	}
 
-	for _, override := range overrides {
-		if override.FileOverride == "" {
-			return []byte("error"), []byte(""), errors.New("found empty filename or non-file override")
+	foundChartOverridesFile := false
+	for _, file := range overrides.FileOverrides {
+		if file == "ValuesFile" {
+			foundChartOverridesFile = true
+			break
 		}
+	}
+	if !foundChartOverridesFile {
+		return []byte("error"), []byte(""), errors.New("Invalid values file")
+	}
 
+	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
+	if !strings.Contains(overrides.SetOverrides, fakeOverrides) {
+		return []byte("error"), []byte(""), errors.New("Invalid overrides")
 	}
 	return []byte("success"), []byte(""), nil
 }
