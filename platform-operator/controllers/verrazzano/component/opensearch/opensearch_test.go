@@ -487,7 +487,7 @@ func TestIsReadyNotInstalled(t *testing.T) {
 // TestIsReady tests the isOpenSearchReady call
 // GIVEN OpenSearch components that are all enabled by default
 //  WHEN I call isOpenSearchReady when all requirements are met
-//  THEN false is returned
+//  THEN true is returned
 func TestIsReady(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&appsv1.Deployment{
@@ -521,9 +521,9 @@ func TestIsReady(t *testing.T) {
 				Labels:    map[string]string{"app": "system-es-ingest"},
 			},
 			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
+				AvailableReplicas: 2,
+				Replicas:          2,
+				UpdatedReplicas:   2,
 			},
 		},
 		&appsv1.StatefulSet{
@@ -533,8 +533,8 @@ func TestIsReady(t *testing.T) {
 				Labels:    map[string]string{"app": "system-es-master"},
 			},
 			Status: appsv1.StatefulSetStatus{
-				ReadyReplicas:   1,
-				UpdatedReplicas: 1,
+				ReadyReplicas:   3,
+				UpdatedReplicas: 3,
 			},
 		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
@@ -547,7 +547,7 @@ func TestIsReady(t *testing.T) {
 			ESInstallArgs: []vzapi.InstallArgs{
 				{
 					Name:  "nodes.master.replicas",
-					Value: "2",
+					Value: "3",
 				},
 				{
 					Name:  "nodes.data.replicas",
@@ -669,4 +669,37 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 	}
 	ctx := spi.NewFakeContext(c, vz, false)
 	assert.True(t, isOSReady(ctx))
+}
+
+// TestIsinstalled tests the Verrazzano doesPromExist call
+// GIVEN a Verrazzano component
+//  WHEN I call doesPromExist
+//  THEN true is returned
+func TestIsinstalled(t *testing.T) {
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      esMasterStatefulset,
+				Labels:    map[string]string{"app": "system-prometheus"},
+			},
+		},
+	).Build()
+	vz := &vzapi.Verrazzano{}
+	vz.Spec.Components = vzapi.ComponentSpec{
+		Elasticsearch: &vzapi.ElasticsearchComponent{
+			ESInstallArgs: []vzapi.InstallArgs{
+				{
+					Name:  "nodes.master.replicas",
+					Value: "2",
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(c, vz, false)
+	assert.True(t, doesOSExist(ctx))
 }
