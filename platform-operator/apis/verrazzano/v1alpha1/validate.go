@@ -149,21 +149,21 @@ func ValidateUpgradeRequest(current *Verrazzano, new *Verrazzano) error {
 		return validateNewVersion(current, newVerString, bomVersion)
 	}
 
-	// No new version set, check if an upgrade is needed before we allow any edits
-	// - this happens when we have a new version available and an edit has happened before an upgrade
-	if err := checkUpgradeRequired(current.Status.Version, bomVersion); err != nil {
+	// No new version set, we haven't done any upgrade before but may need to do one before allowing any edits;
+	// this forces the user to opt-in to an upgrade before/with any other update
+	if err := checkInitialUpgradeRequired(current.Status.Version, bomVersion); err != nil {
 		return err
 	}
 	return nil
 }
 
-//checkUpgradeRequired Returns an error if the current installed version is < the BOM version; if we're validating an
+//checkInitialUpgradeRequired Returns an error if the current installed version is < the BOM version; if we're validating an
 // update, this is an error condition, as we don't want to allow any updates without an upgrade
-func checkUpgradeRequired(statusVersion string, bomVersion *semver.SemVersion) error {
+func checkInitialUpgradeRequired(statusVersion string, bomVersion *semver.SemVersion) error {
 	installedVerString := strings.TrimSpace(statusVersion)
 	if len(installedVerString) == 0 {
 		// Boundary condition -- likely just created and install hasn't started yet
-		// - seems we get an immediate update/validation on initial creation
+		// - seems we get an immediate update/validation on initial CR creation
 		return nil
 	}
 	installedVersion, err := semver.NewSemVersion(installedVerString)
@@ -183,7 +183,8 @@ func validateNewVersion(current *Verrazzano, newVerString string, bomVersion *se
 		return err
 	}
 	if !newSpecVer.IsEqualTo(bomVersion) {
-		return fmt.Errorf("Requested version %s does not match BOM version %s, please upgrade to the current BOM version",
+		// A newer version is available, the user must opt-in to an upgrade before we allow any edits
+		return fmt.Errorf("Requested version %s does not match BOM version v%s, please upgrade to the current BOM version",
 			newSpecVer.ToString(), bomVersion.ToString())
 	}
 	// Verify that the new version request is > than the current version
