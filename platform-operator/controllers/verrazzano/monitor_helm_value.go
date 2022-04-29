@@ -138,7 +138,7 @@ func vzContainsResource(vz *installv1alpha1.Verrazzano, object client.Object) bo
 	// TODO: verify that the Verrazzano contains the object in a component helm config
 	checkResource := false
 	if vz.Spec.Components.PrometheusOperator.ValueOverrides != nil {
-		if vz.Spec.Components.PrometheusOperator.MonitorChanges != nil && *vz.Spec.Components.PrometheusOperator.MonitorChanges {
+		if vz.Spec.Components.PrometheusOperator.MonitorChanges == nil || *vz.Spec.Components.PrometheusOperator.MonitorChanges {
 			checkResource = checkResource || componentContainsResource(vz.Spec.Components.PrometheusOperator.ValueOverrides, object)
 		}
 	}
