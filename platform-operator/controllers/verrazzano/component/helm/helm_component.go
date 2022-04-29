@@ -420,7 +420,7 @@ func (h HelmComponent) filesFromVerrazzanoHelm(context spi.ComponentContext, nam
 	}
 
 	// Expand the existing kvs values into expected format
-	var yamlValues []string
+	var fileValues []bom.KeyValue
 	for _, kv := range kvs {
 		// If the value is a file, add it to the new kvs
 		if kv.IsFile {
@@ -437,20 +437,16 @@ func (h HelmComponent) filesFromVerrazzanoHelm(context spi.ComponentContext, nam
 			kv.Value = string(data)
 		}
 
-		yamlValue, err := yaml.Expand(0, false, kv.Key, kv.Value)
-		if err != nil {
-			return newKvs, err
-		}
-		yamlValues = append(yamlValues, yamlValue)
+		fileValues = append(fileValues, kv)
 	}
 
 	context.Log().Infof("YAML Values: %v", yamlValues)
 
 	// Take the YAML values and construct a YAML file
-	// Each value is overalyed by the next value, and lists are replaced
-	fileString, err := yaml.ReplacementMerge(yamlValues...)
+	// This uses the Helm YAML formatting
+	fileString, err := yaml.HelmValueFileConstructor(fileValues)
 	if err != nil {
-		return newKvs, context.Log().ErrorfNewErr("Failed to convert YAML values to a YAML file: %v", err)
+		return newKvs, context.Log().ErrorfNewErr("Could not create YAML file from key value pairs: %v", err)
 	}
 
 	// Create the file from the string
