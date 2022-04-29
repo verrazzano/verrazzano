@@ -110,12 +110,3 @@ kubernetes:
 
 externaldns:
   enabled: false
-
-prometheusOperator:
-  enabled: true
-
-kubeStateMetrics:
-  enabled: true
-
-prometheusPushgateway:
-  enabled: true

@@ -114,34 +114,34 @@ func undeployToDoListExample() {
 	start := time.Now()
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/todo-list/todo-list-application.yaml", namespace)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "deleting todo-list-application")
 
 	t.Logs.Info("Delete components")
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/todo-list/todo-list-components.yaml", namespace)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "deleting todo-list-components")
 
 	t.Logs.Info("Wait for pods to terminate")
 	Eventually(func() bool {
 		podsNotRunning, _ := pkg.PodsNotRunning(namespace, []string{"mysql", "tododomain-adminserver"})
 		return podsNotRunning
-	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "pods deleted")
 
 	t.Logs.Info("Delete namespace")
 	Eventually(func() error {
 		return pkg.DeleteNamespace(namespace)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "deleting namespace")
 
 	t.Logs.Info("Wait for finalizer to be removed")
 	Eventually(func() bool {
 		return pkg.CheckNamespaceFinalizerRemoved(namespace)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "namespace finalizer deleted")
 
 	t.Logs.Info("Deleted namespace check")
 	Eventually(func() bool {
 		_, err := pkg.GetNamespace(namespace)
 		return err != nil && errors.IsNotFound(err)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "namespace deleted")
 
 	// GIVEN the ToDoList app is undeployed
 	// WHEN the app config certificate generated to support secure gateways is fetched
@@ -150,7 +150,7 @@ func undeployToDoListExample() {
 	Eventually(func() bool {
 		_, err := pkg.GetCertificate("istio-system", namespace+"-todo-appconf-cert")
 		return err != nil && errors.IsNotFound(err)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "ingress trait cert deleted")
 
 	// GIVEN the ToDoList app is undeployed
 	// WHEN the app config secret generated to support secure gateways is fetched
@@ -166,7 +166,7 @@ func undeployToDoListExample() {
 			t.Logs.Errorf("Error attempting to get secret: %v", err)
 		}
 		return false
-	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "delete ingress trait secret")
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "ingress trait cert secret deleted")
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 

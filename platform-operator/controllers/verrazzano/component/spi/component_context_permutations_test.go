@@ -209,7 +209,7 @@ var devAllDisabledOverride = vzapi.Verrazzano{
 		Components: vzapi.ComponentSpec{
 			Console:           &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 			CoherenceOperator: &vzapi.CoherenceOperatorComponent{Enabled: &falseValue},
-			Elasticsearch:     &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+			Elasticsearch:     &vzapi.ElasticsearchComponent{Enabled: &falseValue},
 			Fluentd:           &vzapi.FluentdComponent{Enabled: &falseValue},
 			Grafana:           &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 			Kiali:             &vzapi.KialiComponent{Enabled: &falseValue},
@@ -345,7 +345,7 @@ var managedClusterEnableAllOverride = vzapi.Verrazzano{
 		Profile: "managed-cluster",
 		Components: vzapi.ComponentSpec{
 			Console:       &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
-			Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
+			Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &trueValue},
 			Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
 			Kiali:         &vzapi.KialiComponent{Enabled: &trueValue},
 			Keycloak:      &vzapi.KeycloakComponent{Enabled: &trueValue},

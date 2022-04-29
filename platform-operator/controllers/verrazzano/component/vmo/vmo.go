@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -38,19 +39,23 @@ func appendVMOOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, 
 
 	effectiveCR := ctx.EffectiveCR()
 
-	// Get the dnsSuffix override
-	dnsSuffix, err := vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
-	if err != nil {
-		return kvs, ctx.Log().ErrorfNewErr("Failed getting DNS suffix: %v", err)
+	// If NGINX is enabled, then get the values used to build up the defaultIngressTargetDNSName
+	// value in the VMO config map.  Otherwise, the value is not set in the VMO config map.
+	if vzconfig.IsNGINXEnabled(effectiveCR) {
+		// Get the dnsSuffix override
+		dnsSuffix, err := vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
+		if err != nil {
+			return kvs, ctx.Log().ErrorfNewErr("Failed getting DNS suffix: %v", err)
+		}
+		kvs = append(kvs, bom.KeyValue{Key: "config.dnsSuffix", Value: dnsSuffix})
+
+		// Get the env name
+		envName := vzconfig.GetEnvName(effectiveCR)
+
+		kvs = append(kvs, bom.KeyValue{Key: "config.envName", Value: envName})
 	}
-	kvs = append(kvs, bom.KeyValue{Key: "config.dnsSuffix", Value: dnsSuffix})
 
-	// Get the env name
-	envName := vzconfig.GetEnvName(effectiveCR)
-
-	kvs = append(kvs, bom.KeyValue{Key: "config.envName", Value: envName})
 	kvs = append(kvs, vzkvs...)
-
 	return kvs, nil
 }
 
@@ -85,10 +90,10 @@ func ExportVMOHelmChart(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// reassociateResources updates the resources to ensure they are managed by the VMO release/component.  The resource policy
+// ReassociateResources updates the resources to ensure they are managed by the VMO release/component.  The resource policy
 // annotation is removed to ensure that helm manages the lifecycle of the resources (the resource policy annotation is
 // added to ensure the resources are disassociated from the VZ chart which used to manage these resources)
-func reassociateResources(ctx spi.ComponentContext) error {
+func ReassociateResources(ctx spi.ComponentContext) error {
 	managedResources := getHelmManagedResources()
 	for _, managedResource := range managedResources {
 		if _, err := common.RemoveResourcePolicyAnnotation(ctx.Client(), managedResource.Obj, managedResource.NamespacedName); err != nil {
@@ -104,6 +109,7 @@ func reassociateResources(ctx spi.ComponentContext) error {
 func getHelmManagedResources() []common.HelmManagedResource {
 	return []common.HelmManagedResource{
 		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-config", Namespace: ComponentNamespace}},
+		{Obj: &appsv1.Deployment{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
 		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
 		{Obj: &corev1.ServiceAccount{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
 		{Obj: &rbacv1.ClusterRole{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-cluster-role"}},

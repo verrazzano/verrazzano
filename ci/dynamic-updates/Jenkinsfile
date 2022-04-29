@@ -593,24 +593,15 @@ def generate_nonwls_tests(dumpRoot) {
 
 def generate_wls_tests(dumpRoot) {
     return [
-        "examples bobs": {
-            if (params.RUN_SLOW_TESTS == true) {
-                runGinkgo('examples/bobsbooks', "${dumpRoot}/examples-bobs")
-            } else {
-                echo "Slow tests disabled, skipping Bob's Books tests"
-            }
+        "weblogic workload": {
+            runGinkgo('workloads/weblogic', "${dumpRoot}/weblogic-workload")
         },
-        "examples socks": {
-            // socks uses COH
-            runGinkgo('examples/socks', "${dumpRoot}/examples-socks")
-        },
-        "examples todo": {
-            runGinkgo('examples/todo', "${dumpRoot}/examples-todo")
+        "coherence workload": {
+            runGinkgo('workloads/coherence', "${dumpRoot}/coherence-workload")
         },
         "console ingress": {
             runGinkgo('ingress/console', "${dumpRoot}/console-ingress")
         },
-
     ]
 }
 

@@ -42,6 +42,8 @@ pipeline {
                 defaultValue: '3',
                 description: 'This is to define total number of jobs executed in parallel per each batch',
                 trim: true)
+        choice (description: 'Predefined config permutations for Verrazzano installation', name: 'VZ_SETUP_PROFILE',
+                choices: ["NONE","dev-kind-all-default"])
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
                         defaultValue: 'NONE',
                         description: 'This is for manually testing only where someone needs to use a specific operator image, otherwise the default value of NONE is used',
@@ -157,7 +159,7 @@ pipeline {
                         final String fileContent = readFile(file: "${workspace}/tags.txt")
                         final List gitTags = extractReleaseTags(fileContent)
                         echo "gitTags = ${gitTags}"
-                        TARGET_UPGRADE_VERSION = gitTags.pop() - "v"
+                        TARGET_UPGRADE_VERSION = gitTags.get(gitTags.size()-1) - "v"
                         TARGET_UPGRADE_VERSION = getNextPatchReleaseVersion(TARGET_UPGRADE_VERSION)
                         listOfUpgradeJobs = addTargetUpgradeVersion(gitTags)
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
@@ -407,6 +409,7 @@ def getStageOfUpgradeJob(job) {
                         string(name: 'GIT_COMMIT_TO_USE', value: LATEST_RELEASE_COMMIT_SHA ),
                         string(name: 'VERSION_FOR_INSTALL', value: job[0]),
                         string(name: 'VERSION_FOR_UPGRADE', value: job[1]),
+                        string(name: 'VZ_SETUP_PROFILE', value: params.VZ_SETUP_PROFILE),
                         string(name: 'IS_TRIGGERED_MANUALLY', value: "NO"),
                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),

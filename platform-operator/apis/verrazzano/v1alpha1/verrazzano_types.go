@@ -385,7 +385,8 @@ type MonitoringComponent struct {
 
 // ElasticsearchComponent specifies the Elasticsearch configuration.
 type ElasticsearchComponent struct {
-	MonitoringComponent `json:",inline"`
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 
 	// Arguments for installing Elasticsearch
 	// +optional
@@ -547,11 +548,19 @@ type IngressNginxComponent struct {
 
 // IstioIngressSection specifies the specific config options available for the Istio Ingress Gateways.
 type IstioIngressSection struct {
+	// Type of ingress.  Default is LoadBalancer
+	// +optional
+	Type IngressType `json:"type,omitempty"`
+	// Ports to be used for Istio Ingress Gateway
+	// +optional
+	Ports []corev1.ServicePort `json:"ports,omitempty"`
+	// +optional
 	Kubernetes *IstioKubernetesSection `json:"kubernetes,omitempty"`
 }
 
 // IstioEgressSection specifies the specific config options available for the Istio Egress Gateways.
 type IstioEgressSection struct {
+	// +optional
 	Kubernetes *IstioKubernetesSection `json:"kubernetes,omitempty"`
 }
 
@@ -750,21 +759,11 @@ type OciLoggingConfiguration struct {
 }
 
 type HelmValueOverrides struct {
-	MonitorChanges *WatchHelmValues `json:"monitorChanges,omitempty"`
-	ValueOverrides []Overrides      `json:"overrides,omitempty"`
+	MonitorChanges *bool       `json:"monitorChanges,omitempty"`
+	ValueOverrides []Overrides `json:"overrides,omitempty"`
 }
 
 type Overrides struct {
-	ConfigMapRef *ConfigMapRef `json:"configMapRef,omitempty"`
-	SecretRef    *SecretRef    `json:"secretRef,omitempty"`
+	ConfigMapRef *corev1.ConfigMapKeySelector `json:"configMapRef,omitempty"`
+	SecretRef    *corev1.SecretKeySelector    `json:"secretRef,omitempty"`
 }
-
-type ConfigMapRef struct {
-	ConfigMapKeySelector *corev1.ConfigMapKeySelector `json:",inline"`
-}
-
-type SecretRef struct {
-	SecretKeySelector *corev1.SecretKeySelector `json:",inline"`
-}
-
-type WatchHelmValues bool
