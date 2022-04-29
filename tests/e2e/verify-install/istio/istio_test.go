@@ -5,7 +5,11 @@ package istio
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -35,13 +39,14 @@ var _ = t.Describe("Istio", Label("f:platform-lcm.install"), func() {
 		t.Entry(fmt.Sprintf("%s namespace should exist", istioNamespace), istioNamespace),
 	)
 
+	expectedDeployments := []string{
+		"istio-egressgateway",
+		"istio-ingressgateway",
+		"istiod",
+	}
+
 	t.DescribeTable("deployments",
 		func(namespace string) {
-			expectedDeployments := []string{
-				"istio-egressgateway",
-				"istio-ingressgateway",
-				"istiod",
-			}
 
 			deploymentNames := func(deploymentList *appsv1.DeploymentList) []string {
 				var deploymentNames []string
@@ -62,4 +67,107 @@ var _ = t.Describe("Istio", Label("f:platform-lcm.install"), func() {
 		},
 		t.Entry(fmt.Sprintf("%s namespace should contain expected list of deployments", istioNamespace), istioNamespace),
 	)
+
+	t.DescribeTable("Pod replica counts",
+		func(namespace string) {
+
+			// Verify the correct number of pods for each deployment based on the profile & any overrides
+
+			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+			if err != nil {
+				Fail(err.Error())
+			}
+
+			vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+			if err != nil {
+				Fail(err.Error())
+			}
+
+			expectedPods := map[string]uint32{
+				"istio-egressgateway":  getEgressReplicaCount(vz),
+				"istio-ingressgateway": getIngressReplicaCount(vz),
+				"istiod":               getPilotReplicaCount(vz),
+			}
+
+			podCountsMap := map[string]uint32{}
+			Eventually(func() (map[string]uint32, error) {
+				for _, deploymentName := range expectedDeployments {
+					listOpts, err := buildListOpts(deploymentName)
+					if err != nil {
+						return map[string]uint32{}, err
+					}
+					podList, err := pkg.ListPods(namespace, listOpts)
+					if err != nil {
+						return map[string]uint32{}, err
+					}
+					podCountsMap[deploymentName] = uint32(len(podList.Items))
+				}
+				return podCountsMap, err
+			}, waitTimeout, pollingInterval).Should(Equal(expectedPods))
+		},
+		t.Entry(fmt.Sprintf("%s namespace should contain expected pod counts", istioNamespace), istioNamespace),
+	)
 })
+
+func buildListOpts(deploymentName string) (metav1.ListOptions, error) {
+	selector := metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"app": deploymentName,
+		},
+	}
+	labelMap, err := metav1.LabelSelectorAsMap(&selector)
+	if err != nil {
+		return metav1.ListOptions{}, err
+	}
+	listOpts := metav1.ListOptions{LabelSelector: labels.SelectorFromSet(labelMap).String()}
+	return listOpts, nil
+}
+
+func getIngressReplicaCount(vz *vzapi.Verrazzano) uint32 {
+	istio := vz.Spec.Components.Istio
+	if istio != nil {
+		if !isIstioEnabled(istio) {
+			return 0
+		}
+		if istio.Ingress != nil {
+			if istio.Ingress.Kubernetes != nil {
+				return istio.Ingress.Kubernetes.Replicas
+			}
+		}
+	}
+	if pkg.IsProdProfile() {
+		return 2
+	}
+	return 1
+}
+
+func getEgressReplicaCount(vz *vzapi.Verrazzano) uint32 {
+	istio := vz.Spec.Components.Istio
+	if istio != nil {
+		if !isIstioEnabled(istio) {
+			return 0
+		}
+		if istio.Egress != nil && istio.Egress.Kubernetes != nil {
+			return istio.Egress.Kubernetes.Replicas
+		}
+	}
+	if pkg.IsProdProfile() {
+		return 2
+	}
+	return 1
+}
+
+func getPilotReplicaCount(vz *vzapi.Verrazzano) uint32 {
+	istio := vz.Spec.Components.Istio
+	if istio != nil && !isIstioEnabled(istio) {
+		return 0
+	}
+	return 1
+}
+
+func isIstioEnabled(istio *vzapi.IstioComponent) bool {
+	if istio.Enabled != nil {
+		return *istio.Enabled
+	}
+	return true
+}
