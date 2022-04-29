@@ -173,7 +173,7 @@ func ValidateUpgradeRequest(current *Verrazzano, new *Verrazzano) error {
 		return err
 	}
 	if !newSpecVer.IsEqualTo(bomVersion) {
-		return fmt.Errorf("Requested version %s does not match BOM version %s",
+		return fmt.Errorf("Requested version %s does not match BOM version %s, please upgrade to the current BOM version",
 			newSpecVer.ToString(), bomVersion.ToString())
 	}
 
