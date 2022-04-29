@@ -109,12 +109,11 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Creating Override Secret"
-kubectl create secret test-overrides --from-file=${TEST_OVERRIDE_SECRET_FILE}
+kubectl create secret generic test-overrides --from-file=${TEST_OVERRIDE_SECRET_FILE}
 if [ $? -ne 0 ]; then
   echo "Could not create Override Secret"
   exit 1
 fi
-
 
 echo "Installing Verrazzano on Kind"
 install_retries=0
