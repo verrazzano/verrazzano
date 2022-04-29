@@ -138,37 +138,47 @@ func ValidateUpgradeRequest(current *Verrazzano, new *Verrazzano) error {
 		return nil
 	}
 
-	installedVerString := current.Status.Version
-	if len(strings.TrimSpace(installedVerString)) == 0 {
-		// Boundary condition -- likely just created and install hasn't started yet
-		return nil
-	}
-
-	currentSpec := current.Spec
-	newSpec := new.Spec
-
-	// if the installed version is not == BOM version and newspec versiom isn't set,
-	// reject the update; upgrade needs to happen before any update
+	// Get the current BOM version
 	bomVersion, err := GetCurrentBomVersion()
 	if err != nil {
 		return err
+	}
+
+	// Make sure the requested version matches what's in the BOM
+	newVerString := strings.TrimSpace(new.Spec.Version)
+	if len(newVerString) > 0 {
+		return validateNewVersion(current, newVerString, bomVersion)
+	}
+
+	// No new version set, check if an upgrade is needed before we allow any edits
+	if err := checkUpgradeRequired(current.Status.Version, bomVersion); err != nil {
+		return err
+	}
+	return nil
+}
+
+//checkUpgradeRequired Returns an error if the current installed version is < the BOM version; if we're validating an
+// update, this is an error condition, as we don't want to allow any updates without an upgrade
+func checkUpgradeRequired(statusVersion string, bomVersion *semver.SemVersion) error {
+	installedVerString := strings.TrimSpace(statusVersion)
+	if len(installedVerString) == 0 {
+		// Boundary condition -- likely just created and install hasn't started yet
+		// - seems we get an immediate update/validation on initial creation
+		return nil
 	}
 	installedVersion, err := semver.NewSemVersion(installedVerString)
 	if err != nil {
 		return err
 	}
-	if len(newSpec.Version) == 0 && bomVersion.IsGreatherThan(installedVersion) {
+	if bomVersion.IsGreatherThan(installedVersion) {
 		// Attempted an update before an upgrade has been done, reject the edit
 		return fmt.Errorf("Upgrade required for update, set version field to v%v to upgrade", bomVersion.ToString())
 	}
+	return nil
+}
 
-	// New version is a non-zero-len string, short-circuit if the version strings are the same
-	//if currentSpec.Version == newSpec.Version {
-	//	return nil
-	//}
-
-	// Make sure the requested version matches what's in the BOM
-	newSpecVer, err := semver.NewSemVersion(newSpec.Version)
+func validateNewVersion(current *Verrazzano, newVerString string, bomVersion *semver.SemVersion) error {
+	newSpecVer, err := semver.NewSemVersion(newVerString)
 	if err != nil {
 		return err
 	}
@@ -176,15 +186,15 @@ func ValidateUpgradeRequest(current *Verrazzano, new *Verrazzano) error {
 		return fmt.Errorf("Requested version %s does not match BOM version %s, please upgrade to the current BOM version",
 			newSpecVer.ToString(), bomVersion.ToString())
 	}
-
 	// Verify that the new version request is > than the current version
 	// - in reality, this should probably never happen
-	if len(currentSpec.Version) > 0 {
-		currentSpecVer, err := semver.NewSemVersion(currentSpec.Version)
+	currentVerString := strings.TrimSpace(current.Spec.Version)
+	if len(currentVerString) > 0 {
+		currentSpecVer, err := semver.NewSemVersion(currentVerString)
 		if err != nil {
 			return err
 		}
-		if newSpecVer.IsLessThan(currentSpecVer) {
+		if newSpecVer != nil && newSpecVer.IsLessThan(currentSpecVer) {
 			return fmt.Errorf("Requested version %s is not newer than current version %s",
 				newSpecVer.ToString(), currentSpecVer.ToString())
 		}
