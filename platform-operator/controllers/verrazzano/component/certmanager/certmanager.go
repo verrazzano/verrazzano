@@ -357,7 +357,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 	// use image value for arg override
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
-		return kvs, compContext.Log().ErrorNewErr("Failed to get the bom file for the Prometheus Operator image overrides: ", err)
+		return kvs, compContext.Log().ErrorNewErr("Failed to get the BOM file for the cert-manager image overrides: ", err)
 	}
 
 	images, err := bomFile.BuildImageOverrides("cert-manager")

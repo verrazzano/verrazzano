@@ -3,9 +3,10 @@
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 
-def allReleasesToRCJobs
-def allReleasesToRCStagesMap
+def listOfUpgradeJobs
+def upgradeJobsStageMapping
 
+def branchSpecificSchedule = getCronSchedule()
 pipeline {
     options {
         skipDefaultCheckout true
@@ -20,7 +21,9 @@ pipeline {
             label "${agentLabel}"
         }
     }
-
+    triggers {
+        cron(branchSpecificSchedule)
+    }
     // Use cases:
     //        1) (automatic) master, release* will trigger this job by default on successful runs and supply GIT_COMMIT_TO_USE with the exact GIT commit to use for all testing (same as the upstream build)
     //        2) (automatic) branch builds with TRIGGER_FULL_TESTS enabled will trigger this job by default on successful runs and supply GIT_COMMIT_TO_USE with the exact GIT commit to use for all testing (same as the upstream build)
@@ -37,8 +40,10 @@ pipeline {
                         trim: true)
         string (name: 'N_JOBS_FOR_EACH_BATCH',
                 defaultValue: '3',
-                description: 'This is to define total number of jobs executed parallelly per each batch',
+                description: 'This is to define total number of jobs executed in parallel per each batch',
                 trim: true)
+        choice (description: 'Predefined config permutations for Verrazzano installation', name: 'VZ_SETUP_PROFILE',
+                choices: ["NONE","dev-kind-all-default"])
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
                         defaultValue: 'NONE',
                         description: 'This is for manually testing only where someone needs to use a specific operator image, otherwise the default value of NONE is used',
@@ -154,30 +159,31 @@ pipeline {
                         final String fileContent = readFile(file: "${workspace}/tags.txt")
                         final List gitTags = extractReleaseTags(fileContent)
                         echo "gitTags = ${gitTags}"
-                        TARGET_UPGRADE_VERSION = gitTags.pop() - "v"
+                        TARGET_UPGRADE_VERSION = gitTags.get(gitTags.size()-1) - "v"
                         TARGET_UPGRADE_VERSION = getNextPatchReleaseVersion(TARGET_UPGRADE_VERSION)
-                        allReleasesToRCJobs = addTargetUpgradeVersion(gitTags)
+                        listOfUpgradeJobs = addTargetUpgradeVersion(gitTags)
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
                         echo "Number of jobs to be run in parallel : ${params.N_JOBS_FOR_EACH_BATCH}"
                         def k = 0
                         def  mapOfJobsInBatches = []
-                        allReleasesToRCStagesMap = [:]
-                        for(int i=0;i<allReleasesToRCJobs.size();i++){
+                        upgradeJobsStageMapping = [:]
+                        for(int i=0;i<listOfUpgradeJobs.size();i++){
                             if(k<NJObs){
-                                allReleasesToRCStagesMap.put(allReleasesToRCJobs.get(i),allReleasesToRCStage(allReleasesToRCJobs.get(i)))
+                                upgradeJobsStageMapping.put(listOfUpgradeJobs.get(i),getStageOfUpgradeJob(listOfUpgradeJobs.get(i)))
                                 k++;
                             }
-                            if(k==NJObs || i == allReleasesToRCJobs.size()-1){
-                                mapOfJobsInBatches.add(allReleasesToRCStagesMap)
-                                allReleasesToRCStagesMap = [:]
+                            if(k==NJObs || i == listOfUpgradeJobs.size()-1){
+                                mapOfJobsInBatches.add(upgradeJobsStageMapping)
+                                upgradeJobsStageMapping = [:]
                                 k = 0;
                             }
                     }
                     print mapOfJobsInBatches
                     for(batch in mapOfJobsInBatches){
                         parallel batch
+                        sleep 5
                     }
-                    //parallel allReleasesToRCStagesMap
+                    //parallel upgradeJobsStageMapping
                      }
                    }
                 }
@@ -392,17 +398,18 @@ List extractReleaseTags(final String fileContent) {
     return releases
 }
 
-def allReleasesToRCStage(job) {
+def getStageOfUpgradeJob(job) {
     return {
-        try {
-            stage("Upgrade Verrazzano from version ${job[0]} to  ${job[1]}"){
-                script {
+        stage("Upgrade Verrazzano from version ${job[0]} to  ${job[1]}"){
+            script {
+                try {
                     echo "Running upgrade job from version ${job[0]} to ${job[1]}"
                     def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                     parameters: [
                         string(name: 'GIT_COMMIT_TO_USE', value: LATEST_RELEASE_COMMIT_SHA ),
                         string(name: 'VERSION_FOR_INSTALL', value: job[0]),
                         string(name: 'VERSION_FOR_UPGRADE', value: job[1]),
+                        string(name: 'VZ_SETUP_PROFILE', value: params.VZ_SETUP_PROFILE),
                         string(name: 'IS_TRIGGERED_MANUALLY', value: "NO"),
                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
@@ -411,11 +418,14 @@ def allReleasesToRCStage(job) {
                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                         booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                     ],  wait: true, propagate: true
+                }catch(err){
+                    catchError(message: "${STAGE_NAME} Failed with ${err}", buildResult: 'FAILURE', stageResult: 'FAILURE'){
+                        echo "Caught: ${err}"
+                        sh "exit 1"
+                    }
+                   // currentBuild.result = 'FAILURE'
                 }
             }
-        }catch(err){
-            echo "Caught: ${err}"
-            currentBuild.result = 'FAILURE'
         }
     }
 }
@@ -445,4 +455,12 @@ def getLatestReleaseBranch(){
         userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
         def releaseBranchCommitSHA = scmReleaseBranchInfo.GIT_COMMIT
     return releaseBranchCommitSHA
+}
+
+def getCronSchedule() {
+    if (env.BRANCH_NAME.equals("master")) {
+        //Set cron job to run every week at 9 AM on Fridays.
+        return "0 9 * * 5"
+    }
+    return ""
 }

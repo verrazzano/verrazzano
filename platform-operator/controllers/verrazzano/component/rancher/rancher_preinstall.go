@@ -5,7 +5,6 @@ package rancher
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -77,33 +76,4 @@ func isUsingDefaultCACertificate(cm *vzapi.CertManagerComponent) bool {
 		cm.Certificate.CA != vzapi.CA{} &&
 		cm.Certificate.CA.SecretName == defaultVerrazzanoName &&
 		cm.Certificate.CA.ClusterResourceNamespace == defaultSecretNamespace
-}
-
-func createAdditionalCertificates(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi.Verrazzano) error {
-	cm := vz.Spec.Components.CertManager
-	if (cm != nil && cm.Certificate.Acme != vzapi.Acme{} && useAdditionalCAs(cm.Certificate.Acme)) {
-		log.Debugf("Creating additional Rancher certificates for non-production environment")
-		secret := &v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: common.CattleSystem,
-				Name:      common.RancherAdditionalIngressCAName,
-			},
-		}
-
-		if _, err := controllerruntime.CreateOrUpdate(context.TODO(), c, secret, func() error {
-			builder := &certBuilder{
-				hc: &http.Client{},
-			}
-			if err := builder.buildLetsEncryptStagingChain(); err != nil {
-				return err
-			}
-			secret.Data = map[string][]byte{
-				common.RancherCAAdditionalPem: builder.cert,
-			}
-			return nil
-		}); err != nil {
-			return err
-		}
-	}
-	return nil
 }

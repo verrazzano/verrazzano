@@ -64,7 +64,7 @@ type HelmComponent struct {
 	// AppendOverridesFunc is an optional function get additional override values
 	AppendOverridesFunc appendOverridesSig
 
-	// SupportsHelmValueOverrides Indicates whether or not the component supports helm value overrides
+	// GetHelmValueOverrides is an optional function that returns the helm override values
 	GetHelmValueOverrides getHelmValueOverridesSig
 
 	// ResolveNamespaceFunc is an optional function to process the namespace name
@@ -446,11 +446,11 @@ func (h HelmComponent) filesFromVerrazzanoHelm(context spi.ComponentContext, nam
 
 	context.Log().Infof("YAML Values: %v", yamlValues)
 
-	// Take the yaml values and construct a yaml file
+	// Take the YAML values and construct a YAML file
 	// Each value is overalyed by the next value, and lists are replaced
 	fileString, err := yaml.ReplacementMerge(yamlValues...)
 	if err != nil {
-		return newKvs, context.Log().ErrorfNewErr("Failed to convert yaml values to a yaml file: %v", err)
+		return newKvs, context.Log().ErrorfNewErr("Failed to convert YAML values to a YAML file: %v", err)
 	}
 
 	// Create the file from the string

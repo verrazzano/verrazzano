@@ -27,6 +27,7 @@ const (
 	shortWaitTimeout         = 5 * time.Minute
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
+	skipVerifications	     = "Skip Verifications"
 )
 
 var (
@@ -50,8 +51,9 @@ var _ = t.BeforeSuite(func() {
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
-	Eventually(helloHelidonPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
-
+	if !skipVerify {
+		Eventually(helloHelidonPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
+	}
 	beforeSuitePassed = true
 })
 
@@ -75,7 +77,6 @@ var _ = t.AfterSuite(func() {
 
 var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	"f:app-lcm.helidon-workload"), func() {
-
 	var host = ""
 	var err error
 	// Get the host from the Istio gateway resource.
@@ -95,6 +96,9 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	// THEN the application endpoint must be accessible
 	t.Describe("for Ingress.", Label("f:mesh.ingress"), func() {
 		t.It("Access /greet App Url.", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
 			url := fmt.Sprintf("https://%s/greet", host)
 			Eventually(func() bool {
 				return appEndpointAccessible(url, host)
@@ -108,6 +112,9 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	// THEN the application metrics must be accessible
 	t.Describe("for Metrics.", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
 		t.It("Retrieve Prometheus scraped metrics", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
 			pkg.Concurrently(
 				func() {
 					Eventually(appMetricsExists, longWaitTimeout, longPollingInterval).Should(BeTrue())
@@ -136,6 +143,9 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
 		t.It("Verify Elasticsearch index exists", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
 			Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for hello helidon")
@@ -145,6 +155,9 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 		// WHEN the log records are retrieved from the Elasticsearch index
 		// THEN verify that at least one recent log record is found
 		t.It("Verify recent Elasticsearch log record exists", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
 			Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"kubernetes.labels.app_oam_dev\\/name": "hello-helidon-appconf",
@@ -160,6 +173,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
 		})
 	})
+
 })
 
 func helloHelidonPodsRunning() bool {

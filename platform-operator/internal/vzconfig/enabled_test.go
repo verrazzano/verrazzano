@@ -442,3 +442,34 @@ func TestIsNGINXEnabled(t *testing.T) {
 			},
 		}}))
 }
+
+// TestIsJaegerOperatorEnabled tests the IsJaegerOperatorEnabled function
+// GIVEN a call to IsJaegerOperatorEnabled
+//  THEN the value of the Enabled flag is returned if present, false otherwise (disabled by default)
+func TestIsJaegerOperatorEnabled(t *testing.T) {
+	asserts := assert.New(t)
+	asserts.False(IsJaegerOperatorEnabled(nil))
+	asserts.False(IsJaegerOperatorEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.False(IsJaegerOperatorEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				JaegerOperator: &vzapi.JaegerOperatorComponent{},
+			},
+		}}))
+	asserts.True(IsJaegerOperatorEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				JaegerOperator: &vzapi.JaegerOperatorComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsJaegerOperatorEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				JaegerOperator: &vzapi.JaegerOperatorComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+}
