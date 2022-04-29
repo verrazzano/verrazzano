@@ -71,6 +71,15 @@ function delete_verrazzano() {
   delete_managed_k8s_resources traitdefinitions.core.oam.dev
   delete_managed_k8s_resources workloaddefinitions.core.oam.dev
   delete_managed_k8s_resources scopedefinitions.core.oam.dev
+
+  # Delete coherence.coherence.oracle.com and domains.weblogic.oracle CRDs
+  log "Deleting Oracle crds"
+  delete_k8s_resources crds ":metadata.name" "Could not delete CustomResourceDefinitions from Oracle" '/oracle/' \
+    || return $? # return on pipefail
+  # Delete coherence.coherence.oracle.com and domains.weblogic.oracle CRDs
+  log "Deleting core.oam.dev crds"
+  delete_k8s_resources crds ":metadata.name" "Could not delete CustomResourceDefinitions from core.oam.dev" '/core.oam.dev/' \
+    || return $? # return on pipefail
 }
 
 function delete_oam_operator {
