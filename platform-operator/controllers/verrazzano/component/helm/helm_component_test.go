@@ -716,6 +716,7 @@ func TestFilesFromVerrazzanoHelm(t *testing.T) {
 			},
 			additionalValues: []bom.KeyValue{
 				{Value: "file3", IsFile: true},
+				{Key: "bomFile", Value: testBomFilePath, SetFile: true},
 			},
 			kvsLen: 3,
 		},

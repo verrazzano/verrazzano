@@ -10,23 +10,29 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 )
 
-const oneOverrideExpect = `name: test-name`
+const oneOverrideExpect = `name: test-name
+`
 const oneListOverrideExpect = `name:
-- test-name`
+- test-name
+`
 const oneListNestedExpect = `name:
-- name: test-name`
+- name: test-name
+`
 const multipleListNestedExpect = `name:
 - name1: test-name
   name2: test-name
-  name3: test-name`
+  name3: test-name
+`
 const multilineExpect = `name: |-
   name1
   name2
-  name3`
+  name3
+`
 const multipleListExpect = `name:
 - name1: test-name
 - name2: test-name
-- name3: test-name`
+- name3: test-name
+`
 
 // TestExpand tests the Expand function
 // GIVEN a set of dot seperated names
@@ -42,7 +48,7 @@ func TestHelmValueFileConstructor(t *testing.T) {
 		{
 			name:        "test no overrides",
 			kvs:         []bom.KeyValue{},
-			expected:    "{}",
+			expected:    "{}\n",
 			expectError: false,
 		},
 		{
