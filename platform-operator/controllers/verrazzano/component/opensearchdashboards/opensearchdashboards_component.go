@@ -8,8 +8,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
@@ -35,7 +33,7 @@ type opensearchDashboardsComponent struct{}
 
 // GetDependencies returns the dependencies of the OpenSearch-Dashbaords component
 func (d opensearchDashboardsComponent) GetDependencies() []string {
-	return []string{istio.ComponentName, nginx.ComponentName, vmo.ComponentName}
+	return []string{vmo.ComponentName}
 }
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the OpenSearch-Dashboards component
@@ -166,7 +164,7 @@ func (d opensearchDashboardsComponent) isOpenSearchDashboardEnabled(old *vzapi.V
 func (d opensearchDashboardsComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var ingressNames []types.NamespacedName
 
-	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
+	if vzconfig.IsNGINXEnabled(ctx.EffectiveCR()) {
 		ingressNames = append(ingressNames, types.NamespacedName{
 			Namespace: ComponentNamespace,
 			Name:      constants.KibanaIngress,
@@ -176,16 +174,12 @@ func (d opensearchDashboardsComponent) GetIngressNames(ctx spi.ComponentContext)
 	return ingressNames
 }
 
-// GetCertificateNames - gets the names of the ingresses associated with this component
-func (d opensearchDashboardsComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
-	var certificateNames []types.NamespacedName
-
-	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
-		certificateNames = append(certificateNames, types.NamespacedName{
+// GetCertificateNames - gets the names of the certificates associated with this component
+func (d opensearchDashboardsComponent) GetCertificateNames(_ spi.ComponentContext) []types.NamespacedName {
+	return []types.NamespacedName{
+		{
 			Namespace: ComponentNamespace,
 			Name:      osdCertificateName,
-		})
+		},
 	}
-
-	return certificateNames
 }
