@@ -106,10 +106,10 @@ func TestGetIngressNames(t *testing.T) {
 			ingresses: []types.NamespacedName{grafanaIngressNames},
 		},
 		{
-			// GIVEN a Verrazzano custom resource with the Grafana and Istio components enabled
+			// GIVEN a Verrazzano custom resource with the Grafana and Nginx components enabled
 			// WHEN we call GetIngressNames on the Grafana component
 			// THEN we expect to find the Grafana ingress
-			name: "Test GetIngressNames when Grafana and Istio components set to enabled",
+			name: "Test GetIngressNames when Grafana and Nginx components set to enabled",
 			actualCR: vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
@@ -118,7 +118,7 @@ func TestGetIngressNames(t *testing.T) {
 								Enabled: &trueValue,
 							},
 						},
-						Istio: &vzapi.IstioComponent{
+						Ingress: &vzapi.IngressNginxComponent{
 							Enabled: &trueValue,
 						},
 					},
@@ -127,28 +127,10 @@ func TestGetIngressNames(t *testing.T) {
 			ingresses: []types.NamespacedName{grafanaIngressNames},
 		},
 		{
-			// GIVEN a Verrazzano custom resource with the Grafana component disabled
+			// GIVEN a Verrazzano custom resource with the Grafana component enabled and Nginx disabled
 			// WHEN we call GetIngressNames on the Grafana component
 			// THEN we do not expect to find the Grafana ingress
-			name: "Test GetIngressNames when Grafana component set to disabled",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Grafana: &vzapi.GrafanaComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{
-								Enabled: &falseValue,
-							},
-						},
-					},
-				},
-			},
-			ingresses: nil,
-		},
-		{
-			// GIVEN a Verrazzano custom resource with the Grafana component enabled and Istio disabled
-			// WHEN we call GetIngressNames on the Grafana component
-			// THEN we do not expect to find the Grafana ingress
-			name: "Test GetIngressNames when Grafana component set to enabled and Istio is disabled",
+			name: "Test GetIngressNames when Grafana component set to enabled and Nginx is disabled",
 			actualCR: vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
@@ -157,7 +139,7 @@ func TestGetIngressNames(t *testing.T) {
 								Enabled: &trueValue,
 							},
 						},
-						Istio: &vzapi.IstioComponent{
+						Ingress: &vzapi.IngressNginxComponent{
 							Enabled: &falseValue,
 						},
 					},
@@ -195,10 +177,10 @@ func TestGetCertificateNames(t *testing.T) {
 			certs:    []types.NamespacedName{grafanaCertNames},
 		},
 		{
-			// GIVEN a Verrazzano custom resource with the Grafana and Istio components enabled
+			// GIVEN a Verrazzano custom resource with the Grafana and Nginx components enabled
 			// WHEN we call GetCertificateNames on the Grafana component
 			// THEN we expect to find the Grafana certificate name
-			name: "Test GetCertificateNames when Grafana and Istio components set to enabled",
+			name: "Test GetCertificateNames when Grafana and Nginx components set to enabled",
 			actualCR: vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
@@ -207,7 +189,7 @@ func TestGetCertificateNames(t *testing.T) {
 								Enabled: &trueValue,
 							},
 						},
-						Istio: &vzapi.IstioComponent{
+						Ingress: &vzapi.IngressNginxComponent{
 							Enabled: &trueValue,
 						},
 					},
@@ -216,28 +198,10 @@ func TestGetCertificateNames(t *testing.T) {
 			certs: []types.NamespacedName{grafanaCertNames},
 		},
 		{
-			// GIVEN a Verrazzano custom resource with the Grafana component disabled
+			// GIVEN a Verrazzano custom resource with the Grafana component enabled and Nginx disabled
 			// WHEN we call GetCertificateNames on the Grafana component
 			// THEN we do not expect to find the Grafana certificate name
-			name: "Test GetCertificateNames when Grafana component set to disabled",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Grafana: &vzapi.GrafanaComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{
-								Enabled: &falseValue,
-							},
-						},
-					},
-				},
-			},
-			certs: nil,
-		},
-		{
-			// GIVEN a Verrazzano custom resource with the Grafana component enabled and Istio disabled
-			// WHEN we call GetCertificateNames on the Grafana component
-			// THEN we do not expect to find the Grafana certificate name
-			name: "Test GetCertificateNames when Grafana component set to enabled and Istio is disabled",
+			name: "Test GetCertificateNames when Grafana component set to enabled and Nginx is disabled",
 			actualCR: vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
@@ -246,7 +210,7 @@ func TestGetCertificateNames(t *testing.T) {
 								Enabled: &trueValue,
 							},
 						},
-						Istio: &vzapi.IstioComponent{
+						Ingress: &vzapi.IngressNginxComponent{
 							Enabled: &falseValue,
 						},
 					},

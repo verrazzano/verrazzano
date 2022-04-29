@@ -8,12 +8,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -38,10 +35,9 @@ func TestIsGrafanaReady(t *testing.T) {
 	}{
 		{
 			// GIVEN the Grafana deployment exists and there are available replicas
-			// AND the Grafana admin secret exists
 			// WHEN we call isGrafanaReady
 			// THEN the call returns true
-			name: "Test IsReady when Grafana is successfully deployed and the admin secret exists",
+			name: "Test IsReady when Grafana is successfully deployed",
 			client: fake.NewFakeClientWithScheme(testScheme,
 				&appsv1.Deployment{
 					ObjectMeta: metav1.ObjectMeta{
@@ -53,35 +49,8 @@ func TestIsGrafanaReady(t *testing.T) {
 						Replicas:          1,
 						UpdatedReplicas:   1,
 					},
-				},
-				&v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      constants.GrafanaSecret,
-						Namespace: globalconst.VerrazzanoSystemNamespace,
-					},
-					Data: map[string][]byte{},
 				}),
 			expectTrue: true,
-		},
-		{
-			// GIVEN the Grafana deployment exists and there are available replicas
-			// AND the Grafana admin secret does not exist
-			// WHEN we call isGrafanaReady
-			// THEN the call returns false
-			name: "Test IsReady when Grafana is successfully deployed and the admin secret does not exist",
-			client: fake.NewFakeClientWithScheme(testScheme,
-				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      grafanaDeployment,
-					},
-					Status: appsv1.DeploymentStatus{
-						AvailableReplicas: 1,
-						Replicas:          1,
-						UpdatedReplicas:   1,
-					},
-				}),
-			expectTrue: false,
 		},
 		{
 			// GIVEN the Grafana deployment exists and there are no available replicas

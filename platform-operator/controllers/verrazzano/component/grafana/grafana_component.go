@@ -46,12 +46,12 @@ func (g grafanaComponent) GetDependencies() []string {
 	return []string{vmo.ComponentName}
 }
 
-// GetCertificateNames returns the Grafana certificate names if both Grafana and Istio are enabled, otherwise returns
+// GetCertificateNames returns the Grafana certificate names if Nginx is enabled, otherwise returns
 // an empty slice
 func (g grafanaComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var certificateNames []types.NamespacedName
 
-	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) && vzconfig.IsIstioEnabled(ctx.EffectiveCR()) {
+	if vzconfig.IsNGINXEnabled(ctx.EffectiveCR()) {
 		certificateNames = append(certificateNames, types.NamespacedName{
 			Namespace: ComponentNamespace,
 			Name:      grafanaCertificateName,
@@ -60,12 +60,12 @@ func (g grafanaComponent) GetCertificateNames(ctx spi.ComponentContext) []types.
 	return certificateNames
 }
 
-// GetIngressNames returns the Grafana ingress names if both Grafana and Istio are enabled, otherwise returns
+// GetIngressNames returns the Grafana ingress names if Nginx is enabled, otherwise returns
 // an empty slice
 func (g grafanaComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var ingressNames []types.NamespacedName
 
-	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) && vzconfig.IsIstioEnabled(ctx.EffectiveCR()) {
+	if vzconfig.IsNGINXEnabled(ctx.EffectiveCR()) {
 		ingressNames = append(ingressNames, types.NamespacedName{
 			Namespace: ComponentNamespace,
 			Name:      constants.GrafanaIngress,
@@ -82,7 +82,7 @@ func (g grafanaComponent) GetJSONName() string {
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the Grafana component
 func (g grafanaComponent) GetMinVerrazzanoVersion() string {
-	return constants.VerrazzanoVersion1_3_0
+	return constants.VerrazzanoVersion1_0_0
 }
 
 // IsOperatorInstallSupported returns the bool value indicating that operator install is supported

@@ -6,10 +6,8 @@ package grafana
 import (
 	"fmt"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -22,17 +20,11 @@ func isGrafanaReady(ctx spi.ComponentContext) bool {
 
 	var deployments []types.NamespacedName
 
-	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments,
-			types.NamespacedName{
-				Name:      grafanaDeployment,
-				Namespace: ComponentNamespace,
-			})
-	}
+	deployments = append(deployments,
+		types.NamespacedName{
+			Name:      grafanaDeployment,
+			Namespace: ComponentNamespace,
+		})
 
-	if !status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
-		return false
-	}
-
-	return common.IsGrafanaAdminSecretReady(ctx)
+	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
