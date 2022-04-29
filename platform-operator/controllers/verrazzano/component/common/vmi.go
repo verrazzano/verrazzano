@@ -31,7 +31,8 @@ import (
 )
 
 const (
-	system = "system"
+	system             = "system"
+	defaultStorageSize = "50Gi"
 )
 
 // ResourceRequestValues defines the storage information that will be passed to VMI instance
@@ -273,4 +274,13 @@ func IsGrafanaAdminSecretReady(ctx spi.ComponentContext) bool {
 		return false
 	}
 	return true
+}
+
+// SetStorageSize copies or defaults the storage size
+func SetStorageSize(storage *ResourceRequestValues, storageObject *vmov1.Storage) {
+	if storage == nil {
+		storageObject.Size = defaultStorageSize
+	} else {
+		storageObject.Size = storage.Storage
+	}
 }

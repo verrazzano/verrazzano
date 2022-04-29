@@ -32,18 +32,10 @@ func newPrometheus(cr *vzapi.Verrazzano, storage *common.ResourceRequestValues, 
 		},
 		Storage: vmov1.Storage{},
 	}
-	setStorageSize(storage, &prometheus.Storage)
+	common.SetStorageSize(storage, &prometheus.Storage)
 	if vmi != nil {
 		prometheus.Storage = vmi.Spec.Prometheus.Storage
 	}
 
 	return prometheus
-}
-
-func setStorageSize(storage *common.ResourceRequestValues, storageObject *vmov1.Storage) {
-	if storage == nil {
-		storageObject.Size = "50Gi"
-	} else {
-		storageObject.Size = storage.Storage
-	}
 }
