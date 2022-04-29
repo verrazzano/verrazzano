@@ -45,8 +45,6 @@ const IstioIngressgatewayDeployment = "istio-ingressgateway"
 // IstioEgressgatewayDeployment is the name of the istio egressgateway deployment
 const IstioEgressgatewayDeployment = "istio-egressgateway"
 
-const istioGlobalHubKey = "global.hub"
-
 // IstioNamespace is the default Istio namespace
 const IstioNamespace = "istio-system"
 
