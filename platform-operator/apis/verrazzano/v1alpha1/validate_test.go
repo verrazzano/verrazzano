@@ -226,11 +226,11 @@ func TestValidUpgradeNotNecessary(t *testing.T) {
 	}()
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: v110,
+			Version: "v0.17.0",
 			Profile: Dev,
 		},
 		Status: VerrazzanoStatus{
-			Version: v110,
+			Version: "v0.17.0",
 		},
 	}
 	newSpec := &Verrazzano{
