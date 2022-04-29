@@ -18,6 +18,7 @@ fi
 INSTALL_CALICO=${1:-false}
 WILDCARD_DNS_DOMAIN=${2:-"x=nip.io"}
 KIND_NODE_COUNT=${KIND_NODE_COUNT:-1}
+TEST_OVERRIDES_FILE="./tests/e2e/config/scripts/test-overrides.yaml"
 
 cd ${GO_REPO_PATH}/verrazzano
 echo "tests will execute" > ${TESTS_EXECUTED_FILE}
@@ -96,6 +97,13 @@ cd ${GO_REPO_PATH}/verrazzano
 kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
 if [ $? -ne 0 ]; then
   echo "Operator is not ready"
+  exit 1
+fi
+
+echo "Creating Override ConfigMap"
+kubectl create cm test-overrides --from-file=${TEST_OVERRIDES_FILE}
+if [ $? -ne 0 ]; then
+  echo "Could not create Override ConfigMap"
   exit 1
 fi
 

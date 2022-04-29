@@ -5,6 +5,9 @@ package promstack
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -21,6 +24,8 @@ const (
 	prometheusTLSSecret             = "prometheus-operator-kube-p-admission"
 	prometheusOperatorDeployment    = "prometheus-operator-kube-p-operator"
 	prometheusOperatorContainerName = "kube-prometheus-stack"
+	overrideConfigMap               = "test-overrides"
+	overrideKey                     = "test-overrides.yaml"
 )
 
 type enabledFunc func(string) bool
@@ -53,6 +58,7 @@ var (
 		"--prometheus-default-base-image=" + imagePrefix + "/verrazzano/prometheus",
 		"--alertmanager-default-base-image=" + imagePrefix + "/verrazzano/alertmanager",
 	}
+	labelMatch = map[string]string{"label-override": "true"}
 )
 
 var t = framework.NewTestFramework("promstack")
@@ -125,6 +131,30 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 					AbortSuite(fmt.Sprintf("Pods %v is not running in the namespace: %v, error: %v", enabledPods, verrazzanoMonitoringNamespace, err))
 				}
 				return result
+			}
+			Eventually(promStackPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+
+		// GIVEN the Prometheus stack is installed
+		// WHEN we check to make sure the pods are running
+		// THEN we successfully find the running pods
+		WhenPromStackInstalledIt("should have Prometheus Operator pod labeled", func() {
+			promStackPodsRunning := func() bool {
+				if isPrometheusOperatorEnabled() {
+					_, err := pkg.GetConfigMap(overrideConfigMap, constants.DefaultNamespace)
+					if err == nil {
+						result, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{
+							MatchLabels: labelMatch,
+						}, verrazzanoMonitoringNamespace)
+						if err != nil {
+							AbortSuite(fmt.Sprintf("Label override not found for the Prometheus Operator pod in namespace %s: %v", verrazzanoMonitoringNamespace, err))
+						}
+						return len(result) == 1
+					} else if !k8serrors.IsNotFound(err) {
+						AbortSuite(fmt.Sprintf("Error retrieving the override ConfigMap: %v", err))
+					}
+				}
+				return true
 			}
 			Eventually(promStackPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})
