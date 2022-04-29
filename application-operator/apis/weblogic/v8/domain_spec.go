@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v8
@@ -62,6 +62,9 @@ type DomainSpec struct {
 
 	// DomainUID The name of the WebLogic domain
 	DomainUID string `json:"domainUID,omitempty"`
+
+	// FluentdSpecification The Fluentd specification for sidecar logging
+	FluentdSpecification FluentdSpecification `json:"fluentdSpecification,omitempty"`
 
 	// HTTPAccessLogInLogHome specifies whether the server HTTP access log files will be written to the same directory specified in logHome.
 	// Otherwise, server HTTP access log files will be written to the directory configured in the WebLogic domain

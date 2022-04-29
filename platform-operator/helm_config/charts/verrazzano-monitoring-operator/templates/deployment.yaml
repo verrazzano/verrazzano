@@ -1,0 +1,88 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.monitoringOperator.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    k8s-app: {{ .Values.monitoringOperator.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: {{ .Values.monitoringOperator.name }}
+  template:
+    metadata:
+      annotations:
+        traffic.sidecar.istio.io/excludeOutboundPorts: "443"
+      labels:
+        k8s-app: {{ .Values.monitoringOperator.name }}
+    spec:
+      containers:
+        - name: {{ .Values.monitoringOperator.name }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: {{ .Values.monitoringOperator.imageName }}:{{ .Values.monitoringOperator.imageVersion }}
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+            - containerPort: {{ .Values.monitoringOperator.metricsPort }}
+              name: http-metrics
+              protocol: TCP
+          resources:
+            requests:
+              memory: {{ .Values.monitoringOperator.RequestMemory }}
+          volumeMounts:
+            - name: cert-volume
+              mountPath: /etc/certs
+          env:
+            - name: ISTIO_PROXY_IMAGE
+              value: {{ .Values.monitoringOperator.istioProxyImage }}
+            - name: GRAFANA_IMAGE
+              value: {{ .Values.monitoringOperator.grafanaImage }}
+            - name: PROMETHEUS_IMAGE
+              value: {{ .Values.monitoringOperator.prometheusImage }}
+            - name: PROMETHEUS_INIT_IMAGE
+              value: {{ .Values.monitoringOperator.prometheusInitImage }}
+            - name: ALERT_MANAGER_IMAGE
+              value: {{ .Values.monitoringOperator.alertManagerImage }}
+            - name: ELASTICSEARCH_WAIT_IMAGE
+              value: {{ .Values.monitoringOperator.esWaitImage }}
+            - name: ELASTICSEARCH_IMAGE
+              value: {{ .Values.monitoringOperator.esImage }}
+            - name: ELASTICSEARCH_INIT_IMAGE
+              value: {{ .Values.monitoringOperator.esInitImage }}
+            - name: KIBANA_IMAGE
+              value: {{ .Values.monitoringOperator.kibanaImage }}
+            - name: ELASTICSEARCH_WAIT_TARGET_VERSION
+              value: {{ .Values.monitoringOperator.esWaitTargetVersion }}
+            - name: CONFIG_RELOADER_IMAGE
+              value: {{ .Values.monitoringOperator.configReloaderImage }}
+            - name: OIDC_PROXY_IMAGE
+              value: {{ .Values.monitoringOperator.oidcProxyImage }}
+            - name: OIDC_AUTH_ENABLED
+              value: {{ .Values.monitoringOperator.oidcAuthEnabled | quote }}
+            - name: AUTH_PROXY_SERVICE_NAME
+              value: {{ .Values.api.name }}
+            - name: AUTH_PROXY_SERVICE_PORT
+              value: {{ .Values.api.port | quote }}
+          livenessProbe:
+            failureThreshold: 5
+            httpGet:
+              path: /health
+              port: 8080
+              scheme: HTTPS
+            initialDelaySeconds: 3
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          args:
+            - --zap-log-level=info
+            - --zap-devel=false
+            - --namespace={{ .Release.Namespace }}
+      serviceAccountName: {{ .Values.monitoringOperator.name }}
+      volumes:
+        - name: cert-volume
+          emptyDir: {}

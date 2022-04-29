@@ -125,7 +125,7 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 	}
 
 	// Check to see if the update is an upgrade request, and if it is valid and allowable
-	err := ValidateUpgradeRequest(&oldResource.Spec, &v.Spec)
+	err := ValidateUpgradeRequest(oldResource, v)
 	if err != nil {
 		log.Errorf("Invalid upgrade request: %s", err.Error())
 		return err

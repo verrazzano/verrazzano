@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	k8s "github.com/verrazzano/verrazzano/platform-operator/internal/nodeport"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
@@ -24,6 +24,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -57,6 +58,9 @@ const HelmScrtType = "helm.sh/release.v1"
 
 // subcompIstiod is the Istiod subcomponent in the bom
 const subcompIstiod = "istiod"
+
+// This IstioOperator YAML uses this imagePullSecret key
+const imagePullSecretHelmKey = "values.global.imagePullSecrets[0]"
 
 // istioComponent represents an Istio component
 type istioComponent struct {
@@ -132,7 +136,7 @@ func (i istioComponent) Name() string {
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
 func (i istioComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	return k8s.ValidateForExternalIPSWithNodePort(&vz.Spec, i.Name())
+	return i.validateForExternalIPSWithNodePort(&vz.Spec)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
@@ -140,6 +144,26 @@ func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	if i.IsEnabled(old) && !i.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
+	return i.validateForExternalIPSWithNodePort(&new.Spec)
+}
+
+// validateForExternalIPSWithNodePort checks that externalIPs are set when Type=NodePort
+func (i istioComponent) validateForExternalIPSWithNodePort(vz *vzapi.VerrazzanoSpec) error {
+	// good if istio or istio.ingress is not set
+	if vz.Components.Istio == nil || vz.Components.Istio.Ingress == nil {
+		return nil
+	}
+
+	// good if type is not NodePort
+	if vz.Components.Istio.Ingress.Type != vzapi.NodePort {
+		return nil
+	}
+
+	// look for externalIPs if NodePort
+	if vz.Components.Istio.Ingress.Type == vzapi.NodePort {
+		return vzconfig.CheckExternalIPsArgs(vz.Components.Istio.IstioInstallArgs, ExternalIPArg, i.Name())
+	}
+
 	return nil
 }
 
@@ -174,8 +198,15 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 		log.Debugf("Created values file from Istio install args: %s", tmpFile.Name())
 	}
 
+	// check for global image pull secret
+	var kvs []bom.KeyValue
+	kvs, err = secret.AddGlobalImagePullSecretHelmOverride(log, context.Client(), IstioNamespace, kvs, imagePullSecretHelmKey)
+	if err != nil {
+		return err
+	}
+
 	// images overrides to get passed into the istioctl command
-	imageOverrides, err := buildImageOverridesString(log)
+	imageOverrides, err := buildOverridesString(kvs...)
 	if err != nil {
 		return log.ErrorfNewErr("Error building image overrides from BOM for Istio: %v", err)
 	}
@@ -286,30 +317,6 @@ func removeIstioHelmSecrets(compContext spi.ComponentContext) error {
 	return nil
 }
 
-func buildImageOverridesString(_ vzlog.VerrazzanoLogger) (string, error) {
-	// Get the image overrides from the BOM
-	var kvs []bom.KeyValue
-	var err error
-	kvs, err = getImageOverrides()
-	if err != nil {
-		return "", err
-	}
-
-	// If there are overridesString the create a comma separated string
-	var overridesString string
-	if len(kvs) > 0 {
-		bldr := strings.Builder{}
-		for i, kv := range kvs {
-			if i > 0 {
-				bldr.WriteString(",")
-			}
-			bldr.WriteString(fmt.Sprintf("%s=%s", kv.Key, kv.Value))
-		}
-		overridesString = bldr.String()
-	}
-	return overridesString, nil
-}
-
 // AppendIstioOverrides appends the Keycloak theme for the Key keycloak.extraInitContainers.
 // A go template is used to replace the image in the init container spec.
 func AppendIstioOverrides(_ spi.ComponentContext, releaseName string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
@@ -340,7 +347,16 @@ func AppendIstioOverrides(_ spi.ComponentContext, releaseName string, _ string, 
 	return kvs, nil
 }
 
-func buildOverridesString(log vzlog.VerrazzanoLogger, client clipkg.Client, namespace string, additionalValues ...bom.KeyValue) (string, error) {
+// IstiodReadyCheck Determines if istiod is up and has a minimum number of available replicas
+func IstiodReadyCheck(ctx spi.ComponentContext, _ string, namespace string) bool {
+	deployments := []types.NamespacedName{
+		{Name: "istiod", Namespace: namespace},
+	}
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+}
+
+func buildOverridesString(additionalValues ...bom.KeyValue) (string, error) {
 	// Get the image overrides from the BOM
 	kvs, err := getImageOverrides()
 	if err != nil {

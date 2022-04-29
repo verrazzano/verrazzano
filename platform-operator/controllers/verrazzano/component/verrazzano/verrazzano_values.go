@@ -3,6 +3,10 @@
 
 package verrazzano
 
+import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+)
+
 // verrazzanoValues Struct representing the Verrazzano Helm chart values
 //
 // In most cases, we only want to set overrides in this when they are present
@@ -12,7 +16,7 @@ package verrazzano
 // There are a few cases where this is not true
 // - "enabled" flags should always be written; if the user or profile specifies false it
 //   needs to be recorded in the overrides and not omitted
-// - "resourceRequestValues.storage" should be allowed to record empty values, as it is a valid
+// - "vmi.ResourceRequestValues.storage" should be allowed to record empty values, as it is a valid
 //   value to the VMO to indicate ephemeral storage is to be used
 //
 type verrazzanoValues struct {
@@ -27,13 +31,11 @@ type verrazzanoValues struct {
 	Kiali                  *kialiValues                  `json:"kiali,omitempty"`
 	Keycloak               *keycloakValues               `json:"keycloak,omitempty"`
 	Rancher                *rancherValues                `json:"rancher,omitempty"`
-	MonitoringOperator     *vmoValues                    `json:"monitoringOperator,omitempty"`
 	NodeExporter           *nodeExporterValues           `json:"nodeExporter,omitempty"`
 	Logging                *loggingValues                `json:"logging,omitempty"`
 	Fluentd                *fluentdValues                `json:"fluentd,omitempty"`
 	Console                *consoleValues                `json:"console,omitempty"`
 	API                    *apiValues                    `json:"api,omitempty"`
-	OCI                    *ociValues                    `json:"oci,omitempty"`
 	Config                 *configValues                 `json:"config,omitempty"`
 	Security               *securityRoleBindingValues    `json:"security,omitempty"`
 	Kubernetes             *kubernetesValues             `json:"kubernetes,omitempty"`
@@ -43,6 +45,7 @@ type verrazzanoValues struct {
 	KubeStateMetrics       *kubeStateMetricsValues       `json:"kubeStateMetrics,omitempty"`
 	PrometheusPushgateway  *prometheusPushgatewayValues  `json:"prometheusPushgateway,omitempty"`
 	PrometheusNodeExporter *prometheusNodeExporterValues `json:"prometheusNodeExporter,omitempty"`
+	JaegerOperator         *jaegerOperatorValues         `json:"jaegerOperator,omitempty"`
 }
 
 type subject struct {
@@ -56,11 +59,6 @@ type volumeMount struct {
 	Source      string `json:"source,omitempty"`
 	Destination string `json:"destination,omitempty"`
 	ReadOnly    bool   `json:"readOnly,omitempty"`
-}
-
-type resourceRequestValues struct {
-	Memory  string `json:"memory,omitempty"`
-	Storage string `json:"storage"` // Empty string allowed
 }
 
 type imageValues struct {
@@ -88,13 +86,13 @@ type esNodes struct {
 }
 
 type esNodeValues struct {
-	Replicas int                    `json:"replicas,omitempty"`
-	Requests *resourceRequestValues `json:"requests,omitempty"`
+	Replicas int                           `json:"replicas,omitempty"`
+	Requests *common.ResourceRequestValues `json:"requests,omitempty"`
 }
 
 type prometheusValues struct {
-	Enabled  bool                   `json:"enabled"` // Always write
-	Requests *resourceRequestValues `json:"requests,omitempty"`
+	Enabled  bool                          `json:"enabled"` // Always write
+	Requests *common.ResourceRequestValues `json:"requests,omitempty"`
 }
 
 type kialiValues struct {
@@ -111,25 +109,13 @@ type rancherValues struct {
 }
 
 type kibanaValues struct {
-	Enabled  bool                   `json:"enabled"` // Always write
-	Requests *resourceRequestValues `json:"requests,omitempty"`
+	Enabled  bool                          `json:"enabled"` // Always write
+	Requests *common.ResourceRequestValues `json:"requests,omitempty"`
 }
 
 type grafanaValues struct {
-	Enabled  bool                   `json:"enabled"` // Always write
-	Requests *resourceRequestValues `json:"requests,omitempty"`
-}
-
-type vmoValues struct {
-	Name                      string `json:"name,omitempty"`
-	Enabled                   bool   `json:"enabled"` // Always write
-	MetricsPort               int    `json:"metricsPort,omitempty"`
-	DefaultSimpleCompReplicas int    `json:"defaultSimpleCompReplicas,omitempty"`
-	DefaultPrometheusReplicas int    `json:"defaultPrometheusReplicas,omitempty"`
-	AlertManagerImage         string `json:"alertManagerImage,omitempty"`
-	EsWaitTargetVersion       string `json:"esWaitTargetVersion,omitempty"`
-	OidcAuthEnabled           bool   `json:"oidcAuthEnabled,omitempty"`
-	RequestMemory             string `json:"RequestMemory,omitempty"`
+	Enabled  bool                          `json:"enabled"` // Always write
+	Requests *common.ResourceRequestValues `json:"requests,omitempty"`
 }
 
 type nodeExporterValues struct {
@@ -157,22 +143,6 @@ type consoleValues struct {
 type apiValues struct {
 	Name string `json:"name,omitempty"`
 	Port int    `json:"port,omitempty"`
-}
-
-type ociValues struct {
-	Region      string               `json:"region,omitempty"`
-	TenancyOcid string               `json:"tenancyOcid,omitempty"`
-	UserOcid    string               `json:"userOcid,omitempty"`
-	Fingerprint string               `json:"fingerprint,omitempty"`
-	PrivateKey  string               `json:"privateKey,omitempty"`
-	Compartment string               `json:"compartment,omitempty"`
-	ClusterOcid string               `json:"clusterOcid,omitempty"`
-	ObjectStore *objectStoreSettings `json:"objectStore,omitempty"`
-}
-
-type objectStoreSettings struct {
-	BucketName string `json:"bucketName,omitempty"`
-	Namespace  string `json:"namespace,omitempty"`
 }
 
 type configValues struct {
@@ -226,5 +196,9 @@ type prometheusPushgatewayValues struct {
 }
 
 type prometheusNodeExporterValues struct {
+	Enabled bool `json:"enabled"` // Always write
+}
+
+type jaegerOperatorValues struct {
 	Enabled bool `json:"enabled"` // Always write
 }

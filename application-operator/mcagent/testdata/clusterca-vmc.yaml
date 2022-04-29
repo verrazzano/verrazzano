@@ -1,0 +1,12 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: clusters.verrazzano.io
+kind: VerrazzanoManagedCluster
+metadata:
+  name: managed1
+  namespace: verrazzano-mc
+spec:
+  caSecret: managed1-cluster-ca-secret
+  description: managed1-description
+  managedClusterManifestSecret: managed1-manifest-secret
+  serviceAccount: managed1-sa

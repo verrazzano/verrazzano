@@ -18,7 +18,7 @@ const (
 	thirdPartyManifestsDirSuffix = "/platform-operator/thirdparty/manifests"
 	helmConfigDirSuffix          = "/platform-operator/helm_config"
 	helmChartsDirSuffix          = "/platform-operator/helm_config/charts"
-	helmVzChartsDirSuffix        = "/platform-operator/helm_config/charts/verrazzano"
+	helmVMOChartsDirSuffix       = "/platform-operator/helm_config/charts/verrazzano-monitoring-operator"
 	helmAppOpChartsDirSuffix     = "/platform-operator/helm_config/charts/verrazzano-application-operator"
 	helmKialiChartsDirSuffix     = "/platform-operator/thirdparty/charts/kiali-server"
 	helmOamChartsDirSuffix       = "/platform-operator/thirdparty/charts/oam-kubernetes-runtime"
@@ -105,12 +105,12 @@ func GetHelmChartsDir() string {
 	return filepath.Join(instance.VerrazzanoRootDir, helmChartsDirSuffix)
 }
 
-// GetHelmVzChartsDir returns the Verrazzano helm charts dir
-func GetHelmVzChartsDir() string {
+// GetHelmVMOChartsDir returns the verrazzano-monitoring-operator helm charts dir
+func GetHelmVMOChartsDir() string {
 	if TestHelmConfigDir != "" {
-		return filepath.Join(TestHelmConfigDir, "/charts/verrazzano")
+		return filepath.Join(TestHelmConfigDir, "/charts/verrazzano-monitoring-operator")
 	}
-	return filepath.Join(instance.VerrazzanoRootDir, helmVzChartsDirSuffix)
+	return filepath.Join(instance.VerrazzanoRootDir, helmVMOChartsDirSuffix)
 }
 
 // GetHelmAppOpChartsDir returns the Verrazzano Application Operator helm charts dir

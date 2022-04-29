@@ -1,0 +1,20 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.monitoringOperator.name }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.monitoringOperator.name }}
+data:
+  config: |
+    metricsPort: {{ .Values.monitoringOperator.metricsPort }}
+    defaultSimpleCompReplicas: {{ .Values.monitoringOperator.defaultSimpleCompReplicas }}
+    defaultPrometheusReplicas: {{ .Values.monitoringOperator.defaultPrometheusReplicas }}
+    {{- if .Values.config.envName }}
+    {{- if .Values.config.dnsSuffix }}
+    defaultIngressTargetDNSName: {{ .Values.config.envName }}-verrazzano-ingress.{{ .Values.config.dnsSuffix }}
+    {{- end }}
+    {{- end }}

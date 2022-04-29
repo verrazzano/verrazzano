@@ -5,6 +5,7 @@ package verrazzano
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"io/fs"
 	"os"
 
@@ -12,25 +13,16 @@ import (
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+
 	"sigs.k8s.io/yaml"
 )
 
-// appendVerrazzanoOverrides appends the image overrides for the monitoring-init-images subcomponent
+// appendVerrazzanoOverrides appends the overrides for verrazzano component
 func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-
-	// Append some custom image overrides
-	// - use local KeyValues array to ensure we append those after the file override; typically won't matter with the
-	//   way we implement Helm calls, but don't depend on that
-	vzkvs, err := appendCustomImageOverrides(kvs)
-	if err != nil {
-		return kvs, ctx.Log().ErrorfNewErr("Failed to append custom image overrides: %v", err)
-	}
-
 	effectiveCR := ctx.EffectiveCR()
 	// Find any storage overrides for the VMI, and
-	resourceRequestOverrides, err := findStorageOverride(effectiveCR)
+	resourceRequestOverrides, err := common.FindStorageOverride(effectiveCR)
 	if err != nil {
 		return kvs, err
 	}
@@ -43,7 +35,7 @@ func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ s
 		return kvs, ctx.Log().ErrorfNewErr("Failed appending Verrazzano values: %v", err)
 	}
 	// Append any VMI overrides to the override values object, and any installArgs overrides to the kvs list
-	vzkvs = appendVMIOverrides(effectiveCR, &overrides, resourceRequestOverrides, vzkvs)
+	vzkvs := appendVMIOverrides(effectiveCR, &overrides, resourceRequestOverrides, []bom.KeyValue{})
 
 	// append any fluentd overrides
 	appendFluentdOverrides(effectiveCR, &overrides)
@@ -64,21 +56,6 @@ func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ s
 	// Append any installArgs overrides in vzkvs after the file overrides to ensure precedence of those
 	kvs = append(kvs, bom.KeyValue{Value: overridesFileName, IsFile: true})
 	kvs = append(kvs, vzkvs...)
-	return kvs, nil
-}
-
-func appendCustomImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
-	if err != nil {
-		return kvs, err
-	}
-
-	imageOverrides, err := bomFile.BuildImageOverrides("monitoring-init-images")
-	if err != nil {
-		return kvs, err
-	}
-
-	kvs = append(kvs, imageOverrides...)
 	return kvs, nil
 }
 
@@ -124,12 +101,12 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *verrazzanoValue
 	overrides.Rancher = &rancherValues{Enabled: vzconfig.IsRancherEnabled(effectiveCR)}
 	overrides.Console = &consoleValues{Enabled: vzconfig.IsConsoleEnabled(effectiveCR)}
 	overrides.NodeExporter = &nodeExporterValues{Enabled: vzconfig.IsVMOEnabled(effectiveCR)}
-	overrides.MonitoringOperator = &vmoValues{Enabled: vzconfig.IsVMOEnabled(effectiveCR)}
 	overrides.PrometheusOperator = &prometheusOperatorValues{Enabled: vzconfig.IsPrometheusOperatorEnabled(effectiveCR)}
 	overrides.PrometheusAdapter = &prometheusAdapterValues{Enabled: vzconfig.IsPrometheusAdapterEnabled(effectiveCR)}
 	overrides.KubeStateMetrics = &kubeStateMetricsValues{Enabled: vzconfig.IsKubeStateMetricsEnabled(effectiveCR)}
 	overrides.PrometheusPushgateway = &prometheusPushgatewayValues{Enabled: vzconfig.IsPrometheusPushgatewayEnabled(effectiveCR)}
 	overrides.PrometheusNodeExporter = &prometheusNodeExporterValues{Enabled: vzconfig.IsPrometheusNodeExporterEnabled(effectiveCR)}
+	overrides.JaegerOperator = &jaegerOperatorValues{Enabled: vzconfig.IsJaegerOperatorEnabled(effectiveCR)}
 	return nil
 }
 
@@ -192,7 +169,7 @@ func appendVerrazzanoComponentOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom
 	return kvs
 }
 
-func appendVMIOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues, storageOverrides *resourceRequestValues, kvs []bom.KeyValue) []bom.KeyValue {
+func appendVMIOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues, storageOverrides *common.ResourceRequestValues, kvs []bom.KeyValue) []bom.KeyValue {
 	overrides.Kibana = &kibanaValues{Enabled: vzconfig.IsKibanaEnabled(effectiveCR)}
 
 	overrides.ElasticSearch = &elasticsearchValues{
