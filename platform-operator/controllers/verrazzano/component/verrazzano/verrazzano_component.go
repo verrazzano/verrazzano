@@ -6,7 +6,6 @@ package verrazzano
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -109,7 +108,7 @@ func (c verrazzanoComponent) Install(ctx spi.ComponentContext) error {
 // PreUpgrade Verrazzano component pre-upgrade processing
 func (c verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
-		if err := vmo.ExportVMOHelmChart(ctx); err != nil {
+		if err := common.ExportVMOHelmChart(ctx); err != nil {
 			return err
 		}
 		if err := common.ApplyCRDYaml(ctx, config.GetHelmVmoChartsDir()); err != nil {
@@ -163,7 +162,7 @@ func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	c.HelmComponent.IngressNames = c.GetIngressNames(ctx)
 	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
 	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
-		if err := vmo.ReassociateVMOResources(ctx); err != nil {
+		if err := common.ReassociateVMOResources(ctx); err != nil {
 			return err
 		}
 	}
