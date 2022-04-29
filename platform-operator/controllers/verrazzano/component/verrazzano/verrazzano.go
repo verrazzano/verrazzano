@@ -130,7 +130,7 @@ func doesPromExist(ctx spi.ComponentContext) bool {
 		Name:      prometheusDeployment,
 		Namespace: ComponentNamespace,
 	}}
-	return status.DoStatefulSetsExist(ctx.Log(), ctx.Client(), deploy, 1, prefix)
+	return status.DoDeploymentsExist(ctx.Log(), ctx.Client(), deploy, 1, prefix)
 }
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart
