@@ -11,7 +11,7 @@ import (
 )
 
 // updateFunc mutates the VMI struct and ensures the Grafana component is configured properly
-var updateFunc common.VMIMutateFunc = func(ctx spi.ComponentContext, storage *common.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, existingVMI *vmov1.VerrazzanoMonitoringInstance) error {
+func updateFunc(ctx spi.ComponentContext, storage *common.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, existingVMI *vmov1.VerrazzanoMonitoringInstance) error {
 	vmi.Spec.Grafana = newGrafana(ctx.EffectiveCR(), storage, existingVMI)
 	return nil
 }
@@ -31,18 +31,9 @@ func newGrafana(cr *vzapi.Verrazzano, storage *common.ResourceRequestValues, exi
 		},
 		Storage: vmov1.Storage{},
 	}
-	setStorageSize(storage, &grafana.Storage)
+	common.SetStorageSize(storage, &grafana.Storage)
 	if existingVMI != nil {
 		grafana.Storage = existingVMI.Spec.Grafana.Storage
 	}
 	return grafana
-}
-
-// setStorageSize copies or defaults the storage size
-func setStorageSize(storage *common.ResourceRequestValues, storageObject *vmov1.Storage) {
-	if storage == nil {
-		storageObject.Size = "50Gi"
-	} else {
-		storageObject.Size = storage.Storage
-	}
 }

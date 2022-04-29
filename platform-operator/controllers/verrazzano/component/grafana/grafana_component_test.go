@@ -34,7 +34,7 @@ func TestIsEnabled(t *testing.T) {
 	}{
 		{
 			// GIVEN a default Verrazzano custom resource
-			// WHEN we call IsReady on the Grafana component
+			// WHEN we call IsEnabled on the Grafana component
 			// THEN the call returns true
 			name:       "Test IsEnabled when using default Verrazzano CR",
 			actualCR:   vzapi.Verrazzano{},
@@ -42,7 +42,7 @@ func TestIsEnabled(t *testing.T) {
 		},
 		{
 			// GIVEN a Verrazzano custom resource with the Grafana enabled
-			// WHEN we call IsReady on the Grafana component
+			// WHEN we call IsEnabled on the Grafana component
 			// THEN the call returns true
 			name: "Test IsEnabled when Grafana component set to enabled",
 			actualCR: vzapi.Verrazzano{
@@ -60,7 +60,7 @@ func TestIsEnabled(t *testing.T) {
 		},
 		{
 			// GIVEN a Verrazzano custom resource with the Grafana disabled
-			// WHEN we call IsReady on the Grafana component
+			// WHEN we call IsEnabled on the Grafana component
 			// THEN the call returns false
 			name: "Test IsEnabled when Grafana component set to disabled",
 			actualCR: vzapi.Verrazzano{

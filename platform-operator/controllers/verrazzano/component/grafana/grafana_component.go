@@ -97,7 +97,7 @@ func (g grafanaComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 
 // IsInstalled returns true if the Grafana component is installed
 func (g grafanaComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
-	return isGrafanaReady(ctx), nil
+	return isGrafanaInstalled(ctx), nil
 }
 
 // IsReady returns true if the Grafana component is ready
@@ -112,6 +112,16 @@ func (g grafanaComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
 
 // PreInstall ensures that preconditions are met before installing the Grafana component
 func (g grafanaComponent) PreInstall(ctx spi.ComponentContext) error {
+	if err := common.EnsureVMISecret(ctx.Client()); err != nil {
+		return err
+	}
+	if err := common.EnsureBackupSecret(ctx.Client()); err != nil {
+		return err
+	}
+	if err := common.CreateAndLabelVMINamespaces(ctx); err != nil {
+		return err
+	}
+
 	return common.EnsureGrafanaAdminSecret(ctx.Client())
 }
 
@@ -130,6 +140,10 @@ func (g grafanaComponent) PostInstall(ctx spi.ComponentContext) error {
 
 // PreUpgrade ensures that preconditions are met before upgrading the Grafana component
 func (g grafanaComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	if err := common.EnsureVMISecret(ctx.Client()); err != nil {
+		return err
+	}
+
 	return common.EnsureGrafanaAdminSecret(ctx.Client())
 }
 
