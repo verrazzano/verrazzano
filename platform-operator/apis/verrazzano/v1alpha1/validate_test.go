@@ -1464,27 +1464,31 @@ func TestValidateHelmValueOverrides(t *testing.T) {
 	testNoOverride := []Overrides{{}}
 
 	testBadOverride := []Overrides{
-		{
-			ConfigMapRef: &corev1.ConfigMapKeySelector{
-				LocalObjectReference: corev1.LocalObjectReference{},
-				Key:                  "",
-				Optional:             nil,
-			},
-			SecretRef: &corev1.SecretKeySelector{
+		{ConfigMapRef: &ConfigMapRef{
+			ConfigMapKeySelector: &corev1.ConfigMapKeySelector{
 				LocalObjectReference: corev1.LocalObjectReference{},
 				Key:                  "",
 				Optional:             nil,
 			},
 		},
+			SecretRef: &SecretRef{
+				SecretKeySelector: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{},
+					Key:                  "",
+					Optional:             nil,
+				},
+			},
+		},
 	}
 
 	testGoodOverride := []Overrides{
-		{
-			ConfigMapRef: &corev1.ConfigMapKeySelector{
+		{ConfigMapRef: &ConfigMapRef{
+			ConfigMapKeySelector: &corev1.ConfigMapKeySelector{
 				LocalObjectReference: corev1.LocalObjectReference{},
 				Key:                  "",
 				Optional:             nil,
 			},
+		},
 		},
 	}
 

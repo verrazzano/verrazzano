@@ -57,7 +57,7 @@
             {
               "image": "cert-manager-acmesolver",
               "tag": "v1.7.1",
-              "helmFullImageKey": "extraArgs[0]"
+              "helmFullImageKey": "extraArgs[0]=--acme-http01-solver-image"
             },
             {
               "image": "cert-manager-cainjector",
