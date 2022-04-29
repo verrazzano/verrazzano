@@ -3,4 +3,4 @@
 
 prometheusOperator:
   podLabels:
-    label-override: true
+    label-override: "true"
