@@ -44,9 +44,9 @@ function delete_cert_manager() {
     || err_return $? "Could not delete cert-manager from helm" || return $? # return on pipefail
 
   # delete the custom resource definition for cert manager
-  log "Deleting the custom resource definition for cert manager"
-  kubectl delete -f "${MANIFESTS_DIR}/cert-manager/cert-manager.crds.yaml" --ignore-not-found=true \
-    || err_return $? "Could not delete CustomResourceDefinition from cert-manager" || return $?
+  #log "Deleting the custom resource definition for cert manager"
+  #kubectl delete -f "${MANIFESTS_DIR}/cert-manager/cert-manager.crds.yaml" --ignore-not-found=true \
+  #  || err_return $? "Could not delete CustomResourceDefinition from cert-manager" || return $?
 
   # delete cert manager config map
   log "Deleting config map for cert manager"
@@ -112,25 +112,25 @@ function delete_rancher() {
     | sh \
     || err_return $? "There were errors deleting rancher CRs"  # Continue if failures
 
-  log "Deleting CRDs from Rancher"
+  #log "Deleting CRDs from Rancher"
 
-  local crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | awk '/coreos.com|cattle.io/')
+  #local crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | awk '/coreos.com|cattle.io/')
 
-  while [ "$crd_content" ]
-  do
+  #while [ "$crd_content" ]
+  #do
     # remove finalizers from crds
     # Ignore patch failures and attempt to delete the resources anyway.
-    patch_k8s_resources crds ":metadata.name,:spec.group" "Could not remove finalizers from CustomResourceDefinitions in Rancher" '/coreos.com|cattle.io/ {print $1}' '{"metadata":{"finalizers":null}}' \
-      || true
+  #  patch_k8s_resources crds ":metadata.name,:spec.group" "Could not remove finalizers from CustomResourceDefinitions in Rancher" '/coreos.com|cattle.io/ {print $1}' '{"metadata":{"finalizers":null}}' \
+  #    || true
 
     # delete crds
     # This process is backgrounded in order to timeout due to finalizers hanging
-    delete_k8s_resources crds ":metadata.name,:spec.group" "Could not delete CustomResourceDefinitions from Rancher" '/coreos.com|management.cattle.io|cattle.io|fleet/ {print $1}' \
-      || return $? &# return on pipefail
-    sleep 30
-    kill $! || true
-    crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | awk '/coreos.com|cattle.io/')
-  done
+  #  delete_k8s_resources crds ":metadata.name,:spec.group" "Could not delete CustomResourceDefinitions from Rancher" '/coreos.com|management.cattle.io|cattle.io|fleet/ {print $1}' \
+  #    || return $? &# return on pipefail
+  #  sleep 30
+  #  kill $! || true
+  #  crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | awk '/coreos.com|cattle.io/')
+  #done
 
   # delete ClusterRoleBindings deployed by rancher
   log "Deleting ClusterRoleBindings"

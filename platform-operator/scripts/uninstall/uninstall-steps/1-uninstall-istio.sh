@@ -50,9 +50,9 @@ function uninstall_istio() {
     || return $? # return on pipefail
 
       # delete istio crds
-  log "Deleting Istio Custom Resource Definitions"
-  delete_k8s_resources crd ":metadata.name" "Could not delete CustomResourceDefinition from Istio" '/istio.io/ {print $1}' \
-    || return $? # return on pipefail
+  #log "Deleting Istio Custom Resource Definitions"
+  #delete_k8s_resources crd ":metadata.name" "Could not delete CustomResourceDefinition from Istio" '/istio.io/ {print $1}' \
+  #  || return $? # return on pipefail
 
 }
 
