@@ -7,6 +7,7 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+
 	"github.com/onsi/gomega/gstruct/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"

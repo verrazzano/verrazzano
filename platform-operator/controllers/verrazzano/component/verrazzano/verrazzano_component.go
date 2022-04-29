@@ -70,7 +70,7 @@ func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
 	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
 		// Make sure the VMI CRD is installed since the Verrazzano component may create/update
 		// a VMI CR
-		if err := common.ApplyCRDYaml(ctx, config.GetHelmVmoChartsDir()); err != nil {
+		if err := common.ApplyCRDYaml(ctx, config.GetHelmVMOChartsDir()); err != nil {
 			return err
 		}
 	}
@@ -113,7 +113,7 @@ func (c verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
 		if err := vmo.ExportVMOHelmChart(ctx); err != nil {
 			return err
 		}
-		if err := common.ApplyCRDYaml(ctx, config.GetHelmVmoChartsDir()); err != nil {
+		if err := common.ApplyCRDYaml(ctx, config.GetHelmVMOChartsDir()); err != nil {
 			return err
 		}
 	}

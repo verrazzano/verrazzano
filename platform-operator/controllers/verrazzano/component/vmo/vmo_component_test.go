@@ -10,6 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -142,6 +143,7 @@ func TestPostUpgrade(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = rbacv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
+	_ = netv1.AddToScheme(scheme)
 	_ = appsv1.AddToScheme(scheme)
 	err := NewComponent().PostUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(scheme).Build(), nil, false))
 	assert.NoError(t, err)
