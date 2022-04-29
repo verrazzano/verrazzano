@@ -9,6 +9,10 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
+
+	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
@@ -69,6 +73,7 @@ const (
 	controllerName            = "ingresstrait"
 	httpsProtocol             = "HTTPS"
 	istioIngressGateway       = "istio-ingressgateway"
+	finalizerName             = "ingresstrait.finalizers.verrazzano.io"
 )
 
 // The port names used by WebLogic operator that do not have http prefix.
@@ -123,8 +128,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if trait, err = r.fetchTrait(ctx, req.NamespacedName, zap.S()); err != nil {
 		return clusters.IgnoreNotFoundWithLog(err, zap.S())
 	}
-	// If the trait no longer exists or is being deleted then return success.
-	if trait == nil || isTraitBeingDeleted(trait) {
+	// If the trait no longer exists return success.
+	if trait == nil {
 		return reconcile.Result{}, nil
 	}
 	log, err := clusters.GetResourceLogger("ingresstrait", req.NamespacedName, trait)
@@ -151,6 +156,25 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 // doReconcile performs the reconciliation operations for the ingress trait
 func (r *Reconciler) doReconcile(ctx context.Context, trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
+	// If the ingress trait no longer exists or is being deleted then cleanup the associated cert and secret resources
+	if isIngressTraitBeingDeleted(trait) {
+		log.Debugf("Deleting ingress trait %v", trait)
+		if err := cleanup(types.NamespacedName{Namespace: trait.Namespace, Name: trait.Labels[oam.LabelAppName]}, r.Client, log); err != nil {
+			// Requeue without error to avoid higher level log message
+			return reconcile.Result{Requeue: true}, nil
+		}
+		// resource cleanup has succeeded, remove the finalizer
+		if err := r.removeFinalizerIfRequired(ctx, trait, log); err != nil {
+			return vzctrl.NewRequeueWithDelay(2, 3, time.Second), nil
+		}
+		return reconcile.Result{}, nil
+	}
+
+	// add finalizer
+	if err := r.addFinalizerIfRequired(ctx, trait, log); err != nil {
+		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), nil
+	}
+
 	// Create or update the child resources of the trait and collect the outcomes.
 	status, result, err := r.createOrUpdateChildResources(ctx, trait, log)
 	if err != nil {
@@ -161,6 +185,39 @@ func (r *Reconciler) doReconcile(ctx context.Context, trait *vzapi.IngressTrait,
 
 	// Update the status of the trait resource using the outcomes of the create or update.
 	return r.updateTraitStatus(ctx, trait, status)
+}
+
+// isIngressTraitBeingDeleted determines if the ingress trait is in the process of being deleted.
+// This is done checking for a non-nil deletion timestamp.
+func isIngressTraitBeingDeleted(trait *vzapi.IngressTrait) bool {
+	return trait != nil && trait.GetDeletionTimestamp() != nil
+}
+
+// removeFinalizerIfRequired removes the finalizer from the application configuration if required
+// The finalizer is only removed if the application configuration is being deleted and the finalizer had been added
+func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) error {
+	if !trait.DeletionTimestamp.IsZero() && vzstring.SliceContainsString(trait.Finalizers, finalizerName) {
+		appName := vznav.GetNamespacedNameFromObjectMeta(trait.ObjectMeta)
+		log.Debugf("Removing finalizer from application configuration %s", appName)
+		trait.Finalizers = vzstring.RemoveStringFromSlice(trait.Finalizers, finalizerName)
+		err := r.Update(ctx, trait)
+		return vzlogInit.ConflictWithLog(fmt.Sprintf("Failed to remove finalizer from application configuration %s", appName), err, zap.S())
+	}
+	return nil
+}
+
+// addFinalizerIfRequired adds the finalizer to the app config if required
+// The finalizer is only added if the app config is not being deleted and the finalizer has not previously been added
+func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, appConfig *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) error {
+	if appConfig.GetDeletionTimestamp().IsZero() && !vzstring.SliceContainsString(appConfig.Finalizers, finalizerName) {
+		appName := vznav.GetNamespacedNameFromObjectMeta(appConfig.ObjectMeta)
+		log.Debugf("Adding finalizer for appConfig %s", appName)
+		appConfig.Finalizers = append(appConfig.Finalizers, finalizerName)
+		err := r.Update(ctx, appConfig)
+		_, err = vzlogInit.IgnoreConflictWithLog(fmt.Sprintf("Failed to add finalizer to appConfig %s", appName), err, zap.S())
+		return err
+	}
+	return nil
 }
 
 // createOrUpdateChildResources creates or updates the Gateway and VirtualService resources that
@@ -239,12 +296,6 @@ func (r *Reconciler) updateTraitStatus(ctx context.Context, trait *vzapi.Ingress
 		return reconcile.Result{Requeue: true}, r.Status().Update(ctx, trait)
 	}
 	return reconcile.Result{}, nil
-}
-
-// isTraitBeingDeleted determines if the trait is in the process of being deleted.
-// This is done checking for a non-nil deletion timestamp.
-func isTraitBeingDeleted(trait *vzapi.IngressTrait) bool {
-	return trait != nil && trait.GetDeletionTimestamp() != nil
 }
 
 // fetchTrait attempts to get a trait given a namespaced name.

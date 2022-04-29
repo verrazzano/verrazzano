@@ -18,8 +18,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// Cleanup cleans up the generated certificates and secrets associated with the given app config
-func Cleanup(appName types.NamespacedName, client client.Client, log vzlog.VerrazzanoLogger) (err error) {
+// cleanup cleans up the generated certificates and secrets associated with the given app config
+func cleanup(appName types.NamespacedName, client client.Client, log vzlog.VerrazzanoLogger) (err error) {
 	certName, err := buildCertificateNameFromAppName(appName)
 	if err != nil {
 		log.Errorf("Failed building certificate name: %s", err)
