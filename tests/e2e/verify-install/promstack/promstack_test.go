@@ -24,7 +24,9 @@ const (
 	prometheusTLSSecret             = "prometheus-operator-kube-p-admission"
 	prometheusOperatorDeployment    = "prometheus-operator-kube-p-operator"
 	prometheusOperatorContainerName = "kube-prometheus-stack"
-	overrideConfigMap               = "test-overrides"
+	overrideConfigMapSecretName     = "test-overrides"
+	overrideKey                     = "override"
+	overrideValue                   = "true"
 )
 
 type enabledFunc func(string) bool
@@ -57,7 +59,7 @@ var (
 		"--prometheus-default-base-image=" + imagePrefix + "/verrazzano/prometheus",
 		"--alertmanager-default-base-image=" + imagePrefix + "/verrazzano/alertmanager",
 	}
-	labelMatch = map[string]string{"label-override": "true"}
+	labelMatch = map[string]string{overrideKey: overrideValue}
 )
 
 var t = framework.NewTestFramework("promstack")
@@ -137,16 +139,20 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 		// GIVEN the Prometheus stack is installed
 		// WHEN we check to make sure the pods are running
 		// THEN we successfully find the running pods
-		WhenPromStackInstalledIt("should have Prometheus Operator pod labeled", func() {
+		WhenPromStackInstalledIt("should have Prometheus Operator pod labeled and annotated", func() {
 			promStackPodsRunning := func() bool {
 				if isPrometheusOperatorEnabled() {
-					_, err := pkg.GetConfigMap(overrideConfigMap, constants.DefaultNamespace)
+					_, err := pkg.GetConfigMap(overrideConfigMapSecretName, constants.DefaultNamespace)
 					if err == nil {
-						result, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{
+						pods, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{
 							MatchLabels: labelMatch,
 						}, verrazzanoMonitoringNamespace)
 						if err != nil {
 							AbortSuite(fmt.Sprintf("Label override not found for the Prometheus Operator pod in namespace %s: %v", verrazzanoMonitoringNamespace, err))
+						}
+						foundAnnotation := false
+						for _, pod := range pods {
+							if pod.Annotations[]
 						}
 						return len(result) == 1
 					} else if !k8serrors.IsNotFound(err) {

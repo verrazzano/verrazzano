@@ -18,7 +18,8 @@ fi
 INSTALL_CALICO=${1:-false}
 WILDCARD_DNS_DOMAIN=${2:-"x=nip.io"}
 KIND_NODE_COUNT=${KIND_NODE_COUNT:-1}
-TEST_OVERRIDES_FILE="./tests/e2e/config/scripts/test-overrides.yaml"
+TEST_OVERRIDE_CONFIGMAP_FILE="./tests/e2e/config/scripts/test-overrides-configmap.yaml"
+TEST_OVERRIDE_SECRET_FILE="./tests/e2e/config/scripts/test-overrides-secret.yaml"
 
 cd ${GO_REPO_PATH}/verrazzano
 echo "tests will execute" > ${TESTS_EXECUTED_FILE}
@@ -101,11 +102,19 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Creating Override ConfigMap"
-kubectl create cm test-overrides --from-file=${TEST_OVERRIDES_FILE}
+kubectl create cm test-overrides --from-file=${TEST_OVERRIDE_CONFIGMAP_FILE}
 if [ $? -ne 0 ]; then
   echo "Could not create Override ConfigMap"
   exit 1
 fi
+
+echo "Creating Override Secret"
+kubectl create secret test-overrides --from-file=${TEST_OVERRIDE_SECRET_FILE}
+if [ $? -ne 0 ]; then
+  echo "Could not create Override Secret"
+  exit 1
+fi
+
 
 echo "Installing Verrazzano on Kind"
 install_retries=0
