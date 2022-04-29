@@ -39,7 +39,7 @@ func (o opensearchComponent) GetDependencies() []string {
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the OpenSearch component
 func (o opensearchComponent) GetMinVerrazzanoVersion() string {
-	return constants.VerrazzanoVersion1_3_0
+	return constants.VerrazzanoVersion1_0_0
 }
 
 // GetJSONName returns the josn name of the OpenSearch component in CRD

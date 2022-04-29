@@ -170,28 +170,6 @@ func appendVerrazzanoComponentOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom
 }
 
 func appendVMIOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues, storageOverrides *common.ResourceRequestValues, kvs []bom.KeyValue) []bom.KeyValue {
-	overrides.Kibana = &kibanaValues{Enabled: vzconfig.IsKibanaEnabled(effectiveCR)}
-
-	overrides.ElasticSearch = &elasticsearchValues{
-		Enabled: vzconfig.IsElasticsearchEnabled(effectiveCR),
-	}
-	if storageOverrides != nil {
-		overrides.ElasticSearch.Nodes = &esNodes{
-			// Only have to override the data node storage
-			Data: &esNodeValues{
-				Requests: storageOverrides,
-			},
-		}
-	}
-	if effectiveCR.Spec.Components.Elasticsearch != nil {
-		for _, arg := range effectiveCR.Spec.Components.Elasticsearch.ESInstallArgs {
-			kvs = append(kvs, bom.KeyValue{
-				Key:   fmt.Sprintf(esHelmValuePrefixFormat, arg.Name),
-				Value: arg.Value,
-			})
-		}
-	}
-
 	overrides.Prometheus = &prometheusValues{
 		Enabled:  vzconfig.IsPrometheusEnabled(effectiveCR),
 		Requests: storageOverrides,

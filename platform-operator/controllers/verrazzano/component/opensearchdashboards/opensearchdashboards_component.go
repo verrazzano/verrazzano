@@ -39,7 +39,7 @@ func (d opensearchDashboardsComponent) GetDependencies() []string {
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the OpenSearch-Dashboards component
 func (d opensearchDashboardsComponent) GetMinVerrazzanoVersion() string {
-	return constants.VerrazzanoVersion1_3_0
+	return constants.VerrazzanoVersion1_0_0
 }
 
 // GetJSONName returns the json name of the OpenSearch-Dashboards component in CRD
