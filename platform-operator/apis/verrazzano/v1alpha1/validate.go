@@ -168,25 +168,25 @@ func ValidateUpgradeRequest(current *Verrazzano, new *Verrazzano) error {
 	}
 
 	// Make sure the requested version matches what's in the BOM
-	requestedSemVer, err := semver.NewSemVersion(newSpec.Version)
+	newSpecVer, err := semver.NewSemVersion(newSpec.Version)
 	if err != nil {
 		return err
 	}
-	if !requestedSemVer.IsEqualTo(bomVersion) {
+	if !newSpecVer.IsEqualTo(bomVersion) {
 		return fmt.Errorf("Requested version %s does not match BOM version %s",
-			requestedSemVer.ToString(), bomVersion.ToString())
+			newSpecVer.ToString(), bomVersion.ToString())
 	}
 
 	// Verify that the new version request is > than the current version
 	// - in reality, this should probably never happen
 	if len(currentSpec.Version) > 0 {
-		currentSemVer, err := semver.NewSemVersion(currentSpec.Version)
+		currentSpecVer, err := semver.NewSemVersion(currentSpec.Version)
 		if err != nil {
 			return err
 		}
-		if requestedSemVer.IsLessThan(currentSemVer) {
+		if newSpecVer.IsLessThan(currentSpecVer) {
 			return fmt.Errorf("Requested version %s is not newer than current version %s",
-				requestedSemVer.ToString(), currentSemVer.ToString())
+				newSpecVer.ToString(), currentSpecVer.ToString())
 		}
 	}
 	return nil
