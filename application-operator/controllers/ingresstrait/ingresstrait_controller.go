@@ -235,29 +235,25 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 	// Generate the certificate and secret for all hosts in the trait rules
 	secretName := r.createOrUseGatewaySecret(ctx, trait, allHostsForTrait, &status, log)
 	if secretName != "" {
-		gwName, err := buildGatewayName(trait)
-		if err != nil {
-			status.Errors = append(status.Errors, err)
-		} else {
-			// The Gateway is shared across all traits, update it with all known hosts for the trait
-			// - Must create GW before service so that external DNS sees the GW once the service is created
-			gateway := r.createOrUpdateGateway(ctx, trait, allHostsForTrait, gwName, secretName, &status, log)
-			for index, rule := range rules {
-				// Find the services associated with the trait in the application configuration.
-				var services []*corev1.Service
-				services, err := r.fetchServicesFromTrait(ctx, trait, log)
-				if err != nil {
-					return &status, reconcile.Result{}, err
-				} else if len(services) == 0 {
-					// This will be the case if the service has not started yet so we requeue and try again.
-					return &status, reconcile.Result{Requeue: true, RequeueAfter: clusters.GetRandomRequeueDelay()}, err
-				}
-
-				vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, index)
-				drName := fmt.Sprintf("%s-rule-%d-dr", trait.Name, index)
-				r.createOrUpdateVirtualService(ctx, trait, rule, allHostsForTrait, vsName, services, gateway, &status, log)
-				r.createOrUpdateDestinationRule(ctx, trait, rule, drName, &status, log)
+		gwName := buildGatewayName(trait)
+		// The Gateway is shared across all traits, update it with all known hosts for the trait
+		// - Must create GW before service so that external DNS sees the GW once the service is created
+		gateway := r.createOrUpdateGateway(ctx, trait, allHostsForTrait, gwName, secretName, &status, log)
+		for index, rule := range rules {
+			// Find the services associated with the trait in the application configuration.
+			var services []*corev1.Service
+			services, err := r.fetchServicesFromTrait(ctx, trait, log)
+			if err != nil {
+				return &status, reconcile.Result{}, err
+			} else if len(services) == 0 {
+				// This will be the case if the service has not started yet so we requeue and try again.
+				return &status, reconcile.Result{Requeue: true, RequeueAfter: clusters.GetRandomRequeueDelay()}, err
 			}
+
+			vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, index)
+			drName := fmt.Sprintf("%s-rule-%d-dr", trait.Name, index)
+			r.createOrUpdateVirtualService(ctx, trait, rule, allHostsForTrait, vsName, services, gateway, &status, log)
+			r.createOrUpdateDestinationRule(ctx, trait, rule, drName, &status, log)
 		}
 	}
 	return &status, ctrl.Result{}, nil
@@ -274,33 +270,19 @@ func (r *Reconciler) coallateAllHostsForTrait(trait *vzapi.IngressTrait, status 
 	return allHosts
 }
 
-// buildGatewayName will generate a gateway name from the namespace and application name of the provided trait. Returns
-// an error if the app name is not available.
-func buildGatewayName(trait *vzapi.IngressTrait) (string, error) {
-	appName, ok := trait.Labels[oam.LabelAppName]
-	if !ok {
-		return "", errors.New("OAM app name label missing from metadata, unable to generate gateway name")
-	}
-	componentName, ok := trait.Labels[oam.LabelAppComponent]
-	if !ok {
-		return "", errors.New("OAM component name label missing from metadata, unable to generate gateway name")
-	}
-	gwName := fmt.Sprintf("%s-%s-%s-gw", trait.Namespace, appName, componentName)
-	return gwName, nil
+// buildGatewayName will generate a gateway name from the namespace and name of the provided trait
+func buildGatewayName(trait *vzapi.IngressTrait) string {
+	return fmt.Sprintf("%s-%s-gw", trait.Namespace, trait.Name)
 }
 
 // buildCertificateName will construct a cert name from the trait.
-func buildCertificateName(trait *vzapi.IngressTrait) (string, error) {
-	appName, ok := trait.Labels[oam.LabelAppName]
-	if !ok {
-		return "", errors.New("OAM app name label missing from metadata, unable to generate certificate name")
-	}
-	componentName, ok := trait.Labels[oam.LabelAppComponent]
-	if !ok {
-		return "", errors.New("OAM component name label missing from metadata, unable to generate certificate name")
-	}
-	certName := fmt.Sprintf("%s-%s-%s-cert", trait.Namespace, appName, componentName)
-	return certName, nil
+func buildCertificateName(trait *vzapi.IngressTrait) string {
+	return fmt.Sprintf("%s-%s-cert", trait.Namespace, trait.Name)
+}
+
+// buildCertificateSecretName will construct a cert secret name from the trait.
+func buildCertificateSecretName(trait *vzapi.IngressTrait) string {
+	return fmt.Sprintf("%s-%s-cert-secret", trait.Namespace, trait.Name)
 }
 
 // updateTraitStatus updates the trait's status conditions and resources if they have changed.
@@ -433,10 +415,6 @@ func (r *Reconciler) createOrUseGatewaySecret(ctx context.Context, trait *vzapi.
 // application-wide gateway.  This implementation addresses a known Istio traffic management issue
 // (see https://istio.io/v1.7/docs/ops/common-problems/network-issues/#404-errors-occur-when-multiple-gateways-configured-with-same-tls-certificate)
 func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.IngressTrait, hostsForTrait []string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) string {
-	var secretName string
-	var err error
-	var certName string
-
 	//ensure trait does not specify hosts.  should be moved to ingress trait validating webhook
 	for _, rule := range trait.Spec.Rules {
 		if len(rule.Hosts) != 0 {
@@ -446,14 +424,8 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 		}
 	}
 
-	certName, err = buildCertificateName(trait)
-	if err != nil {
-		log.Errorf("Failed to create certificate name from ingress trait: %v", err)
-		status.Errors = append(status.Errors, err)
-		status.Results = append(status.Results, controllerutil.OperationResultNone)
-		return ""
-	}
-	secretName = fmt.Sprintf("%s-secret", certName)
+	certName := buildCertificateName(trait)
+	secretName := buildCertificateSecretName(trait)
 	certificate := &certapiv1.Certificate{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       certificateKind,

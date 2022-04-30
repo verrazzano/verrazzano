@@ -22,11 +22,7 @@ import (
 
 // cleanup cleans up the generated certificates and secrets associated with the given app config
 func cleanup(trait *vzapi.IngressTrait, client client.Client, log vzlog.VerrazzanoLogger) (err error) {
-	certName, err := buildCertificateName(trait)
-	if err != nil {
-		log.Errorf("Failed building certificate name: %s", err)
-		return err
-	}
+	certName := buildCertificateName(trait)
 	err = cleanupCert(certName, client, log)
 	if err != nil {
 		return

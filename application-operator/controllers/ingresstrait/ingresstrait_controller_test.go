@@ -58,7 +58,7 @@ const (
 	traitKind               = "IngressTrait"
 	testNamespace           = "test-space"
 	expectedTraitVSName     = "test-trait-rule-0-vs"
-	expectedAppGWName       = "test-space-myapp-gw"
+	expectedAppGWName       = "test-space-test-trait-gw"
 	testWorkloadName        = "test-workload-name"
 	testWorkloadID          = "test-workload-uid"
 	istioIngressGatewayName = "istio-ingressgateway"
@@ -445,68 +445,6 @@ func TestFailureCreateNewIngressWithSecretNoHosts(t *testing.T) {
 			assert.Len(trait.Status.Conditions, 1)
 			assert.Equal("all rules must specify at least one host when a secret is specified for TLS transport", trait.Status.Conditions[0].Message, "Unexpected error message")
 			assert.Len(trait.Status.Resources, 1)
-			return nil
-		})
-
-	// Create and make the request
-	request := newRequest(testNamespace, testTraitName)
-	reconciler := newIngressTraitReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
-
-	// Validate the results
-	mocker.Finish()
-	assert.NoError(err)
-	assert.Equal(true, result.Requeue)
-	assert.Equal(time.Duration(0), result.RequeueAfter)
-}
-
-// TestFailureCreateGatewayCertNoAppName tests the Reconcile method for the following use case.
-// GIVEN a request to reconcile an ingress trait resource
-// WHEN the trait exists but doesn't specify an oam app label
-// THEN ensure that an error is generated
-func TestFailureCreateGatewayCertNoAppName(t *testing.T) {
-	assert := asserts.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	// Expect a call to get the ingress trait resource.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testTraitName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.IngressTrait) error {
-			trait.TypeMeta = metav1.TypeMeta{
-				APIVersion: apiVersion,
-				Kind:       traitKind}
-			trait.ObjectMeta = metav1.ObjectMeta{
-				Namespace: name.Namespace,
-				Name:      name.Name}
-			trait.Spec.Rules = []vzapi.IngressRule{{
-				Hosts: []string{"test-host"},
-				Paths: []vzapi.IngressPath{{Path: "test-path"}}}}
-			trait.Spec.WorkloadReference = oamrt.TypedReference{
-				APIVersion: "core.oam.dev/v1alpha2",
-				Kind:       "ContainerizedWorkload",
-				Name:       testWorkloadName}
-			return nil
-		})
-	// Expect a call to update the ingress trait resource with a finalizer.
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait, options ...client.UpdateOption) error {
-			assert.Equal(testNamespace, trait.Namespace)
-			assert.Equal(testTraitName, trait.Name)
-			assert.Len(trait.Finalizers, 1)
-			assert.Equal(finalizerName, trait.Finalizers[0])
-			return nil
-		})
-
-	getMockStatusWriterExpectations(mock, mockStatus)
-	// Expect a call to update the status of the ingress trait.  The status is checked for the expected error condition.
-	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait, opts ...client.UpdateOption) error {
-			assert.Len(trait.Status.Conditions, 1)
-			assert.Equal("failed to obtain app name from ingress trait", trait.Status.Conditions[0].Message, "Unexpected error message")
-			assert.Len(trait.Status.Resources, 0)
 			return nil
 		})
 
@@ -1982,20 +1920,20 @@ func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 	assert.Equal(true, result.Requeue, "Expected a requeue due to status update.")
 
 	gw := istioclient.Gateway{}
-	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-test-comp-gw"}, &gw)
+	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-trait-gw"}, &gw)
 	assert.NoError(err)
 	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
 	assert.Equal(testLoadBalancerAppGatewayServerHost, gw.Spec.Servers[0].Hosts[0])
 	assert.Equal(testTraitPortName, gw.Spec.Servers[0].Port.Name)
 	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
 	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
-	assert.Equal("test-namespace-test-appconf-test-comp-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
+	assert.Equal("test-namespace-test-trait-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
 	assert.Equal("SIMPLE", gw.Spec.Servers[0].Tls.Mode.String())
 
 	vs := istioclient.VirtualService{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-trait-rule-0-vs"}, &vs)
 	assert.NoError(err)
-	assert.Equal("test-namespace-test-appconf-test-comp-gw", vs.Spec.Gateways[0])
+	assert.Equal("test-namespace-test-trait-gw", vs.Spec.Gateways[0])
 	assert.Len(vs.Spec.Gateways, 1)
 	assert.Equal(testLoadBalancerAppGatewayServerHost, vs.Spec.Hosts[0])
 	assert.Len(vs.Spec.Hosts, 1)
@@ -2082,20 +2020,20 @@ func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
 	assert.Equal(true, result.Requeue, "Expected a requeue due to status update.")
 
 	gw := istioclient.Gateway{}
-	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-test-comp-gw"}, &gw)
+	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-trait-gw"}, &gw)
 	assert.NoError(err)
 	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
 	assert.Equal(testLoadBalancerAppGatewayServerHost, gw.Spec.Servers[0].Hosts[0])
 	assert.Equal(testTraitPortName, gw.Spec.Servers[0].Port.Name)
 	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
 	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
-	assert.Equal("test-namespace-test-appconf-test-comp-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
+	assert.Equal("test-namespace-test-trait-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
 	assert.Equal("SIMPLE", gw.Spec.Servers[0].Tls.Mode.String())
 
 	vs := istioclient.VirtualService{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: expectedTraitVSName}, &vs)
 	assert.NoError(err)
-	assert.Equal("test-namespace-test-appconf-test-comp-gw", vs.Spec.Gateways[0])
+	assert.Equal("test-namespace-test-trait-gw", vs.Spec.Gateways[0])
 	assert.Len(vs.Spec.Gateways, 1)
 	assert.Equal(testLoadBalancerAppGatewayServerHost, vs.Spec.Hosts[0])
 	assert.Len(vs.Spec.Hosts, 1)
@@ -2187,20 +2125,20 @@ func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 	assert.Equal(true, result.Requeue, "Expected a requeue because the discovered service has multiple ports.")
 
 	gw := istioclient.Gateway{}
-	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-test-comp-gw"}, &gw)
+	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-trait-gw"}, &gw)
 	assert.NoError(err)
 	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
 	assert.Equal(testLoadBalancerAppGatewayServerHost, gw.Spec.Servers[0].Hosts[0])
 	assert.Equal(testTraitPortName, gw.Spec.Servers[0].Port.Name)
 	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
 	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
-	assert.Equal("test-namespace-test-appconf-test-comp-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
+	assert.Equal("test-namespace-test-trait-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
 	assert.Equal("SIMPLE", gw.Spec.Servers[0].Tls.Mode.String())
 
 	vs := istioclient.VirtualService{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: expectedTraitVSName}, &vs)
 	assert.NoError(err)
-	assert.Equal("test-namespace-test-appconf-test-comp-gw", vs.Spec.Gateways[0])
+	assert.Equal("test-namespace-test-trait-gw", vs.Spec.Gateways[0])
 	assert.Len(vs.Spec.Gateways, 1)
 	assert.Equal(testLoadBalancerAppGatewayServerHost, vs.Spec.Hosts[0])
 	assert.Len(vs.Spec.Hosts, 1)
@@ -2316,20 +2254,20 @@ func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination
 	assert.Equal(true, result.Requeue, "Expected a requeue because the discovered service has multiple ports.")
 
 	gw := istioclient.Gateway{}
-	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-test-comp-gw"}, &gw)
+	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-trait-gw"}, &gw)
 	assert.NoError(err)
 	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
 	assert.Equal(testLoadBalancerAppGatewayServerHost, gw.Spec.Servers[0].Hosts[0])
 	assert.Equal(testTraitPortName, gw.Spec.Servers[0].Port.Name)
 	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
 	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
-	assert.Equal("test-namespace-test-appconf-test-comp-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
+	assert.Equal("test-namespace-test-trait-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
 	assert.Equal("SIMPLE", gw.Spec.Servers[0].Tls.Mode.String())
 
 	vs := istioclient.VirtualService{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: expectedTraitVSName}, &vs)
 	assert.NoError(err)
-	assert.Equal("test-namespace-test-appconf-test-comp-gw", vs.Spec.Gateways[0])
+	assert.Equal("test-namespace-test-trait-gw", vs.Spec.Gateways[0])
 	assert.Len(vs.Spec.Gateways, 1)
 	assert.Equal(testLoadBalancerAppGatewayServerHost, vs.Spec.Hosts[0])
 	assert.Len(vs.Spec.Hosts, 1)
@@ -2395,7 +2333,7 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 	assert.Equal(true, result.Requeue, "Expected no requeue as error expected.")
 
 	gw := istioclient.Gateway{}
-	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-test-comp-gw"}, &gw)
+	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-trait-gw"}, &gw)
 	assert.False(k8serrors.IsNotFound(err), "Gateway should have been created.")
 
 	vs := istioclient.VirtualService{}
@@ -2434,21 +2372,21 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 
 	// Verify the Gateway was created and is valid.
 	gw = istioclient.Gateway{}
-	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-test-comp-gw"}, &gw)
+	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-trait-gw"}, &gw)
 	assert.NoError(err)
 	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
 	assert.Equal(testLoadBalancerAppGatewayServerHost, gw.Spec.Servers[0].Hosts[0])
 	assert.Equal(testTraitPortName, gw.Spec.Servers[0].Port.Name)
 	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
 	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
-	assert.Equal("test-namespace-test-appconf-test-comp-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
+	assert.Equal("test-namespace-test-trait-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
 	assert.Equal("SIMPLE", gw.Spec.Servers[0].Tls.Mode.String())
 
 	// Verify the VirtualService was created and is valid.
 	vs = istioclient.VirtualService{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: expectedTraitVSName}, &vs)
 	assert.NoError(err)
-	assert.Equal("test-namespace-test-appconf-test-comp-gw", vs.Spec.Gateways[0])
+	assert.Equal("test-namespace-test-trait-gw", vs.Spec.Gateways[0])
 	assert.Len(vs.Spec.Gateways, 1)
 	assert.Equal(testLoadBalancerAppGatewayServerHost, vs.Spec.Hosts[0])
 	assert.Len(vs.Spec.Hosts, 1)
@@ -3212,8 +3150,8 @@ func getGatewayForTraitNotFoundExpectations(mock *mocks.MockClient) {
 func appCertificateExpectations(mock *mocks.MockClient) {
 	// Expect a call to get the certificate related to the ingress trait
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: istioSystemNamespace, Name: "test-space-myapp-cert"}, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(schema.GroupResource{Group: testNamespace, Resource: "Certificate"}, "test-space-myapp-cert"))
+		Get(gomock.Any(), types.NamespacedName{Namespace: istioSystemNamespace, Name: "test-space-test-trait-cert"}, gomock.Not(gomock.Nil())).
+		Return(k8serrors.NewNotFound(schema.GroupResource{Group: testNamespace, Resource: "Certificate"}, "test-space-test-trait-cert"))
 }
 
 func createCertSuccessExpectations(mock *mocks.MockClient) {
