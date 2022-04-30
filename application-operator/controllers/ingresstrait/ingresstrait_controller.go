@@ -159,7 +159,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, trait *vzapi.IngressTrait,
 	// If the ingress trait no longer exists or is being deleted then cleanup the associated cert and secret resources
 	if isIngressTraitBeingDeleted(trait) {
 		log.Debugf("Deleting ingress trait %v", trait)
-		if err := cleanup(types.NamespacedName{Namespace: trait.Namespace, Name: trait.Labels[oam.LabelAppName]}, r.Client, log); err != nil {
+		if err := cleanup(trait, r.Client, log); err != nil {
 			// Requeue without error to avoid higher level log message
 			return reconcile.Result{Requeue: true}, nil
 		}
@@ -235,7 +235,7 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 	// Generate the certificate and secret for all hosts in the trait rules
 	secretName := r.createOrUseGatewaySecret(ctx, trait, allHostsForTrait, &status, log)
 	if secretName != "" {
-		gwName, err := getGatewayName(trait)
+		gwName, err := buildGatewayName(trait)
 		if err != nil {
 			status.Errors = append(status.Errors, err)
 		} else {
@@ -274,15 +274,33 @@ func (r *Reconciler) coallateAllHostsForTrait(trait *vzapi.IngressTrait, status 
 	return allHosts
 }
 
-// getGatewayName will generate a gateway name from the namespace and application name of the provided trait. Returns
+// buildGatewayName will generate a gateway name from the namespace and application name of the provided trait. Returns
 // an error if the app name is not available.
-func getGatewayName(trait *vzapi.IngressTrait) (string, error) {
+func buildGatewayName(trait *vzapi.IngressTrait) (string, error) {
 	appName, ok := trait.Labels[oam.LabelAppName]
 	if !ok {
 		return "", errors.New("OAM app name label missing from metadata, unable to generate gateway name")
 	}
-	gwName := fmt.Sprintf("%s-%s-gw", trait.Namespace, appName)
+	componentName, ok := trait.Labels[oam.LabelAppComponent]
+	if !ok {
+		return "", errors.New("OAM component name label missing from metadata, unable to generate gateway name")
+	}
+	gwName := fmt.Sprintf("%s-%s-%s-gw", trait.Namespace, appName, componentName)
 	return gwName, nil
+}
+
+// buildCertificateName will construct a cert name from the trait.
+func buildCertificateName(trait *vzapi.IngressTrait) (string, error) {
+	appName, ok := trait.Labels[oam.LabelAppName]
+	if !ok {
+		return "", errors.New("OAM app name label missing from metadata, unable to generate certificate name")
+	}
+	componentName, ok := trait.Labels[oam.LabelAppComponent]
+	if !ok {
+		return "", errors.New("OAM component name label missing from metadata, unable to generate certificate name")
+	}
+	certName := fmt.Sprintf("%s-%s-%s-cert", trait.Namespace, appName, componentName)
+	return certName, nil
 }
 
 // updateTraitStatus updates the trait's status conditions and resources if they have changed.
@@ -428,14 +446,7 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 		}
 	}
 
-	appName, ok := trait.Labels[oam.LabelAppName]
-	if !ok {
-		err = fmt.Errorf("failed to obtain app name from ingress trait")
-		status.Errors = append(status.Errors, err)
-		status.Results = append(status.Results, controllerutil.OperationResultNone)
-		return ""
-	}
-	certName, err = buildCertificateNameFromAppName(types.NamespacedName{Namespace: trait.Namespace, Name: appName})
+	certName, err = buildCertificateName(trait)
 	if err != nil {
 		log.Errorf("Failed to create certificate name from ingress trait: %v", err)
 		status.Errors = append(status.Errors, err)

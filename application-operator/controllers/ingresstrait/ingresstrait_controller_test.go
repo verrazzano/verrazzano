@@ -209,7 +209,7 @@ func TestSuccessfullyCreateNewIngressWithCertSecret(t *testing.T) {
 			trait.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
 				Name:      name.Name,
-				Labels:    map[string]string{oam.LabelAppName: "myapp"}}
+				Labels:    map[string]string{oam.LabelAppName: "myapp", oam.LabelAppComponent: "mycomp"}}
 			trait.Spec.Rules = []vzapi.IngressRule{{
 				Hosts: []string{"test-host"},
 				Paths: []vzapi.IngressPath{{Path: "test-path"}}}}
@@ -309,7 +309,7 @@ func TestSuccessfullyUpdateIngressWithCertSecret(t *testing.T) {
 			trait.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
 				Name:      name.Name,
-				Labels:    map[string]string{oam.LabelAppName: appName}}
+				Labels:    map[string]string{oam.LabelAppName: appName, oam.LabelAppComponent: "mycomp"}}
 			trait.Spec.Rules = rules
 			trait.Spec.TLS = tls
 			trait.Spec.WorkloadReference = workloadRef
@@ -417,7 +417,7 @@ func TestFailureCreateNewIngressWithSecretNoHosts(t *testing.T) {
 			trait.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
 				Name:      name.Name,
-				Labels:    map[string]string{oam.LabelAppName: "myapp"}}
+				Labels:    map[string]string{oam.LabelAppName: "myapp", oam.LabelAppComponent: "mycomp"}}
 			trait.Spec.Rules = []vzapi.IngressRule{{
 				Paths: []vzapi.IngressPath{{Path: "test-path"}}}}
 			trait.Spec.TLS = vzapi.IngressSecurity{SecretName: "cert-secret"}
@@ -541,7 +541,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 			trait.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
 				Name:      name.Name,
-				Labels:    map[string]string{oam.LabelAppName: "myapp"}}
+				Labels:    map[string]string{oam.LabelAppName: "myapp", oam.LabelAppComponent: "mycomp"}}
 			trait.Spec.Rules = []vzapi.IngressRule{{
 				Hosts: []string{"test-host"},
 				Paths: []vzapi.IngressPath{{Path: "test-path"}},
@@ -852,7 +852,7 @@ func TestBuildAppHostNameForDNS(t *testing.T) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns,
-			Labels:    map[string]string{oam.LabelAppName: "myapp"},
+			Labels:    map[string]string{oam.LabelAppName: "myapp", oam.LabelAppComponent: "mycomp"},
 		},
 	}
 	// Expect a call to get the Verrazzano ingress and return the ingress.
@@ -895,7 +895,7 @@ func TestBuildAppHostNameIgnoreWildcardForDNS(t *testing.T) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns,
-			Labels:    map[string]string{oam.LabelAppName: "myapp"},
+			Labels:    map[string]string{oam.LabelAppName: "myapp", oam.LabelAppComponent: "mycomp"},
 		},
 		Spec: vzapi.IngressTraitSpec{
 			Rules: []vzapi.IngressRule{{
@@ -944,7 +944,7 @@ func TestFailureBuildAppHostNameForDNS(t *testing.T) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns,
-			Labels:    map[string]string{oam.LabelAppName: "myapp"},
+			Labels:    map[string]string{oam.LabelAppName: "myapp", oam.LabelAppComponent: "mycomp"},
 		},
 	}
 	// Expect a call to get the Verrazzano ingress and return the ingress.
@@ -985,7 +985,7 @@ func TestBuildAppHostNameLoadBalancerNIP(t *testing.T) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns,
-			Labels:    map[string]string{oam.LabelAppName: "myapp"},
+			Labels:    map[string]string{oam.LabelAppName: "myapp", oam.LabelAppComponent: "mycomp"},
 		},
 	}
 	// Expect a call to get the Verrazzano ingress and return the ingress.
@@ -1044,7 +1044,7 @@ func TestBuildAppHostNameExternalLoadBalancerNIP(t *testing.T) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns,
-			Labels:    map[string]string{oam.LabelAppName: "myapp"},
+			Labels:    map[string]string{oam.LabelAppName: "myapp", oam.LabelAppComponent: "mycomp"},
 		},
 	}
 	// Expect a call to get the Verrazzano ingress and return the ingress.
@@ -1101,7 +1101,7 @@ func TestBuildAppHostNameBothInternalAndExternalLoadBalancerNIP(t *testing.T) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns,
-			Labels:    map[string]string{oam.LabelAppName: "myapp"},
+			Labels:    map[string]string{oam.LabelAppName: "myapp", oam.LabelAppComponent: "mycomp"},
 		},
 	}
 	// Expect a call to get the Verrazzano ingress and return the ingress.
@@ -1161,7 +1161,7 @@ func TestBuildAppHostNameExternalLoadBalancerNIPNotFound(t *testing.T) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns,
-			Labels:    map[string]string{oam.LabelAppName: "myapp"},
+			Labels:    map[string]string{oam.LabelAppName: "myapp", oam.LabelAppComponent: "mycomp"},
 		},
 	}
 	// Expect a call to get the Verrazzano ingress and return the ingress.
@@ -1216,7 +1216,7 @@ func TestFailureBuildAppHostNameLoadBalancerNIP(t *testing.T) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns,
-			Labels:    map[string]string{oam.LabelAppName: "myapp"},
+			Labels:    map[string]string{oam.LabelAppName: "myapp", oam.LabelAppComponent: "mycomp"},
 		},
 	}
 	// Expect a call to get the Verrazzano ingress and return the ingress.
@@ -1272,7 +1272,7 @@ func TestBuildAppHostNameNodePortExternalIP(t *testing.T) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns,
-			Labels:    map[string]string{oam.LabelAppName: "myapp"},
+			Labels:    map[string]string{oam.LabelAppName: "myapp", oam.LabelAppComponent: "mycomp"},
 		},
 	}
 	// Expect a call to get the Verrazzano ingress and return the ingress.
@@ -1429,7 +1429,7 @@ func TestCreateHostsFromIngressTraitRuleWildcards(t *testing.T) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns,
-			Labels:    map[string]string{oam.LabelAppName: "myapp"},
+			Labels:    map[string]string{oam.LabelAppName: "myapp", oam.LabelAppComponent: "mycomp"},
 		},
 		Spec: vzapi.IngressTraitSpec{
 			Rules: []vzapi.IngressRule{{
@@ -1982,20 +1982,20 @@ func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 	assert.Equal(true, result.Requeue, "Expected a requeue due to status update.")
 
 	gw := istioclient.Gateway{}
-	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
+	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-test-comp-gw"}, &gw)
 	assert.NoError(err)
 	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
 	assert.Equal(testLoadBalancerAppGatewayServerHost, gw.Spec.Servers[0].Hosts[0])
 	assert.Equal(testTraitPortName, gw.Spec.Servers[0].Port.Name)
 	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
 	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
-	assert.Equal("test-namespace-test-appconf-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
+	assert.Equal("test-namespace-test-appconf-test-comp-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
 	assert.Equal("SIMPLE", gw.Spec.Servers[0].Tls.Mode.String())
 
 	vs := istioclient.VirtualService{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-trait-rule-0-vs"}, &vs)
 	assert.NoError(err)
-	assert.Equal("test-namespace-test-appconf-gw", vs.Spec.Gateways[0])
+	assert.Equal("test-namespace-test-appconf-test-comp-gw", vs.Spec.Gateways[0])
 	assert.Len(vs.Spec.Gateways, 1)
 	assert.Equal(testLoadBalancerAppGatewayServerHost, vs.Spec.Hosts[0])
 	assert.Len(vs.Spec.Hosts, 1)
@@ -2082,20 +2082,20 @@ func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
 	assert.Equal(true, result.Requeue, "Expected a requeue due to status update.")
 
 	gw := istioclient.Gateway{}
-	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
+	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-test-comp-gw"}, &gw)
 	assert.NoError(err)
 	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
 	assert.Equal(testLoadBalancerAppGatewayServerHost, gw.Spec.Servers[0].Hosts[0])
 	assert.Equal(testTraitPortName, gw.Spec.Servers[0].Port.Name)
 	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
 	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
-	assert.Equal("test-namespace-test-appconf-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
+	assert.Equal("test-namespace-test-appconf-test-comp-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
 	assert.Equal("SIMPLE", gw.Spec.Servers[0].Tls.Mode.String())
 
 	vs := istioclient.VirtualService{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: expectedTraitVSName}, &vs)
 	assert.NoError(err)
-	assert.Equal("test-namespace-test-appconf-gw", vs.Spec.Gateways[0])
+	assert.Equal("test-namespace-test-appconf-test-comp-gw", vs.Spec.Gateways[0])
 	assert.Len(vs.Spec.Gateways, 1)
 	assert.Equal(testLoadBalancerAppGatewayServerHost, vs.Spec.Hosts[0])
 	assert.Len(vs.Spec.Hosts, 1)
@@ -2187,20 +2187,20 @@ func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 	assert.Equal(true, result.Requeue, "Expected a requeue because the discovered service has multiple ports.")
 
 	gw := istioclient.Gateway{}
-	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
+	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-test-comp-gw"}, &gw)
 	assert.NoError(err)
 	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
 	assert.Equal(testLoadBalancerAppGatewayServerHost, gw.Spec.Servers[0].Hosts[0])
 	assert.Equal(testTraitPortName, gw.Spec.Servers[0].Port.Name)
 	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
 	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
-	assert.Equal("test-namespace-test-appconf-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
+	assert.Equal("test-namespace-test-appconf-test-comp-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
 	assert.Equal("SIMPLE", gw.Spec.Servers[0].Tls.Mode.String())
 
 	vs := istioclient.VirtualService{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: expectedTraitVSName}, &vs)
 	assert.NoError(err)
-	assert.Equal("test-namespace-test-appconf-gw", vs.Spec.Gateways[0])
+	assert.Equal("test-namespace-test-appconf-test-comp-gw", vs.Spec.Gateways[0])
 	assert.Len(vs.Spec.Gateways, 1)
 	assert.Equal(testLoadBalancerAppGatewayServerHost, vs.Spec.Hosts[0])
 	assert.Len(vs.Spec.Hosts, 1)
@@ -2316,20 +2316,20 @@ func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination
 	assert.Equal(true, result.Requeue, "Expected a requeue because the discovered service has multiple ports.")
 
 	gw := istioclient.Gateway{}
-	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
+	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-test-comp-gw"}, &gw)
 	assert.NoError(err)
 	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
 	assert.Equal(testLoadBalancerAppGatewayServerHost, gw.Spec.Servers[0].Hosts[0])
 	assert.Equal(testTraitPortName, gw.Spec.Servers[0].Port.Name)
 	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
 	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
-	assert.Equal("test-namespace-test-appconf-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
+	assert.Equal("test-namespace-test-appconf-test-comp-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
 	assert.Equal("SIMPLE", gw.Spec.Servers[0].Tls.Mode.String())
 
 	vs := istioclient.VirtualService{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: expectedTraitVSName}, &vs)
 	assert.NoError(err)
-	assert.Equal("test-namespace-test-appconf-gw", vs.Spec.Gateways[0])
+	assert.Equal("test-namespace-test-appconf-test-comp-gw", vs.Spec.Gateways[0])
 	assert.Len(vs.Spec.Gateways, 1)
 	assert.Equal(testLoadBalancerAppGatewayServerHost, vs.Spec.Hosts[0])
 	assert.Len(vs.Spec.Hosts, 1)
@@ -2395,7 +2395,7 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 	assert.Equal(true, result.Requeue, "Expected no requeue as error expected.")
 
 	gw := istioclient.Gateway{}
-	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
+	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-test-comp-gw"}, &gw)
 	assert.False(k8serrors.IsNotFound(err), "Gateway should have been created.")
 
 	vs := istioclient.VirtualService{}
@@ -2434,21 +2434,21 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 
 	// Verify the Gateway was created and is valid.
 	gw = istioclient.Gateway{}
-	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
+	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-test-comp-gw"}, &gw)
 	assert.NoError(err)
 	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
 	assert.Equal(testLoadBalancerAppGatewayServerHost, gw.Spec.Servers[0].Hosts[0])
 	assert.Equal(testTraitPortName, gw.Spec.Servers[0].Port.Name)
 	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
 	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
-	assert.Equal("test-namespace-test-appconf-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
+	assert.Equal("test-namespace-test-appconf-test-comp-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
 	assert.Equal("SIMPLE", gw.Spec.Servers[0].Tls.Mode.String())
 
 	// Verify the VirtualService was created and is valid.
 	vs = istioclient.VirtualService{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: expectedTraitVSName}, &vs)
 	assert.NoError(err)
-	assert.Equal("test-namespace-test-appconf-gw", vs.Spec.Gateways[0])
+	assert.Equal("test-namespace-test-appconf-test-comp-gw", vs.Spec.Gateways[0])
 	assert.Len(vs.Spec.Gateways, 1)
 	assert.Equal(testLoadBalancerAppGatewayServerHost, vs.Spec.Hosts[0])
 	assert.Len(vs.Spec.Hosts, 1)
@@ -2659,7 +2659,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookie(t *test
 			trait.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
 				Name:      name.Name,
-				Labels:    map[string]string{oam.LabelAppName: "myapp"}}
+				Labels:    map[string]string{oam.LabelAppName: "myapp", oam.LabelAppComponent: "mycomp"}}
 			trait.Spec.Rules = []vzapi.IngressRule{{
 				Hosts: []string{"test-host"},
 				Paths: []vzapi.IngressPath{{Path: "test-path"}},
@@ -2995,7 +2995,8 @@ func TestMutateGatewayAddTrait(t *testing.T) {
 			Name:      trait2Name,
 			Namespace: testNamespace,
 			Labels: map[string]string{
-				oam.LabelAppName: appName,
+				oam.LabelAppName:      appName,
+				oam.LabelAppComponent: "mycomp",
 			},
 		},
 		Spec: vzapi.IngressTraitSpec{
@@ -3067,7 +3068,8 @@ func TestMutateGatewayHostsAddRemoveTraitRule(t *testing.T) {
 			Name:      trait1Name,
 			Namespace: testNamespace,
 			Labels: map[string]string{
-				oam.LabelAppName: appName,
+				oam.LabelAppName:      appName,
+				oam.LabelAppComponent: "mycomp",
 			},
 		},
 		Spec: vzapi.IngressTraitSpec{
@@ -3095,7 +3097,8 @@ func TestMutateGatewayHostsAddRemoveTraitRule(t *testing.T) {
 			Name:      trait1Name,
 			Namespace: testNamespace,
 			Labels: map[string]string{
-				oam.LabelAppName: appName,
+				oam.LabelAppName:      appName,
+				oam.LabelAppComponent: "mycomp",
 			},
 		},
 		Spec: vzapi.IngressTraitSpec{
@@ -3333,7 +3336,7 @@ func getIngressTraitResourceExpectations(mock *mocks.MockClient, assert *asserts
 			trait.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
 				Name:      name.Name,
-				Labels:    map[string]string{oam.LabelAppName: "myapp"}}
+				Labels:    map[string]string{oam.LabelAppName: "myapp", oam.LabelAppComponent: "mycomp"}}
 			trait.Spec.Rules = []vzapi.IngressRule{{
 				Hosts: []string{"test-host"},
 				Paths: []vzapi.IngressPath{{Path: "test-path"}}}}
@@ -3372,7 +3375,7 @@ func TestDeleteCertAndSecretWhenIngressTraitIsDeleted(t *testing.T) {
 				Namespace:         testNamespace,
 				Name:              testTraitName,
 				Finalizers:        []string{finalizerName},
-				Labels:            map[string]string{oam.LabelAppName: testAppName},
+				Labels:            map[string]string{oam.LabelAppName: testAppName, oam.LabelAppComponent: "mycomp"},
 				DeletionTimestamp: &metav1.Time{Time: time.Now()}}
 			return nil
 		})
