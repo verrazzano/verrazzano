@@ -2902,6 +2902,204 @@ func TestUpdateGatewayServersNewTraitHost(t *testing.T) {
 	assert.Equal(expectedServers, servers)
 }
 
+// TestMutateGatewayAddTrait tests the mutateGateway method
+// GIVEN a request to mutate the app gateway
+// WHEN a new Trate/TraitRule is added
+// THEN ensure the returned Servers list has the new Server for the IngressTrait
+func TestMutateGatewayAddTrait(t *testing.T) {
+	assert := asserts.New(t)
+
+	trait1Hosts := []string{"trait1host1", "trait1host2"}
+	trait2Hosts := []string{"trait2host1"}
+
+	const trait1Name = "trait1"
+	const trait2Name = "trait2"
+	const secretName = "secretName"
+
+	trait1Server := createGatewayServer(trait1Name, trait1Hosts, secretName)
+
+	const appName = "myapp"
+	gw := &istioclient.Gateway{
+		ObjectMeta: metav1.ObjectMeta{Name: expectedAppGWName, Namespace: testNamespace},
+		Spec: istionet.Gateway{
+			Servers: []*istionet.Server{
+				trait1Server,
+			},
+		},
+	}
+
+	trait := &vzapi.IngressTrait{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      trait2Name,
+			Namespace: testNamespace,
+			Labels: map[string]string{
+				oam.LabelAppName:      appName,
+				oam.LabelAppComponent: "mycomp",
+			},
+		},
+		Spec: vzapi.IngressTraitSpec{
+			Rules: []vzapi.IngressRule{
+				{Hosts: trait2Hosts},
+			},
+			WorkloadReference: createWorkloadReference(appName),
+		},
+	}
+
+	reconciler := setupTraitTestFakes(appName, gw)
+
+	_, _, err := reconciler.createOrUpdateChildResources(context.TODO(), trait, vzlog.DefaultLogger())
+	assert.NoError(err)
+
+	updatedGateway := &istioclient.Gateway{}
+	assert.NoError(reconciler.Get(context.TODO(), types.NamespacedName{Name: gw.Name, Namespace: testNamespace}, updatedGateway))
+	updatedServers := updatedGateway.Spec.Servers
+	assert.Len(updatedServers, 2)
+	assert.Equal(updatedServers[0].Hosts, trait1Hosts)
+	assert.Equal(updatedServers[1].Hosts, trait2Hosts)
+
+}
+
+func createWorkloadReference(appName string) oamrt.TypedReference {
+	return oamrt.TypedReference{
+		APIVersion: "core.oam.dev/v1alpha2",
+		Kind:       "ContainerizedWorkload",
+		Name:       appName,
+	}
+}
+
+// TestMutateGatewayHostsAddRemoveTraitRule tests the createOrUpdateChildResources method
+// GIVEN a request to createOrUpdateChildResources
+// WHEN a new TraitRule has been added or remvoed to an existing Trait with new hosts
+// THEN ensure the gateway Server hosts lists for the Trait has been updated accordingly
+func TestMutateGatewayHostsAddRemoveTraitRule(t *testing.T) {
+	assert := asserts.New(t)
+
+	trait1Hosts := []string{"trait1host1", "trait1host2"}
+	trait1NewHosts := []string{"trait1host3", "trait1host4", "trait1host2"}
+	trait2Hosts := []string{"trait2host1"}
+
+	const trait1Name = "trait1"
+	const trait2Name = "trait2"
+	const secretName = "secretName"
+
+	trait1Server := createGatewayServer(trait1Name, trait1Hosts, secretName)
+	trait2Server := createGatewayServer(trait2Name, trait2Hosts, secretName)
+
+	const appName = "myapp"
+
+	gw := &istioclient.Gateway{
+		ObjectMeta: metav1.ObjectMeta{Name: expectedAppGWName, Namespace: testNamespace},
+		Spec: istionet.Gateway{
+			Servers: []*istionet.Server{
+				trait1Server,
+				trait2Server,
+			},
+		},
+	}
+
+	reconciler := setupTraitTestFakes(appName, gw)
+
+	// Test updating a trait to add hosts
+	trait1UpdatedHosts := append(trait1Hosts, []string{"trait1host3", "trait1host4"}...)
+	updatedTrait := &vzapi.IngressTrait{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      trait1Name,
+			Namespace: testNamespace,
+			Labels: map[string]string{
+				oam.LabelAppName:      appName,
+				oam.LabelAppComponent: "mycomp",
+			},
+		},
+		Spec: vzapi.IngressTraitSpec{
+			Rules: []vzapi.IngressRule{
+				{Hosts: trait1Hosts},
+				{Hosts: trait1NewHosts},
+			},
+			WorkloadReference: createWorkloadReference(appName),
+		},
+	}
+
+	_, _, err := reconciler.createOrUpdateChildResources(context.TODO(), updatedTrait, vzlog.DefaultLogger())
+	assert.NoError(err)
+
+	updatedGateway := &istioclient.Gateway{}
+	assert.NoError(reconciler.Get(context.TODO(), types.NamespacedName{Name: expectedAppGWName, Namespace: testNamespace}, updatedGateway))
+	updatedServers := updatedGateway.Spec.Servers
+	assert.Len(updatedServers, 2)
+	assert.Equal(updatedServers[0].Hosts, trait1UpdatedHosts)
+	assert.Equal(updatedServers[1].Hosts, trait2Hosts)
+
+	// Test removing the added rule and that the hosts list is restored
+	updatedTraitRemovedRule := &vzapi.IngressTrait{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      trait1Name,
+			Namespace: testNamespace,
+			Labels: map[string]string{
+				oam.LabelAppName:      appName,
+				oam.LabelAppComponent: "mycomp",
+			},
+		},
+		Spec: vzapi.IngressTraitSpec{
+			Rules: []vzapi.IngressRule{
+				{Hosts: trait1Hosts},
+			},
+			WorkloadReference: createWorkloadReference(appName),
+		},
+	}
+
+	_, _, err2 := reconciler.createOrUpdateChildResources(context.TODO(), updatedTraitRemovedRule, vzlog.DefaultLogger())
+	assert.NoError(err2)
+
+	updatedGatewayRemovedRule := &istioclient.Gateway{}
+	assert.NoError(reconciler.Get(context.TODO(), types.NamespacedName{Name: expectedAppGWName, Namespace: testNamespace}, updatedGatewayRemovedRule))
+	updatedServersRemovedRule := updatedGatewayRemovedRule.Spec.Servers
+	assert.Len(updatedServers, 2)
+	assert.Equal(updatedServersRemovedRule[0].Hosts, trait1Hosts)
+	assert.Equal(updatedServersRemovedRule[1].Hosts, trait2Hosts)
+}
+
+func setupTraitTestFakes(appName string, gw *istioclient.Gateway) Reconciler {
+	appConfig := &v1alpha2.ApplicationConfiguration{
+		ObjectMeta: metav1.ObjectMeta{Name: appName, Namespace: testNamespace},
+	}
+
+	workload := &v1alpha2.ContainerizedWorkload{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      appName,
+			Namespace: testNamespace,
+			UID:       testWorkloadID,
+		},
+	}
+
+	workloadDef := &v1alpha2.WorkloadDefinition{
+		ObjectMeta: metav1.ObjectMeta{Name: "containerizedworkloads.core.oam.dev"},
+		Spec: v1alpha2.WorkloadDefinitionSpec{
+			ChildResourceKinds: []v1alpha2.ChildResourceKind{
+				{APIVersion: "apps/v1", Kind: "Deployment", Selector: nil},
+				{APIVersion: "v1", Kind: "Service", Selector: nil},
+			},
+		},
+	}
+
+	workloadService := &k8score.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testService",
+			Namespace: testNamespace,
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "core.oam.dev/v1alpha2",
+				Kind:       "ContainerizedWorkload",
+				Name:       testWorkloadName,
+				UID:        testWorkloadID,
+			}}},
+		Spec: k8score.ServiceSpec{
+			ClusterIP: testClusterIP,
+			Ports:     []k8score.ServicePort{{Port: 42}}},
+	}
+
+	reconciler := createReconcilerWithFake(appConfig, workload, workloadDef, workloadService, gw)
+	return reconciler
+}
+
 func createGatewayServer(traitName string, traitHosts []string, secretName ...string) *istionet.Server {
 	server := &istionet.Server{
 		Name:  traitName,
@@ -3096,6 +3294,66 @@ func getIngressTraitResourceExpectations(mock *mocks.MockClient, assert *asserts
 			assert.Equal(finalizerName, trait.Finalizers[0])
 			return nil
 		})
+}
+
+// TestDeleteCertAndSecretWhenIngressTraitIsDeleted tests the Reconcile method for the following use case.
+// GIVEN a request to reconcile an ingress trait resource that is marked for deletion
+// WHEN the ingress trait exists
+// THEN ensure that the cert and secret trait resources associated with the ingress trait are also deleted
+func TestDeleteCertAndSecretWhenIngressTraitIsDeleted(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+	const testAppName = "test-app"
+	// expect a call to fetch the IngressTrait
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testTraitName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.IngressTrait) error {
+			trait.ObjectMeta = ctrl.ObjectMeta{
+				Namespace:         testNamespace,
+				Name:              testTraitName,
+				Finalizers:        []string{finalizerName},
+				Labels:            map[string]string{oam.LabelAppName: testAppName, oam.LabelAppComponent: "mycomp"},
+				DeletionTimestamp: &metav1.Time{Time: time.Now()}}
+			return nil
+		})
+	// Expect a call to delete the cert
+	cli.EXPECT().
+		Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, cert *certapiv1.Certificate, opt *client.DeleteOptions) error {
+			assert.Equal(constants.IstioSystemNamespace, cert.Namespace)
+			assert.Equal(fmt.Sprintf("%s-%s-cert", testNamespace, testAppName), cert.Name)
+			return nil
+		})
+	// Expect a call to delete the secret
+	cli.EXPECT().
+		Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, sec *k8score.Secret, opt *client.DeleteOptions) error {
+			assert.Equal(constants.IstioSystemNamespace, sec.Namespace)
+			assert.Equal(fmt.Sprintf("%s-%s-cert-secret", testNamespace, testAppName), sec.Name)
+			return nil
+		})
+
+	// Expect a call to update the ingress trait resource with the finalizer removed.
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait, options ...client.UpdateOption) error {
+			assert.Equal(testNamespace, trait.Namespace)
+			assert.Equal(testTraitName, trait.Name)
+			assert.Len(trait.Finalizers, 0)
+			return nil
+		})
+
+	// Create and make the request
+	request := newRequest(testNamespace, testTraitName)
+	reconciler := newIngressTraitReconciler(cli)
+	result, err := reconciler.Reconcile(nil, request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
+	assert.Equal(time.Duration(0), result.RequeueAfter)
 }
 
 func createReconcilerWithFake(initObjs ...client.Object) Reconciler {
