@@ -20,7 +20,6 @@ import (
 )
 
 const (
-	threeMinutes                = 3 * time.Minute
 	pollingInterval             = 10 * time.Second
 	longTimeout                 = 10 * time.Minute
 	oldPatternsTestDataFile     = "testdata/upgrade/opensearch-dashboards/old-index-patterns.txt"
