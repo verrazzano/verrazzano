@@ -448,11 +448,6 @@ pipeline {
                                 runGinkgoSerial('upgrade/post-upgrade/opensearch')
                             }
                         }
-                        stage('opensearch-dashboards post-upgrade') {
-                            steps {
-                                runGinkgoSerial('upgrade/post-upgrade/opensearch-dashboards')
-                            }
-                        }
                         stage('examples socks') {
                             steps {
                                 runGinkgoNamespace('examples/socks', "false", "false", "sockshop")
