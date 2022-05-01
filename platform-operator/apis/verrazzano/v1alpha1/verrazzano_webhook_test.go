@@ -96,7 +96,7 @@ func runCreateCallbackWithInvalidVersion(t *testing.T) error {
 
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: "v0.18.0",
+			Version: v0180,
 			Profile: "dev",
 		},
 	}
@@ -117,6 +117,9 @@ func TestUpdateCallbackSuccessWithNewVersion(t *testing.T) {
 		Spec: VerrazzanoSpec{
 			Profile: "dev",
 		},
+		Status: VerrazzanoStatus{
+			Version: v110,
+		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
@@ -133,7 +136,7 @@ func TestUpdateCallbackSuccessWithNewVersion(t *testing.T) {
 	assert.NoError(t, newSpec.ValidateUpdate(oldSpec))
 }
 
-// TestUpdateCallbackSuccessWithNewVersion Tests the create callback with valid spec versions in both
+// TestUpdateCallbackSuccessWithNewVersion Tests the update callback with valid spec versions in both
 // GIVEN a ValidateUpdate() request
 // WHEN valid versions exist in both specs, and the new version > old version
 // THEN no error is returned
@@ -146,6 +149,9 @@ func TestUpdateCallbackSuccessWithOldAndNewVersion(t *testing.T) {
 		Spec: VerrazzanoSpec{
 			Version: "v0.16.0",
 			Profile: "dev",
+		},
+		Status: VerrazzanoStatus{
+			Version: "v0.16.0",
 		},
 	}
 	newSpec := &Verrazzano{
@@ -161,6 +167,40 @@ func TestUpdateCallbackSuccessWithOldAndNewVersion(t *testing.T) {
 	defer func() { getControllerRuntimeClient = getClient }()
 
 	assert.NoError(t, newSpec.ValidateUpdate(oldSpec))
+}
+
+// TestRollbackRejected Tests the update callback with valid spec versions in both
+// GIVEN a ValidateUpdate() request
+// WHEN no upgrade happened before (current spec ver empty), BOM ver is older than installed ver, and newSpec ver is older version
+// THEN no error is returned
+func TestRollbackRejected(t *testing.T) {
+	config.SetDefaultBomFilePath(testRollbackBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	oldSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: "dev",
+		},
+		Status: VerrazzanoStatus{
+			Version: v110,
+		},
+	}
+	newSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Version: v100,
+			Profile: "dev",
+		},
+	}
+
+	getControllerRuntimeClient = func() (client.Client, error) {
+		return fake.NewFakeClientWithScheme(newScheme()), nil
+	}
+	defer func() { getControllerRuntimeClient = getClient }()
+
+	err := newSpec.ValidateUpdate(oldSpec)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "rollback is not supported")
 }
 
 // TestUpdateCallbackFailsWithOldGreaterThanNewVersion Tests the create callback with old version > new
@@ -176,6 +216,9 @@ func TestUpdateCallbackFailsWithOldGreaterThanNewVersion(t *testing.T) {
 		Spec: VerrazzanoSpec{
 			Version: "v1.2.0",
 			Profile: "dev",
+		},
+		Status: VerrazzanoStatus{
+			Version: "v1.2.0",
 		},
 	}
 	newSpec := &Verrazzano{
@@ -215,10 +258,13 @@ func runUpdateWithInvalidVersionTest(t *testing.T) error {
 		Spec: VerrazzanoSpec{
 			Profile: "dev",
 		},
+		Status: VerrazzanoStatus{
+			Version: v0160,
+		},
 	}
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
-			Version: "v0.18.0",
+			Version: v0180,
 			Profile: "dev",
 		},
 	}

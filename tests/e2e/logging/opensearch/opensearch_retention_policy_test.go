@@ -92,12 +92,7 @@ var _ = t.Describe("Opensearch Retention Policies Suite", Label("f:observability
 		// Buffer time added to allow ISM policy time to clean up.
 		// Link to documentation.
 		oldestAllowedTimestamp := (currentEpochTime - retentionPeriod) * 1000
-		var indexMetadataList []pkg.IndexMetadata
-		if !pkg.IsDataStreamSupported() {
-			indexMetadataList, err = pkg.GetSystemIndices()
-		} else {
-			indexMetadataList, err = pkg.GetBackingIndicesForDataStream(pkg.SystemLogIsmPolicyName)
-		}
+		indexMetadataList, err := pkg.GetBackingIndicesForDataStream(pkg.SystemLogIsmPolicyName)
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
 			Fail(err.Error())
@@ -129,13 +124,6 @@ var _ = t.Describe("Opensearch Retention Policies Suite", Label("f:observability
 			Fail(err.Error())
 		}
 		var indexMetadataList []pkg.IndexMetadata
-		if !pkg.IsDataStreamSupported() {
-			indexMetadataList, err = pkg.GetApplicationIndices()
-			if err != nil {
-				pkg.Log(pkg.Error, err.Error())
-				Fail(err.Error())
-			}
-		}
 		for _, applicationDataStream := range applicationDataStreams {
 			indicesPerDataStream, err := pkg.GetBackingIndicesForDataStream(applicationDataStream)
 			if err != nil {

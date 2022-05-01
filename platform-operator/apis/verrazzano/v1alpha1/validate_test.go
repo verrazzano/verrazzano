@@ -32,10 +32,20 @@ import (
 )
 
 // For unit testing
-const actualBomFilePath = "../../../verrazzano-bom.json"
-const testBomFilePath = "../../../controllers//verrazzano/testdata/test_bom.json"
-const invalidTestBomFilePath = "../../../controllers//verrazzano/testdata/invalid_test_bom.json"
-const invalidPathTestBomFilePath = "../../../controllers//verrazzano/testdata/invalid_test_bom_path.json"
+const (
+	actualBomFilePath          = "../../../verrazzano-bom.json"
+	testBomFilePath            = "testdata/test_bom.json"
+	testRollbackBomFilePath    = "testdata/rollback_bom.json"
+	invalidTestBomFilePath     = "testdata/invalid_test_bom.json"
+	invalidPathTestBomFilePath = "testdata/invalid_test_bom_path.json"
+
+	v0160 = "v0.16.0"
+	v0170 = "v0.17.0"
+	v0180 = "v0.18.0"
+	v100  = "v1.0.0"
+	v110  = "v1.1.0"
+	v120  = "v1.2.0"
+)
 
 // TestValidUpgradeRequestNoCurrentVersion Tests the condition for valid upgrade where the version is not specified in the current spec
 // GIVEN an edit to update a Verrazzano spec to a new version
@@ -46,14 +56,140 @@ func TestValidUpgradeRequestNoCurrentVersion(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
-	currentSpec := &VerrazzanoSpec{
-		Profile: "dev",
+	currentSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: "dev",
+		},
+		Status: VerrazzanoStatus{
+			Version: v100,
+		},
 	}
-	newSpec := &VerrazzanoSpec{
-		Version: "v1.1.0",
-		Profile: "dev",
+	newSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Version: v110,
+			Profile: "dev",
+		},
 	}
 	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
+}
+
+// TestUpdateBeforeUpgrade Tests ValidateUpgradeRequest
+// GIVEN an edit to update a Verrazzano spec
+// WHEN no new version is requested and the spec has been modified
+// THEN ensure an error is returned
+func TestUpdateBeforeUpgrade(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	currentSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: "dev",
+		},
+		Status: VerrazzanoStatus{
+			Version: v100,
+		},
+	}
+	newSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: "dev",
+			Components: ComponentSpec{
+				DNS: &DNSComponent{
+					Wildcard: &Wildcard{
+						Domain: "sslip.io",
+					},
+				},
+			},
+		},
+	}
+	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
+}
+
+// TestUpdateWithUpgrade Tests ValidateUpgradeRequest
+// GIVEN an edit to update a Verrazzano spec
+// WHEN a valid new version is requested and the spec has been modified
+// THEN ensure no error is returned
+func TestUpdateWithUpgrade(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	currentSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: "dev",
+		},
+		Status: VerrazzanoStatus{
+			Version: v100,
+		},
+	}
+	newSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: "dev",
+			Version: v110,
+			Components: ComponentSpec{
+				DNS: &DNSComponent{
+					Wildcard: &Wildcard{
+						Domain: "sslip.io",
+					},
+				},
+			},
+		},
+	}
+	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
+}
+
+// TestUpgradeNewVerDoesNotMatchBOMVer Tests ValidateUpgradeRequest
+// GIVEN an edit to update a Verrazzano spec
+// WHEN a valid new version is requested that is less than the BOM version
+// THEN ensure an error is returned
+func TestUpgradeNewVerDoesNotMatchBOMVer(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	currentSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: "dev",
+		},
+		Status: VerrazzanoStatus{
+			Version: v100,
+		},
+	}
+	newSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: "dev",
+			Version: "v0.9.0",
+		},
+	}
+	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
+}
+
+// TestUpgradeNewVerLessThanCurrentCer Tests ValidateUpgradeRequest
+// GIVEN an edit to update a Verrazzano spec
+// WHEN a valid new version is requested that is less than the current spec version
+// THEN ensure an error is returned
+func TestUpgradeNewVerLessThanCurrentCer(t *testing.T) {
+	// This case can probably never happen in reality?
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	currentSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Version: v120,
+			Profile: Dev,
+		},
+		Status: VerrazzanoStatus{
+			Version: v120,
+		},
+	}
+	newSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: Dev,
+			Version: v110,
+		},
+	}
+	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestValidUpgradeRequestCurrentVersionExists Tests the condition for valid upgrade where versions are specified in both specs
@@ -65,13 +201,20 @@ func TestValidUpgradeRequestCurrentVersionExists(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
-	currentSpec := &VerrazzanoSpec{
-		Version: "v0.16.0",
-		Profile: "dev",
+	currentSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Version: v0160,
+			Profile: Dev,
+		},
+		Status: VerrazzanoStatus{
+			Version: v0160,
+		},
 	}
-	newSpec := &VerrazzanoSpec{
-		Version: "v1.1.0",
-		Profile: "dev",
+	newSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Version: v110,
+			Profile: Dev,
+		},
 	}
 	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
@@ -85,13 +228,20 @@ func TestValidUpgradeNotNecessary(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
-	currentSpec := &VerrazzanoSpec{
-		Version: "v0.17.0",
-		Profile: "dev",
+	currentSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Version: v0170,
+			Profile: Dev,
+		},
+		Status: VerrazzanoStatus{
+			Version: v0170,
+		},
 	}
-	newSpec := &VerrazzanoSpec{
-		Version: "v0.17.0",
-		Profile: "dev",
+	newSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Version: v110,
+			Profile: Dev,
+		},
 	}
 	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
@@ -105,13 +255,20 @@ func TestValidateUpgradeBadOldVersion(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
-	currentSpec := &VerrazzanoSpec{
-		Version: "blah",
-		Profile: "dev",
+	currentSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Version: "blah",
+			Profile: Dev,
+		},
+		Status: VerrazzanoStatus{
+			Version: v0160,
+		},
 	}
-	newSpec := &VerrazzanoSpec{
-		Version: "v0.17.0",
-		Profile: "dev",
+	newSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Version: v0170,
+			Profile: Dev,
+		},
 	}
 	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
@@ -125,31 +282,45 @@ func TestValidateUpgradeBadNewVersion(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
-	currentSpec := &VerrazzanoSpec{
-		Version: "v0.16.0",
-		Profile: "dev",
+	currentSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Version: v0160,
+			Profile: Dev,
+		},
+		Status: VerrazzanoStatus{
+			Version: v0160,
+		},
 	}
-	newSpec := &VerrazzanoSpec{
-		Version: "blah",
-		Profile: "dev",
+	newSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Version: "blah",
+			Profile: Dev,
+		},
 	}
 	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
-// TestNoVersionsSpecified Tests the validate passes if no versions are specified in either spec
+// TestNoVersionsSpecified Tests ValidateUpgradeRequest
 // GIVEN an edit to update a Verrazzano spec
-// WHEN the new version and the current version are not specified
-// THEN ensure no error is returned from ValidateUpgradeRequest
+// WHEN the new version and the current version are not specified, but the installed version is up to date
+// THEN no error is returned from ValidateUpgradeRequest
 func TestNoVersionsSpecified(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
-	currentSpec := &VerrazzanoSpec{
-		Profile: "dev",
+	currentSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: Dev,
+		},
+		Status: VerrazzanoStatus{
+			Version: v110,
+		},
 	}
-	newSpec := &VerrazzanoSpec{
-		Profile: "dev",
+	newSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: Dev,
+		},
 	}
 	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
@@ -163,53 +334,21 @@ func TestValidVersionWithProfileChange(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
-	currentSpec := &VerrazzanoSpec{
-		Profile: "dev",
+	currentSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: Dev,
+		},
+		Status: VerrazzanoStatus{
+			Version: v0160,
+		},
 	}
-	newSpec := &VerrazzanoSpec{
-		Version: "v0.17.0",
-		Profile: "prod",
+	newSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Version: v0170,
+			Profile: Prod,
+		},
 	}
 	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
-}
-
-// TestProfileChangeOnlyNoVersions Tests the validate fails if no versions specified but the profile is changed
-// GIVEN an edit to update a Verrazzano spec
-// WHEN only the profile has changed
-// THEN no error is returned from ValidateUpgradeRequest
-func TestProfileChangeOnlyNoVersions(t *testing.T) {
-	config.SetDefaultBomFilePath(testBomFilePath)
-	defer func() {
-		config.SetDefaultBomFilePath("")
-	}()
-	currentSpec := &VerrazzanoSpec{
-		Profile: "dev",
-	}
-	newSpec := &VerrazzanoSpec{
-		Profile: "prod",
-	}
-	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
-}
-
-// TestProfileChangeOnlyNoNewVersionString Tests the validate fails if the old spec has a version but the new one doesn't
-// GIVEN an edit to update a Verrazzano spec to change a profile value
-// WHEN the old spec specifies a version but the new one does not
-// THEN an error is returned from ValidateUpgradeRequest
-func TestProfileChangeOnlyNoNewVersionString(t *testing.T) {
-	config.SetDefaultBomFilePath(testBomFilePath)
-	defer func() {
-		config.SetDefaultBomFilePath("")
-	}()
-	currentSpec := &VerrazzanoSpec{
-		Profile: "dev",
-		Version: "v0.16.0",
-	}
-	newSpec := &VerrazzanoSpec{
-		Profile: "prod",
-	}
-	err := ValidateUpgradeRequest(currentSpec, newSpec)
-	assert.Error(t, err)
-	assert.Equal(t, "Requested version is not specified", err.Error())
 }
 
 // TestValidVersionWithEnvNameChange Tests the validate fails if the upgrade version is OK but the EnvironmentName is changed
@@ -221,13 +360,20 @@ func TestValidVersionWithEnvNameChange(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
-	currentSpec := &VerrazzanoSpec{
-		Profile: "dev",
+	currentSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: Dev,
+		},
+		Status: VerrazzanoStatus{
+			Version: v0160,
+		},
 	}
-	newSpec := &VerrazzanoSpec{
-		Version:         "v0.17.0",
-		Profile:         "dev",
-		EnvironmentName: "newEnv",
+	newSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Version:         v0170,
+			Profile:         Dev,
+			EnvironmentName: "newEnv",
+		},
 	}
 	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
@@ -241,30 +387,37 @@ func TestValidVersionWithCertManagerChange(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
-	currentSpec := &VerrazzanoSpec{
-		Profile: "dev",
-		Components: ComponentSpec{
-			CertManager: &CertManagerComponent{
-				Certificate: Certificate{
-					Acme: Acme{
-						Provider:     "MyProvider",
-						EmailAddress: "email1@mycompany.com",
-						Environment:  "someEnv",
+	currentSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: Dev,
+			Components: ComponentSpec{
+				CertManager: &CertManagerComponent{
+					Certificate: Certificate{
+						Acme: Acme{
+							Provider:     "MyProvider",
+							EmailAddress: "email1@mycompany.com",
+							Environment:  "someEnv",
+						},
 					},
 				},
 			},
 		},
+		Status: VerrazzanoStatus{
+			Version: v0160,
+		},
 	}
-	newSpec := &VerrazzanoSpec{
-		Version: "v0.17.0",
-		Profile: "dev",
-		Components: ComponentSpec{
-			CertManager: &CertManagerComponent{
-				Certificate: Certificate{
-					Acme: Acme{
-						Provider:     "MyProvider",
-						EmailAddress: "email2@mycompany.com",
-						Environment:  "someEnv",
+	newSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Version: v0170,
+			Profile: Dev,
+			Components: ComponentSpec{
+				CertManager: &CertManagerComponent{
+					Certificate: Certificate{
+						Acme: Acme{
+							Provider:     "MyProvider",
+							EmailAddress: "email2@mycompany.com",
+							Environment:  "someEnv",
+						},
 					},
 				},
 			},
@@ -282,39 +435,46 @@ func TestValidVersionWithNewDNS(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
-	currentSpec := &VerrazzanoSpec{
-		Profile: "dev",
-		Components: ComponentSpec{
-			CertManager: &CertManagerComponent{
-				Certificate: Certificate{
-					Acme: Acme{
-						Provider:     "MyProvider",
-						EmailAddress: "email1@mycompany.com",
-						Environment:  "someEnv",
+	currentSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: Dev,
+			Components: ComponentSpec{
+				CertManager: &CertManagerComponent{
+					Certificate: Certificate{
+						Acme: Acme{
+							Provider:     "MyProvider",
+							EmailAddress: "email1@mycompany.com",
+							Environment:  "someEnv",
+						},
 					},
 				},
 			},
 		},
+		Status: VerrazzanoStatus{
+			Version: v0160,
+		},
 	}
-	newSpec := &VerrazzanoSpec{
-		Version: "v0.17.0",
-		Profile: "dev",
-		Components: ComponentSpec{
-			CertManager: &CertManagerComponent{
-				Certificate: Certificate{
-					Acme: Acme{
-						Provider:     "MyProvider",
-						EmailAddress: "email1@mycompany.com",
-						Environment:  "someEnv",
+	newSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Version: v0170,
+			Profile: Dev,
+			Components: ComponentSpec{
+				CertManager: &CertManagerComponent{
+					Certificate: Certificate{
+						Acme: Acme{
+							Provider:     "MyProvider",
+							EmailAddress: "email1@mycompany.com",
+							Environment:  "someEnv",
+						},
 					},
 				},
-			},
-			DNS: &DNSComponent{
-				OCI: &OCI{
-					OCIConfigSecret:        "secret",
-					DNSZoneCompartmentOCID: "zonecompocid",
-					DNSZoneOCID:            "zoneOcid",
-					DNSZoneName:            "zoneName",
+				DNS: &DNSComponent{
+					OCI: &OCI{
+						OCIConfigSecret:        "secret",
+						DNSZoneCompartmentOCID: "zonecompocid",
+						DNSZoneOCID:            "zoneOcid",
+						DNSZoneName:            "zoneName",
+					},
 				},
 			},
 		},
@@ -346,51 +506,58 @@ func runValidateWithIngressChangeTest() error {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
-	currentSpec := &VerrazzanoSpec{
-		Profile: "dev",
-		Components: ComponentSpec{
-			Ingress: &IngressNginxComponent{
-				Type: "sometype",
-				NGINXInstallArgs: []InstallArgs{
-					{
-						Name:      "arg1",
-						Value:     "val1",
-						SetString: false,
+	currentSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: Dev,
+			Components: ComponentSpec{
+				Ingress: &IngressNginxComponent{
+					Type: "sometype",
+					NGINXInstallArgs: []InstallArgs{
+						{
+							Name:      "arg1",
+							Value:     "val1",
+							SetString: false,
+						},
 					},
-				},
-				Ports: []corev1.ServicePort{
-					{
-						Name:     "port1",
-						Protocol: "TCP",
-						Port:     8000,
+					Ports: []corev1.ServicePort{
+						{
+							Name:     "port1",
+							Protocol: "TCP",
+							Port:     8000,
+						},
 					},
 				},
 			},
 		},
+		Status: VerrazzanoStatus{
+			Version: v0160,
+		},
 	}
-	newSpec := &VerrazzanoSpec{
-		Version: "v0.17.0",
-		Profile: "dev",
-		Components: ComponentSpec{
-			Ingress: &IngressNginxComponent{
-				Type: "sometype",
-				NGINXInstallArgs: []InstallArgs{
-					{
-						Name:      "arg1",
-						Value:     "val1",
-						SetString: false,
+	newSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Version: v0170,
+			Profile: Dev,
+			Components: ComponentSpec{
+				Ingress: &IngressNginxComponent{
+					Type: "sometype",
+					NGINXInstallArgs: []InstallArgs{
+						{
+							Name:      "arg1",
+							Value:     "val1",
+							SetString: false,
+						},
 					},
-				},
-				Ports: []corev1.ServicePort{
-					{
-						Name:     "port1",
-						Protocol: "TCP",
-						Port:     8000,
-					},
-					{
-						Name:     "port2",
-						Protocol: "TCP",
-						Port:     9000,
+					Ports: []corev1.ServicePort{
+						{
+							Name:     "port1",
+							Protocol: "TCP",
+							Port:     8000,
+						},
+						{
+							Name:     "port2",
+							Protocol: "TCP",
+							Port:     9000,
+						},
 					},
 				},
 			},
@@ -409,7 +576,7 @@ func TestGetCurrentBomVersion(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
-	expectedVersion, err := semver.NewSemVersion("v1.1.0")
+	expectedVersion, err := semver.NewSemVersion(v110)
 	assert.NoError(t, err)
 
 	version, err := GetCurrentBomVersion()
@@ -487,7 +654,7 @@ func TestValidateVersionBadBomfile(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
-	err := ValidateVersion("v0.17.0")
+	err := ValidateVersion(v0170)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "unexpected end of JSON input")
 }
@@ -1424,7 +1591,7 @@ func TestValidateProfileEmptyProfile(t *testing.T) {
 // WHEN the profile provided is dev
 // THEN no error is returned
 func TestValidateProfileDevProfile(t *testing.T) {
-	assert.NoError(t, ValidateProfile("dev"))
+	assert.NoError(t, ValidateProfile(Dev))
 }
 
 // TestValidateProfileInvalidProfile Tests ValidateProfile() for invalid profile

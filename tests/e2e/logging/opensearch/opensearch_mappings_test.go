@@ -109,11 +109,6 @@ var _ = t.Describe("OpenSearch field mappings", Label("f:observability.logging.e
 				pkg.Log(pkg.Error, fmt.Sprintf("Error getting Verrazzano version: %v", err))
 				return false
 			}
-			if !pkg.IsDataStreamSupported() {
-
-				pkg.Log(pkg.Error, "Skipping the test as data stream with custom template is not enabled")
-				return true
-			}
 			doc2 := `{"key":"text","@timestamp":"2022-03-15T19:55:54Z"}`
 			resp, err = pkg.PostElasticsearch(fmt.Sprintf(indexDocumentURL, indexName), doc2)
 			if err != nil {
