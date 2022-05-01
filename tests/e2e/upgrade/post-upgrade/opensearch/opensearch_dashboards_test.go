@@ -19,7 +19,6 @@ const (
 	updatedPatternsTestDataFile = "testdata/upgrade/opensearch-dashboards/updated-index-patterns.txt"
 )
 
-
 var _ = t.Describe("Index Patterns", Label("f:observability.logging.kibana"), func() {
 	// It Wrapper to only run spec if component is supported on the current Verrazzano installation
 	MinimumVerrazzanoIt := func(description string, f func()) {
