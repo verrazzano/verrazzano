@@ -122,6 +122,6 @@ var _ = t.Describe("Index Patterns", Label("f:observability.logging.kibana"), fu
 				return pkg.SlicesContainSameStrings(expectedPatterns, actualPatterns)
 			}
 			return true
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(), "Expected not to fail creation of index patterns")
+		}).WithPolling(pollingInterval).WithTimeout(longTimeout).Should(BeTrue(), "Expected not to fail creation of index patterns")
 	})
 })
