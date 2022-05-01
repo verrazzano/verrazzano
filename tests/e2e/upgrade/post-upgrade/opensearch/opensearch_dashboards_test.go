@@ -1,56 +1,24 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package dashboards
+package opensearch
 
 import (
 	"bufio"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/tests/e2e/update"
-	"os"
-	"strings"
-	"time"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"os"
+	"strings"
 )
 
 const (
-	pollingInterval             = 10 * time.Second
-	longTimeout                 = 10 * time.Minute
 	oldPatternsTestDataFile     = "testdata/upgrade/opensearch-dashboards/old-index-patterns.txt"
 	updatedPatternsTestDataFile = "testdata/upgrade/opensearch-dashboards/updated-index-patterns.txt"
 )
 
-var t = framework.NewTestFramework("opensearch-dashboards")
-
-var _ = t.BeforeSuite(func() {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		pkg.Log(pkg.Error, err.Error())
-		Fail(err.Error())
-	}
-	supported, err := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
-	if err != nil {
-		pkg.Log(pkg.Error, err.Error())
-		Fail(err.Error())
-	}
-	if supported {
-		pkg.Log(pkg.Info, "Waiting for upgrade to Complete")
-		pkg.WaitForVZCondition(vzapi.CondUpgradeComplete, pollingInterval, longTimeout)
-		pkg.Log(pkg.Info, "VZ version is greater than 1.3.0")
-		m := pkg.ElasticSearchISMPolicyAddModifier{}
-		update.UpdateCRWithRetries(m, pollingInterval, longTimeout)
-		pkg.Log(pkg.Info, "Update the VZ CR to add the required ISM Policies")
-	}
-	// Wait for sufficient time to allow the VMO reconciliation to complete
-	pkg.WaitForISMPolicyUpdate(pollingInterval, longTimeout)
-	pkg.Log(pkg.Info, "Before suite setup completed")
-})
 
 var _ = t.Describe("Index Patterns", Label("f:observability.logging.kibana"), func() {
 	// It Wrapper to only run spec if component is supported on the current Verrazzano installation
