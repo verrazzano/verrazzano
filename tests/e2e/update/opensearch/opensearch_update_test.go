@@ -24,7 +24,7 @@ const (
 	masterNodeName      = "vmi-system-es-master"
 	ingestNodeName      = "vmi-system-es-ingest"
 	dataNodeName        = "vmi-system-es-data"
-	waitTimeout         = 15 * time.Minute
+	waitTimeout         = 25 * time.Minute
 	pollingInterval     = 10 * time.Second
 	updatedReplicaCount = 5
 	updatedNodeMemory   = "512Mi"
@@ -74,7 +74,11 @@ func (u OpensearchIngestNodeArgsModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Elasticsearch.ESInstallArgs =
 		append(cr.Spec.Components.Elasticsearch.ESInstallArgs,
 			vzapi.InstallArgs{Name: "nodes.ingest.replicas", Value: strconv.FormatUint(u.NodeReplicas, 10)},
-			vzapi.InstallArgs{Name: "nodes.ingest.requests.memory", Value: u.NodeMemory})
+			vzapi.InstallArgs{Name: "nodes.ingest.requests.memory", Value: u.NodeMemory},
+			vzapi.InstallArgs{Name: "node.master.replicas", Value: "1"},
+			vzapi.InstallArgs{Name: "node.data.replicas", Value: "1"},
+
+		)
 }
 
 func (u OpensearchDataNodeArgsModifier) ModifyCR(cr *vzapi.Verrazzano) {
@@ -88,7 +92,9 @@ func (u OpensearchDataNodeArgsModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		append(cr.Spec.Components.Elasticsearch.ESInstallArgs,
 			vzapi.InstallArgs{Name: "nodes.data.replicas", Value: strconv.FormatUint(u.NodeReplicas, 10)},
 			vzapi.InstallArgs{Name: "nodes.data.requests.memory", Value: u.NodeMemory},
-			vzapi.InstallArgs{Name: "nodes.data.requests.storage", Value: u.NodeStorage})
+			vzapi.InstallArgs{Name: "nodes.data.requests.storage", Value: u.NodeStorage},
+			vzapi.InstallArgs{Name: "nodes.master.replicas", Value: "1"},
+			vzapi.InstallArgs{Name: "node.ingest.replicas", Value: "1"})
 }
 
 func (u OpensearchCleanUpArgsModifier) ModifyCR(cr *vzapi.Verrazzano) {
