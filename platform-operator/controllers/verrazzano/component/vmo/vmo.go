@@ -5,6 +5,7 @@ package vmo
 
 import (
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -53,6 +54,11 @@ func appendVMOOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, 
 		envName := vzconfig.GetEnvName(effectiveCR)
 
 		kvs = append(kvs, bom.KeyValue{Key: "config.envName", Value: envName})
+	}
+
+	// Override the OIDC auth enabled value if Auth Proxy is disabled
+	if !vzconfig.IsAuthProxyEnabled(effectiveCR) {
+		kvs = append(kvs, bom.KeyValue{Key: "monitoringOperator.oidcAuthEnabled", Value: "false"})
 	}
 
 	kvs = append(kvs, vzkvs...)

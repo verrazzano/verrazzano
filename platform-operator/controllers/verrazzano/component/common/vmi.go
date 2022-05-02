@@ -6,6 +6,8 @@ package common
 import (
 	"context"
 	"fmt"
+	"reflect"
+
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 
@@ -15,7 +17,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
@@ -30,7 +31,8 @@ import (
 )
 
 const (
-	system = "system"
+	system             = "system"
+	defaultStorageSize = "50Gi"
 )
 
 // ResourceRequestValues defines the storage information that will be passed to VMI instance
@@ -264,4 +266,28 @@ func CheckIngressesAndCerts(ctx spi.ComponentContext, comp spi.Component) error 
 		}
 	}
 	return nil
+}
+
+// IsGrafanaAdminSecretReady returns true if the Grafana admin secret is present in the system namespace
+func IsGrafanaAdminSecretReady(ctx spi.ComponentContext) bool {
+	if err := ctx.Client().Get(context.TODO(),
+		types.NamespacedName{Name: constants.GrafanaSecret, Namespace: globalconst.VerrazzanoSystemNamespace},
+		&v1.Secret{}); err != nil {
+		if !errors.IsNotFound(err) {
+			ctx.Log().Errorf("Failed, unexpected error getting grafana admin secret: %v", err)
+			return false
+		}
+		ctx.Log().Debugf("Grafana admin secret not found")
+		return false
+	}
+	return true
+}
+
+// SetStorageSize copies or defaults the storage size
+func SetStorageSize(storage *ResourceRequestValues, storageObject *vmov1.Storage) {
+	if storage == nil {
+		storageObject.Size = defaultStorageSize
+	} else {
+		storageObject.Size = storage.Storage
+	}
 }
