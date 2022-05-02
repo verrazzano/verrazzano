@@ -60,11 +60,16 @@ func CreateOrUpdateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error
 
 	effectiveCR := ctx.EffectiveCR()
 
-	dnsSuffix, err := vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
-	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed getting DNS suffix: %v", err)
+	var dnsSuffix string
+	var envName string
+	var err error
+	if vzconfig.IsNGINXEnabled(effectiveCR) {
+		dnsSuffix, err = vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
+		if err != nil {
+			return ctx.Log().ErrorfNewErr("Failed getting DNS suffix: %v", err)
+		}
+		envName = vzconfig.GetEnvName(effectiveCR)
 	}
-	envName := vzconfig.GetEnvName(effectiveCR)
 
 	storage, err := FindStorageOverride(ctx.EffectiveCR())
 	if err != nil {
@@ -73,7 +78,7 @@ func CreateOrUpdateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error
 	vmi := NewVMI()
 	_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), vmi, func() error {
 		var existingVMI *vmov1.VerrazzanoMonitoringInstance = nil
-		if len(vmi.Spec.URI) > 0 {
+		if len(vmi.Spec.SecretsName) > 0 {
 			existingVMI = vmi.DeepCopy()
 		}
 
@@ -81,8 +86,10 @@ func CreateOrUpdateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error
 			"k8s-app":            "verrazzano.io",
 			"verrazzano.binding": system,
 		}
-		vmi.Spec.URI = fmt.Sprintf("vmi.system.%s.%s", envName, dnsSuffix)
-		vmi.Spec.IngressTargetDNSName = fmt.Sprintf("verrazzano-ingress.%s.%s", envName, dnsSuffix)
+		if vzconfig.IsNGINXEnabled(effectiveCR) {
+			vmi.Spec.URI = fmt.Sprintf("vmi.system.%s.%s", envName, dnsSuffix)
+			vmi.Spec.IngressTargetDNSName = fmt.Sprintf("verrazzano-ingress.%s.%s", envName, dnsSuffix)
+		}
 		vmi.Spec.ServiceType = "ClusterIP"
 		vmi.Spec.AutoSecret = true
 		vmi.Spec.SecretsName = constants.VMISecret

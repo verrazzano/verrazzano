@@ -32,6 +32,7 @@ import (
 const (
 	profileDir    = "../../../../manifests/profiles"
 	testNamespace = "testNamespace"
+	testBomFile   = "../../testdata/test_bom.json"
 )
 
 // default CA object
@@ -151,6 +152,7 @@ func TestIsCertManagerDisabled(t *testing.T) {
 // WHEN a VZ spec is passed with defaults
 // THEN the values created properly
 func TestAppendCertManagerOverrides(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFile)
 	kvs, err := AppendOverrides(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profileDir), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 1)
