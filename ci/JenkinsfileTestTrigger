@@ -237,7 +237,7 @@ pipeline {
                 stage('Kind Minimal Install Tests') {
                     steps {
                         script {
-                            build job: "/verrazzano-minimal-install-tests/${CLEAN_BRANCH_NAME}",
+                            build job: "/verrazzano-no-injection-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),

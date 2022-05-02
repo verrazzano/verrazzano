@@ -934,7 +934,7 @@ func (r *Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, cr *in
 		}
 		vzSystemNS.Name = vzconst.VerrazzanoSystemNamespace
 		vzSystemNS.Labels, _ = mergeMaps(nil, systemNamespaceLabels)
-		log.Debugf("Creating Verrazzano system namespace. Labels: %v", vzSystemNS.Labels)
+		log.Oncef("Creating Verrazzano system namespace. Labels: %v", vzSystemNS.Labels)
 		if err := r.Create(ctx, &vzSystemNS); err != nil {
 			log.Errorf("Failed to create namespace %s: %v", vzconst.VerrazzanoSystemNamespace, err)
 			return err
@@ -942,7 +942,7 @@ func (r *Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, cr *in
 		return nil
 	}
 	// Namespace exists, see if we need to add the label
-	log.Debugf("Updating Verrazzano system namespace")
+	log.Oncef("Updating Verrazzano system namespace")
 	var updated bool
 	vzSystemNS.Labels, updated = mergeMaps(vzSystemNS.Labels, systemNamespaceLabels)
 	if !updated {
