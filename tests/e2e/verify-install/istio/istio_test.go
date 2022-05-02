@@ -10,6 +10,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -68,7 +69,7 @@ var _ = t.Describe("Istio", Label("f:platform-lcm.install"), func() {
 		t.Entry(fmt.Sprintf("%s namespace should contain expected list of deployments", istioNamespace), istioNamespace),
 	)
 
-	t.DescribeTable("Pod replica counts",
+	t.DescribeTable("Verify expected replica counts",
 		func(namespace string) {
 
 			// Verify the correct number of pods for each deployment based on the profile & any overrides
@@ -83,36 +84,28 @@ var _ = t.Describe("Istio", Label("f:platform-lcm.install"), func() {
 				Fail(err.Error())
 			}
 
-			expectedPods := map[string]uint32{
-				"istio-egressgateway":  getEgressReplicaCount(vz),
-				"istio-ingressgateway": getIngressReplicaCount(vz),
-				"istiod":               getPilotReplicaCount(vz),
+			deployments := []types.NamespacedName{
+				{Name: "istio-egressgateway", Namespace: namespace},
+				{Name: "istio-ingressgateway", Namespace: namespace},
+				{Name: "istiod", Namespace: namespace},
 			}
-
-			podCountsMap := map[string]uint32{}
+			expectedPods := map[string]uint32{
+				deployments[0].String(): getEgressReplicaCount(vz),
+				deployments[1].String(): getIngressReplicaCount(vz),
+				deployments[2].String(): getPilotReplicaCount(vz),
+			}
 			Eventually(func() (map[string]uint32, error) {
-				for _, deploymentName := range expectedDeployments {
-					listOpts, err := buildListOpts(deploymentName)
-					if err != nil {
-						return map[string]uint32{}, err
-					}
-					podList, err := pkg.ListPods(namespace, listOpts)
-					if err != nil {
-						return map[string]uint32{}, err
-					}
-					podCountsMap[deploymentName] = uint32(len(podList.Items))
-				}
-				return podCountsMap, err
+				return pkg.CheckPodCounts(deployments, buildListOpts)
 			}, waitTimeout, pollingInterval).Should(Equal(expectedPods))
 		},
 		t.Entry(fmt.Sprintf("%s namespace should contain expected pod counts", istioNamespace), istioNamespace),
 	)
 })
 
-func buildListOpts(deploymentName string) (metav1.ListOptions, error) {
+func buildListOpts(name types.NamespacedName) (metav1.ListOptions, error) {
 	selector := metav1.LabelSelector{
 		MatchLabels: map[string]string{
-			"app": deploymentName,
+			"app": name.Name,
 		},
 	}
 	labelMap, err := metav1.LabelSelectorAsMap(&selector)
