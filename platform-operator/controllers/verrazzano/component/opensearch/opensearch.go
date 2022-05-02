@@ -97,7 +97,7 @@ func findESReplicas(ctx spi.ComponentContext, nodeType string) int32 {
 		for _, args := range esInstallArgs {
 			if args.Name == fmt.Sprintf("nodes.%s.replicas", nodeType) {
 				replicas, _ := strconv.Atoi(args.Value)
-				return int32(replicas)
+				return int32(replicas) //nolint:gosec //#gosec G109
 			}
 		}
 	}
