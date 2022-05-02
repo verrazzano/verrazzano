@@ -39,9 +39,9 @@ var _ = t.BeforeSuite(func() {
 		m := pkg.ElasticSearchISMPolicyAddModifier{}
 		update.UpdateCR(m)
 		pkg.Log(pkg.Info, "Update the VZ CR to add the required ISM Policies")
+		// Wait for sufficient time to allow the VMO reconciliation to complete
+		pkg.WaitForISMPolicyUpdate(shortPollingInterval, longWaitTimeout)
 	}
-	// Wait for sufficient time to allow the VMO reconciliation to complete
-	pkg.WaitForISMPolicyUpdate(shortPollingInterval, longWaitTimeout)
 	pkg.Log(pkg.Info, "Before suite setup completed")
 })
 
