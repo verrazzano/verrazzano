@@ -96,8 +96,8 @@ func findESReplicas(ctx spi.ComponentContext, nodeType string) int32 {
 		esInstallArgs := ctx.EffectiveCR().Spec.Components.Elasticsearch.ESInstallArgs
 		for _, args := range esInstallArgs {
 			if args.Name == fmt.Sprintf("nodes.%s.replicas", nodeType) {
-				replicas, _ := strconv.Atoi(args.Value)
-				return int32(replicas) //nolint:gosec //#gosec G109
+				replicas, _ := strconv.Atoi(args.Value) //nolint:gosec //#gosec G109
+				return int32(replicas)
 			}
 		}
 	}
