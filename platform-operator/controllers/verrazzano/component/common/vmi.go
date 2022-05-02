@@ -36,7 +36,7 @@ const (
 	system                = "system"
 	vmoComponentName      = "verrazzano-monitoring-operator"
 	vmoComponentNamespace = constants.VerrazzanoSystemNamespace
-	defaultStorageSize = "50Gi"
+	defaultStorageSize    = "50Gi"
 )
 
 // ResourceRequestValues defines the storage information that will be passed to VMI instance
