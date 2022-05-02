@@ -69,7 +69,6 @@ pipeline {
         DOCKER_REPO = 'ghcr.io'
         DOCKER_NAMESPACE = 'verrazzano'
         NETRC_FILE = credentials('netrc')
-        GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
 
         CLUSTER_NAME = 'verrazzano'
@@ -241,6 +240,16 @@ pipeline {
                         stage('pre-upgrade verify') {
                             steps {
                                 runGinkgoRandomize('upgrade/pre-upgrade/verify')
+                            }
+                        }
+                        stage('opensearch pre-upgrade') {
+                            steps {
+                                runGinkgoSerial('upgrade/pre-upgrade/opensearch')
+                            }
+                        }
+                        stage('opensearch-dashboards pre-upgrade') {
+                            steps {
+                                runGinkgoSerial('upgrade/pre-upgrade/opensearch-dashboards')
                             }
                         }
                         // Re-enable this stage when a mechanism is in place to deploy different comp and app yamls based on VZ version
@@ -434,6 +443,11 @@ pipeline {
                                 runGinkgoRandomize('upgrade/post-upgrade/verify')
                             }
                         }
+                        stage('opensearch post-upgrade') {
+                            steps {
+                                runGinkgoSerial('upgrade/post-upgrade/opensearch')
+                            }
+                        }
                         stage('examples socks') {
                             steps {
                                 runGinkgoNamespace('examples/socks', "false", "false", "sockshop")
@@ -621,6 +635,15 @@ def runGinkgoRandomize(testSuitePath) {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+        """
+    }
+}
+
+def runGinkgoSerial(testSuitePath) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
