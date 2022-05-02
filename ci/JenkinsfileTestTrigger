@@ -234,7 +234,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Kind Minimal Install Tests') {
+                stage('Kind No Istio Injection Tests') {
                     steps {
                         script {
                             build job: "/verrazzano-no-injection-tests/${CLEAN_BRANCH_NAME}",
