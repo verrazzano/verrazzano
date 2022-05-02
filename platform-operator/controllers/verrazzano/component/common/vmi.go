@@ -268,38 +268,42 @@ func CheckIngressesAndCerts(ctx spi.ComponentContext, comp spi.Component) error 
 
 func IsMultiNodeOpenSearch(vz *vzapi.Verrazzano) (bool, error) {
 	opensearch := vz.Spec.Components.Elasticsearch
+	var replicas int32
 	if opensearch != nil && opensearch.Enabled != nil && *opensearch.Enabled {
-		var replicas int32
-		for _, node := range opensearch.Nodes {
-			replicas += node.Replicas
+		addNodeGroupReplicas(opensearch, &replicas)
+		if err := addInstallArgReplicas(opensearch, &replicas); err != nil {
+			return false, err
 		}
-		addStr := func(v string) error {
-			var val int32
-			if _, err := fmt.Sscan(v, &val); err != nil {
+	}
+	return replicas > 1, nil
+}
+
+func addNodeGroupReplicas(os *vzapi.ElasticsearchComponent, replicas *int32) {
+	for _, node := range os.Nodes {
+		*replicas += node.Replicas
+	}
+}
+
+func addInstallArgReplicas(os *vzapi.ElasticsearchComponent, replicas *int32) error {
+	addStr := func(v string) error {
+		var val int32
+		if _, err := fmt.Sscan(v, &val); err != nil {
+			return err
+		}
+		*replicas += val
+		return nil
+	}
+	for _, arg := range os.ESInstallArgs {
+		switch arg.Name {
+		case "nodes.master.replicas":
+		case "nodes.ingest.replicas":
+		case "nodes.data.replicas":
+			if err := addStr(arg.Value); err != nil {
 				return err
 			}
-			replicas += val
-			return nil
+		default:
+			continue
 		}
-		for _, arg := range opensearch.ESInstallArgs {
-			switch arg.Name {
-			case "nodes.master.replicas":
-				if err := addStr(arg.Value); err != nil {
-					return false, err
-				}
-			case "nodes.ingest.replicas":
-				if err := addStr(arg.Value); err != nil {
-					return false, err
-				}
-			case "nodes.data.replicas":
-				if err := addStr(arg.Value); err != nil {
-					return false, err
-				}
-			default:
-				continue
-			}
-		}
-		return replicas > 1, nil
 	}
-	return false, nil
+	return nil
 }
