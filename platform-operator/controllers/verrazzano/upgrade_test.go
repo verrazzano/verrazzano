@@ -2005,9 +2005,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Console: &vzapi.ConsoleComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &enabled,
-					},
+					Enabled: &enabled,
 				},
 			},
 		},
@@ -2228,9 +2226,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Console: &vzapi.ConsoleComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &enabled,
-					},
+					Enabled: &enabled,
 				},
 			},
 		},

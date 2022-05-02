@@ -377,12 +377,6 @@ type ComponentSpec struct {
 	Verrazzano *VerrazzanoComponent `json:"verrazzano,omitempty"`
 }
 
-// MonitoringComponent Common configuration for monitoring components
-type MonitoringComponent struct {
-	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
-}
-
 // ElasticsearchComponent specifies the Elasticsearch configuration.
 type ElasticsearchComponent struct {
 	// +optional
@@ -412,32 +406,38 @@ type OpenSearchNodeStorage struct {
 
 // KibanaComponent specifies the Kibana configuration.
 type KibanaComponent struct {
-	MonitoringComponent `json:",inline"`
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // KubeStateMetricsComponent specifies the kube-state-metrics configuration.
 type KubeStateMetricsComponent struct {
-	MonitoringComponent `json:",inline"`
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // GrafanaComponent specifies the Grafana configuration.
 type GrafanaComponent struct {
-	MonitoringComponent `json:",inline"`
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // PrometheusComponent specifies the Prometheus configuration.
 type PrometheusComponent struct {
-	MonitoringComponent `json:",inline"`
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // PrometheusAdapterComponent specifies the Prometheus Adapter configuration.
 type PrometheusAdapterComponent struct {
-	MonitoringComponent `json:",inline"`
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // PrometheusNodeExporterComponent specifies the Prometheus Node Exporter configuration.
 type PrometheusNodeExporterComponent struct {
-	MonitoringComponent `json:",inline"`
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // PrometheusOperatorComponent specifies the Prometheus Operator configuration
@@ -449,7 +449,8 @@ type PrometheusOperatorComponent struct {
 
 // PrometheusPushgatewayComponent specifies the Prometheus Pushgateway configuration.
 type PrometheusPushgatewayComponent struct {
-	MonitoringComponent `json:",inline"`
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // CertManagerComponent specifies the core CertManagerComponent config.
@@ -513,7 +514,8 @@ type KialiComponent struct {
 
 // ConsoleComponent specifies the Console UI configuration
 type ConsoleComponent struct {
-	MonitoringComponent `json:",inline"`
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // DNSComponent specifies the DNS configuration

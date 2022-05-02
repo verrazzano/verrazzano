@@ -20,23 +20,19 @@ import (
 
 var enabled = true
 
-var monitoringComponent = vzapi.MonitoringComponent{
-	Enabled: &enabled,
-}
-
 var vmiEnabledCR = vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		Profile: vzapi.Prod,
 		Components: vzapi.ComponentSpec{
 			DNS: dnsComponents.DNS,
 			Kibana: &vzapi.KibanaComponent{
-				MonitoringComponent: monitoringComponent,
+				Enabled: &enabled,
 			},
 			Prometheus: &vzapi.PrometheusComponent{
-				MonitoringComponent: monitoringComponent,
+				Enabled: &enabled,
 			},
 			Grafana: &vzapi.GrafanaComponent{
-				MonitoringComponent: monitoringComponent,
+				Enabled: &enabled,
 			},
 			Elasticsearch: &vzapi.ElasticsearchComponent{
 

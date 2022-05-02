@@ -50,12 +50,12 @@ func TestIsReadySecretNotReady(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	falseValue := false
 	vz.Spec.Components = vzapi.ComponentSpec{
-		Console:       &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Console:       &vzapi.ConsoleComponent{Enabled: &falseValue},
 		Fluentd:       &vzapi.FluentdComponent{Enabled: &falseValue},
-		Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Kibana:        &vzapi.KibanaComponent{Enabled: &falseValue},
 		Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &falseValue},
-		Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Prometheus:    &vzapi.PrometheusComponent{Enabled: &falseValue},
+		Grafana:       &vzapi.GrafanaComponent{Enabled: &falseValue},
 	}
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -150,12 +150,12 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	falseValue := false
 	vz.Spec.Components = vzapi.ComponentSpec{
-		Console:       &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Console:       &vzapi.ConsoleComponent{Enabled: &falseValue},
 		Fluentd:       &vzapi.FluentdComponent{Enabled: &falseValue},
-		Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Kibana:        &vzapi.KibanaComponent{Enabled: &falseValue},
 		Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &falseValue},
-		Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Prometheus:    &vzapi.PrometheusComponent{Enabled: &falseValue},
+		Grafana:       &vzapi.GrafanaComponent{Enabled: &falseValue},
 	}
 	ctx := spi.NewFakeContext(c, vz, false)
 	assert.True(t, isOSDReady(ctx))
