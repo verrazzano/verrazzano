@@ -4,6 +4,8 @@ import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -55,7 +57,8 @@ func (r *Reconciler) watchConfigMaps(namespace string, name string, log vzlog.Ve
 			}
 
 			// Verify that Verrazzano contains the given resource
-			if !vzContainsResource(vz, e.Object) {
+			contained, err := r.vzContainsResource(vz, e.Object, log)
+			if err != nil || !contained {
 				return false
 			}
 
@@ -112,7 +115,8 @@ func (r *Reconciler) watchSecrets(namespace string, name string, log vzlog.Verra
 			}
 
 			// Verify that Verrazzano contains the given resource
-			if !vzContainsResource(vz, e.Object) {
+			contained, err := r.vzContainsResource(vz, e.Object, log)
+			if err != nil || !contained {
 				return false
 			}
 
@@ -134,32 +138,33 @@ func (r *Reconciler) watchSecrets(namespace string, name string, log vzlog.Verra
 }
 
 // vzContainsResource checks to see if the resource is listed in the Verrazzano
-func vzContainsResource(vz *installv1alpha1.Verrazzano, object client.Object) bool {
-	checkResource := false
-	if vz.Spec.Components.PrometheusOperator.ValueOverrides != nil {
-		if vz.Spec.Components.PrometheusOperator.MonitorChanges == nil || *vz.Spec.Components.PrometheusOperator.MonitorChanges {
-			checkResource = checkResource || componentContainsResource(vz.Spec.Components.PrometheusOperator.ValueOverrides, object)
+func (r *Reconciler) vzContainsResource(vz *installv1alpha1.Verrazzano, object client.Object, log vzlog.VerrazzanoLogger) (bool, error) {
+	ctx, err := spi.NewContext(log, r.Client, vz, false)
+	if err != nil {
+		return false, log.ErrorfNewErr("Failed to construct component context from Verrazzano Resource: %v", err)
+	}
+	for _, component := range registry.GetComponents() {
+		if found := componentContainsResource(component.GetHelmOverrides(ctx), object); found {
+			return found, nil
 		}
 	}
-	return checkResource
+	return false, nil
 }
 
 // componentContainsResource looks through the component override list see if the resource is listed
 func componentContainsResource(Overrides []installv1alpha1.Overrides, object client.Object) bool {
-	switch object.GetObjectKind().GroupVersionKind().Kind {
-	case configMap:
-		for _, override := range Overrides {
+	objectKind := object.GetObjectKind().GroupVersionKind().Kind
+	for _, override := range Overrides {
+		if objectKind == configMap && override.ConfigMapRef != nil {
 			if object.GetName() == override.ConfigMapRef.Name {
 				return true
 			}
 		}
-	case secret:
-		for _, override := range Overrides {
+		if objectKind == secret && override.SecretRef != nil {
 			if object.GetName() == override.SecretRef.Name {
 				return true
 			}
 		}
 	}
-
 	return false
 }

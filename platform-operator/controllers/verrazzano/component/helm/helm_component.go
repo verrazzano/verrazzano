@@ -144,6 +144,14 @@ func (h HelmComponent) GetJSONName() string {
 	return h.JSONName
 }
 
+// GetHelmOverrides returns the list of Helm value overrides for a component
+func (h HelmComponent) GetHelmOverrides(context spi.ComponentContext) []vzapi.Overrides {
+	if h.GetHelmValueOverrides != nil {
+		return h.GetHelmValueOverrides(context)
+	}
+	return []vzapi.Overrides{}
+}
+
 // GetDependencies returns the Dependencies of this component
 func (h HelmComponent) GetDependencies() []string {
 	return h.Dependencies
