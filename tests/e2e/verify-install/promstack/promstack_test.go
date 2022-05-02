@@ -86,6 +86,19 @@ func isPrometheusOperatorEnabled() bool {
 	return pkg.IsPrometheusOperatorEnabled(kubeconfigPath)
 }
 
+func areOverridesEnabled() bool {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
+	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to get vz resource in cluster: %s", err.Error()))
+		return false
+	}
+	return len(vz.Spec.Components.PrometheusOperator.ValueOverrides) > 0
+}
+
 // 'It' Wrapper to only run spec if the Prometheus Stack is supported on the current Verrazzano version
 func WhenPromStackInstalledIt(description string, f func()) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -141,7 +154,7 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 		// THEN we see that the correct pod labels and annotations exist
 		WhenPromStackInstalledIt("should have Prometheus Operator pod labeled and annotated", func() {
 			promStackPodsRunning := func() bool {
-				if isPrometheusOperatorEnabled() {
+				if isPrometheusOperatorEnabled() && areOverridesEnabled() {
 					_, err := pkg.GetConfigMap(overrideConfigMapSecretName, constants.DefaultNamespace)
 					if err == nil {
 						pods, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{
