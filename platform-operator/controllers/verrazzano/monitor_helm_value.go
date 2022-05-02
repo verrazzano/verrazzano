@@ -60,8 +60,13 @@ func (r *Reconciler) watchConfigMaps(namespace string, name string, log vzlog.Ve
 			}
 
 			// Verify that Verrazzano contains the given resource
-			contained, err := r.vzContainsResource(vz, e.Object, log)
-			if err != nil || !contained {
+			ctx, err := spi.NewContext(log, r.Client, vz, false)
+			if err != nil {
+				log.Errorf("Failed to construct component context from Verrazzano Resource: %v", err)
+				return false
+			}
+
+			if !r.vzContainsResource(ctx, e.Object) {
 				return false
 			}
 
@@ -118,8 +123,13 @@ func (r *Reconciler) watchSecrets(namespace string, name string, log vzlog.Verra
 			}
 
 			// Verify that Verrazzano contains the given resource
-			contained, err := r.vzContainsResource(vz, e.Object, log)
-			if err != nil || !contained {
+			ctx, err := spi.NewContext(log, r.Client, vz, false)
+			if err != nil {
+				log.Errorf("Failed to construct component context from Verrazzano Resource: %v", err)
+				return false
+			}
+
+			if !r.vzContainsResource(ctx, e.Object) {
 				return false
 			}
 
@@ -141,17 +151,13 @@ func (r *Reconciler) watchSecrets(namespace string, name string, log vzlog.Verra
 }
 
 // vzContainsResource checks to see if the resource is listed in the Verrazzano
-func (r *Reconciler) vzContainsResource(vz *installv1alpha1.Verrazzano, object client.Object, log vzlog.VerrazzanoLogger) (bool, error) {
-	ctx, err := spi.NewContext(log, r.Client, vz, false)
-	if err != nil {
-		return false, log.ErrorfNewErr("Failed to construct component context from Verrazzano Resource: %v", err)
-	}
+func (r *Reconciler) vzContainsResource(ctx spi.ComponentContext, object client.Object) bool {
 	for _, component := range registry.GetComponents() {
 		if found := componentContainsResource(component.GetHelmOverrides(ctx), object); found {
-			return found, nil
+			return found
 		}
 	}
-	return false, nil
+	return false
 }
 
 // componentContainsResource looks through the component override list see if the resource is listed
