@@ -324,6 +324,9 @@ pipeline {
         }
 
         stage("Upgrade Verrazzano") {
+            environment {
+                UPGRADE_CR="${WORKSPACE}/verrazzano-upgrade-cr.yaml"
+            }
             steps {
                 script {
                     // Download the bom for the target version that we are upgrading to, then extract the version
@@ -334,14 +337,14 @@ pipeline {
                     echo "Upgrading the Verrazzano installation to version" $VERRAZZANO_DEV_VERSION
                     # Modify the version field in the Verrazzano CR file to be this new Verrazzano version, and
                     # update the Istio replicas to validate update during upgrade
-                    UPGRADE_CR=${WORKSPACE}/verrazzano-upgrade-cr.yaml
                     cd ${GO_REPO_PATH}/verrazzano
                     cp ${INSTALL_CONFIG_FILE_KIND} ${UPGRADE_CR}
 
                     ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION} ${UPGRADE_CR}
 
-                    yq -i eval '.spec.istio.ingress.kubernetes.replicas = 3' ${UPGRADE_CR}
-                    yq -i eval '.spec.istio.egress.kubernetes.replicas = 3' ${UPGRADE_CR}
+                    # Add some simple additional updates to validate update during an upgrade
+                    yq -i eval '.spec.components.istio.ingress.kubernetes.replicas = 3' ${UPGRADE_CR}
+                    yq -i eval '.spec.components.istio.egress.kubernetes.replicas = 3' ${UPGRADE_CR}
 
                     # Copy upgrade CR where it will be archived
                     cp ${UPGRADE_CR} ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
