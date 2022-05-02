@@ -4,11 +4,17 @@
 package mccoherence
 
 import (
+	"flag"
 	"testing"
-
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 )
+
+func init() {
+	flag.BoolVar(&skipDeploy, "skipDeploy", false, "skipDeploy skips the call to install the application")
+	flag.BoolVar(&skipUndeploy, "skipUndeploy", false, "skipUndeploy skips the call to install the application")
+	flag.BoolVar(&skipVerify, "skipVerify", false, "skipVerify skips the post deployment app validations")
+}
 
 func TestMultiClusterCoherenceApplication(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
