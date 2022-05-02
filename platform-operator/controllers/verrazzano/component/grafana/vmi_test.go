@@ -71,6 +71,6 @@ func TestNewGrafanaWithExistingVMI(t *testing.T) {
 	ctx := spi.NewFakeContext(nil, &grafanaEnabledCR, false)
 	updateFunc(ctx, nil, &vmi, &existingVmi)
 	assert.True(t, vmi.Spec.Grafana.Enabled)
-	assert.Equal(t, "100Gi", vmi.Spec.Grafana.Storage.Size)
+	assert.Equal(t, "50Gi", vmi.Spec.Grafana.Storage.Size)
 	assert.Equal(t, []string{"my-pvc"}, vmi.Spec.Grafana.Storage.PvcNames)
 }

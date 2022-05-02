@@ -33,7 +33,10 @@ func newGrafana(cr *vzapi.Verrazzano, storage *common.ResourceRequestValues, exi
 	}
 	common.SetStorageSize(storage, &grafana.Storage)
 	if existingVMI != nil {
-		grafana.Storage = existingVMI.Spec.Grafana.Storage
+		// preserve PVC names since these are set by the VMO
+		if len(existingVMI.Spec.Grafana.Storage.PvcNames) > 0 {
+			grafana.Storage.PvcNames = existingVMI.Spec.Grafana.Storage.PvcNames
+		}
 	}
 	return grafana
 }
