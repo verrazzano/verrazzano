@@ -179,7 +179,7 @@ func TestAppendVmoOverridesOidcAuthDisabled(t *testing.T) {
 			},
 		},
 	}
-	kvs, err := appendVmoOverrides(spi.NewFakeContext(fakeClient, vz, false), "", "", "", []bom.KeyValue{})
+	kvs, err := appendVMOOverrides(spi.NewFakeContext(fakeClient, vz, false), "", "", "", []bom.KeyValue{})
 
 	a.NoError(err)
 	a.Contains(kvs, bom.KeyValue{
