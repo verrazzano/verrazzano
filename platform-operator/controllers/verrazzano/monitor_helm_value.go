@@ -5,8 +5,10 @@ package verrazzano
 
 import (
 	"context"
+	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
@@ -111,7 +113,7 @@ func (r *Reconciler) watchSecrets(namespace string, name string, log vzlog.Verra
 		return err
 	}
 
-	// Watch ConfigMap create
+	// Watch Secret create
 	predicateFunc := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
 			// Cast object to Secret
@@ -138,7 +140,7 @@ func (r *Reconciler) watchSecrets(namespace string, name string, log vzlog.Verra
 		},
 	}
 
-	// Watch ConfigMaps and trigger reconciles for Verrazzano resources when a ConfigMap is updated with the correct criteria
+	// Watch Secrets and trigger reconciles for Verrazzano resources when a Secret is updated with the correct criteria
 	err = r.Controller.Watch(
 		&source.Kind{Type: &corev1.Secret{}},
 		mapFn,
@@ -154,6 +156,14 @@ func (r *Reconciler) watchSecrets(namespace string, name string, log vzlog.Verra
 func (r *Reconciler) vzContainsResource(ctx spi.ComponentContext, object client.Object) bool {
 	for _, component := range registry.GetComponents() {
 		if found := componentContainsResource(component.GetHelmOverrides(ctx), object); found {
+			// Update component status to requeue
+			err := r.updateComponentStatus(ctx.Init(component.Name()).Operation(vzconst.InstallOperation),
+				fmt.Sprintf("Re-installing updated component %s", component.Name()),
+				installv1alpha1.CondPreInstall)
+			if err != nil {
+				ctx.Log().Errorf("Failed to update component %s status: %v", component.Name(), err)
+				return false
+			}
 			return found
 		}
 	}

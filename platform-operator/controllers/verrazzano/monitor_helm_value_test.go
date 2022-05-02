@@ -4,14 +4,14 @@
 package verrazzano
 
 import (
+	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 )
 
@@ -97,13 +97,19 @@ func TestVZContainsResource(t *testing.T) {
 			expect: true,
 		},
 	}
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	r := newVerrazzanoReconciler(c)
 	a := asserts.New(t)
 	for _, tt := range tests {
+		mocker := gomock.NewController(t)
+		mockCli := mocks.NewMockClient(mocker)
+		if tt.expect {
+			mockStatus := mocks.NewMockStatusWriter(mocker)
+			mockStatus.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
+			mockCli.EXPECT().Status().Return(mockStatus).AnyTimes()
+		}
+		r := newVerrazzanoReconciler(mockCli)
 		t.Run(tt.name, func(t *testing.T) {
-			context := spi.NewFakeContext(c, tt.vz, false)
-			a.Equal(r.vzContainsResource(context, tt.object), tt.expect)
+			context := spi.NewFakeContext(mockCli, tt.vz, false)
+			a.Equal(tt.expect, r.vzContainsResource(context, tt.object))
 		})
 	}
 }
