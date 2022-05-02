@@ -6,13 +6,14 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"io/fs"
 	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -988,18 +989,6 @@ func TestIsReadySecretNotReady(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      grafanaDeployment,
-				Labels:    map[string]string{"app": "system-grafana"},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
 				Name:      prometheusDeployment,
 				Labels:    map[string]string{"app": "system-prometheus"},
 			},
@@ -1065,18 +1054,6 @@ func TestIsReady(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      grafanaDeployment,
-				Labels:    map[string]string{"app": "system-grafana"},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
 				Name:      prometheusDeployment,
 				Labels:    map[string]string{"app": "system-prometheus"},
 			},
@@ -1132,18 +1109,6 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 				AvailableReplicas: 1,
 				Replicas:          1,
 				UpdatedReplicas:   0,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      grafanaDeployment,
-				Labels:    map[string]string{"app": "system-grafana"},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{

@@ -5,6 +5,8 @@ package vmo
 
 import (
 	"context"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -17,7 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 const testBomFilePath = "../../testdata/test_bom.json"
@@ -142,6 +143,48 @@ func TestAppendVmoOverridesNoNGINX(t *testing.T) {
 	a.Contains(kvs, bom.KeyValue{
 		Key:   "monitoringOperator.esInitImage",
 		Value: "ghcr.io/oracle/oraclelinux:7.8",
+	})
+}
+
+// TestAppendVmoOverridesOidcAuthDisabled tests the appendVmoOverrides function
+// GIVEN a call to appendVmoOverrides
+//  WHEN the Auth Proxy component is disabled
+//  THEN the key/value slice contains a helm override to disable OIDC auth in the VMO
+func TestAppendVmoOverridesOidcAuthDisabled(t *testing.T) {
+	a := assert.New(t)
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "ingress-nginx",
+			Name:      "ingress-controller-ingress-nginx-controller",
+		},
+		Spec: corev1.ServiceSpec{
+			ExternalIPs: []string{
+				"nn.nn.nn.nn",
+			},
+		},
+	}).Build()
+
+	var falseValue = false
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				AuthProxy: &vzapi.AuthProxyComponent{
+					Enabled: &falseValue,
+				},
+			},
+		},
+	}
+	kvs, err := appendVMOOverrides(spi.NewFakeContext(fakeClient, vz, false), "", "", "", []bom.KeyValue{})
+
+	a.NoError(err)
+	a.Contains(kvs, bom.KeyValue{
+		Key:   "monitoringOperator.oidcAuthEnabled",
+		Value: "false",
 	})
 }
 

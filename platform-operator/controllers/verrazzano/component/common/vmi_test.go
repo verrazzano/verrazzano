@@ -4,7 +4,10 @@
 package common
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
@@ -12,7 +15,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 const profileDir = "../../../../manifests/profiles"
@@ -233,4 +235,22 @@ func TestIsMultiNodeCluster(t *testing.T) {
 			assert.Equal(t, tt.isMultiNode, m)
 		})
 	}
+}
+
+// Test_SetStorageSize tests the SetStorageSize function
+func Test_SetStorageSize(t *testing.T) {
+	// GIVEN an empty storage request
+	// WHEN the storage size is set
+	// THEN we expect the storage size to be the default value
+	storageObject := &vmov1.Storage{}
+	SetStorageSize(nil, storageObject)
+	assert.Equal(t, defaultStorageSize, storageObject.Size)
+
+	// GIVEN a populated storage request
+	// WHEN the storage size is set
+	// THEN we expect the storage size to be the value from the request
+	const storageSize = "512Gi"
+	storageRequest := &ResourceRequestValues{Storage: storageSize}
+	SetStorageSize(storageRequest, storageObject)
+	assert.Equal(t, storageSize, storageObject.Size)
 }

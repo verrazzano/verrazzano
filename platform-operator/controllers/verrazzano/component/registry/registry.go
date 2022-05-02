@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
@@ -69,6 +70,7 @@ func getComponents() []spi.Component {
 			vmo.NewComponent(),
 			opensearch.NewComponent(),
 			opensearchdashboards.NewComponent(),
+			grafana.NewComponent(),
 			authproxy.NewComponent(),
 			coherence.NewComponent(),
 			mysql.NewComponent(),

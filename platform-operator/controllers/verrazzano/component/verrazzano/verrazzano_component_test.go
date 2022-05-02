@@ -201,7 +201,6 @@ func TestGetCertificateNames(t *testing.T) {
 				DNS: &vzapi.DNSComponent{
 					External: &vzapi.External{Suffix: "blah"},
 				},
-				Grafana:    &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &vmiEnabled}},
 				Prometheus: &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &vmiEnabled}},
 			},
 		},
@@ -214,11 +213,10 @@ func TestGetCertificateNames(t *testing.T) {
 	assert.Len(t, certNames, 1, "Unexpected number of cert names")
 
 	vmiEnabled = true
-	vz.Spec.Components.Grafana.Enabled = &vmiEnabled
 	vz.Spec.Components.Prometheus.Enabled = &vmiEnabled
 
 	certNames = vzComp.GetCertificateNames(ctx)
-	assert.Len(t, certNames, 3, "Unexpected number of cert names")
+	assert.Len(t, certNames, 2, "Unexpected number of cert names")
 }
 
 // TestUpgrade tests the Verrazzano Upgrade call; simple wrapper exercise, more detailed testing is done elsewhere
@@ -466,18 +464,6 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						Console: &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &disabled}},
-					},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "disable-grafana",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Grafana: &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &disabled}},
 					},
 				},
 			},
