@@ -426,7 +426,7 @@ func IsProdProfile() bool {
 	if err != nil {
 		return false
 	}
-	if vz.Spec.Profile == v1alpha1.Prod {
+	if vz.Spec.Profile == v1alpha1.Prod || vz.Spec.Profile == "" {
 		return true
 	}
 	return false
