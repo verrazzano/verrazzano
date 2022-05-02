@@ -10,6 +10,13 @@ spec:
   components:
     prometheusOperator:
       enabled: true
+      overrides:
+        - configMapRef:
+            name: test-overrides
+            key: test-overrides-configmap.yaml
+        - secretRef:
+            name: test-overrides
+            key: test-overrides-secret.yaml
     prometheusAdapter:
       enabled: true
     kubeStateMetrics:

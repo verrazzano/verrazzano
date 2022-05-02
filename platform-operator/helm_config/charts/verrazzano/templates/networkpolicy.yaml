@@ -105,23 +105,6 @@ spec:
     - ports:
         - port: 9443
           protocol: TCP
-{{- if .Values.monitoringOperator.enabled }}
----
-# Network policy for Verrazzano monitoring operator
-# Ingress: deny all
-# Egress: allow all
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: verrazzano-monitoring-operator
-  namespace: {{ .Release.Namespace }}
-spec:
-  podSelector:
-    matchLabels:
-      k8s-app: verrazzano-monitoring-operator
-  policyTypes:
-    - Ingress
-{{- end }}
 ---
 # Network policy for OAM Kubernetes Runtime operator
 # Ingress: deny all

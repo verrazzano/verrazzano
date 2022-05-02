@@ -6,12 +6,12 @@ package vmo
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
-	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,11 +21,11 @@ import (
 
 const testBomFilePath = "../../testdata/test_bom.json"
 
-// TestIsVmoReady tests the isVmoReady function
-// GIVEN a call to isVmoReady
+// TestIsVMOReady tests the isVMOReady function
+// GIVEN a call to isVMOReady
 //  WHEN the deployment object has enough replicas available
 //  THEN true is returned
-func TestIsVmoReady(t *testing.T) {
+func TestIsVMOReady(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
@@ -38,14 +38,14 @@ func TestIsVmoReady(t *testing.T) {
 			UpdatedReplicas:   1,
 		},
 	}).Build()
-	assert.True(t, isVmoReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
+	assert.True(t, isVMOReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
 }
 
-// TestIsVmoNotReady tests the isVmoReady function
-// GIVEN a call to isVmoReady
+// TestIsVMONotReady tests the isVMOReady function
+// GIVEN a call to isVMOReady
 //  WHEN the deployment object does not have enough replicas available
 //  THEN true is returned
-func TestIsVmoNotReady(t *testing.T) {
+func TestIsVMONotReady(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
@@ -58,14 +58,14 @@ func TestIsVmoNotReady(t *testing.T) {
 			UpdatedReplicas:   1,
 		},
 	}).Build()
-	assert.False(t, isVmoReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
+	assert.False(t, isVMOReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
 }
 
-// TestAppendVmoOverrides tests the appendVmoOverrides function
-// GIVEN a call to appendVmoOverrides
+// TestAppendVMOOverrides tests the appendVMOOverrides function
+// GIVEN a call to appendVMOOverrides
 //  WHEN I call with no extra kvs
 //  THEN the correct KeyValue objects are returned and no error occurs
-func TestAppendVmoOverrides(t *testing.T) {
+func TestAppendVMOOverrides(t *testing.T) {
 	a := assert.New(t)
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
@@ -84,7 +84,7 @@ func TestAppendVmoOverrides(t *testing.T) {
 		},
 	}).Build()
 
-	kvs, err := appendVmoOverrides(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false), "", "", "", []bom.KeyValue{})
+	kvs, err := appendVMOOverrides(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false), "", "", "", []bom.KeyValue{})
 
 	a.NoError(err)
 	a.Len(kvs, 4)
@@ -120,7 +120,7 @@ func TestAppendVmoOverridesNoNGINX(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	enabled := false
-	kvs, err := appendVmoOverrides(spi.NewFakeContext(fakeClient,
+	kvs, err := appendVMOOverrides(spi.NewFakeContext(fakeClient,
 		&vzapi.Verrazzano{
 			Spec: vzapi.VerrazzanoSpec{
 				Components: vzapi.ComponentSpec{
@@ -141,5 +141,47 @@ func TestAppendVmoOverridesNoNGINX(t *testing.T) {
 	a.Contains(kvs, bom.KeyValue{
 		Key:   "monitoringOperator.esInitImage",
 		Value: "ghcr.io/oracle/oraclelinux:7.8",
+	})
+}
+
+// TestAppendVmoOverridesOidcAuthDisabled tests the appendVmoOverrides function
+// GIVEN a call to appendVmoOverrides
+//  WHEN the Auth Proxy component is disabled
+//  THEN the key/value slice contains a helm override to disable OIDC auth in the VMO
+func TestAppendVmoOverridesOidcAuthDisabled(t *testing.T) {
+	a := assert.New(t)
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "ingress-nginx",
+			Name:      "ingress-controller-ingress-nginx-controller",
+		},
+		Spec: corev1.ServiceSpec{
+			ExternalIPs: []string{
+				"nn.nn.nn.nn",
+			},
+		},
+	}).Build()
+
+	var falseValue = false
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				AuthProxy: &vzapi.AuthProxyComponent{
+					Enabled: &falseValue,
+				},
+			},
+		},
+	}
+	kvs, err := appendVMOOverrides(spi.NewFakeContext(fakeClient, vz, false), "", "", "", []bom.KeyValue{})
+
+	a.NoError(err)
+	a.Contains(kvs, bom.KeyValue{
+		Key:   "monitoringOperator.oidcAuthEnabled",
+		Value: "false",
 	})
 }

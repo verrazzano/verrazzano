@@ -5,10 +5,9 @@ package verrazzano
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"path/filepath"
 
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
@@ -18,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -34,7 +34,6 @@ const (
 
 	// Certificate names
 	verrazzanoCertificateName = "verrazzano-tls"
-	grafanaCertificateName    = "system-tls-grafana"
 	prometheusCertificateName = "system-tls-prometheus"
 )
 
@@ -68,7 +67,7 @@ func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
 	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
 		// Make sure the VMI CRD is installed since the Verrazzano component may create/update
 		// a VMI CR
-		if err := common.ApplyCRDYaml(ctx, config.GetHelmVmoChartsDir()); err != nil {
+		if err := common.ApplyCRDYaml(ctx, config.GetHelmVMOChartsDir()); err != nil {
 			return err
 		}
 	}
@@ -78,10 +77,6 @@ func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
 	}
 	// create or update  backup secret
 	if err := common.EnsureBackupSecret(ctx.Client()); err != nil {
-		return err
-	}
-	// create or update  Grafana secret
-	if err := common.EnsureGrafanaAdminSecret(ctx.Client()); err != nil {
 		return err
 	}
 	ctx.Log().Debug("Verrazzano pre-install")
@@ -99,9 +94,6 @@ func (c verrazzanoComponent) Install(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.Install(ctx); err != nil {
 		return err
 	}
-	if err := createGrafanaConfigMaps(ctx); err != nil {
-		return err
-	}
 	return common.CreateOrUpdateVMI(ctx, updateFunc)
 }
 
@@ -111,7 +103,7 @@ func (c verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
 		if err := common.ExportVMOHelmChart(ctx); err != nil {
 			return err
 		}
-		if err := common.ApplyCRDYaml(ctx, config.GetHelmVmoChartsDir()); err != nil {
+		if err := common.ApplyCRDYaml(ctx, config.GetHelmVMOChartsDir()); err != nil {
 			return err
 		}
 	}
@@ -121,9 +113,6 @@ func (c verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
 // Upgrade Verrazzano component upgrade processing
 func (c verrazzanoComponent) Upgrade(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.Upgrade(ctx); err != nil {
-		return err
-	}
-	if err := createGrafanaConfigMaps(ctx); err != nil {
 		return err
 	}
 	return common.CreateOrUpdateVMI(ctx, updateFunc)
@@ -234,9 +223,6 @@ func (c verrazzanoComponent) checkEnabled(old *vzapi.Verrazzano, new *vzapi.Verr
 	if vzconfig.IsConsoleEnabled(old) && !vzconfig.IsConsoleEnabled(new) {
 		return fmt.Errorf("Disabling component console not allowed")
 	}
-	if vzconfig.IsGrafanaEnabled(old) && !vzconfig.IsGrafanaEnabled(new) {
-		return fmt.Errorf("Disabling component grafana not allowed")
-	}
 	if vzconfig.IsPrometheusEnabled(old) && !vzconfig.IsPrometheusEnabled(new) {
 		return fmt.Errorf("Disabling component prometheus not allowed")
 	}
@@ -246,13 +232,6 @@ func (c verrazzanoComponent) checkEnabled(old *vzapi.Verrazzano, new *vzapi.Verr
 // GetIngressNames - gets the names of the ingresses associated with this component
 func (c verrazzanoComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var ingressNames []types.NamespacedName
-
-	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
-		ingressNames = append(ingressNames, types.NamespacedName{
-			Namespace: ComponentNamespace,
-			Name:      constants.GrafanaIngress,
-		})
-	}
 
 	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
 		ingressNames = append(ingressNames, types.NamespacedName{
@@ -272,13 +251,6 @@ func (c verrazzanoComponent) GetCertificateNames(ctx spi.ComponentContext) []typ
 		Namespace: ComponentNamespace,
 		Name:      verrazzanoCertificateName,
 	})
-
-	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
-		certificateNames = append(certificateNames, types.NamespacedName{
-			Namespace: ComponentNamespace,
-			Name:      grafanaCertificateName,
-		})
-	}
 
 	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
 		certificateNames = append(certificateNames, types.NamespacedName{

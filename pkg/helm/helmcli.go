@@ -33,10 +33,10 @@ type ChartStatusFnType func(releaseName string, namespace string) (string, error
 
 // HelmOverrides contains all of the overrides that gets passed to the helm cli runner
 type HelmOverrides struct {
-	SetOverrides       string   // for --set
-	SetStringOverrides string   // for --set-string
-	SetFileOverrides   string   // for --set-file
-	FileOverrides      []string // for -f
+	SetOverrides       string // for --set
+	SetStringOverrides string // for --set-string
+	SetFileOverrides   string // for --set-file
+	FileOverride       string // for -f
 }
 
 var chartStatusFn ChartStatusFnType = getChartStatus
@@ -136,7 +136,7 @@ func GetValuesMap(log vzlog.VerrazzanoLogger, releaseName string, namespace stri
 
 // Upgrade will upgrade a Helm release with the specified charts.  The override files array
 // are in order with the first files in the array have lower precedence than latter files.
-func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides HelmOverrides) (stdout []byte, stderr []byte, err error) {
+func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []HelmOverrides) (stdout []byte, stderr []byte, err error) {
 	// Helm upgrade command will apply the new chart, but use all the existing
 	// overrides that we used during the install.
 	args := []string{"--install"}
@@ -145,29 +145,29 @@ func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 	// values retrieved from 'helm get values' with the -f arg to 'helm upgrade'. This is a workaround to avoid
 	// a failed helm upgrade that results from a nil reference.  The nil reference occurs when a default value
 	// is added to a new chart and new chart references the new value.
-	for _, overridesFileName := range overrides.FileOverrides {
-		if len(overridesFileName) == 0 {
-			log.Debugf("Empty overrides file name for release %s", releaseName)
-			continue
+	for _, override := range overrides {
+		// Add file overrides
+		if len(override.FileOverride) > 0 {
+			args = append(args, "-f")
+			args = append(args, override.FileOverride)
 		}
-		args = append(args, "-f")
-		args = append(args, overridesFileName)
+		// Add the override strings
+		if len(override.SetOverrides) > 0 {
+			args = append(args, "--set")
+			args = append(args, override.SetOverrides)
+		}
+		// Add the set-string override strings
+		if len(override.SetStringOverrides) > 0 {
+			args = append(args, "--set-string")
+			args = append(args, override.SetStringOverrides)
+		}
+		// Add the set-file override strings
+		if len(override.SetFileOverrides) > 0 {
+			args = append(args, "--set-file")
+			args = append(args, override.SetFileOverrides)
+		}
 	}
 
-	// Add the override strings
-	if len(overrides.SetOverrides) > 0 {
-		args = append(args, "--set")
-		args = append(args, overrides.SetOverrides)
-	}
-	// Add the set-string override strings
-	if len(overrides.SetStringOverrides) > 0 {
-		args = append(args, "--set-string")
-		args = append(args, overrides.SetStringOverrides)
-	}
-	if len(overrides.SetFileOverrides) > 0 {
-		args = append(args, "--set-file")
-		args = append(args, overrides.SetFileOverrides)
-	}
 	stdout, stderr, err = runHelm(log, releaseName, namespace, chartDir, "upgrade", wait, args, dryRun)
 	if err != nil {
 		return stdout, stderr, err

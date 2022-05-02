@@ -8,9 +8,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/onsi/gomega"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	vpClient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
@@ -1275,4 +1277,22 @@ func ContainerHasExpectedEnv(namespace string, deploymentName string, containerN
 		}
 	}
 	return false, nil
+}
+
+// WaitForVZCondition waits till the VZ CR reaches the given condition
+func WaitForVZCondition(conditionType v1alpha1.ConditionType, pollingInterval, timeout time.Duration) {
+	gomega.Eventually(func() bool {
+		cr, err := GetVerrazzano()
+		if err != nil {
+			Log(Error, err.Error())
+			return false
+		}
+		for _, condition := range cr.Status.Conditions {
+			Log(Info, fmt.Sprintf("Evaluating condition: [%s - %s]", condition.Type, condition.Status))
+			if condition.Type == conditionType && condition.Status == corev1.ConditionTrue {
+				return true
+			}
+		}
+		return false
+	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(gomega.BeTrue())
 }

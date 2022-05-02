@@ -6,6 +6,8 @@ package common
 import (
 	"context"
 	"fmt"
+	"reflect"
+
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	v12 "k8s.io/api/apps/v1"
@@ -17,7 +19,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
@@ -35,6 +36,7 @@ const (
 	system                = "system"
 	vmoComponentName      = "verrazzano-monitoring-operator"
 	vmoComponentNamespace = constants.VerrazzanoSystemNamespace
+	defaultStorageSize = "50Gi"
 )
 
 // ResourceRequestValues defines the storage information that will be passed to VMI instance
@@ -64,11 +66,16 @@ func CreateOrUpdateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error
 
 	effectiveCR := ctx.EffectiveCR()
 
-	dnsSuffix, err := vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
-	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed getting DNS suffix: %v", err)
+	var dnsSuffix string
+	var envName string
+	var err error
+	if vzconfig.IsNGINXEnabled(effectiveCR) {
+		dnsSuffix, err = vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
+		if err != nil {
+			return ctx.Log().ErrorfNewErr("Failed getting DNS suffix: %v", err)
+		}
+		envName = vzconfig.GetEnvName(effectiveCR)
 	}
-	envName := vzconfig.GetEnvName(effectiveCR)
 
 	storage, err := FindStorageOverride(ctx.EffectiveCR())
 	if err != nil {
@@ -77,7 +84,7 @@ func CreateOrUpdateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error
 	vmi := NewVMI()
 	_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), vmi, func() error {
 		var existingVMI *vmov1.VerrazzanoMonitoringInstance = nil
-		if len(vmi.Spec.URI) > 0 {
+		if len(vmi.Spec.SecretsName) > 0 {
 			existingVMI = vmi.DeepCopy()
 		}
 
@@ -85,8 +92,10 @@ func CreateOrUpdateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error
 			"k8s-app":            "verrazzano.io",
 			"verrazzano.binding": system,
 		}
-		vmi.Spec.URI = fmt.Sprintf("vmi.system.%s.%s", envName, dnsSuffix)
-		vmi.Spec.IngressTargetDNSName = fmt.Sprintf("verrazzano-ingress.%s.%s", envName, dnsSuffix)
+		if vzconfig.IsNGINXEnabled(effectiveCR) {
+			vmi.Spec.URI = fmt.Sprintf("vmi.system.%s.%s", envName, dnsSuffix)
+			vmi.Spec.IngressTargetDNSName = fmt.Sprintf("verrazzano-ingress.%s.%s", envName, dnsSuffix)
+		}
 		vmi.Spec.ServiceType = "ClusterIP"
 		vmi.Spec.AutoSecret = true
 		vmi.Spec.SecretsName = constants.VMISecret
@@ -261,6 +270,30 @@ func CheckIngressesAndCerts(ctx spi.ComponentContext, comp spi.Component) error 
 		}
 	}
 	return nil
+}
+
+// IsGrafanaAdminSecretReady returns true if the Grafana admin secret is present in the system namespace
+func IsGrafanaAdminSecretReady(ctx spi.ComponentContext) bool {
+	if err := ctx.Client().Get(context.TODO(),
+		types.NamespacedName{Name: constants.GrafanaSecret, Namespace: globalconst.VerrazzanoSystemNamespace},
+		&v1.Secret{}); err != nil {
+		if !errors.IsNotFound(err) {
+			ctx.Log().Errorf("Failed, unexpected error getting grafana admin secret: %v", err)
+			return false
+		}
+		ctx.Log().Debugf("Grafana admin secret not found")
+		return false
+	}
+	return true
+}
+
+// SetStorageSize copies or defaults the storage size
+func SetStorageSize(storage *ResourceRequestValues, storageObject *vmov1.Storage) {
+	if storage == nil {
+		storageObject.Size = defaultStorageSize
+	} else {
+		storageObject.Size = storage.Storage
+	}
 }
 
 // ExportVMOHelmChart adds necessary annotations to verrazzano-monitoring-operator objects which allows them to be

@@ -5,9 +5,13 @@ package common
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
+	"testing"
+
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+
+	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,7 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	scheme2 "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 const profileDir = "../../../../manifests/profiles"
@@ -226,4 +229,22 @@ func TestExportVmoHelmChart(t *testing.T) {
 	assert.Contains(t, service.Annotations["meta.helm.sh/release-name"], vmoComponentName)
 	assert.Contains(t, service.Annotations["meta.helm.sh/release-namespace"], vmoComponentNamespace)
 	assert.Contains(t, service.Annotations["helm.sh/resource-policy"], "keep")
+}
+
+// Test_SetStorageSize tests the SetStorageSize function
+func Test_SetStorageSize(t *testing.T) {
+	// GIVEN an empty storage request
+	// WHEN the storage size is set
+	// THEN we expect the storage size to be the default value
+	storageObject := &vmov1.Storage{}
+	SetStorageSize(nil, storageObject)
+	assert.Equal(t, defaultStorageSize, storageObject.Size)
+
+	// GIVEN a populated storage request
+	// WHEN the storage size is set
+	// THEN we expect the storage size to be the value from the request
+	const storageSize = "512Gi"
+	storageRequest := &ResourceRequestValues{Storage: storageSize}
+	SetStorageSize(storageRequest, storageObject)
+	assert.Equal(t, storageSize, storageObject.Size)
 }

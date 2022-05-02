@@ -25,6 +25,9 @@ var vmiEnabledCR = vzapi.Verrazzano{
 		Profile: vzapi.Prod,
 		Components: vzapi.ComponentSpec{
 			DNS: dnsComponents.DNS,
+			Ingress: &vzapi.IngressNginxComponent{
+				Enabled: getBoolPtr(true),
+			},
 			Kibana: &vzapi.KibanaComponent{
 				Enabled: &enabled,
 			},
@@ -138,14 +141,19 @@ func TestNewOpenSearchValuesAreCopied(t *testing.T) {
 			},
 		},
 	}
+	pvcs := []string{"p1", "p2"}
 	testvmi := &vmov1.VerrazzanoMonitoringInstance{
 		Spec: vmov1.VerrazzanoMonitoringInstanceSpec{
 			Elasticsearch: vmov1.Elasticsearch{
-				Storage: vmov1.Storage{
-					Size: "1Gi",
-				},
 				MasterNode: vmov1.ElasticsearchNode{
 					Replicas: 1,
+				},
+				DataNode: vmov1.ElasticsearchNode{
+					Replicas: 1,
+				},
+				Storage: vmov1.Storage{
+					Size:     "1Gi",
+					PvcNames: pvcs,
 				},
 			},
 		},
@@ -155,13 +163,15 @@ func TestNewOpenSearchValuesAreCopied(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "1Gi", openSearch.MasterNode.Storage.Size)
 	assert.EqualValues(t, testvz.Spec.Components.Elasticsearch.Policies, openSearch.Policies)
+	assert.EqualValues(t, pvcs, openSearch.DataNode.Storage.PvcNames)
+	assert.Nil(t, openSearch.MasterNode.Storage.PvcNames)
 }
 
-// TestCreateVMI tests a new VMI resources is created in K8s according to the CR
+// TestCreateOrUpdateVMI tests a new VMI resources is created in K8s according to the CR
 // GIVEN a Verrazzano CR
 // WHEN I create a new VMI resource
 //  THEN the configuration in the CR is respected
-func TestCreateVMI(t *testing.T) {
+func TestCreateOrUpdateVMI(t *testing.T) {
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vmiEnabledCR, false)
 	err := common.CreateOrUpdateVMI(ctx, updateFunc)
 	assert.NoError(t, err)
@@ -169,6 +179,29 @@ func TestCreateVMI(t *testing.T) {
 	namespacedName := types.NamespacedName{Name: system, Namespace: globalconst.VerrazzanoSystemNamespace}
 	err = ctx.Client().Get(context.TODO(), namespacedName, vmi)
 	assert.NoError(t, err)
+	assert.Equal(t, "vmi.system.default.blah", vmi.Spec.URI)
+	assert.Equal(t, "verrazzano-ingress.default.blah", vmi.Spec.IngressTargetDNSName)
+	assert.Equal(t, "100Gi", vmi.Spec.Elasticsearch.DataNode.Storage.Size)
+	assert.EqualValues(t, 2, vmi.Spec.Elasticsearch.IngestNode.Replicas)
+	assert.EqualValues(t, 1, vmi.Spec.Elasticsearch.MasterNode.Replicas)
+	assert.EqualValues(t, 3, vmi.Spec.Elasticsearch.DataNode.Replicas)
+}
+
+// TestCreateOrUpdateVMINoNGINX tests a new VMI resources is created in K8s according to the CR
+// GIVEN a Verrazzano CR
+// WHEN I create a new VMI resource and NGINX is not enabled
+//  THEN the configuration in the CR is respected
+func TestCreateOrUpdateVMINoNGINX(t *testing.T) {
+	vmiEnabledCR.Spec.Components.Ingress.Enabled = getBoolPtr(false)
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vmiEnabledCR, false)
+	err := common.CreateOrUpdateVMI(ctx, updateFunc)
+	assert.NoError(t, err)
+	vmi := &vmov1.VerrazzanoMonitoringInstance{}
+	namespacedName := types.NamespacedName{Name: system, Namespace: globalconst.VerrazzanoSystemNamespace}
+	err = ctx.Client().Get(context.TODO(), namespacedName, vmi)
+	assert.NoError(t, err)
+	assert.Empty(t, vmi.Spec.URI)
+	assert.Empty(t, vmi.Spec.IngressTargetDNSName)
 	assert.Equal(t, "100Gi", vmi.Spec.Elasticsearch.DataNode.Storage.Size)
 	assert.EqualValues(t, 2, vmi.Spec.Elasticsearch.IngestNode.Replicas)
 	assert.EqualValues(t, 1, vmi.Spec.Elasticsearch.MasterNode.Replicas)

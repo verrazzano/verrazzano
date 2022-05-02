@@ -46,7 +46,6 @@ const (
 	fluentDaemonset       = "fluentd"
 	nodeExporterDaemonset = "node-exporter"
 
-	grafanaDeployment           = "vmi-system-grafana"
 	prometheusDeployment        = "vmi-system-prometheus-0"
 	verrazzanoConsoleDeployment = "verrazzano-console"
 )
@@ -82,13 +81,6 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 			})
 	}
 
-	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments,
-			types.NamespacedName{
-				Name:      grafanaDeployment,
-				Namespace: ComponentNamespace,
-			})
-	}
 	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments,
 			types.NamespacedName{
@@ -142,9 +134,6 @@ func verrazzanoPreUpgrade(ctx spi.ComponentContext, namespace string) error {
 		return err
 	}
 	if err := common.EnsureVMISecret(ctx.Client()); err != nil {
-		return err
-	}
-	if err := common.EnsureGrafanaAdminSecret(ctx.Client()); err != nil {
 		return err
 	}
 	return fixupFluentdDaemonset(ctx.Log(), ctx.Client(), namespace)

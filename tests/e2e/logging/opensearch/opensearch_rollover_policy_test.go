@@ -78,10 +78,6 @@ var _ = t.Describe("Opensearch Rollover Policies Suite", Label("f:observability.
 		if err != nil {
 			Fail(err.Error())
 		}
-		if !pkg.IsDataStreamSupported() {
-			pkg.Log(pkg.Info, "Rollover is not supported when data streams are not enabled")
-			return
-		}
 		rolloverPeriodInSeconds, err := pkg.CalculateSeconds(rolloverPeriod)
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
@@ -121,10 +117,6 @@ var _ = t.Describe("Opensearch Rollover Policies Suite", Label("f:observability.
 		rolloverPeriod, err := pkg.GetISMRolloverPeriod(pkg.ApplicationLogIsmPolicyName)
 		if err != nil {
 			Fail(err.Error())
-		}
-		if !pkg.IsDataStreamSupported() {
-			pkg.Log(pkg.Info, "Rollover is not supported when data streams are not enabled")
-			return
 		}
 		rolloverPeriodInSeconds, err := pkg.CalculateSeconds(rolloverPeriod)
 		if err != nil {

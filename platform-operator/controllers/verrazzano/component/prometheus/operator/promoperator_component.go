@@ -42,6 +42,7 @@ func NewComponent() spi.Component {
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-values.yaml"),
 			Dependencies:            []string{},
 			AppendOverridesFunc:     AppendOverrides,
+			GetHelmValueOverrides:   GetHelmOverrides,
 		},
 	}
 }
@@ -67,4 +68,20 @@ func (c prometheusComponent) IsReady(ctx spi.ComponentContext) bool {
 // PreInstall updates resources necessary for the Prometheus Operator Component installation
 func (c prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preInstall(ctx)
+}
+
+// ValidateInstall verifies the installation of the Verrazzano object
+func (c prometheusComponent) ValidateInstall(effectiveCR *vzapi.Verrazzano) error {
+	if effectiveCR.Spec.Components.PrometheusOperator != nil {
+		return vzapi.ValidateHelmValueOverrides(effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides)
+	}
+	return nil
+}
+
+// ValidateUpgrade verifies the upgrade of the Verrazzano object
+func (c prometheusComponent) ValidateUpgrade(effectiveCR *vzapi.Verrazzano) error {
+	if effectiveCR.Spec.Components.PrometheusOperator != nil {
+		return vzapi.ValidateHelmValueOverrides(effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides)
+	}
+	return nil
 }

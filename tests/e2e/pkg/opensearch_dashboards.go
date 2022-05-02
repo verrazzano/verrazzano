@@ -18,6 +18,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type IndexPattern struct {
+	Name string
+}
+
 // ListIndexPatterns gets the configured index patterns in OpenSearch Dashboards
 func ListIndexPatterns(kubeconfigPath string) []string {
 	list := []string{}
@@ -84,12 +88,12 @@ func CreateIndexPattern(pattern string) map[string]interface{} {
 		Log(Error, fmt.Sprintf("Error: %v", err))
 	}
 	var buffer bytes.Buffer
-	err = template.Execute(&buffer, pattern)
+	err = template.Execute(&buffer, IndexPattern{Name: pattern})
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error: %v", err))
 	}
 	var result map[string]interface{}
-	resp, err := PostOpensearchDashboards("api/saved_objects/index-pattern", buffer.String())
+	resp, err := PostOpensearchDashboards("api/saved_objects/index-pattern", buffer.String(), "osd-xsrf:true", "kbn-xsrf: true")
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error creating index patterns in OpenSearchDashboards: error=%s", err))
 		return result
@@ -104,7 +108,7 @@ func CreateIndexPattern(pattern string) map[string]interface{} {
 
 // PostOpensearchDashboards POST the request entity body to Elasticsearch API path
 // The provided path is appended to the OpenSearchDashboards base URL
-func PostOpensearchDashboards(path string, body string) (*HTTPResponse, error) {
+func PostOpensearchDashboards(path string, body string, additionalHeaders ...string) (*HTTPResponse, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
@@ -121,7 +125,7 @@ func PostOpensearchDashboards(path string, body string) (*HTTPResponse, error) {
 		return nil, err
 	}
 	Log(Debug, fmt.Sprintf("REST API path: %v \nQuery: \n%v", url, body))
-	resp, err := postOpenSearchDashboardsWithBasicAuth(url, body, username, password, configPath)
+	resp, err := postOpenSearchDashboardsWithBasicAuth(url, body, username, password, configPath, additionalHeaders...)
 	return resp, err
 }
 
@@ -161,12 +165,12 @@ func getOpenSearchDashboardsWithBasicAuth(url string, hostHeader string, usernam
 }
 
 // postOpenSearchDashboardsWithBasicAuth retries POST to OpenSearch Dashboards using basic auth
-func postOpenSearchDashboardsWithBasicAuth(url, body, username, password, kubeconfigPath string) (*HTTPResponse, error) {
+func postOpenSearchDashboardsWithBasicAuth(url, body, username, password, kubeconfigPath string, additionalHeaders ...string) (*HTTPResponse, error) {
 	retryableClient, err := getOpenSearchDashboardsClient(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
-	return doReq(url, "POST", "application/json", "", username, password, strings.NewReader(body), retryableClient)
+	return doReq(url, "POST", "application/json", "", username, password, strings.NewReader(body), retryableClient, additionalHeaders...)
 }
 
 func getOpenSearchDashboardsClient(kubeconfigPath string) (*retryablehttp.Client, error) {
@@ -181,7 +185,7 @@ func getOpenSearchDashboardsClient(kubeconfigPath string) (*retryablehttp.Client
 
 const indexPatternTemplate = `{
       "attributes": {
-        "title": {{.Name}}
+        "title": "{{.Name}}"
       }
     }
 `

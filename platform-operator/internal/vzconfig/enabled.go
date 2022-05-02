@@ -116,7 +116,7 @@ func IsVMOEnabled(vz *vzapi.Verrazzano) bool {
 	return IsPrometheusEnabled(vz) || IsKibanaEnabled(vz) || IsElasticsearchEnabled(vz) || IsGrafanaEnabled(vz)
 }
 
-// IsPrometheusOperatorEnabled returns false only if the Prometheus Operator is explicitly disabled in the CR
+// IsPrometheusOperatorEnabled returns true only if the Prometheus Operator is explicitly enabled in the CR
 func IsPrometheusOperatorEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.PrometheusOperator != nil && vz.Spec.Components.PrometheusOperator.Enabled != nil {
 		return *vz.Spec.Components.PrometheusOperator.Enabled
@@ -124,7 +124,7 @@ func IsPrometheusOperatorEnabled(vz *vzapi.Verrazzano) bool {
 	return false
 }
 
-// IsPrometheusAdapterEnabled returns false only if the Prometheus Adapter is explicitly disabled in the CR
+// IsPrometheusAdapterEnabled returns true only if the Prometheus Adapter is explicitly enabled in the CR
 func IsPrometheusAdapterEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.PrometheusAdapter != nil && vz.Spec.Components.PrometheusAdapter.Enabled != nil {
 		return *vz.Spec.Components.PrometheusAdapter.Enabled
@@ -132,7 +132,7 @@ func IsPrometheusAdapterEnabled(vz *vzapi.Verrazzano) bool {
 	return false
 }
 
-// IsKubeStateMetricsEnabled returns false only if Kube State Metrics is explicitly disabled in the CR
+// IsKubeStateMetricsEnabled returns true only if Kube State Metrics is explicitly enabled in the CR
 func IsKubeStateMetricsEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.KubeStateMetrics != nil && vz.Spec.Components.KubeStateMetrics.Enabled != nil {
 		return *vz.Spec.Components.KubeStateMetrics.Enabled
@@ -140,7 +140,7 @@ func IsKubeStateMetricsEnabled(vz *vzapi.Verrazzano) bool {
 	return false
 }
 
-// IsPrometheusPushgatewayEnabled returns false only if the Prometheus Pushgateway is explicitly disabled in the CR
+// IsPrometheusPushgatewayEnabled returns true only if the Prometheus Pushgateway is explicitly enabled in the CR
 func IsPrometheusPushgatewayEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.PrometheusPushgateway != nil && vz.Spec.Components.PrometheusPushgateway.Enabled != nil {
 		return *vz.Spec.Components.PrometheusPushgateway.Enabled
@@ -148,7 +148,7 @@ func IsPrometheusPushgatewayEnabled(vz *vzapi.Verrazzano) bool {
 	return false
 }
 
-// IsPrometheusNodeExporterEnabled returns false only if the Prometheus Node-Exporter is explicitly disabled in the CR
+// IsPrometheusNodeExporterEnabled returns true only if the Prometheus Node-Exporter is explicitly enabled in the CR
 func IsPrometheusNodeExporterEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.PrometheusNodeExporter != nil && vz.Spec.Components.PrometheusNodeExporter.Enabled != nil {
 		return *vz.Spec.Components.PrometheusNodeExporter.Enabled
@@ -162,4 +162,12 @@ func IsJaegerOperatorEnabled(vz *vzapi.Verrazzano) bool {
 		return *vz.Spec.Components.JaegerOperator.Enabled
 	}
 	return false
+}
+
+// IsAuthProxyEnabled returns false only if Auth Proxy is explicitly disabled in the CR
+func IsAuthProxyEnabled(vz *vzapi.Verrazzano) bool {
+	if vz != nil && vz.Spec.Components.AuthProxy != nil && vz.Spec.Components.AuthProxy.Enabled != nil {
+		return *vz.Spec.Components.AuthProxy.Enabled
+	}
+	return true
 }
