@@ -97,7 +97,7 @@ var _ = t.Describe("Istio", Label("f:platform-lcm.install"), func() {
 			t.Logs.Infof("Expected replica counts: %v", expectedPods)
 
 			Eventually(func() (map[string]uint32, error) {
-				return pkg.CheckPodCounts(deployments, buildListOpts)
+				return pkg.GetReplicaCounts(deployments, buildListOpts)
 			}, waitTimeout, pollingInterval).Should(Equal(expectedPods))
 		},
 		t.Entry(fmt.Sprintf("%s namespace should contain expected pod counts", istioNamespace), istioNamespace),

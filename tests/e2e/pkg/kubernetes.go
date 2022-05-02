@@ -134,10 +134,10 @@ func ListDeployments(namespace string) (*appsv1.DeploymentList, error) {
 	return deployments, nil
 }
 
-//CheckPodCounts Builds a map of pod counts for a list of deployments
+//GetReplicaCounts Builds a map of pod counts for a list of deployments
 // expectedDeployments - a list of namespaced names for deployments to look for
 // optsBuilder - a callback func to build the right set of options to select pods for the deployment
-func CheckPodCounts(expectedDeployments []types.NamespacedName, optsBuilder func(name types.NamespacedName) (metav1.ListOptions, error)) (map[string]uint32, error) {
+func GetReplicaCounts(expectedDeployments []types.NamespacedName, optsBuilder func(name types.NamespacedName) (metav1.ListOptions, error)) (map[string]uint32, error) {
 	podCountsMap := map[string]uint32{}
 	for _, deployment := range expectedDeployments {
 		listOpts, err := optsBuilder(deployment)
