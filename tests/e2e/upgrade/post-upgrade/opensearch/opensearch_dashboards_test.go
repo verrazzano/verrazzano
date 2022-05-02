@@ -1,54 +1,23 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package dashboards
+package opensearch
 
 import (
 	"bufio"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/tests/e2e/update"
-	"os"
-	"strings"
-	"time"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"os"
+	"strings"
 )
 
 const (
-	threeMinutes                = 3 * time.Minute
-	pollingInterval             = 10 * time.Second
-	longTimeout                 = 10 * time.Minute
 	oldPatternsTestDataFile     = "testdata/upgrade/opensearch-dashboards/old-index-patterns.txt"
 	updatedPatternsTestDataFile = "testdata/upgrade/opensearch-dashboards/updated-index-patterns.txt"
 )
-
-var t = framework.NewTestFramework("opensearch-dashboards")
-
-var _ = t.BeforeSuite(func() {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		pkg.Log(pkg.Error, err.Error())
-		Fail(err.Error())
-	}
-	supported, err := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
-	if err != nil {
-		pkg.Log(pkg.Error, err.Error())
-		Fail(err.Error())
-	}
-	if supported {
-		pkg.Log(pkg.Info, "VZ version is greater than 1.3.0")
-		m := pkg.ElasticSearchISMPolicyAddModifier{}
-		update.UpdateCR(m)
-		pkg.Log(pkg.Info, "Update the VZ CR to add the required ISM Policies")
-	}
-	// Wait for sufficient time to allow the VMO reconciliation to complete
-	pkg.WaitForISMPolicyUpdate(pollingInterval, longTimeout)
-	pkg.Log(pkg.Info, "Before suite setup completed")
-})
 
 var _ = t.Describe("Index Patterns", Label("f:observability.logging.kibana"), func() {
 	// It Wrapper to only run spec if component is supported on the current Verrazzano installation
@@ -77,10 +46,6 @@ var _ = t.Describe("Index Patterns", Label("f:observability.logging.kibana"), fu
 	// THEN verify that they are as expected
 	MinimumVerrazzanoIt("Verify Index Patterns", func() {
 		Eventually(func() bool {
-			if !pkg.IsDataStreamSupported() {
-				pkg.Log(pkg.Info, "Data Stream not supported")
-				return true
-			}
 			kubeConfigPath, _ := k8sutil.GetKubeConfigLocation()
 			if pkg.IsOpenSearchDashboardsEnabled(kubeConfigPath) {
 				isVersionAbove1_3_0, err := pkg.IsVerrazzanoMinVersion("1.3.0", kubeConfigPath)
@@ -119,10 +84,10 @@ var _ = t.Describe("Index Patterns", Label("f:observability.logging.kibana"), fu
 					expectedPatterns = append(expectedPatterns, line)
 				}
 				actualPatterns := pkg.ListIndexPatterns(kubeConfigPath)
-				pkg.Log(pkg.Debug, fmt.Sprintf("Expected Patterns: %v, Actual Patterns: %v", expectedPatterns, actualPatterns))
+				pkg.Log(pkg.Info, fmt.Sprintf("Expected Patterns: %v, Actual Patterns: %v", expectedPatterns, actualPatterns))
 				return pkg.SlicesContainSameStrings(expectedPatterns, actualPatterns)
 			}
 			return true
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(), "Expected not to fail creation of index patterns")
+		}).WithPolling(pollingInterval).WithTimeout(longTimeout).Should(BeTrue(), "Expected not to fail creation of index patterns")
 	})
 })

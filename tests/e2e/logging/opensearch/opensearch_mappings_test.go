@@ -39,9 +39,9 @@ var _ = t.BeforeSuite(func() {
 		m := pkg.ElasticSearchISMPolicyAddModifier{}
 		update.UpdateCR(m)
 		pkg.Log(pkg.Info, "Update the VZ CR to add the required ISM Policies")
+		// Wait for sufficient time to allow the VMO reconciliation to complete
+		pkg.WaitForISMPolicyUpdate(shortPollingInterval, longWaitTimeout)
 	}
-	// Wait for sufficient time to allow the VMO reconciliation to complete
-	pkg.WaitForISMPolicyUpdate(shortPollingInterval, longWaitTimeout)
 	pkg.Log(pkg.Info, "Before suite setup completed")
 })
 
@@ -108,11 +108,6 @@ var _ = t.Describe("OpenSearch field mappings", Label("f:observability.logging.e
 			if err != nil {
 				pkg.Log(pkg.Error, fmt.Sprintf("Error getting Verrazzano version: %v", err))
 				return false
-			}
-			if !pkg.IsDataStreamSupported() {
-
-				pkg.Log(pkg.Error, "Skipping the test as data stream with custom template is not enabled")
-				return true
 			}
 			doc2 := `{"key":"text","@timestamp":"2022-03-15T19:55:54Z"}`
 			resp, err = pkg.PostElasticsearch(fmt.Sprintf(indexDocumentURL, indexName), doc2)

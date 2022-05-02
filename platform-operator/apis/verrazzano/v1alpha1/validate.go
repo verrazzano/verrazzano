@@ -6,11 +6,9 @@ package v1alpha1
 import (
 	"context"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"io/fs"
 	"os"
-	"reflect"
 	"strings"
 
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
@@ -131,49 +129,92 @@ func ValidateProfile(requestedProfile ProfileType) error {
 	return nil
 }
 
-// ValidateUpgradeRequest Ensures that for the upgrade case only the version field has changed
-func ValidateUpgradeRequest(currentSpec *VerrazzanoSpec, newSpec *VerrazzanoSpec) error {
+// ValidateUpgradeRequest Ensures hat an upgrade is requested as part of an update if necessary,
+// and that the version of an upgrade request is valid.
+func ValidateUpgradeRequest(current *Verrazzano, new *Verrazzano) error {
 	if !config.Get().VersionCheckEnabled {
 		zap.S().Infof("Version validation disabled")
 		return nil
 	}
-	// Short-circuit if the version strings are the same
-	if currentSpec.Version == newSpec.Version {
+
+	// Get the current BOM version
+	bomVersion, err := GetCurrentBomVersion()
+	if err != nil {
+		return err
+	}
+
+	// Make sure the requested version matches what's in the BOM and is not < the current spec version
+	newVerString := strings.TrimSpace(new.Spec.Version)
+	if len(newVerString) > 0 {
+		return validateNewVersion(current, newVerString, bomVersion)
+	}
+
+	// No new version set, we haven't done any upgrade before but may need to do one before allowing any edits;
+	// this forces the user to opt-in to an upgrade before/with any other update
+	if err := checkUpgradeRequired(strings.TrimSpace(current.Status.Version), bomVersion); err != nil {
+		return err
+	}
+	return nil
+}
+
+//checkUpgradeRequired Returns an error if the current installed version is < the BOM version; if we're validating an
+// update, this is an error condition, as we don't want to allow any updates without an upgrade
+func checkUpgradeRequired(statusVersion string, bomVersion *semver.SemVersion) error {
+	installedVerString := strings.TrimSpace(statusVersion)
+	if len(installedVerString) == 0 {
+		// Boundary condition -- likely just created and install hasn't started yet
+		// - seems we get an immediate update/validation on initial CR creation
 		return nil
 	}
-	if len(newSpec.Version) == 0 {
-		// if we get here, the current version is not empty, but the new version is
-		return fmt.Errorf("Requested version is not specified")
-	}
-	if err := ValidateVersion(newSpec.Version); err != nil {
-		// new version is not nil, but we couldn't parse it
-		return err
-	}
-
-	requestedSemVer, err := semver.NewSemVersion(newSpec.Version)
+	installedVersion, err := semver.NewSemVersion(installedVerString)
 	if err != nil {
-		// parse error on new version string
 		return err
 	}
+	if bomVersion.IsGreatherThan(installedVersion) {
+		// Attempted an update before an upgrade has been done, reject the edit
+		return fmt.Errorf("Upgrade required for update, set version field to v%v to upgrade", bomVersion.ToString())
+	}
+	return nil
+}
 
-	// Verify that the new version request is > than the currently version
-	if len(currentSpec.Version) > 0 {
-		currentSemVer, err := semver.NewSemVersion(currentSpec.Version)
+func validateNewVersion(current *Verrazzano, newVerString string, bomVersion *semver.SemVersion) error {
+	// Make sure the requested version matches what's in the BOM; we only have one version bundled at present
+	newSpecVer, err := semver.NewSemVersion(newVerString)
+	if err != nil {
+		return err
+	}
+	if !newSpecVer.IsEqualTo(bomVersion) {
+		// A newer version is available, the user must opt-in to an upgrade before we allow any edits
+		return fmt.Errorf("Requested version %s does not match BOM version v%s, please upgrade to the current BOM version",
+			newSpecVer.ToString(), bomVersion.ToString())
+	}
+
+	// Make sure this isn't a rollback attempt from the currently installed version, which is currently unsupported
+	// - use case is, user rolls back to an earlier version of the platform operator and requests the older BOM version
+	currentStatusVersion, err := semver.NewSemVersion(strings.TrimSpace(current.Status.Version))
+	if err != nil {
+		// for this path we should alwyas have a status version
+		return err
+	}
+	if newSpecVer.IsLessThan(currentStatusVersion) {
+		return fmt.Errorf("Requested version %s less than installed version %s, rollback is not supported",
+			newSpecVer.ToString(), currentStatusVersion.ToString())
+	}
+
+	// Sanity check, verify that the new version request is > than the current spec version
+	// - in reality, this should probably never happen unless we've introduced an error into the controller
+	currentVerString := strings.TrimSpace(current.Spec.Version)
+	if len(currentVerString) > 0 {
+		currentSpecVer, err := semver.NewSemVersion(currentVerString)
 		if err != nil {
-			// Unable to parse the current spec version; this should never happen
 			return err
 		}
-		if requestedSemVer.IsLessThan(currentSemVer) {
-			return fmt.Errorf("Requested version %s is not newer than current version %s", requestedSemVer.ToString(), currentSemVer.ToString())
+		if newSpecVer != nil && newSpecVer.IsLessThan(currentSpecVer) {
+			return fmt.Errorf("Requested version %s is not newer than current version %s",
+				newSpecVer.ToString(), currentSpecVer.ToString())
 		}
 	}
-
-	// If any other field has changed from the stored spec return false
-	if newSpec.Profile != currentSpec.Profile ||
-		newSpec.EnvironmentName != currentSpec.EnvironmentName ||
-		!reflect.DeepEqual(newSpec.Components, currentSpec.Components) {
-		return errors.New("Configuration updates not allowed during upgrade between Verrazzano versions")
-	}
+	// Simple update (spec edit at the same installed version)
 	return nil
 }
 

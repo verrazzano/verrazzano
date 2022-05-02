@@ -13,12 +13,13 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// isVmoReady checks to see if the VMO component is in ready state
-func isVmoReady(context spi.ComponentContext) bool {
+// isVMOReady checks to see if the VMO component is in ready state
+func isVMOReady(context spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
 		{
 			Name:      ComponentName,
@@ -29,8 +30,8 @@ func isVmoReady(context spi.ComponentContext) bool {
 	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
-// appendVmoOverrides appends overrides for the VMO component
-func appendVmoOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+// appendVMOOverrides appends overrides for the VMO component
+func appendVMOOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	vzkvs, err := appendInitImageOverrides(kvs)
 	if err != nil {
 		return kvs, ctx.Log().ErrorfNewErr("Failed to append monitoring init image overrides: %v", err)
@@ -117,5 +118,6 @@ func getHelmManagedResources() []common.HelmManagedResource {
 		{Obj: &rbacv1.ClusterRoleBinding{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-cluster-role-binding"}},
 		{Obj: &rbacv1.ClusterRoleBinding{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-cluster-role-default-binding"}},
 		{Obj: &rbacv1.ClusterRoleBinding{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-get-nodes"}},
+		{Obj: &netv1.NetworkPolicy{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
 	}
 }
