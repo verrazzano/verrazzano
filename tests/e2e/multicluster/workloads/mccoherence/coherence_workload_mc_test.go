@@ -60,8 +60,8 @@ const (
 	labelApp                     = "app"
 	labelNS                      = "namespace"
 	labelCluster                 = "cluster"
-	skipVerifications	 		 = "Skip Verifications"
-	skipDeletions	    		 = "Skip Deletions"
+	skipVerifications            = "Skip Verifications"
+	skipDeletions                = "Skip Deletions"
 
 	// application resources
 	appConfiguration     = "tests/testdata/test-applications/coherence/hello-coherence/hello-coherence-mc-app.yaml"

@@ -29,9 +29,9 @@ const (
 	appConfiguration  = "tests/testdata/test-applications/coherence/hello-coherence/hello-coherence-app.yaml"
 	compConfiguration = "tests/testdata/test-applications/coherence/hello-coherence/hello-coherence-comp.yaml"
 
-	appEndPoint      = "catalogue"
-	expectedResponse = "A perfect example of a swivel chair trained calf"
-	skipVerifications	     = "Skip Verifications"
+	appEndPoint       = "catalogue"
+	expectedResponse  = "A perfect example of a swivel chair trained calf"
+	skipVerifications = "Skip Verifications"
 )
 
 var (
