@@ -5,7 +5,6 @@ package ingresstrait
 
 import (
 	"context"
-	"fmt"
 
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 
@@ -22,12 +21,11 @@ import (
 
 // cleanup cleans up the generated certificates and secrets associated with the given app config
 func cleanup(trait *vzapi.IngressTrait, client client.Client, log vzlog.VerrazzanoLogger) (err error) {
-	certName := buildCertificateName(trait)
-	err = cleanupCert(certName, client, log)
+	err = cleanupCert(buildCertificateName(trait), client, log)
 	if err != nil {
 		return
 	}
-	err = cleanupSecret(certName, client, log)
+	err = cleanupSecret(buildCertificateSecretName(trait), client, log)
 	if err != nil {
 		return
 	}
@@ -60,8 +58,7 @@ func cleanupCert(certName string, c client.Client, log vzlog.VerrazzanoLogger) (
 }
 
 // cleanupSecret deletes up the generated secret for the given app config
-func cleanupSecret(certName string, c client.Client, log vzlog.VerrazzanoLogger) (err error) {
-	secretName := fmt.Sprintf("%s-secret", certName)
+func cleanupSecret(secretName string, c client.Client, log vzlog.VerrazzanoLogger) (err error) {
 	nsn := types.NamespacedName{Name: secretName, Namespace: constants.IstioSystemNamespace}
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{

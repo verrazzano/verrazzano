@@ -235,10 +235,10 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 	// Generate the certificate and secret for all hosts in the trait rules
 	secretName := r.createOrUseGatewaySecret(ctx, trait, allHostsForTrait, &status, log)
 	if secretName != "" {
-		gwName := buildGatewayName(trait)
+		r.cleanupLegacyGateway(trait, log)
 		// The Gateway is shared across all traits, update it with all known hosts for the trait
 		// - Must create GW before service so that external DNS sees the GW once the service is created
-		gateway := r.createOrUpdateGateway(ctx, trait, allHostsForTrait, gwName, secretName, &status, log)
+		gateway := r.createOrUpdateGateway(ctx, trait, allHostsForTrait, buildGatewayName(trait), secretName, &status, log)
 		for index, rule := range rules {
 			// Find the services associated with the trait in the application configuration.
 			var services []*corev1.Service
@@ -283,6 +283,33 @@ func buildCertificateName(trait *vzapi.IngressTrait) string {
 // buildCertificateSecretName will construct a cert secret name from the trait.
 func buildCertificateSecretName(trait *vzapi.IngressTrait) string {
 	return fmt.Sprintf("%s-%s-cert-secret", trait.Namespace, trait.Name)
+}
+
+// buildLegacyGatewayName will generate a gateway name used by older version of Verrazzano
+func buildLegacyGatewayName(trait *vzapi.IngressTrait) string {
+	appName, ok := trait.Labels[oam.LabelAppName]
+	if !ok {
+		return ""
+	}
+	return fmt.Sprintf("%s-%s-gw", trait.Namespace, appName)
+}
+
+// buildLegacyCertificateName will generate a cert name used by older version of Verrazzano
+func buildLegacyCertificateName(trait *vzapi.IngressTrait) string {
+	appName, ok := trait.Labels[oam.LabelAppName]
+	if !ok {
+		return ""
+	}
+	return fmt.Sprintf("%s-%s-cert", trait.Namespace, appName)
+}
+
+// buildLegacyCertificateSecretName will generate a cert secret name used by older version of Verrazzano
+func buildLegacyCertificateSecretName(trait *vzapi.IngressTrait) string {
+	appName, ok := trait.Labels[oam.LabelAppName]
+	if !ok {
+		return ""
+	}
+	return fmt.Sprintf("%s-%s-cert-secret", trait.Namespace, appName)
 }
 
 // updateTraitStatus updates the trait's status conditions and resources if they have changed.
@@ -403,6 +430,8 @@ func (r *Reconciler) createOrUseGatewaySecret(ctx context.Context, trait *vzapi.
 	if trait.Spec.TLS != (vzapi.IngressSecurity{}) {
 		secretName = r.validateConfiguredSecret(trait, status)
 	} else {
+		cleanupCert(buildLegacyCertificateName(trait), r.Client, log)
+		cleanupSecret(buildLegacyCertificateSecretName(trait), r.Client, log)
 		secretName = r.createGatewayCertificate(ctx, trait, hostsForTrait, status, log)
 	}
 
@@ -480,6 +509,21 @@ func (r *Reconciler) validateConfiguredSecret(trait *vzapi.IngressTrait, status 
 		}
 	}
 	return secretName
+}
+
+// cleanupLegacyGateway delete the gateway created by the older version of Verrazzano
+func (r *Reconciler) cleanupLegacyGateway(trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) {
+	gwName := buildLegacyGatewayName(trait)
+	gateway := &istioclient.Gateway{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: gatewayAPIVersion,
+			Kind:       gatewayKind},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: trait.Namespace,
+			Name:      gwName}}
+	// Delete the gateway, ignore error
+	log.Debugf("Deleting cert: %s", gwName)
+	r.Client.Delete(context.TODO(), gateway, &client.DeleteOptions{})
 }
 
 // createOrUpdateGateway creates or updates the Gateway child resource of the trait.

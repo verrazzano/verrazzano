@@ -15,6 +15,8 @@ import (
 	"text/template"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/verrazzano/verrazzano/pkg/test/ip"
 
 	"github.com/go-logr/logr"
@@ -120,6 +122,8 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 	workLoadResourceExpectations(mock)
 	workloadResourceDefinitionExpectations(mock)
 	listChildDeploymentExpectations(mock, assert)
+	deleteCertExpectations(mock)
+	deleteCertSecretExpectations(mock)
 	createCertSuccessExpectations(mock)
 	appCertificateExpectations(mock)
 	getGatewayForTraitNotFoundExpectations(mock)
@@ -157,6 +161,8 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 			}
 			return nil
 		})
+	// Expect a call to delete the old Gateway
+	deleteGatewayExpectations(mock)
 	// Expect a call to create the Gateway resource and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -237,6 +243,8 @@ func TestSuccessfullyCreateNewIngressWithCertSecret(t *testing.T) {
 	childServiceExpectations(mock, assert)
 	getGatewayForTraitNotFoundExpectations(mock)
 
+	// Expect a call to delete the old Gateway
+	deleteGatewayExpectations(mock)
 	// Expect a call to create the ingress/gateway resource and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -349,6 +357,8 @@ func TestSuccessfullyUpdateIngressWithCertSecret(t *testing.T) {
 				Name:      gatewayName}
 			return nil
 		})
+	// Expect a call to delete the old Gateway
+	deleteGatewayExpectations(mock)
 	// Expect a call to create the ingress/gateway resource and return success
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -586,8 +596,12 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 			return nil
 		})
 
+	deleteCertExpectations(mock)
+	deleteCertSecretExpectations(mock)
 	createCertSuccessExpectations(mock)
 	getGatewayForTraitNotFoundExpectations(mock)
+	// Expect a call to delete the old Gateway
+	deleteGatewayExpectations(mock)
 	createIngressResourceSuccessExpectations(mock)
 	traitVSNotFoundExpectation(mock)
 
@@ -623,9 +637,13 @@ func TestFailureToGetWorkload(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 	getIngressTraitResourceExpectations(mock, assert)
+	deleteCertExpectations(mock)
+	deleteCertSecretExpectations(mock)
 	createCertSuccessExpectations(mock)
 	appCertificateExpectations(mock)
 	getGatewayForTraitNotFoundExpectations(mock)
+	// Expect a call to delete the old Gateway
+	deleteGatewayExpectations(mock)
 	// Expect a call to create the gateway and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -672,10 +690,14 @@ func TestFailureToGetWorkloadDefinition(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 
 	getIngressTraitResourceExpectations(mock, assert)
+	deleteCertExpectations(mock)
+	deleteCertSecretExpectations(mock)
 	createCertSuccessExpectations(mock)
 	appCertificateExpectations(mock)
 	gatewayNotFoundExpectations(mock)
 
+	// Expect a call to delete the old Gateway
+	deleteGatewayExpectations(mock)
 	// Expect a call to create the gateway and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -743,8 +765,12 @@ func TestFailureToUpdateStatus(t *testing.T) {
 			return nil
 		})
 
+	deleteCertExpectations(mock)
+	deleteCertSecretExpectations(mock)
 	createCertSuccessExpectations(mock)
 	getGatewayForTraitNotFoundExpectations(mock)
+	// Expect a call to delete the old Gateway
+	deleteGatewayExpectations(mock)
 	createIngressResourceSuccessExpectations(mock)
 	// Expect a call to get the gateway resource related to the ingress trait and return that it is not found.
 	mock.EXPECT().
@@ -2708,8 +2734,12 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookie(t *test
 			return nil
 		})
 
+	deleteCertExpectations(mock)
+	deleteCertSecretExpectations(mock)
 	createCertSuccessExpectations(mock)
 	getGatewayForTraitNotFoundExpectations(mock)
+	// Expect a call to delete the old Gateway
+	deleteGatewayExpectations(mock)
 	createIngressResourceSuccessExpectations(mock)
 	traitVSNotFoundExpectation(mock)
 	createIngressResSuccessExpectations(mock, assert)
@@ -2963,6 +2993,39 @@ func createCertSuccessExpectations(mock *mocks.MockClient) {
 		DoAndReturn(func(ctx context.Context, certificate *certapiv1.Certificate, opts ...client.CreateOption) error {
 			return nil
 		})
+}
+
+// Expect a call to delete the certificate
+func deleteCertExpectations(mock *mocks.MockClient) {
+	oldCert := certapiv1.Certificate{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.IstioSystemNamespace,
+			Name:      "test-space-myapp-cert",
+		},
+	}
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Eq(&oldCert), gomock.Any()).
+		Return(nil)
+}
+
+// Expect a call to delete the certificate secret
+func deleteCertSecretExpectations(mock *mocks.MockClient) {
+	oldSecret := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.IstioSystemNamespace,
+			Name:      "test-space-myapp-cert-secret",
+		},
+	}
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Eq(&oldSecret), gomock.Any()).
+		Return(nil)
+}
+
+// Expect a call to delete the certificate secret
+func deleteGatewayExpectations(mock *mocks.MockClient) {
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil)
 }
 
 func gatewayNotFoundExpectations(mock *mocks.MockClient) {
