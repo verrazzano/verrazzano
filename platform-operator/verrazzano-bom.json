@@ -162,7 +162,7 @@
             },
             {
               "image": "gitjob",
-              "tag": "v0.1265"
+              "tag": "v0.1.26"
             },
             {
               "image": "rancher-operator",
