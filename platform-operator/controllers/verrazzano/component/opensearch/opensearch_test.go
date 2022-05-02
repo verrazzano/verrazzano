@@ -671,35 +671,22 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 	assert.True(t, isOSReady(ctx))
 }
 
-// TestIsinstalled tests the Verrazzano doesPromExist call
-// GIVEN a Verrazzano component
-//  WHEN I call doesPromExist
+// TestIsinstalled tests the OpenSearch doesOSExist call
+// GIVEN a verrazzano
+//  WHEN I call doesOSExist
 //  THEN true is returned
 func TestIsinstalled(t *testing.T) {
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-		&appsv1.Deployment{
+		&appsv1.StatefulSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      esMasterStatefulset,
-				Labels:    map[string]string{"app": "system-prometheus"},
+				Labels:    map[string]string{"app": "system-es-master"},
 			},
 		},
 	).Build()
+
 	vz := &vzapi.Verrazzano{}
-	vz.Spec.Components = vzapi.ComponentSpec{
-		Elasticsearch: &vzapi.ElasticsearchComponent{
-			ESInstallArgs: []vzapi.InstallArgs{
-				{
-					Name:  "nodes.master.replicas",
-					Value: "2",
-				},
-			},
-		},
-	}
 	ctx := spi.NewFakeContext(c, vz, false)
 	assert.True(t, doesOSExist(ctx))
 }
