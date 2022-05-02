@@ -266,11 +266,15 @@ func CheckIngressesAndCerts(ctx spi.ComponentContext, comp spi.Component) error 
 	return nil
 }
 
+//IsMultiNodeOpenSearch returns true if the VZ OpenSearch has more than 1 node.
 func IsMultiNodeOpenSearch(vz *vzapi.Verrazzano) (bool, error) {
 	opensearch := vz.Spec.Components.Elasticsearch
 	var replicas int32
 	if opensearch != nil && opensearch.Enabled != nil && *opensearch.Enabled {
+		// add any replicas from the Node Groups API
 		addNodeGroupReplicas(opensearch, &replicas)
+		// add any replicas from install args. There may an error when parsing install arg values
+		// from strings to int.
 		if err := addInstallArgReplicas(opensearch, &replicas); err != nil {
 			return false, err
 		}
@@ -278,12 +282,14 @@ func IsMultiNodeOpenSearch(vz *vzapi.Verrazzano) (bool, error) {
 	return replicas > 1, nil
 }
 
+//addNodeGroupReplicas iterates through each OpenSearch node and sums the replicas
 func addNodeGroupReplicas(os *vzapi.ElasticsearchComponent, replicas *int32) {
 	for _, node := range os.Nodes {
 		*replicas += node.Replicas
 	}
 }
 
+//addInstallArgReplicas sums the replicas from master, data, and ingest node install args.
 func addInstallArgReplicas(os *vzapi.ElasticsearchComponent, replicas *int32) error {
 	addStr := func(v string) error {
 		var val int32
