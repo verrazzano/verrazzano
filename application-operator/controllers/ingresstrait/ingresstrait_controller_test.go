@@ -2902,35 +2902,33 @@ func TestUpdateGatewayServersNewTraitHost(t *testing.T) {
 	assert.Equal(expectedServers, servers)
 }
 
-// TestMutateGatewayAddTrait tests the mutateGateway method
-// GIVEN a request to mutate the app gateway
-// WHEN a new Trate/TraitRule is added
+// TestNewGatewayAddTrait tests the createOrUpdateChildResources method
+// GIVEN a request to create a new Trait
+// WHEN a new Trait is added
 // THEN ensure the returned Servers list has the new Server for the IngressTrait
-func TestMutateGatewayAddTrait(t *testing.T) {
+func TestNewGatewayAddTrait(t *testing.T) {
 	assert := asserts.New(t)
 
-	trait1Hosts := []string{"trait1host1", "trait1host2"}
 	trait2Hosts := []string{"trait2host1"}
 
-	const trait1Name = "trait1"
-	const trait2Name = "trait2"
+	const traitName = "trait2"
 	const secretName = "secretName"
 
-	trait1Server := createGatewayServer(trait1Name, trait1Hosts, secretName)
+	//trait1Server := createGatewayServer(trait1Name, trait1Hosts, secretName)
 
 	const appName = "myapp"
 	gw := &istioclient.Gateway{
 		ObjectMeta: metav1.ObjectMeta{Name: expectedAppGWName, Namespace: testNamespace},
 		Spec: istionet.Gateway{
 			Servers: []*istionet.Server{
-				trait1Server,
+				//trait1Server,
 			},
 		},
 	}
 
 	trait := &vzapi.IngressTrait{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      trait2Name,
+			Name:      traitName,
 			Namespace: testNamespace,
 			Labels: map[string]string{
 				oam.LabelAppName:      appName,
@@ -2950,12 +2948,11 @@ func TestMutateGatewayAddTrait(t *testing.T) {
 	_, _, err := reconciler.createOrUpdateChildResources(context.TODO(), trait, vzlog.DefaultLogger())
 	assert.NoError(err)
 
-	updatedGateway := &istioclient.Gateway{}
-	assert.NoError(reconciler.Get(context.TODO(), types.NamespacedName{Name: gw.Name, Namespace: testNamespace}, updatedGateway))
-	updatedServers := updatedGateway.Spec.Servers
-	assert.Len(updatedServers, 2)
-	assert.Equal(updatedServers[0].Hosts, trait1Hosts)
-	assert.Equal(updatedServers[1].Hosts, trait2Hosts)
+	createdGateway := &istioclient.Gateway{}
+	assert.NoError(reconciler.Get(context.TODO(), types.NamespacedName{Name: gw.Name, Namespace: testNamespace}, createdGateway))
+	gwServers := createdGateway.Spec.Servers
+	assert.Len(gwServers, 1)
+	assert.Equal(gwServers[0].Hosts, trait2Hosts)
 
 }
 
