@@ -94,6 +94,8 @@ var _ = t.Describe("Istio", Label("f:platform-lcm.install"), func() {
 				deployments[1].String(): getIngressReplicaCount(vz),
 				deployments[2].String(): getPilotReplicaCount(vz),
 			}
+			t.Logs.Infof("Expected replica counts: %v", expectedPods)
+
 			Eventually(func() (map[string]uint32, error) {
 				return pkg.CheckPodCounts(deployments, buildListOpts)
 			}, waitTimeout, pollingInterval).Should(Equal(expectedPods))
