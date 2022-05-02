@@ -441,7 +441,7 @@ pipeline {
                         stage ('Deploy Example Coherence') {
                             steps {
                                 runGinkgoVerify('workloads/coherence', "false", "false", "true", "hello-coherence")
-                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload", "false", "false", "true")
+                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload", "false", "false", "false")
                             }
                         }
                     }
