@@ -804,6 +804,18 @@ func TestAppendJaegerCollectorArg(t *testing.T) {
 					Name:      "jaeger-collector",
 					Labels:    collectorLabels,
 				},
+				Spec: v1.ServiceSpec{
+					Ports: []v1.ServicePort{
+						{
+							Name: "http-foo",
+							Port: 1234,
+						},
+						{
+							Name: "http-zipkin",
+							Port: 5555,
+						},
+					},
+				},
 			}).Build()
 	tb := true
 	jaegerEnabled := &vzapi.Verrazzano{
@@ -837,7 +849,7 @@ func TestAppendJaegerCollectorArg(t *testing.T) {
 			[]bom.KeyValue{
 				{
 					Key:   "meshConfig.defaultConfig.tracing.zipkin.address",
-					Value: fmt.Sprintf("jaeger-collector.%s.svc.cluster.local:9411", namespace),
+					Value: fmt.Sprintf("jaeger-collector.%s.svc.cluster.local:5555", namespace),
 				},
 				{
 					Key:   "meshConfig.defaultConfig.tracing.tlsSettings.mode",

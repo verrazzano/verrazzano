@@ -322,9 +322,11 @@ func appendJaegerCollectorArg(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]b
 	for _, service := range services.Items {
 		// do not use the headless service
 		if !strings.Contains(service.Name, "headless") {
-			collectorURL := fmt.Sprintf("%s.%s.svc.cluster.local:9411",
+			port := zipkinPort(service)
+			collectorURL := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
 				service.Name,
 				service.Namespace,
+				port,
 			)
 			kvs = append(kvs, bom.KeyValue{
 				Key:   "meshConfig.defaultConfig.tracing.zipkin.address",
@@ -342,6 +344,16 @@ func appendJaegerCollectorArg(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]b
 		}
 	}
 	return kvs, nil
+}
+
+//zipkinPort retrieves the zipkin port from the service, if it is present. Defaults to 9411 for Jaeger collector
+func zipkinPort(service v1.Service) int32 {
+	for _, port := range service.Spec.Ports {
+		if port.Name == "http-zipkin" {
+			return port.Port
+		}
+	}
+	return 9411
 }
 
 func getOverridesString(ctx spi.ComponentContext) (string, error) {

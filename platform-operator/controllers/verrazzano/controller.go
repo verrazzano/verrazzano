@@ -1197,7 +1197,7 @@ func (r *Reconciler) watchPods(namespace string, name string, log vzlog.Verrazza
 }
 
 func (r *Reconciler) watchJaegerService(namespace string, name string, log vzlog.VerrazzanoLogger) error {
-	// Watch services and trigger reconciles for Verrazzano resources when the jaeger service is created
+	// Watch services and trigger reconciles for Verrazzano resources when the Jaeger collector service is created
 	log.Debugf("Watching for services to activate reconcile for Verrazzano CR %s/%s", namespace, name)
 	return r.Controller.Watch(
 		&source.Kind{Type: &corev1.Service{}},
@@ -1273,7 +1273,7 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog
 	}
 
 	if err := r.watchJaegerService(vz.Namespace, vz.Name, log); err != nil {
-		log.Errorf("Failed to set Service watch for Verrazzano CR %s: %v", vz.Name, err)
+		log.Errorf("Failed to set Service watch for Jaeger Collector service: %v", err)
 		return newRequeueWithDelay(), err
 	}
 
