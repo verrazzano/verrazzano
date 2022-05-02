@@ -101,6 +101,11 @@ func (c jaegerOperatorComponent) GetJSONName() string {
 	return ComponentJSONName
 }
 
+// GetHelmOverrides returns the Helm override sources for a component
+func (c jaegerOperatorComponent) GetHelmOverrides(_ spi.ComponentContext) []vzapi.Overrides {
+	return []vzapi.Overrides{}
+}
+
 func (c jaegerOperatorComponent) IsOperatorInstallSupported() bool {
 	return true
 }

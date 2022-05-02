@@ -64,9 +64,6 @@ type HelmComponent struct {
 	// AppendOverridesFunc is an optional function get additional override values
 	AppendOverridesFunc appendOverridesSig
 
-	// GetHelmValueOverrides is an optional function that returns the helm override values
-	GetHelmValueOverrides getHelmValueOverridesSig
-
 	// ResolveNamespaceFunc is an optional function to process the namespace name
 	ResolveNamespaceFunc resolveNamespaceSig
 
@@ -145,10 +142,7 @@ func (h HelmComponent) GetJSONName() string {
 }
 
 // GetHelmOverrides returns the list of Helm value overrides for a component
-func (h HelmComponent) GetHelmOverrides(context spi.ComponentContext) []vzapi.Overrides {
-	if h.GetHelmValueOverrides != nil {
-		return h.GetHelmValueOverrides(context)
-	}
+func (h HelmComponent) GetHelmOverrides(_ spi.ComponentContext) []vzapi.Overrides {
 	return []vzapi.Overrides{}
 }
 
@@ -376,11 +370,9 @@ func (h HelmComponent) buildCustomHelmOverrides(context spi.ComponentContext, na
 
 	// Sort the kvs list by priority (0th term has the highest priority)
 	// Getting user defined Helm overrides as the highest priority
-	if h.GetHelmValueOverrides != nil {
-		kvs, err = h.retrieveHelmOverrideResources(context, h.GetHelmValueOverrides(context))
-		if err != nil {
-			return overrides, err
-		}
+	kvs, err = h.retrieveHelmOverrideResources(context, h.GetHelmOverrides(context))
+	if err != nil {
+		return overrides, err
 	}
 
 	// Create files from the Verrazzano Helm values

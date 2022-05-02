@@ -82,6 +82,11 @@ func (i istioComponent) GetJSONName() string {
 	return ComponentJSONName
 }
 
+// GetHelmOverrides returns the Helm override sources for a component
+func (i istioComponent) GetHelmOverrides(_ spi.ComponentContext) []vzapi.Overrides {
+	return []vzapi.Overrides{}
+}
+
 type upgradeFuncSig func(log vzlog.VerrazzanoLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
 
 // upgradeFunc is the default upgrade function
