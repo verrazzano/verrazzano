@@ -21,7 +21,7 @@ variable "operating_system_version" {
 }
 
 variable "kubernetes_version" {
-  default = "v1.19.15"
+  default = "v1.20.8"
 }
 variable "allow_worker_ssh_access" {
   default = false
