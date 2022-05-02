@@ -47,7 +47,7 @@ func (d opensearchDashboardsComponent) GetJSONName() string {
 }
 
 // GetHelmOverrides returns the Helm override sources for a component
-func (o opensearchDashboardsComponent) GetHelmOverrides(_ spi.ComponentContext) []vzapi.Overrides {
+func (d opensearchDashboardsComponent) GetHelmOverrides(_ spi.ComponentContext) []vzapi.Overrides {
 	return []vzapi.Overrides{}
 }
 

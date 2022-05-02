@@ -108,9 +108,6 @@ type preUpgradeFuncSig func(log vzlog.VerrazzanoLogger, client clipkg.Client, re
 // appendOverridesSig is an optional function called to generate additional overrides.
 type appendOverridesSig func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error)
 
-// getHelmValueOverridesSig is the signature for providing the list of Helm value overrides.
-type getHelmValueOverridesSig func(context spi.ComponentContext) []vzapi.Overrides
-
 // resolveNamespaceSig is an optional function called for special namespace processing
 type resolveNamespaceSig func(ns string) string
 
