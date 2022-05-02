@@ -5,16 +5,16 @@ package promstack
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -137,8 +137,8 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 		})
 
 		// GIVEN the Prometheus stack is installed
-		// WHEN we check to make sure the pods are running
-		// THEN we successfully find the running pods
+		// WHEN we check to make sure the operator overrides get applied
+		// THEN we see that the correct pod labels and annotations exist
 		WhenPromStackInstalledIt("should have Prometheus Operator pod labeled and annotated", func() {
 			promStackPodsRunning := func() bool {
 				if isPrometheusOperatorEnabled() {
