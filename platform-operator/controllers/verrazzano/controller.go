@@ -1269,11 +1269,13 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog
 		return newRequeueWithDelay(), err
 	}
 
+	// Watch ConfigMaps in the VZ CR namespace
 	if err := r.watchConfigMaps(vz.Namespace, vz.Name, log); err != nil {
 		log.Errorf("Failed to set ConfigMap watch for Verrazzano CR %s: %v", vz.Name, err)
 		return newRequeueWithDelay(), err
 	}
 
+	// Watch Secrets in the VZ CR namespace
 	if err := r.watchSecrets(vz.Namespace, vz.Name, log); err != nil {
 		log.Errorf("Failed to set Secret watch for Verrazzano CR %s: %v", vz.Name, err)
 		return newRequeueWithDelay(), err
