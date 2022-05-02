@@ -588,7 +588,7 @@ type IstioComponent struct {
 
 // IsInjectionEnabled is istio sidecar injection enabled check
 func (c *IstioComponent) IsInjectionEnabled() bool {
-	return c.InjectionEnabled == nil || *c.InjectionEnabled
+	return (c.Enabled == nil || *c.Enabled) && (c.InjectionEnabled == nil || *c.InjectionEnabled)
 }
 
 // JaegerOperatorComponent specifies the Jaeger Operator configuration
