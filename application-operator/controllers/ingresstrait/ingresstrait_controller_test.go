@@ -3161,6 +3161,66 @@ func getIngressTraitResourceExpectations(mock *mocks.MockClient, assert *asserts
 		})
 }
 
+// TestDeleteCertAndSecretWhenIngressTraitIsDeleted tests the Reconcile method for the following use case.
+// GIVEN a request to reconcile an ingress trait resource that is marked for deletion
+// WHEN the ingress trait exists
+// THEN ensure that the cert and secret trait resources associated with the ingress trait are also deleted
+func TestDeleteCertAndSecretWhenIngressTraitIsDeleted(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+	const testAppName = "test-app"
+	// expect a call to fetch the IngressTrait
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testTraitName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.IngressTrait) error {
+			trait.ObjectMeta = ctrl.ObjectMeta{
+				Namespace:         testNamespace,
+				Name:              testTraitName,
+				Finalizers:        []string{finalizerName},
+				Labels:            map[string]string{oam.LabelAppName: testAppName, oam.LabelAppComponent: "mycomp"},
+				DeletionTimestamp: &metav1.Time{Time: time.Now()}}
+			return nil
+		})
+	// Expect a call to delete the cert
+	cli.EXPECT().
+		Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, cert *certapiv1.Certificate, opt *client.DeleteOptions) error {
+			assert.Equal(constants.IstioSystemNamespace, cert.Namespace)
+			assert.Equal(fmt.Sprintf("%s-%s-cert", testNamespace, testTraitName), cert.Name)
+			return nil
+		})
+	// Expect a call to delete the secret
+	cli.EXPECT().
+		Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, sec *k8score.Secret, opt *client.DeleteOptions) error {
+			assert.Equal(constants.IstioSystemNamespace, sec.Namespace)
+			assert.Equal(fmt.Sprintf("%s-%s-cert-secret", testNamespace, testTraitName), sec.Name)
+			return nil
+		})
+
+	// Expect a call to update the ingress trait resource with the finalizer removed.
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait, options ...client.UpdateOption) error {
+			assert.Equal(testNamespace, trait.Namespace)
+			assert.Equal(testTraitName, trait.Name)
+			assert.Len(trait.Finalizers, 0)
+			return nil
+		})
+
+	// Create and make the request
+	request := newRequest(testNamespace, testTraitName)
+	reconciler := newIngressTraitReconciler(cli)
+	result, err := reconciler.Reconcile(nil, request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
+	assert.Equal(time.Duration(0), result.RequeueAfter)
+}
+
 func createReconcilerWithFake(initObjs ...client.Object) Reconciler {
 	cli := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(initObjs...).Build()
 	reconciler := newIngressTraitReconciler(cli)
