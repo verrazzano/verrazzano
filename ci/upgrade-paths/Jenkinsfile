@@ -961,6 +961,11 @@ def upgradeVerrazzanoOnCluster(count, verrazzanoDevVersion) {
                 cd ${GO_REPO_PATH}/verrazzano
                 cp ${v8oInstallFile} ${v8oUpgradeFile}
                 ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${verrazzanoDevVersion}  ${v8oUpgradeFile}
+
+                # Add some simple additional updates to validate update during an upgrade
+                yq -i eval '.spec.components.istio.ingress.kubernetes.replicas = 3' ${v8oUpgradeFile}
+                yq -i eval '.spec.components.istio.egress.kubernetes.replicas = 3' ${v8oUpgradeFile}
+
                 # Do the upgrade
                 echo "Following is the verrazzano CR file with the new version:"
                 cat ${v8oUpgradeFile}
