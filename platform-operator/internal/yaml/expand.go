@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package yaml
@@ -54,6 +54,9 @@ func Expand(leftMargin int, forceList bool, name string, vals ...string) (string
 	}
 	// Remove any trailing dot and split the first part of the string at the dots.
 	unquotedPart := strings.TrimRight(quoteSegs[0], ".")
+	// Replace backslashed dots because of no negative lookbehind
+	placeholder := "/*placeholder*/"
+	unquotedPart = strings.Replace(unquotedPart, "\\.", placeholder, -1)
 	nameSegs := strings.Split(unquotedPart, ".")
 	if len(quoteSegs) == 2 {
 		// Add back the original quoted string if it existed
@@ -64,17 +67,47 @@ func Expand(leftMargin int, forceList bool, name string, vals ...string) (string
 	}
 	// Loop through all the name segments, for example, these 4:
 	//    controller, service, annotations, service.beta.kubernetes.io/oci-load-balancer-shape
+	listIndents := 0
+	nextValueList := false
+	indentVal := " "
 	for i, seg := range nameSegs {
+		// Get rid of placeholder
+		seg = strings.Replace(seg, placeholder, ".", -1)
+
 		// Create the padded indent
-		pad := strings.Repeat(" ", leftMargin+indent*i)
+		pad := strings.Repeat(indentVal, leftMargin+(indent*(i+listIndents)))
+
+		// last value for formatting
+		lastVal := i == len(nameSegs)-1
+
+		// Check if current value is a new list value
+		listValueString := ""
+		if nextValueList {
+			listValueString = "- "
+			listIndents++
+			nextValueList = false
+		}
+
+		// Check if internal list value next
+		splitList := strings.Split(seg, `[`)
+		if len(splitList) > 1 {
+			seg = splitList[0]
+			nextValueList = true
+		}
 
 		// Write the indent padding, then name followed by colon
-		if _, err := b.WriteString(pad + seg + ":"); err != nil {
+		if _, err := b.WriteString(pad + listValueString + seg + ":"); err != nil {
 			return "", err
 		}
 		// If this is the last segment then write the value, else LF
-		if i == len(nameSegs)-1 {
-			if err := writeVals(&b, forceList, pad, vals...); err != nil {
+		if lastVal {
+			// indent is different based on if the last value was a list
+			indentSize := 1
+			if nextValueList {
+				indentSize = 2
+			}
+			pad += strings.Repeat(indentVal, indent*indentSize)
+			if err := writeVals(&b, forceList || nextValueList, pad, vals...); err != nil {
 				return "", err
 			}
 		} else {
@@ -84,12 +117,17 @@ func Expand(leftMargin int, forceList bool, name string, vals ...string) (string
 		}
 	}
 	return b.String(), nil
-	// TODO add valueList
 }
 
 // writeVals writes a single value or a list of values to the string builder.
 // If forcelist is true then always use the list format.
 func writeVals(b *strings.Builder, forceList bool, pad string, vals ...string) error {
+	// check for multiline value
+	if len(vals) == 1 && strings.Contains(vals[0], "\n") {
+		b.WriteString(" |\n")
+		b.WriteString(pad + strings.Replace(vals[0], "\n", "\n"+pad, -1))
+		return nil
+	}
 	if len(vals) == 1 && !forceList {
 		// Write the single value, for example:
 		// key: val1

@@ -75,6 +75,9 @@ const (
 
 	// InstancePrincipal is used for instance principle auth type
 	instancePrincipal authenticationType = "instance_principal"
+
+	extraArgsKey  = "extraArgs[0]"
+	acmeSolverArg = "--acme-http01-solver-image="
 )
 
 type authenticationType string
@@ -351,6 +354,23 @@ func isOCIDNS(vz *vzapi.Verrazzano) bool {
 
 // AppendOverrides Build the set of cert-manager overrides for the helm install
 func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	// use image value for arg override
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return kvs, compContext.Log().ErrorNewErr("Failed to get the BOM file for the cert-manager image overrides: ", err)
+	}
+
+	images, err := bomFile.BuildImageOverrides("cert-manager")
+	if err != nil {
+		return nil, err
+	}
+
+	for _, image := range images {
+		if image.Key == extraArgsKey {
+			kvs = append(kvs, bom.KeyValue{Key: extraArgsKey, Value: acmeSolverArg + image.Value})
+		}
+	}
+
 	// Verify that we are using CA certs before appending override
 	isCAValue, err := isCA(compContext)
 	if err != nil {

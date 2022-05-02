@@ -7,15 +7,17 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"github.com/go-logr/logr"
 	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
 	"text/template"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/test/ip"
+
+	"github.com/go-logr/logr"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
@@ -65,7 +67,14 @@ const (
 )
 
 var (
-	httpsLower = strings.ToLower(httpsProtocol)
+	httpsLower                           = strings.ToLower(httpsProtocol)
+	testClusterIP                        = ip.RandomIP()
+	testLoadBalancerIP                   = ip.RandomIP()
+	testLoadBalancerDomainName           = "myapp.myns." + testLoadBalancerIP + ".nip.io"
+	testLoadBalancerExternalDNSTarget    = "verrazzano-ingress." + testLoadBalancerIP + ".nip.io"
+	testLoadBalancerAppGatewayServerHost = "test-appconf.test-namespace." + testLoadBalancerIP + ".nip.io"
+	testExternalIP                       = ip.RandomIP()
+	testExternalDomainName               = "myapp.myns." + testExternalIP + ".nip.io"
 )
 
 // GIVEN a controller implementation
@@ -135,7 +144,7 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 						UID:        testWorkloadID,
 					}}},
 				Spec: k8score.ServiceSpec{
-					ClusterIP: "10.11.12.13",
+					ClusterIP: testClusterIP,
 					Ports:     []k8score.ServicePort{{Port: 42}}}})
 		})
 	// Expect a call to get the app config and return that it is not found.
@@ -574,7 +583,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 						UID:        testWorkloadID,
 					}}},
 				Spec: k8score.ServiceSpec{
-					ClusterIP: "10.11.12.13",
+					ClusterIP: testClusterIP,
 					Ports:     []k8score.ServicePort{{Port: 42}}},
 			})
 		})
@@ -940,7 +949,7 @@ func TestBuildAppHostNameLoadBalancerNIP(t *testing.T) {
 				Namespace: name.Namespace,
 				Name:      name.Name,
 				Annotations: map[string]string{
-					"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.nip.io",
+					"external-dns.alpha.kubernetes.io/target": testLoadBalancerExternalDNSTarget,
 					"verrazzano.io/dns.wildcard.domain":       "nip.io",
 				},
 			}
@@ -955,7 +964,7 @@ func TestBuildAppHostNameLoadBalancerNIP(t *testing.T) {
 				APIVersion: "networking.k8s.io/v1"}
 			service.Spec.Type = "LoadBalancer"
 			service.Status.LoadBalancer.Ingress = []k8score.LoadBalancerIngress{{
-				IP: "5.6.7.8",
+				IP: testLoadBalancerIP,
 			}}
 			return nil
 		})
@@ -966,7 +975,7 @@ func TestBuildAppHostNameLoadBalancerNIP(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	assert.NoError(err)
-	assert.Equal("myapp.myns.5.6.7.8.nip.io", domainName)
+	assert.Equal(testLoadBalancerDomainName, domainName)
 }
 
 // TestBuildAppHostNameExternalLoadBalancerNIP tests building a hostname for the application
@@ -999,7 +1008,7 @@ func TestBuildAppHostNameExternalLoadBalancerNIP(t *testing.T) {
 				Namespace: name.Namespace,
 				Name:      name.Name,
 				Annotations: map[string]string{
-					"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.nip.io",
+					"external-dns.alpha.kubernetes.io/target": testLoadBalancerExternalDNSTarget,
 					"verrazzano.io/dns.wildcard.domain":       "nip.io",
 				},
 			}
@@ -1013,7 +1022,7 @@ func TestBuildAppHostNameExternalLoadBalancerNIP(t *testing.T) {
 			service.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1"}
 			service.Spec.Type = "LoadBalancer"
-			service.Spec.ExternalIPs = []string{"5.6.7.8"}
+			service.Spec.ExternalIPs = []string{testLoadBalancerIP}
 			return nil
 		})
 
@@ -1023,7 +1032,67 @@ func TestBuildAppHostNameExternalLoadBalancerNIP(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	assert.NoError(err)
-	assert.Equal("myapp.myns.5.6.7.8.nip.io", domainName)
+	assert.Equal(testLoadBalancerDomainName, domainName)
+}
+
+// TestBuildAppHostNameBothInternalAndExternalLoadBalancerNIP tests building a hostname for the application
+// GIVEN an appName and a trait
+// WHEN the ingress domain is nip.io and an external LoadBalancer is used and LoadBalancer ise also used in Istio Ingress
+// THEN ensure that the correct DNS name is built
+func TestBuildAppHostNameBothInternalAndExternalLoadBalancerNIP(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	ns := "myns"
+	trait := vzapi.IngressTrait{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: apiVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ns,
+			Labels:    map[string]string{oam.LabelAppName: "myapp"},
+		},
+	}
+	// Expect a call to get the Verrazzano ingress and return the ingress.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
+			ingress.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1",
+				Kind:       "ingress"}
+			ingress.ObjectMeta = metav1.ObjectMeta{
+				Namespace: name.Namespace,
+				Name:      name.Name,
+				Annotations: map[string]string{
+					"external-dns.alpha.kubernetes.io/target": testLoadBalancerExternalDNSTarget,
+					"verrazzano.io/dns.wildcard.domain":       "nip.io",
+				},
+			}
+			return nil
+		})
+
+	// Expect a call to get the Istio service
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: istioSystemNamespace, Name: istioIngressGatewayName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *k8score.Service) error {
+			service.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1"}
+			service.Spec.Type = "LoadBalancer"
+			service.Spec.ExternalIPs = []string{testExternalIP}
+			service.Status.LoadBalancer.Ingress = []k8score.LoadBalancerIngress{{
+				IP: testLoadBalancerIP,
+			}}
+			return nil
+		})
+
+	// Build the host name
+	domainName, err := buildAppFullyQualifiedHostName(mock, &trait)
+
+	// Validate the results
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(testExternalDomainName, domainName)
 }
 
 // TestBuildAppHostNameExternalLoadBalancerNIPNotFound tests building a hostname for the application
@@ -1056,7 +1125,7 @@ func TestBuildAppHostNameExternalLoadBalancerNIPNotFound(t *testing.T) {
 				Namespace: name.Namespace,
 				Name:      name.Name,
 				Annotations: map[string]string{
-					"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.nip.io",
+					"external-dns.alpha.kubernetes.io/target": testLoadBalancerExternalDNSTarget,
 					"verrazzano.io/dns.wildcard.domain":       "nip.io",
 				},
 			}
@@ -1111,7 +1180,7 @@ func TestFailureBuildAppHostNameLoadBalancerNIP(t *testing.T) {
 				Namespace: name.Namespace,
 				Name:      name.Name,
 				Annotations: map[string]string{
-					"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.nip.io",
+					"external-dns.alpha.kubernetes.io/target": testLoadBalancerExternalDNSTarget,
 					"verrazzano.io/dns.wildcard.domain":       "nip.io",
 				},
 			}
@@ -1137,11 +1206,11 @@ func TestFailureBuildAppHostNameLoadBalancerNIP(t *testing.T) {
 	assert.Equal("istio-ingressgateway is missing loadbalancer IP", err.Error())
 }
 
-// TestBuildAppHostNameNodePortNIP tests building a hostname for the application
+// TestBuildAppHostNameNodePortExternalIP tests building a hostname for the application
 // GIVEN an appName and a trait
-// WHEN the ingress domain is nip.io and NodePort is used
+// WHEN the ingress domain is nip.io and NodePort is used together with ExternalIPs
 // THEN ensure that the correct DNS name is built
-func TestBuildAppHostNameNodePortNIP(t *testing.T) {
+func TestBuildAppHostNameNodePortExternalIP(t *testing.T) {
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1167,7 +1236,7 @@ func TestBuildAppHostNameNodePortNIP(t *testing.T) {
 				Namespace: name.Namespace,
 				Name:      name.Name,
 				Annotations: map[string]string{
-					"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.nip.io",
+					"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress" + testExternalIP + ".nip.io",
 					"verrazzano.io/dns.wildcard.domain":       "nip.io",
 				},
 			}
@@ -1181,18 +1250,7 @@ func TestBuildAppHostNameNodePortNIP(t *testing.T) {
 			service.TypeMeta = metav1.TypeMeta{
 				APIVersion: "networking.k8s.io/v1"}
 			service.Spec.Type = "NodePort"
-			return nil
-		})
-
-	// Expect a call to get the Istio ingress gateway pod
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, podList *k8score.PodList, opts ...client.ListOption) error {
-			podList.Items = []k8score.Pod{{
-				Status: k8score.PodStatus{
-					HostIP: "5.6.7.8",
-				},
-			}}
+			service.Spec.ExternalIPs = []string{testExternalIP}
 			return nil
 		})
 
@@ -1202,70 +1260,7 @@ func TestBuildAppHostNameNodePortNIP(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	assert.NoError(err)
-	assert.Equal("myapp.myns.5.6.7.8.nip.io", domainName)
-}
-
-// TestFailureBuildAppHostNameNodePortNIP tests a failure when building a hostname for the application
-// GIVEN an appName and a trait
-// WHEN the ingress domain is nip.io and NodePort is used, but an error occurus
-// THEN ensure that the correct error is returned
-func TestFailureBuildAppHostNameNodePortNIP(t *testing.T) {
-	assert := asserts.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-
-	ns := "myns"
-	trait := vzapi.IngressTrait{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: apiVersion,
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ns,
-			Labels:    map[string]string{oam.LabelAppName: "myapp"},
-		},
-	}
-	// Expect a call to get the Verrazzano ingress and return the ingress.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
-			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "networking.k8s.io/v1",
-				Kind:       "ingress"}
-			ingress.ObjectMeta = metav1.ObjectMeta{
-				Namespace: name.Namespace,
-				Name:      name.Name,
-				Annotations: map[string]string{
-					"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.nip.io",
-					"verrazzano.io/dns.wildcard.domain":       "nip.io",
-				},
-			}
-			return nil
-		})
-
-	// Expect a call to get the Istio service
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: istioSystemNamespace, Name: istioIngressGatewayName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *k8score.Service) error {
-			service.TypeMeta = metav1.TypeMeta{
-				APIVersion: "networking.k8s.io/v1"}
-			service.Spec.Type = "NodePort"
-			return nil
-		})
-
-	// Expect a call to get the Istio ingress gateway pod
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, podList *k8score.PodList, opts ...client.ListOption) error {
-			return errors.New("Unable to find istio pods")
-		})
-
-	// Build the host name
-	_, err := buildAppFullyQualifiedHostName(mock, &trait)
-
-	// Validate the results
-	mocker.Finish()
-	assert.Error(err)
-	assert.Equal("Unable to find istio pods", err.Error())
+	assert.Equal(testExternalDomainName, domainName)
 }
 
 // TestGetTraitFailurePropagated tests tje Reconcile method for the following use case
@@ -1889,9 +1884,9 @@ func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 	// Create namespace
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
 	// Create Verrazzano ingress
-	assert.NoError(cli.Create(context.Background(), newVerrazzanoIngress("verrazzano-ingress.1.2.3.4")))
+	assert.NoError(cli.Create(context.Background(), newVerrazzanoIngress("verrazzano-ingress."+testLoadBalancerIP)))
 	// Create Istio ingress service
-	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService("10.11.12.13", "1.2.3.4")))
+	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService(testClusterIP, testLoadBalancerIP)))
 	// Create application configuration
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/appconf_with_ingress.yaml", params))
 	// Create application component
@@ -1923,7 +1918,7 @@ func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 				Port:       8001,
 				TargetPort: intstr.FromInt(8001),
 			}},
-			ClusterIP: "10.11.12.13",
+			ClusterIP: testClusterIP,
 			Type:      "ClusterIP",
 		},
 	}
@@ -1940,7 +1935,7 @@ func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
 	assert.NoError(err)
 	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
-	assert.Equal("test-appconf.test-namespace.1.2.3.4.nip.io", gw.Spec.Servers[0].Hosts[0])
+	assert.Equal(testLoadBalancerAppGatewayServerHost, gw.Spec.Servers[0].Hosts[0])
 	assert.Equal(testTraitPortName, gw.Spec.Servers[0].Port.Name)
 	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
 	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
@@ -1952,7 +1947,7 @@ func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 	assert.NoError(err)
 	assert.Equal("test-namespace-test-appconf-gw", vs.Spec.Gateways[0])
 	assert.Len(vs.Spec.Gateways, 1)
-	assert.Equal("test-appconf.test-namespace.1.2.3.4.nip.io", vs.Spec.Hosts[0])
+	assert.Equal(testLoadBalancerAppGatewayServerHost, vs.Spec.Hosts[0])
 	assert.Len(vs.Spec.Hosts, 1)
 	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "prefix:")
 	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "/bobbys-front-end")
@@ -1989,9 +1984,9 @@ func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
 	// Create namespace
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
 	// Create Verrazzano ingress
-	assert.NoError(cli.Create(context.Background(), newVerrazzanoIngress("1.2.3.4")))
+	assert.NoError(cli.Create(context.Background(), newVerrazzanoIngress(testLoadBalancerIP)))
 	// Create Istio ingress service
-	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService("10.11.12.13", "1.2.3.4")))
+	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService(testClusterIP, testLoadBalancerIP)))
 	// Create application configuration
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/appconf_with_ingress.yaml", params))
 	// Create application component
@@ -2023,7 +2018,7 @@ func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
 				Port:       8001,
 				TargetPort: intstr.FromInt(8001),
 			}},
-			ClusterIP: "10.11.12.13",
+			ClusterIP: testClusterIP,
 			Type:      "ClusterIP",
 		},
 	}
@@ -2040,7 +2035,7 @@ func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
 	assert.NoError(err)
 	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
-	assert.Equal("test-appconf.test-namespace.1.2.3.4.nip.io", gw.Spec.Servers[0].Hosts[0])
+	assert.Equal(testLoadBalancerAppGatewayServerHost, gw.Spec.Servers[0].Hosts[0])
 	assert.Equal(testTraitPortName, gw.Spec.Servers[0].Port.Name)
 	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
 	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
@@ -2052,7 +2047,7 @@ func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
 	assert.NoError(err)
 	assert.Equal("test-namespace-test-appconf-gw", vs.Spec.Gateways[0])
 	assert.Len(vs.Spec.Gateways, 1)
-	assert.Equal("test-appconf.test-namespace.1.2.3.4.nip.io", vs.Spec.Hosts[0])
+	assert.Equal(testLoadBalancerAppGatewayServerHost, vs.Spec.Hosts[0])
 	assert.Len(vs.Spec.Hosts, 1)
 	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "prefix:")
 	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "/test-path")
@@ -2090,9 +2085,9 @@ func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 	// Create namespace
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
 	// Create Verrazzano ingress
-	assert.NoError(cli.Create(context.Background(), newVerrazzanoIngress("1.2.3.4")))
+	assert.NoError(cli.Create(context.Background(), newVerrazzanoIngress(testLoadBalancerIP)))
 	// Create Istio ingress service
-	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService("10.11.12.13", "1.2.3.4")))
+	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService(testClusterIP, testLoadBalancerIP)))
 	// Create application configuration
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/appconf_with_ingress.yaml", params))
 	// Create application component
@@ -2128,7 +2123,7 @@ func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 				Port:       8002,
 				TargetPort: intstr.FromInt(8002)},
 			},
-			ClusterIP: "10.11.12.13",
+			ClusterIP: testClusterIP,
 			Type:      "ClusterIP",
 		},
 	}
@@ -2145,7 +2140,7 @@ func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
 	assert.NoError(err)
 	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
-	assert.Equal("test-appconf.test-namespace.1.2.3.4.nip.io", gw.Spec.Servers[0].Hosts[0])
+	assert.Equal(testLoadBalancerAppGatewayServerHost, gw.Spec.Servers[0].Hosts[0])
 	assert.Equal(testTraitPortName, gw.Spec.Servers[0].Port.Name)
 	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
 	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
@@ -2157,7 +2152,7 @@ func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 	assert.NoError(err)
 	assert.Equal("test-namespace-test-appconf-gw", vs.Spec.Gateways[0])
 	assert.Len(vs.Spec.Gateways, 1)
-	assert.Equal("test-appconf.test-namespace.1.2.3.4.nip.io", vs.Spec.Hosts[0])
+	assert.Equal(testLoadBalancerAppGatewayServerHost, vs.Spec.Hosts[0])
 	assert.Len(vs.Spec.Hosts, 1)
 	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "prefix:")
 	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "/bobbys-front-end")
@@ -2201,9 +2196,9 @@ func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination
 	// Create namespace
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
 	// Create Verrazzano ingress
-	assert.NoError(cli.Create(context.Background(), newVerrazzanoIngress("1.2.3.4")))
+	assert.NoError(cli.Create(context.Background(), newVerrazzanoIngress(testLoadBalancerIP)))
 	// Create Istio ingress service
-	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService("10.11.12.13", "1.2.3.4")))
+	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService(testClusterIP, testLoadBalancerIP)))
 	// Create application configuration
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/appconf_with_ingress.yaml", params))
 	// Create application component
@@ -2233,7 +2228,7 @@ func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination
 				Port:       8081,
 				TargetPort: intstr.FromInt(8081)},
 			},
-			ClusterIP: "10.11.12.13",
+			ClusterIP: testClusterIP,
 			Type:      "NodePort",
 		},
 	}
@@ -2274,7 +2269,7 @@ func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
 	assert.NoError(err)
 	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
-	assert.Equal("test-appconf.test-namespace.1.2.3.4.nip.io", gw.Spec.Servers[0].Hosts[0])
+	assert.Equal(testLoadBalancerAppGatewayServerHost, gw.Spec.Servers[0].Hosts[0])
 	assert.Equal(testTraitPortName, gw.Spec.Servers[0].Port.Name)
 	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
 	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
@@ -2286,7 +2281,7 @@ func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination
 	assert.NoError(err)
 	assert.Equal("test-namespace-test-appconf-gw", vs.Spec.Gateways[0])
 	assert.Len(vs.Spec.Gateways, 1)
-	assert.Equal("test-appconf.test-namespace.1.2.3.4.nip.io", vs.Spec.Hosts[0])
+	assert.Equal(testLoadBalancerAppGatewayServerHost, vs.Spec.Hosts[0])
 	assert.Len(vs.Spec.Hosts, 1)
 	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "prefix:")
 	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "/bobbys-front-end")
@@ -2326,9 +2321,9 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 	// Create namespace
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
 	// Create Verrazzano ingress
-	assert.NoError(cli.Create(context.Background(), newVerrazzanoIngress("1.2.3.4")))
+	assert.NoError(cli.Create(context.Background(), newVerrazzanoIngress(testLoadBalancerIP)))
 	// Create Istio ingress service
-	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService("10.11.12.13", "1.2.3.4")))
+	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService(testClusterIP, testLoadBalancerIP)))
 	// Create application configuration
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/appconf_with_ingress.yaml", params))
 	// Create application component
@@ -2376,7 +2371,7 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 				Port:       8001,
 				TargetPort: intstr.FromInt(8001),
 			}},
-			ClusterIP: "10.11.12.13",
+			ClusterIP: testClusterIP,
 			Type:      "ClusterIP",
 		},
 	}
@@ -2392,7 +2387,7 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
 	assert.NoError(err)
 	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
-	assert.Equal("test-appconf.test-namespace.1.2.3.4.nip.io", gw.Spec.Servers[0].Hosts[0])
+	assert.Equal(testLoadBalancerAppGatewayServerHost, gw.Spec.Servers[0].Hosts[0])
 	assert.Equal(testTraitPortName, gw.Spec.Servers[0].Port.Name)
 	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
 	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
@@ -2405,7 +2400,7 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 	assert.NoError(err)
 	assert.Equal("test-namespace-test-appconf-gw", vs.Spec.Gateways[0])
 	assert.Len(vs.Spec.Gateways, 1)
-	assert.Equal("test-appconf.test-namespace.1.2.3.4.nip.io", vs.Spec.Hosts[0])
+	assert.Equal(testLoadBalancerAppGatewayServerHost, vs.Spec.Hosts[0])
 	assert.Len(vs.Spec.Hosts, 1)
 	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "prefix:")
 	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "/bobbys-front-end")
@@ -2700,7 +2695,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookie(t *test
 						UID:        testWorkloadID,
 					}}},
 				Spec: k8score.ServiceSpec{
-					ClusterIP: "10.11.12.13",
+					ClusterIP: testClusterIP,
 					Ports:     []k8score.ServicePort{{Port: 42}}},
 			})
 		})
@@ -3096,7 +3091,7 @@ func setupTraitTestFakes(appName string, gw *istioclient.Gateway) Reconciler {
 				UID:        testWorkloadID,
 			}}},
 		Spec: k8score.ServiceSpec{
-			ClusterIP: "10.11.12.13",
+			ClusterIP: testClusterIP,
 			Ports:     []k8score.ServicePort{{Port: 42}}},
 	}
 
@@ -3222,7 +3217,7 @@ func childServiceExpectations(mock *mocks.MockClient, assert *asserts.Assertions
 						UID:        testWorkloadID,
 					}}},
 				Spec: k8score.ServiceSpec{
-					ClusterIP: "10.11.12.13",
+					ClusterIP: testClusterIP,
 					Ports:     []k8score.ServicePort{{Port: 42}}},
 			})
 		})

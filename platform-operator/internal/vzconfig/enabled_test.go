@@ -262,9 +262,7 @@ func TestIsElasticsearchEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Elasticsearch: &vzapi.ElasticsearchComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &trueValue,
-					},
+					Enabled: &trueValue,
 				},
 			},
 		}}))
@@ -272,9 +270,7 @@ func TestIsElasticsearchEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Elasticsearch: &vzapi.ElasticsearchComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &falseValue,
-					},
+					Enabled: &falseValue,
 				},
 			},
 		}}))
@@ -437,6 +433,37 @@ func TestIsNGINXEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Ingress: &vzapi.IngressNginxComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+}
+
+// TestIsJaegerOperatorEnabled tests the IsJaegerOperatorEnabled function
+// GIVEN a call to IsJaegerOperatorEnabled
+//  THEN the value of the Enabled flag is returned if present, false otherwise (disabled by default)
+func TestIsJaegerOperatorEnabled(t *testing.T) {
+	asserts := assert.New(t)
+	asserts.False(IsJaegerOperatorEnabled(nil))
+	asserts.False(IsJaegerOperatorEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.False(IsJaegerOperatorEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				JaegerOperator: &vzapi.JaegerOperatorComponent{},
+			},
+		}}))
+	asserts.True(IsJaegerOperatorEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				JaegerOperator: &vzapi.JaegerOperatorComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsJaegerOperatorEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				JaegerOperator: &vzapi.JaegerOperatorComponent{
 					Enabled: &falseValue,
 				},
 			},

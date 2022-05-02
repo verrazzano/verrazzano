@@ -43,11 +43,6 @@ function delete_cert_manager() {
     | xargsr helm uninstall -n cert-manager \
     || err_return $? "Could not delete cert-manager from helm" || return $? # return on pipefail
 
-  # delete the custom resource definition for cert manager
-  log "Deleting the custom resource definition for cert manager"
-  kubectl delete -f "${MANIFESTS_DIR}/cert-manager/cert-manager.crds.yaml" --ignore-not-found=true \
-    || err_return $? "Could not delete CustomResourceDefinition from cert-manager" || return $?
-
   # delete cert manager config map
   log "Deleting config map for cert manager"
   kubectl delete configmap cert-manager-controller -n kube-system --ignore-not-found=true || err_return $? "Could not delete ConfigMap from cert-manager-controller" || return $?
@@ -73,13 +68,24 @@ function delete_rancher() {
     return 0
   fi
 
-  # Clean up the local rancher cluster object if necessary
-#  cleanup_rancher_local_cluster
   log "Running Rancher system-tools remove"
   /usr/local/bin/system-tools remove -c /home/verrazzano/kubeconfig --force || err_return $? "Failed to run Rancher system-tools remove"
 
   # wait for the cleanup to be complete (enough) for us to proceed
+  log "Waiting for namespace cattle-system to be deleted"
   kubectl wait --for=delete ns/cattle-system --timeout=120s
+
+  log "Delete the Rancher webhooks"
+  # delete mutatingwebhookconfigurations
+  delete_k8s_resources mutatingwebhookconfigurations ":metadata.name,:metadata.labels" "Could not delete MutatingWebhookConfigurations from Rancher" '/cattle.io|app:rancher/ {print $1}' \
+    || return $? # return on pipefail
+  # delete validatingwebhookconfigurations
+  delete_k8s_resources validatingwebhookconfigurations ":metadata.name,:metadata.labels" "Could not delete ValidatingWebhookConfigurations from Rancher" '/cattle.io|app:rancher/ {print $1}' \
+    || return $? # return on pipefail
+
+  log "Removing Rancher MutatingWebhookConfiguration"
+  kubectl delete mutatingwebhookconfigurations.admissionregistration.k8s.io rancher.cattle.io --ignore-not-found \
+    || err_return $? "Failed to delete MutatingWebhookConfiguration rancher.cattle.io"
 
   # Deleting rancher components
   log "Deleting rancher helm charts (if any left over)"
@@ -94,42 +100,25 @@ function delete_rancher() {
   helm ls -n cattle-system | awk '/rancher/ {print $1}' | xargsr helm uninstall -n cattle-system \
     || err_return $? "Could not delete cattle-system from helm" || return $? # return on pipefail
 
-  log "Delete the additional CA secret for Rancher"
-  kubectl -n cattle-system delete secret tls-ca-additional 2>&1 > /dev/null || true
-  kubectl -n cattle-system delete secret tls-ca --ignore-not-found=true
+  log "Deleting CRs from Rancher"
+  kubectl api-resources --api-group=management.cattle.io --verbs=delete -o name \
+    | xargsr -n 1 kubectl get --all-namespaces --ignore-not-found -o custom-columns=":kind,:metadata.name,:metadata.namespace" \
+    | awk '{res="";if ($1 != "") res=tolower($1)".management.cattle.io "tolower($2); if ($3 != "<none>" && res != "") res=res" -n "$3; if (res != "") cmd="kubectl patch "res" -p \x027{\"metadata\":{\"finalizers\":null}}\x027 --type=merge;kubectl delete --ignore-not-found "res; print cmd}' \
+    | sh \
+    || err_return $? "There were errors deleting rancher CRs"  # Continue if failures
 
-  log "Deleting CRDs from rancher"
-
-  local crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | awk '/coreos.com|cattle.io/')
-
-  while [ "$crd_content" ]
-  do
-    # remove finalizers from crds
-    # Ignore patch failures and attempt to delete the resources anyway.
-    patch_k8s_resources crds ":metadata.name,:spec.group" "Could not remove finalizers from CustomResourceDefinitions in Rancher" '/coreos.com|cattle.io/ {print $1}' '{"metadata":{"finalizers":null}}' \
-      || true
-
-    # delete crds
-    # This process is backgrounded in order to timeout due to finalizers hanging
-    delete_k8s_resources crds ":metadata.name,:spec.group" "Could not delete CustomResourceDefinitions from Rancher" '/coreos.com|management.cattle.io|cattle.io|fleet/ {print $1}' \
-      || return $? &# return on pipefail
-    sleep 30
-    kill $! || true
-    crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | awk '/coreos.com|cattle.io/')
-  done
-
-  # delete clusterrolebindings deployed by rancher
+  # delete ClusterRoleBindings deployed by rancher
   log "Deleting ClusterRoleBindings"
   delete_k8s_resources clusterrolebinding ":metadata.name,:metadata.labels" "Could not delete ClusterRoleBindings from Rancher" '/cattle.io|app:rancher|rancher-webhook|fleetworkspace-|fleet-|gitjob/ {print $1}' \
     || return $? # return on pipefail
 
-  # delete clusterroles
-  log "Deleting ClusterRoles"
+  # delete ClusterRoleBindings
+  log "Deleting ClusterRoleBindings"
   delete_k8s_resources clusterrole ":metadata.name,:metadata.labels" "Could not delete ClusterRoles from Rancher" '/cattle.io|app:rancher|fleetworkspace-|fleet-|gitjob/ {print $1}' \
     || return $? # return on pipefail
 
-  # delete rolebinding
-  log "Deleting RoleBindings"
+  # delete ClusterRoleBindings
+  log "Deleting ClusterRoleBindings"
   local default_names=("default" "kube-node-lease" "kube-public" "kube-system")
   for namespace in "${default_names[@]}"
   do
@@ -143,14 +132,6 @@ function delete_rancher() {
   log "Deleting ConfigMap"
   kubectl delete configmap cattle-controllers -n kube-system  --ignore-not-found=true || err_return $? "Could not delete ConfigMap from Rancher in namespace kube-system" || return $?
   kubectl delete configmap rancher-controller-lock -n kube-system --ignore-not-found=true || err_return $? "Could not delete ConfigMap rancher-controller-lock in namespace kube-system" || return $?
-
-  log "Delete the Rancher webhooks and left over charts"
-  # delete mutatingwebhookconfigurations
-  delete_k8s_resources mutatingwebhookconfigurations ":metadata.name,:metadata.labels" "Could not delete MutatingWebhookConfigurations from Rancher" '/cattle.io|app:rancher/ {print $1}' \
-    || return $? # return on pipefail
-  # delete validatingwebhookconfigurations
-  delete_k8s_resources validatingwebhookconfigurations ":metadata.name,:metadata.labels" "Could not delete ValidatingWebhookConfigurations from Rancher" '/cattle.io|app:rancher/ {print $1}' \
-    || return $? # return on pipefail
 
   log "Removing Rancher namespace finalizers"
   # delete namespace finalizers
@@ -199,9 +180,6 @@ function delete_rancher() {
     | xargsr kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
     || err_return $? "Could not remove Rancher finalizers from all namespaces" || return $? # return on pipefail
 
-  log "Removing Rancher MutatingWebhookConfiguration"
-  kubectl delete mutatingwebhookconfigurations.admissionregistration.k8s.io rancher.cattle.io --ignore-not-found \
-    || err_return $? "Failed to delete MutatingWebhookConfiguration rancher.cattle.io"
 }
 
 action "Deleting Rancher Components" delete_rancher || exit 1

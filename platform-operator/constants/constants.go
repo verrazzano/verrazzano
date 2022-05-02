@@ -131,7 +131,7 @@ const UpgradeRetryVersion = "verrazzano.io/upgrade-retry-version"
 // ObservedUpgradeRetryVersion is the previous restart version annotation field
 const ObservedUpgradeRetryVersion = "verrazzano.io/observed-upgrade-retry-version"
 
-// NGINXControllerServiceName
+// NGINXControllerServiceName is the nginx ingress controller name
 const NGINXControllerServiceName = "ingress-controller-ingress-nginx-controller"
 
 // InstallOperation is the install string
@@ -145,3 +145,24 @@ const InitializeOperation = "initialize"
 
 // ReconcileLoopRequeueInterval is the interval before reconcile gets called again.
 const ReconcileLoopRequeueInterval = 3 * time.Minute
+
+// VMISecret is the secret used for VMI
+const VMISecret = "verrazzano"
+
+// GrafanaSecret is the secret used for VMI
+const GrafanaSecret = "grafana-admin"
+
+// VMIBackupSecretName is the backup VMI secret
+const VMIBackupSecretName = "verrazzano-backup" //nolint:gosec //#gosec G101
+
+// ObjectStoreAccessKey is used for the VMI backup secret
+const ObjectStoreAccessKey = "object_store_access_key"
+
+// ObjectStoreAccessSecretKey is used for the VMI backup secret
+const ObjectStoreAccessSecretKey = "object_store_secret_key"
+
+// VerrazzanoIngressSecret is the secret where the verrazzano/console TLS cert, key, and CA(s) are stored
+const VerrazzanoIngressSecret = "verrazzano-tls" //nolint:gosec //#gosec G101
+
+// VerrazzanoLocalCABundleSecret is a secret containing the admin ca bundle
+const VerrazzanoLocalCABundleSecret = "verrazzano-local-ca-bundle" //nolint:gosec //#gosec G101
