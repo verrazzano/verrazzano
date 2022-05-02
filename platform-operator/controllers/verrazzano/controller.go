@@ -1144,18 +1144,6 @@ func newRequeueWithDelay() ctrl.Result {
 // Watch the jobs in the verrazzano-install for this vz resource.  The reconcile loop will be called
 // when a job is updated.
 func (r *Reconciler) watchJobs(namespace string, name string, log vzlog.VerrazzanoLogger) error {
-
-	// Define a mapping to the Verrazzano resource
-	mapFn := handler.EnqueueRequestsFromMapFunc(
-		func(a client.Object) []reconcile.Request {
-			return []reconcile.Request{
-				{NamespacedName: types.NamespacedName{
-					Namespace: namespace,
-					Name:      name,
-				}},
-			}
-		})
-
 	// Watch job updates
 	p := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
@@ -1171,7 +1159,7 @@ func (r *Reconciler) watchJobs(namespace string, name string, log vzlog.Verrazza
 		&source.Kind{Type: &batchv1.Job{
 			ObjectMeta: metav1.ObjectMeta{Namespace: getInstallNamespace()},
 		}},
-		mapFn,
+		createReconcileEventHandler(namespace, name),
 		// Comment it if default predicate fun is used.
 		p)
 	if err != nil {
@@ -1185,20 +1173,12 @@ func (r *Reconciler) watchJobs(namespace string, name string, log vzlog.Verrazza
 // Watch the pods in the keycloak namespace for this vz resource.  The loop to reconcile will be called
 // when a pod is created.
 func (r *Reconciler) watchPods(namespace string, name string, log vzlog.VerrazzanoLogger) error {
-	// Define a mapping to the Verrazzano resource
-	mapFn := handler.EnqueueRequestsFromMapFunc(
-		func(a client.Object) []reconcile.Request {
-			return []reconcile.Request{
-				{NamespacedName: types.NamespacedName{
-					Namespace: namespace,
-					Name:      name,
-				}},
-			}
-		})
-
-	// Watch pod create
-	predicateFunc := predicate.Funcs{
-		CreateFunc: func(e event.CreateEvent) bool {
+	// Watch pods and trigger reconciles for Verrazzano resources when a pod is created
+	log.Debugf("Watching for pods to activate reconcile for Verrazzano CR %s/%s", namespace, name)
+	return r.Controller.Watch(
+		&source.Kind{Type: &corev1.Pod{}},
+		createReconcileEventHandler(namespace, name),
+		createPredicate(func(e event.CreateEvent) bool {
 			// Cast object to pod
 			pod := e.Object.(*corev1.Pod)
 
@@ -1213,19 +1193,42 @@ func (r *Reconciler) watchPods(namespace string, name string, log vzlog.Verrazza
 			}
 			log.Debugf("Pod %s in namespace %s created", pod.Name, pod.Namespace)
 			return true
-		},
-	}
+		}))
+}
 
-	// Watch pods and trigger reconciles for Verrazzano resources when a pod is created
-	err := r.Controller.Watch(
-		&source.Kind{Type: &corev1.Pod{}},
-		mapFn,
-		predicateFunc)
-	if err != nil {
-		return err
+func (r *Reconciler) watchJaegerService(namespace string, name string, log vzlog.VerrazzanoLogger) error {
+	// Watch services and trigger reconciles for Verrazzano resources when the Jaeger collector service is created
+	log.Debugf("Watching for services to activate reconcile for Verrazzano CR %s/%s", namespace, name)
+	return r.Controller.Watch(
+		&source.Kind{Type: &corev1.Service{}},
+		createReconcileEventHandler(namespace, name),
+		createPredicate(func(e event.CreateEvent) bool {
+			// Cast object to service
+			service := e.Object.(*corev1.Service)
+			if service.Labels[vzconst.KubernetesAppLabel] == vzconst.JaegerCollectorService {
+				log.Debugf("Jaeger service %s/%s created", service.Namespace, service.Name)
+				return true
+			}
+			return false
+		}))
+}
+
+func createReconcileEventHandler(namespace, name string) handler.EventHandler {
+	return handler.EnqueueRequestsFromMapFunc(
+		func(a client.Object) []reconcile.Request {
+			return []reconcile.Request{
+				{NamespacedName: types.NamespacedName{
+					Namespace: namespace,
+					Name:      name,
+				}},
+			}
+		})
+}
+
+func createPredicate(f func(e event.CreateEvent) bool) predicate.Funcs {
+	return predicate.Funcs{
+		CreateFunc: f,
 	}
-	log.Debugf("Watching for pods to activate reconcile for Verrazzano CR %s/%s", namespace, name)
-	return nil
 }
 
 // initForVzResource will do initialization for the given Verrazzano resource.
@@ -1266,6 +1269,11 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog
 	// Watch pods in the keycloak namespace to handle recycle of the MySQL pod
 	if err := r.watchPods(vz.Namespace, vz.Name, log); err != nil {
 		log.Errorf("Failed to set Pod watch for Verrazzano CR %s: %v", vz.Name, err)
+		return newRequeueWithDelay(), err
+	}
+
+	if err := r.watchJaegerService(vz.Namespace, vz.Name, log); err != nil {
+		log.Errorf("Failed to set Service watch for Jaeger Collector service: %v", err)
 		return newRequeueWithDelay(), err
 	}
 

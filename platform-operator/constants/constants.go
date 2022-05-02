@@ -166,3 +166,9 @@ const VerrazzanoIngressSecret = "verrazzano-tls" //nolint:gosec //#gosec G101
 
 // VerrazzanoLocalCABundleSecret is a secret containing the admin ca bundle
 const VerrazzanoLocalCABundleSecret = "verrazzano-local-ca-bundle" //nolint:gosec //#gosec G101
+
+//KubernetesAppLabel is a label key for kubernetes apps
+const KubernetesAppLabel = "app.kubernetes.io/component"
+
+//JaegerCollectorService is a label value for Jaeger collector
+const JaegerCollectorService = "service-collector"
