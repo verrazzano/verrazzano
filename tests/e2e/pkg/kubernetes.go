@@ -8,9 +8,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/onsi/gomega"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	vpClient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
@@ -36,7 +38,10 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 )
 
-const dockerconfigjsonTemplate string = "{\"auths\":{\"%v\":{\"username\":\"%v\",\"password\":\"%v\",\"auth\":\"%v\"}}}"
+const (
+	dockerconfigjsonTemplate string = "{\"auths\":{\"%v\":{\"username\":\"%v\",\"password\":\"%v\",\"auth\":\"%v\"}}}"
+	verrazzanoErrorTemplate         = "Error Verrazzano Resource: %v"
+)
 
 // DoesCRDExist returns whether a CRD with the given name exists for the cluster
 func DoesCRDExist(crdName string) (bool, error) {
@@ -389,6 +394,26 @@ func IsVerrazzanoMinVersion(minVersion string, kubeconfigPath string) (bool, err
 	return !vzSemver.IsLessThan(minSemver), nil
 }
 
+// IsVerrazzanoBelowVersion returns true if the Verrazzano version < belowVersion
+func IsVerrazzanoBelowVersion(belowVersion string, kubeconfigpath string) (bool, error) {
+	vzVersion, err := GetVerrazzanoVersion(kubeconfigpath)
+	if err != nil {
+		return false, err
+	}
+	if len(vzVersion) == 0 {
+		return false, nil
+	}
+	vzSemver, err := semver.NewSemVersion(vzVersion)
+	if err != nil {
+		return false, err
+	}
+	maxSemver, err := semver.NewSemVersion(belowVersion)
+	if err != nil {
+		return false, err
+	}
+	return vzSemver.IsLessThan(maxSemver), nil
+}
+
 // IsProdProfile returns true if the deployed resource is a 'prod' profile
 func IsProdProfile() bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -454,7 +479,7 @@ func IsCoherenceOperatorEnabled(kubeconfigPath string) bool {
 func IsWebLogicOperatorEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
 		return true
 	}
 	if vz.Spec.Components.WebLogicOperator == nil || vz.Spec.Components.WebLogicOperator.Enabled == nil {
@@ -480,7 +505,7 @@ func IsOpenSearchEnabled(kubeconfigPath string) (bool, error) {
 func IsPrometheusAdapterEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
 		return false
 	}
 	if vz.Spec.Components.PrometheusAdapter == nil || vz.Spec.Components.PrometheusAdapter.Enabled == nil {
@@ -493,7 +518,7 @@ func IsPrometheusAdapterEnabled(kubeconfigPath string) bool {
 func IsPrometheusOperatorEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
 		return false
 	}
 	if vz.Spec.Components.PrometheusOperator == nil || vz.Spec.Components.PrometheusOperator.Enabled == nil {
@@ -506,7 +531,7 @@ func IsPrometheusOperatorEnabled(kubeconfigPath string) bool {
 func IsKubeStateMetricsEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
 		return false
 	}
 	if vz.Spec.Components.KubeStateMetrics == nil || vz.Spec.Components.KubeStateMetrics.Enabled == nil {
@@ -519,7 +544,7 @@ func IsKubeStateMetricsEnabled(kubeconfigPath string) bool {
 func IsPrometheusPushgatewayEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
 		return false
 	}
 	if vz.Spec.Components.PrometheusPushgateway == nil || vz.Spec.Components.PrometheusPushgateway.Enabled == nil {
@@ -539,6 +564,32 @@ func IsPrometheusNodeExporterEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	return *vz.Spec.Components.PrometheusNodeExporter.Enabled
+}
+
+// IsOpenSearchDashboardsEnabled returns true if the OpenSearchDashboards component is not set, or the value of its Enabled field otherwise
+func IsOpenSearchDashboardsEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
+		return true
+	}
+	if vz != nil && vz.Spec.Components.Kibana != nil && vz.Spec.Components.Kibana.Enabled != nil {
+		return *vz.Spec.Components.Kibana.Enabled
+	}
+	return true
+}
+
+// IsJaegerOperatorEnabled returns false if the Jaeger Operator component is not set, or the value of its Enabled field otherwise
+func IsJaegerOperatorEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.JaegerOperator == nil || vz.Spec.Components.JaegerOperator.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.JaegerOperator.Enabled
 }
 
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
@@ -1194,4 +1245,54 @@ func UpdateConfigMap(configMap *corev1.ConfigMap) error {
 		return err
 	}
 	return nil
+}
+
+// ContainerHasExpectedEnv returns true if each of the envs matches a substring of one of the env found in the deployment
+func ContainerHasExpectedEnv(namespace string, deploymentName string, containerName string, envMap map[string]string) (bool, error) {
+	deployment, err := GetDeployment(namespace, deploymentName)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Deployment %v is not found in the namespace: %v, error: %v", deploymentName, namespace, err))
+		return false, nil
+	}
+	for _, container := range deployment.Spec.Template.Spec.Containers {
+		if container.Name == containerName {
+			for env, val := range envMap {
+				found := false
+				for _, containerEnv := range container.Env {
+					if containerEnv.Name == env {
+						if containerEnv.Value != val {
+							Log(Error, fmt.Sprintf("The value %v of the env %v for the container %v is not set as expected: %v",
+								containerEnv.Value, containerEnv.Name, containerName, val))
+							return false, nil
+						}
+						found = true
+					}
+				}
+				if !found {
+					Log(Error, fmt.Sprintf("The env %v not set for the container %v", env, containerName))
+					return false, nil
+				}
+			}
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// WaitForVZCondition waits till the VZ CR reaches the given condition
+func WaitForVZCondition(conditionType v1alpha1.ConditionType, pollingInterval, timeout time.Duration) {
+	gomega.Eventually(func() bool {
+		cr, err := GetVerrazzano()
+		if err != nil {
+			Log(Error, err.Error())
+			return false
+		}
+		for _, condition := range cr.Status.Conditions {
+			Log(Info, fmt.Sprintf("Evaluating condition: [%s - %s]", condition.Type, condition.Status))
+			if condition.Type == conditionType && condition.Status == corev1.ConditionTrue {
+				return true
+			}
+		}
+		return false
+	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(gomega.BeTrue())
 }

@@ -6,13 +6,12 @@ package istio
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
-	k8s "github.com/verrazzano/verrazzano/platform-operator/internal/nodeport"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
@@ -25,6 +24,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -136,7 +136,7 @@ func (i istioComponent) Name() string {
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
 func (i istioComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	return k8s.ValidateForExternalIPSWithNodePort(&vz.Spec, i.Name())
+	return i.validateForExternalIPSWithNodePort(&vz.Spec)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
@@ -144,6 +144,26 @@ func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	if i.IsEnabled(old) && !i.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
+	return i.validateForExternalIPSWithNodePort(&new.Spec)
+}
+
+// validateForExternalIPSWithNodePort checks that externalIPs are set when Type=NodePort
+func (i istioComponent) validateForExternalIPSWithNodePort(vz *vzapi.VerrazzanoSpec) error {
+	// good if istio or istio.ingress is not set
+	if vz.Components.Istio == nil || vz.Components.Istio.Ingress == nil {
+		return nil
+	}
+
+	// good if type is not NodePort
+	if vz.Components.Istio.Ingress.Type != vzapi.NodePort {
+		return nil
+	}
+
+	// look for externalIPs if NodePort
+	if vz.Components.Istio.Ingress.Type == vzapi.NodePort {
+		return vzconfig.CheckExternalIPsArgs(vz.Components.Istio.IstioInstallArgs, ExternalIPArg, i.Name())
+	}
+
 	return nil
 }
 

@@ -6,6 +6,7 @@
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 INSTALL_DIR=$SCRIPT_DIR/../../install
 UNINSTALL_DIR=$SCRIPT_DIR/..
+MANIFESTS_DIR=$SCRIPT_DIR/../../../thirdparty/manifests
 
 . $INSTALL_DIR/common.sh
 . $INSTALL_DIR/config.sh
@@ -90,6 +91,15 @@ function delete_application_operator {
   fi
 }
 
+function delete_vmo {
+  log "Uninstall the Verrazzano Monitoring Operator"
+  if helm status verrazzano-monitoring-operator --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
+    if ! helm uninstall verrazzano-monitoring-operator --namespace "${VERRAZZANO_NS}" ; then
+      error "Failed to uninstall the Verrazzano Monitoring Operator."
+    fi
+  fi
+}
+
 function delete_authproxy {
   log "Uninstall the Verrazzano AuthProxy"
   if helm status verrazzano-authproxy --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
@@ -98,8 +108,6 @@ function delete_authproxy {
     fi
   fi
 }
-
-
 
 function delete_weblogic_operator {
   log "Uninstall the WebLogic Kubernetes operator"
@@ -192,7 +200,16 @@ function delete_prometheus_pushgateway {
   fi
 }
 
+function delete_jaeger_operator {
+  log "Uninstall the Jaeger operator"
+  local JAEGER_TEMPLATE_FILE=$MANIFESTS_DIR/jaeger/jaeger-operator.yaml
+  sed 's/{{.*}}/verrazzano-monitoring/g' "$JAEGER_TEMPLATE_FILE" > jaeger.yaml
+  kubectl delete -f jaeger.yaml --ignore-not-found || err_return $? "Could not delete Jaeger Operator"
+  rm -f jaeger.yaml
+}
+
 action "Deleting Prometheus Pushgateway " delete_prometheus_pushgateway || exit 1
+action "Deleting Jaeger operator " delete_jaeger_operator || exit 1
 action "Deleting Prometheus adapter " delete_prometheus_adapter || exit 1
 action "Deleting kube-state-metrics " delete_kube_state_metrics || exit 1
 action "Deleting Prometheus node-exporter " delete_prometheus_node_exporter || exit 1
@@ -202,5 +219,6 @@ action "Deleting OAM Kubernetes operator" delete_oam_operator || exit 1
 action "Deleting Coherence Kubernetes operator" delete_coherence_operator || exit 1
 action "Deleting WebLogic Kubernetes operator" delete_weblogic_operator || exit 1
 action "Deleting Verrazzano AuthProxy" delete_authproxy || exit 1
+action "Deleting Verrazzano Monitoring Operator" delete_vmo || exit 1
 action "Deleting Verrazzano Components" delete_verrazzano || exit 1
 action "Deleting Kiali " delete_kiali || exit 1

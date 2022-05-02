@@ -54,8 +54,13 @@ spec:
         enabled: true
         k8s:
           replicaCount: {{.IngressReplicaCount}}
-          {{- if .ExternalIps }}
           service:
+            type: {{.IngressServiceType}}
+            {{- if .IngressServicePorts }}
+            ports:
+{{ multiLineIndent 12 .IngressServicePorts }}
+            {{- end}}
+          {{- if .ExternalIps }}
             externalIPs:
               {{.ExternalIps}}
           {{- end}}
@@ -68,6 +73,8 @@ type ReplicaData struct {
 	EgressReplicaCount  uint32
 	IngressAffinity     string
 	EgressAffinity      string
+	IngressServiceType  string
+	IngressServicePorts string
 	ExternalIps         string
 }
 
@@ -94,20 +101,20 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 			//   - 1.2.3.4
 			//
 			const shortArgExternalIPs = "externalIPs"
-			yaml, err := vzyaml.Expand(leftMarginExtIP, true, shortArgExternalIPs, values...)
+			yamlString, err := vzyaml.Expand(leftMarginExtIP, true, shortArgExternalIPs, values...)
 			if err != nil {
 				return "", err
 			}
 			// This is handled seperately
-			externalIPYAMLTemplateValue = yaml
+			externalIPYAMLTemplateValue = yamlString
 			continue
 		} else {
 			valueName := fmt.Sprintf("spec.values.%s", arg.Name)
-			yaml, err := vzyaml.Expand(leftMargin, false, valueName, values...)
+			yamlString, err := vzyaml.Expand(leftMargin, false, valueName, values...)
 			if err != nil {
 				return "", err
 			}
-			expandedYamls = append(expandedYamls, yaml)
+			expandedYamls = append(expandedYamls, yamlString)
 		}
 	}
 	gatewayYaml, err := configureGateways(comp, fixExternalIPYaml(externalIPYAMLTemplateValue))
@@ -163,6 +170,22 @@ func configureGateways(istioComponent *vzapi.IstioComponent, externalIP string) 
 			return "", err
 		}
 		data.EgressAffinity = string(yml)
+	}
+
+	data.IngressServiceType = string(vzapi.LoadBalancer)
+	if istioComponent.Ingress.Type == vzapi.NodePort {
+		data.IngressServiceType = string(vzapi.NodePort)
+	}
+
+	data.IngressServicePorts = ""
+	if len(istioComponent.Ingress.Ports) > 0 {
+		y, err := yaml.Marshal(istioComponent.Ingress.Ports)
+		if err != nil {
+			if err != nil {
+				return "", err
+			}
+		}
+		data.IngressServicePorts = string(y)
 	}
 
 	data.ExternalIps = ""

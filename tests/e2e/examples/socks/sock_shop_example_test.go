@@ -4,7 +4,6 @@
 package socks
 
 import (
-	"context"
 	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -21,8 +20,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
@@ -31,9 +28,12 @@ const (
 	waitTimeout              = 10 * time.Minute
 	longWaitTimeout          = 20 * time.Minute
 	pollingInterval          = 30 * time.Second
-	sockshopAppName          = "sockshop-appconfig"
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
+	sockshopAppName          = "sockshop-appconfig"
+	sampleSpringMetric       = "http_server_requests_seconds_count"
+	sampleMicronautMetric    = "process_start_time_seconds"
+	oamComponent             = "app_oam_dev_component"
 )
 
 var sockShop SockShop
@@ -270,13 +270,82 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 							Eventually(appConfigMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
 						},
 					)
-				} else {
-					Eventually(coherenceMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
+				} else if getVariant() == "spring" {
+					pkg.Concurrently(
+						func() {
+							Eventually(func() bool {
+								return springMetricExists("carts")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return springMetricExists("catalog")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return springMetricExists("orders")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return springMetricExists("payment")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return springMetricExists("shipping")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return springMetricExists("users")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(coherenceMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+					)
+				} else if getVariant() == "micronaut" {
+					pkg.Concurrently(
+						func() {
+							Eventually(func() bool {
+								return micronautMetricExists("carts")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return micronautMetricExists("catalog")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return micronautMetricExists("orders")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return micronautMetricExists("payment")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return micronautMetricExists("shipping")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(func() bool {
+								return micronautMetricExists("users")
+							}, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(coherenceMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+					)
 				}
 			})
 		}
 	})
-
 })
 
 var _ = clusterDump.AfterEach(func() {})
@@ -337,24 +406,6 @@ var _ = clusterDump.AfterSuite(func() {
 	}
 })
 
-// isSockShopServiceReady checks if the service is ready
-func isSockShopServiceReady(name string) bool {
-	clientset, err := k8sutil.GetKubernetesClientset()
-	if err != nil {
-		t.Logs.Infof("Could not get Kubernetes clientset: %v\n", err.Error())
-		return false
-	}
-	svc, err := clientset.CoreV1().Services(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	if err != nil {
-		t.Logs.Infof("Could not get services %v in sockshop: %v\n", name, err.Error())
-		return false
-	}
-	if len(svc.Spec.Ports) > 0 {
-		return svc.Spec.Ports[0].Port == 80 && svc.Spec.Ports[0].TargetPort == intstr.FromInt(7001)
-	}
-	return false
-}
-
 // sockshopPodsRunning checks whether the application pods are ready
 func sockshopPodsRunning() bool {
 	result, err := pkg.PodsRunning(namespace, expectedPods)
@@ -381,6 +432,16 @@ func appComponentMetricExists() bool {
 // appConfigMetricExists checks whether config metrics are available
 func appConfigMetricExists() bool {
 	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "orders")
+}
+
+// springMetricExists checks whether sample Spring metrics is available for a given component
+func springMetricExists(comp string) bool {
+	return pkg.MetricsExist(sampleSpringMetric, oamComponent, comp)
+}
+
+// micronautMetricExists checks whether sample Micronaut metrics is available for a given component
+func micronautMetricExists(comp string) bool {
+	return pkg.MetricsExist(sampleMicronautMetric, oamComponent, comp)
 }
 
 // getVariant returns the variant of the sock shop application being tested

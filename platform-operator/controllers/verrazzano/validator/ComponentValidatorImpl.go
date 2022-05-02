@@ -4,8 +4,6 @@
 package validator
 
 import (
-	"fmt"
-
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
@@ -22,10 +20,6 @@ func (c ComponentValidatorImpl) ValidateInstall(vz *v1alpha1.Verrazzano) []error
 	if err != nil {
 		errs = append(errs, err)
 		return errs
-	}
-
-	if depErrs := dependencyValidation(effectiveCR); len(depErrs) > 0 {
-		errs = append(errs, depErrs...)
 	}
 
 	for _, comp := range registry.GetComponents() {
@@ -51,31 +45,9 @@ func (c ComponentValidatorImpl) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1
 		return errs
 	}
 
-	if depErrs := dependencyValidation(effectiveNew); len(depErrs) > 0 {
-		errs = append(errs, depErrs...)
-	}
-
 	for _, comp := range registry.GetComponents() {
 		if err := comp.ValidateUpdate(effectiveOld, effectiveNew); err != nil {
 			errs = append(errs, err)
-		}
-	}
-	return errs
-}
-
-func dependencyValidation(effectiveCR *v1alpha1.Verrazzano) []error {
-	var errs []error
-	for _, comp := range registry.GetComponents() {
-		if comp.IsEnabled(effectiveCR) {
-			for _, dependencyName := range comp.GetDependencies() {
-				found, dependency := registry.FindComponent(dependencyName)
-				if !found {
-					errs = append(errs, fmt.Errorf("dependency not found for %s: %s", comp.GetJSONName(), dependencyName))
-				}
-				if !dependency.IsEnabled(effectiveCR) {
-					errs = append(errs, fmt.Errorf("dependency not enabled for %s: %s", comp.GetJSONName(), dependency.GetJSONName()))
-				}
-			}
 		}
 	}
 	return errs

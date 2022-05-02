@@ -5,6 +5,7 @@ package verrazzano
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"io/fs"
 	"os"
 
@@ -13,6 +14,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+
 	"sigs.k8s.io/yaml"
 )
 
@@ -20,7 +22,7 @@ import (
 func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	effectiveCR := ctx.EffectiveCR()
 	// Find any storage overrides for the VMI, and
-	resourceRequestOverrides, err := findStorageOverride(effectiveCR)
+	resourceRequestOverrides, err := common.FindStorageOverride(effectiveCR)
 	if err != nil {
 		return kvs, err
 	}
@@ -104,6 +106,7 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *verrazzanoValue
 	overrides.KubeStateMetrics = &kubeStateMetricsValues{Enabled: vzconfig.IsKubeStateMetricsEnabled(effectiveCR)}
 	overrides.PrometheusPushgateway = &prometheusPushgatewayValues{Enabled: vzconfig.IsPrometheusPushgatewayEnabled(effectiveCR)}
 	overrides.PrometheusNodeExporter = &prometheusNodeExporterValues{Enabled: vzconfig.IsPrometheusNodeExporterEnabled(effectiveCR)}
+	overrides.JaegerOperator = &jaegerOperatorValues{Enabled: vzconfig.IsJaegerOperatorEnabled(effectiveCR)}
 	return nil
 }
 
@@ -166,7 +169,7 @@ func appendVerrazzanoComponentOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom
 	return kvs
 }
 
-func appendVMIOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues, storageOverrides *resourceRequestValues, kvs []bom.KeyValue) []bom.KeyValue {
+func appendVMIOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues, storageOverrides *common.ResourceRequestValues, kvs []bom.KeyValue) []bom.KeyValue {
 	overrides.Kibana = &kibanaValues{Enabled: vzconfig.IsKibanaEnabled(effectiveCR)}
 
 	overrides.ElasticSearch = &elasticsearchValues{

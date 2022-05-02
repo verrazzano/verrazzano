@@ -3,6 +3,10 @@
 
 package verrazzano
 
+import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+)
+
 // verrazzanoValues Struct representing the Verrazzano Helm chart values
 //
 // In most cases, we only want to set overrides in this when they are present
@@ -12,7 +16,7 @@ package verrazzano
 // There are a few cases where this is not true
 // - "enabled" flags should always be written; if the user or profile specifies false it
 //   needs to be recorded in the overrides and not omitted
-// - "resourceRequestValues.storage" should be allowed to record empty values, as it is a valid
+// - "vmi.ResourceRequestValues.storage" should be allowed to record empty values, as it is a valid
 //   value to the VMO to indicate ephemeral storage is to be used
 //
 type verrazzanoValues struct {
@@ -41,6 +45,7 @@ type verrazzanoValues struct {
 	KubeStateMetrics       *kubeStateMetricsValues       `json:"kubeStateMetrics,omitempty"`
 	PrometheusPushgateway  *prometheusPushgatewayValues  `json:"prometheusPushgateway,omitempty"`
 	PrometheusNodeExporter *prometheusNodeExporterValues `json:"prometheusNodeExporter,omitempty"`
+	JaegerOperator         *jaegerOperatorValues         `json:"jaegerOperator,omitempty"`
 }
 
 type subject struct {
@@ -54,11 +59,6 @@ type volumeMount struct {
 	Source      string `json:"source,omitempty"`
 	Destination string `json:"destination,omitempty"`
 	ReadOnly    bool   `json:"readOnly,omitempty"`
-}
-
-type resourceRequestValues struct {
-	Memory  string `json:"memory,omitempty"`
-	Storage string `json:"storage"` // Empty string allowed
 }
 
 type imageValues struct {
@@ -86,13 +86,13 @@ type esNodes struct {
 }
 
 type esNodeValues struct {
-	Replicas int                    `json:"replicas,omitempty"`
-	Requests *resourceRequestValues `json:"requests,omitempty"`
+	Replicas int                           `json:"replicas,omitempty"`
+	Requests *common.ResourceRequestValues `json:"requests,omitempty"`
 }
 
 type prometheusValues struct {
-	Enabled  bool                   `json:"enabled"` // Always write
-	Requests *resourceRequestValues `json:"requests,omitempty"`
+	Enabled  bool                          `json:"enabled"` // Always write
+	Requests *common.ResourceRequestValues `json:"requests,omitempty"`
 }
 
 type kialiValues struct {
@@ -109,13 +109,13 @@ type rancherValues struct {
 }
 
 type kibanaValues struct {
-	Enabled  bool                   `json:"enabled"` // Always write
-	Requests *resourceRequestValues `json:"requests,omitempty"`
+	Enabled  bool                          `json:"enabled"` // Always write
+	Requests *common.ResourceRequestValues `json:"requests,omitempty"`
 }
 
 type grafanaValues struct {
-	Enabled  bool                   `json:"enabled"` // Always write
-	Requests *resourceRequestValues `json:"requests,omitempty"`
+	Enabled  bool                          `json:"enabled"` // Always write
+	Requests *common.ResourceRequestValues `json:"requests,omitempty"`
 }
 
 type nodeExporterValues struct {
@@ -196,5 +196,9 @@ type prometheusPushgatewayValues struct {
 }
 
 type prometheusNodeExporterValues struct {
+	Enabled bool `json:"enabled"` // Always write
+}
+
+type jaegerOperatorValues struct {
 	Enabled bool `json:"enabled"` // Always write
 }

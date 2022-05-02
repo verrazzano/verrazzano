@@ -4,7 +4,8 @@
 package registry
 
 import (
-	"github.com/stretchr/testify/assert"
+	"testing"
+
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
@@ -14,11 +15,14 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
 	promadapter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/adapter"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/kubestatemetrics"
 	promnodeexporter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/nodeexporter"
@@ -29,12 +33,13 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
+
+	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 const (
@@ -53,7 +58,7 @@ func TestGetComponents(t *testing.T) {
 	a := assert.New(t)
 	comps := GetComponents()
 
-	a.Len(comps, 20, "Wrong number of components")
+	a.Len(comps, 23, "Wrong number of components")
 	a.Equal(comps[0].Name(), oam.ComponentName)
 	a.Equal(comps[1].Name(), appoper.ComponentName)
 	a.Equal(comps[2].Name(), istio.ComponentName)
@@ -62,18 +67,21 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[5].Name(), certmanager.ComponentName)
 	a.Equal(comps[6].Name(), externaldns.ComponentName)
 	a.Equal(comps[7].Name(), rancher.ComponentName)
-	a.Equal(comps[8].Name(), vmo.ComponentName)
-	a.Equal(comps[9].Name(), verrazzano.ComponentName)
-	a.Equal(comps[10].Name(), authproxy.ComponentName)
-	a.Equal(comps[11].Name(), coherence.ComponentName)
-	a.Equal(comps[12].Name(), mysql.ComponentName)
-	a.Equal(comps[13].Name(), keycloak.ComponentName)
-	a.Equal(comps[14].Name(), kiali.ComponentName)
-	a.Equal(comps[15].Name(), promoperator.ComponentName)
-	a.Equal(comps[16].Name(), promadapter.ComponentName)
-	a.Equal(comps[17].Name(), kubestatemetrics.ComponentName)
-	a.Equal(comps[18].Name(), pushgateway.ComponentName)
-	a.Equal(comps[19].Name(), promnodeexporter.ComponentName)
+	a.Equal(comps[8].Name(), verrazzano.ComponentName)
+	a.Equal(comps[9].Name(), vmo.ComponentName)
+	a.Equal(comps[10].Name(), opensearch.ComponentName)
+	a.Equal(comps[11].Name(), opensearchdashboards.ComponentName)
+	a.Equal(comps[12].Name(), authproxy.ComponentName)
+	a.Equal(comps[13].Name(), coherence.ComponentName)
+	a.Equal(comps[14].Name(), mysql.ComponentName)
+	a.Equal(comps[15].Name(), keycloak.ComponentName)
+	a.Equal(comps[16].Name(), kiali.ComponentName)
+	a.Equal(comps[17].Name(), promoperator.ComponentName)
+	a.Equal(comps[18].Name(), promadapter.ComponentName)
+	a.Equal(comps[19].Name(), kubestatemetrics.ComponentName)
+	a.Equal(comps[20].Name(), pushgateway.ComponentName)
+	a.Equal(comps[21].Name(), promnodeexporter.ComponentName)
+	a.Equal(comps[22].Name(), jaegeroperator.ComponentName)
 }
 
 // TestFindComponent tests FindComponent
@@ -169,6 +177,36 @@ func TestComponentDependenciesNotMet(t *testing.T) {
 	defer helm.SetDefaultChartStatusFunction()
 	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
 	assert.False(t, ready)
+}
+
+// TestComponentOptionalDependenciesMet tests ComponentDependenciesMet
+// GIVEN a component
+//  WHEN I call ComponentDependenciesMet for it
+//  THEN true is still returned if the dependency is not enabled
+func TestComponentOptionalDependenciesMet(t *testing.T) {
+	comp := helm2.HelmComponent{
+		ReleaseName:    "foo",
+		ChartDir:       "chartDir",
+		ChartNamespace: "bar",
+		Dependencies:   []string{istio.ComponentName},
+	}
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	enabled := false
+	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client,
+		&v1alpha1.Verrazzano{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "foo",
+			},
+			Spec: v1alpha1.VerrazzanoSpec{
+				Components: v1alpha1.ComponentSpec{
+					Istio: &v1alpha1.IstioComponent{
+						Enabled: &enabled,
+					},
+				},
+			},
+		},
+		false))
+	assert.True(t, ready)
 }
 
 // TestComponentDependenciesDependencyChartNotInstalled tests ComponentDependenciesMet

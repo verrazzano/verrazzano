@@ -49,7 +49,7 @@ func createGrafanaConfigMaps(ctx spi.ComponentContext) error {
 		for _, dashboard := range dashboardList {
 			content, err := Asset(dashboard)
 			if err != nil {
-				return err
+				return ctx.Log().ErrorfNewErr("failed to create grafana configmaps: %v", err)
 			}
 			dashboards.Data[dashboardName(dashboard)] = string(content)
 		}

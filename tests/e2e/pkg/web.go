@@ -292,7 +292,7 @@ func PutWithHostHeaderInCluster(url, contentType string, hostHeader string, body
 
 // doReq executes an HTTP request with the specified method (GET, POST, DELETE, etc)
 func doReq(url, method string, contentType string, hostHeader string, username string, password string,
-	body io.Reader, httpClient *retryablehttp.Client) (*HTTPResponse, error) {
+	body io.Reader, httpClient *retryablehttp.Client, additionalHeaders ...string) (*HTTPResponse, error) {
 	req, err := retryablehttp.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
@@ -303,6 +303,15 @@ func doReq(url, method string, contentType string, hostHeader string, username s
 	if hostHeader != "" {
 		req.Host = hostHeader
 	}
+
+	for _, header := range additionalHeaders {
+		splitArray := strings.Split(header, ":")
+		if len(splitArray) != 2 {
+			return nil, fmt.Errorf("Invalid additional header '%s'. Not in the format key:value", header)
+		}
+		req.Header.Set(splitArray[0], splitArray[1])
+	}
+
 	if username != "" && password != "" {
 		req.SetBasicAuth(username, password)
 	}

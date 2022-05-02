@@ -4,8 +4,8 @@
 package vmo
 
 import (
+	"context"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -13,6 +13,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 )
 
@@ -43,8 +46,7 @@ func NewComponent() spi.Component {
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
-			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
-			AppendOverridesFunc:     appendVmoOverrides,
+			AppendOverridesFunc:     appendVMOOverrides,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
 			Dependencies:            []string{nginx.ComponentName},
 		},
@@ -59,17 +61,31 @@ func (c vmoComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 // IsReady calls VMO isVmoReady function
 func (c vmoComponent) IsReady(context spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(context) {
-		return isVmoReady(context)
+		return isVMOReady(context)
 	}
 	return false
 }
 
-// PreInstall VMO pre-install processing
-func (c vmoComponent) PreInstall(context spi.ComponentContext) error {
-	return reassociateResources(context)
+// IsInstalled checks if VMO is installed
+func (c vmoComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
+	deployment := &appsv1.Deployment{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, deployment)
+	if errors.IsNotFound(err) {
+		return false, nil
+	}
+	if err != nil {
+		ctx.Log().Errorf("Failed to get %s/%s deployment: %v", ComponentNamespace, ComponentName, err)
+		return false, err
+	}
+	return true, nil
 }
 
 // PreUpgrade VMO pre-upgrade processing
 func (c vmoComponent) PreUpgrade(context spi.ComponentContext) error {
-	return common.ApplyCRDYaml(context, config.GetHelmVmoChartsDir())
+	return common.ApplyCRDYaml(context, config.GetHelmVMOChartsDir())
+}
+
+// Upgrade VMO processing
+func (c vmoComponent) Upgrade(context spi.ComponentContext) error {
+	return c.HelmComponent.Install(context)
 }

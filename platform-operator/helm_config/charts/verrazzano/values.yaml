@@ -55,15 +55,6 @@ nodeExporter:
 
 monitoringOperator:
   name: verrazzano-monitoring-operator
-  enabled: true
-  # NOTE: The monitoring-related images now come from the bill of materials file (verrazzano-bom.json).
-  metricsPort: 8090
-  defaultSimpleCompReplicas: 1
-  defaultPrometheusReplicas: 1
-  alertManagerImage: "noimage"
-  esWaitTargetVersion: 1.2.3
-  oidcAuthEnabled: true
-  RequestMemory: 48Mi
 
 logging:
   name: fluentd
@@ -119,12 +110,3 @@ kubernetes:
 
 externaldns:
   enabled: false
-
-prometheusOperator:
-  enabled: true
-
-kubeStateMetrics:
-  enabled: true
-
-prometheusPushgateway:
-  enabled: true
