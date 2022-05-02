@@ -21,10 +21,10 @@ import (
 )
 
 const (
-	masterNodeName      = "vmi-system-es-master"
-	ingestNodeName      = "vmi-system-es-ingest"
-	dataNodeName        = "vmi-system-es-data"
-	waitTimeout         = 25 * time.Minute
+	masterNodeName      = "system-es-master"
+	ingestNodeName      = "system-es-ingest"
+	dataNodeName        = "system-es-data"
+	waitTimeout         = 10 * time.Minute
 	pollingInterval     = 10 * time.Second
 	updatedReplicaCount = 5
 	updatedNodeMemory   = "512Mi"
@@ -55,9 +55,7 @@ func (u OpensearchMasterNodeArgsModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
-	if cr.Spec.Components.Elasticsearch.ESInstallArgs == nil {
-		cr.Spec.Components.Elasticsearch.ESInstallArgs = make([]vzapi.InstallArgs, 2)
-	}
+	cr.Spec.Components.Elasticsearch.ESInstallArgs = make([]vzapi.InstallArgs, 2)
 	cr.Spec.Components.Elasticsearch.ESInstallArgs =
 		append(cr.Spec.Components.Elasticsearch.ESInstallArgs,
 			vzapi.InstallArgs{Name: "nodes.master.replicas", Value: strconv.FormatUint(u.NodeReplicas, 10)},
@@ -68,16 +66,19 @@ func (u OpensearchIngestNodeArgsModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
-	if cr.Spec.Components.Elasticsearch.ESInstallArgs == nil {
-		cr.Spec.Components.Elasticsearch.ESInstallArgs = make([]vzapi.InstallArgs, 2)
+	cr.Spec.Components.Elasticsearch.ESInstallArgs = make([]vzapi.InstallArgs, 2)
+	defaultMasterNodeCount := "1"
+	defaultDataNodeCount := "0"
+	if cr.Spec.Profile == vzapi.Prod {
+		defaultMasterNodeCount = "3"
+		defaultDataNodeCount = "3"
 	}
 	cr.Spec.Components.Elasticsearch.ESInstallArgs =
 		append(cr.Spec.Components.Elasticsearch.ESInstallArgs,
 			vzapi.InstallArgs{Name: "nodes.ingest.replicas", Value: strconv.FormatUint(u.NodeReplicas, 10)},
 			vzapi.InstallArgs{Name: "nodes.ingest.requests.memory", Value: u.NodeMemory},
-			vzapi.InstallArgs{Name: "node.master.replicas", Value: "1"},
-			vzapi.InstallArgs{Name: "node.data.replicas", Value: "1"},
-
+			vzapi.InstallArgs{Name: "node.master.replicas", Value: defaultMasterNodeCount},
+			vzapi.InstallArgs{Name: "node.data.replicas", Value: defaultDataNodeCount},
 		)
 }
 
@@ -85,9 +86,7 @@ func (u OpensearchDataNodeArgsModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
-	if cr.Spec.Components.Elasticsearch.ESInstallArgs == nil {
-		cr.Spec.Components.Elasticsearch.ESInstallArgs = make([]vzapi.InstallArgs, 2)
-	}
+	cr.Spec.Components.Elasticsearch.ESInstallArgs = make([]vzapi.InstallArgs, 2)
 	cr.Spec.Components.Elasticsearch.ESInstallArgs =
 		append(cr.Spec.Components.Elasticsearch.ESInstallArgs,
 			vzapi.InstallArgs{Name: "nodes.data.replicas", Value: strconv.FormatUint(u.NodeReplicas, 10)},
@@ -131,7 +130,6 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 				expectedMasterRunning = 3
 				expectedIngestRunning = 3
 				expectedDataRunning = 3
-				validatePods(masterNodeName, constants.VerrazzanoSystemNamespace, expectedMasterRunning, false)
 				validatePods(ingestNodeName, constants.VerrazzanoSystemNamespace, expectedIngestRunning, false)
 				validatePods(dataNodeName, constants.VerrazzanoSystemNamespace, expectedDataRunning, false)
 			}
@@ -141,7 +139,7 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 
 	t.Describe("opensearch update master node replicas", Label("f:platform-lcm.opensearch-update-replicas"), func() {
 		t.It("opensearch explicit master replicas", func() {
-			m := OpensearchMasterNodeArgsModifier{NodeReplicas: updatedReplicaCount}
+			m := OpensearchMasterNodeArgsModifier{NodeReplicas: updatedReplicaCount, NodeMemory: "256Mi"}
 			update.UpdateCR(m)
 			validatePods(masterNodeName, constants.VerrazzanoSystemNamespace, updatedReplicaCount, false)
 		})
@@ -149,7 +147,7 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 
 	t.Describe("opensearch update master node memory", Label("f:platform-lcm.opensearch-update-memory"), func() {
 		t.It("opensearch explicit master node memory", func() {
-			m := OpensearchMasterNodeArgsModifier{NodeMemory: updatedNodeMemory}
+			m := OpensearchMasterNodeArgsModifier{NodeReplicas: 1, NodeMemory: updatedNodeMemory}
 			update.UpdateCR(m)
 			validatePods(masterNodeName, constants.VerrazzanoSystemNamespace, updatedReplicaCount, false)
 		})
@@ -157,33 +155,33 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 
 	t.Describe("opensearch update ingest node replicas", Label("f:platform-lcm.opensearch-update-replicas"), func() {
 		t.It("opensearch explicit ingest replicas", func() {
-			m := OpensearchIngestNodeArgsModifier{NodeReplicas: updatedReplicaCount}
+			m := OpensearchIngestNodeArgsModifier{NodeReplicas: updatedReplicaCount, NodeMemory: "256Mi"}
 			update.UpdateCR(m)
-			validatePods(ingestNodeName, constants.VerrazzanoSystemNamespace, updatedReplicaCount, false)
+			validatePods(ingestNodeName, constants.VerrazzanoSystemNamespace, updatedReplicaCount, true)
 		})
 	})
 
 	t.Describe("opensearch update ingest node memory", Label("f:platform-lcm.opensearch-update-memory"), func() {
 		t.It("opensearch explicit ingest node memory", func() {
-			m := OpensearchIngestNodeArgsModifier{NodeMemory: updatedNodeMemory}
+			m := OpensearchIngestNodeArgsModifier{NodeReplicas: 1, NodeMemory: updatedNodeMemory}
 			update.UpdateCR(m)
-			validatePods(masterNodeName, constants.VerrazzanoSystemNamespace, updatedReplicaCount, false)
+			validatePods(ingestNodeName, constants.VerrazzanoSystemNamespace, updatedReplicaCount, true)
 		})
 	})
 
 	t.Describe("opensearch update data node replicas", Label("f:platform-lcm.opensearch-update-replicas"), func() {
 		t.It("opensearch explicit data replicas", func() {
-			m := OpensearchMasterNodeArgsModifier{NodeReplicas: updatedReplicaCount}
+			m := OpensearchMasterNodeArgsModifier{NodeReplicas: updatedReplicaCount, NodeMemory: "256Mi"}
 			update.UpdateCR(m)
-			validatePods(masterNodeName, constants.VerrazzanoSystemNamespace, updatedReplicaCount, false)
+			validatePods(dataNodeName, constants.VerrazzanoSystemNamespace, updatedReplicaCount, true)
 		})
 	})
 
 	t.Describe("opensearch update data node memory", Label("f:platform-lcm.opensearch-update-memory"), func() {
 		t.It("opensearch explicit data node memory", func() {
-			m := OpensearchDataNodeArgsModifier{NodeMemory: updatedNodeMemory}
+			m := OpensearchDataNodeArgsModifier{NodeReplicas: 1, NodeMemory: updatedNodeMemory}
 			update.UpdateCR(m)
-			validatePods(masterNodeName, constants.VerrazzanoSystemNamespace, updatedReplicaCount, false)
+			validatePods(dataNodeName, constants.VerrazzanoSystemNamespace, updatedReplicaCount, true)
 		})
 	})
 
