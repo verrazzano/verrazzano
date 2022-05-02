@@ -440,7 +440,7 @@ pipeline {
                         }
                         stage ('Deploy Example Coherence') {
                             steps {
-                                runGinkgoVerify('workloads/coherence', "false", "true", "true", "hello-coherence")
+                                runGinkgoVerify('workloads/coherence', "false", "false", "true", "hello-coherence")
                                 runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload", "false", "false", "true")
                             }
                         }
@@ -555,7 +555,7 @@ pipeline {
                         }
                     }
                 }
-                stage ('Verify Example Apps') {
+                stage ('Verify & Uninstall Example Apps') {
                     parallel {
                         stage ('Examples Helidon') {
                             steps {
