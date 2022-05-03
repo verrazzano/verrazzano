@@ -46,15 +46,23 @@ var _ = t.Describe("Create users in Keycloak", Label("f:platform-lcm.install"), 
 	isManagedClusterProfile := pkg.IsManagedClusterProfile()
 	t.It("Creating user in master realm", func() {
 		if !isManagedClusterProfile {
-			Eventually(verifyCreateUser("master", os.Getenv(pkg.TestKeycloakMasterUserid)), waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(verifyCreateUserMaster, waitTimeout, pollingInterval).Should(BeTrue())
 		}
 	})
 	t.It("Creating user in verrazzano-system realm", func() {
 		if !isManagedClusterProfile {
-			Eventually(verifyCreateUser("verrazzano-system", os.Getenv(pkg.TestKeycloakVzUserid)), waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(verifyCreateUserVz, waitTimeout, pollingInterval).Should(BeTrue())
 		}
 	})
 })
+
+func verifyCreateUserMaster() bool {
+	return verifyCreateUser("master", "abc")
+}
+
+func verifyCreateUserVz() bool {
+	return verifyCreateUser("verrazzano-system", "qwe")
+}
 
 func verifyCreateUser(realm, userIDEnvVar string) bool {
 	kc, err := pkg.NewKeycloakAdminRESTClient()

@@ -5,7 +5,6 @@ package keycloak
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -45,15 +44,23 @@ var _ = t.Describe("Verify users exist in Keycloak", Label("f:platform-lcm.insta
 	isManagedClusterProfile := pkg.IsManagedClusterProfile()
 	t.It("Verifying user in master realm", func() {
 		if !isManagedClusterProfile {
-			Eventually(verifyUserExists("master", os.Getenv(pkg.TestKeycloakMasterUserid)), waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(verifyUserExistsMaster, waitTimeout, pollingInterval).Should(BeTrue())
 		}
 	})
 	t.It("Verifying user in verrazzano-system realm", func() {
 		if !isManagedClusterProfile {
-			Eventually(verifyUserExists("verrazzano-system", os.Getenv(pkg.TestKeycloakVzUserid)), waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(verifyUserExistsVz, waitTimeout, pollingInterval).Should(BeTrue())
 		}
 	})
 })
+
+func verifyUserExistsMaster() bool {
+	return verifyUserExists("master", "abc")
+}
+
+func verifyUserExistsVz() bool {
+	return verifyUserExists("verrazzano-system", "qwe")
+}
 
 func verifyUserExists(realm, userID string) bool {
 	kc, err := pkg.NewKeycloakAdminRESTClient()
