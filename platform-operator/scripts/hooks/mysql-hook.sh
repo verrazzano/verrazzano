@@ -32,8 +32,11 @@ function restore() {
   fi
 
   while ! mysqladmin ping -u root -p${MYSQL_ROOT_PASSWORD} --silent; do
+          # polling delay to check if MYSQL is up
           sleep 5
   done
+
+  # delay for background operations to complete after MYSQL is up 
   sleep 10
 
   mysql -u root -p${MYSQL_ROOT_PASSWORD} < ${FILE_PATH}
