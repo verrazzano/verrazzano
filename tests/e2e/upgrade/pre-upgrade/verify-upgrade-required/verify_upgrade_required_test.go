@@ -17,8 +17,6 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-const minimumVersion = "1.3.0"
-
 //var waitTimeout = 15 * time.Minute
 //var pollingInterval = 30 * time.Second
 //var shortPollingInterval = 10 * time.Second
