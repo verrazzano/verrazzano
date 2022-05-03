@@ -85,4 +85,3 @@ func (c prometheusComponent) ValidateUpgrade(effectiveCR *vzapi.Verrazzano) erro
 	}
 	return nil
 }
-
