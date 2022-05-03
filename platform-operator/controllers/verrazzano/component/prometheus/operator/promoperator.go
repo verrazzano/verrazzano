@@ -6,6 +6,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -118,4 +119,12 @@ func appendDefaultImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, s
 	}
 
 	return kvs, nil
+}
+
+// GetHelmOverrides appends Helm value overrides for the Prometheus Operator Helm chart
+func GetHelmOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
+	if ctx.EffectiveCR().Spec.Components.PrometheusOperator != nil {
+		return ctx.EffectiveCR().Spec.Components.PrometheusOperator.ValueOverrides
+	}
+	return []vzapi.Overrides{}
 }

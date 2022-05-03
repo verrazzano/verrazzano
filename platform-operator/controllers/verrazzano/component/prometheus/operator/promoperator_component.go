@@ -42,6 +42,7 @@ func NewComponent() spi.Component {
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-values.yaml"),
 			Dependencies:            []string{},
 			AppendOverridesFunc:     AppendOverrides,
+			GetHelmOverridesFunc:    GetHelmOverrides,
 		},
 	}
 }
@@ -85,10 +86,3 @@ func (c prometheusComponent) ValidateUpgrade(effectiveCR *vzapi.Verrazzano) erro
 	return nil
 }
 
-// GetHelmOverrides appends Helm value overrides for the Prometheus Operator Helm chart
-func (c prometheusComponent) GetHelmOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
-	if ctx.EffectiveCR().Spec.Components.PrometheusOperator != nil {
-		return ctx.EffectiveCR().Spec.Components.PrometheusOperator.ValueOverrides
-	}
-	return []vzapi.Overrides{}
-}

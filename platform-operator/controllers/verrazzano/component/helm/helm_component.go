@@ -64,6 +64,9 @@ type HelmComponent struct {
 	// AppendOverridesFunc is an optional function get additional override values
 	AppendOverridesFunc appendOverridesSig
 
+	// GetHelmOverrides is an optional function get Helm override sources
+	GetHelmOverridesFunc getHelmOverridesSig
+
 	// ResolveNamespaceFunc is an optional function to process the namespace name
 	ResolveNamespaceFunc resolveNamespaceSig
 
@@ -108,6 +111,9 @@ type preUpgradeFuncSig func(log vzlog.VerrazzanoLogger, client clipkg.Client, re
 // appendOverridesSig is an optional function called to generate additional overrides.
 type appendOverridesSig func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error)
 
+// appendOverridesSig is an optional function called to generate additional overrides.
+type getHelmOverridesSig func(context spi.ComponentContext) []vzapi.Overrides
+
 // resolveNamespaceSig is an optional function called for special namespace processing
 type resolveNamespaceSig func(ns string) string
 
@@ -139,7 +145,10 @@ func (h HelmComponent) GetJSONName() string {
 }
 
 // GetHelmOverrides returns the list of Helm value overrides for a component
-func (h HelmComponent) GetHelmOverrides(_ spi.ComponentContext) []vzapi.Overrides {
+func (h HelmComponent) GetHelmOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
+	if h.GetHelmOverridesFunc != nil {
+		return h.GetHelmOverridesFunc(ctx)
+	}
 	return []vzapi.Overrides{}
 }
 
