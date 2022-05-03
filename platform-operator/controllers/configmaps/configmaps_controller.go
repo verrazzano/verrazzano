@@ -5,6 +5,8 @@ package configmaps
 
 import (
 	"context"
+	"time"
+
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
@@ -12,7 +14,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"time"
 )
 
 // VerrazzanoConfigMapsReconciler reconciles ConfigMaps.
@@ -36,7 +37,8 @@ func (r *VerrazzanoConfigMapsReconciler) Reconcile(ctx context.Context, req ctrl
 	//      a) i.e. vz.Namespace == req.Namespace
 	// 2. Verify that the ConfigMap exists as a helm override (use vzconfig.vzContainsResources)
 	// 3. Update the Verrazzano CR to start a helm upgrade command
-	//      a) Instructions TBD
+	//      a) Update the status.ReconcileGeneration for the prometheus operator
+	//      b) as an example: vz.Status.Components["prometheus-operator"].ReconcilingGeneration = 0 (or something similar)
 	// 4. Create unit tests for new functions
 
 	return ctrl.Result{}, nil

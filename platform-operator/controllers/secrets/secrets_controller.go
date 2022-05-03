@@ -45,9 +45,9 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// 1. Get the Verrazzano CR and verify that the Namespace of it and the request align
 	//      a) i.e. vz.Namespace == req.Namespace
 	// 2. Verify that the Secret exists as a helm override (use vzconfig.vzContainsResources)
-	// 3. Update the Verrazzano CR to start a helm upgrade command
-	//      a) Instructions TBD
-	// 4. Create unit tests for new functions
+	if true {
+		return r.reconcileHelmOverrideSource(ctx, req)
+	}
 
 	return ctrl.Result{}, nil
 
