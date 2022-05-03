@@ -13,7 +13,7 @@ func (r *VerrazzanoSecretsReconciler) reconcileHelmOverrideSource(ctx context.Co
 	// TODO List (cont):
 	// 3. Update the Verrazzano CR to start a helm upgrade command
 	//      a) Update the status.ReconcileGeneration for the prometheus operator
-	//	    b) as an example: vz.Status.Components["prometheus-operator"].ReconcilingGeneration = 0 (or something similar)
+	//	    b) as an example: vz.Status.Components["prometheus-operator"].LastReconciledGeneration = 0 (or something similar)
 	// 4. Create unit tests for new functions
 
 	return ctrl.Result{}, nil
