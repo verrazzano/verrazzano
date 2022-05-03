@@ -7,14 +7,11 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
@@ -103,7 +100,7 @@ func (c verrazzanoComponent) Install(ctx spi.ComponentContext) error {
 // PreUpgrade Verrazzano component pre-upgrade processing
 func (c verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
-		if err := vmo.ExportVMOHelmChart(ctx); err != nil {
+		if err := common.ExportVMOHelmChart(ctx); err != nil {
 			return err
 		}
 		if err := common.ApplyCRDYaml(ctx, config.GetHelmVMOChartsDir()); err != nil {
@@ -124,7 +121,7 @@ func (c verrazzanoComponent) Upgrade(ctx spi.ComponentContext) error {
 // IsReady component check
 func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		return checkVerrazzanoComponentStatus(ctx, status.DeploymentsAreReady, status.DaemonSetsAreReady)
+		return isVerrazzanoReady(ctx)
 	}
 	return false
 }
@@ -133,7 +130,7 @@ func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 func (c verrazzanoComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	installed, _ := c.HelmComponent.IsInstalled(ctx)
 	if installed {
-		return checkVerrazzanoComponentStatus(ctx, status.DoDeploymentsExist, status.DoDaemonSetsExist), nil
+		return doesPromExist(ctx), nil
 	}
 	return false, nil
 }
@@ -154,7 +151,7 @@ func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	c.HelmComponent.IngressNames = c.GetIngressNames(ctx)
 	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
 	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
-		if err := vmo.ReassociateResources(ctx); err != nil {
+		if err := common.ReassociateVMOResources(ctx); err != nil {
 			return err
 		}
 	}

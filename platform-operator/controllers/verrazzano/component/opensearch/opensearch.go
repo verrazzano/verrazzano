@@ -49,70 +49,59 @@ func doesOSExist(ctx spi.ComponentContext) bool {
 	return status.DoStatefulSetsExist(ctx.Log(), ctx.Client(), sts, 1, prefix)
 }
 
-// checkOpenSearchStatus checks performs checks on the OpenSearch resources
-func checkOpenSearchStatus(ctx spi.ComponentContext, deploymentFunc status.DeploymentFunc, statefulsetFunc status.StatefulSetFunc) bool {
+// isOSReady checks if the OpenSearch resources are ready
+func isOSReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 
+	// check data nodes
 	var deployments []types.NamespacedName
-
-	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
-		if ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
-			esInstallArgs := ctx.EffectiveCR().Spec.Components.Elasticsearch.ESInstallArgs
-			for _, args := range esInstallArgs {
-				if args.Name == "nodes.data.replicas" {
-					replicas, _ := strconv.Atoi(args.Value)
-					for i := 0; replicas > 0 && i < replicas; i++ {
-						deployments = append(deployments,
-							types.NamespacedName{
-								Name:      fmt.Sprintf("%s-%d", esDataDeployment, i),
-								Namespace: ComponentNamespace,
-							})
-					}
-					continue
-				}
-				if args.Name == "nodes.ingest.replicas" {
-					replicas, _ := strconv.Atoi(args.Value)
-					if replicas > 0 {
-						deployments = append(deployments,
-							types.NamespacedName{
-								Name:      esIngestDeployment,
-								Namespace: ComponentNamespace,
-							})
-					}
-				}
-			}
-		}
+	dataReplicas := findESReplicas(ctx, "data")
+	for i := int32(0); dataReplicas > 0 && i < dataReplicas; i++ {
+		deployments = append(deployments,
+			types.NamespacedName{
+				Name:      fmt.Sprintf("%s-%d", esDataDeployment, i),
+				Namespace: ComponentNamespace,
+			})
 	}
-
-	if !deploymentFunc(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
+	if !status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
 		return false
 	}
 
-	// Next, check statefulsets
-	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
-		if ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
-			esInstallArgs := ctx.EffectiveCR().Spec.Components.Elasticsearch.ESInstallArgs
-			for _, args := range esInstallArgs {
-				if args.Name == "nodes.master.replicas" {
-					var statefulsets []types.NamespacedName
-					replicas, _ := strconv.Atoi(args.Value)
-					if replicas > 0 {
-						statefulsets = append(statefulsets,
-							types.NamespacedName{
-								Name:      esMasterStatefulset,
-								Namespace: ComponentNamespace,
-							})
-						if !statefulsetFunc(ctx.Log(), ctx.Client(), statefulsets, 1, prefix) {
-							return false
-						}
-					}
-					break
-				}
-			}
-		}
+	// check ingest nodes
+	ingestReplicas := findESReplicas(ctx, "ingest")
+	if ingestReplicas > 0 &&
+		!status.DeploymentsAreReady(ctx.Log(), ctx.Client(), []types.NamespacedName{{
+			Name:      esIngestDeployment,
+			Namespace: ComponentNamespace,
+		}}, ingestReplicas, prefix) {
+		return false
+	}
+
+	// check master nodes
+	masterReplicas := findESReplicas(ctx, "master")
+	if masterReplicas > 0 &&
+		!status.StatefulSetsAreReady(ctx.Log(), ctx.Client(), []types.NamespacedName{{
+			Name:      esMasterStatefulset,
+			Namespace: ComponentNamespace,
+		}}, masterReplicas, prefix) {
+		return false
 	}
 
 	return common.IsVMISecretReady(ctx)
+}
+
+// findESReplicas searches the ES install args to find the correct resources to search for in isReady
+func findESReplicas(ctx spi.ComponentContext, nodeType string) int32 {
+	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
+		esInstallArgs := ctx.EffectiveCR().Spec.Components.Elasticsearch.ESInstallArgs
+		for _, args := range esInstallArgs {
+			if args.Name == fmt.Sprintf("nodes.%s.replicas", nodeType) {
+				replicas, _ := strconv.Atoi(args.Value) //nolint:gosec //#gosec G109
+				return int32(replicas)
+			}
+		}
+	}
+	return 0
 }
 
 // fixupElasticSearchReplicaCount fixes the replica count set for single node Elasticsearch cluster

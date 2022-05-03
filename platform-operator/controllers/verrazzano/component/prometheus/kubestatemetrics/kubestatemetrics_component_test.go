@@ -39,7 +39,7 @@ func TestIsEnabled(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						KubeStateMetrics: &vzapi.KubeStateMetricsComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue},
+							Enabled: &trueValue,
 						},
 					},
 				},
@@ -55,7 +55,7 @@ func TestIsEnabled(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						KubeStateMetrics: &vzapi.KubeStateMetricsComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue},
+							Enabled: &falseValue,
 						},
 					},
 				},

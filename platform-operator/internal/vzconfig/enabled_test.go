@@ -161,9 +161,7 @@ func TestIsConsoleEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Console: &vzapi.ConsoleComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &trueValue,
-					},
+					Enabled: &trueValue,
 				},
 			},
 		}}))
@@ -171,9 +169,7 @@ func TestIsConsoleEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Console: &vzapi.ConsoleComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &falseValue,
-					},
+					Enabled: &falseValue,
 				},
 			},
 		}}))
@@ -227,9 +223,7 @@ func TestIsGrafanaEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Grafana: &vzapi.GrafanaComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &trueValue,
-					},
+					Enabled: &trueValue,
 				},
 			},
 		}}))
@@ -237,9 +231,7 @@ func TestIsGrafanaEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Grafana: &vzapi.GrafanaComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &falseValue,
-					},
+					Enabled: &falseValue,
 				},
 			},
 		}}))
@@ -293,9 +285,7 @@ func TestIsKibanaEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Kibana: &vzapi.KibanaComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &trueValue,
-					},
+					Enabled: &trueValue,
 				},
 			},
 		}}))
@@ -303,9 +293,7 @@ func TestIsKibanaEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Kibana: &vzapi.KibanaComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &falseValue,
-					},
+					Enabled: &falseValue,
 				},
 			},
 		}}))
@@ -328,9 +316,7 @@ func TestIsPrometheusEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Prometheus: &vzapi.PrometheusComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &trueValue,
-					},
+					Enabled: &trueValue,
 				},
 			},
 		}}))
@@ -338,9 +324,7 @@ func TestIsPrometheusEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Prometheus: &vzapi.PrometheusComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &falseValue,
-					},
+					Enabled: &falseValue,
 				},
 			},
 		}}))

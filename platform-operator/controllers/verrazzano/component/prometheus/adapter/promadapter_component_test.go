@@ -39,9 +39,7 @@ func TestIsEnabled(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						PrometheusAdapter: &vzapi.PrometheusAdapterComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{
-								Enabled: &trueValue,
-							},
+							Enabled: &trueValue,
 						},
 					},
 				},
@@ -57,9 +55,7 @@ func TestIsEnabled(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						PrometheusAdapter: &vzapi.PrometheusAdapterComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{
-								Enabled: &falseValue,
-							},
+							Enabled: &falseValue,
 						},
 					},
 				},
