@@ -35,7 +35,7 @@ const (
 	keycloakAdminClientID = "admin-cli"
 
 	TestKeycloakMasterUserid = "TEST_KEYCLOAK_MASTER_USERID"
-	TestKeycloakVzUserid = "TEST_KEYCLOAK_VZ_USERID"
+	TestKeycloakVzUserid     = "TEST_KEYCLOAK_VZ_USERID"
 )
 
 // NewKeycloakRESTClient creates a new Keycloak REST client.

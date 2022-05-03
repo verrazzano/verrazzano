@@ -18,7 +18,6 @@ import (
 
 var waitTimeout = 1 * time.Minute
 var pollingInterval = 30 * time.Second
-var shortPollingInterval = 10 * time.Second
 
 var t = framework.NewTestFramework("verify")
 
@@ -42,7 +41,6 @@ var _ = t.AfterSuite(func() {
 	}
 	metrics.Emit(t.Metrics.With("after_suite_elapsed_time", time.Since(start).Milliseconds()))
 })
-
 
 var _ = t.Describe("Create users in Keycloak", Label("f:platform-lcm.install"), func() {
 	isManagedClusterProfile := pkg.IsManagedClusterProfile()
