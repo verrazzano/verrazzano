@@ -449,7 +449,7 @@ pipeline {
                   make delete-cluster
                 else
                   cd ${GO_REPO_PATH}/verrazzano
-                  TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} ./tests/e2e/config/scripts/delete_oke_cluster.sh
+                  TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} ./tests/e2e/config/scripts/delete_oke_cluster.sh || true
                 fi
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then
                   echo "Failures seen during dumping of artifacts, treat post as failed"
