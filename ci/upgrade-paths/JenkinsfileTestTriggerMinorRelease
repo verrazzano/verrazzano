@@ -42,7 +42,7 @@ pipeline {
                 defaultValue: '3',
                 description: 'This is to define total number of jobs executed in parallel per each batch',
                 trim: true)
-        choice (description: 'Predefined config permutations for Verrazzano installation', name: 'VZ_SETUP_PROFILE',
+        choice (description: 'Predefined config permutations for Verrazzano installation', name: 'VZ_INSTALL_CONFIGS',
                 choices: ["NONE","dev-kind-all-default"])
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
                         defaultValue: 'NONE',
@@ -400,9 +400,10 @@ def getStageOfUpgradeJob(job) {
                     echo "Running upgrade job from version ${job[0]} to ${job[1]}"
                     def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                     parameters: [
+                        string(name: 'GIT_COMMIT_TO_USE', value: params.GIT_COMMIT_TO_USE),
                         string(name: 'VERSION_FOR_INSTALL', value: job[0]),
                         string(name: 'VERSION_FOR_UPGRADE', value: job[1]),
-                        string(name: 'VZ_SETUP_PROFILE', value: params.VZ_SETUP_PROFILE),
+                        string(name: 'VZ_INSTALL_CONFIGS', value: params.VZ_INSTALL_CONFIGS),
                         string(name: 'IS_TRIGGERED_MANUALLY', value: "NO"),
                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
