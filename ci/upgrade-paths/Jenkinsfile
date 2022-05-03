@@ -35,7 +35,7 @@ pipeline {
     parameters {
         booleanParam (description: 'Whether to use External Elasticsearch', name: 'EXTERNAL_ELASTICSEARCH', defaultValue: false)
         choice (description: 'Number of Cluster', name: 'TOTAL_CLUSTERS', choices: ["2", "1", "3"])
-        choice (description: 'Predefined config permutations for Verrazzano installation', name: 'VZ_INSTALL_CONFIGS',
+        choice (description: 'Predefined config permutations for Verrazzano installation', name: 'VZ_INSTALL_CONFIG',
                 choices: ["NONE","dev-kind-all-default"])
         choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
                 choices: ["KIND", "magicdns_oke", "ocidns_oke"])
@@ -289,6 +289,7 @@ pipeline {
                     }
                     // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
                     env.K8S_VERSION_LABEL = "${params.TEST_ENV == 'KIND' ? params.KIND_CLUSTER_VERSION : sh(returnStdout: true, script: '${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}').trim()}"
+                    // Sets the VZ installation configuration based on VZ_INSTALL_CONFIG parameter.
                     setVZConfigForInstallation()
                 }
             }
@@ -1515,8 +1516,8 @@ def emitJobMetrics() {
 }
 
 def setVZConfigForInstallation(){
-    if(params.VZ_INSTALL_CONFIGS == "dev-kind-all-default"){
-        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-vz-configs-kind-dev-all-default-with-ephemeral-storage.yaml"
+    if(params.VZ_INSTALL_CONFIG == "dev-kind-all-default"){
+        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-dev-with-ephemeral-storage.yaml"
         ADMIN_CLUSTER_PROFILE = "dev"
         MANAGED_CLUSTER_PROFILE = "managed-cluster"
     }
