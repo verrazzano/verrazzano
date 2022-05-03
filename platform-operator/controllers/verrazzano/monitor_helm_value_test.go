@@ -123,12 +123,6 @@ func TestVZContainsResource(t *testing.T) {
 	for _, tt := range tests {
 		mocker := gomock.NewController(t)
 		mockCli := mocks.NewMockClient(mocker)
-		if tt.expect {
-			mockStatus := mocks.NewMockStatusWriter(mocker)
-			mockStatus.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
-			mockStatus.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
-			mockCli.EXPECT().Status().Return(mockStatus).AnyTimes()
-		}
 		r := newVerrazzanoReconciler(mockCli)
 		t.Run(tt.name, func(t *testing.T) {
 			context := spi.NewFakeContext(mockCli, tt.vz, false)
