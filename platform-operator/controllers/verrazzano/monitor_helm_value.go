@@ -7,6 +7,7 @@ import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
@@ -161,6 +162,11 @@ func (r *Reconciler) watchSecrets(namespace string, name string, log vzlog.Verra
 func (r *Reconciler) vzContainsResource(ctx spi.ComponentContext, object client.Object) bool {
 	for _, component := range registry.GetComponents() {
 		if found := componentContainsResource(component.GetHelmOverrides(ctx), object); found {
+			// Update component status to requeue
+			err := r.updateStatusForHelmOverrides(component.Name(), ctx)
+			if err != nil {
+				return false
+			}
 			return found
 		}
 	}
@@ -183,4 +189,30 @@ func componentContainsResource(Overrides []installv1alpha1.Overrides, object cli
 		}
 	}
 	return false
+}
+
+func (r *Reconciler) updateStatusForHelmOverrides(componentName string, ctx spi.ComponentContext) error {
+	componentCtx := ctx.Init(componentName).Operation(vzconst.InstallOperation)
+	componentStatus, ok := ctx.EffectiveCR().Status.Components[componentName]
+	if !ok {
+		ctx.Log().Debugf("Did not find status details in map for component %s", componentName)
+	}
+
+	oldState := componentStatus.State
+	oldGen := componentStatus.ReconcilingGeneration
+	componentStatus.ReconcilingGeneration = 0
+	if err := r.updateComponentStatus(componentCtx, "PreInstall started", installv1alpha1.CondPreInstall); err != nil {
+		return err
+	}
+	componentCtx.Log().Oncef("CR.generation: %v reset component %s state: %v generation: %v to state: %v generation: %v ",
+		ctx.ActualCR().Generation, componentName, oldState, oldGen, componentStatus.State, componentStatus.ReconcilingGeneration)
+	if ctx.ActualCR().Status.State == installv1alpha1.VzStateReady {
+		err := r.setInstallingState(ctx.Log(), ctx.ActualCR())
+		componentCtx.Log().Oncef("Reset Verrazzano state to %v for generation %v", ctx.ActualCR().Status.State, ctx.ActualCR().Generation)
+		if err != nil {
+			ctx.Log().Errorf("Failed to reset state: %v", err)
+			return err
+		}
+	}
+	return nil
 }

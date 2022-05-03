@@ -67,7 +67,7 @@ func TestVZContainsResource(t *testing.T) {
 			},
 			object: &v1.ConfigMap{
 				TypeMeta: metav1.TypeMeta{
-					Kind: configMap,
+					Kind: configMapKind,
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-cm",
@@ -109,7 +109,7 @@ func TestVZContainsResource(t *testing.T) {
 			},
 			object: &v1.Secret{
 				TypeMeta: metav1.TypeMeta{
-					Kind: secret,
+					Kind: secretKind,
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-sec",
@@ -123,6 +123,12 @@ func TestVZContainsResource(t *testing.T) {
 	for _, tt := range tests {
 		mocker := gomock.NewController(t)
 		mockCli := mocks.NewMockClient(mocker)
+		if tt.expect {
+			mockStatus := mocks.NewMockStatusWriter(mocker)
+			mockStatus.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
+			mockStatus.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
+			mockCli.EXPECT().Status().Return(mockStatus).AnyTimes()
+		}
 		r := newVerrazzanoReconciler(mockCli)
 		t.Run(tt.name, func(t *testing.T) {
 			context := spi.NewFakeContext(mockCli, tt.vz, false)
