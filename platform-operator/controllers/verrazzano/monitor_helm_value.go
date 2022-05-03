@@ -192,8 +192,9 @@ func componentContainsResource(Overrides []installv1alpha1.Overrides, object cli
 }
 
 func (r *Reconciler) updateStatusForHelmOverrides(componentName string, ctx spi.ComponentContext) error {
+	cr := ctx.ActualCR()
 	componentCtx := ctx.Init(componentName).Operation(vzconst.InstallOperation)
-	componentStatus, ok := ctx.EffectiveCR().Status.Components[componentName]
+	componentStatus, ok := cr.Status.Components[componentName]
 	if !ok {
 		ctx.Log().Debugf("Did not find status details in map for component %s", componentName)
 	}
@@ -205,10 +206,10 @@ func (r *Reconciler) updateStatusForHelmOverrides(componentName string, ctx spi.
 		return err
 	}
 	componentCtx.Log().Oncef("CR.generation: %v reset component %s state: %v generation: %v to state: %v generation: %v ",
-		ctx.ActualCR().Generation, componentName, oldState, oldGen, componentStatus.State, componentStatus.ReconcilingGeneration)
-	if ctx.ActualCR().Status.State == installv1alpha1.VzStateReady {
-		err := r.setInstallingState(ctx.Log(), ctx.ActualCR())
-		componentCtx.Log().Oncef("Reset Verrazzano state to %v for generation %v", ctx.ActualCR().Status.State, ctx.ActualCR().Generation)
+		cr.Generation, componentName, oldState, oldGen, componentStatus.State, componentStatus.ReconcilingGeneration)
+	if cr.Status.State == installv1alpha1.VzStateReady {
+		err := r.setInstallingState(ctx.Log(), cr)
+		componentCtx.Log().Oncef("Reset Verrazzano state to %v for generation %v", cr.Status.State, cr.Generation)
 		if err != nil {
 			ctx.Log().Errorf("Failed to reset state: %v", err)
 			return err
