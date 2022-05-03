@@ -31,7 +31,7 @@ var (
 
 var _ = clusterDump.BeforeSuite(func() {
 	start := time.Now()
-	metricsbinding.DeployApplicationAndTemplate(namespace, yamlPath, templatePath, applicationPodPrefix, nil, *t)
+	metricsbinding.DeployApplicationAndTemplate(namespace, yamlPath, templatePath, applicationPodPrefix, nil, *t, istioInjection)
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 

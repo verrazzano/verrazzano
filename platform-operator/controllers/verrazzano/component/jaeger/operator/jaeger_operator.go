@@ -40,7 +40,7 @@ func componentInstall(ctx spi.ComponentContext) error {
 	}
 
 	// Apply Jaeger Operator
-	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), ComponentNamespace)
+	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
 	if err := yamlApplier.ApplyFT(path.Join(config.GetThirdPartyManifestsDir(), templateFile), args); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to install Jaeger Operator: %v", err)
 	}

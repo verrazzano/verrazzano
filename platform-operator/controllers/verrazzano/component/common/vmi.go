@@ -226,7 +226,8 @@ func IsVMISecretReady(ctx spi.ComponentContext) bool {
 
 // CreateAndLabelVMINamespaces creates and labels the namespaces needed for the VMI resources
 func CreateAndLabelVMINamespaces(ctx spi.ComponentContext) error {
-	if err := namespace.CreateVerrazzanoSystemNamespace(ctx.Client()); err != nil {
+	istio := ctx.EffectiveCR().Spec.Components.Istio
+	if err := namespace.CreateVerrazzanoSystemNamespace(ctx.Client(), istio != nil && istio.IsInjectionEnabled()); err != nil {
 		return err
 	}
 	if _, err := vzsecret.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoSystemNamespace); err != nil {

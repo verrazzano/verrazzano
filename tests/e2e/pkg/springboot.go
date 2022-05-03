@@ -25,13 +25,13 @@ const (
 var expectedPodsSpringBootApp = []string{"springboot-workload"}
 
 // DeploySpringBootApplication deploys the Springboot example application.
-func DeploySpringBootApplication(namespace string) {
+func DeploySpringBootApplication(namespace string, istioInjection string) {
 	Log(Info, "Deploy Spring Boot Application")
 	Log(Info, fmt.Sprintf("Create namespace %s", namespace))
 	gomega.Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
-			"istio-injection":    "enabled"}
+			"istio-injection":    istioInjection}
 		return CreateNamespace(namespace, nsLabels)
 	}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.BeNil())
 

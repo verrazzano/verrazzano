@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"math/big"
 	"os/exec"
 	"path/filepath"
@@ -62,6 +63,8 @@ const kibanaURL = "kibana." + dnsDomain
 const rancherURL = "rancher." + dnsDomain
 const consoleURL = "verrazzano." + dnsDomain
 
+var istioEnabled = false
+
 // goodRunner is used to test helm success without actually running an OS exec command
 type goodRunner struct {
 }
@@ -104,6 +107,9 @@ func TestUpgradeNoVersion(t *testing.T) {
 				Keycloak: &vzapi.KeycloakComponent{
 					Enabled: &keycloakEnabled,
 				},
+				Istio: &vzapi.IstioComponent{
+					Enabled: &istioEnabled,
+				},
 			}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
 				State: vzapi.VzStateReady,
@@ -115,6 +121,7 @@ func TestUpgradeNoVersion(t *testing.T) {
 			}
 			verrazzano.Status.Components = makeVerrazzanoComponentStatusMap()
 			verrazzano.Status.Components[keycloak.ComponentName].State = vzapi.CompStateDisabled
+			verrazzano.Status.Components[istio.ComponentName].State = vzapi.CompStateDisabled
 			return nil
 		})
 
@@ -212,6 +219,9 @@ func TestUpgradeSameVersion(t *testing.T) {
 				Keycloak: &vzapi.KeycloakComponent{
 					Enabled: &keycloakEnabled,
 				},
+				Istio: &vzapi.IstioComponent{
+					Enabled: &istioEnabled,
+				},
 			}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
 				State:   vzapi.VzStateReady,
@@ -224,6 +234,7 @@ func TestUpgradeSameVersion(t *testing.T) {
 			}
 			verrazzano.Status.Components = makeVerrazzanoComponentStatusMap()
 			verrazzano.Status.Components[keycloak.ComponentName].State = vzapi.CompStateDisabled
+			verrazzano.Status.Components[istio.ComponentName].State = vzapi.CompStateDisabled
 			return nil
 		})
 
@@ -1873,6 +1884,9 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 				Keycloak: &vzapi.KeycloakComponent{
 					Enabled: &keycloakEnabled,
 				},
+				Istio: &vzapi.IstioComponent{
+					Enabled: &istioEnabled,
+				},
 			},
 		},
 		Status: vzapi.VerrazzanoStatus{
@@ -1886,6 +1900,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 		},
 	}
 	verrazzanoToUse.Status.Components[keycloak.ComponentName].State = vzapi.CompStateDisabled
+	verrazzanoToUse.Status.Components[istio.ComponentName].State = vzapi.CompStateDisabled
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&verrazzanoToUse,
@@ -2058,6 +2073,9 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 					Keycloak: &vzapi.KeycloakComponent{
 						Enabled: &keycloakEnabled,
 					},
+					Istio: &vzapi.IstioComponent{
+						Enabled: &istioEnabled,
+					},
 				},
 			}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
@@ -2070,6 +2088,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 			}
 			verrazzano.Status.Components = makeVerrazzanoComponentStatusMap()
 			verrazzano.Status.Components[keycloak.ComponentName].State = vzapi.CompStateDisabled
+			verrazzano.Status.Components[istio.ComponentName].State = vzapi.CompStateDisabled
 			return nil
 		})
 

@@ -40,7 +40,7 @@ var (
 var _ = t.BeforeSuite(func() {
 	if !skipDeploy {
 		start := time.Now()
-		pkg.DeployHelloHelidonApplication(namespace, "")
+		pkg.DeployHelloHelidonApplication(namespace, "", istioInjection)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 

@@ -581,9 +581,19 @@ type IstioComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 	// +optional
+	InjectionEnabled *bool `json:"injection-enabled,omitempty"`
+	// +optional
 	Ingress *IstioIngressSection `json:"ingress,omitempty"`
 	// +optional
 	Egress *IstioEgressSection `json:"egress,omitempty"`
+}
+
+// IsInjectionEnabled is istio sidecar injection enabled check
+func (c *IstioComponent) IsInjectionEnabled() bool {
+	if c.Enabled == nil || *c.Enabled {
+		return c.InjectionEnabled == nil || *c.InjectionEnabled
+	}
+	return c.InjectionEnabled != nil && *c.InjectionEnabled
 }
 
 // JaegerOperatorComponent specifies the Jaeger Operator configuration

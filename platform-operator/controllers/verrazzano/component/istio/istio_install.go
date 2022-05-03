@@ -12,11 +12,9 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/istio"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
-	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	os2 "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	istiosec "istio.io/api/security/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -193,11 +191,9 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 	}
 
 	var userFileCR *os.File
-	var kvs []bom.KeyValue
 	var err error
 	cr := compContext.EffectiveCR()
 	log := compContext.Log()
-	client := compContext.Client()
 
 	// Only create override file if the CR has an Istio component
 	if cr.Spec.Components.Istio != nil {
@@ -220,16 +216,7 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 		log.Debugf("Created values file from Istio install args: %s", userFileCR.Name())
 	}
 
-	// check for global image pull secret
-	kvs, err = secret.AddGlobalImagePullSecretHelmOverride(log, client, IstioNamespace, kvs, imagePullSecretHelmKey)
-	if err != nil {
-		return err
-	}
-
-	// Build comma separated string of overrides that will be passed to
-	// isioctl as --set values.
-	// This include BOM image overrides as well as other overrides
-	overrideStrings, err := buildOverridesString(kvs...)
+	overrideStrings, err := getOverridesString(compContext)
 	if err != nil {
 		return err
 	}

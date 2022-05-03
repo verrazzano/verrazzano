@@ -48,6 +48,12 @@ function uninstall_istio() {
   log "Deleting Istio Cluster Roles"
   delete_k8s_resources clusterrole ":metadata.name" "Could not delete ClusterRoles from Istio" '/istio-system|istio-reader|istiocoredns/ {print $1}' \
     || return $? # return on pipefail
+
+      # delete istio crds
+  log "Deleting Istio Custom Resource Definitions"
+  delete_k8s_resources crd ":metadata.name" "Could not delete CustomResourceDefinition from Istio" '/istio.io/ {print $1}' \
+    || return $? # return on pipefail
+
 }
 
 function delete_secrets() {

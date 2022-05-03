@@ -12,9 +12,11 @@ import (
 )
 
 var namespace string
+var istioInjection string
 
 func init() {
 	flag.StringVar(&namespace, "namespace", generatedNamespace, "namespace is the app namespace")
+	flag.StringVar(&istioInjection, "istioInjection", "enabled", "istioInjection enables the injection of istio side cars")
 }
 
 // TestWebLogicLoggingTrait tests an ingress trait setup for console access.

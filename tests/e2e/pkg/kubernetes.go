@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/types"
 	"net/http"
 	"os"
 	"strings"
@@ -131,6 +132,25 @@ func ListDeployments(namespace string) (*appsv1.DeploymentList, error) {
 		return nil, err
 	}
 	return deployments, nil
+}
+
+//GetReplicaCounts Builds a map of pod counts for a list of deployments
+// expectedDeployments - a list of namespaced names for deployments to look for
+// optsBuilder - a callback func to build the right set of options to select pods for the deployment
+func GetReplicaCounts(expectedDeployments []types.NamespacedName, optsBuilder func(name types.NamespacedName) (metav1.ListOptions, error)) (map[string]uint32, error) {
+	podCountsMap := map[string]uint32{}
+	for _, deployment := range expectedDeployments {
+		listOpts, err := optsBuilder(deployment)
+		if err != nil {
+			return map[string]uint32{}, err
+		}
+		podList, err := ListPods(deployment.Namespace, listOpts)
+		if err != nil {
+			return map[string]uint32{}, err
+		}
+		podCountsMap[deployment.String()] = uint32(len(podList.Items))
+	}
+	return podCountsMap, nil
 }
 
 // DoesDeploymentExist returns whether a deployment with the given name and namespace exists for the cluster
@@ -426,7 +446,7 @@ func IsProdProfile() bool {
 	if err != nil {
 		return false
 	}
-	if vz.Spec.Profile == v1alpha1.Prod {
+	if vz.Spec.Profile == v1alpha1.Prod || vz.Spec.Profile == "" {
 		return true
 	}
 	return false

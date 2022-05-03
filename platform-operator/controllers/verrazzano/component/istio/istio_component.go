@@ -45,8 +45,6 @@ const IstioIngressgatewayDeployment = "istio-ingressgateway"
 // IstioEgressgatewayDeployment is the name of the istio egressgateway deployment
 const IstioEgressgatewayDeployment = "istio-egressgateway"
 
-const istioGlobalHubKey = "global.hub"
-
 // IstioNamespace is the default Istio namespace
 const IstioNamespace = "istio-system"
 
@@ -168,7 +166,6 @@ func (i istioComponent) validateForExternalIPSWithNodePort(vz *vzapi.VerrazzanoS
 }
 
 func (i istioComponent) Upgrade(context spi.ComponentContext) error {
-
 	log := context.Log()
 
 	// temp file to contain override values from istio install args
@@ -198,19 +195,11 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 		log.Debugf("Created values file from Istio install args: %s", tmpFile.Name())
 	}
 
-	// check for global image pull secret
-	var kvs []bom.KeyValue
-	kvs, err = secret.AddGlobalImagePullSecretHelmOverride(log, context.Client(), IstioNamespace, kvs, imagePullSecretHelmKey)
+	overrideStrings, err := getOverridesString(context)
 	if err != nil {
 		return err
 	}
-
-	// images overrides to get passed into the istioctl command
-	imageOverrides, err := buildOverridesString(kvs...)
-	if err != nil {
-		return log.ErrorfNewErr("Error building image overrides from BOM for Istio: %v", err)
-	}
-	_, _, err = upgradeFunc(log, imageOverrides, i.ValuesFile, tmpFile.Name())
+	_, _, err = upgradeFunc(log, overrideStrings, i.ValuesFile, tmpFile.Name())
 	if err != nil {
 		return err
 	}
@@ -260,8 +249,8 @@ func (i istioComponent) PostUpgrade(context spi.ComponentContext) error {
 	return nil
 }
 
-func (i istioComponent) Reconcile(_ spi.ComponentContext) error {
-	return nil
+func (i istioComponent) Reconcile(ctx spi.ComponentContext) error {
+	return i.Upgrade(ctx)
 }
 
 // GetIngressNames returns the list of ingress names associated with the component
@@ -317,43 +306,72 @@ func removeIstioHelmSecrets(compContext spi.ComponentContext) error {
 	return nil
 }
 
-// AppendIstioOverrides appends the Keycloak theme for the Key keycloak.extraInitContainers.
-// A go template is used to replace the image in the init container spec.
-func AppendIstioOverrides(_ spi.ComponentContext, releaseName string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	// Create a Bom and get the Key Value overrides
-	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
-	if err != nil {
-		return nil, err
+func appendJaegerCollectorArg(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	if !vzconfig.IsJaegerOperatorEnabled(ctx.EffectiveCR()) {
+		return kvs, nil
 	}
 
-	// Get the istio component
-	sc, err := bomFile.GetSubcomponent(releaseName)
-	if err != nil {
-		return nil, err
+	services := &v1.ServiceList{}
+	selector := clipkg.MatchingLabels{
+		constants.KubernetesAppLabel: constants.JaegerCollectorService,
+	}
+	if err := ctx.Client().List(context.TODO(), services, selector); err != nil {
+		return kvs, err
 	}
 
-	registry := bomFile.ResolveRegistry(sc, bom.BomImage{})
-	repo := bomFile.ResolveRepo(sc, bom.BomImage{})
-
-	// Override the global.hub if either of the 2 env vars were defined
-	if registry != bomFile.GetRegistry() || repo != sc.Repository {
-		// Return a new Key:Value pair with the rendered Value
-		kvs = append(kvs, bom.KeyValue{
-			Key:   istioGlobalHubKey,
-			Value: registry + "/" + repo,
-		})
+	for _, service := range services.Items {
+		// do not use the headless service
+		if !strings.Contains(service.Name, "headless") {
+			port := zipkinPort(service)
+			collectorURL := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
+				service.Name,
+				service.Namespace,
+				port,
+			)
+			kvs = append(kvs, bom.KeyValue{
+				Key:   "meshConfig.defaultConfig.tracing.zipkin.address",
+				Value: collectorURL,
+			},
+				bom.KeyValue{
+					Key:   "meshConfig.defaultConfig.tracing.tlsSettings.mode",
+					Value: "ISTIO_MUTUAL",
+				},
+				bom.KeyValue{
+					Key:   "meshConfig.enableTracing",
+					Value: "true",
+				})
+			return kvs, nil
+		}
 	}
-
 	return kvs, nil
 }
 
-// IstiodReadyCheck Determines if istiod is up and has a minimum number of available replicas
-func IstiodReadyCheck(ctx spi.ComponentContext, _ string, namespace string) bool {
-	deployments := []types.NamespacedName{
-		{Name: "istiod", Namespace: namespace},
+//zipkinPort retrieves the zipkin port from the service, if it is present. Defaults to 9411 for Jaeger collector
+func zipkinPort(service v1.Service) int32 {
+	for _, port := range service.Spec.Ports {
+		if port.Name == "http-zipkin" {
+			return port.Port
+		}
 	}
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	return 9411
+}
+
+func getOverridesString(ctx spi.ComponentContext) (string, error) {
+	var kvs []bom.KeyValue
+	// check for global image pull secret
+	kvs, err := secret.AddGlobalImagePullSecretHelmOverride(ctx.Log(), ctx.Client(), IstioNamespace, kvs, imagePullSecretHelmKey)
+	if err != nil {
+		return "", err
+	}
+	kvs, err = appendJaegerCollectorArg(ctx, kvs)
+	if err != nil {
+		return "", err
+	}
+
+	// Build comma separated string of overrides that will be passed to
+	// isioctl as --set values.
+	// This include BOM image overrides as well as other overrides
+	return buildOverridesString(kvs...)
 }
 
 func buildOverridesString(additionalValues ...bom.KeyValue) (string, error) {
