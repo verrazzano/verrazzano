@@ -1594,7 +1594,7 @@ func TestTransitionToPausedUpgradeFromFailed(t *testing.T) {
 
 // TestTransitionToPausedUpgradeFromStarted tests the pause of an upgrade for the following use case
 // GIVEN a request to reconcile an verrazzano resource during an upgrade that is in progress
-// WHEN when the VPO version is not the verrazzano version
+// WHEN the VPO version is not the verrazzano version
 // THEN ensure the reconciler transitions to a paused StateType
 func TestTransitionToPausedUpgradeFromStarted(t *testing.T) {
 	initUnitTesing()
