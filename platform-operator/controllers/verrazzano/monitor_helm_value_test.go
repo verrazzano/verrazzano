@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -20,7 +21,7 @@ import (
 // WHEN the method is called
 // THEN return if the object is found in the Verrazzano
 func TestVZContainsResource(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		name   string
 		vz     *vzapi.Verrazzano
 		object client.Object
@@ -52,6 +53,16 @@ func TestVZContainsResource(t *testing.T) {
 							},
 						},
 					},
+				},
+				Status: vzapi.VerrazzanoStatus{
+					Components: vzapi.ComponentStatusMap{
+						"prometheus-operator": &vzapi.ComponentStatusDetails{
+							Name:                     "prometheus-operator",
+							LastReconciledGeneration: 0,
+							ReconcilingGeneration:    0,
+						},
+					},
+					State: vzapi.VzStateReady,
 				},
 			},
 			object: &v1.ConfigMap{
@@ -85,6 +96,16 @@ func TestVZContainsResource(t *testing.T) {
 						},
 					},
 				},
+				Status: vzapi.VerrazzanoStatus{
+					Components: vzapi.ComponentStatusMap{
+						"prometheus-operator": &vzapi.ComponentStatusDetails{
+							Name:                     "prometheus-operator",
+							LastReconciledGeneration: 0,
+							ReconcilingGeneration:    0,
+						},
+					},
+					State: vzapi.VzStateReady,
+				},
 			},
 			object: &v1.Secret{
 				TypeMeta: metav1.TypeMeta{
@@ -98,12 +119,14 @@ func TestVZContainsResource(t *testing.T) {
 		},
 	}
 	a := asserts.New(t)
+	config.SetDefaultBomFilePath(testBomFilePath)
 	for _, tt := range tests {
 		mocker := gomock.NewController(t)
 		mockCli := mocks.NewMockClient(mocker)
 		if tt.expect {
 			mockStatus := mocks.NewMockStatusWriter(mocker)
 			mockStatus.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
+			mockStatus.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
 			mockCli.EXPECT().Status().Return(mockStatus).AnyTimes()
 		}
 		r := newVerrazzanoReconciler(mockCli)
