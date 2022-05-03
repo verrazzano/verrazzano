@@ -171,6 +171,72 @@ func Test_FindStorageOverride(t *testing.T) {
 	}
 }
 
+func TestIsMultiNodeCluster(t *testing.T) {
+	mkVZ := func(enabled bool) *vzapi.Verrazzano {
+		return &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					Elasticsearch: &vzapi.ElasticsearchComponent{
+						Enabled: &enabled,
+					},
+				},
+			},
+		}
+	}
+	oneReplicaVZ := mkVZ(true)
+	oneReplicaVZ.Spec.Components.Elasticsearch.ESInstallArgs = []vzapi.InstallArgs{
+		{
+			Name:  "nodes.master.replicas",
+			Value: "1",
+		},
+	}
+	multiNodeVZ := mkVZ(true)
+	multiNodeVZ.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{
+		{
+			Replicas: 3,
+		},
+	}
+	var tests = []struct {
+		name        string
+		vz          *vzapi.Verrazzano
+		isMultiNode bool
+	}{
+		{
+			"not multinode when component nil",
+			&vzapi.Verrazzano{},
+			false,
+		},
+		{
+			"not multinode when component disabled",
+			mkVZ(false),
+			false,
+		},
+		{
+			"not multinode when 0 replicas",
+			mkVZ(true),
+			false,
+		},
+		{
+			"not multinode when 1 replica",
+			oneReplicaVZ,
+			false,
+		},
+		{
+			"multinode when 1+ replicas",
+			multiNodeVZ,
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m, err := IsMultiNodeOpenSearch(tt.vz)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.isMultiNode, m)
+		})
+	}
+}
+
 // Test_SetStorageSize tests the SetStorageSize function
 func Test_SetStorageSize(t *testing.T) {
 	// GIVEN an empty storage request

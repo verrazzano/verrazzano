@@ -49,17 +49,8 @@ const (
 )
 
 var (
-	testScheme      = runtime.NewScheme()
-	pvc100Gi, _     = resource.ParseQuantity("100Gi")
-	prodESOverrides = []bom.KeyValue{
-		{Key: "elasticSearch.nodes.master.replicas", Value: "3"},
-		{Key: "elasticSearch.nodes.master.requests.memory", Value: "1.4Gi"},
-		{Key: "elasticSearch.nodes.ingest.replicas", Value: "1"},
-		{Key: "elasticSearch.nodes.ingest.requests.memory", Value: "2.5Gi"},
-		{Key: "elasticSearch.nodes.data.replicas", Value: "3"},
-		{Key: "elasticSearch.nodes.data.requests.memory", Value: "4.8Gi"},
-		{Key: "elasticSearch.nodes.data.requests.storage", Value: "50Gi"},
-		{Key: "elasticSearch.nodes.master.requests.storage", Value: "50Gi"}}
+	testScheme  = runtime.NewScheme()
+	pvc100Gi, _ = resource.ParseQuantity("100Gi")
 )
 
 func init() {
@@ -338,12 +329,6 @@ func Test_appendVerrazzanoValues(t *testing.T) {
 //  THEN the correct KeyValue objects and overrides file snippets are generated
 func Test_appendVMIValues(t *testing.T) {
 	falseValue := false
-	defaultDevExpectedHelmOverrides := []bom.KeyValue{
-		{Key: "elasticSearch.nodes.master.replicas", Value: "1"},
-		{Key: "elasticSearch.nodes.master.requests.memory", Value: "1G"},
-		{Key: "elasticSearch.nodes.ingest.replicas", Value: "0"},
-		{Key: "elasticSearch.nodes.data.replicas", Value: "0"},
-	}
 	tests := []struct {
 		name                  string
 		description           string
@@ -357,7 +342,7 @@ func Test_appendVMIValues(t *testing.T) {
 			description:           "Test VMI basic prod no user overrides",
 			actualCR:              vzapi.Verrazzano{},
 			expectedYAML:          "testdata/vzValuesVMIProdVerrazzanoNoOverrides.yaml",
-			expectedHelmOverrides: prodESOverrides,
+			expectedHelmOverrides: []bom.KeyValue{},
 			expectedErr:           nil,
 		},
 		{
@@ -365,7 +350,7 @@ func Test_appendVMIValues(t *testing.T) {
 			description:           "Test VMI basic dev no user overrides",
 			actualCR:              vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Profile: "dev"}},
 			expectedYAML:          "testdata/vzValuesVMIDevVerrazzanoNoOverrides.yaml",
-			expectedHelmOverrides: defaultDevExpectedHelmOverrides,
+			expectedHelmOverrides: []bom.KeyValue{},
 			expectedErr:           nil,
 		},
 		{
@@ -391,7 +376,7 @@ func Test_appendVMIValues(t *testing.T) {
 				},
 			},
 			expectedYAML:          "testdata/vzValuesVMIDevWithOverrides.yaml",
-			expectedHelmOverrides: defaultDevExpectedHelmOverrides,
+			expectedHelmOverrides: []bom.KeyValue{},
 			expectedErr:           nil,
 		},
 		{
@@ -417,7 +402,7 @@ func Test_appendVMIValues(t *testing.T) {
 				},
 			},
 			expectedYAML:          "testdata/vzValuesVMIDevWithStorageOverrides.yaml",
-			expectedHelmOverrides: defaultDevExpectedHelmOverrides,
+			expectedHelmOverrides: []bom.KeyValue{},
 			expectedErr:           nil,
 		},
 		{
@@ -430,7 +415,7 @@ func Test_appendVMIValues(t *testing.T) {
 				},
 			},
 			expectedYAML:          "testdata/vzValuesVMIProdWithStorageOverrides.yaml",
-			expectedHelmOverrides: prodESOverrides,
+			expectedHelmOverrides: []bom.KeyValue{},
 			expectedErr:           nil,
 		},
 		{
@@ -454,18 +439,9 @@ func Test_appendVMIValues(t *testing.T) {
 					},
 				},
 			},
-			expectedHelmOverrides: []bom.KeyValue{
-				{Key: "elasticSearch.nodes.master.replicas", Value: "6"},
-				{Key: "elasticSearch.nodes.master.requests.memory", Value: "3G"},
-				{Key: "elasticSearch.nodes.ingest.replicas", Value: "8"},
-				{Key: "elasticSearch.nodes.ingest.requests.memory", Value: "32G"},
-				{Key: "elasticSearch.nodes.data.replicas", Value: "16"},
-				{Key: "elasticSearch.nodes.data.requests.memory", Value: "32G"},
-				{Key: "elasticSearch.nodes.data.requests.storage", Value: "50Gi"},
-				{Key: "elasticSearch.nodes.master.requests.storage", Value: "50Gi"},
-			},
-			expectedYAML: "testdata/vzValuesVMIProdWithESInstallArgs.yaml",
-			expectedErr:  nil,
+			expectedHelmOverrides: []bom.KeyValue{},
+			expectedYAML:          "testdata/vzValuesVMIProdWithESInstallArgs.yaml",
+			expectedErr:           nil,
 		},
 	}
 	defer resetWriteFileFunc()
@@ -490,7 +466,8 @@ func Test_appendVMIValues(t *testing.T) {
 			storageOverride, err := common.FindStorageOverride(fakeContext.EffectiveCR())
 			a.NoError(err)
 
-			keyValues := appendVMIOverrides(fakeContext.EffectiveCR(), &values, storageOverride, []bom.KeyValue{})
+			keyValues, err := appendVMIOverrides(fakeContext.EffectiveCR(), &values, storageOverride, []bom.KeyValue{})
+			a.NoError(err)
 			a.Equal(test.expectedHelmOverrides, keyValues, "Install args did not match")
 
 			data, err := ioutil.ReadFile(test.expectedYAML)
@@ -539,7 +516,7 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 			description:  "Test basic dev profile with no user overrides",
 			actualCR:     vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Profile: "dev"}},
 			expectedYAML: "testdata/vzOverridesDevDefault.yaml",
-			numKeyValues: 5,
+			numKeyValues: 1,
 		},
 		{
 			name:         "ManagedClusterDefault",
@@ -574,7 +551,7 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 				},
 			},
 			expectedYAML: "testdata/vzOverridesDevWithOverrides.yaml",
-			numKeyValues: 5,
+			numKeyValues: 1,
 		},
 		{
 			name:        "ProdWithExternaDNSEnabled",
@@ -768,8 +745,8 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 			actualNumKvs := len(kvs)
 			expectedNumKvs := test.numKeyValues
 			if expectedNumKvs == 0 {
-				// default is 9, 2 file override + 1 custom image overrides + 8 ES
-				expectedNumKvs = 9
+				// default is 1 custom image overrides
+				expectedNumKvs = 1
 			}
 			a.Equal(expectedNumKvs, actualNumKvs)
 			// Check Temp file

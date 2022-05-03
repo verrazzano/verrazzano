@@ -36,8 +36,6 @@ import (
 // ComponentName is the name of the component
 
 const (
-	esHelmValuePrefixFormat = "elasticSearch.%s"
-
 	tmpFilePrefix        = "verrazzano-overrides-"
 	tmpSuffix            = "yaml"
 	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
