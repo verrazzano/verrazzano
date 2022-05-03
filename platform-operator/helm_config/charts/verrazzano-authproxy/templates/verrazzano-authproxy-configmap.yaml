@@ -1287,6 +1287,7 @@ data:
             }
         }
     }
+    daemon off;
   startup.sh: |
     #!/bin/bash
     startupDir=$(dirname $0)
