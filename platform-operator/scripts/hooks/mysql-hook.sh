@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -11,7 +11,7 @@ function backup() {
   FILE_PATH=${BACKUP_DIR}/$1
   mysqldump --all-databases --single-transaction --quick --lock-tables=false > ${FILE_PATH} -u root -p${MYSQL_ROOT_PASSWORD}
   if [ $? -eq 0 ]; then
-         echo "Mysqldump  successful"
+         echo "Mysqldump successful"
          exit 0
     else
         echo "Mysqldump failed"
@@ -48,14 +48,12 @@ function restore() {
 
 
 mkdir -p ${BACKUP_DIR}
-# This is a hook script that needs to be invoked via velero operator if installed
-
 
 function usage {
     echo
     echo "usage: $0 [-o operation ] [-f filename]"
     echo "  -o operation  The operation to be performed on mysql (backup/restore)"
-    echo "  -f filename   The filename of the mysql dump file"
+    echo "  -f filename   The filename of the MYSQL dump file"
     echo "  -h            Help"
     echo
     exit 1
