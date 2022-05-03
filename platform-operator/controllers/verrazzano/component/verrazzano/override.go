@@ -35,7 +35,10 @@ func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ s
 		return kvs, ctx.Log().ErrorfNewErr("Failed appending Verrazzano values: %v", err)
 	}
 	// Append any VMI overrides to the override values object, and any installArgs overrides to the kvs list
-	vzkvs := appendVMIOverrides(effectiveCR, &overrides, resourceRequestOverrides, []bom.KeyValue{})
+	vzkvs, err := appendVMIOverrides(effectiveCR, &overrides, resourceRequestOverrides, []bom.KeyValue{})
+	if err != nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed appending Verrazzano OpenSearch values: %v", err)
+	}
 
 	// append any fluentd overrides
 	appendFluentdOverrides(effectiveCR, &overrides)
@@ -169,28 +172,17 @@ func appendVerrazzanoComponentOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom
 	return kvs
 }
 
-func appendVMIOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues, storageOverrides *common.ResourceRequestValues, kvs []bom.KeyValue) []bom.KeyValue {
+func appendVMIOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues, storageOverrides *common.ResourceRequestValues, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	overrides.Kibana = &kibanaValues{Enabled: vzconfig.IsKibanaEnabled(effectiveCR)}
 
 	overrides.ElasticSearch = &elasticsearchValues{
 		Enabled: vzconfig.IsElasticsearchEnabled(effectiveCR),
 	}
-	if storageOverrides != nil {
-		overrides.ElasticSearch.Nodes = &esNodes{
-			// Only have to override the data node storage
-			Data: &esNodeValues{
-				Requests: storageOverrides,
-			},
-		}
+	multiNodeCluster, err := common.IsMultiNodeOpenSearch(effectiveCR)
+	if err != nil {
+		return kvs, err
 	}
-	if effectiveCR.Spec.Components.Elasticsearch != nil {
-		for _, arg := range effectiveCR.Spec.Components.Elasticsearch.ESInstallArgs {
-			kvs = append(kvs, bom.KeyValue{
-				Key:   fmt.Sprintf(esHelmValuePrefixFormat, arg.Name),
-				Value: arg.Value,
-			})
-		}
-	}
+	overrides.ElasticSearch.MultiNodeCluster = multiNodeCluster
 
 	overrides.Prometheus = &prometheusValues{
 		Enabled:  vzconfig.IsPrometheusEnabled(effectiveCR),
@@ -201,7 +193,7 @@ func appendVMIOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValu
 		Enabled:  vzconfig.IsGrafanaEnabled(effectiveCR),
 		Requests: storageOverrides,
 	}
-	return kvs
+	return kvs, nil
 }
 
 func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues) {

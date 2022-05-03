@@ -322,7 +322,11 @@ pipeline {
                 }
             }
         }
-
+        stage("Verify Upgrade Required") {
+            steps {
+                runGinkgoSerial('upgrade/pre-upgrade/verify-upgrade-required')
+            }
+        }
         stage("Upgrade Verrazzano") {
             environment {
                 UPGRADE_CR="${WORKSPACE}/verrazzano-upgrade-cr.yaml"

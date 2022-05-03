@@ -75,19 +75,8 @@ type appBindingValues struct {
 }
 
 type elasticsearchValues struct {
-	Enabled bool     `json:"enabled"` // Always write
-	Nodes   *esNodes `json:"nodes,omitempty"`
-}
-
-type esNodes struct {
-	Master *esNodeValues `json:"master,omitempty"`
-	Data   *esNodeValues `json:"data,omitempty"`
-	Ingest *esNodeValues `json:"ingest,omitempty"`
-}
-
-type esNodeValues struct {
-	Replicas int                           `json:"replicas,omitempty"`
-	Requests *common.ResourceRequestValues `json:"requests,omitempty"`
+	Enabled          bool `json:"enabled"` // Always write
+	MultiNodeCluster bool `json:"multiNodeCluster"`
 }
 
 type prometheusValues struct {

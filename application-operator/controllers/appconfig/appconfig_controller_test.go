@@ -7,13 +7,9 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
-	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"go.uber.org/zap"
-	k8score "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -172,17 +168,6 @@ func TestReconcileRestartWeblogic(t *testing.T) {
 			return nil
 		})
 
-	// Expect a call to update the app config resource with a finalizer.
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, appConfig *oamv1.ApplicationConfiguration, options ...client.UpdateOption) error {
-			assert.Equal(testNamespace, appConfig.Namespace)
-			assert.Equal(testAppConfigName, appConfig.Name)
-			assert.Len(appConfig.Finalizers, 1)
-			assert.Equal(finalizerName, appConfig.Finalizers[0])
-			return nil
-		})
-
 	// expect a call to fetch the workload
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
@@ -228,17 +213,6 @@ func TestReconcileRestartCoherence(t *testing.T) {
 					Name:       testComponentName,
 				},
 			}}
-			return nil
-		})
-
-	// Expect a call to update the app config resource with a finalizer.
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, appConfig *oamv1.ApplicationConfiguration, options ...client.UpdateOption) error {
-			assert.Equal(testNamespace, appConfig.Namespace)
-			assert.Equal(testAppConfigName, appConfig.Name)
-			assert.Len(appConfig.Finalizers, 1)
-			assert.Equal(finalizerName, appConfig.Finalizers[0])
 			return nil
 		})
 
@@ -290,17 +264,6 @@ func TestReconcileRestartHelidon(t *testing.T) {
 			return nil
 		})
 
-	// Expect a call to update the app config resource with a finalizer.
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, appConfig *oamv1.ApplicationConfiguration, options ...client.UpdateOption) error {
-			assert.Equal(testNamespace, appConfig.Namespace)
-			assert.Equal(testAppConfigName, appConfig.Name)
-			assert.Len(appConfig.Finalizers, 1)
-			assert.Equal(finalizerName, appConfig.Finalizers[0])
-			return nil
-		})
-
 	// expect a call to fetch the workload
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
@@ -346,17 +309,6 @@ func TestReconcileDeploymentRestart(t *testing.T) {
 					Name:       testDeploymentName,
 				},
 			}}
-			return nil
-		})
-
-	// Expect a call to update the app config resource with a finalizer.
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, appConfig *oamv1.ApplicationConfiguration, options ...client.UpdateOption) error {
-			assert.Equal(testNamespace, appConfig.Namespace)
-			assert.Equal(testAppConfigName, appConfig.Name)
-			assert.Len(appConfig.Finalizers, 1)
-			assert.Equal(finalizerName, appConfig.Finalizers[0])
 			return nil
 		})
 
@@ -424,17 +376,6 @@ func TestFailedReconcileDeploymentRestart(t *testing.T) {
 			return nil
 		})
 
-	// Expect a call to update the app config resource with a finalizer.
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, appConfig *oamv1.ApplicationConfiguration, options ...client.UpdateOption) error {
-			assert.Equal(testNamespace, appConfig.Namespace)
-			assert.Equal(testAppConfigName, appConfig.Name)
-			assert.Len(appConfig.Finalizers, 1)
-			assert.Equal(finalizerName, appConfig.Finalizers[0])
-			return nil
-		})
-
 	// expect a call to fetch the workload
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
@@ -480,17 +421,6 @@ func TestReconcileDeploymentNoRestart(t *testing.T) {
 					Name:       testDeploymentName,
 				},
 			}}
-			return nil
-		})
-
-	// Expect a call to update the app config resource with a finalizer.
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, appConfig *oamv1.ApplicationConfiguration, options ...client.UpdateOption) error {
-			assert.Equal(testNamespace, appConfig.Namespace)
-			assert.Equal(testAppConfigName, appConfig.Name)
-			assert.Len(appConfig.Finalizers, 1)
-			assert.Equal(finalizerName, appConfig.Finalizers[0])
 			return nil
 		})
 
@@ -553,17 +483,6 @@ func TestReconcileDaemonSetRestartDaemonSet(t *testing.T) {
 					Name:       testDaemonSetName,
 				},
 			}}
-			return nil
-		})
-
-	// Expect a call to update the app config resource with a finalizer.
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, appConfig *oamv1.ApplicationConfiguration, options ...client.UpdateOption) error {
-			assert.Equal(testNamespace, appConfig.Namespace)
-			assert.Equal(testAppConfigName, appConfig.Name)
-			assert.Len(appConfig.Finalizers, 1)
-			assert.Equal(finalizerName, appConfig.Finalizers[0])
 			return nil
 		})
 
@@ -631,17 +550,6 @@ func TestReconcileDaemonSetNoRestartDaemonSet(t *testing.T) {
 			return nil
 		})
 
-	// Expect a call to update the app config resource with a finalizer.
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, appConfig *oamv1.ApplicationConfiguration, options ...client.UpdateOption) error {
-			assert.Equal(testNamespace, appConfig.Namespace)
-			assert.Equal(testAppConfigName, appConfig.Name)
-			assert.Len(appConfig.Finalizers, 1)
-			assert.Equal(finalizerName, appConfig.Finalizers[0])
-			return nil
-		})
-
 	// expect a call to fetch the workload
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
@@ -700,17 +608,6 @@ func TestReconcileStatefulSetRestart(t *testing.T) {
 					Name:       testStatefulSetName,
 				},
 			}}
-			return nil
-		})
-
-	// Expect a call to update the app config resource with a finalizer.
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, appConfig *oamv1.ApplicationConfiguration, options ...client.UpdateOption) error {
-			assert.Equal(testNamespace, appConfig.Namespace)
-			assert.Equal(testAppConfigName, appConfig.Name)
-			assert.Len(appConfig.Finalizers, 1)
-			assert.Equal(finalizerName, appConfig.Finalizers[0])
 			return nil
 		})
 
@@ -778,17 +675,6 @@ func TestReconcileStatefulSetNoRestart(t *testing.T) {
 			return nil
 		})
 
-	// Expect a call to update the app config resource with a finalizer.
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, appConfig *oamv1.ApplicationConfiguration, options ...client.UpdateOption) error {
-			assert.Equal(testNamespace, appConfig.Namespace)
-			assert.Equal(testAppConfigName, appConfig.Name)
-			assert.Len(appConfig.Finalizers, 1)
-			assert.Equal(finalizerName, appConfig.Finalizers[0])
-			return nil
-		})
-
 	// expect a call to fetch the workload
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
@@ -824,73 +710,6 @@ func TestReconcileStatefulSetNoRestart(t *testing.T) {
 	mocker.Finish()
 	assert.NoError(err)
 	assert.Equal(false, result.Requeue)
-}
-
-// TestDeleteTraitResourcesWhenAppConfigIsDeleted tests the Reconcile method for the following use case.
-// GIVEN a request to reconcile an app config resource that is marked for deletion
-// WHEN the app config exists
-// THEN ensure that the cert and secret trait resources associated with the app config are also deleted
-func TestDeleteCertAndSecretWhenAppConfigIsDeleted(t *testing.T) {
-	assert := asserts.New(t)
-	mocker := gomock.NewController(t)
-	cli := mocks.NewMockClient(mocker)
-	// expect a call to fetch the ApplicationConfiguration
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
-			appConfig.ObjectMeta = ctrl.ObjectMeta{
-				Namespace:         testNamespace,
-				Name:              testAppConfigName,
-				Finalizers:        []string{finalizerName},
-				DeletionTimestamp: &v1.Time{Time: time.Now()}}
-			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
-			appConfig.Status.Workloads = []oamv1.WorkloadStatus{{
-				ComponentName: testStatefulSetName,
-				Reference: oamrt.TypedReference{
-					APIVersion: "v1",
-					Kind:       vzconst.StatefulSetWorkloadKind,
-					Name:       testStatefulSetName,
-				},
-			}}
-			return nil
-		})
-	// Expect a call to delete the cert
-	cli.EXPECT().
-		Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, cert *certapiv1.Certificate, opt *client.DeleteOptions) error {
-			assert.Equal(constants.IstioSystemNamespace, cert.Namespace)
-			assert.Equal(fmt.Sprintf("%s-%s-cert", testNamespace, testAppConfigName), cert.Name)
-			return nil
-		})
-	// Expect a call to delete the secret
-	cli.EXPECT().
-		Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, sec *k8score.Secret, opt *client.DeleteOptions) error {
-			assert.Equal(constants.IstioSystemNamespace, sec.Namespace)
-			assert.Equal(fmt.Sprintf("%s-%s-cert-secret", testNamespace, testAppConfigName), sec.Name)
-			return nil
-		})
-
-	// Expect a call to update the app config resource with the finalizer removed.
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, appConfig *oamv1.ApplicationConfiguration, options ...client.UpdateOption) error {
-			assert.Equal(testNamespace, appConfig.Namespace)
-			assert.Equal(testAppConfigName, appConfig.Name)
-			assert.Len(appConfig.Finalizers, 0)
-			return nil
-		})
-
-	// Create and make the request
-	request := newRequest(testNamespace, testAppConfigName)
-	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
-
-	// Validate the results
-	mocker.Finish()
-	assert.NoError(err)
-	assert.Equal(false, result.Requeue)
-	assert.Equal(time.Duration(0), result.RequeueAfter)
 }
 
 // TestReconcileKubeSystem tests to make sure we do not reconcile
