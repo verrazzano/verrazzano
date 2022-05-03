@@ -24,7 +24,7 @@ pipeline {
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
-                choices: [ "1.20", "1.21", "1.22" ])
+                choices: [ "1.20", "1.21", "1.22", "1.23" ])
         string (name: 'VERSION_FOR_INSTALL',
                 defaultValue: 'v1.1.2',
                 description: 'This is the Verrazzano version for install.  By default, the latest Master release will be installed',
@@ -324,6 +324,9 @@ pipeline {
         }
 
         stage("Upgrade Verrazzano") {
+            environment {
+                UPGRADE_CR="${WORKSPACE}/verrazzano-upgrade-cr.yaml"
+            }
             steps {
                 script {
                     // Download the bom for the target version that we are upgrading to, then extract the version
@@ -332,20 +335,27 @@ pipeline {
                 }
                 sh """
                     echo "Upgrading the Verrazzano installation to version" $VERRAZZANO_DEV_VERSION
-                    # Modify the version field in the Verrazzano CR file to be this new Verrazzano version
+                    # Modify the version field in the Verrazzano CR file to be this new Verrazzano version, and
+                    # update the Istio replicas to validate update during upgrade
                     cd ${GO_REPO_PATH}/verrazzano
-                    cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/verrazzano-upgrade-cr.yaml
-                    ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                    cp ${INSTALL_CONFIG_FILE_KIND} ${UPGRADE_CR}
+
+                    ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION} ${UPGRADE_CR}
+
+                    # Add some simple additional updates to validate update during an upgrade
+                    yq -i eval '.spec.components.istio.ingress.kubernetes.replicas = 3' ${UPGRADE_CR}
+                    yq -i eval '.spec.components.istio.egress.kubernetes.replicas = 3' ${UPGRADE_CR}
+
                     # Copy upgrade CR where it will be archived
-                    cp ${WORKSPACE}/verrazzano-upgrade-cr.yaml ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
+                    cp ${UPGRADE_CR} ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
 
                     # Get the install job in verrazzano-install namespace
                     kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out
 
                     # Do the upgrade
                     echo "Following is the verrazzano CR file with the new version:"
-                    cat ${WORKSPACE}/verrazzano-upgrade-cr.yaml
-                    kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                    cat ${UPGRADE_CR}
+                    kubectl apply -f ${UPGRADE_CR}
 
                     # wait for the upgrade to complete
                     kubectl wait --timeout=25m --for=condition=UpgradeComplete verrazzano/my-verrazzano
