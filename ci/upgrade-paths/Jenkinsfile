@@ -432,6 +432,11 @@ pipeline {
                                 verifyRegisterManagedClusters(true)
                             }
                         }
+                        stage('pre-upgrade verify keycloak') {
+                            steps {
+                                runGinkgoRandomizeAdmin('upgrade/pre-upgrade/keycloak')
+                            }
+                        }
                         stage ('Deploy Examples Helidon') {
                             steps {
                                 runGinkgoVerify('examples/helidon', "false", "true", "true", "hello-helidon")
@@ -547,6 +552,11 @@ pipeline {
                         always {
                             sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_screenshots.sh"
                         }
+                    }
+                }
+                stage('post-upgrade verify keycloak') {
+                    steps {
+                        runGinkgoRandomizeAdmin('upgrade/post-upgrade/keycloak')
                     }
                 }
                 stage ('Verify Example Apps') {

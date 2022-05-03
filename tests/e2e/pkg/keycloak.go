@@ -33,6 +33,9 @@ const (
 
 	keycloakAPIClientID   = "verrazzano-pg"
 	keycloakAdminClientID = "admin-cli"
+
+	TestKeycloakMasterUserid = "TEST_KEYCLOAK_MASTER_USERID"
+	TestKeycloakVzUserid = "TEST_KEYCLOAK_VZ_USERID"
 )
 
 // NewKeycloakRESTClient creates a new Keycloak REST client.
@@ -184,6 +187,30 @@ func (c *KeycloakRESTClient) DeleteUser(userRealm string, userID string) error {
 		return fmt.Errorf("invalid response status: %d", response.StatusCode)
 	}
 	return nil
+}
+
+// VerifyUserExists verifies the user exists in Keycloak
+// GET /auth/admin/realms/<realm>/users/<userID>
+func (c *KeycloakRESTClient) VerifyUserExists(userRealm string, userID string) (bool, error) {
+	requestURL := fmt.Sprintf("https://%s/auth/admin/realms/%s/users/%s", c.keycloakIngressHost, userRealm, userID)
+	request, err := retryablehttp.NewRequest("GET", requestURL, nil)
+	if err != nil {
+		return false, err
+	}
+	request.Host = c.keycloakIngressHost
+	request.Header.Add("Authorization", fmt.Sprintf("Bearer %v", c.adminAccessToken))
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return false, err
+	}
+	if response == nil {
+		return false, fmt.Errorf("invalid response")
+	}
+	defer response.Body.Close()
+	if response.StatusCode != 200 {
+		return false, fmt.Errorf("invalid response status: %d", response.StatusCode)
+	}
+	return true, nil
 }
 
 // SetPassword sets a user's password in Keycloak
