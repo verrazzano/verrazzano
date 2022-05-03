@@ -14,8 +14,8 @@ import (
 
 const kibanaDeployment = "vmi-system-kibana"
 
-// checkOpenSearchDashboardsStatus checks performs checks on the OpenSearch-Dashboards resources
-func checkOpenSearchDashboardsStatus(ctx spi.ComponentContext, deploymentFunc status.DeploymentFunc) bool {
+// isOSDReady checks if the OpenSearch-Dashboards resources are ready
+func isOSDReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 
 	var deployments []types.NamespacedName
@@ -28,7 +28,7 @@ func checkOpenSearchDashboardsStatus(ctx spi.ComponentContext, deploymentFunc st
 			})
 	}
 
-	if !deploymentFunc(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
+	if !status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
 		return false
 	}
 

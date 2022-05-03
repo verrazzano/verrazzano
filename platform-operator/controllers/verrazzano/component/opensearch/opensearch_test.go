@@ -10,7 +10,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"os"
 	"os/exec"
 	"strings"
@@ -453,12 +452,12 @@ func TestIsReadySecretNotReady(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	falseValue := false
 	vz.Spec.Components = vzapi.ComponentSpec{
-		Console:       &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Console:       &vzapi.ConsoleComponent{Enabled: &falseValue},
 		Fluentd:       &vzapi.FluentdComponent{Enabled: &falseValue},
-		Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Kibana:        &vzapi.KibanaComponent{Enabled: &falseValue},
 		Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &falseValue},
-		Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Prometheus:    &vzapi.PrometheusComponent{Enabled: &falseValue},
+		Grafana:       &vzapi.GrafanaComponent{Enabled: &falseValue},
 	}
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -472,7 +471,7 @@ func TestIsReadySecretNotReady(t *testing.T) {
 		},
 	}).Build()
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.False(t, checkOpenSearchStatus(ctx, status.DeploymentsAreReady, status.StatefulSetsAreReady))
+	assert.False(t, isOSReady(ctx))
 }
 
 // TestIsReadyNotInstalled tests the OpenSearch isOpenSearchReady call
@@ -482,13 +481,13 @@ func TestIsReadySecretNotReady(t *testing.T) {
 func TestIsReadyNotInstalled(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, checkOpenSearchStatus(ctx, status.DeploymentsAreReady, status.StatefulSetsAreReady))
+	assert.False(t, isOSReady(ctx))
 }
 
 // TestIsReady tests the isOpenSearchReady call
 // GIVEN OpenSearch components that are all enabled by default
 //  WHEN I call isOpenSearchReady when all requirements are met
-//  THEN false is returned
+//  THEN true is returned
 func TestIsReady(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&appsv1.Deployment{
@@ -522,9 +521,9 @@ func TestIsReady(t *testing.T) {
 				Labels:    map[string]string{"app": "system-es-ingest"},
 			},
 			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
+				AvailableReplicas: 2,
+				Replicas:          2,
+				UpdatedReplicas:   2,
 			},
 		},
 		&appsv1.StatefulSet{
@@ -534,8 +533,8 @@ func TestIsReady(t *testing.T) {
 				Labels:    map[string]string{"app": "system-es-master"},
 			},
 			Status: appsv1.StatefulSetStatus{
-				ReadyReplicas:   1,
-				UpdatedReplicas: 1,
+				ReadyReplicas:   3,
+				UpdatedReplicas: 3,
 			},
 		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
@@ -548,7 +547,7 @@ func TestIsReady(t *testing.T) {
 			ESInstallArgs: []vzapi.InstallArgs{
 				{
 					Name:  "nodes.master.replicas",
-					Value: "2",
+					Value: "3",
 				},
 				{
 					Name:  "nodes.data.replicas",
@@ -562,7 +561,7 @@ func TestIsReady(t *testing.T) {
 		},
 	}
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.True(t, checkOpenSearchStatus(ctx, status.DeploymentsAreReady, status.StatefulSetsAreReady))
+	assert.True(t, isOSReady(ctx))
 }
 
 // TestIsReadyDeploymentNotAvailable tests the OpenSearch isOpenSearchReady call
@@ -643,7 +642,7 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 		},
 	}
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.False(t, checkOpenSearchStatus(ctx, status.DeploymentsAreReady, status.StatefulSetsAreReady))
+	assert.False(t, isOSReady(ctx))
 }
 
 // TestIsReadyDeploymentVMIDisabled tests the OpenSearch isOpenSearchReady call
@@ -661,13 +660,33 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	falseValue := false
 	vz.Spec.Components = vzapi.ComponentSpec{
-		Console:       &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Console:       &vzapi.ConsoleComponent{Enabled: &falseValue},
 		Fluentd:       &vzapi.FluentdComponent{Enabled: &falseValue},
-		Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Kibana:        &vzapi.KibanaComponent{Enabled: &falseValue},
 		Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &falseValue},
-		Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Prometheus:    &vzapi.PrometheusComponent{Enabled: &falseValue},
+		Grafana:       &vzapi.GrafanaComponent{Enabled: &falseValue},
 	}
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.True(t, checkOpenSearchStatus(ctx, status.DeploymentsAreReady, status.StatefulSetsAreReady))
+	assert.True(t, isOSReady(ctx))
+}
+
+// TestIsinstalled tests the OpenSearch doesOSExist call
+// GIVEN a verrazzano
+//  WHEN I call doesOSExist
+//  THEN true is returned
+func TestIsinstalled(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      esMasterStatefulset,
+				Labels:    map[string]string{"app": "system-es-master"},
+			},
+		},
+	).Build()
+
+	vz := &vzapi.Verrazzano{}
+	ctx := spi.NewFakeContext(c, vz, false)
+	assert.True(t, doesOSExist(ctx))
 }

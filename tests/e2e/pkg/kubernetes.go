@@ -297,6 +297,15 @@ func GetVerrazzanoManagedClusterClientset() (*vmcClient.Clientset, error) {
 	return vmcClient.NewForConfig(config)
 }
 
+// GetVerrazzanoClientset returns the Kubernetes clientset for the Verrazzano CRD
+func GetVerrazzanoClientset() (*vpoClient.Clientset, error) {
+	config, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		return nil, err
+	}
+	return vpoClient.NewForConfig(config)
+}
+
 // GetVerrazzanoProjectClientsetInCluster returns the Kubernetes clientset for the VerrazzanoProject
 func GetVerrazzanoProjectClientsetInCluster(kubeconfigPath string) (*vpClient.Clientset, error) {
 	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
