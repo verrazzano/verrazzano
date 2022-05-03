@@ -5,8 +5,6 @@ package verify
 
 import (
 	"fmt"
-	"os"
-	"path"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
@@ -131,40 +129,5 @@ var _ = t.Describe("Update prometheus configmap", Label("f:platform-lcm.upgrade"
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
+
 })
-
-var _ = t.Describe("Create users in Keycloak", Label("f:platform-lcm.install"), func() {
-	isManagedClusterProfile := pkg.IsManagedClusterProfile()
-	t.It("Creating user in master realm", func() {
-		if !isManagedClusterProfile {
-			Eventually(verifyCreateUser("master", "TEST_KEYCLOAK_MASTER_USERID"), waitTimeout, pollingInterval).Should(BeTrue())
-		}
-	})
-	t.It("Creating user in verrazzano-system realm", func() {
-		if !isManagedClusterProfile {
-			Eventually(verifyCreateUser("verrazzano-system", "TEST_KEYCLOAK_VZ_USERID"), waitTimeout, pollingInterval).Should(BeTrue())
-		}
-	})
-})
-
-func verifyCreateUser(realm, userIDEnvVar string) bool {
-	kc, err := pkg.NewKeycloakAdminRESTClient()
-	if err != nil {
-		t.Logs.Error(fmt.Printf("Failed to create Keycloak REST client: %v\n", err))
-		return false
-	}
-
-	salt := time.Now().Format("20060102150405.000000000")
-	userName := fmt.Sprintf("test-user-%s", salt)
-	firstName := fmt.Sprintf("test-first-%s", salt)
-	lastName := fmt.Sprintf("test-last-%s", salt)
-	validPassword := fmt.Sprintf("test-password-12-!@-AB-%s", salt)
-	userURL, err := kc.CreateUser(realm, userName, firstName, lastName, validPassword)
-	if err != nil {
-		t.Logs.Error(fmt.Printf("Failed to create user %s/%s: %v\n", realm, userName, err))
-		return false
-	}
-	userID := path.Base(userURL)
-	os.Setenv(userIDEnvVar, userID)
-	return true
-}
