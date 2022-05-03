@@ -235,25 +235,29 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 	// Generate the certificate and secret for all hosts in the trait rules
 	secretName := r.createOrUseGatewaySecret(ctx, trait, allHostsForTrait, &status, log)
 	if secretName != "" {
-		r.cleanupLegacyGateway(trait, log)
-		// The Gateway is shared across all traits, update it with all known hosts for the trait
-		// - Must create GW before service so that external DNS sees the GW once the service is created
-		gateway := r.createOrUpdateGateway(ctx, trait, allHostsForTrait, buildGatewayName(trait), secretName, &status, log)
-		for index, rule := range rules {
-			// Find the services associated with the trait in the application configuration.
-			var services []*corev1.Service
-			services, err := r.fetchServicesFromTrait(ctx, trait, log)
-			if err != nil {
-				return &status, reconcile.Result{}, err
-			} else if len(services) == 0 {
-				// This will be the case if the service has not started yet so we requeue and try again.
-				return &status, reconcile.Result{Requeue: true, RequeueAfter: clusters.GetRandomRequeueDelay()}, err
-			}
+		gwName, err := buildGatewayName(trait)
+		if err != nil {
+			status.Errors = append(status.Errors, err)
+		} else {
+			// The Gateway is shared across all traits, update it with all known hosts for the trait
+			// - Must create GW before service so that external DNS sees the GW once the service is created
+			gateway := r.createOrUpdateGateway(ctx, trait, allHostsForTrait, gwName, secretName, &status, log)
+			for index, rule := range rules {
+				// Find the services associated with the trait in the application configuration.
+				var services []*corev1.Service
+				services, err := r.fetchServicesFromTrait(ctx, trait, log)
+				if err != nil {
+					return &status, reconcile.Result{}, err
+				} else if len(services) == 0 {
+					// This will be the case if the service has not started yet so we requeue and try again.
+					return &status, reconcile.Result{Requeue: true, RequeueAfter: clusters.GetRandomRequeueDelay()}, err
+				}
 
-			vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, index)
-			drName := fmt.Sprintf("%s-rule-%d-dr", trait.Name, index)
-			r.createOrUpdateVirtualService(ctx, trait, rule, allHostsForTrait, vsName, services, gateway, &status, log)
-			r.createOrUpdateDestinationRule(ctx, trait, rule, drName, &status, log)
+				vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, index)
+				drName := fmt.Sprintf("%s-rule-%d-dr", trait.Name, index)
+				r.createOrUpdateVirtualService(ctx, trait, rule, allHostsForTrait, vsName, services, gateway, &status, log)
+				r.createOrUpdateDestinationRule(ctx, trait, rule, drName, &status, log)
+			}
 		}
 	}
 	return &status, ctrl.Result{}, nil
@@ -270,9 +274,15 @@ func (r *Reconciler) coallateAllHostsForTrait(trait *vzapi.IngressTrait, status 
 	return allHosts
 }
 
-// buildGatewayName will generate a gateway name from the namespace and name of the provided trait
-func buildGatewayName(trait *vzapi.IngressTrait) string {
-	return fmt.Sprintf("%s-%s-gw", trait.Namespace, trait.Name)
+// buildGatewayName will generate a gateway name from the namespace and application name of the provided trait. Returns
+// an error if the app name is not available.
+func buildGatewayName(trait *vzapi.IngressTrait) (string, error) {
+	appName, ok := trait.Labels[oam.LabelAppName]
+	if !ok {
+		return "", errors.New("OAM app name label missing from metadata, unable to generate gateway name")
+	}
+	gwName := fmt.Sprintf("%s-%s-gw", trait.Namespace, appName)
+	return gwName, nil
 }
 
 // buildCertificateName will construct a cert name from the trait.
@@ -283,15 +293,6 @@ func buildCertificateName(trait *vzapi.IngressTrait) string {
 // buildCertificateSecretName will construct a cert secret name from the trait.
 func buildCertificateSecretName(trait *vzapi.IngressTrait) string {
 	return fmt.Sprintf("%s-%s-cert-secret", trait.Namespace, trait.Name)
-}
-
-// buildLegacyGatewayName will generate a gateway name used by older version of Verrazzano
-func buildLegacyGatewayName(trait *vzapi.IngressTrait) string {
-	appName, ok := trait.Labels[oam.LabelAppName]
-	if !ok {
-		return ""
-	}
-	return fmt.Sprintf("%s-%s-gw", trait.Namespace, appName)
 }
 
 // buildLegacyCertificateName will generate a cert name used by older version of Verrazzano
@@ -509,21 +510,6 @@ func (r *Reconciler) validateConfiguredSecret(trait *vzapi.IngressTrait, status 
 		}
 	}
 	return secretName
-}
-
-// cleanupLegacyGateway delete the gateway created by the older version of Verrazzano
-func (r *Reconciler) cleanupLegacyGateway(trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) {
-	gwName := buildLegacyGatewayName(trait)
-	gateway := &istioclient.Gateway{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: gatewayAPIVersion,
-			Kind:       gatewayKind},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: trait.Namespace,
-			Name:      gwName}}
-	// Delete the gateway, ignore error
-	log.Debugf("Deleting cert: %s", gwName)
-	r.Client.Delete(context.TODO(), gateway, &client.DeleteOptions{})
 }
 
 // createOrUpdateGateway creates or updates the Gateway child resource of the trait.

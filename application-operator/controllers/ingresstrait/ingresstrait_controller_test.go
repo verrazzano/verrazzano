@@ -60,7 +60,7 @@ const (
 	traitKind               = "IngressTrait"
 	testNamespace           = "test-space"
 	expectedTraitVSName     = "test-trait-rule-0-vs"
-	expectedAppGWName       = "test-space-test-trait-gw"
+	expectedAppGWName       = "test-space-myapp-gw"
 	testWorkloadName        = "test-workload-name"
 	testWorkloadID          = "test-workload-uid"
 	istioIngressGatewayName = "istio-ingressgateway"
@@ -122,8 +122,8 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 	workLoadResourceExpectations(mock)
 	workloadResourceDefinitionExpectations(mock)
 	listChildDeploymentExpectations(mock, assert)
-	deleteCertExpectations(mock)
-	deleteCertSecretExpectations(mock)
+	deleteCertExpectations(mock, "test-space-myapp-cert")
+	deleteCertSecretExpectations(mock, "test-space-myapp-cert-secret")
 	createCertSuccessExpectations(mock)
 	appCertificateExpectations(mock)
 	getGatewayForTraitNotFoundExpectations(mock)
@@ -161,8 +161,6 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 			}
 			return nil
 		})
-	// Expect a call to delete the old Gateway
-	deleteGatewayExpectations(mock)
 	// Expect a call to create the Gateway resource and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -243,8 +241,6 @@ func TestSuccessfullyCreateNewIngressWithCertSecret(t *testing.T) {
 	childServiceExpectations(mock, assert)
 	getGatewayForTraitNotFoundExpectations(mock)
 
-	// Expect a call to delete the old Gateway
-	deleteGatewayExpectations(mock)
 	// Expect a call to create the ingress/gateway resource and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -357,8 +353,6 @@ func TestSuccessfullyUpdateIngressWithCertSecret(t *testing.T) {
 				Name:      gatewayName}
 			return nil
 		})
-	// Expect a call to delete the old Gateway
-	deleteGatewayExpectations(mock)
 	// Expect a call to create the ingress/gateway resource and return success
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -454,6 +448,72 @@ func TestFailureCreateNewIngressWithSecretNoHosts(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait, opts ...client.UpdateOption) error {
 			assert.Len(trait.Status.Conditions, 1)
 			assert.Equal("all rules must specify at least one host when a secret is specified for TLS transport", trait.Status.Conditions[0].Message, "Unexpected error message")
+			assert.Len(trait.Status.Resources, 1)
+			return nil
+		})
+
+	// Create and make the request
+	request := newRequest(testNamespace, testTraitName)
+	reconciler := newIngressTraitReconciler(mock)
+	result, err := reconciler.Reconcile(nil, request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(true, result.Requeue)
+	assert.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestFailureCreateGatewayCertNoAppName tests the Reconcile method for the following use case.
+// GIVEN a request to reconcile an ingress trait resource
+// WHEN the trait exists but doesn't specify an oam app label
+// THEN ensure that an error is generated
+func TestFailureCreateGatewayCertNoAppName(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	// Expect a call to get the ingress trait resource.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testTraitName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.IngressTrait) error {
+			trait.TypeMeta = metav1.TypeMeta{
+				APIVersion: apiVersion,
+				Kind:       traitKind}
+			trait.ObjectMeta = metav1.ObjectMeta{
+				Namespace: name.Namespace,
+				Name:      name.Name}
+			trait.Spec.Rules = []vzapi.IngressRule{{
+				Hosts: []string{"test-host"},
+				Paths: []vzapi.IngressPath{{Path: "test-path"}}}}
+			trait.Spec.WorkloadReference = oamrt.TypedReference{
+				APIVersion: "core.oam.dev/v1alpha2",
+				Kind:       "ContainerizedWorkload",
+				Name:       testWorkloadName}
+			return nil
+		})
+	// Expect a call to update the ingress trait resource with a finalizer.
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait, options ...client.UpdateOption) error {
+			assert.Equal(testNamespace, trait.Namespace)
+			assert.Equal(testTraitName, trait.Name)
+			assert.Len(trait.Finalizers, 1)
+			assert.Equal(finalizerName, trait.Finalizers[0])
+			return nil
+		})
+
+	deleteCertExpectations(mock, "")
+	deleteCertSecretExpectations(mock, "")
+	appCertificateExpectations(mock)
+	createCertSuccessExpectations(mock)
+	getMockStatusWriterExpectations(mock, mockStatus)
+	// Expect a call to update the status of the ingress trait.  The status is checked for the expected error condition.
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait, opts ...client.UpdateOption) error {
+			assert.Len(trait.Status.Conditions, 1)
+			assert.Equal("OAM app name label missing from metadata, unable to generate gateway name", trait.Status.Conditions[0].Message, "Unexpected error message")
 			assert.Len(trait.Status.Resources, 1)
 			return nil
 		})
@@ -596,12 +656,10 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 			return nil
 		})
 
-	deleteCertExpectations(mock)
-	deleteCertSecretExpectations(mock)
+	deleteCertExpectations(mock, "test-space-myapp-cert")
+	deleteCertSecretExpectations(mock, "test-space-myapp-cert-secret")
 	createCertSuccessExpectations(mock)
 	getGatewayForTraitNotFoundExpectations(mock)
-	// Expect a call to delete the old Gateway
-	deleteGatewayExpectations(mock)
 	createIngressResourceSuccessExpectations(mock)
 	traitVSNotFoundExpectation(mock)
 
@@ -637,13 +695,11 @@ func TestFailureToGetWorkload(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 	getIngressTraitResourceExpectations(mock, assert)
-	deleteCertExpectations(mock)
-	deleteCertSecretExpectations(mock)
+	deleteCertExpectations(mock, "test-space-myapp-cert")
+	deleteCertSecretExpectations(mock, "test-space-myapp-cert-secret")
 	createCertSuccessExpectations(mock)
 	appCertificateExpectations(mock)
 	getGatewayForTraitNotFoundExpectations(mock)
-	// Expect a call to delete the old Gateway
-	deleteGatewayExpectations(mock)
 	// Expect a call to create the gateway and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -690,14 +746,12 @@ func TestFailureToGetWorkloadDefinition(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 
 	getIngressTraitResourceExpectations(mock, assert)
-	deleteCertExpectations(mock)
-	deleteCertSecretExpectations(mock)
+	deleteCertExpectations(mock, "test-space-myapp-cert")
+	deleteCertSecretExpectations(mock, "test-space-myapp-cert-secret")
 	createCertSuccessExpectations(mock)
 	appCertificateExpectations(mock)
 	gatewayNotFoundExpectations(mock)
 
-	// Expect a call to delete the old Gateway
-	deleteGatewayExpectations(mock)
 	// Expect a call to create the gateway and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -765,12 +819,10 @@ func TestFailureToUpdateStatus(t *testing.T) {
 			return nil
 		})
 
-	deleteCertExpectations(mock)
-	deleteCertSecretExpectations(mock)
+	deleteCertExpectations(mock, "test-space-myapp-cert")
+	deleteCertSecretExpectations(mock, "test-space-myapp-cert-secret")
 	createCertSuccessExpectations(mock)
 	getGatewayForTraitNotFoundExpectations(mock)
-	// Expect a call to delete the old Gateway
-	deleteGatewayExpectations(mock)
 	createIngressResourceSuccessExpectations(mock)
 	// Expect a call to get the gateway resource related to the ingress trait and return that it is not found.
 	mock.EXPECT().
@@ -1946,7 +1998,7 @@ func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 	assert.Equal(true, result.Requeue, "Expected a requeue due to status update.")
 
 	gw := istioclient.Gateway{}
-	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-trait-gw"}, &gw)
+	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
 	assert.NoError(err)
 	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
 	assert.Equal(testLoadBalancerAppGatewayServerHost, gw.Spec.Servers[0].Hosts[0])
@@ -1959,7 +2011,7 @@ func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 	vs := istioclient.VirtualService{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-trait-rule-0-vs"}, &vs)
 	assert.NoError(err)
-	assert.Equal("test-namespace-test-trait-gw", vs.Spec.Gateways[0])
+	assert.Equal("test-namespace-test-appconf-gw", vs.Spec.Gateways[0])
 	assert.Len(vs.Spec.Gateways, 1)
 	assert.Equal(testLoadBalancerAppGatewayServerHost, vs.Spec.Hosts[0])
 	assert.Len(vs.Spec.Hosts, 1)
@@ -2046,7 +2098,7 @@ func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
 	assert.Equal(true, result.Requeue, "Expected a requeue due to status update.")
 
 	gw := istioclient.Gateway{}
-	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-trait-gw"}, &gw)
+	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
 	assert.NoError(err)
 	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
 	assert.Equal(testLoadBalancerAppGatewayServerHost, gw.Spec.Servers[0].Hosts[0])
@@ -2059,7 +2111,7 @@ func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
 	vs := istioclient.VirtualService{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: expectedTraitVSName}, &vs)
 	assert.NoError(err)
-	assert.Equal("test-namespace-test-trait-gw", vs.Spec.Gateways[0])
+	assert.Equal("test-namespace-test-appconf-gw", vs.Spec.Gateways[0])
 	assert.Len(vs.Spec.Gateways, 1)
 	assert.Equal(testLoadBalancerAppGatewayServerHost, vs.Spec.Hosts[0])
 	assert.Len(vs.Spec.Hosts, 1)
@@ -2151,7 +2203,7 @@ func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 	assert.Equal(true, result.Requeue, "Expected a requeue because the discovered service has multiple ports.")
 
 	gw := istioclient.Gateway{}
-	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-trait-gw"}, &gw)
+	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
 	assert.NoError(err)
 	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
 	assert.Equal(testLoadBalancerAppGatewayServerHost, gw.Spec.Servers[0].Hosts[0])
@@ -2164,7 +2216,7 @@ func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 	vs := istioclient.VirtualService{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: expectedTraitVSName}, &vs)
 	assert.NoError(err)
-	assert.Equal("test-namespace-test-trait-gw", vs.Spec.Gateways[0])
+	assert.Equal("test-namespace-test-appconf-gw", vs.Spec.Gateways[0])
 	assert.Len(vs.Spec.Gateways, 1)
 	assert.Equal(testLoadBalancerAppGatewayServerHost, vs.Spec.Hosts[0])
 	assert.Len(vs.Spec.Hosts, 1)
@@ -2280,7 +2332,7 @@ func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination
 	assert.Equal(true, result.Requeue, "Expected a requeue because the discovered service has multiple ports.")
 
 	gw := istioclient.Gateway{}
-	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-trait-gw"}, &gw)
+	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
 	assert.NoError(err)
 	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
 	assert.Equal(testLoadBalancerAppGatewayServerHost, gw.Spec.Servers[0].Hosts[0])
@@ -2293,7 +2345,7 @@ func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination
 	vs := istioclient.VirtualService{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: expectedTraitVSName}, &vs)
 	assert.NoError(err)
-	assert.Equal("test-namespace-test-trait-gw", vs.Spec.Gateways[0])
+	assert.Equal("test-namespace-test-appconf-gw", vs.Spec.Gateways[0])
 	assert.Len(vs.Spec.Gateways, 1)
 	assert.Equal(testLoadBalancerAppGatewayServerHost, vs.Spec.Hosts[0])
 	assert.Len(vs.Spec.Hosts, 1)
@@ -2359,7 +2411,7 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 	assert.Equal(true, result.Requeue, "Expected no requeue as error expected.")
 
 	gw := istioclient.Gateway{}
-	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-trait-gw"}, &gw)
+	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
 	assert.False(k8serrors.IsNotFound(err), "Gateway should have been created.")
 
 	vs := istioclient.VirtualService{}
@@ -2398,7 +2450,7 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 
 	// Verify the Gateway was created and is valid.
 	gw = istioclient.Gateway{}
-	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-trait-gw"}, &gw)
+	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
 	assert.NoError(err)
 	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
 	assert.Equal(testLoadBalancerAppGatewayServerHost, gw.Spec.Servers[0].Hosts[0])
@@ -2412,7 +2464,7 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 	vs = istioclient.VirtualService{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: expectedTraitVSName}, &vs)
 	assert.NoError(err)
-	assert.Equal("test-namespace-test-trait-gw", vs.Spec.Gateways[0])
+	assert.Equal("test-namespace-test-appconf-gw", vs.Spec.Gateways[0])
 	assert.Len(vs.Spec.Gateways, 1)
 	assert.Equal(testLoadBalancerAppGatewayServerHost, vs.Spec.Hosts[0])
 	assert.Len(vs.Spec.Hosts, 1)
@@ -2734,12 +2786,10 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookie(t *test
 			return nil
 		})
 
-	deleteCertExpectations(mock)
-	deleteCertSecretExpectations(mock)
+	deleteCertExpectations(mock, "test-space-myapp-cert")
+	deleteCertSecretExpectations(mock, "test-space-myapp-cert-secret")
 	createCertSuccessExpectations(mock)
 	getGatewayForTraitNotFoundExpectations(mock)
-	// Expect a call to delete the old Gateway
-	deleteGatewayExpectations(mock)
 	createIngressResourceSuccessExpectations(mock)
 	traitVSNotFoundExpectation(mock)
 	createIngressResSuccessExpectations(mock, assert)
@@ -2932,6 +2982,201 @@ func TestUpdateGatewayServersNewTraitHost(t *testing.T) {
 	assert.Equal(expectedServers, servers)
 }
 
+// TestMutateGatewayAddTrait tests the mutateGateway method
+// GIVEN a request to mutate the app gateway
+// WHEN a new Trate/TraitRule is added
+// THEN ensure the returned Servers list has the new Server for the IngressTrait
+func TestMutateGatewayAddTrait(t *testing.T) {
+	assert := asserts.New(t)
+
+	trait1Hosts := []string{"trait1host1", "trait1host2"}
+	trait2Hosts := []string{"trait2host1"}
+
+	const trait1Name = "trait1"
+	const trait2Name = "trait2"
+	const secretName = "secretName"
+
+	trait1Server := createGatewayServer(trait1Name, trait1Hosts, secretName)
+
+	const appName = "myapp"
+	gw := &istioclient.Gateway{
+		ObjectMeta: metav1.ObjectMeta{Name: expectedAppGWName, Namespace: testNamespace},
+		Spec: istionet.Gateway{
+			Servers: []*istionet.Server{
+				trait1Server,
+			},
+		},
+	}
+
+	trait := &vzapi.IngressTrait{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      trait2Name,
+			Namespace: testNamespace,
+			Labels: map[string]string{
+				oam.LabelAppName: appName,
+			},
+		},
+		Spec: vzapi.IngressTraitSpec{
+			Rules: []vzapi.IngressRule{
+				{Hosts: trait2Hosts},
+			},
+			WorkloadReference: createWorkloadReference(appName),
+		},
+	}
+
+	reconciler := setupTraitTestFakes(appName, gw)
+
+	_, _, err := reconciler.createOrUpdateChildResources(context.TODO(), trait, vzlog.DefaultLogger())
+	assert.NoError(err)
+
+	updatedGateway := &istioclient.Gateway{}
+	assert.NoError(reconciler.Get(context.TODO(), types.NamespacedName{Name: gw.Name, Namespace: testNamespace}, updatedGateway))
+	updatedServers := updatedGateway.Spec.Servers
+	assert.Len(updatedServers, 2)
+	assert.Equal(updatedServers[0].Hosts, trait1Hosts)
+	assert.Equal(updatedServers[1].Hosts, trait2Hosts)
+
+}
+
+func createWorkloadReference(appName string) oamrt.TypedReference {
+	return oamrt.TypedReference{
+		APIVersion: "core.oam.dev/v1alpha2",
+		Kind:       "ContainerizedWorkload",
+		Name:       appName,
+	}
+}
+
+// TestMutateGatewayHostsAddRemoveTraitRule tests the createOrUpdateChildResources method
+// GIVEN a request to createOrUpdateChildResources
+// WHEN a new TraitRule has been added or remvoed to an existing Trait with new hosts
+// THEN ensure the gateway Server hosts lists for the Trait has been updated accordingly
+func TestMutateGatewayHostsAddRemoveTraitRule(t *testing.T) {
+	assert := asserts.New(t)
+
+	trait1Hosts := []string{"trait1host1", "trait1host2"}
+	trait1NewHosts := []string{"trait1host3", "trait1host4", "trait1host2"}
+	trait2Hosts := []string{"trait2host1"}
+
+	const trait1Name = "trait1"
+	const trait2Name = "trait2"
+	const secretName = "secretName"
+
+	trait1Server := createGatewayServer(trait1Name, trait1Hosts, secretName)
+	trait2Server := createGatewayServer(trait2Name, trait2Hosts, secretName)
+
+	const appName = "myapp"
+
+	gw := &istioclient.Gateway{
+		ObjectMeta: metav1.ObjectMeta{Name: expectedAppGWName, Namespace: testNamespace},
+		Spec: istionet.Gateway{
+			Servers: []*istionet.Server{
+				trait1Server,
+				trait2Server,
+			},
+		},
+	}
+
+	reconciler := setupTraitTestFakes(appName, gw)
+
+	// Test updating a trait to add hosts
+	trait1UpdatedHosts := append(trait1Hosts, []string{"trait1host3", "trait1host4"}...)
+	updatedTrait := &vzapi.IngressTrait{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      trait1Name,
+			Namespace: testNamespace,
+			Labels: map[string]string{
+				oam.LabelAppName: appName,
+			},
+		},
+		Spec: vzapi.IngressTraitSpec{
+			Rules: []vzapi.IngressRule{
+				{Hosts: trait1Hosts},
+				{Hosts: trait1NewHosts},
+			},
+			WorkloadReference: createWorkloadReference(appName),
+		},
+	}
+
+	_, _, err := reconciler.createOrUpdateChildResources(context.TODO(), updatedTrait, vzlog.DefaultLogger())
+	assert.NoError(err)
+
+	updatedGateway := &istioclient.Gateway{}
+	assert.NoError(reconciler.Get(context.TODO(), types.NamespacedName{Name: expectedAppGWName, Namespace: testNamespace}, updatedGateway))
+	updatedServers := updatedGateway.Spec.Servers
+	assert.Len(updatedServers, 2)
+	assert.Equal(updatedServers[0].Hosts, trait1UpdatedHosts)
+	assert.Equal(updatedServers[1].Hosts, trait2Hosts)
+
+	// Test removing the added rule and that the hosts list is restored
+	updatedTraitRemovedRule := &vzapi.IngressTrait{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      trait1Name,
+			Namespace: testNamespace,
+			Labels: map[string]string{
+				oam.LabelAppName: appName,
+			},
+		},
+		Spec: vzapi.IngressTraitSpec{
+			Rules: []vzapi.IngressRule{
+				{Hosts: trait1Hosts},
+			},
+			WorkloadReference: createWorkloadReference(appName),
+		},
+	}
+
+	_, _, err2 := reconciler.createOrUpdateChildResources(context.TODO(), updatedTraitRemovedRule, vzlog.DefaultLogger())
+	assert.NoError(err2)
+
+	updatedGatewayRemovedRule := &istioclient.Gateway{}
+	assert.NoError(reconciler.Get(context.TODO(), types.NamespacedName{Name: expectedAppGWName, Namespace: testNamespace}, updatedGatewayRemovedRule))
+	updatedServersRemovedRule := updatedGatewayRemovedRule.Spec.Servers
+	assert.Len(updatedServers, 2)
+	assert.Equal(updatedServersRemovedRule[0].Hosts, trait1Hosts)
+	assert.Equal(updatedServersRemovedRule[1].Hosts, trait2Hosts)
+}
+
+func setupTraitTestFakes(appName string, gw *istioclient.Gateway) Reconciler {
+	appConfig := &v1alpha2.ApplicationConfiguration{
+		ObjectMeta: metav1.ObjectMeta{Name: appName, Namespace: testNamespace},
+	}
+
+	workload := &v1alpha2.ContainerizedWorkload{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      appName,
+			Namespace: testNamespace,
+			UID:       testWorkloadID,
+		},
+	}
+
+	workloadDef := &v1alpha2.WorkloadDefinition{
+		ObjectMeta: metav1.ObjectMeta{Name: "containerizedworkloads.core.oam.dev"},
+		Spec: v1alpha2.WorkloadDefinitionSpec{
+			ChildResourceKinds: []v1alpha2.ChildResourceKind{
+				{APIVersion: "apps/v1", Kind: "Deployment", Selector: nil},
+				{APIVersion: "v1", Kind: "Service", Selector: nil},
+			},
+		},
+	}
+
+	workloadService := &k8score.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testService",
+			Namespace: testNamespace,
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "core.oam.dev/v1alpha2",
+				Kind:       "ContainerizedWorkload",
+				Name:       testWorkloadName,
+				UID:        testWorkloadID,
+			}}},
+		Spec: k8score.ServiceSpec{
+			ClusterIP: testClusterIP,
+			Ports:     []k8score.ServicePort{{Port: 42}}},
+	}
+
+	reconciler := createReconcilerWithFake(appConfig, workload, workloadDef, workloadService, gw)
+	return reconciler
+}
+
 func createGatewayServer(traitName string, traitHosts []string, secretName ...string) *istionet.Server {
 	server := &istionet.Server{
 		Name:  traitName,
@@ -2996,11 +3241,11 @@ func createCertSuccessExpectations(mock *mocks.MockClient) {
 }
 
 // Expect a call to delete the certificate
-func deleteCertExpectations(mock *mocks.MockClient) {
+func deleteCertExpectations(mock *mocks.MockClient, certName string) {
 	oldCert := certapiv1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: constants.IstioSystemNamespace,
-			Name:      "test-space-myapp-cert",
+			Name:      certName,
 		},
 	}
 	mock.EXPECT().
@@ -3009,22 +3254,15 @@ func deleteCertExpectations(mock *mocks.MockClient) {
 }
 
 // Expect a call to delete the certificate secret
-func deleteCertSecretExpectations(mock *mocks.MockClient) {
+func deleteCertSecretExpectations(mock *mocks.MockClient, secretName string) {
 	oldSecret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: constants.IstioSystemNamespace,
-			Name:      "test-space-myapp-cert-secret",
+			Name:      secretName,
 		},
 	}
 	mock.EXPECT().
 		Delete(gomock.Any(), gomock.Eq(&oldSecret), gomock.Any()).
-		Return(nil)
-}
-
-// Expect a call to delete the certificate secret
-func deleteGatewayExpectations(mock *mocks.MockClient) {
-	mock.EXPECT().
-		Delete(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(nil)
 }
 
