@@ -156,6 +156,9 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			// Upgrade completely done
 			deleteUpgradeTracker(cr)
 			tracker.vzState = vzStateEnd
+
+			// Requeue since the status was just updated, want a fresh copy from controller-runtime cache
+			return newRequeueWithDelay(), nil
 		}
 	}
 	// Upgrade done, no need to requeue
