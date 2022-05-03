@@ -77,13 +77,13 @@ if [ -z "${OPERATION:-}" ]; then
     exit 1
 else
   if [ $OPERATION != "backup" ] && [ $OPERATION != "restore" ]; then
-    echo "Operation can be either backup/restore"
+    echo "Invalid Operation - $OPERATION. Allowed operation values are backup or restore"
     exit 1
   fi
 fi
 
 if [ -z "${MYSQL_DUMP_FILE_NAME:-}"  ]; then
-    echo " Dump file name cannot be empty !"
+    echo "Dump file name cannot be empty !"
     usage
     exit 1
 fi
