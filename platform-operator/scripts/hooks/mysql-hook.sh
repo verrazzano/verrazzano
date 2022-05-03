@@ -3,8 +3,11 @@
 # Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
+
 BACKUP_DIR="/var/lib/mysql/data-backup"
-backup() {
+
+# takes backup of mysql
+function backup() {
   FILE_PATH=${BACKUP_DIR}/$1
   mysqldump --all-databases --single-transaction --quick --lock-tables=false > ${FILE_PATH} -u root -p${MYSQL_ROOT_PASSWORD}
   if [ $? -eq 0 ]; then
@@ -16,7 +19,9 @@ backup() {
   fi
 }
 
-restore() {
+# Checks if mysql is healthy
+# then restores mysql from an existing dump file
+function restore() {
   FILE_PATH=${BACKUP_DIR}/$1
 
   if test -f "${FILE_PATH}"; then
@@ -41,7 +46,46 @@ restore() {
   fi
 }
 
+
 mkdir -p ${BACKUP_DIR}
-# backup <fileName>
-# restore <fileName>
-$1 $2
+# This is a hook script that needs to be invoked via velero operator if installed
+
+
+function usage {
+    echo
+    echo "usage: $0 [-o operation ] [-f filename]"
+    echo "  -o operation  The operation to be performed on mysql (backup/restore)"
+    echo "  -f filename   The filename of the mysql dump file"
+    echo "  -h            Help"
+    echo
+    exit 1
+}
+
+while getopts o:f:h flag
+do
+    case "${flag}" in
+        o) OPERATION=${OPTARG};;
+        f) MYSQL_DUMP_FILE_NAME=${OPTARG};;
+        h) usage;;
+        *) usage;;
+    esac
+done
+
+if [ -z "${OPERATION:-}" ]; then
+    echo " Operation cannot be empty !"
+    usage
+    exit 1
+else
+  if [ $OPERATION != "backup" ] && [ $OPERATION != "restore" ]; then
+    echo "Operation can be either backup/restore"
+    exit 1
+  fi
+fi
+
+if [ -z "${MYSQL_DUMP_FILE_NAME:-}"  ]; then
+    echo " Dump file name cannot be empty !"
+    usage
+    exit 1
+fi
+
+${OPERATION} ${MYSQL_DUMP_FILE_NAME}
