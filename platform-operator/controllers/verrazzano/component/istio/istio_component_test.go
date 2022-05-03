@@ -6,7 +6,6 @@ package istio
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/bom"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/types"
 	"os/exec"
@@ -780,94 +779,6 @@ func Test_istioComponent_ValidateInstall(t *testing.T) {
 			if err := c.ValidateInstall(tt.vz); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateInstall() error = %v, wantErr %v", err, tt.wantErr)
 			}
-		})
-	}
-}
-
-func TestAppendJaegerCollectorArg(t *testing.T) {
-	c1 := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	collectorLabels := map[string]string{
-		constants.KubernetesAppLabel: constants.JaegerCollectorService,
-	}
-	namespace := "foo"
-	cWithServices := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).
-		WithObjects(&v1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: namespace,
-				Name:      "jaeger-collector-headless",
-				Labels:    collectorLabels,
-			},
-		},
-			&v1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespace,
-					Name:      "jaeger-collector",
-					Labels:    collectorLabels,
-				},
-				Spec: v1.ServiceSpec{
-					Ports: []v1.ServicePort{
-						{
-							Name: "http-foo",
-							Port: 1234,
-						},
-						{
-							Name: "http-zipkin",
-							Port: 5555,
-						},
-					},
-				},
-			}).Build()
-	tb := true
-	jaegerEnabled := &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				JaegerOperator: &vzapi.JaegerOperatorComponent{
-					Enabled: &tb,
-				},
-			},
-		},
-	}
-
-	var tests = []struct {
-		name string
-		ctx  spi.ComponentContext
-		kvs  []bom.KeyValue
-	}{
-		{
-			"no collector args when Jaeger disabled",
-			spi.NewFakeContext(c1, &vzapi.Verrazzano{}, false),
-			[]bom.KeyValue{},
-		},
-		{
-			"no collector args when Jaeger enabled but no services present",
-			spi.NewFakeContext(c1, jaegerEnabled, false),
-			[]bom.KeyValue{},
-		},
-		{
-			"collector args when Jaeger enabled and services present",
-			spi.NewFakeContext(cWithServices, jaegerEnabled, false),
-			[]bom.KeyValue{
-				{
-					Key:   "meshConfig.defaultConfig.tracing.zipkin.address",
-					Value: fmt.Sprintf("jaeger-collector.%s.svc.cluster.local:5555", namespace),
-				},
-				{
-					Key:   "meshConfig.defaultConfig.tracing.tlsSettings.mode",
-					Value: "ISTIO_MUTUAL",
-				},
-				{
-					Key:   "meshConfig.enableTracing",
-					Value: "true",
-				},
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			kvs, err := appendJaegerCollectorArg(tt.ctx, []bom.KeyValue{})
-			assert.NoError(t, err)
-			assert.EqualValues(t, tt.kvs, kvs)
 		})
 	}
 }
