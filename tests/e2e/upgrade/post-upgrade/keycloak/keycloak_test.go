@@ -14,7 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var waitTimeout = 1 * time.Minute
+var waitTimeout = 2 * time.Minute
 var pollingInterval = 30 * time.Second
 
 var t = framework.NewTestFramework("verify")
