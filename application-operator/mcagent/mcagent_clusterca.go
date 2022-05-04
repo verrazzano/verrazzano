@@ -77,31 +77,14 @@ func (s *Syncer) syncAdminClusterCA() error {
 // syncLocalClusterCA - synchronize the local cluster CA cert -- update admin copy if local CA changes
 func (s *Syncer) syncLocalClusterCA() error {
 
-	// Get the local cluster CA secret - this could be in the Additional TLS secret in Rancher NS
-	// (for Let's Encrypt staging CA) or the Verrazzano ingress TLS secret in Verrazzano System NS
-	localCASecret := corev1.Secret{}
-
-	errAddlTLS := s.LocalClient.Get(s.Context, client.ObjectKey{
-		Namespace: globalconst.RancherSystemNamespace,
-		Name:      globalconst.AdditionalTLS,
-	}, &localCASecret)
-	if client.IgnoreNotFound(errAddlTLS) != nil {
-		return errAddlTLS
-	}
-
-	if errAddlTLS != nil { // additional TLS secret not found, check for Verrazzano TLS secret
-		err := s.LocalClient.Get(s.Context, client.ObjectKey{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      constants.VerrazzanoIngressTLSSecret,
-		}, &localCASecret)
-		if err != nil {
-			return err
-		}
+	localCASecret, err := s.getLocalClusterCASecret()
+	if err != nil {
+		return err
 	}
 
 	// Get the managed cluster CA secret from the admin cluster
 	vmc := platformopclusters.VerrazzanoManagedCluster{}
-	err := s.AdminClient.Get(s.Context, client.ObjectKey{
+	err = s.AdminClient.Get(s.Context, client.ObjectKey{
 		Name:      s.ManagedClusterName,
 		Namespace: constants.VerrazzanoMultiClusterNamespace,
 	}, &vmc)
@@ -133,6 +116,32 @@ func (s *Syncer) syncLocalClusterCA() error {
 	}
 
 	return nil
+}
+
+// getLocalClusterCASecret gets the local cluster CA secret - this could be in the Additional TLS
+// secret in Rancher NS (for Let's Encrypt staging CA) or the Verrazzano ingress TLS secret
+// in Verrazzano System NS for other cases
+func (s *Syncer) getLocalClusterCASecret() (*corev1.Secret, error) {
+	localCASecret := corev1.Secret{}
+
+	errAddlTLS := s.LocalClient.Get(s.Context, client.ObjectKey{
+		Namespace: globalconst.RancherSystemNamespace,
+		Name:      globalconst.AdditionalTLS,
+	}, &localCASecret)
+	if client.IgnoreNotFound(errAddlTLS) != nil {
+		return nil, errAddlTLS
+	}
+
+	if errAddlTLS != nil { // additional TLS secret not found, check for Verrazzano TLS secret
+		err := s.LocalClient.Get(s.Context, client.ObjectKey{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      constants.VerrazzanoIngressTLSSecret,
+		}, &localCASecret)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &localCASecret, nil
 }
 
 func secretsEqualTrimmedWhitespace(secret1, secret2 []byte) bool {
