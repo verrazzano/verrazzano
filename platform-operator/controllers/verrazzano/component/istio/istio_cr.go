@@ -112,7 +112,7 @@ func BuildIstioOperatorYaml(ctx spi.ComponentContext, comp *vzapi.IstioComponent
 		return "", err
 	}
 
-	for _, arg := range append(installArgs, jaegerArgs...) {
+	for _, arg := range append(jaegerArgs, installArgs...) {
 		values := arg.ValueList
 		if len(values) == 0 {
 			values = []string{arg.Value}
