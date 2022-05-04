@@ -2805,6 +2805,10 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookie(t *test
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, destinationrule *istioclient.DestinationRule, opts ...client.CreateOption) error {
 			assert.Equal("test-service.test-space.svc.local", destinationrule.Spec.Host)
+			lbPolicy := destinationrule.Spec.TrafficPolicy.LoadBalancer.LbPolicy.(*istionet.LoadBalancerSettings_ConsistentHash)
+			hashKey := lbPolicy.ConsistentHash.HashKey.(*istionet.LoadBalancerSettings_ConsistentHashLB_HttpCookie)
+			assert.Equal(int64(30), hashKey.HttpCookie.Ttl.Seconds)
+			assert.Equal(int32(0), hashKey.HttpCookie.Ttl.Nanos)
 			return nil
 		})
 	// Expect a call to update the status of the ingress trait.
