@@ -132,6 +132,66 @@ func TestSyncCACertsAreDifferent(t *testing.T) {
 	assert.Equal(newMCCA, adminSecret.Data["cacrt"], "MC CA secret was changed")
 }
 
+// Test the case when managed cluster uses Let's Encrypt staging (i.e. tls-ca-additional secret
+// is present, and that should be preferred for sync even if verrazzano-tls is present.)
+func TestSyncCACertsAdditionalTLSPresent(t *testing.T) {
+	assert := asserts.New(t)
+	log := zap.S().With("test")
+
+	// Test data
+	testAdminCASecret, err := getSampleClusterCASecret("testdata/clusterca-admincasecret-new.yaml")
+	assert.NoError(err, "failed to read sample Admin CA Secret")
+
+	testClusterRegSecret, err := getSampleClusterCASecret("testdata/clusterca-clusterregsecret.yaml")
+	assert.NoError(err, "failed to read sample Cluster Registration Secret")
+
+	// Managed cluster "normal" VZ ingress TLS secret (verrazzano-tls)
+	testMCTLSSecret, err := getSampleClusterCASecret("testdata/clusterca-mctlssecret-new.yaml")
+	assert.NoError(err, "failed to read sample MC TLS Secret")
+
+	// Managed cluster additional TLS secret is also present
+	testMCAdditionalTLSSecret, err := getSampleClusterCASecret("testdata/clusterca-mc-additionaltls-secret.yaml")
+	assert.NoError(err, "failed to read sample MC additional TLS CA Secret")
+
+	testMCCASecret, err := getSampleClusterCASecret("testdata/clusterca-mccasecret.yaml")
+	assert.NoError(err, "failed to read sample MC CA Secret")
+
+	testVMC, err := getSampleClusterCAVMC("testdata/clusterca-vmc.yaml")
+	assert.NoError(err, "failed to read sample VMC")
+
+	newRegCA := testAdminCASecret.Data["ca-bundle"]
+	// Managed cluster additional TLS secret is the one to sync to admin cluster
+	newMCCA := testMCAdditionalTLSSecret.Data["ca.crt"]
+
+	adminClient := fake.NewFakeClientWithScheme(newClusterCAScheme(), &testAdminCASecret, &testMCCASecret, &testVMC)
+
+	localClient := fake.NewFakeClientWithScheme(newClusterCAScheme(), &testClusterRegSecret, &testMCTLSSecret, &testMCAdditionalTLSSecret)
+
+	// Make the request
+	s := &Syncer{
+		AdminClient:        adminClient,
+		LocalClient:        localClient,
+		Log:                log,
+		ManagedClusterName: testClusterName,
+		Context:            context.TODO(),
+	}
+	err = s.syncClusterCAs()
+
+	// Validate the results
+	assert.NoError(err)
+
+	// Verify the CA secrets were not updated
+	localSecret := &corev1.Secret{}
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testClusterRegSecret.Name, Namespace: testClusterRegSecret.Namespace}, localSecret)
+	assert.NoError(err)
+	assert.Equal(newRegCA, localSecret.Data["ca-bundle"], "registration secret was changed")
+
+	adminSecret := &corev1.Secret{}
+	err = s.AdminClient.Get(s.Context, types.NamespacedName{Name: testMCCASecret.Name, Namespace: testMCCASecret.Namespace}, adminSecret)
+	assert.NoError(err)
+	assert.Equal(newMCCA, adminSecret.Data["cacrt"], "MC CA secret on admin cluster did not match the additional TLS CA secret on managed cluster.")
+}
+
 // getSampleClusterCASecret creates and returns a sample Secret used in tests
 func getSampleClusterCASecret(filePath string) (corev1.Secret, error) {
 	secret := corev1.Secret{}
