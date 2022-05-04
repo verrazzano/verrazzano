@@ -74,7 +74,8 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 	targetVersion := cr.Spec.Version
 
 	tracker := getUpgradeTracker(cr)
-	for tracker.vzState != vzStateEnd {
+	done := false
+	for !done {
 		switch tracker.vzState {
 		case vzStateStart:
 			// Only write the upgrade started message once
@@ -152,13 +153,16 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			if err := r.updateVerrazzanoStatus(log, cr); err != nil {
 				return newRequeueWithDelay(), err
 			}
-
-			// Upgrade completely done
-			deleteUpgradeTracker(cr)
 			tracker.vzState = vzStateEnd
 
 			// Requeue since the status was just updated, want a fresh copy from controller-runtime cache
 			return newRequeueWithDelay(), nil
+
+		case vzStateEnd:
+			done = true
+			// Upgrade completely done
+			deleteUpgradeTracker(cr)
+			return ctrl.Result{}, nil
 		}
 	}
 	// Upgrade done, no need to requeue
