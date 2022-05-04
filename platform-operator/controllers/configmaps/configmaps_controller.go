@@ -10,6 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"time"
 
@@ -107,8 +108,10 @@ func (r *VerrazzanoConfigMapsReconciler) reconcileHelmOverrideConfigMap(ctx cont
 }
 func (r *VerrazzanoConfigMapsReconciler) updateVerrazzanoForHelmOverrides(componentCtx spi.ComponentContext, componentName string) error {
 	cr := componentCtx.ActualCR()
-	cr.Status.Components[componentName].LastReconciledGeneration = 0
-	err := r.Status().Update(context.TODO(), cr)
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, cr, func() error {
+		cr.Status.Components[componentName].LastReconciledGeneration = 0
+		return nil
+	})
 	if err == nil {
 		return nil
 	}
