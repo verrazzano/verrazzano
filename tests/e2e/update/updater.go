@@ -87,13 +87,11 @@ func UpdateCR(m CRModifier) error {
 // update till it succeeds or timesout.
 func UpdateCRWithRetries(m CRModifier, pollingInterval, timeout time.Duration) {
 	gomega.Eventually(func() bool {
+		// Wait till the custom resource becomes ready.
+		WaitForReadyState(pollingInterval, timeout)
 		cr, err := pkg.GetVerrazzano()
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
-			return false
-		}
-		if cr == nil || cr.Status.State != vzapi.VzStateReady {
-			pkg.Log(pkg.Error, "VZ CR is nil or not in ready state")
 			return false
 		}
 		// Modify the CR
@@ -117,10 +115,33 @@ func UpdateCRWithRetries(m CRModifier, pollingInterval, timeout time.Duration) {
 		}
 		vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
 		_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
+		// Wait till the resource edit is complete and the verrazzano custom resource comes to ready state
+		WaitForReadyState(pollingInterval, timeout)
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
 			return false
 		}
 		return true
+	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(gomega.BeTrue())
+}
+
+// IsCRReady return true if the verrazzano custom resource is in ready state false otherwise
+func IsCRReady(cr *vzapi.Verrazzano) bool {
+	if cr == nil || cr.Status.State != vzapi.VzStateReady {
+		pkg.Log(pkg.Error, "VZ CR is nil or not in ready state")
+		return false
+	}
+	return true
+}
+
+// WaitForReadyState waits till the verrazzano custom resource becomes ready or times out
+func WaitForReadyState(pollingInterval, timeout time.Duration) {
+	gomega.Eventually(func() bool {
+		cr, err := pkg.GetVerrazzano()
+		if err != nil {
+			pkg.Log(pkg.Error, err.Error())
+			return false
+		}
+		return IsCRReady(cr)
 	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(gomega.BeTrue())
 }
