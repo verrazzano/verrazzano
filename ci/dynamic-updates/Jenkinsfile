@@ -429,6 +429,22 @@ pipeline {
                     }
                 }
 
+                stage('Nginx/Istio Update Tests') {
+                    environment {
+                        TEST_ENV = "KIND"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/nginx-istio-update"
+                    }
+                    steps {
+                        runGinkgo('update/nginxistio')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
                 stage('Post-update2 Acceptance Tests') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-update"
