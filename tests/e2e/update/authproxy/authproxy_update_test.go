@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	authProxyName  = "verrazzano-authproxy"
-	authProxyLabel = "app"
+	authProxyLabelValue = "verrazzano-authproxy"
+	authProxyLabelKey   = "app"
 )
 
 type AuthProxyReplicasModifier struct {
@@ -62,10 +62,10 @@ func (u AuthProxyPodPerNodeAffintyModifier) ModifyCR(cr *vzapi.Verrazzano) {
 			MatchLabels: nil,
 			MatchExpressions: []metav1.LabelSelectorRequirement{
 				{
-					Key:      "app",
+					Key:      authProxyLabelKey,
 					Operator: "In",
 					Values: []string{
-						authProxyName,
+						authProxyLabelValue,
 					},
 				},
 			},
@@ -102,7 +102,7 @@ var _ = t.AfterSuite(func() {
 	if cr.Spec.Profile == "prod" || cr.Spec.Profile == "" {
 		expectedRunning = 2
 	}
-	update.ValidatePods(authProxyName, authProxyLabel, constants.VerrazzanoSystemNamespace, expectedRunning, false)
+	update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
 })
 
 var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
@@ -114,7 +114,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 			if cr.Spec.Profile == "prod" || cr.Spec.Profile == "" {
 				expectedRunning = 2
 			}
-			update.ValidatePods(authProxyName, authProxyLabel, constants.VerrazzanoSystemNamespace, expectedRunning, false)
+			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
 		})
 	})
 
@@ -124,7 +124,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 			update.UpdateCR(m)
 
 			expectedRunning := nodeCount
-			update.ValidatePods(authProxyName, authProxyLabel, constants.VerrazzanoSystemNamespace, expectedRunning, false)
+			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
 		})
 	})
 
@@ -139,7 +139,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 				expectedRunning = nodeCount
 				expectedPending = false
 			}
-			update.ValidatePods(authProxyName, authProxyLabel, constants.VerrazzanoSystemNamespace, expectedRunning, expectedPending)
+			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, expectedPending)
 		})
 	})
 })
