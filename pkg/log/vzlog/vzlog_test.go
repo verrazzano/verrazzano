@@ -118,18 +118,20 @@ func TestErrorfThrottled(t *testing.T) {
 // WHEN ErrorfThrottledNewErr is called 5 times with 1 message and no sleep
 // THEN ensure that 1 message is logged
 func TestErrorfThrottledNewErr(t *testing.T) {
-	msg := fmt.Sprintf("Mymessage %s", "test2")
+	const messageTemplate = "Mymessage %s"
+	const messageParameter = "test2"
+	msg := fmt.Sprintf(messageTemplate, messageParameter)
 	logger := fakeLogger{expectedMsg: msg}
 	const rKey = "testns/errorsNew"
 	rl := EnsureContext(rKey)
 	l := rl.EnsureLogger("comp1", &logger, zap.S()).SetFrequency(30)
 
 	// Calls to log should result in only 1 log messages being written
-	assert.Error(t, l.ErrorfThrottledNewErr("Mymessage %s", "test2"))
-	assert.Error(t, l.ErrorfThrottledNewErr("Mymessage %s", "test2"))
-	assert.Error(t, l.ErrorfThrottledNewErr("Mymessage %s", "test2"))
-	assert.Error(t, l.ErrorfThrottledNewErr("Mymessage %s", "test2"))
-	assert.Error(t, l.ErrorfThrottledNewErr("Mymessage %s", "test2"))
+	assert.Error(t, l.ErrorfThrottledNewErr(messageTemplate, messageParameter))
+	assert.Error(t, l.ErrorfThrottledNewErr(messageTemplate, messageParameter))
+	assert.Error(t, l.ErrorfThrottledNewErr(messageTemplate, messageParameter))
+	assert.Error(t, l.ErrorfThrottledNewErr(messageTemplate, messageParameter))
+	assert.Error(t, l.ErrorfThrottledNewErr(messageTemplate, messageParameter))
 	assert.Equal(t, 1, logger.count)
 	assert.Equal(t, msg, logger.actualMsg)
 	DeleteLogContext(rKey)
