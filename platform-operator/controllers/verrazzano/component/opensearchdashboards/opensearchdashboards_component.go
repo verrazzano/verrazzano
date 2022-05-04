@@ -10,7 +10,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -38,7 +37,7 @@ func (d opensearchDashboardsComponent) GetDependencies() []string {
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the OpenSearch-Dashboards component
 func (d opensearchDashboardsComponent) GetMinVerrazzanoVersion() string {
-	return constants.VerrazzanoVersion1_3_0
+	return constants.VerrazzanoVersion1_0_0
 }
 
 // GetJSONName returns the json name of the OpenSearch-Dashboards component in CRD
@@ -102,7 +101,7 @@ func (d opensearchDashboardsComponent) Upgrade(ctx spi.ComponentContext) error {
 
 // IsReady component check
 func (d opensearchDashboardsComponent) IsReady(ctx spi.ComponentContext) bool {
-	return checkOpenSearchDashboardsStatus(ctx, status.DeploymentsAreReady)
+	return isOSDReady(ctx)
 }
 
 // PostInstall OpenSearch-Dashboards post-install processing

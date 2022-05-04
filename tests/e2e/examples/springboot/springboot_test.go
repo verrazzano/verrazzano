@@ -34,7 +34,7 @@ var _ = t.BeforeSuite(func() {
 
 	if !skipDeploy {
 		start := time.Now()
-		pkg.DeploySpringBootApplication(namespace)
+		pkg.DeploySpringBootApplication(namespace, istioInjection)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 

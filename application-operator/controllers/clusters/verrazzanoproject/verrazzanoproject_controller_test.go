@@ -263,6 +263,15 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 
 				if tt.fields.vpNamespace == constants.VerrazzanoMultiClusterNamespace {
 					if tt.fields.nsList[0].Metadata.Name == existingNS.Metadata.Name {
+						// expect call to get vz system namespace
+						mockClient.EXPECT().
+							Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
+							DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+								ns.Labels = make(map[string]string)
+								ns.Labels["istio-injection"] = "enabled"
+
+								return nil
+							})
 						// expect call to get a namespace
 						mockClient.EXPECT().
 							Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: tt.fields.nsList[0].Metadata.Name}, gomock.Not(gomock.Nil())).
@@ -293,6 +302,15 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 
 						mockClusterRoleBindingNoDelete(assert, mockClient, tt.fields.nsList[0].Metadata.Name)
 					} else { // not an existing namespace
+						// expect call to get vz system namespace
+						mockClient.EXPECT().
+							Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
+							DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+								ns.Labels = make(map[string]string)
+								ns.Labels["istio-injection"] = "enabled"
+
+								return nil
+							})
 						// expect call to get a namespace that returns namespace not found
 						mockClient.EXPECT().
 							Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: tt.fields.nsList[0].Metadata.Name}, gomock.Not(gomock.Nil())).
@@ -374,6 +392,16 @@ func TestNetworkPolicies(t *testing.T) {
 			vp.Spec.Template.Namespaces = []clustersv1alpha1.NamespaceTemplate{ns1}
 			vp.Spec.Template.NetworkPolicies = []clustersv1alpha1.NetworkPolicyTemplate{ns1Netpol}
 			vp.Spec.Placement.Clusters = []clustersv1alpha1.Cluster{{Name: clusterstest.UnitTestClusterName}}
+			return nil
+		})
+
+	// expect call to get vz system namespace
+	mockClient.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+			ns.Labels = make(map[string]string)
+			ns.Labels["istio-injection"] = "enabled"
+
 			return nil
 		})
 

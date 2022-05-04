@@ -46,19 +46,13 @@ func TestIsEnabled(t *testing.T) {
 							Enabled: &falseValue,
 						},
 						Kibana: &vzapi.KibanaComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{
-								Enabled: &falseValue,
-							},
+							Enabled: &falseValue,
 						},
 						Grafana: &vzapi.GrafanaComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{
-								Enabled: &falseValue,
-							},
+							Enabled: &falseValue,
 						},
 						Prometheus: &vzapi.PrometheusComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{
-								Enabled: &falseValue,
-							},
+							Enabled: &falseValue,
 						},
 					},
 				},

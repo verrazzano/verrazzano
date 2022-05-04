@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
 	"os/exec"
 	"strings"
 	"testing"
@@ -318,47 +317,6 @@ func getMock(t *testing.T) *mocks.MockClient {
 // fakeRunner overrides the istio run command
 func (r fakeRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 	return []byte("success"), []byte(""), nil
-}
-
-// TestAppendIstioOverrides tests the Istio override for the global hub
-// GIVEN the registry ovverride env var is set
-//  WHEN I call AppendIstioOverrides
-//  THEN the Istio global.hub helm override is added to the provided array/slice.
-func TestAppendIstioOverrides(t *testing.T) {
-	a := assert.New(t)
-
-	config.SetDefaultBomFilePath(testBomFilePath)
-
-	_ = os.Setenv(constants.RegistryOverrideEnvVar, "myreg.io")
-	defer func() { _ = os.Unsetenv(constants.RegistryOverrideEnvVar) }()
-
-	kvs, err := AppendIstioOverrides(nil, "istiod", "", "", nil)
-	a.NoError(err, "AppendIstioOverrides returned an error ")
-	a.Len(kvs, 1, "AppendIstioOverrides returned wrong number of Key:Value pairs")
-	a.Equal(istioGlobalHubKey, kvs[0].Key)
-	a.Equal("myreg.io/verrazzano", kvs[0].Value)
-
-	_ = os.Setenv(constants.ImageRepoOverrideEnvVar, "myrepo")
-	defer func() { _ = os.Unsetenv(constants.ImageRepoOverrideEnvVar) }()
-	kvs, err = AppendIstioOverrides(nil, "istiod", "", "", nil)
-	a.NoError(err, "AppendIstioOverrides returned an error ")
-	a.Len(kvs, 1, "AppendIstioOverrides returned wrong number of Key:Value pairs")
-	a.Equal(istioGlobalHubKey, kvs[0].Key)
-	a.Equal("myreg.io/myrepo/verrazzano", kvs[0].Value)
-}
-
-// TestAppendIstioOverridesNoRegistryOverride tests the Istio override for the global hub when no registry override is specified
-// GIVEN the registry ovverride env var is NOT set
-//  WHEN I call AppendIstioOverrides
-//  THEN no overrides are added to the provided array/slice
-func TestAppendIstioOverridesNoRegistryOverride(t *testing.T) {
-	a := assert.New(t)
-
-	config.SetDefaultBomFilePath(testBomFilePath)
-
-	kvs, err := AppendIstioOverrides(nil, "istiod", "", "", nil)
-	a.NoError(err, "AppendIstioOverrides returned an error ")
-	a.Len(kvs, 0, "AppendIstioOverrides returned wrong number of Key:Value pairs")
 }
 
 // TestIsReady tests the IsReady function

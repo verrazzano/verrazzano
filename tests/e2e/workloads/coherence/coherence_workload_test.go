@@ -29,8 +29,9 @@ const (
 	appConfiguration  = "tests/testdata/test-applications/coherence/hello-coherence/hello-coherence-app.yaml"
 	compConfiguration = "tests/testdata/test-applications/coherence/hello-coherence/hello-coherence-comp.yaml"
 
-	appEndPoint      = "catalogue"
-	expectedResponse = "A perfect example of a swivel chair trained calf"
+	appEndPoint       = "catalogue"
+	expectedResponse  = "A perfect example of a swivel chair trained calf"
+	skipVerifications = "Skip Verifications"
 )
 
 var (
@@ -51,24 +52,25 @@ var _ = BeforeSuite(func() {
 			return pkg.ContainerImagePullWait(namespace, expectedPods)
 		}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	}
+	if !skipVerify {
+		t.Logs.Info("Coherence Application - check expected pod is running")
+		Eventually(func() bool {
+			result, err := pkg.PodsRunning(namespace, expectedPods)
+			if err != nil {
+				AbortSuite(fmt.Sprintf("Coherence application pod is not running in the namespace: %v, error: %v", namespace, err))
+			}
+			return result
+		}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the Coherence Application")
 
-	t.Logs.Info("Coherence Application - check expected pod is running")
-	Eventually(func() bool {
-		result, err := pkg.PodsRunning(namespace, expectedPods)
-		if err != nil {
-			AbortSuite(fmt.Sprintf("Coherence application pod is not running in the namespace: %v, error: %v", namespace, err))
-		}
-		return result
-	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the Coherence Application")
-
-	var err error
-	// Get the host from the Istio gateway resource.
-	start := time.Now()
-	Eventually(func() (string, error) {
-		host, err = k8sutil.GetHostnameFromGateway(namespace, "")
-		return host, err
-	}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
-	metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
+		var err error
+		// Get the host from the Istio gateway resource.
+		start := time.Now()
+		Eventually(func() (string, error) {
+			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
+			return host, err
+		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
+		metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
+	}
 	beforeSuitePassed = true
 })
 
@@ -92,6 +94,9 @@ var _ = t.Describe("Validate deployment of VerrazzanoCoherenceWorkload", Label("
 	t.Context("Ingress", Label("f:mesh.ingress"), func() {
 		// Verify the application endpoints
 		t.It("Verify '/catalogue' UI endpoint is working", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/%s", host, appEndPoint)
 				return pkg.GetWebPage(url, host)
@@ -103,12 +108,18 @@ var _ = t.Describe("Validate deployment of VerrazzanoCoherenceWorkload", Label("
 		indexName, err := pkg.GetOpenSearchAppIndex(namespace)
 		Expect(err).To(BeNil())
 		t.It("Verify Elasticsearch index exists", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
 			Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index for Coherence application.")
 		})
 
 		t.It("Verify recent Elasticsearch log record exists", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
 			Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"kubernetes.labels.app_oam_dev\\/component": "hello-coherence",
@@ -119,6 +130,9 @@ var _ = t.Describe("Validate deployment of VerrazzanoCoherenceWorkload", Label("
 		})
 
 		t.It("Verify Coherence log records", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
 			Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"kubernetes.labels.coherenceCluster":                "HelloCoherence",
@@ -133,6 +147,9 @@ var _ = t.Describe("Validate deployment of VerrazzanoCoherenceWorkload", Label("
 	t.Context("Metrics", Label("f:observability.monitoring.prom"), func() {
 		// Verify Coherence metrics
 		t.It("Retrieve Coherence metrics", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
 			kubeConfig, err := k8sutil.GetKubeConfigLocation()
 			if err != nil {
 				Expect(err).To(BeNil(), fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
@@ -146,6 +163,9 @@ var _ = t.Describe("Validate deployment of VerrazzanoCoherenceWorkload", Label("
 		})
 
 		t.It("Retrieve application metrics", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
 			pkg.Concurrently(
 				func() {
 					Eventually(func() bool {

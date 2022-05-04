@@ -38,8 +38,8 @@ function delete_verrazzano() {
 
   log "Deleting Verrazzano crds"
   delete_k8s_resources crds ":metadata.name" "Could not delete CustomResourceDefinitions from Verrazzano" '/verrazzano.io/ && ! /verrazzanos.install.verrazzano.io/ && ! /verrazzanomanagedclusters.clusters.verrazzano.io/' \
-    || return $? # return on pipefail
-
+   || return $? # return on pipefail
+   
   log "Deleting ClusterRoleBindings"
   # deleting clusterrolebindings
   delete_k8s_resources clusterrolebinding ":metadata.name,:metadata.labels" "Could not delete ClusterRoleBindings from Verrazzano" '/verrazzano/ && ! /verrazzano-platform-operator/ && ! /verrazzano-install/ && ! /verrazzano-managed-cluster/ {print $1}' \

@@ -154,7 +154,7 @@ func TestCreateAndLabelNamespaceReturnsError(t *testing.T) {
 // WHEN no error occurs
 // THEN no error is returned, the namespace is created, and the proper labels have been added
 func TestCreateVerrazzanoSystemNamespace(t *testing.T) {
-	runNamespaceTest(t, globalconst.VerrazzanoSystemNamespace,
+	runNamespaceTestWithIstioFlag(t, globalconst.VerrazzanoSystemNamespace,
 		createVZAndIstioLabels(globalconst.VerrazzanoSystemNamespace),
 		CreateVerrazzanoSystemNamespace)
 }
@@ -174,7 +174,7 @@ func TestCreateVerrazzanoMonitoringNamespace(t *testing.T) {
 // WHEN no error occurs
 // THEN no error is returned, the namespace is created, and the proper labels have been added
 func TestCreateKeycloakNamespace(t *testing.T) {
-	runNamespaceTest(t, globalconst.KeycloakNamespace,
+	runNamespaceTestWithIstioFlag(t, globalconst.KeycloakNamespace,
 		createVZAndIstioLabels(globalconst.KeycloakNamespace),
 		CreateKeycloakNamespace)
 }
@@ -219,4 +219,26 @@ func runNamespaceTest(t *testing.T, namespace string, expectedLabels map[string]
 		})
 
 	asserts.NoError(namespaceFunc(mock))
+}
+
+func runNamespaceTestWithIstioFlag(t *testing.T, namespace string, expectedLabels map[string]string, namespaceFunc func(client client.Client, istioInjectionEnabled bool) error) {
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: namespace}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+			return errors.NewNotFound(schema.ParseGroupResource("Namespace"), namespace)
+		})
+
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.CreateOption) error {
+			asserts.Equal(namespace, ns.Name)
+			asserts.Equal(expectedLabels, ns.Labels)
+			return nil
+		})
+
+	asserts.NoError(namespaceFunc(mock, true))
 }

@@ -1835,6 +1835,30 @@ func TestPartialMergeNestedMap(t *testing.T) {
 	assert.Equal(t, systemNamespaceLabels, myInstance.MyMap)
 }
 
+// TestChangedValueMergeNestedMap tests mergeMaps function
+// GIVEN source map contains the same set of keys, but with a different value
+// WHEN the mergeMaps function is called
+// THEN true is returned the new map has all expected values
+func TestChangedValueMergeNestedMap(t *testing.T) {
+	type mytype struct {
+		MyMap map[string]string
+	}
+	systemNamespaceLabels := map[string]string{
+		"istio-injection":         "disabled",
+		"verrazzano.io/namespace": constants.VerrazzanoSystemNamespace,
+	}
+	var updated bool
+	myInstance := mytype{}
+	myInstance.MyMap = map[string]string{
+		"istio-injection":         "enabled",
+		"verrazzano.io/namespace": constants.VerrazzanoSystemNamespace,
+	}
+
+	myInstance.MyMap, updated = mergeMaps(myInstance.MyMap, systemNamespaceLabels)
+	assert.True(t, updated)
+	assert.Equal(t, systemNamespaceLabels, myInstance.MyMap)
+}
+
 // TestNonIntersectingMergeNestedMap tests mergeMaps function
 // GIVEN source map and map to merge contain non-intersecting values
 // WHEN the mergeMaps function is called

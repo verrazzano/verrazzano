@@ -11,7 +11,10 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -21,6 +24,9 @@ const (
 	prometheusTLSSecret             = "prometheus-operator-kube-p-admission"
 	prometheusOperatorDeployment    = "prometheus-operator-kube-p-operator"
 	prometheusOperatorContainerName = "kube-prometheus-stack"
+	overrideConfigMapSecretName     = "test-overrides"
+	overrideKey                     = "override"
+	overrideValue                   = "true"
 )
 
 type enabledFunc func(string) bool
@@ -53,6 +59,7 @@ var (
 		"--prometheus-default-base-image=" + imagePrefix + "/verrazzano/prometheus",
 		"--alertmanager-default-base-image=" + imagePrefix + "/verrazzano/alertmanager",
 	}
+	labelMatch = map[string]string{overrideKey: overrideValue}
 )
 
 var t = framework.NewTestFramework("promstack")
@@ -77,6 +84,19 @@ func isPrometheusOperatorEnabled() bool {
 		AbortSuite(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
 	return pkg.IsPrometheusOperatorEnabled(kubeconfigPath)
+}
+
+func areOverridesEnabled() bool {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
+	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed to get vz resource in cluster: %s", err.Error()))
+		return false
+	}
+	return len(vz.Spec.Components.PrometheusOperator.ValueOverrides) > 0
 }
 
 // 'It' Wrapper to only run spec if the Prometheus Stack is supported on the current Verrazzano version
@@ -125,6 +145,36 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 					AbortSuite(fmt.Sprintf("Pods %v is not running in the namespace: %v, error: %v", enabledPods, verrazzanoMonitoringNamespace, err))
 				}
 				return result
+			}
+			Eventually(promStackPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+
+		// GIVEN the Prometheus stack is installed
+		// WHEN we check to make sure the operator overrides get applied
+		// THEN we see that the correct pod labels and annotations exist
+		WhenPromStackInstalledIt("should have Prometheus Operator pod labeled and annotated", func() {
+			promStackPodsRunning := func() bool {
+				if isPrometheusOperatorEnabled() && areOverridesEnabled() {
+					_, err := pkg.GetConfigMap(overrideConfigMapSecretName, constants.DefaultNamespace)
+					if err == nil {
+						pods, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{
+							MatchLabels: labelMatch,
+						}, verrazzanoMonitoringNamespace)
+						if err != nil {
+							AbortSuite(fmt.Sprintf("Label override not found for the Prometheus Operator pod in namespace %s: %v", verrazzanoMonitoringNamespace, err))
+						}
+						foundAnnotation := false
+						for _, pod := range pods {
+							if val, ok := pod.Annotations[overrideKey]; ok && val == overrideValue {
+								foundAnnotation = true
+							}
+						}
+						return len(pods) == 1 && foundAnnotation
+					} else if !k8serrors.IsNotFound(err) {
+						AbortSuite(fmt.Sprintf("Error retrieving the override ConfigMap: %v", err))
+					}
+				}
+				return true
 			}
 			Eventually(promStackPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})

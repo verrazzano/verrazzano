@@ -22,9 +22,7 @@ func TestNewVMIResources(t *testing.T) {
 			Components: vzapi.ComponentSpec{
 				DNS: dnsComponents.DNS,
 				Kibana: &vzapi.KibanaComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &enabled,
-					},
+					Enabled: &enabled,
 				},
 			},
 		},

@@ -36,8 +36,6 @@ import (
 // ComponentName is the name of the component
 
 const (
-	esHelmValuePrefixFormat = "elasticSearch.%s"
-
 	tmpFilePrefix        = "verrazzano-overrides-"
 	tmpSuffix            = "yaml"
 	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
@@ -46,7 +44,6 @@ const (
 	fluentDaemonset       = "fluentd"
 	nodeExporterDaemonset = "node-exporter"
 
-	grafanaDeployment           = "vmi-system-grafana"
 	prometheusDeployment        = "vmi-system-prometheus-0"
 	verrazzanoConsoleDeployment = "verrazzano-console"
 )
@@ -68,8 +65,8 @@ func resolveVerrazzanoNamespace(ns string) string {
 	return globalconst.VerrazzanoSystemNamespace
 }
 
-// checkVerrazzanoComponentStatus checks performs checks on the OpenSearch resources
-func checkVerrazzanoComponentStatus(ctx spi.ComponentContext, deploymentFunc status.DeploymentFunc, daemonsetFunc status.DaemonSetFunc) bool {
+// isVerrazzanoReady Verrazzano component ready-check
+func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 
 	// First, check deployments
@@ -82,13 +79,6 @@ func checkVerrazzanoComponentStatus(ctx spi.ComponentContext, deploymentFunc sta
 			})
 	}
 
-	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments,
-			types.NamespacedName{
-				Name:      grafanaDeployment,
-				Namespace: ComponentNamespace,
-			})
-	}
 	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments,
 			types.NamespacedName{
@@ -97,7 +87,7 @@ func checkVerrazzanoComponentStatus(ctx spi.ComponentContext, deploymentFunc sta
 			})
 	}
 
-	if !deploymentFunc(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
+	if !status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
 		return false
 	}
 
@@ -117,11 +107,20 @@ func checkVerrazzanoComponentStatus(ctx spi.ComponentContext, deploymentFunc sta
 				Namespace: ComponentNamespace,
 			})
 	}
-	if !daemonsetFunc(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {
+	if !status.DaemonSetsAreReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {
 		return false
 	}
-
 	return common.IsVMISecretReady(ctx)
+}
+
+// doesPromExist is the verrazzano IsInstalled check
+func doesPromExist(ctx spi.ComponentContext) bool {
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	deploy := []types.NamespacedName{{
+		Name:      prometheusDeployment,
+		Namespace: ComponentNamespace,
+	}}
+	return status.DoDeploymentsExist(ctx.Log(), ctx.Client(), deploy, 1, prefix)
 }
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart
@@ -133,9 +132,6 @@ func verrazzanoPreUpgrade(ctx spi.ComponentContext, namespace string) error {
 		return err
 	}
 	if err := common.EnsureVMISecret(ctx.Client()); err != nil {
-		return err
-	}
-	if err := common.EnsureGrafanaAdminSecret(ctx.Client()); err != nil {
 		return err
 	}
 	return fixupFluentdDaemonset(ctx.Log(), ctx.Client(), namespace)
@@ -241,7 +237,8 @@ func createAndLabelNamespaces(ctx spi.ComponentContext) error {
 		}
 	}
 	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
-		if err := namespace.CreateKeycloakNamespace(ctx.Client()); err != nil {
+		istio := ctx.EffectiveCR().Spec.Components.Istio
+		if err := namespace.CreateKeycloakNamespace(ctx.Client(), istio != nil && istio.IsInjectionEnabled()); err != nil {
 			return ctx.Log().ErrorfNewErr("Failed creating Keycloak namespace: %v", err)
 		}
 	}

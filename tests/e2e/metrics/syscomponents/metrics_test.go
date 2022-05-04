@@ -140,24 +140,26 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
-		t.It("Verify sample mesh metrics can be queried from Prometheus", func() {
-			Eventually(func() bool {
-				kv := map[string]string{
-					namespace: verrazzanoSystemNamespace,
-				}
-				return metricsContainLabels(istioRequestsTotal, kv)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-		})
+		if istioInjection == "enabled" {
+			t.It("Verify sample mesh metrics can be queried from Prometheus", func() {
+				Eventually(func() bool {
+					kv := map[string]string{
+						namespace: verrazzanoSystemNamespace,
+					}
+					return metricsContainLabels(istioRequestsTotal, kv)
+				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+			})
 
-		t.It("Verify sample istiod metrics can be queried from Prometheus", func() {
-			Eventually(func() bool {
-				kv := map[string]string{
-					app: istiod,
-					job: pilot,
-				}
-				return metricsContainLabels(sidecarInjectionRequests, kv)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-		})
+			t.It("Verify sample istiod metrics can be queried from Prometheus", func() {
+				Eventually(func() bool {
+					kv := map[string]string{
+						app: istiod,
+						job: pilot,
+					}
+					return metricsContainLabels(sidecarInjectionRequests, kv)
+				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+			})
+		}
 
 		t.It("Verify sample metrics can be queried from Prometheus", func() {
 			Eventually(func() bool {
@@ -168,11 +170,13 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
-		t.It("Verify envoy stats", func() {
-			Eventually(func() bool {
-				return verifyEnvoyStats(envoyStatsRecentLookups)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-		})
+		if istioInjection == "enabled" {
+			t.It("Verify envoy stats", func() {
+				Eventually(func() bool {
+					return verifyEnvoyStats(envoyStatsRecentLookups)
+				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+			})
+		}
 	})
 })
 

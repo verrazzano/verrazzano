@@ -115,7 +115,10 @@ func preInstall(compContext spi.ComponentContext, namespace string) error {
 			ns.Labels = make(map[string]string)
 		}
 		ns.Labels["verrazzano.io/namespace"] = namespace
-		ns.Labels["istio-injection"] = "enabled"
+		istio := compContext.EffectiveCR().Spec.Components.Istio
+		if istio != nil && istio.IsInjectionEnabled() {
+			ns.Labels["istio-injection"] = "enabled"
+		}
 		return nil
 	}); err != nil {
 		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}

@@ -190,5 +190,7 @@ func checkNGINXErrorPage(req *retryablehttp.Request, expectedStatus int) (string
 		t.Logs.Errorf("Error reading response: %v", err)
 		return "", err
 	}
-	return strings.TrimSpace(string(httpResp.Body)), err
+	responseString := strings.TrimSpace(string(httpResp.Body))
+	t.Logs.Infof("Error page response: %s", responseString)
+	return responseString, err
 }
