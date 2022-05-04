@@ -7,7 +7,8 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 
@@ -22,7 +23,24 @@ import (
 
 const ComponentInstallArgShape = `gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"`
 
+var testScheme = runtime.NewScheme()
+
+func init() {
+	_ = istioclisec.AddToScheme(testScheme)
+	_ = corev1.AddToScheme(testScheme)
+}
+
 var enabled = true
+
+var jaegerEnabledCR = &vzapi.Verrazzano{
+	Spec: vzapi.VerrazzanoSpec{
+		Components: vzapi.ComponentSpec{
+			JaegerOperator: &vzapi.JaegerOperatorComponent{
+				Enabled: &enabled,
+			},
+		},
+	},
+}
 
 var prodIstioIngress = &vzapi.IstioIngressSection{
 	Kubernetes: &vzapi.IstioKubernetesSection{
@@ -573,12 +591,12 @@ spec:
 // WHEN BuildIstioOperatorYaml is called
 // THEN ensure that the result is correct.
 func TestBuildIstioOperatorYaml(t *testing.T) {
-	fakeCtx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build(), &vzapi.Verrazzano{}, false)
+	fakeCtx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vzapi.Verrazzano{}, false)
 	collectorLabels := map[string]string{
 		constants.KubernetesAppLabel: constants.JaegerCollectorService,
 	}
 	namespace := "foo"
-	clientForJaeger := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).
+	clientForJaeger := fake.NewClientBuilder().WithScheme(testScheme).
 		WithObjects(&corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: namespace,
@@ -633,15 +651,7 @@ func TestBuildIstioOperatorYaml(t *testing.T) {
 			testName: "Override Jaeger when enabled and present",
 			value:    cr4,
 			expected: cr4Yaml,
-			ctx: spi.NewFakeContext(clientForJaeger, &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						JaegerOperator: &vzapi.JaegerOperatorComponent{
-							Enabled: &enabled,
-						},
-					},
-				},
-			}, false),
+			ctx:      spi.NewFakeContext(clientForJaeger, jaegerEnabledCR, false),
 		},
 	}
 	for _, test := range tests {
