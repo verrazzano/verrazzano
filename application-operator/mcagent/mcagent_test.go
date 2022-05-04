@@ -69,24 +69,26 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 
 	// Admin Cluster - expect call to list VerrazzanoProject objects - return an empty list
 	adminMock.EXPECT().
-		List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...*client.ListOptions) error {
+		List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...client.ListOption) error {
 			return nil
 		})
 
 	// Managed Cluster - expect call to list VerrazzanoProject objects - return an empty list
 	mcMock.EXPECT().
-		List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...*client.ListOptions) error {
+		List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...client.ListOption) error {
 			return nil
 		})
 
 	// Managed Cluster - expect call to list Namespace objects - return an empty list
 	mcMock.EXPECT().
-		List(gomock.Any(), &corev1.NamespaceList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, list *corev1.NamespaceList, opts ...*client.ListOptions) error {
+		List(gomock.Any(), &corev1.NamespaceList{}, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *corev1.NamespaceList, opts ...client.ListOption) error {
 			return nil
 		})
+
+	expectCASyncSuccess(mcMock, adminMock, assert, "cluster1")
 
 	// Make the request
 	s := &Syncer{
@@ -349,8 +351,8 @@ func TestSyncer_updateDeployment(t *testing.T) {
 
 				// Managed Cluster - expect call to update the deployment.
 				mcMock.EXPECT().
-					Update(gomock.Any(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, deployment *appsv1.Deployment) error {
+					Update(gomock.Any(), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, deployment *appsv1.Deployment, opts ...client.UpdateOption) error {
 						asserts.Equal(t, newVersion, getEnvValue(&deployment.Spec.Template.Spec.Containers, registrationSecretVersion), "expected env value for "+registrationSecretVersion)
 						return nil
 					})
@@ -397,14 +399,60 @@ func expectAdminVMCStatusUpdateSuccess(adminMock *mocks.MockClient, vmcName type
 		})
 	adminMock.EXPECT().Status().Return(adminStatusMock)
 	adminStatusMock.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&platformopclusters.VerrazzanoManagedCluster{})).
-		DoAndReturn(func(ctx context.Context, vmc *platformopclusters.VerrazzanoManagedCluster) error {
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&platformopclusters.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *platformopclusters.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			assert.Equal(vmcName.Namespace, vmc.Namespace)
 			assert.Equal(vmcName.Name, vmc.Name)
 			assert.NotNil(vmc.Status)
 			assert.NotNil(vmc.Status.LastAgentConnectTime)
 			assert.NotNil(vmc.Status.APIUrl)
 			assert.NotNil(vmc.Status.PrometheusHost)
+			return nil
+		})
+}
+
+func expectCASyncSuccess(localMock, adminMock *mocks.MockClient, assert *asserts.Assertions, testClusterName string) {
+	localRegistrationSecret := types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCRegistrationSecret}
+	adminCASecret := types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: constants.VerrazzanoLocalCABundleSecret}
+	localIngressTLSSecret := types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VerrazzanoIngressTLSSecret}
+	adminMock.EXPECT().
+		Get(gomock.Any(), adminCASecret, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Name = adminCASecret.Name
+			secret.Namespace = adminCASecret.Namespace
+			return nil
+		})
+	localMock.EXPECT().
+		Get(gomock.Any(), localRegistrationSecret, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Name = localRegistrationSecret.Name
+			secret.Namespace = localRegistrationSecret.Namespace
+			return nil
+		})
+	localMock.EXPECT().
+		Get(gomock.Any(), localIngressTLSSecret, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Name = localIngressTLSSecret.Name
+			secret.Namespace = localIngressTLSSecret.Namespace
+			return nil
+		})
+
+	vmcName := types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testClusterName}
+	clusterCASecret := "clusterCASecret"
+	adminMock.EXPECT().
+		Get(gomock.Any(), vmcName, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *platformopclusters.VerrazzanoManagedCluster) error {
+			vmc.Name = vmcName.Name
+			vmc.Namespace = vmcName.Namespace
+			vmc.Spec.CASecret = clusterCASecret
+			return nil
+		})
+	adminClusterCASecret := types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: clusterCASecret}
+	adminMock.EXPECT().
+		Get(gomock.Any(), adminClusterCASecret, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Name = adminClusterCASecret.Name
+			secret.Namespace = adminClusterCASecret.Namespace
 			return nil
 		})
 }
@@ -672,8 +720,8 @@ func TestSyncer_configureLogging(t *testing.T) {
 			// update only when expected
 			if expectUpdateDS {
 				mcMock.EXPECT().
-					Update(gomock.Any(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet) error {
+					Update(gomock.Any(), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet, opts ...client.UpdateOption) error {
 						return nil
 					})
 			}

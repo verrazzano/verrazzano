@@ -54,7 +54,7 @@ func TestAddAndRemoveNamespaceLogging(t *testing.T) {
 	cm.Data = make(map[string]string)
 	cm.Data[fluentdConfigKey] = fluentdConfig
 
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, cm)
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(cm).Build()
 
 	updated, err := addNamespaceLogging(context.TODO(), client, testNamespace, testLogID)
 	asserts.NoError(err)
@@ -93,7 +93,7 @@ func TestMissingFluentdConfigMap(t *testing.T) {
 	// GIVEN there is no system Fluentd config map
 	// WHEN I add namespace-specific logging configuration
 	// THEN an error is returned
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	_, err := addNamespaceLogging(context.TODO(), client, testNamespace, testLogID)
 	asserts.Error(err)
 	asserts.Contains(err.Error(), "must exist")
@@ -122,7 +122,7 @@ func TestAddNamespaceLoggingAlreadyExists(t *testing.T) {
 	cm.Data = make(map[string]string)
 	cm.Data[fluentdConfigKey] = fluentdConfig
 
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, cm)
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(cm).Build()
 
 	updated, err := addNamespaceLogging(context.TODO(), client, testNamespace, testLogID)
 	asserts.NoError(err)
@@ -145,7 +145,7 @@ func TestRemoveNamespaceLoggingDoesNotExist(t *testing.T) {
 	cm.Data = make(map[string]string)
 	cm.Data[fluentdConfigKey] = fluentdConfig
 
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, cm)
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(cm).Build()
 
 	updated, err := removeNamespaceLogging(context.TODO(), client, testNamespace)
 	asserts.NoError(err)
@@ -163,7 +163,7 @@ func TestUpdateExistingLoggingConfig(t *testing.T) {
 	cm.Data = make(map[string]string)
 	cm.Data[fluentdConfigKey] = fluentdConfig
 
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, cm)
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(cm).Build()
 
 	updated, err := addNamespaceLogging(context.TODO(), client, testNamespace, testLogID)
 	asserts.NoError(err)

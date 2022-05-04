@@ -55,9 +55,9 @@ func TestCopyGlobalPullSecretDoesNotExist(t *testing.T) {
 // THEN true is returned
 func TestTargetPullSecretAlreadyExists(t *testing.T) {
 	name := types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: constants.VerrazzanoSystemNamespace}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: name.Name, Namespace: name.Namespace},
-	},
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: name.Name, Namespace: "default"}},
+		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: name.Name, Namespace: name.Namespace}},
 	)
 	copied, err := CheckImagePullSecret(client, constants.VerrazzanoSystemNamespace)
 	assert.NoError(t, err)
@@ -66,7 +66,7 @@ func TestTargetPullSecretAlreadyExists(t *testing.T) {
 
 // TestUnexpectedErrorGetTargetSecret tests a deployment ready status check
 // GIVEN a call to checkImagePullSecret
-// WHEN an unexpected error is returned on the target namespace check
+// WHEN an unexpected error is returned on the global secret check
 // THEN false and an error are returned
 func TestUnexpectedErrorGetTargetSecret(t *testing.T) {
 	asserts := assert.New(t)
@@ -75,7 +75,7 @@ func TestUnexpectedErrorGetTargetSecret(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	name := types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: constants.VerrazzanoSystemNamespace}
+	name := types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: "default"}
 
 	// Expect a call to get an existing configmap, but return a NotFound error.
 	mock.EXPECT().
@@ -118,8 +118,8 @@ func TestUnexpectedErrorOnCreate(t *testing.T) {
 			return nil
 		})
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, secret *corev1.Secret) error {
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
 			return fmt.Errorf("Unexpected error")
 		})
 	copied, err := CheckImagePullSecret(mock, constants.VerrazzanoSystemNamespace)
@@ -138,15 +138,8 @@ func TestUnexpectedErrorGetSourceSecret(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	targetSecretName := types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: constants.VerrazzanoSystemNamespace}
 	defaultName := types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: "default"}
 
-	// Expect a call to get the target ns secret first, return not found
-	mock.EXPECT().
-		Get(gomock.Any(), targetSecretName, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *corev1.Secret) error {
-			return errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.GlobalImagePullSecName)
-		})
 	// Expect a call to get the default ns secret.
 	mock.EXPECT().
 		Get(gomock.Any(), defaultName, gomock.Not(gomock.Nil())).
@@ -169,21 +162,21 @@ func TestAddImagePullSecretUnexpectedError(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	targetSecretName := types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: constants.VerrazzanoSystemNamespace}
+	targetSecretName := types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: "default"}
 
 	// Expect a call to get the target ns secret first, return not found
 	mock.EXPECT().
 		Get(gomock.Any(), targetSecretName, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *corev1.Secret) error {
 			return fmt.Errorf("unexpected error")
-		})
+		}).AnyTimes()
 
 	kvs := []bom.KeyValue{
 		{Key: "key1", Value: "value1"},
 		{Key: "key2", Value: "value2"},
 	}
 	retKVs, err := AddGlobalImagePullSecretHelmOverride(vzlog.DefaultLogger(), mock, constants.VerrazzanoSystemNamespace, kvs, "helmKey")
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 	assert.Equal(t, kvs, retKVs)
 }
 
@@ -194,9 +187,9 @@ func TestAddImagePullSecretUnexpectedError(t *testing.T) {
 func TestAddImagePullSecretTargetSecretAlreadyExists(t *testing.T) {
 
 	name := types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: constants.VerrazzanoSystemNamespace}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: name.Name, Namespace: name.Namespace},
-	},
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: constants.GlobalImagePullSecName, Namespace: "default"}},
+		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: name.Name, Namespace: name.Namespace}},
 	)
 	kvs := []bom.KeyValue{
 		{Key: "key1", Value: "value1"},

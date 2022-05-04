@@ -3,18 +3,26 @@
 package kiali
 
 import (
+	"context"
 	"testing"
 
+	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
+	appv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -41,7 +49,7 @@ func init() {
 
 	_ = istioclinet.AddToScheme(testScheme)
 	_ = istioclisec.AddToScheme(testScheme)
-
+	_ = certapiv1.AddToScheme(testScheme)
 	// +kubebuilder:scaffold:testScheme
 }
 
@@ -126,6 +134,83 @@ func TestIsEnabledDevProfile(t *testing.T) {
 	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
+// TestRemoveDeploymentAndService tests the removeDeploymentAndService function
+// GIVEN a call to removeDeploymentAndService
+//  WHEN the Kiali deployment and service exist with incorrect selectors
+//  THEN the deployment and service are deleted
+func TestRemoveDeploymentAndService(t *testing.T) {
+	deployment := &appv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      kialiSystemName,
+		},
+		Spec: appv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app.kubernetes.io/instance": ComponentName,
+					"app.kubernetes.io/name":     kialiSystemName,
+				},
+			},
+		},
+	}
+	service := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      kialiSystemName,
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(deployment, service).Build()
+	err := removeDeploymentAndService(spi.NewFakeContext(fakeClient, nil, false))
+	assert.Nil(t, err)
+	deployment = &appv1.Deployment{}
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: kialiSystemName, Namespace: ComponentNamespace}, deployment)
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
+	service = &corev1.Service{}
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: kialiSystemName, Namespace: ComponentNamespace}, service)
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
+
+}
+
+// TestRemoveDeploymentAndServiceNoMatch tests the removeDeploymentAndService function
+// GIVEN a call to removeDeploymentAndService
+//  WHEN the Kiali deployment and service exist with correct selectors
+//  THEN the deployment and service are not deleted
+func TestRemoveDeploymentAndServiceNoMatch(t *testing.T) {
+	deployment := &appv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      kialiSystemName,
+		},
+		Spec: appv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app.kubernetes.io/instance": kialiSystemName,
+					"app.kubernetes.io/name":     "kiali",
+				},
+			},
+		},
+	}
+	service := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      kialiSystemName,
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(deployment, service).Build()
+	err := removeDeploymentAndService(spi.NewFakeContext(fakeClient, nil, false))
+	assert.Nil(t, err)
+	deployment = &appv1.Deployment{}
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: kialiSystemName, Namespace: ComponentNamespace}, deployment)
+	assert.Nil(t, err)
+	service = &corev1.Service{}
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: kialiSystemName, Namespace: ComponentNamespace}, service)
+	assert.Nil(t, err)
+}
+
 // TestKialiPostInstallUpdateResources tests the PostInstall function
 // GIVEN a call to PostInstall
 //  WHEN the Kiali resources already exist
@@ -145,10 +230,20 @@ func TestKialiPostInstallUpdateResources(t *testing.T) {
 	ingress := &v1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{Name: constants.KialiIngress, Namespace: constants.VerrazzanoSystemNamespace},
 	}
+
+	time := metav1.Now()
+	cert := &certapiv1.Certificate{
+		ObjectMeta: metav1.ObjectMeta{Name: certificates[0].Name, Namespace: certificates[0].Namespace},
+		Status: certapiv1.CertificateStatus{
+			Conditions: []certapiv1.CertificateCondition{
+				{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
+			},
+		},
+	}
 	authPol := &istioclisec.AuthorizationPolicy{
 		ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kiali-authzpol"},
 	}
-	fakeClient := fake.NewFakeClientWithScheme(testScheme, ingress, authPol)
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(ingress, authPol, cert).Build()
 	err := NewComponent().PostInstall(spi.NewFakeContext(fakeClient, vz, false))
 	assert.Nil(t, err)
 }
@@ -169,7 +264,17 @@ func TestKialiPostInstallCreateResources(t *testing.T) {
 			},
 		},
 	}
-	fakeClient := fake.NewFakeClientWithScheme(testScheme)
+
+	time := metav1.Now()
+	cert := &certapiv1.Certificate{
+		ObjectMeta: metav1.ObjectMeta{Name: certificates[0].Name, Namespace: certificates[0].Namespace},
+		Status: certapiv1.CertificateStatus{
+			Conditions: []certapiv1.CertificateCondition{
+				{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
+			},
+		},
+	}
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(cert).Build()
 	err := NewComponent().PostInstall(spi.NewFakeContext(fakeClient, vz, false))
 	assert.Nil(t, err)
 }
@@ -196,9 +301,35 @@ func TestKialiPostUpgradeUpdateResources(t *testing.T) {
 	authPol := &istioclisec.AuthorizationPolicy{
 		ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kiali-authzpol"},
 	}
-	fakeClient := fake.NewFakeClientWithScheme(testScheme, ingress, authPol)
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(ingress, authPol).Build()
 	err := NewComponent().PostUpgrade(spi.NewFakeContext(fakeClient, vz, false))
 	assert.Nil(t, err)
+}
+
+// TestPreUpgrade tests the Kiali PreUpgrade call
+// GIVEN a Kiali component
+//  WHEN I call PreUpgrade with defaults
+//  THEN no error is returned
+func TestPreUpgrade(t *testing.T) {
+	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
+	// for the Component interface hook
+	config.TestHelmConfigDir = "../../../../thirdparty"
+	deployment := &appv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      kialiSystemName,
+		},
+	}
+	service := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      kialiSystemName,
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(deployment, service).Build()
+	err := NewComponent().PreUpgrade(spi.NewFakeContext(fakeClient, nil, false))
+	assert.NoError(t, err)
 }
 
 func getBoolPtr(b bool) *bool {

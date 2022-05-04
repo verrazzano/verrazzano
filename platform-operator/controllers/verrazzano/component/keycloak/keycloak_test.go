@@ -15,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -41,6 +42,11 @@ var keycloakErrorClientIds = "[ {\n  \"id\" : \"a732-249893586af2\",\n  \"client
 var testVZ = &vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		Profile: "dev",
+		Components: vzapi.ComponentSpec{
+			Keycloak: &vzapi.KeycloakComponent{
+				MySQL: vzapi.MySQLComponent{},
+			},
+		},
 	},
 }
 var crEnabled = vzapi.Verrazzano{
@@ -112,7 +118,7 @@ func TestHelperProcess(t *testing.T) {
 		return
 	}
 
-	fmt.Fprintf(os.Stdout, keycloakClientIds)
+	_, _ = fmt.Fprintf(os.Stdout, keycloakClientIds)
 	os.Exit(0)
 }
 
@@ -125,12 +131,27 @@ func fakeFailExecCommand(command string, args ...string) *exec.Cmd {
 	return cmd
 }
 
+// fakeConfigureRealmCommands Implements the default responses for TestConfigureKeycloakRealms
+// - these tests launch actual go test commands to spit out canned output and return codes
+// - this is to control how the test respond to multiple different commands in the flow
+// - because it's function-based, we can't have different responses based on the call ordering, unless we want to
+//   get funky with how we manage state, and implement the canned calls as a stack or something
+func fakeConfigureRealmCommands(command string, args ...string) *exec.Cmd {
+	kccommand := fmt.Sprintf("%s-%s", args[8], args[9])
+	switch kccommand {
+	case "get-clients":
+		return fakeExecCommand(command, args...)
+	default:
+		return fakeCreateUserGroupCommand(command, args...)
+	}
+}
+
 func TestFailHelperProcess(t *testing.T) {
 	if os.Getenv("GO_WANT_FAIL_HELPER_PROCESS") != "1" {
 		return
 	}
 
-	fmt.Fprintf(os.Stdout, keycloakClientIds)
+	_, _ = fmt.Fprintf(os.Stdout, keycloakClientIds)
 	os.Exit(1)
 }
 
@@ -148,7 +169,7 @@ func TestFailNoClientsHelperProcess(t *testing.T) {
 		return
 	}
 
-	fmt.Fprintf(os.Stdout, "")
+	_, _ = fmt.Fprintf(os.Stdout, "")
 	os.Exit(0)
 }
 
@@ -166,7 +187,7 @@ func TestFailNoUserHelperProcess(t *testing.T) {
 		return
 	}
 
-	fmt.Fprintf(os.Stdout, keycloakErrorClientIds)
+	_, _ = fmt.Fprintf(os.Stdout, keycloakErrorClientIds)
 	os.Exit(0)
 }
 
@@ -184,7 +205,7 @@ func TestFakeCreateUserGroup(t *testing.T) {
 		return
 	}
 
-	fmt.Fprintf(os.Stdout, "Created new group with id '6653a73b-f292-4dfe-91cb-956ead33ea67'")
+	_, _ = fmt.Fprintf(os.Stdout, "Created new group with id '6653a73b-f292-4dfe-91cb-956ead33ea67'")
 	os.Exit(0)
 }
 
@@ -202,7 +223,7 @@ func TestFakeCreateUserGroupFail(t *testing.T) {
 		return
 	}
 
-	fmt.Fprintf(os.Stdout, "")
+	_, _ = fmt.Fprintf(os.Stdout, "")
 	os.Exit(0)
 }
 
@@ -220,7 +241,7 @@ func TestFakeCreateUserParseGroupFail(t *testing.T) {
 		return
 	}
 
-	fmt.Fprintf(os.Stdout, "Created new group with id 6653a73b-f292-4dfe-91cb-956ead33ea67")
+	_, _ = fmt.Fprintf(os.Stdout, "Created new group with id 6653a73b-f292-4dfe-91cb-956ead33ea67")
 	os.Exit(0)
 }
 
@@ -235,7 +256,7 @@ func TestUpdateKeycloakURIs(t *testing.T) {
 		{
 			name: "testUpdateKeycloakURIs",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestLoginSecret(), createTestNginxService()),
+				fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestLoginSecret(), createTestNginxService()).Build(),
 				testVZ,
 				false),
 			wantErr: false,
@@ -243,7 +264,7 @@ func TestUpdateKeycloakURIs(t *testing.T) {
 		{
 			name: "testFailForNoKeycloakSecret",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestNginxService()),
+				fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestNginxService()).Build(),
 				testVZ,
 				false),
 			wantErr: true,
@@ -251,14 +272,14 @@ func TestUpdateKeycloakURIs(t *testing.T) {
 		{
 			name: "testFailForKeycloakSecretPasswordEmpty",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestNginxService(), &v1.Secret{
+				fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestNginxService(), &v1.Secret{
 					TypeMeta: metav1.TypeMeta{},
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "keycloak-http",
 						Namespace: "keycloak",
 					},
 					Data: map[string][]byte{"password": []byte("")},
-				}),
+				}).Build(),
 				testVZ,
 				false),
 			wantErr: true,
@@ -266,7 +287,7 @@ func TestUpdateKeycloakURIs(t *testing.T) {
 		{
 			name: "testFailForAuthenticationToKeycloak",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestLoginSecret(), createTestNginxService()),
+				fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestLoginSecret(), createTestNginxService()).Build(),
 				testVZ,
 				false),
 			wantErr: true,
@@ -274,7 +295,7 @@ func TestUpdateKeycloakURIs(t *testing.T) {
 		{
 			name: "testFailForNoKeycloakClientsReturned",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestLoginSecret(), createTestNginxService()),
+				fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestLoginSecret(), createTestNginxService()).Build(),
 				testVZ,
 				false),
 			wantErr: true,
@@ -282,7 +303,7 @@ func TestUpdateKeycloakURIs(t *testing.T) {
 		{
 			name: "testFailForKeycloakUserNotFound",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestLoginSecret(), createTestNginxService()),
+				fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestLoginSecret(), createTestNginxService()).Build(),
 				testVZ,
 				false),
 			wantErr: true,
@@ -290,7 +311,7 @@ func TestUpdateKeycloakURIs(t *testing.T) {
 		{
 			name: "testFailForNoIngress",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestLoginSecret()),
+				fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestLoginSecret()).Build(),
 				testVZ,
 				false),
 			wantErr: true,
@@ -298,7 +319,7 @@ func TestUpdateKeycloakURIs(t *testing.T) {
 		{
 			name: "testScriptFailure",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestLoginSecret(), createTestNginxService()),
+				fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestLoginSecret(), createTestNginxService()).Build(),
 				testVZ,
 				false),
 			wantErr: true,
@@ -338,67 +359,100 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 	k8sutil.ClientConfig = fakeRESTConfig
 	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
 
+	defaultBashFunc := func(inArgs ...string) (string, string, error) {
+		return "", "", nil
+	}
+
+	keycloakPod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      keycloakPodName,
+			Namespace: ComponentNamespace,
+		},
+		Status: v1.PodStatus{
+			Conditions: []v1.PodCondition{
+				{
+					Type:   v1.PodReady,
+					Status: v1.ConditionTrue,
+				},
+			},
+		},
+	}
+
 	var tests = []struct {
 		name        string
 		c           client.Client
 		stdout      string
 		isErr       bool
 		errContains string
+		execFunc    func(command string, args ...string) *exec.Cmd
+		bashFunc    bashFuncSig
 	}{
 		{
 			"should fail when login fails",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme),
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(keycloakPod).Build(),
 			"blahblah",
 			true,
 			"secrets \"keycloak-http\" not found",
+			fakeCreateUserGroupCommand,
+			defaultBashFunc,
 		},
 		{
 			"should fail to retrieve user group ID from Keycloak when stdout is empty",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret),
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
 			"",
 			true,
 			"Component Keycloak failed; user group ID from Keycloak is zero length",
+			fakeCreateUserGroupCommandFail,
+			defaultBashFunc,
 		},
 		{
 			"should fail to retrieve user group ID from Keycloak when stdout is incorrect",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret),
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
 			"",
 			true,
 			"failed parsing output returned from Users Group",
+			fakeCreateUserGroupParseCommandFail,
+			defaultBashFunc,
 		},
 		{
 			"should fail when Verrazzano secret is not present",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret),
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
 			"blahblah'id",
 			true,
 			"secrets \"verrazzano\" not found",
+			fakeCreateUserGroupCommand,
+			defaultBashFunc,
 		},
 		{
 			"should fail when Verrazzano secret has no password",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, nginxService, &v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "verrazzano",
-					Namespace: "verrazzano-system",
-				},
-				Data: map[string][]byte{
-					"password": []byte(""),
-				},
-			}),
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, nginxService, keycloakPod,
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte(""),
+					},
+				}).Build(),
 			"blahblah'id",
 			true,
 			"password field empty in secret",
+			fakeCreateUserGroupCommand,
+			defaultBashFunc,
 		},
 		{
 			"should fail when nginx service is not present",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, &v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "verrazzano",
-					Namespace: "verrazzano-system",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod,
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
 				},
-				Data: map[string][]byte{
-					"password": []byte("blah di blah"),
-				},
-			},
 				&v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "verrazzano-prom-internal",
@@ -416,22 +470,25 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 					Data: map[string][]byte{
 						"password": []byte("blah di blah"),
 					},
-				}),
+				}).Build(),
 			"blahblah'id",
 			true,
 			"services \"ingress-controller-ingress-nginx-controller\" not found",
+			fakeConfigureRealmCommands,
+			defaultBashFunc,
 		},
 		{
-			"should pass when able to successfully exec commands on the keycloak pod and all k8s objects are present",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, nginxService, &v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "verrazzano",
-					Namespace: "verrazzano-system",
+			"bashFunc fails during updateKeycloakURIs",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, nginxService, keycloakPod,
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
 				},
-				Data: map[string][]byte{
-					"password": []byte("blah di blah"),
-				},
-			},
 				&v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "verrazzano-prom-internal",
@@ -449,23 +506,59 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 					Data: map[string][]byte{
 						"password": []byte("blah di blah"),
 					},
-				}),
+				}).Build(),
+			"blahblah'id",
+			true,
+			"updateKeycloakURIs failed",
+			fakeConfigureRealmCommands,
+			func(inArgs ...string) (string, string, error) {
+				return "", "Command failed", fmt.Errorf("updateKeycloakURIs failed")
+			},
+		},
+		{
+			"should pass when able to successfully exec commands on the keycloak pod and all k8s objects are present",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, nginxService, keycloakPod,
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano-prom-internal",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano-es-internal",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
+				}).Build(),
 			"blahblah'id",
 			false,
 			"",
+			fakeConfigureRealmCommands,
+			defaultBashFunc,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.c, testVZ, false)
-			execCommand = fakeCreateUserGroupCommand
-			if tt.name == "should fail to retrieve user group ID from Keycloak when stdout is empty" {
-				execCommand = fakeCreateUserGroupCommandFail
-			}
-			if tt.name == "should fail to retrieve user group ID from Keycloak when stdout is incorrect" {
-				execCommand = fakeCreateUserGroupParseCommandFail
-			}
+			execCommand = tt.execFunc
+			bashFunc = tt.bashFunc
+			defer func() { bashFunc = vzos.RunBash }()
 			k8sutilfake.PodSTDOUT = tt.stdout
 			err := configureKeycloakRealms(ctx)
 			if tt.isErr {
@@ -483,7 +576,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 // WHEN I call AppendKeycloakOverrides
 // THEN the Keycloak overrides Key:Value array has the expected content.
 func TestAppendKeycloakOverrides(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	const env = "test-env"
 	vz := &vzapi.Verrazzano{
@@ -492,30 +585,30 @@ func TestAppendKeycloakOverrides(t *testing.T) {
 		},
 	}
 
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestNginxService())
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestNginxService()).Build()
 
 	config.SetDefaultBomFilePath(testBomFilePath)
-	kvs, err := AppendKeycloakOverrides(spi.NewFakeContext(client, vz, false), "", "", "", nil)
+	kvs, err := AppendKeycloakOverrides(spi.NewFakeContext(c, vz, false), "", "", "", nil)
 
-	assert.NoError(err, "AppendKeycloakOverrides returned an error")
-	assert.Len(kvs, 5, "AppendKeycloakOverrides returned wrong number of Key:Value pairs")
+	a.NoError(err, "AppendKeycloakOverrides returned an error")
+	a.Len(kvs, 5, "AppendKeycloakOverrides returned wrong number of Key:Value pairs")
 
-	assert.Contains(kvs, bom.KeyValue{
+	a.Contains(kvs, bom.KeyValue{
 		Key:       dnsTarget,
 		Value:     testKeycloakIngressHost,
 		SetString: true,
 	})
-	assert.Contains(kvs, bom.KeyValue{
+	a.Contains(kvs, bom.KeyValue{
 		Key:   rulesHost,
 		Value: testKeycloakIngressHost,
 	})
-	assert.Contains(kvs, bom.KeyValue{
+	a.Contains(kvs, bom.KeyValue{
 		Key:   tlsHosts,
 		Value: testKeycloakIngressHost,
 	})
-	assert.Contains(kvs, bom.KeyValue{
+	a.Contains(kvs, bom.KeyValue{
 		Key:   tlsSecret,
-		Value: env + "-secret",
+		Value: keycloakCertificateName,
 	})
 }
 
@@ -525,7 +618,7 @@ func TestAppendKeycloakOverrides(t *testing.T) {
 // WHEN I call TestAppendKeycloakOverridesNoEnvironmentName
 // THEN the Keycloak overrides Key:Value array has the expected value for tlsSecret.
 func TestAppendKeycloakOverridesNoEnvironmentName(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -533,15 +626,15 @@ func TestAppendKeycloakOverridesNoEnvironmentName(t *testing.T) {
 		},
 	}
 
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestNginxService())
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestNginxService()).Build()
 	config.SetDefaultBomFilePath(testBomFilePath)
-	kvs, err := AppendKeycloakOverrides(spi.NewFakeContext(client, vz, false), "", "", "", nil)
+	kvs, err := AppendKeycloakOverrides(spi.NewFakeContext(c, vz, false), "", "", "", nil)
 
-	assert.NoError(err, "AppendKeycloakOverrides returned an error")
+	a.NoError(err, "AppendKeycloakOverrides returned an error")
 
-	assert.Contains(kvs, bom.KeyValue{
+	a.Contains(kvs, bom.KeyValue{
 		Key:   tlsSecret,
-		Value: "default-secret",
+		Value: keycloakCertificateName,
 	})
 }
 
@@ -583,17 +676,17 @@ func TestLoginKeycloak(t *testing.T) {
 	}{
 		{
 			"should fail when secret does not exist",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme),
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build(),
 			true,
 		},
 		{
 			"should fail to find the keycloak password if it is empty",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, httpSecretEmptyPassword),
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(httpSecretEmptyPassword).Build(),
 			true,
 		},
 		{
 			"should log into keycloak when the password is present",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, httpSecret),
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(httpSecret).Build(),
 			false,
 		},
 	}
@@ -616,7 +709,7 @@ func TestLoginKeycloak(t *testing.T) {
 // WHEN I call createOrUpdateAuthSecret
 // THEN create the auth secret
 func TestCreateOrUpdateAuthSecret(t *testing.T) {
-	c := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	ctx := spi.NewFakeContext(c, testVZ, false)
 	err := createAuthSecret(ctx, "ns", "secret", "user")
 	assert.NoError(t, err)
@@ -1078,7 +1171,7 @@ func TestUpdateKeycloakIngress(t *testing.T) {
 	annotations["cdd"] = "foo"
 	annotations["bar"] = "baz"
 	ingress.SetAnnotations(annotations)
-	c := fake.NewFakeClientWithScheme(k8scheme.Scheme, ingress, createTestNginxService())
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(ingress, createTestNginxService()).Build()
 	ctx := spi.NewFakeContext(c, testVZ, false)
 	err := updateKeycloakIngress(ctx)
 	assert.NoError(t, err)
@@ -1087,7 +1180,7 @@ func TestUpdateKeycloakIngress(t *testing.T) {
 func TestIsKeycloakReady(t *testing.T) {
 	readySecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      getSecretName(testVZ),
+			Name:      keycloakCertificateName,
 			Namespace: ComponentNamespace,
 		},
 	}
@@ -1100,32 +1193,32 @@ func TestIsKeycloakReady(t *testing.T) {
 	}{
 		{
 			"should not be ready when certificate not found",
-			fake.NewFakeClientWithScheme(scheme),
+			fake.NewClientBuilder().WithScheme(scheme).Build(),
 			false,
 		},
 		{
 			"should not be ready when certificate has no status",
-			fake.NewFakeClientWithScheme(scheme, &certmanager.Certificate{
+			fake.NewClientBuilder().WithScheme(scheme).WithObjects(&certmanager.Certificate{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      getSecretName(testVZ),
+					Name:      keycloakCertificateName,
 					Namespace: ComponentNamespace,
 				},
-			}),
+			}).Build(),
 			false,
 		},
 		{
 			"should not be ready when secret does not exists",
-			fake.NewFakeClientWithScheme(scheme),
+			fake.NewClientBuilder().WithScheme(scheme).Build(),
 			false,
 		},
 		{
 			"should not be ready when certificate status is ready but statefulset is not ready",
-			fake.NewFakeClientWithScheme(scheme, readySecret),
+			fake.NewClientBuilder().WithScheme(scheme).WithObjects(readySecret).Build(),
 			false,
 		},
 		{
 			"should be ready when certificate status is ready and statefulset is ready",
-			fake.NewFakeClientWithScheme(scheme, readySecret, &appsv1.StatefulSet{
+			fake.NewClientBuilder().WithScheme(scheme).WithObjects(readySecret, &appsv1.StatefulSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: ComponentNamespace,
 					Name:      ComponentName,
@@ -1134,7 +1227,7 @@ func TestIsKeycloakReady(t *testing.T) {
 					ReadyReplicas:   1,
 					UpdatedReplicas: 1,
 				},
-			}),
+			}).Build(),
 			true,
 		},
 	}

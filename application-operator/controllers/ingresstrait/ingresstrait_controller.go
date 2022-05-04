@@ -7,10 +7,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"reflect"
 	"strings"
+	"time"
+
+	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
@@ -62,37 +71,45 @@ const (
 	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
 	destinationRuleKind       = "DestinationRule"
 	controllerName            = "ingresstrait"
+	httpsProtocol             = "HTTPS"
+	istioIngressGateway       = "istio-ingressgateway"
+	finalizerName             = "ingresstrait.finalizers.verrazzano.io"
 )
 
 // The port names used by WebLogic operator that do not have http prefix.
 // Reference: https://github.com/oracle/weblogic-kubernetes-operator/blob/main/operator/src/main/resources/scripts/model_wdt_mii_filter.py
 var (
 	weblogicPortNames = []string{"tcp-cbt", "tcp-ldap", "tcp-iiop", "tcp-snmp", "tcp-default", "tls-ldaps",
-		"tls-default", "tls-cbts", "tls-iiops", "tcp-internal-t3"}
+		"tls-default", "tls-cbts", "tls-iiops", "tcp-internal-t3", "internal-t3"}
 )
 
 // Reconciler is used to reconcile an IngressTrait object
 type Reconciler struct {
 	client.Client
-	Log    *zap.SugaredLogger
-	Scheme *runtime.Scheme
+	Controller controller.Controller
+	Log        *zap.SugaredLogger
+	Scheme     *runtime.Scheme
 }
 
-// SetupWithManager creates a controller and adds it to the manager
-func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
+// SetupWithManager creates a controller and adds it to the manager, and sets up any watches
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) (err error) {
+	r.Controller, err = ctrl.NewControllerManagedBy(mgr).
 		WithOptions(controller.Options{
 			RateLimiter: controllers.NewDefaultRateLimiter(),
 		}).
 		For(&vzapi.IngressTrait{}).
-		Complete(r)
+		Build(r)
+	if err != nil {
+		return err
+	}
+	return r.setupWatches()
 }
 
 // Reconcile reconciles an IngressTrait with other related resources required for ingress.
 // This also results in the status of the ingress trait resource being updated.
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=ingresstraits,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=ingresstraits/status,verbs=get;update;patch
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
@@ -105,12 +122,14 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	var err error
 	var trait *vzapi.IngressTrait
-	ctx := context.Background()
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	if trait, err = r.fetchTrait(ctx, req.NamespacedName, zap.S()); err != nil {
 		return clusters.IgnoreNotFoundWithLog(err, zap.S())
 	}
-	// If the trait no longer exists or is being deleted then return success.
-	if trait == nil || isTraitBeingDeleted(trait) {
+	// If the trait no longer exists return success.
+	if trait == nil {
 		return reconcile.Result{}, nil
 	}
 	log, err := clusters.GetResourceLogger("ingresstrait", req.NamespacedName, trait)
@@ -137,6 +156,25 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 // doReconcile performs the reconciliation operations for the ingress trait
 func (r *Reconciler) doReconcile(ctx context.Context, trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
+	// If the ingress trait no longer exists or is being deleted then cleanup the associated cert and secret resources
+	if isIngressTraitBeingDeleted(trait) {
+		log.Debugf("Deleting ingress trait %v", trait)
+		if err := cleanup(trait, r.Client, log); err != nil {
+			// Requeue without error to avoid higher level log message
+			return reconcile.Result{Requeue: true}, nil
+		}
+		// resource cleanup has succeeded, remove the finalizer
+		if err := r.removeFinalizerIfRequired(ctx, trait, log); err != nil {
+			return vzctrl.NewRequeueWithDelay(2, 3, time.Second), nil
+		}
+		return reconcile.Result{}, nil
+	}
+
+	// add finalizer
+	if err := r.addFinalizerIfRequired(ctx, trait, log); err != nil {
+		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), nil
+	}
+
 	// Create or update the child resources of the trait and collect the outcomes.
 	status, result, err := r.createOrUpdateChildResources(ctx, trait, log)
 	if err != nil {
@@ -149,6 +187,39 @@ func (r *Reconciler) doReconcile(ctx context.Context, trait *vzapi.IngressTrait,
 	return r.updateTraitStatus(ctx, trait, status)
 }
 
+// isIngressTraitBeingDeleted determines if the ingress trait is in the process of being deleted.
+// This is done checking for a non-nil deletion timestamp.
+func isIngressTraitBeingDeleted(trait *vzapi.IngressTrait) bool {
+	return trait != nil && trait.GetDeletionTimestamp() != nil
+}
+
+// removeFinalizerIfRequired removes the finalizer from the application configuration if required
+// The finalizer is only removed if the application configuration is being deleted and the finalizer had been added
+func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) error {
+	if !trait.DeletionTimestamp.IsZero() && vzstring.SliceContainsString(trait.Finalizers, finalizerName) {
+		appName := vznav.GetNamespacedNameFromObjectMeta(trait.ObjectMeta)
+		log.Debugf("Removing finalizer from application configuration %s", appName)
+		trait.Finalizers = vzstring.RemoveStringFromSlice(trait.Finalizers, finalizerName)
+		err := r.Update(ctx, trait)
+		return vzlogInit.ConflictWithLog(fmt.Sprintf("Failed to remove finalizer from application configuration %s", appName), err, zap.S())
+	}
+	return nil
+}
+
+// addFinalizerIfRequired adds the finalizer to the app config if required
+// The finalizer is only added if the app config is not being deleted and the finalizer has not previously been added
+func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, appConfig *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) error {
+	if appConfig.GetDeletionTimestamp().IsZero() && !vzstring.SliceContainsString(appConfig.Finalizers, finalizerName) {
+		appName := vznav.GetNamespacedNameFromObjectMeta(appConfig.ObjectMeta)
+		log.Debugf("Adding finalizer for appConfig %s", appName)
+		appConfig.Finalizers = append(appConfig.Finalizers, finalizerName)
+		err := r.Update(ctx, appConfig)
+		_, err = vzlogInit.IgnoreConflictWithLog(fmt.Sprintf("Failed to add finalizer to appConfig %s", appName), err, zap.S())
+		return err
+	}
+	return nil
+}
+
 // createOrUpdateChildResources creates or updates the Gateway and VirtualService resources that
 // should be used to setup ingress to the service.
 func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) (*reconcileresults.ReconcileResults, ctrl.Result, error) {
@@ -158,19 +229,23 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 	if len(rules) == 0 {
 		rules = []vzapi.IngressRule{{}}
 	}
-	for index, rule := range rules {
-		secretName := r.createOrUseGatewaySecret(ctx, trait, rule, &status, log)
-		if secretName != "" {
-			gwName, err := getGatewayName(trait)
-			if err != nil {
-				status.Errors = append(status.Errors, err)
-			} else {
-				// Must create GW before service so that external DNS sees the GW once the service is created
-				gateway := r.createOrUpdateGateway(ctx, trait, rule, gwName, secretName, &status, log)
 
+	// Create a list of unique hostnames across all rules in the trait
+	allHostsForTrait := r.coallateAllHostsForTrait(trait, status)
+	// Generate the certificate and secret for all hosts in the trait rules
+	secretName := r.createOrUseGatewaySecret(ctx, trait, allHostsForTrait, &status, log)
+	if secretName != "" {
+		gwName, err := buildGatewayName(trait)
+		if err != nil {
+			status.Errors = append(status.Errors, err)
+		} else {
+			// The Gateway is shared across all traits, update it with all known hosts for the trait
+			// - Must create GW before service so that external DNS sees the GW once the service is created
+			gateway := r.createOrUpdateGateway(ctx, trait, allHostsForTrait, gwName, secretName, &status, log)
+			for index, rule := range rules {
 				// Find the services associated with the trait in the application configuration.
 				var services []*corev1.Service
-				services, err = r.fetchServicesFromTrait(ctx, trait, log)
+				services, err := r.fetchServicesFromTrait(ctx, trait, log)
 				if err != nil {
 					return &status, reconcile.Result{}, err
 				} else if len(services) == 0 {
@@ -180,7 +255,7 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 
 				vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, index)
 				drName := fmt.Sprintf("%s-rule-%d-dr", trait.Name, index)
-				r.createOrUpdateVirtualService(ctx, trait, rule, vsName, services, gateway, &status, log)
+				r.createOrUpdateVirtualService(ctx, trait, rule, allHostsForTrait, vsName, services, gateway, &status, log)
 				r.createOrUpdateDestinationRule(ctx, trait, rule, drName, &status, log)
 			}
 		}
@@ -188,15 +263,54 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 	return &status, ctrl.Result{}, nil
 }
 
-// getGatewayName will generate a gateway name from the namespace and application name of the provided trait. Returns
+func (r *Reconciler) coallateAllHostsForTrait(trait *vzapi.IngressTrait, status reconcileresults.ReconcileResults) []string {
+	allHosts := []string{}
+	var err error
+	for _, rule := range trait.Spec.Rules {
+		if allHosts, err = createHostsFromIngressTraitRule(r, rule, trait, allHosts...); err != nil {
+			status.Errors = append(status.Errors, err)
+		}
+	}
+	return allHosts
+}
+
+// buildGatewayName will generate a gateway name from the namespace and application name of the provided trait. Returns
 // an error if the app name is not available.
-func getGatewayName(trait *vzapi.IngressTrait) (string, error) {
+func buildGatewayName(trait *vzapi.IngressTrait) (string, error) {
 	appName, ok := trait.Labels[oam.LabelAppName]
 	if !ok {
 		return "", errors.New("OAM app name label missing from metadata, unable to generate gateway name")
 	}
 	gwName := fmt.Sprintf("%s-%s-gw", trait.Namespace, appName)
 	return gwName, nil
+}
+
+// buildCertificateName will construct a cert name from the trait.
+func buildCertificateName(trait *vzapi.IngressTrait) string {
+	return fmt.Sprintf("%s-%s-cert", trait.Namespace, trait.Name)
+}
+
+// buildCertificateSecretName will construct a cert secret name from the trait.
+func buildCertificateSecretName(trait *vzapi.IngressTrait) string {
+	return fmt.Sprintf("%s-%s-cert-secret", trait.Namespace, trait.Name)
+}
+
+// buildLegacyCertificateName will generate a cert name used by older version of Verrazzano
+func buildLegacyCertificateName(trait *vzapi.IngressTrait) string {
+	appName, ok := trait.Labels[oam.LabelAppName]
+	if !ok {
+		return ""
+	}
+	return fmt.Sprintf("%s-%s-cert", trait.Namespace, appName)
+}
+
+// buildLegacyCertificateSecretName will generate a cert secret name used by older version of Verrazzano
+func buildLegacyCertificateSecretName(trait *vzapi.IngressTrait) string {
+	appName, ok := trait.Labels[oam.LabelAppName]
+	if !ok {
+		return ""
+	}
+	return fmt.Sprintf("%s-%s-cert-secret", trait.Namespace, appName)
 }
 
 // updateTraitStatus updates the trait's status conditions and resources if they have changed.
@@ -210,12 +324,6 @@ func (r *Reconciler) updateTraitStatus(ctx context.Context, trait *vzapi.Ingress
 		return reconcile.Result{Requeue: true}, r.Status().Update(ctx, trait)
 	}
 	return reconcile.Result{}, nil
-}
-
-// isTraitBeingDeleted determines if the trait is in the process of being deleted.
-// This is done checking for a non-nil deletion timestamp.
-func isTraitBeingDeleted(trait *vzapi.IngressTrait) bool {
-	return trait != nil && trait.GetDeletionTimestamp() != nil
 }
 
 // fetchTrait attempts to get a trait given a namespaced name.
@@ -317,13 +425,15 @@ func (r *Reconciler) fetchChildResourcesByAPIVersionKinds(ctx context.Context, n
 
 // createOrUseGatewaySecret will create a certificate that will be embedded in an secret or leverage an existing secret
 // if one is configured in the ingress.
-func (r *Reconciler) createOrUseGatewaySecret(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) string {
+func (r *Reconciler) createOrUseGatewaySecret(ctx context.Context, trait *vzapi.IngressTrait, hostsForTrait []string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) string {
 	var secretName string
 
 	if trait.Spec.TLS != (vzapi.IngressSecurity{}) {
 		secretName = r.validateConfiguredSecret(trait, status)
 	} else {
-		secretName = r.createGatewayCertificate(ctx, trait, rule, status, log)
+		cleanupCert(buildLegacyCertificateName(trait), r.Client, log)
+		cleanupSecret(buildLegacyCertificateSecretName(trait), r.Client, log)
+		secretName = r.createGatewayCertificate(ctx, trait, hostsForTrait, status, log)
 	}
 
 	return secretName
@@ -334,11 +444,7 @@ func (r *Reconciler) createOrUseGatewaySecret(ctx context.Context, trait *vzapi.
 // There will be one gateway generated per application.  The generated virtual services will be routed via the
 // application-wide gateway.  This implementation addresses a known Istio traffic management issue
 // (see https://istio.io/v1.7/docs/ops/common-problems/network-issues/#404-errors-occur-when-multiple-gateways-configured-with-same-tls-certificate)
-func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) string {
-	var secretName string
-	var err error
-	var certName string
-
+func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.IngressTrait, hostsForTrait []string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) string {
 	//ensure trait does not specify hosts.  should be moved to ingress trait validating webhook
 	for _, rule := range trait.Spec.Rules {
 		if len(rule.Hosts) != 0 {
@@ -348,21 +454,8 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 		}
 	}
 
-	appName, ok := trait.Labels[oam.LabelAppName]
-	if !ok {
-		err = fmt.Errorf("failed to obtain app name from ingress trait")
-		status.Errors = append(status.Errors, err)
-		status.Results = append(status.Results, controllerutil.OperationResultNone)
-		return ""
-	}
-	certName, err = buildCertificateNameFromAppName(types.NamespacedName{Namespace: trait.Namespace, Name: appName})
-	if err != nil {
-		log.Errorf("Failed to create certificate name from ingress trait: %v", err)
-		status.Errors = append(status.Errors, err)
-		status.Results = append(status.Results, controllerutil.OperationResultNone)
-		return ""
-	}
-	secretName = fmt.Sprintf("%s-secret", certName)
+	certName := buildCertificateName(trait)
+	secretName := buildCertificateSecretName(trait)
 	certificate := &certapiv1.Certificate{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       certificateKind,
@@ -374,12 +467,8 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 		}}
 
 	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, certificate, func() error {
-		hosts, err := createHostsFromIngressTraitRule(r, rule, trait)
-		if err != nil {
-			return err
-		}
 		certificate.Spec = certapiv1.CertificateSpec{
-			DNSNames:   hosts,
+			DNSNames:   hostsForTrait,
 			SecretName: secretName,
 			IssuerRef: certv1.ObjectReference{
 				Name: verrazzanoClusterIssuer,
@@ -425,8 +514,8 @@ func (r *Reconciler) validateConfiguredSecret(trait *vzapi.IngressTrait, status 
 
 // createOrUpdateGateway creates or updates the Gateway child resource of the trait.
 // Results are added to the status object.
-func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, secretName string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) *istioclient.Gateway {
-	// Create a gateway populating only name metadata.
+func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.IngressTrait, hostsForTrait []string, gwName string, secretName string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) *istioclient.Gateway {
+	// Create a gateway populating only gwName metadata.
 	// This is used as default if the gateway needs to be created.
 	gateway := &istioclient.Gateway{
 		TypeMeta: metav1.TypeMeta{
@@ -434,18 +523,18 @@ func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.Ing
 			Kind:       gatewayKind},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: trait.Namespace,
-			Name:      name}}
+			Name:      gwName}}
 
 	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, gateway, func() error {
-		return r.mutateGateway(gateway, trait, rule, secretName)
+		return r.mutateGateway(gateway, trait, hostsForTrait, secretName)
 	})
 
 	// Return if no changes
-	if res == controllerutil.OperationResultNone {
+	if err == nil && res == controllerutil.OperationResultNone {
 		return gateway
 	}
 
-	ref := vzapi.QualifiedResourceRelation{APIVersion: gatewayAPIVersion, Kind: gatewayKind, Name: name, Role: "gateway"}
+	ref := vzapi.QualifiedResourceRelation{APIVersion: gatewayAPIVersion, Kind: gatewayKind, Name: gwName, Role: "gateway"}
 	status.Relations = append(status.Relations, ref)
 	status.Results = append(status.Results, res)
 	status.Errors = append(status.Errors, err)
@@ -458,31 +547,26 @@ func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.Ing
 }
 
 // mutateGateway mutates the output Gateway child resource.
-func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.IngressTrait, rule vzapi.IngressRule, secretName string) error {
-	hosts, err := createHostsFromIngressTraitRule(r, rule, trait)
-	if err != nil {
-		return err
+func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.IngressTrait, hostsForTrait []string, secretName string) error {
+	// Create/update the server entry related to the IngressTrait in the Gateway
+	server := &istionet.Server{
+		Name:  trait.Name,
+		Hosts: hostsForTrait,
+		Port: &istionet.Port{
+			Name:     formatGatewaySeverPortName(trait.Name),
+			Number:   443,
+			Protocol: httpsProtocol,
+		},
+		Tls: &istionet.ServerTLSSettings{
+			Mode:           istionet.ServerTLSSettings_SIMPLE,
+			CredentialName: secretName,
+		},
 	}
-	if len(gateway.Spec.Servers) > 0 {
-		hosts = appendToConfiguredHosts(hosts, gateway.Spec.Servers[0].Hosts)
-	}
+	gateway.Spec.Servers = r.updateGatewayServersList(gateway.Spec.Servers, server)
 
 	// Set the spec content.
 	gateway.Spec.Selector = map[string]string{"istio": "ingressgateway"}
-	gateway.Spec.Servers = []*istionet.Server{
-		{
-			Hosts: hosts,
-			Port: &istionet.Port{
-				Name:     "https",
-				Number:   443,
-				Protocol: "HTTPS",
-			},
-			Tls: &istionet.ServerTLSSettings{
-				Mode:           istionet.ServerTLSSettings_SIMPLE,
-				CredentialName: secretName,
-			},
-		},
-	}
+
 	// Set the owner reference.
 	appName, ok := trait.Labels[oam.LabelAppName]
 	if ok {
@@ -499,15 +583,34 @@ func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.In
 	return nil
 }
 
-// appendToConfiguredHosts appends the host lists ensuring uniqueness of entries
-func appendToConfiguredHosts(hostsToAppend []string, existingHosts []string) []string {
-	for _, newHost := range hostsToAppend {
-		_, hostFound := findHost(existingHosts, newHost)
-		if !hostFound {
-			existingHosts = append(existingHosts, strings.ToLower(newHost))
+func formatGatewaySeverPortName(traitName string) string {
+	return fmt.Sprintf("https-%s", traitName)
+}
+
+// updateGatewayServersList Update/add the Server entry for the IngressTrait to the gateway servers list
+//   - There will be a 1:1 mapping of Server-to-VirtualService
+func (r *Reconciler) updateGatewayServersList(servers []*istionet.Server, server *istionet.Server) []*istionet.Server {
+	if len(servers) == 0 {
+		servers = append(servers, server)
+		r.Log.Debugf("Added new server for %s", server.Name)
+		return servers
+	}
+	if len(servers) == 1 && len(servers[0].Name) == 0 && servers[0].Port.Name == "https" {
+		// upgrade case, before 1.3 all VirtualServices associated with a Gateway shared a single unnamed Server object
+		// - replace the empty name server with the named one
+		servers[0] = server
+		r.Log.Debugf("Replaced server %s", server.Name)
+		return servers
+	}
+	for index, existingServer := range servers {
+		if existingServer.Name == server.Name {
+			r.Log.Debugf("Updating server %s", server.Name)
+			servers[index] = server
+			return servers
 		}
 	}
-	return existingHosts
+	servers = append(servers, server)
+	return servers
 }
 
 // findHost searches for a host in the provided list. If found it will
@@ -523,7 +626,9 @@ func findHost(hosts []string, newHost string) (int, bool) {
 
 // createOrUpdateVirtualService creates or updates the VirtualService child resource of the trait.
 // Results are added to the status object.
-func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, services []*corev1.Service, gateway *istioclient.Gateway, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) {
+func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule,
+	allHostsForTrait []string, name string, services []*corev1.Service, gateway *istioclient.Gateway,
+	status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) {
 	// Create a virtual service populating only name metadata.
 	// This is used as default if the virtual service needs to be created.
 	virtualService := &istioclient.VirtualService{
@@ -535,7 +640,7 @@ func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vz
 			Name:      name}}
 
 	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, virtualService, func() error {
-		return r.mutateVirtualService(virtualService, trait, rule, services, gateway)
+		return r.mutateVirtualService(virtualService, trait, rule, allHostsForTrait, services, gateway)
 	})
 
 	ref := vzapi.QualifiedResourceRelation{APIVersion: virtualServiceAPIVersion, Kind: virtualServiceKind, Name: name, Role: "virtualservice"}
@@ -549,14 +654,11 @@ func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vz
 }
 
 // mutateVirtualService mutates the output virtual service resource
-func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualService, trait *vzapi.IngressTrait, rule vzapi.IngressRule, services []*corev1.Service, gateway *istioclient.Gateway) error {
+func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualService, trait *vzapi.IngressTrait, rule vzapi.IngressRule, allHostsForTrait []string, services []*corev1.Service, gateway *istioclient.Gateway) error {
 	// Set the spec content.
 	var err error
 	virtualService.Spec.Gateways = []string{gateway.Name}
-	virtualService.Spec.Hosts, err = createHostsFromIngressTraitRule(r, rule, trait)
-	if err != nil {
-		return err
-	}
+	virtualService.Spec.Hosts = allHostsForTrait // We may set this multiple times if there are multiple rules, but should be OK
 	matches := []*istionet.HTTPMatchRequest{}
 	paths := getPathsFromRule(rule)
 	for _, path := range paths {
@@ -582,7 +684,7 @@ func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualSer
 	virtualService.Spec.Http = []*istionet.HTTPRoute{&route}
 
 	// Set the owner reference.
-	controllerutil.SetControllerReference(trait, virtualService, r.Scheme)
+	_ = controllerutil.SetControllerReference(trait, virtualService, r.Scheme)
 	return nil
 }
 
@@ -633,6 +735,100 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 	}
 
 	return controllerutil.SetControllerReference(trait, destinationRule, r.Scheme)
+}
+
+// setupWatches Sets up watches for the IngressTrait controller
+func (r *Reconciler) setupWatches() error {
+	// Set up a watch on the Console/Authproxy ingress to watch for changes in the Domain name;
+	err := r.Controller.Watch(
+		&source.Kind{Type: &k8net.Ingress{}},
+		// The handler for the Watch is a map function to map the detected change into requests to reconcile any
+		// existing ingress traits and invoke the IngressTrait Reconciler; this should cause us to update the
+		// VS and GW records for the associated apps.
+		handler.EnqueueRequestsFromMapFunc(func(a client.Object) []reconcile.Request {
+			return r.createIngressTraitReconcileRequests()
+		}),
+		predicate.Funcs{
+			UpdateFunc: func(updateEvent event.UpdateEvent) bool {
+				return r.isConsoleIngressUpdated(updateEvent)
+			},
+		},
+	)
+	if err != nil {
+		return err
+	}
+	// Set up a watch on the istio-ingressgateway service to watch for changes in the address;
+	err = r.Controller.Watch(
+		&source.Kind{Type: &corev1.Service{}},
+		// The handler for the Watch is a map function to map the detected change into requests to reconcile any
+		// existing ingress traits and invoke the IngressTrait Reconciler; this should cause us to update the
+		// VS and GW records for the associated apps.
+		handler.EnqueueRequestsFromMapFunc(func(a client.Object) []reconcile.Request {
+			return r.createIngressTraitReconcileRequests()
+		}),
+		predicate.Funcs{
+			UpdateFunc: func(updateEvent event.UpdateEvent) bool {
+				return r.isIstioIngressGatewayUpdated(updateEvent)
+			},
+		},
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// isConsoleIngressUpdated Predicate func used by the Ingress watcher, returns true if the TLS settings have changed;
+// - this is largely to attempt to scope the change detection to Host name changes
+func (r *Reconciler) isConsoleIngressUpdated(updateEvent event.UpdateEvent) bool {
+	oldIngress := updateEvent.ObjectOld.(*k8net.Ingress)
+	// We only need to check the Authproxy/console Ingress
+	if oldIngress.Namespace != vzconst.VerrazzanoSystemNamespace || oldIngress.Name != constants.VzConsoleIngress {
+		return false
+	}
+	newIngress := updateEvent.ObjectNew.(*k8net.Ingress)
+	if !reflect.DeepEqual(oldIngress.Spec, newIngress.Spec) {
+		r.Log.Infof("Ingress %s/%s has changed", oldIngress.Namespace, oldIngress.Name)
+		return true
+	}
+	return false
+}
+
+// isIstioIngressGatewayUpdated Predicate func used by the watcher
+func (r *Reconciler) isIstioIngressGatewayUpdated(updateEvent event.UpdateEvent) bool {
+	oldSvc := updateEvent.ObjectOld.(*corev1.Service)
+	if oldSvc.Namespace != vzconst.IstioSystemNamespace || oldSvc.Name != istioIngressGateway {
+		return false
+	}
+	newSvc := updateEvent.ObjectNew.(*corev1.Service)
+	if !reflect.DeepEqual(oldSvc.Spec, newSvc.Spec) {
+		r.Log.Infof("Service %s/%s has changed", oldSvc.Namespace, oldSvc.Name)
+		return true
+	}
+	return false
+}
+
+//createIngressTraitReconcileRequests Used by the Console ingress watcher to map a detected change in the ingress
+//  to requests to reconcile any existing application IngressTrait objects
+func (r *Reconciler) createIngressTraitReconcileRequests() []reconcile.Request {
+	requests := []reconcile.Request{}
+
+	ingressTraitList := vzapi.IngressTraitList{}
+	if err := r.List(context.TODO(), &ingressTraitList, &client.ListOptions{}); err != nil {
+		r.Log.Errorf("Failed to list ingress traits: %v", err)
+		return requests
+	}
+
+	for _, ingressTrait := range ingressTraitList.Items {
+		requests = append(requests, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: ingressTrait.Namespace,
+				Name:      ingressTrait.Name,
+			},
+		})
+	}
+	r.Log.Infof("Requesting ingress trait reconcile: %v", requests)
+	return requests
 }
 
 // createDestinationFromRuleOrService creates a destination from either the rule or the service.
@@ -851,17 +1047,23 @@ func createVirtualServiceMatchURIFromIngressTraitPath(path vzapi.IngressPath) *i
 	}
 }
 
-// createHostsFromIngressTraitRule creates an array of hosts from an ingress rule.
-// It filters out wildcard hosts or hosts that are empty. If there are no valid hosts provided,
-// then a DNS host name is automatically generated and used.
-func createHostsFromIngressTraitRule(cli client.Reader, rule vzapi.IngressRule, trait *vzapi.IngressTrait) ([]string, error) {
-	var validHosts []string
+// createHostsFromIngressTraitRule creates an array of hosts from an ingress rule, appending to an optionally provided input list
+// - It filters out wildcard hosts or hosts that are empty.
+// - If there are no valid hosts provided, then a DNS host name is automatically generated and used.
+// - A hostname can only appear once
+func createHostsFromIngressTraitRule(cli client.Reader, rule vzapi.IngressRule, trait *vzapi.IngressTrait, toList ...string) ([]string, error) {
+	validHosts := toList
 	for _, h := range rule.Hosts {
 		h = strings.TrimSpace(h)
+		if _, hostAlreadyPresent := findHost(validHosts, h); hostAlreadyPresent {
+			// Avoid duplicates
+			continue
+		}
 		// Ignore empty or wildcard hostname
 		if len(h) == 0 || strings.Contains(h, "*") {
 			continue
 		}
+		h = strings.ToLower(strings.TrimSpace(h))
 		validHosts = append(validHosts, h)
 	}
 	// Use default hostname if none of the user specified hosts were valid
@@ -1010,35 +1212,20 @@ func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (st
 // buildDomainNameForWildcard generates a domain name in the format of "<IP>.<wildcard-domain>"
 // Get the IP from Istio resources
 func buildDomainNameForWildcard(cli client.Reader, trait *vzapi.IngressTrait, suffix string) (string, error) {
-	const istioIngressGateway = "istio-ingressgateway"
-
 	istio := corev1.Service{}
 	err := cli.Get(context.TODO(), types.NamespacedName{Name: istioIngressGateway, Namespace: constants.IstioSystemNamespace}, &istio)
 	if err != nil {
 		return "", err
 	}
 	var IP string
-	if istio.Spec.Type == corev1.ServiceTypeLoadBalancer {
-		if len(istio.Status.LoadBalancer.Ingress) > 0 {
-			IP = istio.Status.LoadBalancer.Ingress[0].IP
-		} else if len(istio.Spec.ExternalIPs) > 0 {
+	if istio.Spec.Type == corev1.ServiceTypeLoadBalancer || istio.Spec.Type == corev1.ServiceTypeNodePort {
+		if len(istio.Spec.ExternalIPs) > 0 {
 			IP = istio.Spec.ExternalIPs[0]
+		} else if len(istio.Status.LoadBalancer.Ingress) > 0 {
+			IP = istio.Status.LoadBalancer.Ingress[0].IP
 		} else {
 			return "", fmt.Errorf("%s is missing loadbalancer IP", istioIngressGateway)
 		}
-	} else if istio.Spec.Type == corev1.ServiceTypeNodePort {
-		// Do the equiv of the following command to get the IP
-		// kubectl -n istio-system get pods --selector app=istio-ingressgateway,istio=ingressgateway -o jsonpath='{.items[0].status.hostIP}'
-		podList := corev1.PodList{}
-		listOptions := client.MatchingLabels{"app": "istio-ingressgateway", "istio": "ingressgateway"}
-		err := cli.List(context.TODO(), &podList, listOptions)
-		if err != nil {
-			return "", err
-		}
-		if len(podList.Items) == 0 {
-			return "", errors.New("Unable to find Istio ingressway pod")
-		}
-		IP = podList.Items[0].Status.HostIP
 	} else {
 		return "", fmt.Errorf("Unsupported service type %s for istio_ingress", string(istio.Spec.Type))
 	}

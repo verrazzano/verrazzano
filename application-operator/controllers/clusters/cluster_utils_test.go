@@ -423,7 +423,7 @@ func TestDeleteAssociatedResource(t *testing.T) {
 
 	// The finalizer should be removed
 	cli.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		Update(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, mcApp *clustersv1alpha1.MultiClusterApplicationConfiguration, opts ...client.UpdateOption) error {
 			asserts.NotContains(t, mcApp.GetFinalizers(), finalizerToDelete)
 			asserts.Contains(t, mcApp.GetFinalizers(), finalizerNotDelete)
@@ -482,8 +482,8 @@ func expectGetAndDeleteAppConfig(t *testing.T, cli *mocks.MockClient, name types
 		})
 
 	cli.EXPECT().
-		Delete(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, appConfig *v1alpha2.ApplicationConfiguration) error {
+		Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, appConfig *v1alpha2.ApplicationConfiguration, opt ...client.DeleteOption) error {
 			asserts.Equal(t, name.Name, appConfig.Name)
 			asserts.Equal(t, name.Namespace, appConfig.Namespace)
 			return deleteErr

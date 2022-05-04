@@ -34,7 +34,7 @@ var _ = t.BeforeSuite(func() {
 
 	if !skipDeploy {
 		start := time.Now()
-		pkg.DeploySpringBootApplication(namespace)
+		pkg.DeploySpringBootApplication(namespace, istioInjection)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 
@@ -109,7 +109,8 @@ var _ = t.Describe("Spring Boot test", Label("f:app-lcm.oam",
 	})
 
 	t.Context("for Logging.", Label("f:observability.logging.es"), FlakeAttempts(5), func() {
-		indexName := "verrazzano-namespace-" + namespace
+		indexName, err := pkg.GetOpenSearchAppIndex(namespace)
+		Expect(err).To(BeNil())
 		t.It("Verify Elasticsearch index exists", func() {
 			Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)

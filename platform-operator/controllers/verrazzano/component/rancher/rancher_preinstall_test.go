@@ -1,54 +1,23 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
 
 import (
 	"errors"
+	"io"
+	"net/http"
+	"strings"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"io"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"strings"
-	"testing"
 )
-
-// TestCreateOperatorNamespace verifies creation of the Rancher operator namespace
-// GIVEN a CertManager component
-//  WHEN createRancherOperatorNamespace is called
-//  THEN createRancherOperatorNamespace the Rancher operator namespace should be created
-func TestCreateOperatorNamespace(t *testing.T) {
-	log := getTestLogger(t)
-
-	var tests = []struct {
-		testName string
-		c        client.Client
-	}{
-		{
-			"should create the Rancher operator namespace",
-			fake.NewFakeClientWithScheme(getScheme()),
-		},
-		{
-			"should not fail if the Rancher operator namespace already exists",
-			fake.NewFakeClientWithScheme(getScheme(), &v1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: OperatorNamespace,
-				},
-			}),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.testName, func(t *testing.T) {
-			assert.Nil(t, createRancherOperatorNamespace(log, tt.c))
-		})
-	}
-}
 
 // TestCreateCattleNamespace verifies creation of the cattle-system namespace
 // GIVEN a CertManager component
@@ -63,15 +32,15 @@ func TestCreateCattleNamespace(t *testing.T) {
 	}{
 		{
 			"should create the cattle namespace",
-			fake.NewFakeClientWithScheme(getScheme()),
+			fake.NewClientBuilder().WithScheme(getScheme()).Build(),
 		},
 		{
 			"should edit the cattle namespace if already exists",
-			fake.NewFakeClientWithScheme(getScheme(), &v1.Namespace{
+			fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&v1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: common.CattleSystem,
 				},
-			}),
+			}).Build(),
 		},
 	}
 
@@ -97,19 +66,19 @@ func TestCopyDefaultCACertificate(t *testing.T) {
 	}{
 		{
 			"should not copy CA secret when not using the CA secret",
-			fake.NewFakeClientWithScheme(getScheme()),
+			fake.NewClientBuilder().WithScheme(getScheme()).Build(),
 			&vzAcmeDev,
 			false,
 		},
 		{
 			"should fail to copy the CA secret when it does not exist",
-			fake.NewFakeClientWithScheme(getScheme()),
+			fake.NewClientBuilder().WithScheme(getScheme()).Build(),
 			&vzDefaultCA,
 			true,
 		},
 		{
 			"should copy the CA secret when using the CA secret",
-			fake.NewFakeClientWithScheme(getScheme(), &secret),
+			fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&secret).Build(),
 			&vzDefaultCA,
 			false,
 		},
@@ -167,7 +136,7 @@ func TestIsUsingDefaultCACertificate(t *testing.T) {
 //  THEN createAdditionalCertificates should create additional certificates as necessary from the Verrazzano CR information
 func TestCreateAdditionalCertificates(t *testing.T) {
 	log := getTestLogger(t)
-	c := fake.NewFakeClientWithScheme(getScheme())
+	c := fake.NewClientBuilder().WithScheme(getScheme()).Build()
 	doOK := func(hc *http.Client, req *http.Request) (*http.Response, error) {
 		return &http.Response{
 			Body:       io.NopCloser(strings.NewReader("cert")),
@@ -206,7 +175,7 @@ func TestCreateAdditionalCertificates(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
 			common.HTTPDo = tt.httpDo
-			err := createAdditionalCertificates(log, c, tt.vz)
+			err := common.ProcessAdditionalCertificates(log, c, tt.vz)
 			if tt.isErr {
 				assert.NotNil(t, err)
 			} else {

@@ -6,19 +6,19 @@ package externaldns
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"time"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/helm"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"hash/fnv"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"strconv"
 )
 
 // ComponentName is the name of the component
@@ -27,6 +27,8 @@ const (
 	dnsGlobal              = "GLOBAL" //default
 	dnsPrivate             = "PRIVATE"
 	imagePullSecretHelmKey = "global.imagePullSecrets[0]"
+	ownerIDHelmKey         = "txtOwnerId"
+	prefixKey              = "txtPrefix"
 )
 
 func preInstall(compContext spi.ComponentContext) error {
@@ -83,13 +85,10 @@ func preInstall(compContext spi.ComponentContext) error {
 }
 
 func isExternalDNSReady(compContext spi.ComponentContext) bool {
-	deployments := []status.PodReadyCheck{
+	deployments := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      ComponentName,
-				Namespace: ComponentNamespace,
-			},
-			LabelSelector: labels.Set{"app.kubernetes.io/instance": "external-dns"}.AsSelector(),
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", compContext.GetComponent())
@@ -97,20 +96,77 @@ func isExternalDNSReady(compContext spi.ComponentContext) bool {
 }
 
 // AppendOverrides builds the set of external-dns overrides for the helm install
-func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	// Append all helm overrides for external DNS
-	nameTimeString := fmt.Sprintf("v8o-local-%s-%s", compContext.EffectiveCR().Spec.EnvironmentName, strconv.FormatInt(time.Now().Unix(), 10))
+func AppendOverrides(compContext spi.ComponentContext, releaseName string, namespace string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	oci, err := getOCIDNS(compContext.EffectiveCR())
+	if err != nil {
+		return kvs, err
+	}
+	// OCI DNS is configured, append all helm overrides for external DNS
+	ids, err := getOrBuildIDs(compContext, releaseName, namespace)
+	if err != nil {
+		return kvs, err
+	}
+	ownerID := ids[0]
+	txtPrefix := ids[1]
+	compContext.Log().Debugf("Owner ID: %s, TXT record prefix: %s", ownerID, txtPrefix)
 	arguments := []bom.KeyValue{
-		{Key: "domainFilters[0]", Value: compContext.EffectiveCR().Spec.Components.DNS.OCI.DNSZoneName},
-		{Key: "zoneIDFilters[0]", Value: compContext.EffectiveCR().Spec.Components.DNS.OCI.DNSZoneOCID},
-		{Key: "ociDnsScope", Value: compContext.EffectiveCR().Spec.Components.DNS.OCI.DNSScope},
-		{Key: "txtOwnerId", Value: nameTimeString},
-		{Key: "txtPrefix", Value: "_" + nameTimeString},
+		{Key: "domainFilters[0]", Value: oci.DNSZoneName},
+		{Key: "zoneIDFilters[0]", Value: oci.DNSZoneOCID},
+		{Key: "ociDnsScope", Value: oci.DNSScope},
+		{Key: "txtOwnerId", Value: ownerID},
+		{Key: "txtPrefix", Value: txtPrefix},
 		{Key: "extraVolumes[0].name", Value: "config"},
-		{Key: "extraVolumes[0].secret.secretName", Value: compContext.EffectiveCR().Spec.Components.DNS.OCI.OCIConfigSecret},
+		{Key: "extraVolumes[0].secret.secretName", Value: oci.OCIConfigSecret},
 		{Key: "extraVolumeMounts[0].name", Value: "config"},
 		{Key: "extraVolumeMounts[0].mountPath", Value: "/etc/kubernetes/"},
 	}
 	kvs = append(kvs, arguments...)
 	return kvs, nil
+}
+
+func getOCIDNS(vz *vzapi.Verrazzano) (*vzapi.OCI, error) {
+	dns := vz.Spec.Components.DNS
+	// Should never fail the next error checks if IsEnabled() is correct, but can't hurt to check
+	if dns == nil {
+		return nil, fmt.Errorf("DNS not configured for component %s", ComponentName)
+	}
+	oci := dns.OCI
+	if oci == nil {
+		return nil, fmt.Errorf("OCI must be configured for component %s", ComponentName)
+	}
+	return oci, nil
+}
+
+//getOrBuildIDs Get the owner and TXT prefix IDs from the Helm release if they exist and preserve it, otherwise build a new ones
+func getOrBuildIDs(compContext spi.ComponentContext, releaseName string, namespace string) ([]string, error) {
+	values, err := helm.GetReleaseStringValues(compContext.Log(), []string{ownerIDHelmKey, prefixKey}, releaseName, namespace)
+	if err != nil {
+		return []string{}, err
+	}
+	ownerID, ok := values[ownerIDHelmKey]
+	if !ok {
+		if ownerID, err = buildOwnerString(compContext.ActualCR().UID); err != nil {
+			return []string{}, err
+		}
+	}
+	prefixKey, ok := values[prefixKey]
+	if !ok {
+		prefixKey = buildPrefixKey(ownerID)
+	}
+	return []string{ownerID, prefixKey}, nil
+}
+
+func buildPrefixKey(ownerID string) string {
+	return fmt.Sprintf("_%s-", ownerID)
+}
+
+//buildOwnerString Builds a unique owner string ID based on the Verrazzano CR UID and namespaced name
+func buildOwnerString(uid types.UID) (string, error) {
+	hash := fnv.New32a()
+	_, err := hash.Write([]byte(fmt.Sprintf("%v", uid)))
+	if err != nil {
+		return "", err
+	}
+	sum := hash.Sum32()
+	return fmt.Sprintf("v8o-%s", strconv.FormatUint(uint64(sum), 16)), nil
 }

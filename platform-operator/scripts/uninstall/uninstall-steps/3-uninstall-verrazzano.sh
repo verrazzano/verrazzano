@@ -6,6 +6,7 @@
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 INSTALL_DIR=$SCRIPT_DIR/../../install
 UNINSTALL_DIR=$SCRIPT_DIR/..
+MANIFESTS_DIR=$SCRIPT_DIR/../../../thirdparty/manifests
 
 . $INSTALL_DIR/common.sh
 . $INSTALL_DIR/config.sh
@@ -14,6 +15,7 @@ UNINSTALL_DIR=$SCRIPT_DIR/..
 set -o pipefail
 
 VERRAZZANO_NS=verrazzano-system
+VERRAZZANO_MONITORING_NS=verrazzano-monitoring
 
 function delete_verrazzano() {
   # delete helm installation of Verrazzano
@@ -36,8 +38,8 @@ function delete_verrazzano() {
 
   log "Deleting Verrazzano crds"
   delete_k8s_resources crds ":metadata.name" "Could not delete CustomResourceDefinitions from Verrazzano" '/verrazzano.io/ && ! /verrazzanos.install.verrazzano.io/ && ! /verrazzanomanagedclusters.clusters.verrazzano.io/' \
-    || return $? # return on pipefail
-
+   || return $? # return on pipefail
+   
   log "Deleting ClusterRoleBindings"
   # deleting clusterrolebindings
   delete_k8s_resources clusterrolebinding ":metadata.name,:metadata.labels" "Could not delete ClusterRoleBindings from Verrazzano" '/verrazzano/ && ! /verrazzano-platform-operator/ && ! /verrazzano-install/ && ! /verrazzano-managed-cluster/ {print $1}' \
@@ -89,6 +91,15 @@ function delete_application_operator {
   fi
 }
 
+function delete_vmo {
+  log "Uninstall the Verrazzano Monitoring Operator"
+  if helm status verrazzano-monitoring-operator --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
+    if ! helm uninstall verrazzano-monitoring-operator --namespace "${VERRAZZANO_NS}" ; then
+      error "Failed to uninstall the Verrazzano Monitoring Operator."
+    fi
+  fi
+}
+
 function delete_authproxy {
   log "Uninstall the Verrazzano AuthProxy"
   if helm status verrazzano-authproxy --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
@@ -97,8 +108,6 @@ function delete_authproxy {
     fi
   fi
 }
-
-
 
 function delete_weblogic_operator {
   log "Uninstall the WebLogic Kubernetes operator"
@@ -139,10 +148,77 @@ function delete_kiali {
   kubectl delete -f ${KIALI_CHART_DIR}/crds || true
 }
 
+function delete_prometheus_adapter {
+  log "Uninstall the Prometheus adapter"
+  if helm status prometheus-adapter --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
+    if ! helm uninstall prometheus-adapter --namespace "${VERRAZZANO_MONITORING_NS}" ; then
+      error "Failed to uninstall the Prometheus adapter."
+    fi
+  fi
+}
+
+function delete_kube_state_metrics {
+  log "Uninstall kube-state-metrics"
+  if helm status kube-state-metrics --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
+    if ! helm uninstall kube-state-metrics --namespace "${VERRAZZANO_MONITORING_NS}" ; then
+      error "Failed to uninstall kube-state-metrics."
+    fi
+  fi
+}
+
+function delete_prometheus_node_exporter {
+  log "Uninstall the Prometheus node-exporter"
+  if helm status prometheus-node-exporter --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
+    if ! helm uninstall prometheus-node-exporter --namespace "${VERRAZZANO_MONITORING_NS}" ; then
+      error "Failed to uninstall the Prometheus node-exporter."
+    fi
+  fi
+}
+
+function delete_prometheus_operator {
+  log "Uninstall the Prometheus operator"
+  if helm status prometheus-operator --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
+    if ! helm uninstall prometheus-operator --namespace "${VERRAZZANO_MONITORING_NS}" ; then
+      error "Failed to uninstall the Prometheus operator."
+    fi
+  fi
+
+  log "Deleting ${VERRAZZANO_MONITORING_NS} namespace finalizers"
+  patch_k8s_resources namespace ":metadata.name" "Could not remove finalizers from namespace ${VERRAZZANO_MONITORING_NS}" "/${VERRAZZANO_MONITORING_NS}/ {print \$1}" '{"metadata":{"finalizers":null}}' \
+    || return $? # return on pipefail
+
+  log "Deleting the ${VERRAZZANO_MONITORING_NS} namespace"
+  kubectl delete namespace "${VERRAZZANO_MONITORING_NS}" --ignore-not-found=true || err_return $? "Could not delete the ${VERRAZZANO_MONITORING_NS} namespace"
+}
+
+function delete_prometheus_pushgateway {
+  log "Uninstall the Prometheus Pushgateway"
+  if helm status prometheus-pushgateway --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
+    if ! helm uninstall prometheus-pushgateway --namespace "${VERRAZZANO_MONITORING_NS}" ; then
+      error "Failed to uninstall the Prometheus Pushgateway."
+    fi
+  fi
+}
+
+function delete_jaeger_operator {
+  log "Uninstall the Jaeger operator"
+  local JAEGER_TEMPLATE_FILE=$MANIFESTS_DIR/jaeger/jaeger-operator.yaml
+  sed 's/{{.*}}/verrazzano-monitoring/g' "$JAEGER_TEMPLATE_FILE" > jaeger.yaml
+  kubectl delete -f jaeger.yaml --ignore-not-found || err_return $? "Could not delete Jaeger Operator"
+  rm -f jaeger.yaml
+}
+
+action "Deleting Prometheus Pushgateway " delete_prometheus_pushgateway || exit 1
+action "Deleting Jaeger operator " delete_jaeger_operator || exit 1
+action "Deleting Prometheus adapter " delete_prometheus_adapter || exit 1
+action "Deleting kube-state-metrics " delete_kube_state_metrics || exit 1
+action "Deleting Prometheus node-exporter " delete_prometheus_node_exporter || exit 1
+action "Deleting Prometheus operator " delete_prometheus_operator || exit 1
 action "Deleting Verrazzano Application Kubernetes operator" delete_application_operator || exit 1
 action "Deleting OAM Kubernetes operator" delete_oam_operator || exit 1
 action "Deleting Coherence Kubernetes operator" delete_coherence_operator || exit 1
 action "Deleting WebLogic Kubernetes operator" delete_weblogic_operator || exit 1
 action "Deleting Verrazzano AuthProxy" delete_authproxy || exit 1
+action "Deleting Verrazzano Monitoring Operator" delete_vmo || exit 1
 action "Deleting Verrazzano Components" delete_verrazzano || exit 1
 action "Deleting Kiali " delete_kiali || exit 1

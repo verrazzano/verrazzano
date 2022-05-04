@@ -61,7 +61,10 @@ func (c *Clientset) Tracker() testing.ObjectTracker {
 	return c.tracker
 }
 
-var _ clientset.Interface = &Clientset{}
+var (
+	_ clientset.Interface = &Clientset{}
+	_ testing.FakeClient  = &Clientset{}
+)
 
 // VerrazzanoV1alpha1 retrieves the VerrazzanoV1alpha1Client
 func (c *Clientset) VerrazzanoV1alpha1() verrazzanov1alpha1.VerrazzanoV1alpha1Interface {

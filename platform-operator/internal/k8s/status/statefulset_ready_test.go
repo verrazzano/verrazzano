@@ -6,15 +6,11 @@ package status
 import (
 	"testing"
 
-	"k8s.io/apimachinery/pkg/labels"
-
-	corev1 "k8s.io/api/core/v1"
-
-	appsv1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -23,10 +19,18 @@ import (
 
 func TestStatefulsetReady(t *testing.T) {
 
+	selector := &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"app": "foo",
+		},
+	}
 	enoughReplicas := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "bar",
+		},
+		Spec: appsv1.StatefulSetSpec{
+			Selector: selector,
 		},
 		Status: appsv1.StatefulSetStatus{
 			ReadyReplicas:   1,
@@ -38,6 +42,9 @@ func TestStatefulsetReady(t *testing.T) {
 			Name:      "foo",
 			Namespace: "bar",
 		},
+		Spec: appsv1.StatefulSetSpec{
+			Selector: selector,
+		},
 		Status: appsv1.StatefulSetStatus{
 			ReadyReplicas:   2,
 			UpdatedReplicas: 2,
@@ -48,6 +55,9 @@ func TestStatefulsetReady(t *testing.T) {
 			Name:      "foo",
 			Namespace: "bar",
 		},
+		Spec: appsv1.StatefulSetSpec{
+			Selector: selector,
+		},
 		Status: appsv1.StatefulSetStatus{
 			ReadyReplicas:   0,
 			UpdatedReplicas: 1,
@@ -57,6 +67,9 @@ func TestStatefulsetReady(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "bar",
+		},
+		Spec: appsv1.StatefulSetSpec{
+			Selector: selector,
 		},
 		Status: appsv1.StatefulSetStatus{
 			ReadyReplicas:   1,
@@ -140,97 +153,94 @@ func TestStatefulsetReady(t *testing.T) {
 		Revision: 1,
 	}
 
-	podCheckValid := []PodReadyCheck{
+	namespacedName := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      "foo",
-				Namespace: "bar",
-			},
-			LabelSelector: labels.Set{"app": "foo"}.AsSelector(),
+			Name:      "foo",
+			Namespace: "bar",
 		},
 	}
 
 	var tests = []struct {
 		name     string
 		c        client.Client
-		n        []PodReadyCheck
+		n        []types.NamespacedName
 		ready    bool
 		expected int32
 	}{
 		{
 			"should be ready when statefulset has enough replicas and pod is ready",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, enoughReplicas, readyPod, controllerRevision),
-			podCheckValid,
+			namespacedName,
 			true,
 			1,
 		},
 		{
 			"should be ready when statefulset has enough replicas and one pod of two pods is ready",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, enoughReplicasMultiple, notReadyContainerPod, readyPod, controllerRevision),
-			podCheckValid,
+			namespacedName,
 			true,
 			1,
 		},
 		{
 			"should be not ready when expected pods ready not reached",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, enoughReplicasMultiple, readyPod, controllerRevision),
-			podCheckValid,
+			namespacedName,
 			false,
 			2,
 		},
 		{
 			"should be not ready when statefulset has enough replicas but pod init container pods is not ready",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, enoughReplicas, notReadyInitContainerPod, controllerRevision),
-			podCheckValid,
+			namespacedName,
 			false,
 			1,
 		},
 		{
 			"should be not ready when statefulset has enough replicas but pod container pods is not ready",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, enoughReplicas, notReadyContainerPod, controllerRevision),
-			podCheckValid,
+			namespacedName,
 			false,
 			1,
 		},
 		{
 			"should be not ready when statefulset not found",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme),
-			podCheckValid,
+			namespacedName,
 			false,
 			1,
 		},
 		{
 			"should be not ready when controller-revision-hash label not found",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, enoughReplicas, noPodHashLabel),
-			podCheckValid,
+			namespacedName,
 			false,
 			1,
 		},
 		{
 			"should be not ready when controllerrevision resource not found",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, enoughReplicas, readyPod),
-			podCheckValid,
+			namespacedName,
 			false,
 			1,
 		},
 		{
 			"should be not ready when statefulset doesn't have enough ready replicas",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, notEnoughReadyReplicas),
-			podCheckValid,
+			namespacedName,
 			false,
 			1,
 		},
 		{
 			"should be not ready when statefulset doesn't have enough updated replicas",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, notEnoughUpdatedReplicas),
-			podCheckValid,
+			namespacedName,
 			false,
 			1,
 		},
 		{
 			"should be ready when no PodReadyCheck provided",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme),
-			[]PodReadyCheck{},
+			[]types.NamespacedName{},
 			true,
 			1,
 		},

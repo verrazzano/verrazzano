@@ -8,9 +8,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/types"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	vpClient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
@@ -36,7 +39,10 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 )
 
-const dockerconfigjsonTemplate string = "{\"auths\":{\"%v\":{\"username\":\"%v\",\"password\":\"%v\",\"auth\":\"%v\"}}}"
+const (
+	dockerconfigjsonTemplate string = "{\"auths\":{\"%v\":{\"username\":\"%v\",\"password\":\"%v\",\"auth\":\"%v\"}}}"
+	verrazzanoErrorTemplate         = "Error Verrazzano Resource: %v"
+)
 
 // DoesCRDExist returns whether a CRD with the given name exists for the cluster
 func DoesCRDExist(crdName string) (bool, error) {
@@ -126,6 +132,25 @@ func ListDeployments(namespace string) (*appsv1.DeploymentList, error) {
 		return nil, err
 	}
 	return deployments, nil
+}
+
+//GetReplicaCounts Builds a map of pod counts for a list of deployments
+// expectedDeployments - a list of namespaced names for deployments to look for
+// optsBuilder - a callback func to build the right set of options to select pods for the deployment
+func GetReplicaCounts(expectedDeployments []types.NamespacedName, optsBuilder func(name types.NamespacedName) (metav1.ListOptions, error)) (map[string]uint32, error) {
+	podCountsMap := map[string]uint32{}
+	for _, deployment := range expectedDeployments {
+		listOpts, err := optsBuilder(deployment)
+		if err != nil {
+			return map[string]uint32{}, err
+		}
+		podList, err := ListPods(deployment.Namespace, listOpts)
+		if err != nil {
+			return map[string]uint32{}, err
+		}
+		podCountsMap[deployment.String()] = uint32(len(podList.Items))
+	}
+	return podCountsMap, nil
 }
 
 // DoesDeploymentExist returns whether a deployment with the given name and namespace exists for the cluster
@@ -272,6 +297,15 @@ func GetVerrazzanoManagedClusterClientset() (*vmcClient.Clientset, error) {
 	return vmcClient.NewForConfig(config)
 }
 
+// GetVerrazzanoClientset returns the Kubernetes clientset for the Verrazzano CRD
+func GetVerrazzanoClientset() (*vpoClient.Clientset, error) {
+	config, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		return nil, err
+	}
+	return vpoClient.NewForConfig(config)
+}
+
 // GetVerrazzanoProjectClientsetInCluster returns the Kubernetes clientset for the VerrazzanoProject
 func GetVerrazzanoProjectClientsetInCluster(kubeconfigPath string) (*vpClient.Clientset, error) {
 	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
@@ -389,6 +423,26 @@ func IsVerrazzanoMinVersion(minVersion string, kubeconfigPath string) (bool, err
 	return !vzSemver.IsLessThan(minSemver), nil
 }
 
+// IsVerrazzanoBelowVersion returns true if the Verrazzano version < belowVersion
+func IsVerrazzanoBelowVersion(belowVersion string, kubeconfigpath string) (bool, error) {
+	vzVersion, err := GetVerrazzanoVersion(kubeconfigpath)
+	if err != nil {
+		return false, err
+	}
+	if len(vzVersion) == 0 {
+		return false, nil
+	}
+	vzSemver, err := semver.NewSemVersion(vzVersion)
+	if err != nil {
+		return false, err
+	}
+	maxSemver, err := semver.NewSemVersion(belowVersion)
+	if err != nil {
+		return false, err
+	}
+	return vzSemver.IsLessThan(maxSemver), nil
+}
+
 // IsProdProfile returns true if the deployed resource is a 'prod' profile
 func IsProdProfile() bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -401,7 +455,7 @@ func IsProdProfile() bool {
 	if err != nil {
 		return false
 	}
-	if vz.Spec.Profile == v1alpha1.Prod {
+	if vz.Spec.Profile == v1alpha1.Prod || vz.Spec.Profile == "" {
 		return true
 	}
 	return false
@@ -454,13 +508,117 @@ func IsCoherenceOperatorEnabled(kubeconfigPath string) bool {
 func IsWebLogicOperatorEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
 		return true
 	}
 	if vz.Spec.Components.WebLogicOperator == nil || vz.Spec.Components.WebLogicOperator.Enabled == nil {
 		return true
 	}
 	return *vz.Spec.Components.WebLogicOperator.Enabled
+}
+
+// IsOpenSearchEnabled returns true if the OpenSearch component is not set, or the value of its Enabled field otherwise
+func IsOpenSearchEnabled(kubeconfigPath string) (bool, error) {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false, err
+	}
+	if vz != nil && vz.Spec.Components.Elasticsearch != nil && vz.Spec.Components.Elasticsearch.Enabled != nil {
+		return *vz.Spec.Components.Elasticsearch.Enabled, nil
+	}
+	return false, nil
+}
+
+// IsPrometheusAdapterEnabled returns false if the Prometheus Adapter component is not set, or the value of its Enabled field otherwise
+func IsPrometheusAdapterEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
+		return false
+	}
+	if vz.Spec.Components.PrometheusAdapter == nil || vz.Spec.Components.PrometheusAdapter.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.PrometheusAdapter.Enabled
+}
+
+// IsPrometheusOperatorEnabled returns false if the Prometheus Operator component is not set, or the value of its Enabled field otherwise
+func IsPrometheusOperatorEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
+		return false
+	}
+	if vz.Spec.Components.PrometheusOperator == nil || vz.Spec.Components.PrometheusOperator.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.PrometheusOperator.Enabled
+}
+
+// IsKubeStateMetricsEnabled returns false if the Kube State Metrics component is not set, or the value of its Enabled field otherwise
+func IsKubeStateMetricsEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
+		return false
+	}
+	if vz.Spec.Components.KubeStateMetrics == nil || vz.Spec.Components.KubeStateMetrics.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.KubeStateMetrics.Enabled
+}
+
+// IsPrometheusPushgatewayEnabled returns false if the Prometheus Pushgateway component is not set, or the value of its Enabled field otherwise
+func IsPrometheusPushgatewayEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
+		return false
+	}
+	if vz.Spec.Components.PrometheusPushgateway == nil || vz.Spec.Components.PrometheusPushgateway.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.PrometheusPushgateway.Enabled
+}
+
+// IsPrometheusNodeExporterEnabled returns false if the Prometheus Node Exporter component is not set, or the value of its Enabled field otherwise
+func IsPrometheusNodeExporterEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.PrometheusNodeExporter == nil || vz.Spec.Components.PrometheusNodeExporter.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.PrometheusNodeExporter.Enabled
+}
+
+// IsOpenSearchDashboardsEnabled returns true if the OpenSearchDashboards component is not set, or the value of its Enabled field otherwise
+func IsOpenSearchDashboardsEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
+		return true
+	}
+	if vz != nil && vz.Spec.Components.Kibana != nil && vz.Spec.Components.Kibana.Enabled != nil {
+		return *vz.Spec.Components.Kibana.Enabled
+	}
+	return true
+}
+
+// IsJaegerOperatorEnabled returns false if the Jaeger Operator component is not set, or the value of its Enabled field otherwise
+func IsJaegerOperatorEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.JaegerOperator == nil || vz.Spec.Components.JaegerOperator.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.JaegerOperator.Enabled
 }
 
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
@@ -496,7 +654,11 @@ func GetNamespace(name string) (*corev1.Namespace, error) {
 	if err != nil {
 		return nil, err
 	}
+	return GetNamespaceWithClientSet(name, clientset)
+}
 
+// GetNamespaceWithClientSet returns a namespace for the given Clientset
+func GetNamespaceWithClientSet(name string, clientset *kubernetes.Clientset) (*corev1.Namespace, error) {
 	return clientset.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
 }
 
@@ -565,8 +727,18 @@ func CreateNamespace(name string, labels map[string]string) (*corev1.Namespace, 
 }
 
 func CreateNamespaceWithAnnotations(name string, labels map[string]string, annotations map[string]string) (*corev1.Namespace, error) {
+	// Get the Kubernetes clientset
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	return CreateNamespaceWithClientSet(name, labels, clientset, annotations)
+}
+
+// CreateNamespaceWithClientSet creates a namespace using the given Clientset
+func CreateNamespaceWithClientSet(name string, labels map[string]string, clientset *kubernetes.Clientset, annotations map[string]string) (*corev1.Namespace, error) {
 	if len(os.Getenv(k8sutil.EnvVarTestKubeConfig)) > 0 {
-		existingNamespace, err := GetNamespace(name)
+		existingNamespace, err := GetNamespaceWithClientSet(name, clientset)
 		if err != nil {
 			Log(Error, fmt.Sprintf("CreateNamespace %s, error while getting existing namespace: %v", name, err))
 			return nil, err
@@ -575,16 +747,8 @@ func CreateNamespaceWithAnnotations(name string, labels map[string]string, annot
 		if existingNamespace != nil && existingNamespace.Name == name {
 			return existingNamespace, nil
 		}
-
 		return nil, fmt.Errorf("CreateNamespace %s, test is running with custom service account and namespace must be pre-created", name)
 	}
-
-	// Get the Kubernetes clientset
-	clientset, err := k8sutil.GetKubernetesClientset()
-	if err != nil {
-		return nil, err
-	}
-
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
@@ -597,7 +761,6 @@ func CreateNamespaceWithAnnotations(name string, labels map[string]string, annot
 		Log(Error, fmt.Sprintf("CreateNamespace %s error: %v", name, err))
 		return nil, err
 	}
-
 	return ns, nil
 }
 
@@ -633,11 +796,15 @@ func DeleteNamespaceInCluster(name string, kubeconfigPath string) error {
 	if err != nil {
 		return err
 	}
-	err = clientset.CoreV1().Namespaces().Delete(context.TODO(), name, metav1.DeleteOptions{})
+	return DeleteNamespaceWithClientSet(name, clientset)
+}
+
+// DeleteNamespaceWithClientSet deletes the namespace using the given Clientset
+func DeleteNamespaceWithClientSet(name string, clientset *kubernetes.Clientset) error {
+	err := clientset.CoreV1().Namespaces().Delete(context.TODO(), name, metav1.DeleteOptions{})
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to delete namespace %s: %v", name, err))
 	}
-
 	return err
 }
 
@@ -1075,4 +1242,86 @@ func DoesVerrazzanoProjectExistInCluster(name string, kubeconfigPath string) (bo
 	}
 
 	return vp != nil && len(vp.Name) > 0, nil
+}
+
+// ContainerHasExpectedArgs returns true if each of the arguments matches a substring of one of the arguments found in the deployment
+func ContainerHasExpectedArgs(namespace string, deploymentName string, containerName string, arguments []string) (bool, error) {
+	deployment, err := GetDeployment(namespace, deploymentName)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Deployment %v is not found in the namespace: %v, error: %v", deploymentName, namespace, err))
+		return false, nil
+	}
+	for _, container := range deployment.Spec.Template.Spec.Containers {
+		if container.Name == containerName {
+			return SlicesContainSubsetSubstring(arguments, container.Args), nil
+		}
+	}
+	return false, nil
+}
+
+// UpdateConfigMap updates the config map
+func UpdateConfigMap(configMap *corev1.ConfigMap) error {
+	// Get the Kubernetes clientset
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return err
+	}
+
+	cmi := clientset.CoreV1().ConfigMaps(configMap.GetNamespace())
+	_, err = cmi.Update(context.TODO(), configMap, metav1.UpdateOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to update Config Map %s from namespace %s: %v ", configMap.GetName(), configMap.GetNamespace(), err))
+		return err
+	}
+	return nil
+}
+
+// ContainerHasExpectedEnv returns true if each of the envs matches a substring of one of the env found in the deployment
+func ContainerHasExpectedEnv(namespace string, deploymentName string, containerName string, envMap map[string]string) (bool, error) {
+	deployment, err := GetDeployment(namespace, deploymentName)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Deployment %v is not found in the namespace: %v, error: %v", deploymentName, namespace, err))
+		return false, nil
+	}
+	for _, container := range deployment.Spec.Template.Spec.Containers {
+		if container.Name == containerName {
+			for env, val := range envMap {
+				found := false
+				for _, containerEnv := range container.Env {
+					if containerEnv.Name == env {
+						if containerEnv.Value != val {
+							Log(Error, fmt.Sprintf("The value %v of the env %v for the container %v is not set as expected: %v",
+								containerEnv.Value, containerEnv.Name, containerName, val))
+							return false, nil
+						}
+						found = true
+					}
+				}
+				if !found {
+					Log(Error, fmt.Sprintf("The env %v not set for the container %v", env, containerName))
+					return false, nil
+				}
+			}
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// WaitForVZCondition waits till the VZ CR reaches the given condition
+func WaitForVZCondition(conditionType v1alpha1.ConditionType, pollingInterval, timeout time.Duration) {
+	gomega.Eventually(func() bool {
+		cr, err := GetVerrazzano()
+		if err != nil {
+			Log(Error, err.Error())
+			return false
+		}
+		for _, condition := range cr.Status.Conditions {
+			Log(Info, fmt.Sprintf("Evaluating condition: [%s - %s]", condition.Type, condition.Status))
+			if condition.Type == conditionType && condition.Status == corev1.ConditionTrue {
+				return true
+			}
+		}
+		return false
+	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(gomega.BeTrue())
 }

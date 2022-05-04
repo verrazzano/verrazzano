@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package namespace
 
@@ -63,8 +63,8 @@ func TestCreateAndLabelNamespace(t *testing.T) {
 		})
 
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace) error {
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.CreateOption) error {
 			asserts.Equal("testns", ns.Name)
 			asserts.Equal(createVZAndIstioLabels("testns"), ns.Labels)
 			return nil
@@ -89,8 +89,8 @@ func TestCreateAndLabelNamespaceIstioInjection(t *testing.T) {
 		})
 
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace) error {
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.CreateOption) error {
 			asserts.Equal("testns", ns.Name)
 			asserts.Equal(istioLabels, ns.Labels)
 			return nil
@@ -115,8 +115,8 @@ func TestCreateAndLabelNamespaceVzManaged(t *testing.T) {
 		})
 
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace) error {
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.CreateOption) error {
 			asserts.Equal("testns", ns.Name)
 			asserts.Equal(createVzLabels("testns"), ns.Labels)
 			return nil
@@ -141,8 +141,8 @@ func TestCreateAndLabelNamespaceReturnsError(t *testing.T) {
 		})
 
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace) error {
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.CreateOption) error {
 			return fmt.Errorf("UnexpectedError")
 		})
 
@@ -154,7 +154,7 @@ func TestCreateAndLabelNamespaceReturnsError(t *testing.T) {
 // WHEN no error occurs
 // THEN no error is returned, the namespace is created, and the proper labels have been added
 func TestCreateVerrazzanoSystemNamespace(t *testing.T) {
-	runNamespaceTest(t, globalconst.VerrazzanoSystemNamespace,
+	runNamespaceTestWithIstioFlag(t, globalconst.VerrazzanoSystemNamespace,
 		createVZAndIstioLabels(globalconst.VerrazzanoSystemNamespace),
 		CreateVerrazzanoSystemNamespace)
 }
@@ -174,7 +174,7 @@ func TestCreateVerrazzanoMonitoringNamespace(t *testing.T) {
 // WHEN no error occurs
 // THEN no error is returned, the namespace is created, and the proper labels have been added
 func TestCreateKeycloakNamespace(t *testing.T) {
-	runNamespaceTest(t, globalconst.KeycloakNamespace,
+	runNamespaceTestWithIstioFlag(t, globalconst.KeycloakNamespace,
 		createVZAndIstioLabels(globalconst.KeycloakNamespace),
 		CreateKeycloakNamespace)
 }
@@ -211,12 +211,34 @@ func runNamespaceTest(t *testing.T, namespace string, expectedLabels map[string]
 		})
 
 	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace) error {
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.CreateOption) error {
 			asserts.Equal(namespace, ns.Name)
 			asserts.Equal(expectedLabels, ns.Labels)
 			return nil
 		})
 
 	asserts.NoError(namespaceFunc(mock))
+}
+
+func runNamespaceTestWithIstioFlag(t *testing.T, namespace string, expectedLabels map[string]string, namespaceFunc func(client client.Client, istioInjectionEnabled bool) error) {
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: namespace}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+			return errors.NewNotFound(schema.ParseGroupResource("Namespace"), namespace)
+		})
+
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.CreateOption) error {
+			asserts.Equal(namespace, ns.Name)
+			asserts.Equal(expectedLabels, ns.Labels)
+			return nil
+		})
+
+	asserts.NoError(namespaceFunc(mock, true))
 }

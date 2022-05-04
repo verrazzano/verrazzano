@@ -7,7 +7,6 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
-
 	"github.com/onsi/gomega/gstruct/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -125,9 +124,17 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 	}
 
 	// Check to see if the update is an upgrade request, and if it is valid and allowable
-	err := ValidateUpgradeRequest(&oldResource.Spec, &v.Spec)
+	err := ValidateUpgradeRequest(oldResource, v)
 	if err != nil {
 		log.Errorf("Invalid upgrade request: %s", err.Error())
+		return err
+	}
+
+	client, err := getControllerRuntimeClient()
+	if err != nil {
+		return err
+	}
+	if err := validateOCISecrets(client, &v.Spec); err != nil {
 		return err
 	}
 

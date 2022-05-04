@@ -3,6 +3,10 @@
 
 package verrazzano
 
+import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+)
+
 // verrazzanoValues Struct representing the Verrazzano Helm chart values
 //
 // In most cases, we only want to set overrides in this when they are present
@@ -12,32 +16,36 @@ package verrazzano
 // There are a few cases where this is not true
 // - "enabled" flags should always be written; if the user or profile specifies false it
 //   needs to be recorded in the overrides and not omitted
-// - "resourceRequestValues.storage" should be allowed to record empty values, as it is a valid
+// - "vmi.ResourceRequestValues.storage" should be allowed to record empty values, as it is a valid
 //   value to the VMO to indicate ephemeral storage is to be used
 //
 type verrazzanoValues struct {
-	Name               string                     `json:"name,omitempty"`
-	Global             *globalValues              `json:"global,omitempty"`
-	Image              *imageValues               `json:"image,omitempty"`
-	AppBinding         *appBindingValues          `json:"appBinding,omitempty"`
-	ElasticSearch      *elasticsearchValues       `json:"elasticSearch,omitempty"`
-	Prometheus         *prometheusValues          `json:"prometheus,omitempty"`
-	Grafana            *grafanaValues             `json:"grafana,omitempty"`
-	Kibana             *kibanaValues              `json:"kibana,omitempty"`
-	Kiali              *kialiValues               `json:"kiali,omitempty"`
-	Keycloak           *keycloakValues            `json:"keycloak,omitempty"`
-	Rancher            *rancherValues             `json:"rancher,omitempty"`
-	VerrazzanoOperator *voValues                  `json:"verrazzanoOperator,omitempty"`
-	MonitoringOperator *vmoValues                 `json:"monitoringOperator,omitempty"`
-	Logging            *loggingValues             `json:"logging,omitempty"`
-	Fluentd            *fluentdValues             `json:"fluentd,omitempty"`
-	Console            *consoleValues             `json:"console,omitempty"`
-	API                *apiValues                 `json:"api,omitempty"`
-	OCI                *ociValues                 `json:"oci,omitempty"`
-	Config             *configValues              `json:"config,omitempty"`
-	Security           *securityRoleBindingValues `json:"security,omitempty"`
-	Kubernetes         *kubernetesValues          `json:"kubernetes,omitempty"`
-	Externaldns        *externalDNSValues         `json:"externaldns,omitempty"`
+	Name                   string                        `json:"name,omitempty"`
+	Global                 *globalValues                 `json:"global,omitempty"`
+	Image                  *imageValues                  `json:"image,omitempty"`
+	AppBinding             *appBindingValues             `json:"appBinding,omitempty"`
+	ElasticSearch          *elasticsearchValues          `json:"elasticSearch,omitempty"`
+	Prometheus             *prometheusValues             `json:"prometheus,omitempty"`
+	Grafana                *grafanaValues                `json:"grafana,omitempty"`
+	Kibana                 *kibanaValues                 `json:"kibana,omitempty"`
+	Kiali                  *kialiValues                  `json:"kiali,omitempty"`
+	Keycloak               *keycloakValues               `json:"keycloak,omitempty"`
+	Rancher                *rancherValues                `json:"rancher,omitempty"`
+	NodeExporter           *nodeExporterValues           `json:"nodeExporter,omitempty"`
+	Logging                *loggingValues                `json:"logging,omitempty"`
+	Fluentd                *fluentdValues                `json:"fluentd,omitempty"`
+	Console                *consoleValues                `json:"console,omitempty"`
+	API                    *apiValues                    `json:"api,omitempty"`
+	Config                 *configValues                 `json:"config,omitempty"`
+	Security               *securityRoleBindingValues    `json:"security,omitempty"`
+	Kubernetes             *kubernetesValues             `json:"kubernetes,omitempty"`
+	Externaldns            *externalDNSValues            `json:"externaldns,omitempty"`
+	PrometheusOperator     *prometheusOperatorValues     `json:"prometheusOperator,omitempty"`
+	PrometheusAdapter      *prometheusAdapterValues      `json:"prometheusAdapter,omitempty"`
+	KubeStateMetrics       *kubeStateMetricsValues       `json:"kubeStateMetrics,omitempty"`
+	PrometheusPushgateway  *prometheusPushgatewayValues  `json:"prometheusPushgateway,omitempty"`
+	PrometheusNodeExporter *prometheusNodeExporterValues `json:"prometheusNodeExporter,omitempty"`
+	JaegerOperator         *jaegerOperatorValues         `json:"jaegerOperator,omitempty"`
 }
 
 type subject struct {
@@ -51,11 +59,6 @@ type volumeMount struct {
 	Source      string `json:"source,omitempty"`
 	Destination string `json:"destination,omitempty"`
 	ReadOnly    bool   `json:"readOnly,omitempty"`
-}
-
-type resourceRequestValues struct {
-	Memory  string `json:"memory,omitempty"`
-	Storage string `json:"storage"` // Empty string allowed
 }
 
 type imageValues struct {
@@ -72,24 +75,13 @@ type appBindingValues struct {
 }
 
 type elasticsearchValues struct {
-	Enabled bool     `json:"enabled"` // Always write
-	Nodes   *esNodes `json:"nodes,omitempty"`
-}
-
-type esNodes struct {
-	Master *esNodeValues `json:"master,omitempty"`
-	Data   *esNodeValues `json:"data,omitempty"`
-	Ingest *esNodeValues `json:"ingest,omitempty"`
-}
-
-type esNodeValues struct {
-	Replicas int                    `json:"replicas,omitempty"`
-	Requests *resourceRequestValues `json:"requests,omitempty"`
+	Enabled          bool `json:"enabled"` // Always write
+	MultiNodeCluster bool `json:"multiNodeCluster"`
 }
 
 type prometheusValues struct {
-	Enabled  bool                   `json:"enabled"` // Always write
-	Requests *resourceRequestValues `json:"requests,omitempty"`
+	Enabled  bool                          `json:"enabled"` // Always write
+	Requests *common.ResourceRequestValues `json:"requests,omitempty"`
 }
 
 type kialiValues struct {
@@ -106,38 +98,24 @@ type rancherValues struct {
 }
 
 type kibanaValues struct {
-	Enabled  bool                   `json:"enabled"` // Always write
-	Requests *resourceRequestValues `json:"requests,omitempty"`
+	Enabled  bool                          `json:"enabled"` // Always write
+	Requests *common.ResourceRequestValues `json:"requests,omitempty"`
 }
 
 type grafanaValues struct {
-	Enabled  bool                   `json:"enabled"` // Always write
-	Requests *resourceRequestValues `json:"requests,omitempty"`
+	Enabled  bool                          `json:"enabled"` // Always write
+	Requests *common.ResourceRequestValues `json:"requests,omitempty"`
 }
 
-type voValues struct {
-	Name           string `json:"name,omitempty"`
-	Enabled        bool   `json:"enabled"` // Always write
-	APIServerRealm string `json:"apiServerRealm,omitempty"`
-	RequestMemory  string `json:"RequestMemory,omitempty"` // not a typo, the chart uses RequestMemory
-}
-
-type vmoValues struct {
-	Name                      string `json:"name,omitempty"`
-	Enabled                   bool   `json:"enabled"` // Always write
-	MetricsPort               int    `json:"metricsPort,omitempty"`
-	DefaultSimpleCompReplicas int    `json:"defaultSimpleCompReplicas,omitempty"`
-	DefaultPrometheusReplicas int    `json:"defaultPrometheusReplicas,omitempty"`
-	AlertManagerImage         string `json:"alertManagerImage,omitempty"`
-	EsWaitTargetVersion       string `json:"esWaitTargetVersion,omitempty"`
-	OidcAuthEnabled           bool   `json:"oidcAuthEnabled,omitempty"`
-	RequestMemory             string `json:"RequestMemory,omitempty"`
+type nodeExporterValues struct {
+	Enabled bool `json:"enabled"` // Always write
 }
 
 type loggingValues struct {
 	Name                string `json:"name,omitempty"`
 	ElasticsearchURL    string `json:"elasticsearchURL,omitempty"`
 	ElasticsearchSecret string `json:"elasticsearchSecret,omitempty"`
+	ConfigHash          string `json:"configHash,omitempty"`
 }
 
 type fluentdValues struct {
@@ -154,22 +132,6 @@ type consoleValues struct {
 type apiValues struct {
 	Name string `json:"name,omitempty"`
 	Port int    `json:"port,omitempty"`
-}
-
-type ociValues struct {
-	Region      string               `json:"region,omitempty"`
-	TenancyOcid string               `json:"tenancyOcid,omitempty"`
-	UserOcid    string               `json:"userOcid,omitempty"`
-	Fingerprint string               `json:"fingerprint,omitempty"`
-	PrivateKey  string               `json:"privateKey,omitempty"`
-	Compartment string               `json:"compartment,omitempty"`
-	ClusterOcid string               `json:"clusterOcid,omitempty"`
-	ObjectStore *objectStoreSettings `json:"objectStore,omitempty"`
-}
-
-type objectStoreSettings struct {
-	BucketName string `json:"bucketName,omitempty"`
-	Namespace  string `json:"namespace,omitempty"`
 }
 
 type configValues struct {
@@ -204,4 +166,28 @@ type ociLoggingSettings struct {
 	DefaultAppLogID string `json:"defaultAppLogId"`
 	SystemLogID     string `json:"systemLogId"`
 	APISecret       string `json:"apiSecret,omitempty"`
+}
+
+type prometheusOperatorValues struct {
+	Enabled bool `json:"enabled"` // Always write
+}
+
+type prometheusAdapterValues struct {
+	Enabled bool `json:"enabled"` // Always write
+}
+
+type kubeStateMetricsValues struct {
+	Enabled bool `json:"enabled"` // Always write
+}
+
+type prometheusPushgatewayValues struct {
+	Enabled bool `json:"enabled"` // Always write
+}
+
+type prometheusNodeExporterValues struct {
+	Enabled bool `json:"enabled"` // Always write
+}
+
+type jaegerOperatorValues struct {
+	Enabled bool `json:"enabled"` // Always write
 }

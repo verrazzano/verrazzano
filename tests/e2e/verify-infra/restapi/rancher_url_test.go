@@ -55,7 +55,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 				Expect(rancherURL).NotTo(BeEmpty())
 				var httpClient *retryablehttp.Client
 				Eventually(func() error {
-					httpClient, err = pkg.GetRancherHTTPClient(kubeconfigPath)
+					httpClient, err = pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
 					if err != nil {
 						t.Logs.Error(fmt.Sprintf("Error getting HTTP client: %v", err))
 						return err

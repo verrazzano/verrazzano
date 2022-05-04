@@ -5,18 +5,39 @@ package istio
 
 import (
 	"bytes"
+	"context"
 	"fmt"
-	"sigs.k8s.io/yaml"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	v1 "k8s.io/api/core/v1"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 	"text/template"
+
+	"sigs.k8s.io/yaml"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzyaml "github.com/verrazzano/verrazzano/platform-operator/internal/yaml"
 )
 
-// ExternalIPArg is used in a special case where Istio helm chart no longer supports ExternalIPs.
-// Put external IPs into the IstioOperator YAML, which does support it
-const ExternalIPArg = "gateways.istio-ingressgateway.externalIPs"
+const (
+	//ExternalIPArg is used in a special case where Istio helm chart no longer supports ExternalIPs.
+	// Put external IPs into the IstioOperator YAML, which does support it
+	ExternalIPArg = "gateways.istio-ingressgateway.externalIPs"
+
+	//meshConfigEnableTracingValue is a boolean flag to enable/disable tracing in the istio mesh
+	meshConfigEnableTracingValue = "spec.values.meshConfig.enableTracing"
+
+	//meshConfigTracingAddress is the Jaeger collector address
+	meshConfigTracingAddress = "meshConfig.defaultConfig.tracing.zipkin.address"
+
+	//meshConfigTracingTLSMode is the TLS mode for Istio-Jaeger communication
+	meshConfigTracingTLSMode = "meshConfig.defaultConfig.tracing.tlsSettings.mode"
+
+	leftMargin      = 0
+	leftMarginExtIP = 12
+)
 
 // Define the IstioOperator template which is used to insert the generated YAML values.
 //
@@ -53,8 +74,13 @@ spec:
         enabled: true
         k8s:
           replicaCount: {{.IngressReplicaCount}}
-          {{- if .ExternalIps }}
           service:
+            type: {{.IngressServiceType}}
+            {{- if .IngressServicePorts }}
+            ports:
+{{ multiLineIndent 12 .IngressServicePorts }}
+            {{- end}}
+          {{- if .ExternalIps }}
             externalIPs:
               {{.ExternalIps}}
           {{- end}}
@@ -67,19 +93,26 @@ type ReplicaData struct {
 	EgressReplicaCount  uint32
 	IngressAffinity     string
 	EgressAffinity      string
+	IngressServiceType  string
+	IngressServicePorts string
 	ExternalIps         string
 }
 
 // BuildIstioOperatorYaml builds the IstioOperator CR YAML that will be passed as an override to istioctl
 // Transform the Verrazzano CR istioComponent provided by the user onto an IstioOperator formatted YAML
-func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
-	// All generated YAML will be indented 6 spaces
-	const leftMargin = 0
-	const leftMarginExtIP = 12
+func BuildIstioOperatorYaml(ctx spi.ComponentContext, comp *vzapi.IstioComponent) (string, error) {
 
-	var externalIPYAMLTemplateValue string = ""
+	var externalIPYAMLTemplateValue = ""
+	// Tracing is disabled by default
+	enableTracing, err := vzyaml.Expand(leftMargin, false, meshConfigEnableTracingValue, "false")
+	if err != nil {
+		return "", err
+	}
 	// Build a list of YAML strings from the istioComponent initargs, one for each arg.
-	expandedYamls := []string{}
+	expandedYamls := []string{
+		enableTracing,
+	}
+
 	for _, arg := range comp.IstioInstallArgs {
 		values := arg.ValueList
 		if len(values) == 0 {
@@ -93,20 +126,18 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 			//   - 1.2.3.4
 			//
 			const shortArgExternalIPs = "externalIPs"
-			yaml, err := vzyaml.Expand(leftMarginExtIP, true, shortArgExternalIPs, values...)
+			yamlString, err := vzyaml.Expand(leftMarginExtIP, true, shortArgExternalIPs, values...)
 			if err != nil {
 				return "", err
 			}
 			// This is handled seperately
-			externalIPYAMLTemplateValue = yaml
+			externalIPYAMLTemplateValue = yamlString
 			continue
 		} else {
-			valueName := fmt.Sprintf("spec.values.%s", arg.Name)
-			yaml, err := vzyaml.Expand(leftMargin, false, valueName, values...)
+			expandedYamls, err = addYAML(arg.Name, values, expandedYamls)
 			if err != nil {
 				return "", err
 			}
-			expandedYamls = append(expandedYamls, yaml)
 		}
 	}
 	gatewayYaml, err := configureGateways(comp, fixExternalIPYaml(externalIPYAMLTemplateValue))
@@ -114,6 +145,10 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 		return "", err
 	}
 	expandedYamls = append(expandedYamls, gatewayYaml)
+	expandedYamls, err = addJaegerYAML(ctx, expandedYamls)
+	if err != nil {
+		return "", err
+	}
 	// Merge all of the expanded YAMLs into a single YAML,
 	// second has precedence over first, third over second, and so forth.
 	merged, err := vzyaml.ReplacementMerge(expandedYamls...)
@@ -122,6 +157,49 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 	}
 
 	return merged, nil
+}
+
+func addYAML(name string, values, expandedYamls []string) ([]string, error) {
+	valueName := fmt.Sprintf("spec.values.%s", name)
+	yamlString, err := vzyaml.Expand(leftMargin, false, valueName, values...)
+	if err != nil {
+		return expandedYamls, err
+	}
+	return append(expandedYamls, yamlString), nil
+}
+
+func addJaegerYAML(ctx spi.ComponentContext, expandedYamls []string) ([]string, error) {
+	if !vzconfig.IsJaegerOperatorEnabled(ctx.EffectiveCR()) {
+		return expandedYamls, nil
+	}
+
+	services := &v1.ServiceList{}
+	selector := clipkg.MatchingLabels{
+		constants.KubernetesAppLabel: constants.JaegerCollectorService,
+	}
+	if err := ctx.Client().List(context.TODO(), services, selector); err != nil {
+		return expandedYamls, err
+	}
+
+	for _, service := range services.Items {
+		// do not use the headless service
+		if !strings.Contains(service.Name, "headless") {
+			port := zipkinPort(service)
+			collectorURL := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
+				service.Name,
+				service.Namespace,
+				port,
+			)
+
+			var err error
+			expandedYamls, err = addYAML(meshConfigTracingAddress, []string{collectorURL}, expandedYamls)
+			if err != nil {
+				return expandedYamls, err
+			}
+			return addYAML(meshConfigTracingTLSMode, []string{"ISTIO_MUTUAL"}, expandedYamls)
+		}
+	}
+	return expandedYamls, nil
 }
 
 // Change the YAML from
@@ -162,6 +240,22 @@ func configureGateways(istioComponent *vzapi.IstioComponent, externalIP string) 
 			return "", err
 		}
 		data.EgressAffinity = string(yml)
+	}
+
+	data.IngressServiceType = string(vzapi.LoadBalancer)
+	if istioComponent.Ingress.Type == vzapi.NodePort {
+		data.IngressServiceType = string(vzapi.NodePort)
+	}
+
+	data.IngressServicePorts = ""
+	if len(istioComponent.Ingress.Ports) > 0 {
+		y, err := yaml.Marshal(istioComponent.Ingress.Ports)
+		if err != nil {
+			if err != nil {
+				return "", err
+			}
+		}
+		data.IngressServicePorts = string(y)
 	}
 
 	data.ExternalIps = ""

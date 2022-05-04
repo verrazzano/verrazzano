@@ -10,7 +10,9 @@ dns:
     domain: nip.io
 elasticSearch:
   enabled: true
+  multiNodeCluster: true
 logging:
+  configHash: a1c27fb0d69d8e274ad53c15bda62d925b77480ffc422e811b41cc4a3222ae24
   elasticsearchSecret: verrazzano-es-internal
   elasticsearchURL: http://verrazzano-authproxy-elasticsearch:8775
 fluentd:
@@ -30,5 +32,17 @@ prometheus:
   enabled: true
 rancher:
   enabled: true
-verrazzanoOperator:
+nodeExporter:
   enabled: true
+prometheusOperator:
+  enabled: false
+prometheusAdapter:
+  enabled: false
+kubeStateMetrics:
+  enabled: false
+prometheusPushgateway:
+  enabled: false
+prometheusNodeExporter:
+  enabled: false
+jaegerOperator:
+  enabled: false

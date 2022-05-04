@@ -47,14 +47,14 @@ const VerrazzanoSystemNamespace = "verrazzano-system"
 // VerrazzanoMultiClusterNamespace is the multi-cluster namespace for Verrazzano
 const VerrazzanoMultiClusterNamespace = "verrazzano-mc"
 
+// CertManagerNamespace - the CertManager namespace
+const CertManagerNamespace = "cert-manager"
+
 // KeycloakNamespace - the keycloak namespace
 const KeycloakNamespace = "keycloak"
 
 // RancherSystemNamespace - the Rancher cattle-system namespace
 const RancherSystemNamespace = "cattle-system"
-
-// RancherOperatorSystemNamespace - the Rancher operator system namespace
-const RancherOperatorSystemNamespace = "rancher-operator-system"
 
 // VerrazzanoMonitoringNamespace - the keycloak namespace
 const VerrazzanoMonitoringNamespace = "monitoring"
@@ -94,3 +94,16 @@ const FluentdDaemonSetName = "fluentd"
 
 // KubeSystem - The name of the kube-system namespace
 const KubeSystem = "kube-system"
+
+//DefaultVerrazzanoCASecretName Default self-signed CA secret name
+//#nosec
+const DefaultVerrazzanoCASecretName = "verrazzano-ca-certificate-secret"
+
+// VmiPromConfigName - The name of the prometheus config map
+const VmiPromConfigName string = "vmi-system-prometheus-config"
+
+// TestPrometheusJobScrapeInterval - The string 0s representing a test only prometheus config scrape interval
+const TestPrometheusJobScrapeInterval = "0s"
+
+// TestPrometheusJob - Name of a test prometheus scraper job
+const TestPrometheusScrapeJob = "test_job"

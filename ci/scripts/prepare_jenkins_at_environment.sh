@@ -17,12 +17,15 @@ fi
 
 INSTALL_CALICO=${1:-false}
 WILDCARD_DNS_DOMAIN=${2:-"x=nip.io"}
+KIND_NODE_COUNT=${KIND_NODE_COUNT:-1}
+TEST_OVERRIDE_CONFIGMAP_FILE="./tests/e2e/config/scripts/test-overrides-configmap.yaml"
+TEST_OVERRIDE_SECRET_FILE="./tests/e2e/config/scripts/test-overrides-secret.yaml"
 
 cd ${GO_REPO_PATH}/verrazzano
 echo "tests will execute" > ${TESTS_EXECUTED_FILE}
 echo "Create Kind cluster"
 cd ${TEST_SCRIPTS_DIR}
-./create_kind_cluster.sh "${CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" "${KIND_KUBERNETES_CLUSTER_VERSION}" true true true $INSTALL_CALICO
+./create_kind_cluster.sh "${CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" "${KIND_KUBERNETES_CLUSTER_VERSION}" true true true $INSTALL_CALICO "NONE" ${KIND_NODE_COUNT}
 if [ $? -ne 0 ]; then
     mkdir $WORKSPACE/kind-logs
     kind export logs $WORKSPACE/kind-logs
@@ -95,6 +98,20 @@ cd ${GO_REPO_PATH}/verrazzano
 kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
 if [ $? -ne 0 ]; then
   echo "Operator is not ready"
+  exit 1
+fi
+
+echo "Creating Override ConfigMap"
+kubectl create cm test-overrides --from-file=${TEST_OVERRIDE_CONFIGMAP_FILE}
+if [ $? -ne 0 ]; then
+  echo "Could not create Override ConfigMap"
+  exit 1
+fi
+
+echo "Creating Override Secret"
+kubectl create secret generic test-overrides --from-file=${TEST_OVERRIDE_SECRET_FILE}
+if [ $? -ne 0 ]; then
+  echo "Could not create Override Secret"
   exit 1
 fi
 

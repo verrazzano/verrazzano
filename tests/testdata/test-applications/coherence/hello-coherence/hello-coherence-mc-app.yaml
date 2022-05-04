@@ -1,0 +1,39 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: clusters.verrazzano.io/v1alpha1
+kind: MultiClusterApplicationConfiguration
+metadata:
+  name: hello-appconf
+spec:
+  template:
+    metadata:
+      annotations:
+        version: v1.0.0
+    spec:
+      components:
+        - componentName: hello-coherence
+          traits:
+            - trait:
+                apiVersion: oam.verrazzano.io/v1alpha1
+                kind: IngressTrait
+                metadata:
+                  name: hellocoh-ingress
+                spec:
+                  rules:
+                    - paths:
+                        - path: "/catalogue"
+                          pathType: Prefix
+            - trait:
+                apiVersion: oam.verrazzano.io/v1alpha1
+                kind: MetricsTrait
+                metadata:
+                  name: hellocoh-metrics
+                spec:
+                  ports:
+                    - port: 7001
+                    - port: 9612
+  placement:
+    clusters:
+      - name: managed1
+

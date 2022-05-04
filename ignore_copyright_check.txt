@@ -6,6 +6,7 @@ platform-operator/helm_config/charts/verrazzano/NOTES.txt
 platform-operator/helm_config/charts/verrazzano-application-operator/NOTES.txt
 platform-operator/helm_config/charts/verrazzano-authproxy/NOTES.txt
 platform-operator/helm_config/charts/verrazzano-platform-operator/NOTES.txt
+platform-operator/helm_config/charts/verrazzano-monitoring-operator/NOTES.txt
 image-patch-operator/helm_config/charts/image-patch-operator/NOTES.txt
 LICENSES-OLCNE.pdf
 coverage.xml
@@ -14,7 +15,7 @@ platform-operator/thirdparty
 application-operator/deploy/application-operator.txt
 tests/e2e/config/scripts/terraform/cluster/required-env-vars
 tests/e2e/config/scripts/looping-test/types.txt
-tests/testdata/test-applications/weblogic/hello-verrazzano/setup/exporter-config.yaml
+tests/testdata/test-applications/weblogic/hello-weblogic/setup/exporter-config.yaml
 tools/copyright/test
 tools/fix-copyright/copyright.go
 .idea

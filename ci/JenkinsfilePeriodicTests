@@ -12,7 +12,7 @@ def branchSpecificSchedule = getCronSchedule()
 
 // The job name from which the verrazzano_images file is available to be copied to this job
 // We will copy over and make it part of the artifacts of the periodic job, available when we want to release a candidate
-def verrazzanoImagesJobProjectName = "verrazzano-new-oci-dns-acceptance-tests"
+def verrazzanoImagesJobProjectName = "verrazzano-examples"
 def verrazzanoImagesFile = "verrazzano_images.txt"
 def verrazzanoImagesBuildNumber = 0 // will be set to actual build number when the job is run
 
@@ -166,7 +166,7 @@ pipeline {
                 stage('OCI DNS tests') {
                     steps {
                         script {
-                            def builtOCIDNS = build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                            build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
@@ -174,8 +174,6 @@ pipeline {
                                     string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                     string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
                                 ], wait: true
-                            // The OCI DNS job is the one from which we get the verrazzano images file
-                            verrazzanoImagesBuildNumber = builtOCIDNS.number
                         }
                     }
                 }
@@ -196,20 +194,6 @@ pipeline {
                         }
                     }
                }
-               stage('Kind Acceptance Tests on 1.19') {
-                    steps {
-                        script {
-                            build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
-                                parameters: [
-                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
-                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
-                                ], wait: true
-                        }
-                    }
-                }
                 stage('Kind Acceptance Tests on 1.20') {
                     steps {
                         script {
@@ -235,6 +219,34 @@ pipeline {
                                     string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                     string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
                                 ], wait: true
+                        }
+                    }
+                }
+                stage('Kind Acceptance Tests on 1.22') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                            string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
+                                            string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                            string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                            string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                            string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                    ], wait: true
+                        }
+                    }
+                }
+                stage('Kind Acceptance Tests on 1.23') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                            string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.23),
+                                            string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                            string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                            string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                            string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                    ], wait: true
                         }
                     }
                 }
@@ -266,13 +278,13 @@ pipeline {
                     }
                 }
                 */
-                stage('Kind Acceptance Tests on 1.19 Non-Calico') {
+                stage('Kind Acceptance Tests on 1.22 Non-Calico') {
                     steps {
                         script {
                             // Do not use Calico
                             build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
-                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
+                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: false),
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -289,13 +301,13 @@ pipeline {
                         }
                     }
                 }
-                stage('Kind Acceptance Tests on 1.19 sslip.io') {
+                stage('Kind Acceptance Tests on 1.22 sslip.io') {
                     steps {
                         script {
                             // test with sslip.io
                             build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
-                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
+                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'WILDCARD_DNS_DOMAIN', value: 'sslip.io'),
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -317,7 +329,7 @@ pipeline {
                         script {
                             build job: "verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
-                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
+                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                     string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
@@ -366,6 +378,29 @@ pipeline {
                                     string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                     string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
                                 ], wait: true
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                TESTS_FAILED = true
+                            }
+                        }
+                    }
+                }
+                stage('Verrazzano Examples') {
+                    steps {
+                        script {
+                            def builtExamples = build job: "/verrazzano-examples/${CLEAN_BRANCH_NAME}",
+                                parameters: [
+                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                ], wait: true
+                            // The verrazzano-examples job is the one from which we get the verrazzano images file
+                            verrazzanoImagesBuildNumber = builtExamples.number
                         }
                     }
                     post {
@@ -508,7 +543,7 @@ def isPagerDutyEnabled() {
 
 def getCronSchedule() {
     if (env.BRANCH_NAME.equals("master")) {
-        return "H */2 * * *"
+        return "H */6 * * *"
     } else if (env.BRANCH_NAME.startsWith("release-1")) {
         return "@daily"
     }

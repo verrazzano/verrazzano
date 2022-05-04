@@ -1,10 +1,12 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -14,7 +16,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 const (
@@ -61,6 +62,7 @@ func TestAddCAIngressAnnotations(t *testing.T) {
 			Annotations: map[string]string{
 				"nginx.ingress.kubernetes.io/auth-realm": fmt.Sprintf("%s.%s auth", name, dnsSuffix),
 				"cert-manager.io/cluster-issuer":         "verrazzano-cluster-issuer",
+				"cert-manager.io/common-name":            fmt.Sprintf("%s.%s.%s", common.RancherName, name, dnsSuffix),
 			},
 		},
 	}
@@ -90,7 +92,7 @@ func TestPatchRancherIngress(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		c := fake.NewFakeClientWithScheme(getScheme(), &tt.in)
+		c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&tt.in).Build()
 		t.Run(tt.vzapi.Spec.EnvironmentName, func(t *testing.T) {
 			assert.Nil(t, patchRancherIngress(c, &tt.vzapi))
 		})
@@ -102,7 +104,7 @@ func TestPatchRancherIngress(t *testing.T) {
 //  WHEN patchRancherIngress is called
 //  THEN patchRancherIngress should fail to annotate the Ingress
 func TestPatchRancherIngressNotFound(t *testing.T) {
-	c := fake.NewFakeClientWithScheme(getScheme())
+	c := fake.NewClientBuilder().WithScheme(getScheme()).Build()
 	err := patchRancherIngress(c, &vzAcmeDev)
 	assert.NotNil(t, err)
 	assert.True(t, apierrors.IsNotFound(err))
@@ -113,7 +115,7 @@ func TestPatchRancherIngressNotFound(t *testing.T) {
 //  WHEN patchRancherDeployment is called
 //  THEN patchRancherDeployment should fail to patch the deployment
 func TestPatchRancherDeploymentNotFound(t *testing.T) {
-	c := fake.NewFakeClientWithScheme(getScheme())
+	c := fake.NewClientBuilder().WithScheme(getScheme()).Build()
 	err := patchRancherDeployment(c)
 	assert.NotNil(t, err)
 	assert.True(t, apierrors.IsNotFound(err))
@@ -171,7 +173,7 @@ func TestPatchRancherDeployment(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
-			c := fake.NewFakeClientWithScheme(getScheme(), tt.deployment)
+			c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(tt.deployment).Build()
 			err := patchRancherDeployment(c)
 			if tt.isError {
 				assert.NotNil(t, err)

@@ -1,4 +1,4 @@
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 # Network policy for Verrazzano API Proxy
@@ -86,23 +86,6 @@ spec:
         - port: 15090
           protocol: TCP
 {{- end }}
-{{- if .Values.verrazzanoOperator.enabled }}
----
-# Network policy for Verrazzano operator
-# Ingress: deny all
-# Egress: allow all
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: verrazzano-operator
-  namespace: {{ .Release.Namespace }}
-spec:
-  podSelector:
-    matchLabels:
-      app: verrazzano-operator
-  policyTypes:
-    - Ingress
-{{- end }}
 ---
 # Network policy for Verrazzano application operator
 # Ingress: allow access from Kubernetes API server for webhook port 9443
@@ -122,23 +105,6 @@ spec:
     - ports:
         - port: 9443
           protocol: TCP
-{{- if .Values.monitoringOperator.enabled }}
----
-# Network policy for Verrazzano monitoring operator
-# Ingress: deny all
-# Egress: allow all
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: verrazzano-monitoring-operator
-  namespace: {{ .Release.Namespace }}
-spec:
-  podSelector:
-    matchLabels:
-      k8s-app: verrazzano-monitoring-operator
-  policyTypes:
-    - Ingress
-{{- end }}
 ---
 # Network policy for OAM Kubernetes Runtime operator
 # Ingress: deny all

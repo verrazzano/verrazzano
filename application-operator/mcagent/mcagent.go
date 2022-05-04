@@ -118,6 +118,14 @@ func (s *Syncer) ProcessAgentThread() error {
 
 	// Sync multi-cluster objects
 	s.SyncMultiClusterResources()
+
+	// Check whether the admin or local clusters' CA certs have rolled, and sync as necessary
+	err = s.syncClusterCAs()
+	if err != nil {
+		// we couldn't sync the cluster CAs - but we should keep going with the rest of the work
+		s.Log.Errorf("Failed to synchronize cluster CA certificates: %v", err)
+	}
+
 	return nil
 }
 

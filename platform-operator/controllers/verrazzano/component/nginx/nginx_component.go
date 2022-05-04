@@ -7,13 +7,15 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 )
 
 // ComponentName is the name of the component
@@ -21,6 +23,12 @@ const ComponentName = "ingress-controller"
 
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = "ingress-nginx"
+
+// ComponentJSONName is the josn name of the verrazzano component in CRD
+const ComponentJSONName = "ingress"
+
+// nginxExternalIPKey is the nginxInstallArgs key for externalIPs
+const nginxExternalIPKey = "controller.service.externalIPs"
 
 // nginxComponent represents an Nginx component
 type nginxComponent struct {
@@ -35,6 +43,7 @@ func NewComponent() spi.Component {
 	return nginxComponent{
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
+			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), "ingress-nginx"), // Note name is different than release name
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
@@ -69,7 +78,32 @@ func (c nginxComponent) IsReady(ctx spi.ComponentContext) bool {
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("can not disable previously enabled ingress")
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
+	return c.validateForExternalIPSWithNodePort(&new.Spec)
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (c nginxComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return c.validateForExternalIPSWithNodePort(&vz.Spec)
+}
+
+// validateForExternalIPSWithNodePort checks that externalIPs are set when Type=NodePort
+func (c nginxComponent) validateForExternalIPSWithNodePort(vz *vzapi.VerrazzanoSpec) error {
+	// good if ingress is not set
+	if vz.Components.Ingress == nil {
+		return nil
+	}
+
+	// good if type is not NodePort
+	if vz.Components.Ingress.Type != vzapi.NodePort {
+		return nil
+	}
+
+	// look for externalIPs if NodePort
+	if vz.Components.Ingress.Type == vzapi.NodePort {
+		return vzconfig.CheckExternalIPsArgs(vz.Components.Ingress.NGINXInstallArgs, nginxExternalIPKey, c.Name())
+	}
+
 	return nil
 }

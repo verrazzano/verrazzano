@@ -33,6 +33,7 @@ metadata:
     nginx.ingress.kubernetes.io/session-cookie-samesite: Strict
     nginx.ingress.kubernetes.io/service-upstream: "true"
     nginx.ingress.kubernetes.io/upstream-vhost: "${service_name}.${namespace}.svc.cluster.local"
+    cert-manager.io/common-name: verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
   name: verrazzano-ingress
   namespace: {{ .Release.Namespace }}
 spec:
@@ -50,4 +51,4 @@ spec:
   tls:
     - hosts:
         - verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
-      secretName: {{ .Values.config.envName }}-secret
+      secretName: verrazzano-tls

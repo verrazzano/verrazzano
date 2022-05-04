@@ -4,24 +4,113 @@
 package istio
 
 import (
+	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"testing"
+
+	"k8s.io/apimachinery/pkg/util/intstr"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
-const argShape = `gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"`
+const ComponentInstallArgShape = `gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"`
 
 var enabled = true
+
+var prodIstioIngress = &vzapi.IstioIngressSection{
+	Kubernetes: &vzapi.IstioKubernetesSection{
+		CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
+			Replicas: 2,
+			Affinity: &corev1.Affinity{
+				PodAntiAffinity: &corev1.PodAntiAffinity{
+					RequiredDuringSchedulingIgnoredDuringExecution: nil,
+					PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+						{
+							Weight: 100,
+							PodAffinityTerm: corev1.PodAffinityTerm{
+								LabelSelector: &metav1.LabelSelector{
+									MatchLabels: nil,
+									MatchExpressions: []metav1.LabelSelectorRequirement{
+										{
+											Key:      "app",
+											Operator: "In",
+											Values: []string{
+												"istio-ingressgateway",
+											},
+										},
+									},
+								},
+								Namespaces:  nil,
+								TopologyKey: "kubernetes.io/hostname",
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+	Type: vzapi.NodePort,
+	Ports: []corev1.ServicePort{
+		{
+			Name:     "port1",
+			Protocol: "TCP",
+			Port:     8000,
+			NodePort: 32443,
+			TargetPort: intstr.IntOrString{
+				Type:   intstr.Int,
+				IntVal: 2000,
+			},
+		},
+	},
+}
+
+var prodIstioEgress = &vzapi.IstioEgressSection{
+	Kubernetes: &vzapi.IstioKubernetesSection{
+		CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
+			Replicas: 2,
+			Affinity: &corev1.Affinity{
+				PodAntiAffinity: &corev1.PodAntiAffinity{
+					RequiredDuringSchedulingIgnoredDuringExecution: nil,
+					PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+						{
+							Weight: 100,
+							PodAffinityTerm: corev1.PodAffinityTerm{
+								LabelSelector: &metav1.LabelSelector{
+									MatchLabels: nil,
+									MatchExpressions: []metav1.LabelSelectorRequirement{
+										{
+											Key:      "app",
+											Operator: "In",
+											Values: []string{
+												"istio-egressgateway",
+											},
+										},
+									},
+								},
+								Namespaces:  nil,
+								TopologyKey: "kubernetes.io/hostname",
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+}
 
 // Prod Profile defaults for replicas and affinity
 // Extra Install Args
 var cr1 = vzapi.IstioComponent{
 	IstioInstallArgs: []vzapi.InstallArgs{
 		{
-			Name:  argShape,
+			Name:  ComponentInstallArgShape,
 			Value: "10Mbps",
 		},
 		{
@@ -38,72 +127,8 @@ var cr1 = vzapi.IstioComponent{
 		},
 	},
 	Enabled: &enabled,
-	Ingress: &vzapi.IstioIngressSection{
-		Kubernetes: &vzapi.IstioKubernetesSection{
-			CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
-				Replicas: 2,
-				Affinity: &corev1.Affinity{
-					PodAntiAffinity: &corev1.PodAntiAffinity{
-						RequiredDuringSchedulingIgnoredDuringExecution: nil,
-						PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
-							{
-								Weight: 100,
-								PodAffinityTerm: corev1.PodAffinityTerm{
-									LabelSelector: &metav1.LabelSelector{
-										MatchLabels: nil,
-										MatchExpressions: []metav1.LabelSelectorRequirement{
-											{
-												Key:      "app",
-												Operator: "In",
-												Values: []string{
-													"istio-ingressgateway",
-												},
-											},
-										},
-									},
-									Namespaces:  nil,
-									TopologyKey: "kubernetes.io/hostname",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	},
-	Egress: &vzapi.IstioEgressSection{
-		Kubernetes: &vzapi.IstioKubernetesSection{
-			CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
-				Replicas: 2,
-				Affinity: &corev1.Affinity{
-					PodAntiAffinity: &corev1.PodAntiAffinity{
-						RequiredDuringSchedulingIgnoredDuringExecution: nil,
-						PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
-							{
-								Weight: 100,
-								PodAffinityTerm: corev1.PodAffinityTerm{
-									LabelSelector: &metav1.LabelSelector{
-										MatchLabels: nil,
-										MatchExpressions: []metav1.LabelSelectorRequirement{
-											{
-												Key:      "app",
-												Operator: "In",
-												Values: []string{
-													"istio-egressgateway",
-												},
-											},
-										},
-									},
-									Namespaces:  nil,
-									TopologyKey: "kubernetes.io/hostname",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	},
+	Ingress: prodIstioIngress,
+	Egress:  prodIstioEgress,
 }
 
 // Resulting YAML after the merge
@@ -146,6 +171,13 @@ spec:
               weight: 100
         replicaCount: 2
         service:
+          type: NodePort
+          ports:
+          - name: port1
+            protocol: TCP
+            port: 8000
+            nodePort: 32443
+            targetPort: 2000
           externalIPs:
           - 1.2.3.4
       name: istio-ingressgateway
@@ -157,6 +189,8 @@ spec:
     global:
       defaultPodDisruptionBudget:
         enabled: false
+    meshConfig:
+        enableTracing: false
     pilot:
       resources:
         requests:
@@ -168,7 +202,7 @@ spec:
 var cr2 = vzapi.IstioComponent{
 	IstioInstallArgs: []vzapi.InstallArgs{
 		{
-			Name:  argShape,
+			Name:  ComponentInstallArgShape,
 			Value: "10Mbps",
 		},
 		{
@@ -293,6 +327,7 @@ spec:
               weight: 100
         replicaCount: 1
         service:
+          type: LoadBalancer
           externalIPs:
           - 1.2.3.4
       name: istio-ingressgateway
@@ -304,6 +339,8 @@ spec:
     global:
       defaultPodDisruptionBudget:
         enabled: false
+    meshConfig:
+        enableTracing: false
     pilot:
       resources:
         requests:
@@ -408,47 +445,127 @@ kind: IstioOperator
 spec:
   components:
     egressGateways:
-      - name: istio-egressgateway
-        enabled: true
-        k8s:
-          replicaCount: 3
-          affinity:
-            nodeAffinity:
-              requiredDuringSchedulingIgnoredDuringExecution:
-                nodeSelectorTerms: null
-            podAffinity: {}
-            podAntiAffinity:
-              preferredDuringSchedulingIgnoredDuringExecution:
-              - podAffinityTerm:
-                  labelSelector:
-                    matchExpressions:
-                    - key: app
-                      operator: NotIn
-                      values:
-                      - istio-egressgateway
-                  topologyKey: kubernetes.io/hostname
-                weight: 30
+    - enabled: true
+      k8s:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms: null
+          podAffinity: {}
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                  - key: app
+                    operator: NotIn
+                    values:
+                    - istio-egressgateway
+                topologyKey: kubernetes.io/hostname
+              weight: 30
+        replicaCount: 3
+      name: istio-egressgateway
     ingressGateways:
-      - name: istio-ingressgateway
-        enabled: true
-        k8s:
-          replicaCount: 3
-          affinity:
-            nodeAffinity:
-              requiredDuringSchedulingIgnoredDuringExecution:
-                nodeSelectorTerms: null
-            podAffinity: {}
-            podAntiAffinity:
-              preferredDuringSchedulingIgnoredDuringExecution:
-              - podAffinityTerm:
-                  labelSelector:
-                    matchExpressions:
-                    - key: app
-                      operator: NotIn
-                      values:
-                      - istio-ingressgateway
-                  topologyKey: kubernetes.io/hostname
-                weight: 30
+    - enabled: true
+      k8s:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms: null
+          podAffinity: {}
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                  - key: app
+                    operator: NotIn
+                    values:
+                    - istio-ingressgateway
+                topologyKey: kubernetes.io/hostname
+              weight: 30
+        replicaCount: 3
+        service:
+          type: LoadBalancer
+      name: istio-ingressgateway
+  values:
+    meshConfig:
+      enableTracing: false
+`
+
+var cr4 = &vzapi.IstioComponent{
+	Enabled: &enabled,
+	Ingress: prodIstioIngress,
+	Egress:  prodIstioEgress,
+	IstioInstallArgs: []vzapi.InstallArgs{
+		{
+			Name:  "meshConfig.enableTracing",
+			Value: "true",
+		},
+		{
+			Name:  "meshConfig.defaultConfig.tracing.sampling",
+			Value: "100",
+		},
+	},
+}
+
+var cr4Yaml = `
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  components:
+    egressGateways:
+    - enabled: true
+      k8s:
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                    - istio-egressgateway
+                topologyKey: kubernetes.io/hostname
+              weight: 100
+        replicaCount: 2
+      name: istio-egressgateway
+    ingressGateways:
+    - enabled: true
+      k8s:
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                    - istio-ingressgateway
+                topologyKey: kubernetes.io/hostname
+              weight: 100
+        replicaCount: 2
+        service:
+          ports:
+          - name: port1
+            nodePort: 32443
+            port: 8000
+            protocol: TCP
+            targetPort: 2000
+          type: NodePort
+      name: istio-ingressgateway
+  values:
+    meshConfig:
+      defaultConfig:
+        tracing:
+          sampling: 100
+          tlsSettings:
+            mode: ISTIO_MUTUAL
+          zipkin:
+            address: jaeger-collector.foo.svc.cluster.local:5555
+      enableTracing: true
 `
 
 // TestBuildIstioOperatorYaml tests the BuildIstioOperatorYaml function
@@ -456,35 +573,84 @@ spec:
 // WHEN BuildIstioOperatorYaml is called
 // THEN ensure that the result is correct.
 func TestBuildIstioOperatorYaml(t *testing.T) {
-	const indent = 2
-
+	fakeCtx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build(), &vzapi.Verrazzano{}, false)
+	collectorLabels := map[string]string{
+		constants.KubernetesAppLabel: constants.JaegerCollectorService,
+	}
+	namespace := "foo"
+	clientForJaeger := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).
+		WithObjects(&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: namespace,
+				Name:      "jaeger-collector-headless",
+				Labels:    collectorLabels,
+			},
+		},
+			&corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+					Name:      "jaeger-collector",
+					Labels:    collectorLabels,
+				},
+				Spec: corev1.ServiceSpec{
+					Ports: []corev1.ServicePort{
+						{
+							Name: "http-foo",
+							Port: 1234,
+						},
+						{
+							Name: "http-zipkin",
+							Port: 5555,
+						},
+					},
+				},
+			}).Build()
 	tests := []struct {
 		testName string
 		value    *vzapi.IstioComponent
 		expected string
+		ctx      spi.ComponentContext
 	}{
 		{
 			testName: "Default Prod Profile Install",
 			value:    &cr1,
 			expected: cr1Yaml,
+			ctx:      fakeCtx,
 		},
 		{
 			testName: "Default Dev and Managed-Cluster Profile Install",
 			value:    &cr2,
 			expected: cr2Yaml,
+			ctx:      fakeCtx,
 		},
 		{
 			testName: "Override Affinity and Replica",
 			value:    &cr3,
 			expected: cr3Yaml,
+			ctx:      fakeCtx,
+		},
+		{
+			testName: "Override Jaeger when enabled and present",
+			value:    cr4,
+			expected: cr4Yaml,
+			ctx: spi.NewFakeContext(clientForJaeger, &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						JaegerOperator: &vzapi.JaegerOperatorComponent{
+							Enabled: &enabled,
+						},
+					},
+				},
+			}, false),
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
-			assert := assert.New(t)
-			s, err := BuildIstioOperatorYaml(test.value)
-			assert.NoError(err, s, "error merging yamls")
-			assert.YAMLEq(test.expected, s, "Result does not match expected value")
+			a := assert.New(t)
+			s, err := BuildIstioOperatorYaml(test.ctx, test.value)
+			fmt.Println(s)
+			a.NoError(err, s, "error merging yamls")
+			a.YAMLEq(test.expected, s, "Result does not match expected value")
 		})
 	}
 }

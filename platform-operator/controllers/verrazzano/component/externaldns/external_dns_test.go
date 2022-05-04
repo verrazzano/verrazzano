@@ -4,6 +4,11 @@
 package externaldns
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/helm"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"os/exec"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -24,6 +29,7 @@ const (
 
 // Default Verrazzano object
 var vz = &vzapi.Verrazzano{
+	ObjectMeta: metav1.ObjectMeta{Name: "my-verrazzano", Namespace: "default", CreationTimestamp: metav1.Now()},
 	Spec: vzapi.VerrazzanoSpec{
 		EnvironmentName: "myenv",
 		Components: vzapi.ComponentSpec{
@@ -64,6 +70,25 @@ var ociInvalidScope = &vzapi.OCI{
 
 var fakeComponent = externalDNSComponent{}
 
+var testScheme = runtime.NewScheme()
+
+func init() {
+	_ = k8scheme.AddToScheme(testScheme)
+	_ = vzapi.AddToScheme(testScheme)
+}
+
+// genericTestRunner is used to run generic OS commands with expected results
+type genericTestRunner struct {
+	stdOut []byte
+	stdErr []byte
+	err    error
+}
+
+// Run genericTestRunner executor
+func (r genericTestRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+	return r.stdOut, r.stdErr, r.err
+}
+
 // TestIsExternalDNSEnabled tests the IsEnabled fn
 // GIVEN a call to IsEnabled
 // WHEN OCI DNS is enabled
@@ -87,9 +112,9 @@ func TestIsExternalDNSDisabled(t *testing.T) {
 // WHEN the external dns deployment is ready
 // THEN the function returns true
 func TestIsExternalDNSReady(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		newDeployment(ComponentName, true),
-	)
+	).Build()
 	assert.True(t, isExternalDNSReady(spi.NewFakeContext(client, nil, false)))
 }
 
@@ -98,9 +123,9 @@ func TestIsExternalDNSReady(t *testing.T) {
 // WHEN the external dns deployment is not ready
 // THEN the function returns false
 func TestIsExternalDNSNotReady(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		newDeployment(ComponentName, false),
-	)
+	).Build()
 	assert.False(t, isExternalDNSReady(spi.NewFakeContext(client, nil, false)))
 }
 
@@ -111,6 +136,19 @@ func TestIsExternalDNSNotReady(t *testing.T) {
 func TestAppendExternalDNSOverrides(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.DNS.OCI = oci
+
+	helm.SetCmdRunner(genericTestRunner{
+		stdOut: []byte(""),
+		stdErr: []byte{},
+		err:    nil,
+	})
+	defer helm.SetDefaultRunner()
+
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+
 	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, false, profileDir), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 9)
@@ -121,7 +159,7 @@ func TestAppendExternalDNSOverrides(t *testing.T) {
 // WHEN I call PreInstall with dry-run = true
 // THEN no errors are returned
 func TestExternalDNSPreInstallDryRun(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	err := fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, true))
 	assert.NoError(t, err)
 }
@@ -131,14 +169,14 @@ func TestExternalDNSPreInstallDryRun(t *testing.T) {
 // WHEN I call PreInstall
 // THEN no errors are returned
 func TestExternalDNSPreInstall(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "oci",
 				Namespace: constants.VerrazzanoInstallNamespace,
 			},
 			Data: map[string][]byte{"oci.yaml": []byte("fake data")},
-		})
+		}).Build()
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.DNS.OCI = oci
 	err := fakeComponent.PreInstall(spi.NewFakeContext(client, localvz, false))
@@ -146,14 +184,14 @@ func TestExternalDNSPreInstall(t *testing.T) {
 }
 
 func TestExternalDNSPreInstallGlobalScope(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "oci",
 				Namespace: constants.VerrazzanoInstallNamespace,
 			},
 			Data: map[string][]byte{"oci.yaml": []byte("fake data")},
-		})
+		}).Build()
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.DNS.OCI = ociGlobalScope
 	err := fakeComponent.PreInstall(spi.NewFakeContext(client, localvz, false))
@@ -161,14 +199,14 @@ func TestExternalDNSPreInstallGlobalScope(t *testing.T) {
 }
 
 func TestExternalDNSPreInstallPrivateScope(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "oci",
 				Namespace: constants.VerrazzanoInstallNamespace,
 			},
 			Data: map[string][]byte{"oci.yaml": []byte("fake data")},
-		})
+		}).Build()
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.DNS.OCI = ociPrivateScope
 	err := fakeComponent.PreInstall(spi.NewFakeContext(client, localvz, false))
@@ -176,18 +214,101 @@ func TestExternalDNSPreInstallPrivateScope(t *testing.T) {
 }
 
 func TestExternalDNSPreInstall3InvalidScope(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "oci",
 				Namespace: constants.VerrazzanoInstallNamespace,
 			},
 			Data: map[string][]byte{"oci.yaml": []byte("fake data")},
-		})
+		}).Build()
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.DNS.OCI = ociInvalidScope
 	err := fakeComponent.PreInstall(spi.NewFakeContext(client, localvz, false))
 	assert.Error(t, err)
+}
+
+// TestOwnerIDTextPrefix_HelmValueExists tests the getOrBuildIDs and getOrBuildTXTRecordPrefix functions
+// GIVEN calls to getOrBuildIDs and getOrBuildTXTRecordPrefix
+//  WHEN a valid helm release and namespace are deployed and the txtOwnerId and txtPrefix values exist in the release values
+//  THEN the function returns the stored helm values and no error
+func TestOwnerIDTextPrefix_HelmValueExists(t *testing.T) {
+	jsonOut := []byte(`
+{
+  "domainFilters": [
+    "my.domain.io"
+  ],
+  "triggerLoopOnEvent": true,
+  "txtOwnerId": "storedOwnerId",
+  "txtPrefix": "storedPrefix",
+  "zoneIDFilters": [
+    "ocid1.dns-zone.oc1..blahblahblah"
+  ]
+}
+`)
+
+	helm.SetCmdRunner(genericTestRunner{
+		stdOut: jsonOut,
+		stdErr: []byte{},
+		err:    nil,
+	})
+	defer helm.SetDefaultRunner()
+
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+
+	localvz := vz.DeepCopy()
+	localvz.UID = "uid"
+	localvz.Spec.Components.DNS.OCI = oci
+
+	client := fake.NewFakeClientWithScheme(testScheme, localvz)
+	compContext := spi.NewFakeContext(client, vz, false)
+
+	ids, err := getOrBuildIDs(compContext, ComponentName, ComponentNamespace)
+	assert.NoError(t, err)
+	assert.Len(t, ids, 2)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "storedOwnerId", ids[0])
+	assert.Equal(t, "storedPrefix", ids[1])
+}
+
+// TestOwnerIDTextPrefix_NoHelmValueExists tests the getOrBuildIDs and getOrBuildTXTRecordPrefix functions
+// GIVEN calls to getOrBuildIDs and getOrBuildTXTRecordPrefix
+//  WHEN no stored helm values exist
+//  THEN the function returns the generated values and no error
+func Test_getOrBuildOwnerID_NoHelmValueExists(t *testing.T) {
+	helm.SetCmdRunner(genericTestRunner{
+		stdOut: []byte(""),
+		stdErr: []byte{},
+		err:    nil,
+	})
+	defer helm.SetDefaultRunner()
+
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+
+	localvz := vz.DeepCopy()
+	localvz.UID = "uid"
+	localvz.Spec.Components.DNS.OCI = oci
+	schemeGroupVersion := schema.GroupVersion{Group: "install.verrazzano.io", Version: "v1alpha1"}
+	testScheme.AddKnownTypes(schemeGroupVersion, &vzapi.Verrazzano{})
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(localvz).Build()
+	compContext := spi.NewFakeContext(client, vz, false)
+
+	ids, err := getOrBuildIDs(compContext, ComponentName, ComponentNamespace)
+	assert.NoError(t, err)
+	assert.Len(t, ids, 2)
+
+	assert.True(t, strings.HasPrefix(ids[0], "v8o-"))
+	assert.NotContains(t, ids[0], vz.Spec.EnvironmentName)
+
+	assert.NoError(t, err)
+	assert.True(t, strings.HasPrefix(ids[1], "_"+ids[0]))
 }
 
 // Create a new deployment object for testing

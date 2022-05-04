@@ -20,6 +20,8 @@ spec:
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: IngressTrait
+            metadata:
+              name: todo-domain-ingress
             spec:
               rules:
                 - paths:

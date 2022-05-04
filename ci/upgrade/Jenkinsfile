@@ -24,9 +24,9 @@ pipeline {
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
-                choices: [ "1.20", "1.19", "1.21" ])
+                choices: [ "1.20", "1.21", "1.22", "1.23" ])
         string (name: 'VERSION_FOR_INSTALL',
-                defaultValue: 'v1.0.0',
+                defaultValue: 'v1.1.2',
                 description: 'This is the Verrazzano version for install.  By default, the latest Master release will be installed',
                 trim: true)
         string (name: 'GIT_COMMIT_FOR_UPGRADE',
@@ -69,9 +69,6 @@ pipeline {
         DOCKER_REPO = 'ghcr.io'
         DOCKER_NAMESPACE = 'verrazzano'
         NETRC_FILE = credentials('netrc')
-        GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
-        GITHUB_RELEASE_USERID = credentials('github-userid-release')
-        GITHUB_RELEASE_EMAIL = credentials('github-email-release')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
 
         CLUSTER_NAME = 'verrazzano'
@@ -82,8 +79,8 @@ pipeline {
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
-        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
-        INSTALL_PROFILE = "dev"
+        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-vz-prod-kind-upgrade.yaml"
+        INSTALL_PROFILE = "prod"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
@@ -102,6 +99,10 @@ pipeline {
          PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
          TEST_ENV_LABEL = "kind"
          K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
+         TEST_ENV = "KIND"
+         SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+         SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+         SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
 
          // used to generate Ginkgo test reports
          TEST_REPORT = "test-report.xml"
@@ -223,13 +224,6 @@ pipeline {
         }
 
         stage('Pre-upgrade Acceptance Tests') {
-            environment {
-                TEST_ENV = "KIND"
-                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
-            }
-
             stages {
                 stage('Run Acceptance Tests Before Upgrade') {
                     parallel {
@@ -241,6 +235,21 @@ pipeline {
                         stage('examples helidon') {
                             steps {
                                 runGinkgoNamespace('examples/helidon', "false", "true", "hello-helidon")
+                            }
+                        }
+                        stage('pre-upgrade verify') {
+                            steps {
+                                runGinkgoRandomize('upgrade/pre-upgrade/verify')
+                            }
+                        }
+                        stage('opensearch pre-upgrade') {
+                            steps {
+                                runGinkgoSerial('upgrade/pre-upgrade/opensearch')
+                            }
+                        }
+                        stage('opensearch-dashboards pre-upgrade') {
+                            steps {
+                                runGinkgoSerial('upgrade/pre-upgrade/opensearch-dashboards')
                             }
                         }
                         // Re-enable this stage when a mechanism is in place to deploy different comp and app yamls based on VZ version
@@ -313,8 +322,15 @@ pipeline {
                 }
             }
         }
-
+        stage("Verify Upgrade Required") {
+            steps {
+                runGinkgoSerial('upgrade/pre-upgrade/verify-upgrade-required')
+            }
+        }
         stage("Upgrade Verrazzano") {
+            environment {
+                UPGRADE_CR="${WORKSPACE}/verrazzano-upgrade-cr.yaml"
+            }
             steps {
                 script {
                     // Download the bom for the target version that we are upgrading to, then extract the version
@@ -323,23 +339,30 @@ pipeline {
                 }
                 sh """
                     echo "Upgrading the Verrazzano installation to version" $VERRAZZANO_DEV_VERSION
-                    # Modify the version field in the Verrazzano CR file to be this new Verrazzano version
+                    # Modify the version field in the Verrazzano CR file to be this new Verrazzano version, and
+                    # update the Istio replicas to validate update during upgrade
                     cd ${GO_REPO_PATH}/verrazzano
-                    cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/verrazzano-upgrade-cr.yaml
-                    ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                    cp ${INSTALL_CONFIG_FILE_KIND} ${UPGRADE_CR}
+
+                    ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION} ${UPGRADE_CR}
+
+                    # Add some simple additional updates to validate update during an upgrade
+                    yq -i eval '.spec.components.istio.ingress.kubernetes.replicas = 3' ${UPGRADE_CR}
+                    yq -i eval '.spec.components.istio.egress.kubernetes.replicas = 3' ${UPGRADE_CR}
+
                     # Copy upgrade CR where it will be archived
-                    cp ${WORKSPACE}/verrazzano-upgrade-cr.yaml ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
+                    cp ${UPGRADE_CR} ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
 
                     # Get the install job in verrazzano-install namespace
                     kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out
 
                     # Do the upgrade
                     echo "Following is the verrazzano CR file with the new version:"
-                    cat ${WORKSPACE}/verrazzano-upgrade-cr.yaml
-                    kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                    cat ${UPGRADE_CR}
+                    kubectl apply -f ${UPGRADE_CR}
 
                     # wait for the upgrade to complete
-                    kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                    kubectl wait --timeout=40m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
                     # Dump the resource to debug
                     kubectl get -o yaml verrazzano/my-verrazzano || true
@@ -373,13 +396,6 @@ pipeline {
         }
 
         stage('Post-upgrade Acceptance Tests') {
-            environment {
-                TEST_ENV = "KIND"
-                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
-            }
-
             stages {
                 stage('verify-install') {
                     steps {
@@ -441,6 +457,11 @@ pipeline {
                                 runGinkgoRandomize('upgrade/post-upgrade/verify')
                             }
                         }
+                        stage('opensearch post-upgrade') {
+                            steps {
+                                runGinkgoSerial('upgrade/post-upgrade/opensearch')
+                            }
+                        }
                         stage('examples socks') {
                             steps {
                                 runGinkgoNamespace('examples/socks', "false", "false", "sockshop")
@@ -456,14 +477,14 @@ pipeline {
                                 runGinkgoNamespace('examples/helidon', "true", "false", "hello-helidon")
                             }
                         }
-                        stage('examples todo') {
+                        stage('weblogic workload') {
                             steps {
-                                runGinkgoNamespace('examples/todo', "false", "true", "todo-list")
+                                runGinkgoNamespace('workloads/weblogic', "false", "true", "hello-wls")
                             }
                         }
-                        stage('examples bobs-books') {
+                        stage('coherence workload') {
                             steps {
-                                runGinkgoNamespace('examples/bobsbooks', "false", "true", "bobs-books")
+                                runGinkgoNamespace('workloads/coherence', "false", "true", "hello-coherence")
                             }
                         }
                     }
@@ -617,6 +638,7 @@ pipeline {
         }
         cleanup {
             metricBuildDuration()
+            emitJobMetrics()
             deleteDir()
         }
     }
@@ -627,6 +649,15 @@ def runGinkgoRandomize(testSuitePath) {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+        """
+    }
+}
+
+def runGinkgoSerial(testSuitePath) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
@@ -851,4 +882,14 @@ def restartExampleApps() {
 
         kubectl rollout restart deployment -n hello-helidon
     """
+}
+
+def emitJobMetrics() {
+    env.JOB_STATUS = "${currentBuild.currentResult}".trim()
+    long duration = "${currentBuild.duration}" as long;
+    env.DURATION = duration
+    long timeInMillis = "${currentBuild.timeInMillis}" as long;
+    long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
+    env.TIME_WAITING = startTimeInMillis-timeInMillis
+    runGinkgoRandomize('jobmetrics')
 }

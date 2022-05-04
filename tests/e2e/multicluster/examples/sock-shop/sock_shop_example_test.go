@@ -145,8 +145,8 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", Label("f:multicluster.m
 	})
 
 	t.Context("for Logging", Label("f:observability.logging.es"), func() {
-		indexName := "verrazzano-namespace-mc-sockshop"
-
+		indexName, err := pkg.GetOpenSearchAppIndexWithKC(testNamespace, adminKubeconfig)
+		Expect(err).To(BeNil())
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster
 		// THEN expect the Elasticsearch index for the app exists on the admin cluster Elasticsearch

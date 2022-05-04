@@ -57,7 +57,7 @@ func TestComponentValidatorImpl_ValidateInstall(t *testing.T) {
 	}
 }
 
-// TestComponentValidatorImpl_ValidateInstall tests the ValidateUpdate function
+// TestComponentValidatorImpl_ValidateUpdate tests the ValidateUpdate function
 // GIVEN a valid CR
 // WHEN ValidateUpdate is called
 // THEN ensure that no error is raised

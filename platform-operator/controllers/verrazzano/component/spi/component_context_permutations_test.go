@@ -20,6 +20,7 @@ const (
 	devElasticSearchOveridesMerged  = "testdata/devESArgsStorageOverride.yaml"
 	devKeycloakOveridesMerged       = "testdata/devKeycloakInstallArgsStorageOverride.yaml"
 	prodElasticSearchOveridesMerged = "testdata/prodESOverridesMerged.yaml"
+	prodElasticSearchStorageMerged  = "testdata/prodESStorageArgsMerged.yaml"
 	prodIngressIstioOverridesMerged = "testdata/prodIngressIstioOverridesMerged.yaml"
 	prodFluentdOverridesMerged      = "testdata/prodFluentdOverridesMerged.yaml"
 	managedClusterEnableAllMerged   = "testdata/managedClusterEnableAllOverrideMerged.yaml"
@@ -206,15 +207,15 @@ var devAllDisabledOverride = vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		Profile: "dev",
 		Components: vzapi.ComponentSpec{
-			Console:           &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+			Console:           &vzapi.ConsoleComponent{Enabled: &falseValue},
 			CoherenceOperator: &vzapi.CoherenceOperatorComponent{Enabled: &falseValue},
-			Elasticsearch:     &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+			Elasticsearch:     &vzapi.ElasticsearchComponent{Enabled: &falseValue},
 			Fluentd:           &vzapi.FluentdComponent{Enabled: &falseValue},
-			Grafana:           &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+			Grafana:           &vzapi.GrafanaComponent{Enabled: &falseValue},
 			Kiali:             &vzapi.KialiComponent{Enabled: &falseValue},
 			Keycloak:          &vzapi.KeycloakComponent{Enabled: &falseValue},
-			Kibana:            &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-			Prometheus:        &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+			Kibana:            &vzapi.KibanaComponent{Enabled: &falseValue},
+			Prometheus:        &vzapi.PrometheusComponent{Enabled: &falseValue},
 			Rancher:           &vzapi.RancherComponent{Enabled: &falseValue},
 			WebLogicOperator:  &vzapi.WebLogicOperatorComponent{Enabled: &falseValue},
 		},
@@ -254,6 +255,30 @@ var prodElasticSearchOverrides = vzapi.Verrazzano{
 					{Name: "nodes.ingest.requests.memory", Value: "32G"},
 					{Name: "nodes.data.replicas", Value: "6"},
 					{Name: "nodes.data.requests.memory", Value: "32G"},
+				},
+			},
+		},
+	},
+}
+
+var prodElasticSearchStorageArgs = vzapi.Verrazzano{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "prod-es-override",
+	},
+	Spec: vzapi.VerrazzanoSpec{
+		EnvironmentName: "prodenv",
+		Profile:         "prod",
+		Components: vzapi.ComponentSpec{
+			Elasticsearch: &vzapi.ElasticsearchComponent{
+				ESInstallArgs: []vzapi.InstallArgs{
+					{Name: "nodes.master.replicas", Value: "3"},
+					{Name: "nodes.master.requests.memory", Value: "3G"},
+					{Name: "nodes.master.requests.storage", Value: "100Gi"},
+					{Name: "nodes.ingest.replicas", Value: "6"},
+					{Name: "nodes.ingest.requests.memory", Value: "32G"},
+					{Name: "nodes.data.replicas", Value: "6"},
+					{Name: "nodes.data.requests.memory", Value: "32G"},
+					{Name: "nodes.data.requests.storage", Value: "150Gi"},
 				},
 			},
 		},
@@ -319,13 +344,13 @@ var managedClusterEnableAllOverride = vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		Profile: "managed-cluster",
 		Components: vzapi.ComponentSpec{
-			Console:       &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
-			Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
-			Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
+			Console:       &vzapi.ConsoleComponent{Enabled: &trueValue},
+			Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &trueValue},
+			Grafana:       &vzapi.GrafanaComponent{Enabled: &trueValue},
 			Kiali:         &vzapi.KialiComponent{Enabled: &trueValue},
 			Keycloak:      &vzapi.KeycloakComponent{Enabled: &trueValue},
-			Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
-			Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
+			Kibana:        &vzapi.KibanaComponent{Enabled: &trueValue},
+			Prometheus:    &vzapi.PrometheusComponent{Enabled: &trueValue},
 			Rancher:       &vzapi.RancherComponent{Enabled: &trueValue},
 		},
 	},

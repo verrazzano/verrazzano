@@ -55,7 +55,7 @@ func WhenKialiInstalledIt(description string, f interface{}) {
 	if supported && !pkg.IsManagedClusterProfile() {
 		t.It(description, f)
 	} else {
-		pkg.Log(pkg.Info, fmt.Sprintf("Skipping check '%v', Kiali is not supported", description))
+		t.Logs.Infof("Skipping check '%v', Kiali is not supported", description)
 	}
 }
 

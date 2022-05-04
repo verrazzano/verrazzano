@@ -58,40 +58,33 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			}, timeout5Min, pollingInterval).Should(BeTrue())
 		})
 
-		t.It("the expected namespaces exist", func() {
-			var namespaces *v1.NamespaceList
-			Eventually(func() (*v1.NamespaceList, error) {
-				var err error
-				namespaces, err = pkg.ListNamespaces(metav1.ListOptions{})
-				return namespaces, err
-			}, timeout5Min, pollingInterval).ShouldNot(BeNil())
-
-			if isManagedClusterProfile {
-				Expect(nsListContains(namespaces.Items, "cattle-global-data")).To(BeFalse())
-				Expect(nsListContains(namespaces.Items, "cattle-global-nt")).To(BeFalse())
-				// Even though we do not install Rancher on managed clusters, we do create the namespace
-				// so we can create network policies. Rancher will run pods in this namespace once
-				// the managed cluster manifest YAML is applied to the managed cluster.
-				Expect(nsListContains(namespaces.Items, "cattle-system")).To(BeTrue())
-				Expect(nsListContains(namespaces.Items, "local")).To(BeFalse())
-			} else {
-				Expect(nsListContains(namespaces.Items, "cattle-system")).To(BeTrue())
-				Expect(nsListContains(namespaces.Items, "cattle-global-data")).To(BeTrue())
-				Expect(nsListContains(namespaces.Items, "cattle-global-nt")).To(BeTrue())
-				Expect(nsListContains(namespaces.Items, "local")).To(BeTrue())
-			}
-			Expect(nsListContains(namespaces.Items, "istio-system")).To(BeTrue())
-			Expect(nsListContains(namespaces.Items, "gitlab")).To(BeFalse())
-			if isManagedClusterProfile {
-				Expect(nsListContains(namespaces.Items, "keycloak")).To(BeFalse())
-			} else {
-				Expect(nsListContains(namespaces.Items, "keycloak")).To(BeTrue())
-			}
-			Expect(nsListContains(namespaces.Items, "verrazzano-system")).To(BeTrue())
-			Expect(nsListContains(namespaces.Items, "verrazzano-mc")).To(BeTrue())
-			Expect(nsListContains(namespaces.Items, "cert-manager")).To(BeTrue())
-			Expect(nsListContains(namespaces.Items, "ingress-nginx")).To(BeTrue())
-		})
+		t.DescribeTable("the expected namespaces exist",
+			func(namespace string, expected bool) {
+				Eventually(func() (bool, error) {
+					var err error
+					var namespaces *v1.NamespaceList
+					namespaces, err = pkg.ListNamespaces(metav1.ListOptions{})
+					if err != nil {
+						return false, err
+					}
+					return nsListContains(namespaces.Items, namespace) == expected, nil
+				}, timeout5Min, pollingInterval).Should(BeTrue())
+			},
+			t.Entry("cattle-global-data", "cattle-global-data", !isManagedClusterProfile),
+			t.Entry("cattle-global-nt", "cattle-global-nt", !isManagedClusterProfile),
+			// Even though we do not install Rancher on managed clusters, we do create the namespace
+			// so we can create network policies. Rancher will run pods in this namespace once
+			// the managed cluster manifest YAML is applied to the managed cluster. So expect cattle-system
+			// to exist on all clusters
+			t.Entry("cattle-system", "cattle-system", true),
+			t.Entry("istio-system", "istio-system", true),
+			t.Entry("gitlab", "gitlab", false),
+			t.Entry("keycloak", "keycloak", !isManagedClusterProfile),
+			t.Entry("verrazzano-system", "verrazzano-system", true),
+			t.Entry("verrazzano-mc", "verrazzano-mc", true),
+			t.Entry("cert-manager", "cert-manager", true),
+			t.Entry("ingress-nginx", "ingress-nginx", true),
+		)
 
 		kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
 		componentsArgs := []interface{}{
@@ -107,9 +100,6 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			t.Entry("includes verrazzano-monitoring-operator", "verrazzano-monitoring-operator", true),
 			t.Entry("Check weblogic-operator deployment", "weblogic-operator", pkg.IsWebLogicOperatorEnabled(kubeconfigPath)),
 			t.Entry("Check coherence-operator deployment", "coherence-operator", pkg.IsCoherenceOperatorEnabled(kubeconfigPath)),
-		}
-		if isMinVersion1_3_0, _ := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath); !isMinVersion1_3_0 {
-			componentsArgs = append(componentsArgs, t.Entry("includes verrazzano-operator", "verrazzano-operator", true))
 		}
 
 		t.DescribeTable("Verrazzano components are deployed,",
@@ -227,12 +217,6 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 				},
 			}
 
-			if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath); !ok {
-				assertions = append(assertions, func() {
-					Eventually(func() bool { return checkPodsRunning("verrazzano-system", []string{"verrazzano-operator"}) }, waitTimeout, pollingInterval).
-						Should(BeTrue())
-				})
-			}
 			pkg.Concurrently(
 				assertions...,
 			)

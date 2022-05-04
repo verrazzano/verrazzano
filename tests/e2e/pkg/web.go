@@ -143,32 +143,6 @@ func GetVerrazzanoHTTPClient(kubeconfigPath string) (*retryablehttp.Client, erro
 	return retryableClient, nil
 }
 
-// GetRancherHTTPClient returns a retryable Http client configured with the Rancher CA cert
-func GetRancherHTTPClient(kubeconfigPath string) (*retryablehttp.Client, error) {
-	caCert, err := getRancherCACert(kubeconfigPath)
-	if err != nil {
-		return nil, err
-	}
-	rawClient, err := getHTTPClientWithCABundle(caCert, kubeconfigPath)
-	if err != nil {
-		return nil, err
-	}
-	return newRetryableHTTPClient(rawClient), nil
-}
-
-// GetKeycloakHTTPClient returns a retryable Http client configured with the Keycloak CA cert
-func GetKeycloakHTTPClient(kubeconfigPath string) (*retryablehttp.Client, error) {
-	caCert, err := getKeycloakCACert(kubeconfigPath)
-	if err != nil {
-		return nil, err
-	}
-	keycloakRawClient, err := getHTTPClientWithCABundle(caCert, kubeconfigPath)
-	if err != nil {
-		return nil, err
-	}
-	return newRetryableHTTPClient(keycloakRawClient), nil
-}
-
 // CheckNoServerHeader validates that the response does not include a Server header.
 func CheckNoServerHeader(resp *HTTPResponse) bool {
 	// HTTP Server headers should never be returned.
@@ -318,7 +292,7 @@ func PutWithHostHeaderInCluster(url, contentType string, hostHeader string, body
 
 // doReq executes an HTTP request with the specified method (GET, POST, DELETE, etc)
 func doReq(url, method string, contentType string, hostHeader string, username string, password string,
-	body io.Reader, httpClient *retryablehttp.Client) (*HTTPResponse, error) {
+	body io.Reader, httpClient *retryablehttp.Client, additionalHeaders ...string) (*HTTPResponse, error) {
 	req, err := retryablehttp.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
@@ -329,6 +303,15 @@ func doReq(url, method string, contentType string, hostHeader string, username s
 	if hostHeader != "" {
 		req.Host = hostHeader
 	}
+
+	for _, header := range additionalHeaders {
+		splitArray := strings.Split(header, ":")
+		if len(splitArray) != 2 {
+			return nil, fmt.Errorf("Invalid additional header '%s'. Not in the format key:value", header)
+		}
+		req.Header.Set(splitArray[0], splitArray[1])
+	}
+
 	if username != "" && password != "" {
 		req.SetBasicAuth(username, password)
 	}
@@ -360,25 +343,15 @@ func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) (*http.Clie
 
 // getVerrazzanoCACert returns the Verrazzano CA cert in the specified cluster
 func getVerrazzanoCACert(kubeconfigPath string) ([]byte, error) {
-	envName, err := GetEnvName(kubeconfigPath)
+	cacert, err := doGetCACertFromSecret("verrazzano-tls", "verrazzano-system", kubeconfigPath)
 	if err != nil {
-		return nil, err
+		envName, err := GetEnvName(kubeconfigPath)
+		if err != nil {
+			return nil, err
+		}
+		return doGetCACertFromSecret(envName+"-secret", "verrazzano-system", kubeconfigPath)
 	}
-	return doGetCACertFromSecret(envName+"-secret", "verrazzano-system", kubeconfigPath)
-}
-
-// getRancherCACert returns the Rancher CA cert
-func getRancherCACert(kubeconfigPath string) ([]byte, error) {
-	return doGetCACertFromSecret("tls-rancher-ingress", "cattle-system", kubeconfigPath)
-}
-
-// getKeycloakCACert returns the keycloak CA cert
-func getKeycloakCACert(kubeconfigPath string) ([]byte, error) {
-	envName, err := GetEnvName(kubeconfigPath)
-	if err != nil {
-		return nil, err
-	}
-	return doGetCACertFromSecret(envName+"-secret", "keycloak", kubeconfigPath)
+	return cacert, nil
 }
 
 // doGetCACertFromSecret returns the CA cert from the specified kubernetes secret in the given cluster

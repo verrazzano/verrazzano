@@ -49,16 +49,16 @@ var _ = t.Describe("Verify Verrazzano install scripts.", Label("f:platform-lcm.i
 func validateConsoleUrlsCluster(kubeconfig string) bool {
 	consoleUrls, err := getConsoleURLsFromResource(kubeconfig)
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("There is an error getting console URLs from the installed Verrazzano resource - %v", err))
+		t.Logs.Errorf("There is an error getting console URLs from the installed Verrazzano resource - %v", err)
 		return false
 	}
 	expectedConsoleUrls, err := getExpectedConsoleURLs(kubeconfig)
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("There is an error getting console URLs from ingress resources - %v", err))
+		t.Logs.Errorf("There is an error getting console URLs from ingress resources - %v", err)
 		return false
 	}
-	pkg.Log(pkg.Info, fmt.Sprintf("Expected URLs based on ingresses: %v", expectedConsoleUrls))
-	pkg.Log(pkg.Info, fmt.Sprintf("Actual URLs in Verrazzano resource: %v", consoleUrls))
+	t.Logs.Infof("Expected URLs based on ingresses: %v", expectedConsoleUrls)
+	t.Logs.Infof("Actual URLs in Verrazzano resource: %v", consoleUrls)
 
 	return pkg.SlicesContainSameStrings(consoleUrls, expectedConsoleUrls)
 }

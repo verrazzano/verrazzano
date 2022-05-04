@@ -1,0 +1,129 @@
+// Copyright (c) 2022, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+pipeline {
+   agent {
+        docker {
+            image "${RUNNER_DOCKER_IMAGE}"
+            args "${RUNNER_DOCKER_ARGS}"
+            registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
+            registryCredentialsId 'ocir-pull-and-push-account'
+            label 'small'
+        }
+    }
+
+    parameters {
+        string (name: 'BASE_TAG',
+                defaultValue: '1.0.0-1',
+                description: 'Base value used as part of generated image tag',
+                trim: true)
+    }
+
+    environment {
+        DOCKER_NAMESPACE = 'verrazzano'
+        DOCKER_CREDS = credentials('github-packages-credentials-rw')
+        DOCKER_REPO = 'ghcr.io'
+        DOCKER_REPO_URL = "https://${DOCKER_REPO}"
+        NETRC_FILE = credentials('netrc')
+
+        OCI_CLI_TENANCY = credentials('oci-tenancy')
+        OCI_CLI_USER = credentials('oci-user-ocid')
+        OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
+        OCI_CLI_KEY_FILE = credentials('oci-api-key')
+        OCI_CLI_REGION = 'us-phoenix-1'
+
+        // image name and tag are created from this variable
+        HELLO_WEBLOGIC = 'weblogic-app'
+        VERSION = get_image_tag()
+
+        // access to GitHub Packages Maven Repository
+        MAVEN_SETTINGS = credentials('oracle-maven-settings')
+
+        BUCKET_NAME = "build-shared-files"
+        JDK11_BUNDLE = "openjdk-11+28_linux-x64_bin.tar.gz"
+    }
+
+    stages {
+        stage('Initialize') {
+            steps {
+                sh """
+                    find $WORKSPACE -mindepth 1 -maxdepth 1 | xargs rm -rf
+                """
+                sh """
+                    cp -f "${NETRC_FILE}" $HOME/.netrc
+                    chmod 600 $HOME/.netrc
+                """
+            }
+        }
+
+        stage('Default checkout') {
+            steps {
+                script {
+                    def scmURL = scm.getUserRemoteConfigs()[0].getUrl()
+                    defaultCheckoutTargetDir = scmURL.replaceAll(/^.*\//,'').replaceAll(/\.git$/, '')
+                }
+                checkout([
+                    $class: 'GitSCM',
+                    branches: scm.branches,
+                    extensions: scm.extensions + [[$class: 'RelativeTargetDirectory', relativeTargetDir: defaultCheckoutTargetDir]],
+                    userRemoteConfigs: scm.userRemoteConfigs
+                ])
+            }
+        }
+
+        stage('Prepare Environment') {
+            steps {
+                getMavenSeedData '/build-shared-files'
+                sh """
+                    mkdir -p $HOME/.m2/repository/com
+                    tar xz -C $HOME/.m2/repository/com -f /build-shared-files/oracle-maven.tar.gz
+                    sudo yum -y install wget
+                    echo "${DOCKER_CREDS_PSW}" | docker login ghcr.io -u ${DOCKER_CREDS_USR} --password-stdin
+                """
+            }
+        }
+
+        stage('Build Test Application') {
+            stages {
+                stage('Build WebLogic Application') {
+                    steps {
+                        sh """
+                            cd ${WORKSPACE}/verrazzano/tests/testdata/test-applications/weblogic/hello-weblogic
+                            mvn -B -s $MAVEN_SETTINGS clean install
+                            cd setup
+                            ./build.sh ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC}:${VERSION}
+                            docker push ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC}:${VERSION}
+                        """
+                    }
+                }
+
+                stage('Scan WebLogic Application') {
+                    steps {
+                        scanContainerImage("${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC}:${VERSION}")
+                    }
+                    post {
+                        always {
+                             sh """
+                                 mv ${WORKSPACE}/scanning-report-grype.json	${WORKSPACE}/hello_weblogic_scanning-report-grype.json
+                                 mv ${WORKSPACE}/scanning-report-trivy.json	${WORKSPACE}/hello_weblogic_scanning-report-trivy.json
+                             """
+                            archiveArtifacts artifacts: '**/*scanning-report*.json', allowEmptyArchive: true
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+def get_image_tag() {
+    time_stamp = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+    short_commit_sha = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
+    if ( env.BRANCH_NAME == 'master' ) {
+        docker_image_tag = params.BASE_TAG + "-" + time_stamp + "-" + short_commit_sha
+    } else {
+        docker_image_tag = time_stamp + "-" + short_commit_sha
+    }
+    println("image tag: " + docker_image_tag)
+    return docker_image_tag
+}

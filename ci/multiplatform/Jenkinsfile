@@ -38,7 +38,7 @@ pipeline {
             choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2" ])
         choice (description: 'Kubernetes Version for OKE Cluster', name: 'OKE_CLUSTER_VERSION',
                 // 1st choice is the default value
-                choices: [ "v1.20.8", "v1.18.10", "v1.19.7", "v1.19.12" ])
+                choices: [ "v1.22.5", "v1.21.5", "v1.20.8" ])
         string defaultValue: 'dev', description: 'Verrazzano install profile name', name: "INSTALL_PROFILE", trim: true
 
         booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
@@ -61,9 +61,6 @@ pipeline {
         DOCKER_REPO = 'ghcr.io'
         DOCKER_NAMESPACE = 'verrazzano'
         NETRC_FILE = credentials('netrc')
-        GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
-        GITHUB_RELEASE_USERID = credentials('github-userid-release')
-        GITHUB_RELEASE_EMAIL = credentials('github-email-release')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
 
         CLUSTER_NAME = 'verrazzano'
@@ -108,6 +105,9 @@ pipeline {
 
         // used to emit metrics
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
+        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
     }
 
     stages {
@@ -331,11 +331,6 @@ pipeline {
                 }
 
                 stage('Run Acceptance Tests') {
-                    environment {
-                        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-                        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-                        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
-                    }
 
                     parallel {
                         stage('verify-install') {
@@ -454,7 +449,7 @@ pipeline {
                   make delete-cluster
                 else
                   cd ${GO_REPO_PATH}/verrazzano
-                  TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} ./tests/e2e/config/scripts/delete_oke_cluster.sh
+                  TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} ./tests/e2e/config/scripts/delete_oke_cluster.sh || true
                 fi
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then
                   echo "Failures seen during dumping of artifacts, treat post as failed"
@@ -469,6 +464,9 @@ pipeline {
                     slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                 }
             }
+        }
+        cleanup {
+            emitJobMetrics()
         }
     }
 }
@@ -567,4 +565,14 @@ def dumpVerrazzanoApiLogs() {
         export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-authproxy.log"
         ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-authproxy-*" -m "verrazzano api" -c verrazzano-authproxy -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
+}
+
+def emitJobMetrics() {
+    env.JOB_STATUS = "${currentBuild.currentResult}".trim()
+    long duration = "${currentBuild.duration}" as long;
+    env.DURATION = duration
+    long timeInMillis = "${currentBuild.timeInMillis}" as long;
+    long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
+    env.TIME_WAITING = startTimeInMillis-timeInMillis
+    runGinkgoRandomize('jobmetrics')
 }

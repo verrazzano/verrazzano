@@ -129,7 +129,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // scopes and traits, and then writes out the CR (or deletes it if the workload is being deleted).
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=verrazzanocoherenceworkloads,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=verrazzanocoherenceworkloads/status,verbs=get;update;patch
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
@@ -140,7 +140,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, nil
 	}
 
-	ctx := context.Background()
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	workload, err := r.fetchWorkload(ctx, req.NamespacedName, zap.S())
 	if err != nil {
 		return clusters.IgnoreNotFoundWithLog(err, zap.S())

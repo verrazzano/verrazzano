@@ -7,6 +7,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
+
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
@@ -47,9 +51,9 @@ func GetInstanceInfo(ctx spi.ComponentContext) *v1alpha1.InstanceInfo {
 		ConsoleURL:    consoleURL,
 		RancherURL:    getComponentIngressURL(ingressList.Items, ctx, rancher.ComponentName, constants.RancherIngress),
 		KeyCloakURL:   getComponentIngressURL(ingressList.Items, ctx, keycloak.ComponentName, constants.KeycloakIngress),
-		ElasticURL:    getComponentIngressURL(ingressList.Items, ctx, verrazzano.ComponentName, constants.ElasticsearchIngress),
-		KibanaURL:     getComponentIngressURL(ingressList.Items, ctx, verrazzano.ComponentName, constants.KibanaIngress),
-		GrafanaURL:    getComponentIngressURL(ingressList.Items, ctx, verrazzano.ComponentName, constants.GrafanaIngress),
+		ElasticURL:    getComponentIngressURL(ingressList.Items, ctx, opensearch.ComponentName, constants.ElasticsearchIngress),
+		KibanaURL:     getComponentIngressURL(ingressList.Items, ctx, opensearchdashboards.ComponentName, constants.KibanaIngress),
+		GrafanaURL:    getComponentIngressURL(ingressList.Items, ctx, grafana.ComponentName, constants.GrafanaIngress),
 		PrometheusURL: getComponentIngressURL(ingressList.Items, ctx, verrazzano.ComponentName, constants.PrometheusIngress),
 		KialiURL:      getComponentIngressURL(ingressList.Items, ctx, kiali.ComponentName, constants.KialiIngress),
 	}
@@ -64,14 +68,14 @@ func getComponentIngressURL(ingresses []networkingv1.Ingress, compContext spi.Co
 	}
 	for _, compIngressName := range comp.GetIngressNames(compContext) {
 		if compIngressName.Name == ingressName {
-			return getSystemIngressURL(ingresses, compIngressName.Namespace, compIngressName.Name)
+			return getSystemIngressURL(ingresses, compContext, compIngressName.Namespace, compIngressName.Name)
 		}
 	}
 	zap.S().Debugf("No ingress %s found for component %s", ingressName, componentName)
 	return nil
 }
 
-func getSystemIngressURL(ingresses []networkingv1.Ingress, namespace string, name string) *string {
+func getSystemIngressURL(ingresses []networkingv1.Ingress, compContext spi.ComponentContext, namespace string, name string) *string {
 	var ingress = findIngress(ingresses, namespace, name)
 	if ingress == nil {
 		zap.S().Debugf("No ingress found for %s/%s", namespace, name)

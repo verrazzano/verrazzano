@@ -14,20 +14,7 @@ appBinding:
 
 elasticSearch:
   enabled: true
-  nodes:
-    master:
-      replicas: 3
-      requests:
-        memory: 1.4Gi
-    data:
-      replicas: 3
-      requests:
-        memory: 4.8Gi
-        storage: 50Gi
-    ingest:
-      replicas: 1
-      requests:
-        memory: 2.5Gi
+  multiNodeCluster: true
 
 prometheus:
   enabled: true
@@ -49,25 +36,12 @@ kibana:
 kiali:
   name: vmi-system-kiali
 
-verrazzanoOperator:
-  name: verrazzano-operator
+nodeExporter:
   enabled: true
-  # NOTE: The image you're looking for isn't here. The verrazzano-operator and node-exporter images
-  # now come from the bill of materials file (verrazzano-bom.json).
-  apiServerRealm: verrazzano-system
-  RequestMemory: 72Mi
+
 
 monitoringOperator:
   name: verrazzano-monitoring-operator
-  enabled: true
-  # NOTE: The monitoring-related images now come from the bill of materials file (verrazzano-bom.json).
-  metricsPort: 8090
-  defaultSimpleCompReplicas: 1
-  defaultPrometheusReplicas: 1
-  alertManagerImage: "noimage"
-  esWaitTargetVersion: 7.6.1
-  oidcAuthEnabled: true
-  RequestMemory: 48Mi
 
 logging:
   name: fluentd
@@ -93,19 +67,6 @@ console:
 api:
   name: verrazzano-authproxy
   port: 8775
-
-# OCI-related values
-oci:
-  region: ""
-  tenancyOcid: ""
-  userOcid: ""
-  fingerprint: ""
-  privateKey: ""
-  compartment: ""
-  clusterOcid: ""
-  objectStore:
-    bucketName: ""
-    namespace: ""
 
 config:
   envName:

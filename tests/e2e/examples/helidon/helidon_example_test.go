@@ -27,6 +27,7 @@ const (
 	shortWaitTimeout         = 5 * time.Minute
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
+	skipVerifications	     = "Skip Verifications"
 )
 
 var (
@@ -39,7 +40,7 @@ var (
 var _ = t.BeforeSuite(func() {
 	if !skipDeploy {
 		start := time.Now()
-		pkg.DeployHelloHelidonApplication(namespace, "")
+		pkg.DeployHelloHelidonApplication(namespace, "", istioInjection)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 
@@ -50,8 +51,9 @@ var _ = t.BeforeSuite(func() {
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
-	Eventually(helloHelidonPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
-
+	if !skipVerify {
+		Eventually(helloHelidonPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
+	}
 	beforeSuitePassed = true
 })
 
@@ -75,7 +77,6 @@ var _ = t.AfterSuite(func() {
 
 var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	"f:app-lcm.helidon-workload"), func() {
-
 	var host = ""
 	var err error
 	// Get the host from the Istio gateway resource.
@@ -95,6 +96,9 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	// THEN the application endpoint must be accessible
 	t.Describe("for Ingress.", Label("f:mesh.ingress"), func() {
 		t.It("Access /greet App Url.", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
 			url := fmt.Sprintf("https://%s/greet", host)
 			Eventually(func() bool {
 				return appEndpointAccessible(url, host)
@@ -108,6 +112,9 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	// THEN the application metrics must be accessible
 	t.Describe("for Metrics.", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
 		t.It("Retrieve Prometheus scraped metrics", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
 			pkg.Concurrently(
 				func() {
 					Eventually(appMetricsExists, longWaitTimeout, longPollingInterval).Should(BeTrue())
@@ -130,12 +137,15 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 
 	t.Context("Logging.", Label("f:observability.logging.es"), FlakeAttempts(5), func() {
 
-		indexName := "verrazzano-namespace-" + namespace
-
+		indexName, err := pkg.GetOpenSearchAppIndex(namespace)
+		Expect(err).To(BeNil())
 		// GIVEN an application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
 		t.It("Verify Elasticsearch index exists", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
 			Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for hello helidon")
@@ -145,6 +155,9 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 		// WHEN the log records are retrieved from the Elasticsearch index
 		// THEN verify that at least one recent log record is found
 		t.It("Verify recent Elasticsearch log record exists", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
 			Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"kubernetes.labels.app_oam_dev\\/name": "hello-helidon-appconf",
@@ -160,6 +173,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
 		})
 	})
+
 })
 
 func helloHelidonPodsRunning() bool {
@@ -173,47 +187,47 @@ func helloHelidonPodsRunning() bool {
 func appEndpointAccessible(url string, hostname string) bool {
 	req, err := retryablehttp.NewRequest("GET", url, nil)
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected error=%v", err))
+		t.Logs.Errorf("Unexpected error=%v", err)
 		return false
 	}
 
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected error=%v", err))
+		t.Logs.Errorf("Unexpected error=%v", err)
 		return false
 	}
 
 	httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected error=%v", err))
+		t.Logs.Errorf("Unexpected error=%v", err)
 		return false
 	}
 	req.Host = hostname
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected error=%v", err))
+		t.Logs.Errorf("Unexpected error=%v", err)
 		return false
 	}
 	bodyRaw, err := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected error=%v", err))
+		t.Logs.Errorf("Unexpected error=%v", err)
 		return false
 	}
 	if resp.StatusCode != http.StatusOK {
-		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected status code=%v", resp.StatusCode))
+		t.Logs.Errorf("Unexpected status code=%v", resp.StatusCode)
 		return false
 	}
 	// HTTP Server headers should never be returned.
 	for headerName, headerValues := range resp.Header {
 		if strings.EqualFold(headerName, "Server") {
-			pkg.Log(pkg.Error, fmt.Sprintf("Unexpected Server header=%v", headerValues))
+			t.Logs.Errorf("Unexpected Server header=%v", headerValues)
 			return false
 		}
 	}
 	bodyStr := string(bodyRaw)
 	if !strings.Contains(bodyStr, "Hello World") {
-		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected response body=%v", bodyStr))
+		t.Logs.Errorf("Unexpected response body=%v", bodyStr)
 		return false
 	}
 	return true

@@ -11,15 +11,17 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Constants for Kubernetes resource names
 const (
-	fleetSystemNamespace      = "fleet-system"
-	OperatorNamespace         = "rancher-operator-system"
+	// note: VZ-5241 In Rancher 2.6.3 the agent was moved from cattle-fleet-system ns
+	// to a new cattle-fleet-local-system ns, the rancher-operator-system ns was
+	// removed, and the rancher-operator is no longer deployed
+	FleetSystemNamespace      = "cattle-fleet-system"
+	FleetLocalSystemNamespace = "cattle-fleet-local-system"
 	defaultSecretNamespace    = "cert-manager"
 	namespaceLabelKey         = "verrazzano.io/namespace"
 	rancherTLSSecretName      = "tls-ca"
@@ -28,7 +30,6 @@ const (
 	fleetControllerDeployment = "fleet-controller"
 	gitjobDeployment          = "gitjob"
 	rancherWebhookDeployment  = "rancher-webhook"
-	rancherOperatorDeployment = "rancher-operator"
 )
 
 // Helm Chart setter keys
@@ -74,48 +75,26 @@ func getRancherHostname(c client.Client, vz *vzapi.Verrazzano) (string, error) {
 func isRancherReady(ctx spi.ComponentContext) bool {
 	log := ctx.Log()
 	c := ctx.Client()
-	deployments := []status.PodReadyCheck{
+	deployments := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      ComponentName,
-				Namespace: ComponentNamespace,
-			},
-			LabelSelector: labels.Set{"app": ComponentName}.AsSelector(),
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
 		},
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      rancherWebhookDeployment,
-				Namespace: ComponentNamespace,
-			},
-			LabelSelector: labels.Set{"app": rancherWebhookDeployment}.AsSelector(),
+			Name:      rancherWebhookDeployment,
+			Namespace: ComponentNamespace,
 		},
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      rancherOperatorDeployment,
-				Namespace: OperatorNamespace,
-			},
-			LabelSelector: labels.Set{"app": rancherOperatorDeployment}.AsSelector(),
+			Name:      fleetAgentDeployment,
+			Namespace: FleetLocalSystemNamespace,
 		},
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      fleetAgentDeployment,
-				Namespace: fleetSystemNamespace,
-			},
-			LabelSelector: labels.Set{"app": fleetAgentDeployment}.AsSelector(),
+			Name:      fleetControllerDeployment,
+			Namespace: FleetSystemNamespace,
 		},
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      fleetControllerDeployment,
-				Namespace: fleetSystemNamespace,
-			},
-			LabelSelector: labels.Set{"app": fleetControllerDeployment}.AsSelector(),
-		},
-		{
-			NamespacedName: types.NamespacedName{
-				Name:      gitjobDeployment,
-				Namespace: fleetSystemNamespace,
-			},
-			LabelSelector: labels.Set{"app": gitjobDeployment}.AsSelector(),
+			Name:      gitjobDeployment,
+			Namespace: FleetSystemNamespace,
 		},
 	}
 

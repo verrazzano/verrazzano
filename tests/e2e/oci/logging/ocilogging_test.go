@@ -29,8 +29,9 @@ const (
 	nsLogIDEnvVar       = "NS_LOG_ID"
 	ociRegionEnvVar     = "OCI_CLI_REGION"
 
-	waitTimeout     = 10 * time.Minute
-	pollingInterval = 30 * time.Second
+	waitTimeout      = 10 * time.Minute
+	shortWaitTimeout = 3 * time.Minute
+	pollingInterval  = 30 * time.Second
 )
 
 var compartmentID string
@@ -125,22 +126,41 @@ var _ = t.Describe("OCI Logging", Label("f:oci-integration.logging"), func() {
 			}, waitTimeout, pollingInterval).Should(Not(BeZero()), "Expected to find verrazzano-system logs but found none")
 		})
 
-		// GIVEN a Verrazzano installation with no applications installed
-		// WHEN I search for log records in the default app Log object
-		// THEN I expect to find no records
-		t.It("the default app log object has no log records", func() {
-			logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, defaultAppLogID, "")
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(*logs.Summary.ResultCount).To(BeZero(), "Expected no default app logs but found at least one")
-		})
-
-		// GIVEN a Verrazzano installation with no applications installed
-		// WHEN I search for log records in the namespace-specific app Log object
-		// THEN I expect to find no records
-		t.It("the namespace-specific app log object has no log records", func() {
-			logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, nsLogID, "")
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(*logs.Summary.ResultCount).To(BeZero(), "Expected no namespace-specific app logs but found at least one")
+		t.It("the default and namespace-specific app log objects have no log records", func() {
+			pkg.Concurrently(
+				func() {
+					// GIVEN a Verrazzano installation with no applications installed
+					// WHEN I search for log records in the default app Log object
+					// THEN I expect to find no records
+					Consistently(func() int {
+						logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, defaultAppLogID, "")
+						if err != nil {
+							pkg.Log(pkg.Error, fmt.Sprintf("Error getting log records: %+v", err))
+							return 0
+						}
+						if *logs.Summary.ResultCount > 0 {
+							pkg.Log(pkg.Error, fmt.Sprintf("Log records: %+v", logs.Results))
+						}
+						return *logs.Summary.ResultCount
+					}, shortWaitTimeout, pollingInterval).Should(BeZero(), "Expected no default app logs but found at least one")
+				},
+				func() {
+					// GIVEN a Verrazzano installation with no applications installed
+					// WHEN I search for log records in the namespace-specific app Log object
+					// THEN I expect to find no records
+					Consistently(func() int {
+						logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, nsLogID, "")
+						if err != nil {
+							pkg.Log(pkg.Error, fmt.Sprintf("Error getting log records: %+v", err))
+							return 0
+						}
+						if *logs.Summary.ResultCount > 0 {
+							pkg.Log(pkg.Error, fmt.Sprintf("Log records: %+v", logs.Results))
+						}
+						return *logs.Summary.ResultCount
+					}, shortWaitTimeout, pollingInterval).Should(BeZero(), "Expected no namespace-specific app logs but found at least one")
+				},
+			)
 		})
 	})
 
@@ -151,7 +171,7 @@ var _ = t.Describe("OCI Logging", Label("f:oci-integration.logging"), func() {
 		t.It("the default app log object has recent log records", func() {
 
 			start := time.Now()
-			pkg.DeploySpringBootApplication(springbootNamespace)
+			pkg.DeploySpringBootApplication(springbootNamespace, istioInjection)
 			metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 
 			Eventually(func() (int, error) {
@@ -172,7 +192,7 @@ var _ = t.Describe("OCI Logging", Label("f:oci-integration.logging"), func() {
 		t.It("the namespace-specific app log object has recent log records", func() {
 
 			start := time.Now()
-			pkg.DeployHelloHelidonApplication(helidonNamespace, nsLogID)
+			pkg.DeployHelloHelidonApplication(helidonNamespace, nsLogID, istioInjection)
 			metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 
 			Eventually(func() (int, error) {
@@ -208,7 +228,7 @@ func getLogIdentifiersFromVZCustomResource() (string, string, error) {
 // namespace is specified, only log records in the namespace are matched, otherwise search for all log records
 // in the Log object identified by the compartment id, log group id, and log id.
 func getLogRecordsFromOCI(client *loggingsearch.LogSearchClient, compartmentID, logGroupID, logID, namespace string) (*loggingsearch.SearchLogsResponse, error) {
-	pkg.Log(pkg.Info, "Checking for recent log records")
+	t.Logs.Info("Checking for recent log records")
 
 	var query string
 	if namespace == "" {
@@ -228,15 +248,15 @@ func getLogRecordsFromOCI(client *loggingsearch.LogSearchClient, compartmentID, 
 		SearchQuery: &query,
 	}
 
-	pkg.Log(pkg.Debug, fmt.Sprintf("Running log search query: %s", query))
+	t.Logs.Debugf("Running log search query: %s", query)
 	logs, err := client.SearchLogs(context.Background(), loggingsearch.SearchLogsRequest{SearchLogsDetails: search})
 	if err != nil {
 		return nil, err
 	}
 
-	pkg.Log(pkg.Debug, fmt.Sprintf("Found %d log records", *logs.Summary.ResultCount))
+	t.Logs.Debugf("Found %d log records", *logs.Summary.ResultCount)
 	if *logs.Summary.ResultCount > 0 {
-		pkg.Log(pkg.Debug, fmt.Sprintf("Last record: %s", logs.Results[0].String()))
+		t.Logs.Debugf("Last record: %s", logs.Results[0].String())
 	}
 
 	return &logs, nil
@@ -250,10 +270,10 @@ func getLogSearchClient(region string) (loggingsearch.LogSearchClient, error) {
 	var err error
 
 	if region != "" {
-		pkg.Log(pkg.Info, fmt.Sprintf("Using OCI SDK instance principal provider with region: %s", region))
+		t.Logs.Infof("Using OCI SDK instance principal provider with region: %s", region)
 		provider, err = auth.InstancePrincipalConfigurationProviderForRegion(common.StringToRegion(region))
 	} else {
-		pkg.Log(pkg.Info, "Using OCI SDK default provider")
+		t.Logs.Info("Using OCI SDK default provider")
 		provider = common.DefaultConfigProvider()
 	}
 
@@ -261,5 +281,7 @@ func getLogSearchClient(region string) (loggingsearch.LogSearchClient, error) {
 		return loggingsearch.LogSearchClient{}, err
 	}
 
+	defaultRetryPolicy := common.DefaultRetryPolicy()
+	common.GlobalRetry = &defaultRetryPolicy
 	return loggingsearch.NewLogSearchClientWithConfigurationProvider(provider)
 }

@@ -4,14 +4,14 @@
 package verrazzano
 
 import (
-	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
-
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -23,7 +23,7 @@ import (
 //    where update status fails, in which case we exit the function and requeue
 //    immediately.
 func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
-	spiCtx, err := spi.NewContext(vzctx.Log, r, vzctx.ActualCR, r.DryRun)
+	spiCtx, err := spi.NewContext(vzctx.Log, r.Client, vzctx.ActualCR, r.DryRun)
 	if err != nil {
 		spiCtx.Log().Errorf("Failed to create component context: %v", err)
 		return newRequeueWithDelay(), err
@@ -51,11 +51,15 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 			compLog.Debugf("Did not find status details in map for component %s", comp.Name())
 			continue
 		}
-		if checkConfigUpdated(spiCtx, componentStatus) {
+		if checkConfigUpdated(spiCtx, componentStatus, compName) && comp.IsEnabled(compContext.EffectiveCR()) {
+			oldState := componentStatus.State
+			oldGen := componentStatus.ReconcilingGeneration
+			componentStatus.ReconcilingGeneration = 0
 			if err := r.updateComponentStatus(compContext, "PreInstall started", vzapi.CondPreInstall); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
-			compLog.Oncef("Reset component %s state to %v for generation %v", compName, componentStatus.State, spiCtx.ActualCR().Generation)
+			compLog.Oncef("CR.generation: %v reset component %s state: %v generation: %v to state: %v generation: %v ",
+				spiCtx.ActualCR().Generation, compName, oldState, oldGen, componentStatus.State, componentStatus.ReconcilingGeneration)
 			if spiCtx.ActualCR().Status.State == vzapi.VzStateReady {
 				err = r.setInstallingState(vzctx.Log, spiCtx.ActualCR())
 				compLog.Oncef("Reset Verrazzano state to %v for generation %v", spiCtx.ActualCR().Status.State, spiCtx.ActualCR().Generation)
@@ -69,7 +73,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 		case vzapi.CompStateReady:
 			// For delete, we should look at the VZ resource delete timestamp and shift into Quiescing/Uninstalling state
 			compLog.Oncef("Component %s is ready", compName)
-			if err := comp.Reconcile(spiCtx); err != nil {
+			if err := comp.Reconcile(compContext); err != nil {
 				return newRequeueWithDelay(), err
 			}
 			// After restore '.status.instance' is empty and not updated. Below change will populate the correct values when comp state is Ready
@@ -144,7 +148,25 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 	return ctrl.Result{}, nil
 }
 
-func checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.ComponentStatusDetails) bool {
+// checkConfigUpdated checks if the component confg in the VZ CR has been updated and the component needs to
+// reset the state back to pre-install to re-enter install flow
+func checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.ComponentStatusDetails, name string) bool {
+	vzState := ctx.ActualCR().Status.State
+	// Do not interrupt upgrade flow
+	if vzState == vzapi.VzStateUpgrading || vzState == vzapi.VzStatePaused {
+		return false
+	}
+	// Current VerrazzanoSpec or CRD does not define VerrazzanoSpec.components.mysql. MySQL Config update is not allowed yet.
+	if name == mysql.ComponentName {
+		return false
+	}
+	// The component is being reconciled/installed with ReconcilingGeneration of the CR
+	// if CR.Generation > ReconcilingGeneration then re-enter install flow
+	if componentStatus.ReconcilingGeneration > 0 {
+		return ctx.ActualCR().Generation > componentStatus.ReconcilingGeneration
+	}
+	// The component has been reconciled/installed with LastReconciledGeneration of the CR
+	// if CR.Generation > LastReconciledGeneration then re-enter install flow
 	return (componentStatus.State == vzapi.CompStateReady) &&
 		(ctx.ActualCR().Generation > componentStatus.LastReconciledGeneration)
 }

@@ -18,7 +18,6 @@ import (
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
@@ -33,13 +32,10 @@ const (
 
 // isKialiReady checks if the Kiali deployment is ready
 func isKialiReady(ctx spi.ComponentContext) bool {
-	deployments := []status.PodReadyCheck{
+	deployments := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      kialiSystemName,
-				Namespace: ComponentNamespace,
-			},
-			LabelSelector: labels.Set{"app": kialiSystemName}.AsSelector(),
+			Name:      kialiSystemName,
+			Namespace: ComponentNamespace,
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
@@ -116,6 +112,7 @@ func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) erro
 		ingress.Annotations["nginx.ingress.kubernetes.io/backend-protocol"] = "HTTP"
 		ingress.Annotations["nginx.ingress.kubernetes.io/service-upstream"] = "true"
 		ingress.Annotations["nginx.ingress.kubernetes.io/upstream-vhost"] = "${service_name}.${namespace}.svc.cluster.local"
+		ingress.Annotations["cert-manager.io/common-name"] = kialiHostName
 		if vzconfig.IsExternalDNSEnabled(ctx.EffectiveCR()) {
 			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
 			ingress.Annotations["external-dns.alpha.kubernetes.io/ttl"] = "60"
@@ -136,7 +133,7 @@ func createOrUpdateAuthPolicy(ctx spi.ComponentContext) error {
 		authPol.Spec = securityv1beta1.AuthorizationPolicy{
 			Selector: &istiov1beta1.WorkloadSelector{
 				MatchLabels: map[string]string{
-					"app": kialiSystemName,
+					"app": "kiali",
 				},
 			},
 			Action: securityv1beta1.AuthorizationPolicy_ALLOW,

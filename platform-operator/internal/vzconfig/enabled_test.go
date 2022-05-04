@@ -161,9 +161,7 @@ func TestIsConsoleEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Console: &vzapi.ConsoleComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &trueValue,
-					},
+					Enabled: &trueValue,
 				},
 			},
 		}}))
@@ -171,9 +169,7 @@ func TestIsConsoleEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Console: &vzapi.ConsoleComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &falseValue,
-					},
+					Enabled: &falseValue,
 				},
 			},
 		}}))
@@ -227,9 +223,7 @@ func TestIsGrafanaEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Grafana: &vzapi.GrafanaComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &trueValue,
-					},
+					Enabled: &trueValue,
 				},
 			},
 		}}))
@@ -237,9 +231,7 @@ func TestIsGrafanaEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Grafana: &vzapi.GrafanaComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &falseValue,
-					},
+					Enabled: &falseValue,
 				},
 			},
 		}}))
@@ -262,9 +254,7 @@ func TestIsElasticsearchEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Elasticsearch: &vzapi.ElasticsearchComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &trueValue,
-					},
+					Enabled: &trueValue,
 				},
 			},
 		}}))
@@ -272,9 +262,7 @@ func TestIsElasticsearchEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Elasticsearch: &vzapi.ElasticsearchComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &falseValue,
-					},
+					Enabled: &falseValue,
 				},
 			},
 		}}))
@@ -297,9 +285,7 @@ func TestIsKibanaEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Kibana: &vzapi.KibanaComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &trueValue,
-					},
+					Enabled: &trueValue,
 				},
 			},
 		}}))
@@ -307,9 +293,7 @@ func TestIsKibanaEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Kibana: &vzapi.KibanaComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &falseValue,
-					},
+					Enabled: &falseValue,
 				},
 			},
 		}}))
@@ -332,9 +316,7 @@ func TestIsPrometheusEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Prometheus: &vzapi.PrometheusComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &trueValue,
-					},
+					Enabled: &trueValue,
 				},
 			},
 		}}))
@@ -342,9 +324,7 @@ func TestIsPrometheusEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Prometheus: &vzapi.PrometheusComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &falseValue,
-					},
+					Enabled: &falseValue,
 				},
 			},
 		}}))
@@ -437,6 +417,37 @@ func TestIsNGINXEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Ingress: &vzapi.IngressNginxComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+}
+
+// TestIsJaegerOperatorEnabled tests the IsJaegerOperatorEnabled function
+// GIVEN a call to IsJaegerOperatorEnabled
+//  THEN the value of the Enabled flag is returned if present, false otherwise (disabled by default)
+func TestIsJaegerOperatorEnabled(t *testing.T) {
+	asserts := assert.New(t)
+	asserts.False(IsJaegerOperatorEnabled(nil))
+	asserts.False(IsJaegerOperatorEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.False(IsJaegerOperatorEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				JaegerOperator: &vzapi.JaegerOperatorComponent{},
+			},
+		}}))
+	asserts.True(IsJaegerOperatorEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				JaegerOperator: &vzapi.JaegerOperatorComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsJaegerOperatorEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				JaegerOperator: &vzapi.JaegerOperatorComponent{
 					Enabled: &falseValue,
 				},
 			},

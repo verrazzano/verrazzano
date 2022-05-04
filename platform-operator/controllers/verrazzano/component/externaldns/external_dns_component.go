@@ -39,6 +39,7 @@ func NewComponent() spi.Component {
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "external-dns-values.yaml"),
 			AppendOverridesFunc:     AppendOverrides,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_0_0,
+			Dependencies:            []string{},
 		},
 	}
 }
@@ -64,8 +65,9 @@ func (e externalDNSComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (e externalDNSComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	// Do not allow any changes except to enable the component post-install
 	if e.IsEnabled(old) && !e.IsEnabled(new) {
-		return fmt.Errorf("can not remove OCI from dns")
+		return fmt.Errorf("Disabling an existing OCI DNS configuration is not allowed")
 	}
 	return nil
 }

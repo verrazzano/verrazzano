@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 apiVersion: install.verrazzano.io/v1alpha1
@@ -7,3 +7,21 @@ metadata:
   name: my-verrazzano
 spec:
   profile: dev
+  components:
+    prometheusOperator:
+      enabled: true
+      overrides:
+        - configMapRef:
+            name: test-overrides
+            key: test-overrides-configmap.yaml
+        - secretRef:
+            name: test-overrides
+            key: test-overrides-secret.yaml
+    prometheusAdapter:
+      enabled: true
+    kubeStateMetrics:
+      enabled: true
+    prometheusPushgateway:
+      enabled: true
+    prometheusNodeExporter:
+      enabled: true

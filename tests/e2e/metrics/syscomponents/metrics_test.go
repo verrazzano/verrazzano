@@ -140,24 +140,26 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
-		t.It("Verify sample mesh metrics can be queried from Prometheus", func() {
-			Eventually(func() bool {
-				kv := map[string]string{
-					namespace: verrazzanoSystemNamespace,
-				}
-				return metricsContainLabels(istioRequestsTotal, kv)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-		})
+		if istioInjection == "enabled" {
+			t.It("Verify sample mesh metrics can be queried from Prometheus", func() {
+				Eventually(func() bool {
+					kv := map[string]string{
+						namespace: verrazzanoSystemNamespace,
+					}
+					return metricsContainLabels(istioRequestsTotal, kv)
+				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+			})
 
-		t.It("Verify sample istiod metrics can be queried from Prometheus", func() {
-			Eventually(func() bool {
-				kv := map[string]string{
-					app: istiod,
-					job: pilot,
-				}
-				return metricsContainLabels(sidecarInjectionRequests, kv)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-		})
+			t.It("Verify sample istiod metrics can be queried from Prometheus", func() {
+				Eventually(func() bool {
+					kv := map[string]string{
+						app: istiod,
+						job: pilot,
+					}
+					return metricsContainLabels(sidecarInjectionRequests, kv)
+				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+			})
+		}
 
 		t.It("Verify sample metrics can be queried from Prometheus", func() {
 			Eventually(func() bool {
@@ -168,11 +170,13 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
-		t.It("Verify envoy stats", func() {
-			Eventually(func() bool {
-				return verifyEnvoyStats(envoyStatsRecentLookups)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-		})
+		if istioInjection == "enabled" {
+			t.It("Verify envoy stats", func() {
+				Eventually(func() bool {
+					return verifyEnvoyStats(envoyStatsRecentLookups)
+				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+			})
+		}
 	})
 })
 
@@ -184,13 +188,13 @@ func verifyEnvoyStats(metricName string) bool {
 	}
 	clientset, err := pkg.GetKubernetesClientsetForCluster(kubeConfig)
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Error getting clienset for %s, error: %v", kubeConfig, err))
+		t.Logs.Errorf("Error getting clienset for %s, error: %v", kubeConfig, err)
 		return false
 	}
 	for _, ns := range envoyStatsNamespaces {
 		pods, err := pkg.ListPodsInCluster(ns, clientset)
 		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
+			t.Logs.Errorf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err)
 			return false
 		}
 		for _, pod := range pods.Items {
@@ -224,7 +228,7 @@ func getClusterNameMetricLabel() string {
 		// ignore error getting the metric label - we'll just use the default value returned
 		lbl, err := pkg.GetClusterNameMetricLabel(adminKubeConfig)
 		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Error getting cluster name metric label: %s", err.Error()))
+			t.Logs.Errorf("Error getting cluster name metric label: %s", err.Error())
 		}
 		clusterNameMetricsLabel = lbl
 	}
@@ -263,7 +267,7 @@ func verifyLabels(envoyStatsMetric string, ns string, pod string) bool {
 // Validate the metrics contain the labels with values specified as key-value pairs of the map
 func metricsContainLabels(metricName string, kv map[string]string) bool {
 	clusterNameValue := getClusterNameForPromQuery()
-	pkg.Log(pkg.Debug, fmt.Sprintf("Looking for metric name %s with label %s = %s", metricName, getClusterNameMetricLabel(), clusterNameValue))
+	t.Logs.Debugf("Looking for metric name %s with label %s = %s", metricName, getClusterNameMetricLabel(), clusterNameValue)
 	compMetrics, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, getClusterNameMetricLabel(), clusterNameValue)
 	if err != nil {
 		return false

@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -43,8 +44,8 @@ func TestGetInstanceInfo(t *testing.T) {
 
 	// Expect a call to get the Verrazzano resource.
 	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList, opts ...client.ListOption) error {
 			ingressList.Items = []networkingv1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{Namespace: "cattle-system", Name: "rancher"},
@@ -111,9 +112,7 @@ func TestGetInstanceInfo(t *testing.T) {
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
 				Console: &v1alpha1.ConsoleComponent{
-					MonitoringComponent: v1alpha1.MonitoringComponent{
-						Enabled: &enabled,
-					},
+					Enabled: &enabled,
 				},
 			},
 		},
@@ -151,8 +150,8 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 
 	// Expect a call to get the Verrazzano resource.
 	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList, opts ...client.ListOption) error {
 			ingressList.Items = []networkingv1.Ingress{
 				{
 					ObjectMeta: metav1.ObjectMeta{Namespace: "cattle-system", Name: "rancher"},
@@ -215,8 +214,8 @@ func TestGetInstanceInfoGetError(t *testing.T) {
 
 	// Expect a call to get the Verrazzano resource.
 	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList, opts ...client.ListOption) error {
 			return fmt.Errorf("test error")
 		})
 
@@ -238,8 +237,8 @@ func TestGetInstanceInfoNoIngresses(t *testing.T) {
 
 	// Expect a call to get the Verrazzano resource.
 	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList, opts ...client.ListOption) error {
 			ingressList.Items = []networkingv1.Ingress{}
 			return nil
 		})
@@ -249,9 +248,7 @@ func TestGetInstanceInfoNoIngresses(t *testing.T) {
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
 				Console: &v1alpha1.ConsoleComponent{
-					MonitoringComponent: v1alpha1.MonitoringComponent{
-						Enabled: &enabled,
-					},
+					Enabled: &enabled,
 				},
 			},
 		},

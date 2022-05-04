@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 
+	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -42,7 +44,7 @@ func getValue(kvs []bom.KeyValue, key string) (string, bool) {
 //  WHEN AppendOverrides is called
 //  THEN AppendOverrides should add registry overrides
 func TestAppendRegistryOverrides(t *testing.T) {
-	ctx := spi.NewFakeContext(fake.NewFakeClientWithScheme(getScheme()), &vzAcmeDev, false)
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzAcmeDev, false)
 	registry := "foobar"
 	imageRepo := "barfoo"
 	kvs, _ := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
@@ -67,7 +69,7 @@ func TestAppendRegistryOverrides(t *testing.T) {
 //  WHEN AppendOverrides is called
 //  THEN AppendOverrides should add private CA overrides
 func TestAppendCAOverrides(t *testing.T) {
-	ctx := spi.NewFakeContext(fake.NewFakeClientWithScheme(getScheme()), &vzDefaultCA, false)
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzDefaultCA, false)
 	kvs, err := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.Nil(t, err)
 	v, ok := getValue(kvs, ingressTLSSourceKey)
@@ -85,7 +87,7 @@ func TestAppendCAOverrides(t *testing.T) {
 func TestIsEnabled(t *testing.T) {
 	enabled := true
 	disabled := false
-	c := fake.NewFakeClientWithScheme(getScheme())
+	c := fake.NewClientBuilder().WithScheme(getScheme()).Build()
 	vzWithRancher := vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
@@ -131,7 +133,7 @@ func TestIsEnabled(t *testing.T) {
 
 func TestPreInstall(t *testing.T) {
 	caSecret := createCASecret()
-	c := fake.NewFakeClientWithScheme(getScheme(), &caSecret)
+	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret).Build()
 	ctx := spi.NewFakeContext(c, &vzDefaultCA, false)
 	assert.Nil(t, NewComponent().PreInstall(ctx))
 }
@@ -141,7 +143,7 @@ func TestPreInstall(t *testing.T) {
 //  WHEN IsReady is called
 //  THEN IsReady should return true
 func TestIsReady(t *testing.T) {
-	readyClient := fake.NewFakeClientWithScheme(getScheme(),
+	readyClient := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
@@ -168,19 +170,7 @@ func TestIsReady(t *testing.T) {
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: OperatorNamespace,
-				Name:      rancherOperatorDeployment,
-				Labels:    map[string]string{"app": rancherOperatorDeployment},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: fleetSystemNamespace,
+				Namespace: FleetLocalSystemNamespace,
 				Name:      fleetAgentDeployment,
 				Labels:    map[string]string{"app": fleetAgentDeployment},
 			},
@@ -192,7 +182,7 @@ func TestIsReady(t *testing.T) {
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: fleetSystemNamespace,
+				Namespace: FleetSystemNamespace,
 				Name:      fleetControllerDeployment,
 				Labels:    map[string]string{"app": fleetControllerDeployment},
 			},
@@ -204,7 +194,7 @@ func TestIsReady(t *testing.T) {
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: fleetSystemNamespace,
+				Namespace: FleetSystemNamespace,
 				Name:      gitjobDeployment,
 				Labels:    map[string]string{"app": gitjobDeployment},
 			},
@@ -214,8 +204,8 @@ func TestIsReady(t *testing.T) {
 				UpdatedReplicas:   1,
 			},
 		},
-	)
-	unreadyDeployClient := fake.NewFakeClientWithScheme(getScheme(),
+	).Build()
+	unreadyDeployClient := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
@@ -238,17 +228,7 @@ func TestIsReady(t *testing.T) {
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: OperatorNamespace,
-				Name:      rancherOperatorDeployment,
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 0,
-				Replicas:          1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: fleetSystemNamespace,
+				Namespace: FleetLocalSystemNamespace,
 				Name:      fleetAgentDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
@@ -258,7 +238,7 @@ func TestIsReady(t *testing.T) {
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: fleetSystemNamespace,
+				Namespace: FleetSystemNamespace,
 				Name:      fleetControllerDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
@@ -268,7 +248,7 @@ func TestIsReady(t *testing.T) {
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: fleetSystemNamespace,
+				Namespace: FleetSystemNamespace,
 				Name:      gitjobDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
@@ -276,7 +256,7 @@ func TestIsReady(t *testing.T) {
 				Replicas:          1,
 			},
 		},
-	)
+	).Build()
 
 	var tests = []struct {
 		testName string
@@ -318,10 +298,20 @@ func TestPostInstall(t *testing.T) {
 			Name:      constants.RancherIngress,
 		},
 	}
-	clientWithoutIngress := fake.NewFakeClientWithScheme(getScheme(), &caSecret, &rootCASecret, &adminSecret, &rancherPodList)
+	time := metav1.Now()
+	cert := certapiv1.Certificate{
+		ObjectMeta: metav1.ObjectMeta{Name: certificates[0].Name, Namespace: certificates[0].Namespace},
+		Status: certapiv1.CertificateStatus{
+			Conditions: []certapiv1.CertificateCondition{
+				{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
+			},
+		},
+	}
+
+	clientWithoutIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0]).Build()
 	ctxWithoutIngress := spi.NewFakeContext(clientWithoutIngress, &vzDefaultCA, false)
 
-	clientWithIngress := fake.NewFakeClientWithScheme(getScheme(), &caSecret, &rootCASecret, &adminSecret, &rancherPodList, &ingress)
+	clientWithIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &ingress, &cert).Build()
 	ctxWithIngress := spi.NewFakeContext(clientWithIngress, &vzDefaultCA, false)
 
 	// mock the pod executor when resetting the Rancher admin password
