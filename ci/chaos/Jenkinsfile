@@ -72,6 +72,11 @@ pipeline {
         NETRC_FILE = credentials('netrc')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
 
+        // Used for dumping cluster from inside tests
+        DUMP_KUBECONFIG="${KUBECONFIG}"
+        DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
+        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
+
         CLUSTER_NAME = 'verrazzano'
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
         TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
@@ -556,6 +561,9 @@ pipeline {
                 }
                 // run todo example test to verify upgraded app/weblogic/coherence operators are functioning correctly
                 stage('examples todo') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/todo"
+                    }
                     steps {
                         runGinkgoNamespace('examples/todo', "false", "false", "todo-list")
                     }
