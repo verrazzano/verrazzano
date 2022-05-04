@@ -6,7 +6,6 @@ package authproxy
 import (
 	"os"
 	"strconv"
-	"time"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
@@ -15,16 +14,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/update"
 )
 
 const (
-	authProxyName   = "verrazzano-authproxy"
-	waitTimeout     = 5 * time.Minute
-	pollingInterval = 5 * time.Second
+	authProxyName  = "verrazzano-authproxy"
+	authProxyLabel = "app"
 )
 
 type AuthProxyReplicasModifier struct {
@@ -106,7 +102,7 @@ var _ = t.AfterSuite(func() {
 	if cr.Spec.Profile == "prod" || cr.Spec.Profile == "" {
 		expectedRunning = 2
 	}
-	validatePods(authProxyName, constants.VerrazzanoSystemNamespace, expectedRunning, false)
+	update.ValidatePods(authProxyName, authProxyLabel, constants.VerrazzanoSystemNamespace, expectedRunning, false)
 })
 
 var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
@@ -118,7 +114,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 			if cr.Spec.Profile == "prod" || cr.Spec.Profile == "" {
 				expectedRunning = 2
 			}
-			validatePods(authProxyName, constants.VerrazzanoSystemNamespace, expectedRunning, false)
+			update.ValidatePods(authProxyName, authProxyLabel, constants.VerrazzanoSystemNamespace, expectedRunning, false)
 		})
 	})
 
@@ -128,7 +124,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 			update.UpdateCR(m)
 
 			expectedRunning := nodeCount
-			validatePods(authProxyName, constants.VerrazzanoSystemNamespace, expectedRunning, false)
+			update.ValidatePods(authProxyName, authProxyLabel, constants.VerrazzanoSystemNamespace, expectedRunning, false)
 		})
 	})
 
@@ -143,29 +139,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 				expectedRunning = nodeCount
 				expectedPending = false
 			}
-			validatePods(authProxyName, constants.VerrazzanoSystemNamespace, expectedRunning, expectedPending)
+			update.ValidatePods(authProxyName, authProxyLabel, constants.VerrazzanoSystemNamespace, expectedRunning, expectedPending)
 		})
 	})
 })
-
-func validatePods(deployName string, nameSpace string, expectedPodsRunning uint32, hasPending bool) {
-	Eventually(func() bool {
-		var err error
-		pods, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": deployName}}, nameSpace)
-		if err != nil {
-			return false
-		}
-		// Compare the number of running/pending pods to the expected numbers
-		var runningPods uint32 = 0
-		var pendingPods = false
-		for _, pod := range pods {
-			if pod.Status.Phase == corev1.PodRunning {
-				runningPods++
-			}
-			if pod.Status.Phase == corev1.PodPending {
-				pendingPods = true
-			}
-		}
-		return runningPods == expectedPodsRunning && pendingPods == hasPending
-	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get correct number of running and pending pods")
-}

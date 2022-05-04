@@ -7,18 +7,15 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/update"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	. "github.com/onsi/ginkgo/v2"
 
-	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 )
 
@@ -27,8 +24,6 @@ const (
 	nginxLabel        = "app.kubernetes.io/component"
 	istioIngressName  = "istio-egressgateway"
 	istioIngressLabel = "app"
-	waitTimeout       = 5 * time.Minute
-	pollingInterval   = 5 * time.Second
 )
 
 type NginxAutoscalingIstioRelicasAffintyModifier struct {
@@ -115,13 +110,13 @@ var _ = t.AfterSuite(func() {
 	cr := update.GetCR()
 
 	expectedNginxRunning := uint32(1)
-	validatePods(nginxName, nginxLabel, constants.IngressNamespace, expectedNginxRunning, false)
+	update.ValidatePods(nginxName, nginxLabel, constants.IngressNamespace, expectedNginxRunning, false)
 
 	expectedIstioRunning := uint32(1)
 	if cr.Spec.Profile == "prod" || cr.Spec.Profile == "" {
 		expectedIstioRunning = 2
 	}
-	validatePods(istioIngressName, istioIngressLabel, constants.IstioSystemNamespace, expectedIstioRunning, false)
+	update.ValidatePods(istioIngressName, istioIngressLabel, constants.IstioSystemNamespace, expectedIstioRunning, false)
 })
 
 var _ = t.Describe("Update nginx-istio", Label("f:platform-lcm.update"), func() {
@@ -130,13 +125,13 @@ var _ = t.Describe("Update nginx-istio", Label("f:platform-lcm.update"), func() 
 			cr := update.GetCR()
 
 			expectedNginxRunning := uint32(1)
-			validatePods(nginxName, nginxLabel, constants.IngressNamespace, expectedNginxRunning, false)
+			update.ValidatePods(nginxName, nginxLabel, constants.IngressNamespace, expectedNginxRunning, false)
 
 			expectedIstioRunning := uint32(1)
 			if cr.Spec.Profile == "prod" || cr.Spec.Profile == "" {
 				expectedIstioRunning = 2
 			}
-			validatePods(istioIngressName, istioIngressLabel, constants.IstioSystemNamespace, expectedIstioRunning, false)
+			update.ValidatePods(istioIngressName, istioIngressLabel, constants.IstioSystemNamespace, expectedIstioRunning, false)
 		})
 	})
 
@@ -146,32 +141,10 @@ var _ = t.Describe("Update nginx-istio", Label("f:platform-lcm.update"), func() 
 			update.UpdateCR(m)
 
 			expectedNginxRunning := nodeCount
-			validatePods(nginxName, nginxLabel, constants.IngressNamespace, expectedNginxRunning, false)
+			update.ValidatePods(nginxName, nginxLabel, constants.IngressNamespace, expectedNginxRunning, false)
 
 			expectedIstioRunning := uint32(1)
-			validatePods(istioIngressName, istioIngressLabel, constants.IstioSystemNamespace, expectedIstioRunning, false)
+			update.ValidatePods(istioIngressName, istioIngressLabel, constants.IstioSystemNamespace, expectedIstioRunning, false)
 		})
 	})
 })
-
-func validatePods(deployName string, labelName string, nameSpace string, expectedPodsRunning uint32, hasPending bool) {
-	Eventually(func() bool {
-		var err error
-		pods, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{labelName: deployName}}, nameSpace)
-		if err != nil {
-			return false
-		}
-		// Compare the number of running/pending pods to the expected numbers
-		var runningPods uint32 = 0
-		var pendingPods = false
-		for _, pod := range pods {
-			if pod.Status.Phase == corev1.PodRunning {
-				runningPods++
-			}
-			if pod.Status.Phase == corev1.PodPending {
-				pendingPods = true
-			}
-		}
-		return runningPods == expectedPodsRunning && pendingPods == hasPending
-	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get correct number of running and pending pods")
-}
