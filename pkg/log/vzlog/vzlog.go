@@ -91,7 +91,7 @@ type ProgressLogger interface {
 	// ErrorfThrottledNewErr Records a formatted error message throttled at the ProgressLogger frequency then returns the formatted error
 	ErrorfThrottledNewErr(template string, args ...interface{}) error
 
-	// ErrorfThrottled Records a formatted error message throttled at the ProgressLogger frequency then
+	// ErrorfThrottled Records a formatted error message throttled at the ProgressLogger frequency
 	ErrorfThrottled(template string, args ...interface{})
 
 	// SetFrequency sets the logging frequency of a progress message
