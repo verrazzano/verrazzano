@@ -126,7 +126,7 @@ pipeline {
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
 
         INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
-        INSTALL_CONFIG_FILE_KIND = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-kind.yaml"
+        INSTALL_CONFIG_FILE_KIND = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-kind-no-persistence.yaml"
 
         VZ_ENVIRONMENT_NAME = "default"
 
