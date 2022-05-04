@@ -7,6 +7,11 @@ def listOfUpgradeJobs
 def upgradeJobsStageMapping
 
 def branchSpecificSchedule = getCronSchedule()
+properties([
+    parameters([
+        booleanParam(description: 'testing', name: 'v1.0.0', defaultValue: false),
+    ])
+])
 pipeline {
     options {
         skipDefaultCheckout true
@@ -44,6 +49,10 @@ pipeline {
                 trim: true)
         choice (description: 'Predefined config permutations for Verrazzano installation', name: 'VZ_INSTALL_CONFIG',
                 choices: ["dev-kind-all-default", "NONE"])
+        string (name: 'EXCLUDE_RELEASES',
+                defaultValue: '3',
+                description: 'This is to define total number of jobs executed in parallel per each batch',
+                trim: true)
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
                         defaultValue: 'NONE',
                         description: 'This is for manually testing only where someone needs to use a specific operator image, otherwise the default value of NONE is used',
@@ -157,6 +166,11 @@ pipeline {
                         final List gitTags = extractReleaseTags(fileContent)
                         echo "gitTags = ${gitTags}"
                         listOfUpgradeJobs = addTargetUpgradeVersion(gitTags)
+                        def paramReleaseList = []
+                        for(release in gitTags){
+                            paramReleaseList.add(booleanParam(description: 'testing', name: 'v1.0.0', defaultValue: true))
+                        }
+                        properties([parameters(paramReleaseList)])
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
                         echo "Number of jobs to be run in parallel : ${params.N_JOBS_FOR_EACH_BATCH}"
                         def k = 0
