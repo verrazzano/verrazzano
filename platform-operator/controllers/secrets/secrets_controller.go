@@ -5,6 +5,10 @@ package secrets
 
 import (
 	"context"
+	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"time"
 
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
@@ -45,11 +49,22 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// 1. Get the Verrazzano CR and verify that the Namespace of it and the request align
 	//      a) i.e. vz.Namespace == req.Namespace
 	// 2. Verify that the Secret exists as a helm override (use vzconfig.vzContainsResources)
-	if true {
-		return r.reconcileHelmOverrideSource(ctx, req)
+	vz := &installv1alpha1.Verrazzano{}
+	if err := r.Get(ctx, types.NamespacedName{Namespace: constants.DefaultNamespace}, vz); err != nil {
+		if errors.IsNotFound(err) {
+			return reconcile.Result{}, nil
+		}
+		zap.S().Errorf("Failed to fetch Verrazzano resource: %v", err)
+		return newRequeueWithDelay(), nil
 	}
 
-	return ctrl.Result{}, nil
+	res, err := r.reconcileHelmOverrideSecret(ctx, req, vz)
+	if err != nil {
+		zap.S().Errorf("Failed to reconcile Secret: %v", err)
+		return newRequeueWithDelay(), nil
+	}
+
+	return res, nil
 
 }
 

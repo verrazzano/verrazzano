@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package contorllers
+package controllers
 
 import (
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -15,14 +15,14 @@ const (
 	secretKind    = "Secret"
 )
 
-// vzContainsResource checks to see if the resource is listed in the Verrazzano
-func vzContainsResource(ctx spi.ComponentContext, object client.Object) bool {
+// VzContainsResource checks to see if the resource is listed in the Verrazzano
+func VzContainsResource(ctx spi.ComponentContext, object client.Object) (string, bool) {
 	for _, component := range registry.GetComponents() {
 		if found := componentContainsResource(component.GetHelmOverrides(ctx), object); found {
-			return found
+			return component.Name(), found
 		}
 	}
-	return false
+	return "", false
 }
 
 // componentContainsResource looks through the component override list see if the resource is listed
