@@ -161,7 +161,7 @@ func TestSyncCACertsAdditionalTLSPresent(t *testing.T) {
 
 	newRegCA := testAdminCASecret.Data["ca-bundle"]
 	// Managed cluster additional TLS secret is the one to sync to admin cluster
-	newMCCA := testMCAdditionalTLSSecret.Data["ca.crt"]
+	newMCCA := testMCAdditionalTLSSecret.Data["ca-additional.pem"]
 
 	adminClient := fake.NewFakeClientWithScheme(newClusterCAScheme(), &testAdminCASecret, &testMCCASecret, &testVMC)
 
