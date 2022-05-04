@@ -162,7 +162,6 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			done = true
 			// Upgrade completely done
 			deleteUpgradeTracker(cr)
-			return ctrl.Result{}, nil
 		}
 	}
 	// Upgrade done, no need to requeue
