@@ -97,7 +97,8 @@
       "name": "istio",
       "subcomponents": [
         {
-          "repository": "verrazzano",
+          "registry": "docker.io",
+          "repository": "istio",
           "name": "istiod",
           "images": [
             {
@@ -186,6 +187,8 @@
               "helmTagKey": "nodeExporter.imageVersion"
             },
             {
+              "registry": "docker.io",
+              "repository": "istio",
               "image": "proxyv2",
               "tag": "1.13.2",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
@@ -225,6 +228,8 @@
               "helmTagKey": "monitoringOperator.imageVersion"
             },
             {
+              "registry": "docker.io",
+              "repository": "istio",
               "image": "proxyv2",
               "tag": "1.13.2",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
