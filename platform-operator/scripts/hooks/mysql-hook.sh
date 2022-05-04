@@ -6,23 +6,15 @@
 
 BACKUP_DIR="/var/lib/mysql/data-backup"
 
-# checks successful execution of a command
-function check_command () {
-  if [ $? != 0 ] ; then
-    echo "Command execution failed."
-    exit 1
-  fi
-}
-
-# takes backup of MYSQL
+# takes backup of MySQL
 function backup() {
   FILE_PATH=${BACKUP_DIR}/$1
   mysqldump --all-databases --single-transaction --quick --lock-tables=false > ${FILE_PATH} -u root -p${MYSQL_ROOT_PASSWORD}
   if [ $? -eq 0 ]; then
-         echo "MYSQL dump successful"
+         echo "MySQL dump successful"
          exit 0
     else
-        echo "MYSQL dump failed"
+        echo "MySQL dump failed"
         exit 1
   fi
 }
@@ -37,19 +29,28 @@ function restore() {
      echo "'${FILE_PATH}' does not exist"
      exit 1
   fi
+
+  # wait for MySQL to be up
   while ! mysqladmin ping -u root -p${MYSQL_ROOT_PASSWORD} --silent; do
-          # polling delay to check if MYSQL is up
+          # polling delay to check if MySQL is up
           sleep 5
   done
+
+  # verify mysql status
   mysqladmin -u root -p${MYSQL_ROOT_PASSWORD} status
-  check_command
-  echo "MYSQL is up and ready to receive connections"
+  if [ $? != 0 ] ; then
+     echo "MySQL status is not healthy even though its reachable."
+     exit 1
+  fi
+  echo "MySQL is up and ready to receive connections"
+
+  # perform mysql restore
   mysql -u root -p${MYSQL_ROOT_PASSWORD} < ${FILE_PATH}
   if [ $? -eq 0 ]; then
-       echo "MYSQL restore successful"
+       echo "MySQL restore successful"
        exit 0
   else
-      echo "MYSQL restore failed"
+      echo "MySQL restore failed"
       exit  1
   fi
 }
@@ -60,7 +61,7 @@ function usage {
     echo
     echo "usage: $0 [-o operation ] [-f filename]"
     echo "  -o operation  The operation to be performed on mysql (backup/restore)"
-    echo "  -f filename   The filename of the MYSQL dump file"
+    echo "  -f filename   The filename of the MySQL dump file"
     echo "  -h            Help"
     echo
     exit 1
