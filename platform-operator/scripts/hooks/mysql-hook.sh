@@ -19,8 +19,8 @@ function backup() {
   fi
 }
 
-# Checks if mysql is healthy
-# then restores mysql from an existing dump file
+# Checks if MySQL is healthy
+# then restores MySQL from an existing dump file
 function restore() {
   FILE_PATH=${BACKUP_DIR}/$1
   if test -f "${FILE_PATH}"; then
@@ -36,7 +36,7 @@ function restore() {
           sleep 5
   done
 
-  # verify mysql status
+  # verify MySQL status
   mysqladmin -u root -p${MYSQL_ROOT_PASSWORD} status
   if [ $? != 0 ] ; then
      echo "MySQL status is not healthy even though its reachable."
@@ -44,7 +44,7 @@ function restore() {
   fi
   echo "MySQL is up and ready to receive connections"
 
-  # perform mysql restore
+  # perform MySQL restore
   mysql -u root -p${MYSQL_ROOT_PASSWORD} < ${FILE_PATH}
   if [ $? -eq 0 ]; then
        echo "MySQL restore successful"
@@ -60,7 +60,7 @@ mkdir -p ${BACKUP_DIR}
 function usage {
     echo
     echo "usage: $0 [-o operation ] [-f filename]"
-    echo "  -o operation  The operation to be performed on mysql (backup/restore)"
+    echo "  -o operation  The operation to be performed on MySQL (backup/restore)"
     echo "  -f filename   The filename of the MySQL dump file"
     echo "  -h            Help"
     echo
