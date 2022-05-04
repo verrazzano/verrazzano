@@ -438,6 +438,12 @@ pipeline {
                                 runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true")
                             }
                         }
+                        stage ('Deploy Example Coherence') {
+                            steps {
+                                runGinkgoVerify('workloads/coherence', "false", "false", "true", "hello-coherence")
+                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload", "false", "false", "false")
+                            }
+                        }
                     }
                 }
                 stage("upgrade-platform-operator") {
@@ -554,11 +560,16 @@ pipeline {
                         }
                     }
                 }
-                stage ('Verify Example Apps') {
+                stage ('Verify & Uninstall Example Apps') {
                     parallel {
                         stage ('Examples Helidon') {
                             steps {
                                 runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload", "true", "false", "false")
+                            }
+                        }
+                        stage ('Verify/Uninstall Example Coherence') {
+                            steps {
+                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload", "false", "false", "false")
                             }
                         }
                     }
