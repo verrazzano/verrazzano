@@ -716,8 +716,6 @@ func TestUpgradeCompleted(t *testing.T) {
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			//asserts.Len(verrazzano.Status.Conditions, 3, "Incorrect number of conditions")
-			//asserts.Equal(vzapi.CondUpgradeComplete, verrazzano.Status.Conditions[2].Type, "Incorrect conditions")
 			return nil
 		}).AnyTimes()
 
