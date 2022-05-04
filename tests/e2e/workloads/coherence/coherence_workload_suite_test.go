@@ -13,11 +13,13 @@ import (
 
 var skipDeploy bool
 var skipUndeploy bool
+var skipVerify bool
 var namespace string
 
 func init() {
 	flag.BoolVar(&skipDeploy, "skipDeploy", false, "skipDeploy skips the call to install the application")
 	flag.BoolVar(&skipUndeploy, "skipUndeploy", false, "skipUndeploy skips the call to install the application")
+	flag.BoolVar(&skipVerify, "skipVerify", false, "skipVerify skips the post deployment app validations")
 	flag.StringVar(&namespace, "namespace", generatedNamespace, "namespace is the app namespace")
 }
 

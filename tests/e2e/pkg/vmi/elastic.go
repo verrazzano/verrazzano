@@ -186,6 +186,10 @@ func (e *Elastic) CheckHealth(kubeconfigPath string) bool {
 		pkg.Log(pkg.Error, fmt.Sprintf("Error extracting health status from response body: %v", err))
 		return false
 	}
+	indexTemplate, _ := e.getResponseBody("/_index_template")
+	pkg.Log(pkg.Info, fmt.Sprintf("IndexTemplate: %v", string(indexTemplate)))
+	catIndices, _ := e.getResponseBody("/_cat/indices")
+	pkg.Log(pkg.Info, fmt.Sprintf("Indices: \n%v", string(catIndices)))
 	if status == "green" {
 		pkg.Log(pkg.Info, "Elasticsearch cluster health status is green")
 		return true

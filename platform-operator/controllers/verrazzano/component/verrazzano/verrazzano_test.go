@@ -12,9 +12,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -23,6 +20,7 @@ import (
 	vzclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
@@ -242,19 +240,19 @@ func Test_appendVerrazzanoValues(t *testing.T) {
 					Profile:         "dev",
 					EnvironmentName: "myenv",
 					Components: vzapi.ComponentSpec{
-						Console:                &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Prometheus:             &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Kibana:                 &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Console:                &vzapi.ConsoleComponent{Enabled: &falseValue},
+						Prometheus:             &vzapi.PrometheusComponent{Enabled: &falseValue},
+						Kibana:                 &vzapi.KibanaComponent{Enabled: &falseValue},
 						Elasticsearch:          &vzapi.ElasticsearchComponent{Enabled: &falseValue},
-						Grafana:                &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Grafana:                &vzapi.GrafanaComponent{Enabled: &falseValue},
 						Keycloak:               &vzapi.KeycloakComponent{Enabled: &falseValue},
 						Rancher:                &vzapi.RancherComponent{Enabled: &falseValue},
 						DNS:                    &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: "xip.io"}},
 						PrometheusOperator:     &vzapi.PrometheusOperatorComponent{Enabled: &trueValue},
-						PrometheusAdapter:      &vzapi.PrometheusAdapterComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
-						KubeStateMetrics:       &vzapi.KubeStateMetricsComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
-						PrometheusPushgateway:  &vzapi.PrometheusPushgatewayComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
-						PrometheusNodeExporter: &vzapi.PrometheusNodeExporterComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
+						PrometheusAdapter:      &vzapi.PrometheusAdapterComponent{Enabled: &trueValue},
+						KubeStateMetrics:       &vzapi.KubeStateMetricsComponent{Enabled: &trueValue},
+						PrometheusPushgateway:  &vzapi.PrometheusPushgatewayComponent{Enabled: &trueValue},
+						PrometheusNodeExporter: &vzapi.PrometheusNodeExporterComponent{Enabled: &trueValue},
 						JaegerOperator:         &vzapi.JaegerOperatorComponent{Enabled: &trueValue},
 					},
 				},
@@ -368,10 +366,10 @@ func Test_appendVMIValues(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Profile: "dev",
 					Components: vzapi.ComponentSpec{
-						Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Grafana:       &vzapi.GrafanaComponent{Enabled: &falseValue},
 						Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &falseValue},
-						Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Prometheus:    &vzapi.PrometheusComponent{Enabled: &falseValue},
+						Kibana:        &vzapi.KibanaComponent{Enabled: &falseValue},
 					},
 				},
 			},
@@ -533,19 +531,19 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 					Profile:         "dev",
 					EnvironmentName: "myenv",
 					Components: vzapi.ComponentSpec{
-						Console:                &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Prometheus:             &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Kibana:                 &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Console:                &vzapi.ConsoleComponent{Enabled: &falseValue},
+						Prometheus:             &vzapi.PrometheusComponent{Enabled: &falseValue},
+						Kibana:                 &vzapi.KibanaComponent{Enabled: &falseValue},
 						Elasticsearch:          &vzapi.ElasticsearchComponent{Enabled: &falseValue},
-						Grafana:                &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Grafana:                &vzapi.GrafanaComponent{Enabled: &falseValue},
 						Keycloak:               &vzapi.KeycloakComponent{Enabled: &falseValue},
 						Rancher:                &vzapi.RancherComponent{Enabled: &falseValue},
 						DNS:                    &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: "xip.io"}},
 						PrometheusOperator:     &vzapi.PrometheusOperatorComponent{Enabled: &trueValue},
-						PrometheusAdapter:      &vzapi.PrometheusAdapterComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
-						KubeStateMetrics:       &vzapi.KubeStateMetricsComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
-						PrometheusPushgateway:  &vzapi.PrometheusPushgatewayComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
-						PrometheusNodeExporter: &vzapi.PrometheusNodeExporterComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &trueValue}},
+						PrometheusAdapter:      &vzapi.PrometheusAdapterComponent{Enabled: &trueValue},
+						KubeStateMetrics:       &vzapi.KubeStateMetricsComponent{Enabled: &trueValue},
+						PrometheusPushgateway:  &vzapi.PrometheusPushgatewayComponent{Enabled: &trueValue},
+						PrometheusNodeExporter: &vzapi.PrometheusNodeExporterComponent{Enabled: &trueValue},
 						JaegerOperator:         &vzapi.JaegerOperatorComponent{Enabled: &trueValue},
 					},
 				},
@@ -1020,7 +1018,7 @@ func TestIsReadySecretNotReady(t *testing.T) {
 		},
 	).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, checkVerrazzanoComponentStatus(ctx, status.DeploymentsAreReady, status.DaemonSetsAreReady))
+	assert.False(t, isVerrazzanoReady(ctx))
 }
 
 // TestIsReadyChartNotInstalled tests the Verrazzano isVerrazzanoReady call
@@ -1030,7 +1028,7 @@ func TestIsReadySecretNotReady(t *testing.T) {
 func TestIsReadyChartNotInstalled(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, checkVerrazzanoComponentStatus(ctx, status.DeploymentsAreReady, status.DaemonSetsAreReady))
+	assert.False(t, isVerrazzanoReady(ctx))
 }
 
 // TestIsReady tests the Verrazzano isVerrazzanoReady call
@@ -1090,7 +1088,7 @@ func TestIsReady(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	vz.Spec.Components = vzapi.ComponentSpec{}
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.True(t, checkVerrazzanoComponentStatus(ctx, status.DeploymentsAreReady, status.DaemonSetsAreReady))
+	assert.True(t, isVerrazzanoReady(ctx))
 }
 
 // TestIsReadyDeploymentNotAvailable tests the Verrazzano isVerrazzanoReady call
@@ -1147,7 +1145,7 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 			Namespace: ComponentNamespace}},
 	).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, checkVerrazzanoComponentStatus(ctx, status.DeploymentsAreReady, status.DaemonSetsAreReady))
+	assert.False(t, isVerrazzanoReady(ctx))
 }
 
 // TestIsReadyDeploymentVMIDisabled tests the Verrazzano isVerrazzanoReady call
@@ -1165,15 +1163,15 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	falseValue := false
 	vz.Spec.Components = vzapi.ComponentSpec{
-		Console:       &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Console:       &vzapi.ConsoleComponent{Enabled: &falseValue},
 		Fluentd:       &vzapi.FluentdComponent{Enabled: &falseValue},
-		Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Kibana:        &vzapi.KibanaComponent{Enabled: &falseValue},
 		Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &falseValue},
-		Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Prometheus:    &vzapi.PrometheusComponent{Enabled: &falseValue},
+		Grafana:       &vzapi.GrafanaComponent{Enabled: &falseValue},
 	}
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.True(t, checkVerrazzanoComponentStatus(ctx, status.DeploymentsAreReady, status.DaemonSetsAreReady))
+	assert.True(t, isVerrazzanoReady(ctx))
 }
 
 func TestConfigHashSum(t *testing.T) {
@@ -1195,4 +1193,27 @@ func TestConfigHashSum(t *testing.T) {
 	assert.NotEqual(t, HashSum(f1), HashSum(f2))
 	f2.Enabled = &b
 	assert.Equal(t, HashSum(f1), HashSum(f2))
+}
+
+// TestIsinstalled tests the Verrazzano doesPromExist call
+// GIVEN a Verrazzano component
+//  WHEN I call doesPromExist
+//  THEN true is returned
+func TestIsinstalled(t *testing.T) {
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      prometheusDeployment,
+				Labels:    map[string]string{"app": "system-prometheus"},
+			},
+		},
+	).Build()
+	vz := &vzapi.Verrazzano{}
+	ctx := spi.NewFakeContext(c, vz, false)
+	assert.True(t, doesPromExist(ctx))
 }

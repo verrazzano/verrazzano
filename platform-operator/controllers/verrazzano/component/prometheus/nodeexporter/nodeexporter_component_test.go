@@ -40,9 +40,7 @@ func TestIsEnabled(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						PrometheusNodeExporter: &vzapi.PrometheusNodeExporterComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{
-								Enabled: &trueValue,
-							},
+							Enabled: &trueValue,
 						},
 					},
 				},
@@ -58,9 +56,7 @@ func TestIsEnabled(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						PrometheusNodeExporter: &vzapi.PrometheusNodeExporterComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{
-								Enabled: &falseValue,
-							},
+							Enabled: &falseValue,
 						},
 					},
 				},
@@ -96,9 +92,7 @@ func TestAppendOverrides(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						PrometheusNodeExporter: &vzapi.PrometheusNodeExporterComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{
-								Enabled: &trueValue,
-							},
+							Enabled: &trueValue,
 						},
 					},
 				},
@@ -114,9 +108,7 @@ func TestAppendOverrides(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						PrometheusNodeExporter: &vzapi.PrometheusNodeExporterComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{
-								Enabled: &trueValue,
-							},
+							Enabled: &trueValue,
 						},
 						PrometheusOperator: &vzapi.PrometheusOperatorComponent{
 							Enabled: &trueValue,

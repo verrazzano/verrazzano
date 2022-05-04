@@ -11,7 +11,6 @@ import (
 	vzclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -51,12 +50,12 @@ func TestIsReadySecretNotReady(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	falseValue := false
 	vz.Spec.Components = vzapi.ComponentSpec{
-		Console:       &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Console:       &vzapi.ConsoleComponent{Enabled: &falseValue},
 		Fluentd:       &vzapi.FluentdComponent{Enabled: &falseValue},
-		Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Kibana:        &vzapi.KibanaComponent{Enabled: &falseValue},
 		Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &falseValue},
-		Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Prometheus:    &vzapi.PrometheusComponent{Enabled: &falseValue},
+		Grafana:       &vzapi.GrafanaComponent{Enabled: &falseValue},
 	}
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -70,7 +69,7 @@ func TestIsReadySecretNotReady(t *testing.T) {
 		},
 	}).Build()
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.False(t, checkOpenSearchDashboardsStatus(ctx, status.DeploymentsAreReady))
+	assert.False(t, isOSDReady(ctx))
 }
 
 // TestIsReadyNotInstalled tests the OpenSearch-Dashboards areOpenSearchDashboardsReady call
@@ -80,7 +79,7 @@ func TestIsReadySecretNotReady(t *testing.T) {
 func TestIsReadyNotInstalled(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, checkOpenSearchDashboardsStatus(ctx, status.DeploymentsAreReady))
+	assert.False(t, isOSDReady(ctx))
 }
 
 // TestIsReady tests the areOpenSearchDashboardsReady call
@@ -107,7 +106,7 @@ func TestIsReady(t *testing.T) {
 
 	vz := &vzapi.Verrazzano{}
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.True(t, checkOpenSearchDashboardsStatus(ctx, status.DeploymentsAreReady))
+	assert.True(t, isOSDReady(ctx))
 }
 
 // TestIsReadyDeploymentNotAvailable tests the OpenSearch-Dashboards areOpenSearchDashboardsReady call
@@ -133,7 +132,7 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 	).Build()
 
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, checkOpenSearchDashboardsStatus(ctx, status.DeploymentsAreReady))
+	assert.False(t, isOSDReady(ctx))
 }
 
 // TestIsReadyDeploymentVMIDisabled tests the OpenSearch-Dashboards areOpenSearchDashboardsReady call
@@ -151,13 +150,13 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	falseValue := false
 	vz.Spec.Components = vzapi.ComponentSpec{
-		Console:       &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Console:       &vzapi.ConsoleComponent{Enabled: &falseValue},
 		Fluentd:       &vzapi.FluentdComponent{Enabled: &falseValue},
-		Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Kibana:        &vzapi.KibanaComponent{Enabled: &falseValue},
 		Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &falseValue},
-		Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Prometheus:    &vzapi.PrometheusComponent{Enabled: &falseValue},
+		Grafana:       &vzapi.GrafanaComponent{Enabled: &falseValue},
 	}
 	ctx := spi.NewFakeContext(c, vz, false)
-	assert.True(t, checkOpenSearchDashboardsStatus(ctx, status.DeploymentsAreReady))
+	assert.True(t, isOSDReady(ctx))
 }

@@ -15,16 +15,12 @@ import (
 
 var enabled = true
 
-var monitoringComponent = vzapi.MonitoringComponent{
-	Enabled: &enabled,
-}
-
 var grafanaEnabledCR = vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		Profile: vzapi.Prod,
 		Components: vzapi.ComponentSpec{
 			Grafana: &vzapi.GrafanaComponent{
-				MonitoringComponent: monitoringComponent,
+				Enabled: &enabled,
 			},
 		},
 	},
