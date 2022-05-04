@@ -4,14 +4,13 @@
 package pushgateway
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
-	"path/filepath"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"path/filepath"
 )
 
 // ComponentName is the name of the component
@@ -42,6 +41,8 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-pushgateway-values.yaml"),
 			Dependencies:            []string{},
+			AppendOverridesFunc:     AppendOverrides,
+			GetHelmValueOverrides:   GetHelmOverrides,
 		},
 	}
 }
@@ -67,4 +68,21 @@ func (c prometheusPushgatewayComponent) IsReady(ctx spi.ComponentContext) bool {
 // PreInstall updates resources necessary for the Prometheus PrometheusPushgateway Component installation
 func (c prometheusPushgatewayComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preInstall(ctx)
+}
+
+
+// ValidateInstall verifies the installation of the Verrazzano object
+func (c prometheusPushgatewayComponent) ValidateInstall(effectiveCR *vzapi.Verrazzano) error {
+	if effectiveCR.Spec.Components.PrometheusOperator != nil {
+		return vzapi.ValidateHelmValueOverrides(effectiveCR.Spec.Components.PrometheusPushgateway.ValueOverrides)
+	}
+	return nil
+}
+
+// ValidateUpgrade verifies the upgrade of the Verrazzano object
+func (c prometheusPushgatewayComponent) ValidateUpgrade(effectiveCR *vzapi.Verrazzano) error {
+	if effectiveCR.Spec.Components.PrometheusOperator != nil {
+		return vzapi.ValidateHelmValueOverrides(effectiveCR.Spec.Components.PrometheusPushgateway.ValueOverrides)
+	}
+	return nil
 }

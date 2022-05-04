@@ -6,6 +6,10 @@ package pushgateway
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"strconv"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
@@ -46,4 +50,23 @@ func preInstall(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed to create or update the %s namespace: %v", ComponentNamespace, err)
 	}
 	return nil
+}
+
+// AppendOverrides appends Helm value overrides for the Prometheus Operator Helm chart
+func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	ctx.Log().Debug("Appending overrides for the Prometheus Pushgateway components")
+
+	// If prometheus is enabled, enabled the service monitor to add the scrape config for
+	// pushgateway through service monitor configuration
+	kvs = append(kvs, bom.KeyValue{
+		Key:   "serviceMonitor.enabled",
+		Value: strconv.FormatBool(vzconfig.IsPrometheusEnabled(ctx.EffectiveCR())),
+	})
+
+	return kvs, nil
+}
+
+// GetHelmOverrides appends Helm value overrides for the Prometheus Operator Helm chart
+func GetHelmOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
+	return ctx.EffectiveCR().Spec.Components.PrometheusPushgateway.ValueOverrides
 }

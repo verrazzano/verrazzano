@@ -451,6 +451,7 @@ type PrometheusOperatorComponent struct {
 type PrometheusPushgatewayComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
+	HelmValueOverrides `json:",inline"`
 }
 
 // CertManagerComponent specifies the core CertManagerComponent config.
