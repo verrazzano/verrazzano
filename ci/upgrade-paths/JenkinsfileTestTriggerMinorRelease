@@ -161,6 +161,7 @@ pipeline {
                         echo "gitTags = ${gitTags}"
                         def excludeReleases = ${params.EXCLUDE_RELEASES}
                         def excludeReleasesArray = excludeReleases.trim().split('\\s*,\\s*')
+                        println(excludeReleasesArray)
                         gitTags.removeAll(excludeReleasesArray)
                         println(gitTags)
                         listOfUpgradeJobs = addTargetUpgradeVersion(gitTags)
