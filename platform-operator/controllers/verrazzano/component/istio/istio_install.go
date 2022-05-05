@@ -134,7 +134,7 @@ func (m *installMonitorType) run(args installRoutineParams) {
 		removeTempFiles(log)
 
 		// Write result
-		log.Oncef("Component Istio successfully ran istioctl install, result: %s", result)
+		log.Oncef("Component Istio successfully ran istioctl install, result: %v", result)
 		outputCh <- result
 	}(m.inputCh, m.resultCh)
 
