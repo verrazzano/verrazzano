@@ -8,13 +8,10 @@ import (
 	"os"
 	"strconv"
 
+	. "github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/update"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	. "github.com/onsi/ginkgo/v2"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 )
@@ -56,29 +53,34 @@ func (m NginxAutoscalingIstioRelicasAffintyModifier) ModifyCR(cr *vzapi.Verrazza
 		cr.Spec.Components.Istio.Ingress.Kubernetes = &vzapi.IstioKubernetesSection{}
 	}
 	cr.Spec.Components.Istio.Ingress.Kubernetes.Replicas = m.istioIngressReplicas
-	if cr.Spec.Components.Istio.Ingress.Kubernetes.Affinity == nil {
-		cr.Spec.Components.Istio.Ingress.Kubernetes.Affinity = &corev1.Affinity{}
-	}
-	if cr.Spec.Components.Istio.Ingress.Kubernetes.Affinity.PodAntiAffinity == nil {
-		cr.Spec.Components.Istio.Ingress.Kubernetes.Affinity.PodAntiAffinity = &corev1.PodAntiAffinity{}
-	}
-	requiredIngressAntiAffinity := cr.Spec.Components.Istio.Ingress.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution
-	requiredIngressAntiAffinity = append(requiredIngressAntiAffinity, corev1.PodAffinityTerm{
-		LabelSelector: &metav1.LabelSelector{
-			MatchLabels: nil,
-			MatchExpressions: []metav1.LabelSelectorRequirement{
-				{
-					Key:      istioAppLabelKey,
-					Operator: "In",
-					Values: []string{
-						istioIngressLabelValue,
-					},
-				},
-			},
-		},
-		TopologyKey: "kubernetes.io/hostname",
-	})
-	cr.Spec.Components.Istio.Ingress.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution = requiredIngressAntiAffinity
+	// istio 1.11.4 has a bug handling this particular Affinity
+	// it works fine if istio is installed with it
+	// but it fails updating istio with it even though running pods has met replicaCount, istio is trying to schedule more
+	// which results in pending pods
+	//
+	//if cr.Spec.Components.Istio.Ingress.Kubernetes.Affinity == nil {
+	//	cr.Spec.Components.Istio.Ingress.Kubernetes.Affinity = &corev1.Affinity{}
+	//}
+	//if cr.Spec.Components.Istio.Ingress.Kubernetes.Affinity.PodAntiAffinity == nil {
+	//	cr.Spec.Components.Istio.Ingress.Kubernetes.Affinity.PodAntiAffinity = &corev1.PodAntiAffinity{}
+	//}
+	//requiredIngressAntiAffinity := cr.Spec.Components.Istio.Ingress.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution
+	//requiredIngressAntiAffinity = append(requiredIngressAntiAffinity, corev1.PodAffinityTerm{
+	//	LabelSelector: &metav1.LabelSelector{
+	//		MatchLabels: nil,
+	//		MatchExpressions: []metav1.LabelSelectorRequirement{
+	//			{
+	//				Key:      istioAppLabelKey,
+	//				Operator: "In",
+	//				Values: []string{
+	//					istioIngressLabelValue,
+	//				},
+	//			},
+	//		},
+	//	},
+	//	TopologyKey: "kubernetes.io/hostname",
+	//})
+	//cr.Spec.Components.Istio.Ingress.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution = requiredIngressAntiAffinity
 	// TODO update istio egress
 	if cr.Spec.Components.Istio.Egress == nil {
 		cr.Spec.Components.Istio.Egress = &vzapi.IstioEgressSection{}
@@ -87,29 +89,33 @@ func (m NginxAutoscalingIstioRelicasAffintyModifier) ModifyCR(cr *vzapi.Verrazza
 		cr.Spec.Components.Istio.Egress.Kubernetes = &vzapi.IstioKubernetesSection{}
 	}
 	cr.Spec.Components.Istio.Egress.Kubernetes.Replicas = m.istioEgressReplicas
-	if cr.Spec.Components.Istio.Egress.Kubernetes.Affinity == nil {
-		cr.Spec.Components.Istio.Egress.Kubernetes.Affinity = &corev1.Affinity{}
-	}
-	if cr.Spec.Components.Istio.Egress.Kubernetes.Affinity.PodAntiAffinity == nil {
-		cr.Spec.Components.Istio.Egress.Kubernetes.Affinity.PodAntiAffinity = &corev1.PodAntiAffinity{}
-	}
-	requiredEgressAntiAffinity := cr.Spec.Components.Istio.Egress.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution
-	requiredEgressAntiAffinity = append(requiredEgressAntiAffinity, corev1.PodAffinityTerm{
-		LabelSelector: &metav1.LabelSelector{
-			MatchLabels: nil,
-			MatchExpressions: []metav1.LabelSelectorRequirement{
-				{
-					Key:      istioAppLabelKey,
-					Operator: "In",
-					Values: []string{
-						istioEgressLabelValue,
-					},
-				},
-			},
-		},
-		TopologyKey: "kubernetes.io/hostname",
-	})
-	cr.Spec.Components.Istio.Egress.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution = requiredEgressAntiAffinity
+	// istio 1.11.4 has a bug handling this particular Affinity
+	// it works fine if istio is installed with it
+	// but it fails updating istio with it even though running pods has met replicaCount, istio is trying to schedule more
+	// which results in pending pods
+	//if cr.Spec.Components.Istio.Egress.Kubernetes.Affinity == nil {
+	//	cr.Spec.Components.Istio.Egress.Kubernetes.Affinity = &corev1.Affinity{}
+	//}
+	//if cr.Spec.Components.Istio.Egress.Kubernetes.Affinity.PodAntiAffinity == nil {
+	//	cr.Spec.Components.Istio.Egress.Kubernetes.Affinity.PodAntiAffinity = &corev1.PodAntiAffinity{}
+	//}
+	//requiredEgressAntiAffinity := cr.Spec.Components.Istio.Egress.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution
+	//requiredEgressAntiAffinity = append(requiredEgressAntiAffinity, corev1.PodAffinityTerm{
+	//	LabelSelector: &metav1.LabelSelector{
+	//		MatchLabels: nil,
+	//		MatchExpressions: []metav1.LabelSelectorRequirement{
+	//			{
+	//				Key:      istioAppLabelKey,
+	//				Operator: "In",
+	//				Values: []string{
+	//					istioEgressLabelValue,
+	//				},
+	//			},
+	//		},
+	//	},
+	//	TopologyKey: "kubernetes.io/hostname",
+	//})
+	//cr.Spec.Components.Istio.Egress.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution = requiredEgressAntiAffinity
 }
 
 func (u NginxIstioDefaultModifier) ModifyCR(cr *vzapi.Verrazzano) {
