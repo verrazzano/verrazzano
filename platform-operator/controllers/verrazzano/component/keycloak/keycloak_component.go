@@ -18,7 +18,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -120,12 +119,10 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	// If OCI DNS, update annotation on Keycloak Ingress
-	if vzconfig.IsExternalDNSEnabled(ctx.EffectiveCR()) {
-		err := updateKeycloakIngress(ctx)
-		if err != nil {
-			return err
-		}
+	// Update annotations on Keycloak Ingress
+	err = updateKeycloakIngress(ctx)
+	if err != nil {
+		return err
 	}
 
 	return c.HelmComponent.PostInstall(ctx)
