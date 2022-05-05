@@ -157,7 +157,7 @@ pipeline {
                 steps {
                     script {
                         final String fileContent = readFile(file: "${workspace}/tags.txt")
-                        final List gitTags = extractReleaseTags(fileContent)
+                        List gitTags = extractReleaseTags(fileContent)
                         echo "gitTags = ${gitTags}"
                         def excludeReleases = ${params.EXCLUDE_RELEASES}
                         def excludeReleasesArray = excludeReleases.trim().split('\\s*,\\s*')
