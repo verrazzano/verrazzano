@@ -32,8 +32,6 @@ const (
 
 	leftMargin      = 0
 	leftMarginExtIP = 12
-
-	jaeger = "jaeger"
 )
 
 // Define the IstioOperator template which is used to insert the generated YAML values.
