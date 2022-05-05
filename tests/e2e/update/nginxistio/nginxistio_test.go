@@ -144,12 +144,10 @@ var _ = t.Describe("Update nginx-istio", Label("f:platform-lcm.update"), func() 
 			update.ValidatePods(nginxLabelValue, nginxLabelKey, constants.IngressNamespace, expectedNginxRunning, false)
 
 			expectedIstioRunning := nodeCount - 1
-			expectedIstioPending := true
 			if nodeCount == 1 {
 				expectedIstioRunning = nodeCount
-				expectedIstioPending = false
 			}
-			update.ValidatePods(istioIngressLabelValue, istioIngressLabelKey, constants.IstioSystemNamespace, expectedIstioRunning, expectedIstioPending)
+			update.ValidatePods(istioIngressLabelValue, istioIngressLabelKey, constants.IstioSystemNamespace, expectedIstioRunning, false)
 		})
 	})
 })
