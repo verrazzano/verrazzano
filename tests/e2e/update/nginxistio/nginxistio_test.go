@@ -109,8 +109,7 @@ var _ = t.AfterSuite(func() {
 	update.UpdateCR(m)
 	cr := update.GetCR()
 
-	expectedNginxRunning := uint32(1)
-	update.ValidatePods(nginxLabelValue, nginxLabelKey, constants.IngressNamespace, expectedNginxRunning, false)
+	update.ValidatePods(nginxLabelValue, nginxLabelKey, constants.IngressNamespace, uint32(1), false)
 
 	expectedIstioRunning := uint32(1)
 	if cr.Spec.Profile == "prod" || cr.Spec.Profile == "" {
@@ -124,8 +123,7 @@ var _ = t.Describe("Update nginx-istio", Label("f:platform-lcm.update"), func() 
 		t.It("nginx-istio default replicas", func() {
 			cr := update.GetCR()
 
-			expectedNginxRunning := uint32(1)
-			update.ValidatePods(nginxLabelValue, nginxLabelKey, constants.IngressNamespace, expectedNginxRunning, false)
+			update.ValidatePods(nginxLabelValue, nginxLabelKey, constants.IngressNamespace, uint32(1), false)
 
 			expectedIstioRunning := uint32(1)
 			if cr.Spec.Profile == "prod" || cr.Spec.Profile == "" {
@@ -137,17 +135,16 @@ var _ = t.Describe("Update nginx-istio", Label("f:platform-lcm.update"), func() 
 
 	t.Describe("verrazzano-nginx-istio update", Label("f:platform-lcm.nginx-istio-update"), func() {
 		t.It("nginx-istio update", func() {
-			m := NginxAutoscalingIstioRelicasAffintyModifier{nginxReplicas: nodeCount, istioReplicas: nodeCount}
+			istioCount := nodeCount - 1
+			if nodeCount == 1 {
+				istioCount = nodeCount
+			}
+			m := NginxAutoscalingIstioRelicasAffintyModifier{nginxReplicas: nodeCount, istioReplicas: istioCount}
 			update.UpdateCR(m)
 
-			expectedNginxRunning := nodeCount
-			update.ValidatePods(nginxLabelValue, nginxLabelKey, constants.IngressNamespace, expectedNginxRunning, false)
+			update.ValidatePods(nginxLabelValue, nginxLabelKey, constants.IngressNamespace, nodeCount, false)
 
-			expectedIstioRunning := nodeCount - 1
-			if nodeCount == 1 {
-				expectedIstioRunning = nodeCount
-			}
-			update.ValidatePods(istioIngressLabelValue, istioIngressLabelKey, constants.IstioSystemNamespace, expectedIstioRunning, false)
+			update.ValidatePods(istioIngressLabelValue, istioIngressLabelKey, constants.IstioSystemNamespace, istioCount, false)
 		})
 	})
 })
