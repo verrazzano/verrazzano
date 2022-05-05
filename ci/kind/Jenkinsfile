@@ -384,6 +384,14 @@ pipeline {
                                 runGinkgo('logging/opensearch')
                             }
                         }
+                        stage('opensearch update') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-update"
+                            }
+                            steps {
+                                runGinkgo('update/opensearch')
+                            }
+                        }
                         stage('examples logging helidon') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"

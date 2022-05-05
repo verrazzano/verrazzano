@@ -60,7 +60,7 @@ func (u OpensearchMasterNodeArgsModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
-	cr.Spec.Components.Elasticsearch.ESInstallArgs = make([]vzapi.InstallArgs, 2)
+	cr.Spec.Components.Elasticsearch.ESInstallArgs = []vzapi.InstallArgs{}
 	cr.Spec.Components.Elasticsearch.ESInstallArgs =
 		append(cr.Spec.Components.Elasticsearch.ESInstallArgs,
 			vzapi.InstallArgs{Name: "nodes.master.replicas", Value: strconv.FormatUint(u.NodeReplicas, 10)},
@@ -71,7 +71,7 @@ func (u OpensearchIngestNodeArgsModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
-	cr.Spec.Components.Elasticsearch.ESInstallArgs = make([]vzapi.InstallArgs, 2)
+	cr.Spec.Components.Elasticsearch.ESInstallArgs = []vzapi.InstallArgs{}
 	defaultMasterNodeCount := "1"
 	defaultDataNodeCount := "0"
 	if cr.Spec.Profile == vzapi.Prod {
@@ -91,7 +91,7 @@ func (u OpensearchDataNodeArgsModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
-	cr.Spec.Components.Elasticsearch.ESInstallArgs = make([]vzapi.InstallArgs, 2)
+	cr.Spec.Components.Elasticsearch.ESInstallArgs = []vzapi.InstallArgs{}
 	defaultMasterNodeCount := "1"
 	defaultIngestNodeCount := "0"
 	if cr.Spec.Profile == vzapi.Prod {
