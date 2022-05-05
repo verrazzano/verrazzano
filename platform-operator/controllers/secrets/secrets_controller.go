@@ -7,7 +7,6 @@ import (
 	"context"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"time"
 
@@ -54,8 +53,12 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// 1. Get the Verrazzano CR and verify that the Namespace of it and the request align
 	//      a) i.e. vz.Namespace == req.Namespace
 	// 2. Verify that the Secret exists as a helm override (use vzconfig.vzContainsResources)
-	vz := &installv1alpha1.Verrazzano{}
-	if err := r.Get(ctx, types.NamespacedName{Namespace: constants.DefaultNamespace}, vz); err != nil {
+	vzList := &installv1alpha1.VerrazzanoList{}
+	listOpts := []client.ListOption{
+		client.InNamespace(constants.DefaultNamespace),
+	}
+	err := r.List(ctx, vzList, listOpts...)
+	if err != nil {
 		if errors.IsNotFound(err) {
 			zap.S().Infof("VZ not found Secret")
 			return reconcile.Result{}, nil
@@ -64,6 +67,7 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return newRequeueWithDelay(), err
 	}
 
+	vz := &vzList.Items[0]
 	res, err := r.reconcileHelmOverrideSecret(ctx, req, vz)
 	if err != nil {
 		zap.S().Errorf("Failed to reconcile Secret: %v", err)
@@ -84,7 +88,7 @@ func (r *VerrazzanoSecretsReconciler) initLogger(secret corev1.Secret) (ctrl.Res
 		ControllerName: "secrets",
 	})
 	if err != nil {
-		zap.S().Errorf("Failed to create resource logger for VerrazzanoSecrets controller", err)
+		zap.S().Errorf("Failed to create resource logger for VerrazzanoSecrets controller: %v", err)
 		return newRequeueWithDelay(), err
 	}
 	r.log = log

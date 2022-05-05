@@ -9,7 +9,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"time"
@@ -55,8 +54,12 @@ func (r *VerrazzanoConfigMapsReconciler) Reconcile(ctx context.Context, req ctrl
 	}
 	zap.S().Info("ConfigMap controller")
 
-	vz := &installv1alpha1.Verrazzano{}
-	if err := r.Get(ctx, types.NamespacedName{Namespace: constants.DefaultNamespace}, vz); err != nil {
+	vzList := &installv1alpha1.VerrazzanoList{}
+	listOpts := []client.ListOption{
+		client.InNamespace(constants.DefaultNamespace),
+	}
+	err := r.List(ctx, vzList, listOpts...)
+	if err != nil {
 		if errors.IsNotFound(err) {
 			zap.S().Infof("VZ Not found ConfigMap")
 			return reconcile.Result{}, nil
@@ -66,6 +69,7 @@ func (r *VerrazzanoConfigMapsReconciler) Reconcile(ctx context.Context, req ctrl
 	}
 	zap.S().Infof("Successfully fetched verrazzano resource")
 
+	vz := &vzList.Items[0]
 	res, err := r.reconcileHelmOverrideConfigMap(ctx, req, vz)
 	if err != nil {
 		zap.S().Errorf("Failed to reconcile ConfigMap: %v", err)
