@@ -291,7 +291,7 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatusReady(ctx context.Conte
 
 func (r *VerrazzanoManagedClusterReconciler) handleError(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, msg string, err error, log vzlog.VerrazzanoLogger) {
 	fullMsg := fmt.Sprintf("%s: %v", msg, err)
-	log.Errorf(fullMsg)
+	log.ErrorfThrottled(fullMsg)
 	statusErr := r.updateStatusNotReady(ctx, vmc, fullMsg)
 	if statusErr != nil {
 		log.Errorf("Failed to update status for VMC %s: %v", vmc.Name, statusErr)
