@@ -13,12 +13,12 @@ properties([
         booleanParam(description: 'testing', name: 'v1.0.0', defaultValue: false),
     ])
 ])
-List releaseParamList
+def releaseParamList
 node {
 releaseParamList = sh(returnStdout: true, script: "curl -s https://api.github.com/repos/verrazzano/verrazzano/tags | jq -r '.[] | .name' | awk '/v1[.]/'").trim()
 println(releaseParamList)
 }
-properties([parameters(releaseParamList)])
+//properties([parameters(releaseParamList)])
 pipeline {
     options {
         skipDefaultCheckout true
