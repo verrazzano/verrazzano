@@ -24,50 +24,47 @@ const (
 	nginxLabelKey          = "app.kubernetes.io/component"
 	istioIngressLabelValue = "istio-ingressgateway"
 	istioIngressLabelKey   = "app"
+	istioEgressLabelValue  = "istio-gressgateway"
+	istioEgressLabelKey    = "app"
 )
 
 type NginxAutoscalingIstioRelicasAffintyModifier struct {
-	nginxReplicas uint32
-	istioReplicas uint32
+	nginxReplicas        uint32
+	istioIngressReplicas uint32
+	istioEgressReplicas  uint32
 }
 
 type NginxIstioDefaultModifier struct {
 }
 
 func (m NginxAutoscalingIstioRelicasAffintyModifier) ModifyCR(cr *vzapi.Verrazzano) {
-	// update nginx
 	if cr.Spec.Components.Ingress == nil {
 		cr.Spec.Components.Ingress = &vzapi.IngressNginxComponent{}
 	}
-	cr.Spec.Components.Ingress.NGINXInstallArgs = []vzapi.InstallArgs{
-		{
-			Name:  "controller.autoscaling.enabled",
-			Value: "true",
-		},
-		{
-			Name:  "controller.autoscaling.minReplicas",
-			Value: fmt.Sprint(m.nginxReplicas),
-		},
-	}
-	// update istio
 	if cr.Spec.Components.Istio == nil {
 		cr.Spec.Components.Istio = &vzapi.IstioComponent{}
 	}
+	// update nginx
+	nginxInstallArgs := cr.Spec.Components.Ingress.NGINXInstallArgs
+	nginxInstallArgs = append(nginxInstallArgs, vzapi.InstallArgs{Name: "controller.autoscaling.enabled", Value: "true"})
+	nginxInstallArgs = append(nginxInstallArgs, vzapi.InstallArgs{Name: "controller.autoscaling.minReplicas", Value: fmt.Sprint(m.nginxReplicas)})
+	cr.Spec.Components.Ingress.NGINXInstallArgs = nginxInstallArgs
+	// update istio ingress
 	if cr.Spec.Components.Istio.Ingress == nil {
 		cr.Spec.Components.Istio.Ingress = &vzapi.IstioIngressSection{}
 	}
 	if cr.Spec.Components.Istio.Ingress.Kubernetes == nil {
 		cr.Spec.Components.Istio.Ingress.Kubernetes = &vzapi.IstioKubernetesSection{}
 	}
-	cr.Spec.Components.Istio.Ingress.Kubernetes.Replicas = m.istioReplicas
+	cr.Spec.Components.Istio.Ingress.Kubernetes.Replicas = m.istioIngressReplicas
 	if cr.Spec.Components.Istio.Ingress.Kubernetes.Affinity == nil {
 		cr.Spec.Components.Istio.Ingress.Kubernetes.Affinity = &corev1.Affinity{}
 	}
 	if cr.Spec.Components.Istio.Ingress.Kubernetes.Affinity.PodAntiAffinity == nil {
 		cr.Spec.Components.Istio.Ingress.Kubernetes.Affinity.PodAntiAffinity = &corev1.PodAntiAffinity{}
 	}
-	list := cr.Spec.Components.Istio.Ingress.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution
-	list = append(list, corev1.PodAffinityTerm{
+	requiredIngressAntiAffinity := cr.Spec.Components.Istio.Ingress.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution
+	requiredIngressAntiAffinity = append(requiredIngressAntiAffinity, corev1.PodAffinityTerm{
 		LabelSelector: &metav1.LabelSelector{
 			MatchLabels: nil,
 			MatchExpressions: []metav1.LabelSelectorRequirement{
@@ -82,7 +79,38 @@ func (m NginxAutoscalingIstioRelicasAffintyModifier) ModifyCR(cr *vzapi.Verrazza
 		},
 		TopologyKey: "kubernetes.io/hostname",
 	})
-	cr.Spec.Components.Istio.Ingress.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution = list
+	cr.Spec.Components.Istio.Ingress.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution = requiredIngressAntiAffinity
+	// TODO update istio egress
+	if cr.Spec.Components.Istio.Egress == nil {
+		cr.Spec.Components.Istio.Egress = &vzapi.IstioEgressSection{}
+	}
+	if cr.Spec.Components.Istio.Egress.Kubernetes == nil {
+		cr.Spec.Components.Istio.Egress.Kubernetes = &vzapi.IstioKubernetesSection{}
+	}
+	cr.Spec.Components.Istio.Egress.Kubernetes.Replicas = m.istioEgressReplicas
+	if cr.Spec.Components.Istio.Egress.Kubernetes.Affinity == nil {
+		cr.Spec.Components.Istio.Egress.Kubernetes.Affinity = &corev1.Affinity{}
+	}
+	if cr.Spec.Components.Istio.Egress.Kubernetes.Affinity.PodAntiAffinity == nil {
+		cr.Spec.Components.Istio.Egress.Kubernetes.Affinity.PodAntiAffinity = &corev1.PodAntiAffinity{}
+	}
+	requiredEgressAntiAffinity := cr.Spec.Components.Istio.Egress.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution
+	requiredEgressAntiAffinity = append(requiredEgressAntiAffinity, corev1.PodAffinityTerm{
+		LabelSelector: &metav1.LabelSelector{
+			MatchLabels: nil,
+			MatchExpressions: []metav1.LabelSelectorRequirement{
+				{
+					Key:      istioEgressLabelKey,
+					Operator: "In",
+					Values: []string{
+						istioEgressLabelValue,
+					},
+				},
+			},
+		},
+		TopologyKey: "kubernetes.io/hostname",
+	})
+	cr.Spec.Components.Istio.Egress.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution = requiredEgressAntiAffinity
 }
 
 func (u NginxIstioDefaultModifier) ModifyCR(cr *vzapi.Verrazzano) {
@@ -139,12 +167,12 @@ var _ = t.Describe("Update nginx-istio", Label("f:platform-lcm.update"), func() 
 			if nodeCount == 1 {
 				istioCount = nodeCount
 			}
-			m := NginxAutoscalingIstioRelicasAffintyModifier{nginxReplicas: nodeCount, istioReplicas: istioCount}
+			m := NginxAutoscalingIstioRelicasAffintyModifier{nginxReplicas: nodeCount, istioIngressReplicas: istioCount, istioEgressReplicas: istioCount}
 			update.UpdateCR(m)
 
 			update.ValidatePods(nginxLabelValue, nginxLabelKey, constants.IngressNamespace, nodeCount, false)
-
 			update.ValidatePods(istioIngressLabelValue, istioIngressLabelKey, constants.IstioSystemNamespace, istioCount, false)
+			update.ValidatePods(istioEgressLabelValue, istioEgressLabelKey, constants.IstioSystemNamespace, istioCount, false)
 		})
 	})
 })
