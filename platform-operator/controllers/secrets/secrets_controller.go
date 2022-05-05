@@ -100,11 +100,6 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return nil
 	})
 
-	if !r.multiclusterNamespaceExists() {
-		// Multicluster namespace doesn't exist yet, requeue
-		return newRequeueWithDelay(), nil
-	}
-
 	if err != nil {
 		r.log.ErrorfThrottled("Failed to create or update secret %s/%s: %s",
 			constants.VerrazzanoMultiClusterNamespace, constants.VerrazzanoLocalCABundleSecret, err.Error())
