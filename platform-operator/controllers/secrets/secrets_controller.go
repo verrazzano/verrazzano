@@ -66,15 +66,16 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		zap.S().Errorf("Failed to fetch Verrazzano resource: %v", err)
 		return newRequeueWithDelay(), err
 	}
-
-	vz := &vzList.Items[0]
-	res, err := r.reconcileHelmOverrideSecret(ctx, req, vz)
-	if err != nil {
-		zap.S().Errorf("Failed to reconcile Secret: %v", err)
-		return newRequeueWithDelay(), err
+	if vzList != nil && len(vzList.Items) > 0 {
+		vz := &vzList.Items[0]
+		_, err := r.reconcileHelmOverrideSecret(ctx, req, vz)
+		if err != nil {
+			zap.S().Errorf("Failed to reconcile Secret: %v", err)
+			return newRequeueWithDelay(), err
+		}
 	}
 
-	return res, nil
+	return ctrl.Result{}, nil
 
 }
 

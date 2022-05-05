@@ -68,14 +68,15 @@ func (r *VerrazzanoConfigMapsReconciler) Reconcile(ctx context.Context, req ctrl
 		return newRequeueWithDelay(), err
 	}
 	zap.S().Infof("Successfully fetched verrazzano resource")
-
-	vz := &vzList.Items[0]
-	res, err := r.reconcileHelmOverrideConfigMap(ctx, req, vz)
-	if err != nil {
-		zap.S().Errorf("Failed to reconcile ConfigMap: %v", err)
-		return newRequeueWithDelay(), err
+	if vzList != nil && len(vzList.Items) > 0 {
+		vz := &vzList.Items[0]
+		_, err := r.reconcileHelmOverrideConfigMap(ctx, req, vz)
+		if err != nil {
+			zap.S().Errorf("Failed to reconcile ConfigMap: %v", err)
+			return newRequeueWithDelay(), err
+		}
 	}
-	return res, nil
+	return ctrl.Result{}, nil
 }
 
 func (r *VerrazzanoConfigMapsReconciler) reconcileHelmOverrideConfigMap(ctx context.Context, req ctrl.Request, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
