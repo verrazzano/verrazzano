@@ -50,6 +50,9 @@ pipeline {
                 trim: true)
         choice (description: 'Predefined config permutations for Verrazzano installation', name: 'VZ_INSTALL_CONFIG',
                 choices: ["dev-kind-all-default", "NONE"])
+        string (name: 'EXCLUDE_RELEASES',
+                defaultValue: "v1.0.0, v1.0.1, v1.0.2, v1.0.3, v1.0.4",
+                description: 'This is to exclude the specified releases from upgrade tests.', trim: true)
         choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
                         choices: ["KIND", "magicdns_oke", "ocidns_oke"])
         choice (description: 'ACME Certificate Environment (Staging or Production)', name: 'ACME_ENVIRONMENT',
@@ -187,9 +190,26 @@ pipeline {
                 steps {
                     script {
                         final String fileContent = readFile(file: "${workspace}/tags.txt")
-                        final List gitTags = extractReleaseTags(fileContent)
+                        List gitTags = extractReleaseTags(fileContent)
                         echo "gitTags = ${gitTags}"
-                        listOfUpgradeJobs = addTargetUpgradeVersion(gitTags)
+                        def excludeReleases = params.EXCLUDE_RELEASES
+                        def excludeReleasesList = excludeReleases.trim().split('\\s*,\\s*')
+                        println(excludeReleasesList)
+                        def finalReleaseList  = []
+                        //Remove the excluded releases from jobs
+                        for(releaseTag in gitTags){
+                            def excluded = false
+                            for(excludedRelease in excludeReleasesList){
+                                if(releaseTag == excludedRelease){
+                                    excluded = true
+                                }
+                            }
+                            if(excluded == false){
+                                finalReleaseList.add(releaseTag)
+                            }
+                        }
+                        echo "List of Releases after excluding the user requested releases: ${finalReleaseList}"
+                        listOfUpgradeJobs = addTargetUpgradeVersion(finalReleaseList)
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
                         echo "Number of jobs to be run in parallel : ${params.N_JOBS_FOR_EACH_BATCH}"
                         def k = 0
@@ -475,3 +495,5 @@ def getCronSchedule() {
     }
     return ""
 }
+
+

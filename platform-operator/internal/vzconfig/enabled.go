@@ -171,3 +171,11 @@ func IsAuthProxyEnabled(vz *vzapi.Verrazzano) bool {
 	}
 	return true
 }
+
+// IsApplicationOperatorEnabled returns false only if Application Operator is explicitly disabled in the CR
+func IsApplicationOperatorEnabled(vz *vzapi.Verrazzano) bool {
+	if vz != nil && vz.Spec.Components.ApplicationOperator != nil && vz.Spec.Components.ApplicationOperator.Enabled != nil {
+		return *vz.Spec.Components.ApplicationOperator.Enabled
+	}
+	return true
+}
