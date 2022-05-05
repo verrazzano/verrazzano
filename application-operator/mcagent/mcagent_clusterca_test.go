@@ -30,8 +30,8 @@ const (
 	sampleMCTLSReadErrMsg      = "failed to read sample MC TLS Secret"
 	sampleMCCAReadErrMsg       = "failed to read sample MC CA Secret"
 	sampleVMCReadErrMsg        = "failed to read sample VMC"
-	regSecretChangedErrMsg     = "registration secret was changed"
-	mcCASecretChangedErrMsg    = "MC CA secret was changed"
+	regSecChangedErrMsg        = "registration secret was changed"
+	mcCASecChangedErrMsg       = "MC CA secret was changed"
 )
 
 // TestSyncAdminCANoDifference tests the synchronization method for the following use case.
@@ -82,12 +82,12 @@ func TestSyncCACertsNoDifference(t *testing.T) {
 	localSecret := &corev1.Secret{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testClusterRegSecret.Name, Namespace: testClusterRegSecret.Namespace}, localSecret)
 	assert.NoError(err)
-	assert.Equal(origRegCA, localSecret.Data["ca-bundle"], regSecretChangedErrMsg)
+	assert.Equal(origRegCA, localSecret.Data["ca-bundle"], regSecChangedErrMsg)
 
 	adminSecret := &corev1.Secret{}
 	err = s.AdminClient.Get(s.Context, types.NamespacedName{Name: testMCCASecret.Name, Namespace: testMCCASecret.Namespace}, adminSecret)
 	assert.NoError(err)
-	assert.Equal(origMCCA, adminSecret.Data["cacrt"], mcCASecretChangedErrMsg)
+	assert.Equal(origMCCA, adminSecret.Data["cacrt"], mcCASecChangedErrMsg)
 }
 
 // TestSyncCACertsAreDifferent tests the synchronization method for the following use case.
@@ -138,12 +138,12 @@ func TestSyncCACertsAreDifferent(t *testing.T) {
 	localSecret := &corev1.Secret{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testClusterRegSecret.Name, Namespace: testClusterRegSecret.Namespace}, localSecret)
 	assert.NoError(err)
-	assert.Equal(newRegCA, localSecret.Data["ca-bundle"], regSecretChangedErrMsg)
+	assert.Equal(newRegCA, localSecret.Data["ca-bundle"], regSecChangedErrMsg)
 
 	adminSecret := &corev1.Secret{}
 	err = s.AdminClient.Get(s.Context, types.NamespacedName{Name: testMCCASecret.Name, Namespace: testMCCASecret.Namespace}, adminSecret)
 	assert.NoError(err)
-	assert.Equal(newMCCA, adminSecret.Data["cacrt"], mcCASecretChangedErrMsg)
+	assert.Equal(newMCCA, adminSecret.Data["cacrt"], mcCASecChangedErrMsg)
 }
 
 // Test the case when managed cluster uses Let's Encrypt staging (i.e. tls-ca-additional secret
@@ -198,7 +198,7 @@ func TestSyncCACertsAdditionalTLSPresent(t *testing.T) {
 	localSecret := &corev1.Secret{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testClusterRegSecret.Name, Namespace: testClusterRegSecret.Namespace}, localSecret)
 	assert.NoError(err)
-	assert.Equal(newRegCA, localSecret.Data["ca-bundle"], regSecretChangedErrMsg)
+	assert.Equal(newRegCA, localSecret.Data["ca-bundle"], regSecChangedErrMsg)
 
 	adminSecret := &corev1.Secret{}
 	err = s.AdminClient.Get(s.Context, types.NamespacedName{Name: testMCCASecret.Name, Namespace: testMCCASecret.Namespace}, adminSecret)
