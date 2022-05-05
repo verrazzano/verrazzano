@@ -159,11 +159,11 @@ pipeline {
                         final String fileContent = readFile(file: "${workspace}/tags.txt")
                         final List gitTags = extractReleaseTags(fileContent)
                         echo "gitTags = ${gitTags}"
-                        listOfUpgradeJobs = addTargetUpgradeVersion(gitTags)
                         def excludeReleases = ${params.EXCLUDE_RELEASES}
                         def excludeReleasesArray = excludeReleases.trim().split('\\s*,\\s*')
-                        listOfUpgradeJobs.removeAll(excludeReleasesArray)
-                        println(listOfUpgradeJobs)
+                        gitTags.removeAll(excludeReleasesArray)
+                        println(gitTags)
+                        listOfUpgradeJobs = addTargetUpgradeVersion(gitTags)
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
                         echo "Number of jobs to be run in parallel : ${params.N_JOBS_FOR_EACH_BATCH}"
                         def k = 0
