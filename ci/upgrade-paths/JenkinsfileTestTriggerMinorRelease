@@ -15,8 +15,12 @@ properties([
 ])
 def releaseParamList
 node {
-releaseParamList = sh(returnStdout: true, script: "curl -s https://api.github.com/repos/verrazzano/verrazzano/tags | jq -r '.[] | .name' | awk '/v1[.]/'").trim()
-println(releaseParamList)
+releaseParamList = sh(returnStdout: true, script: "curl -s https://api.github.com/repos/verrazzano/verrazzano/tags | jq -r '.[] | .name' | awk '/v1[.]/'").trim().split('\n')
+//println(releaseParamList)
+for( release in releaseParamList){
+    println(release)
+    println("next")
+}
 }
 //properties([parameters(releaseParamList)])
 pipeline {
