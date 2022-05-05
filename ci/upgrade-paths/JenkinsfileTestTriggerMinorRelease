@@ -159,7 +159,7 @@ pipeline {
                         final String fileContent = readFile(file: "${workspace}/tags.txt")
                         List gitTags = extractReleaseTags(fileContent)
                         echo "gitTags = ${gitTags}"
-                        def excludeReleases = ${params.EXCLUDE_RELEASES}
+                        def excludeReleases = params.EXCLUDE_RELEASES
                         def excludeReleasesArray = excludeReleases.trim().split('\\s*,\\s*')
                         println(excludeReleasesArray)
                         gitTags.removeAll(excludeReleasesArray)
