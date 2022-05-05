@@ -20,6 +20,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+const (
+	clusterRegSecretPath       = "testdata/clusterca-clusterregsecret.yaml"
+	mcCASecretPath             = "testdata/clusterca-mccasecret.yaml"
+	vzTLSSecretPath            = "testdata/clusterca-mctlssecret-new.yaml"
+	vmcPath                    = "testdata/clusterca-vmc.yaml"
+	sampleAdminCAReadErrMsg    = "failed to read sample Admin CA Secret"
+	sampleClusterRegReadErrMsg = "failed to read sample Cluster Registration Secret"
+	sampleMCTLSReadErrMsg      = "failed to read sample MC TLS Secret"
+	sampleMCCAReadErrMsg       = "failed to read sample MC CA Secret"
+	sampleVMCReadErrMsg        = "failed to read sample VMC"
+	regSecretChangedErrMsg     = "registration secret was changed"
+	mcCASecretChangedErrMsg    = "MC CA secret was changed"
+)
+
 // TestSyncAdminCANoDifference tests the synchronization method for the following use case.
 // GIVEN a request to sync Admin CA certs
 // WHEN the CAs are the same
@@ -30,19 +44,19 @@ func TestSyncCACertsNoDifference(t *testing.T) {
 
 	// Test data
 	testAdminCASecret, err := getSampleClusterCASecret("testdata/clusterca-admincasecret.yaml")
-	assert.NoError(err, "failed to read sample Admin CA Secret")
+	assert.NoError(err, sampleAdminCAReadErrMsg)
 
-	testClusterRegSecret, err := getSampleClusterCASecret("testdata/clusterca-clusterregsecret.yaml")
-	assert.NoError(err, "failed to read sample Cluster Registration Secret")
+	testClusterRegSecret, err := getSampleClusterCASecret(clusterRegSecretPath)
+	assert.NoError(err, sampleClusterRegReadErrMsg)
 
 	testMCTLSSecret, err := getSampleClusterCASecret("testdata/clusterca-mctlssecret.yaml")
-	assert.NoError(err, "failed to read sample MC TLS Secret")
+	assert.NoError(err, sampleMCTLSReadErrMsg)
 
-	testMCCASecret, err := getSampleClusterCASecret("testdata/clusterca-mccasecret.yaml")
-	assert.NoError(err, "failed to read sample MC CA Secret")
+	testMCCASecret, err := getSampleClusterCASecret(mcCASecretPath)
+	assert.NoError(err, sampleMCCAReadErrMsg)
 
-	testVMC, err := getSampleClusterCAVMC("testdata/clusterca-vmc.yaml")
-	assert.NoError(err, "failed to read sample VMC")
+	testVMC, err := getSampleClusterCAVMC(vmcPath)
+	assert.NoError(err, sampleVMCReadErrMsg)
 
 	origRegCA := testClusterRegSecret.Data["ca-bundle"]
 	origMCCA := testMCCASecret.Data["cacrt"]
@@ -68,12 +82,12 @@ func TestSyncCACertsNoDifference(t *testing.T) {
 	localSecret := &corev1.Secret{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testClusterRegSecret.Name, Namespace: testClusterRegSecret.Namespace}, localSecret)
 	assert.NoError(err)
-	assert.Equal(origRegCA, localSecret.Data["ca-bundle"], "registration secret was changed")
+	assert.Equal(origRegCA, localSecret.Data["ca-bundle"], regSecretChangedErrMsg)
 
 	adminSecret := &corev1.Secret{}
 	err = s.AdminClient.Get(s.Context, types.NamespacedName{Name: testMCCASecret.Name, Namespace: testMCCASecret.Namespace}, adminSecret)
 	assert.NoError(err)
-	assert.Equal(origMCCA, adminSecret.Data["cacrt"], "MC CA secret was changed")
+	assert.Equal(origMCCA, adminSecret.Data["cacrt"], mcCASecretChangedErrMsg)
 }
 
 // TestSyncCACertsAreDifferent tests the synchronization method for the following use case.
@@ -86,19 +100,19 @@ func TestSyncCACertsAreDifferent(t *testing.T) {
 
 	// Test data
 	testAdminCASecret, err := getSampleClusterCASecret("testdata/clusterca-admincasecret-new.yaml")
-	assert.NoError(err, "failed to read sample Admin CA Secret")
+	assert.NoError(err, sampleAdminCAReadErrMsg)
 
-	testClusterRegSecret, err := getSampleClusterCASecret("testdata/clusterca-clusterregsecret.yaml")
-	assert.NoError(err, "failed to read sample Cluster Registration Secret")
+	testClusterRegSecret, err := getSampleClusterCASecret(clusterRegSecretPath)
+	assert.NoError(err, sampleClusterRegReadErrMsg)
 
-	testMCTLSSecret, err := getSampleClusterCASecret("testdata/clusterca-mctlssecret-new.yaml")
-	assert.NoError(err, "failed to read sample MC TLS Secret")
+	testMCTLSSecret, err := getSampleClusterCASecret(vzTLSSecretPath)
+	assert.NoError(err, sampleMCTLSReadErrMsg)
 
-	testMCCASecret, err := getSampleClusterCASecret("testdata/clusterca-mccasecret.yaml")
-	assert.NoError(err, "failed to read sample MC CA Secret")
+	testMCCASecret, err := getSampleClusterCASecret(mcCASecretPath)
+	assert.NoError(err, sampleMCCAReadErrMsg)
 
-	testVMC, err := getSampleClusterCAVMC("testdata/clusterca-vmc.yaml")
-	assert.NoError(err, "failed to read sample VMC")
+	testVMC, err := getSampleClusterCAVMC(vmcPath)
+	assert.NoError(err, sampleVMCReadErrMsg)
 
 	newRegCA := testAdminCASecret.Data["ca-bundle"]
 	newMCCA := testMCTLSSecret.Data["ca.crt"]
@@ -124,12 +138,12 @@ func TestSyncCACertsAreDifferent(t *testing.T) {
 	localSecret := &corev1.Secret{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testClusterRegSecret.Name, Namespace: testClusterRegSecret.Namespace}, localSecret)
 	assert.NoError(err)
-	assert.Equal(newRegCA, localSecret.Data["ca-bundle"], "registration secret was changed")
+	assert.Equal(newRegCA, localSecret.Data["ca-bundle"], regSecretChangedErrMsg)
 
 	adminSecret := &corev1.Secret{}
 	err = s.AdminClient.Get(s.Context, types.NamespacedName{Name: testMCCASecret.Name, Namespace: testMCCASecret.Namespace}, adminSecret)
 	assert.NoError(err)
-	assert.Equal(newMCCA, adminSecret.Data["cacrt"], "MC CA secret was changed")
+	assert.Equal(newMCCA, adminSecret.Data["cacrt"], mcCASecretChangedErrMsg)
 }
 
 // Test the case when managed cluster uses Let's Encrypt staging (i.e. tls-ca-additional secret
@@ -140,24 +154,24 @@ func TestSyncCACertsAdditionalTLSPresent(t *testing.T) {
 
 	// Test data
 	testAdminCASecret, err := getSampleClusterCASecret("testdata/clusterca-admincasecret-new.yaml")
-	assert.NoError(err, "failed to read sample Admin CA Secret")
+	assert.NoError(err, sampleAdminCAReadErrMsg)
 
-	testClusterRegSecret, err := getSampleClusterCASecret("testdata/clusterca-clusterregsecret.yaml")
-	assert.NoError(err, "failed to read sample Cluster Registration Secret")
+	testClusterRegSecret, err := getSampleClusterCASecret(clusterRegSecretPath)
+	assert.NoError(err, sampleClusterRegReadErrMsg)
 
 	// Managed cluster "normal" VZ ingress TLS secret (verrazzano-tls)
-	testMCTLSSecret, err := getSampleClusterCASecret("testdata/clusterca-mctlssecret-new.yaml")
-	assert.NoError(err, "failed to read sample MC TLS Secret")
+	testMCTLSSecret, err := getSampleClusterCASecret(vzTLSSecretPath)
+	assert.NoError(err, sampleMCTLSReadErrMsg)
 
 	// Managed cluster additional TLS secret is also present
 	testMCAdditionalTLSSecret, err := getSampleClusterCASecret("testdata/clusterca-mc-additionaltls-secret.yaml")
 	assert.NoError(err, "failed to read sample MC additional TLS CA Secret")
 
-	testMCCASecret, err := getSampleClusterCASecret("testdata/clusterca-mccasecret.yaml")
-	assert.NoError(err, "failed to read sample MC CA Secret")
+	testMCCASecret, err := getSampleClusterCASecret(mcCASecretPath)
+	assert.NoError(err, sampleMCCAReadErrMsg)
 
-	testVMC, err := getSampleClusterCAVMC("testdata/clusterca-vmc.yaml")
-	assert.NoError(err, "failed to read sample VMC")
+	testVMC, err := getSampleClusterCAVMC(vmcPath)
+	assert.NoError(err, sampleVMCReadErrMsg)
 
 	newRegCA := testAdminCASecret.Data["ca-bundle"]
 	// Managed cluster additional TLS secret is the one to sync to admin cluster
@@ -184,7 +198,7 @@ func TestSyncCACertsAdditionalTLSPresent(t *testing.T) {
 	localSecret := &corev1.Secret{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testClusterRegSecret.Name, Namespace: testClusterRegSecret.Namespace}, localSecret)
 	assert.NoError(err)
-	assert.Equal(newRegCA, localSecret.Data["ca-bundle"], "registration secret was changed")
+	assert.Equal(newRegCA, localSecret.Data["ca-bundle"], regSecretChangedErrMsg)
 
 	adminSecret := &corev1.Secret{}
 	err = s.AdminClient.Get(s.Context, types.NamespacedName{Name: testMCCASecret.Name, Namespace: testMCCASecret.Namespace}, adminSecret)
