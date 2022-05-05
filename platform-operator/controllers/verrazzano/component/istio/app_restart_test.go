@@ -81,7 +81,7 @@ func TestWebLogicStopStart(t *testing.T) {
 			initialLifeCycleAction: vzconst.LifecycleActionStop,
 			updatedLifeCycleAction: vzconst.LifecycleActionStart,
 			f: func(mock *mocks.MockClient) error {
-				return StartDomainsStoppedByUpgrade(vzlog.DefaultLogger(), mock, "1")
+				return startDomainsStoppedByUpgrade(vzlog.DefaultLogger(), mock, "1")
 			},
 		},
 		// Test NOT starting WebLogic because workload is missing stop annotation
@@ -91,7 +91,7 @@ func TestWebLogicStopStart(t *testing.T) {
 			expectGetAndUpdate:     true,
 			initialLifeCycleAction: "",
 			f: func(mock *mocks.MockClient) error {
-				return StartDomainsStoppedByUpgrade(vzlog.DefaultLogger(), mock, "1")
+				return startDomainsStoppedByUpgrade(vzlog.DefaultLogger(), mock, "1")
 			},
 		},
 	}
@@ -155,7 +155,7 @@ func TestHelidonStopStart(t *testing.T) {
 			expectGetAndUpdate: true,
 			image:              oldIstioImage,
 			f: func(mock *mocks.MockClient) error {
-				return RestartAllApps(vzlog.DefaultLogger(), mock, "1")
+				return restartAllApps(vzlog.DefaultLogger(), mock, "1")
 			},
 		},
 		// Test restarting Helidon workload because it doesn't have an old Istio image
@@ -164,7 +164,7 @@ func TestHelidonStopStart(t *testing.T) {
 			expectGetAndUpdate: false,
 			image:              "randomImage",
 			f: func(mock *mocks.MockClient) error {
-				return RestartAllApps(vzlog.DefaultLogger(), mock, "1")
+				return restartAllApps(vzlog.DefaultLogger(), mock, "1")
 			},
 		},
 	}
