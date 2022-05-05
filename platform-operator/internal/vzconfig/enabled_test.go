@@ -453,3 +453,34 @@ func TestIsJaegerOperatorEnabled(t *testing.T) {
 			},
 		}}))
 }
+
+// TestIsApplicationOperatorEnabled tests the IsApplicationOperatorEnabled function
+// GIVEN a call to IsApplicationOperatorEnabled
+//  THEN the value of the Enabled flag is returned if present, false otherwise (disabled by default)
+func TestIsApplicationOperatorEnabled(t *testing.T) {
+	asserts := assert.New(t)
+	asserts.True(IsApplicationOperatorEnabled(nil))
+	asserts.True(IsApplicationOperatorEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.True(IsApplicationOperatorEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ApplicationOperator: &vzapi.ApplicationOperatorComponent{},
+			},
+		}}))
+	asserts.True(IsApplicationOperatorEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ApplicationOperator: &vzapi.ApplicationOperatorComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsApplicationOperatorEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ApplicationOperator: &vzapi.ApplicationOperatorComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+}

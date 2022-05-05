@@ -232,6 +232,9 @@ func (i istioComponent) GetDependencies() []string {
 }
 
 func (i istioComponent) PreUpgrade(context spi.ComponentContext) error {
+	if !vzconfig.IsApplicationOperatorEnabled(context.ActualCR()) {
+		return nil
+	}
 	context.Log().Infof("Stopping WebLogic domains that are have Envoy 1.7.3 sidecar")
 	return StopDomainsUsingOldEnvoy(context.Log(), context.Client())
 }
