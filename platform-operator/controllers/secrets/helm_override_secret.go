@@ -7,7 +7,7 @@ import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	. "github.com/verrazzano/verrazzano/platform-operator/controllers"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -27,7 +27,7 @@ func (r *VerrazzanoSecretsReconciler) reconcileHelmOverrideSecret(ctx context.Co
 	if vz.Namespace == req.Namespace {
 		if err := r.Get(ctx, req.NamespacedName, secret); err != nil {
 			zap.S().Errorf("Failed to fetch ConfigMap in Verrazzano CR namespace: %v", err)
-			return newRequeueWithDelay(), nil
+			return newRequeueWithDelay(), err
 		}
 
 		if result, err := r.initLogger(*secret); err != nil {
@@ -43,17 +43,18 @@ func (r *VerrazzanoSecretsReconciler) reconcileHelmOverrideSecret(ctx context.Co
 		})
 		if err != nil {
 			r.log.Errorf("Failed to create controller logger for Verrazzano controller: %v", err)
+			return newRequeueWithDelay(), err
 		}
 		componentCtx, err := spi.NewContext(vzLog, r.Client, vz, false)
 		if err != nil {
 			r.log.Errorf("Failed to construct component context: %v", err)
-			return newRequeueWithDelay(), nil
+			return newRequeueWithDelay(), err
 		}
-		if componentName, ok := VzContainsResource(componentCtx, secret); ok {
+		if componentName, ok := controllers.VzContainsResource(componentCtx, secret); ok {
 			err := r.updateVerrazzanoForHelmOverrides(componentCtx, componentName)
 			if err != nil {
 				r.log.Errorf("Failed to reconcile ConfigMap: %v", err)
-				return newRequeueWithDelay(), nil
+				return newRequeueWithDelay(), err
 			}
 		}
 	}

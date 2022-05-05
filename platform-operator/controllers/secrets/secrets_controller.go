@@ -55,13 +55,13 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			return reconcile.Result{}, nil
 		}
 		zap.S().Errorf("Failed to fetch Verrazzano resource: %v", err)
-		return newRequeueWithDelay(), nil
+		return newRequeueWithDelay(), err
 	}
 
 	res, err := r.reconcileHelmOverrideSecret(ctx, req, vz)
 	if err != nil {
 		zap.S().Errorf("Failed to reconcile Secret: %v", err)
-		return newRequeueWithDelay(), nil
+		return newRequeueWithDelay(), err
 	}
 
 	return res, nil
