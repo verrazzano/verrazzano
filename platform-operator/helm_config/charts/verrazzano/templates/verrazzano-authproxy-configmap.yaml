@@ -1206,7 +1206,7 @@ data:
     #user  nobody;
     worker_processes  1;
 
-    error_log  logs/error.log info;
+    error_log  /var/log/nginx/error.log info;
     pid        logs/nginx.pid;
 
     env KUBERNETES_SERVICE_HOST;
@@ -1298,7 +1298,6 @@ data:
     sed -i -e "s|_NAMESERVER_|${nameserver}|g" /etc/nginx/nginx.conf
 
     mkdir -p /etc/nginx/logs
-    touch /etc/nginx/logs/error.log
 
     export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
@@ -1315,7 +1314,7 @@ data:
 
     sh -c "$startupDir/reload.sh &"
 
-    tail -f /etc/nginx/logs/error.log
+    tail -f /var/log/nginx/error.log
   reload.sh: |
     #!/bin/bash
 
