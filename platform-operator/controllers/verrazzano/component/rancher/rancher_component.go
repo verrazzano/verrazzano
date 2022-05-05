@@ -199,12 +199,12 @@ func (r rancherComponent) Install(ctx spi.ComponentContext) error {
 	c := ctx.Client()
 	// Set MKNOD Cap on Rancher deployment
 	if err := patchRancherDeployment(c); err != nil {
-		return err
+		return log.ErrorfThrottledNewErr("Error patching Rancher deployment: %s", err.Error())
 	}
 	log.Debugf("Patched Rancher deployment to support MKNOD")
 	// Annotate Rancher ingress for NGINX/TLS
 	if err := patchRancherIngress(c, ctx.EffectiveCR()); err != nil {
-		return err
+		return log.ErrorfThrottledNewErr("Error patching Rancher ingress: %s", err.Error())
 	}
 	log.Debugf("Patched Rancher ingress")
 
@@ -232,33 +232,29 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	log := ctx.Log()
 
 	if err := createAdminSecretIfNotExists(log, c); err != nil {
-		return err
+		return log.ErrorfThrottledNewErr("Error creating Rancher admin secret: %s", err.Error())
 	}
 	password, err := common.GetAdminSecret(c)
 	if err != nil {
-		return err
+		return log.ErrorfThrottledNewErr("Error getting Rancher admin secret: %s", err.Error())
 	}
 	rancherHostName, err := getRancherHostname(c, vz)
 	if err != nil {
-		return err
+		return log.ErrorfThrottledNewErr("Error getting Rancher hostname: %s", err.Error())
 	}
 
 	rest, err := common.NewClient(c, rancherHostName, password)
 	if err != nil {
-		return err
+		return log.ErrorfThrottledNewErr("Error getting Rancher client: %s", err.Error())
 	}
 	if err := rest.SetAccessToken(); err != nil {
-		return err
+		return log.ErrorfThrottledNewErr("Error setting Rancher access token: %s", err.Error())
 	}
-
 	if err := rest.PutServerURL(); err != nil {
-		ctx.Log().Error(err)
-		return err
+		return log.ErrorfThrottledNewErr("Error setting Rancher server URL: %s", err.Error())
 	}
-
 	if err := removeBootstrapSecretIfExists(log, c); err != nil {
-		return err
+		return log.ErrorfThrottledNewErr("Error removing Rancher bootstrap secret: %s", err.Error())
 	}
-
 	return r.HelmComponent.PostInstall(ctx)
 }

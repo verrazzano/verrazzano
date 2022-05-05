@@ -94,8 +94,8 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return nil
 	})
 	if err != nil {
-		r.log.Errorf("Failed to create or update secret %s/%s: %v",
-			constants.VerrazzanoMultiClusterNamespace, constants.VerrazzanoLocalCABundleSecret, err)
+		r.log.ErrorfThrottled("Failed to create or update secret %s/%s: %s",
+			constants.VerrazzanoMultiClusterNamespace, constants.VerrazzanoLocalCABundleSecret, err.Error())
 		return newRequeueWithDelay(), nil
 	}
 

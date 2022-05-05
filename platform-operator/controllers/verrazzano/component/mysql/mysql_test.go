@@ -43,7 +43,7 @@ var crEnabled = vzapi.Verrazzano{
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
 const (
-	minExpectedHelmOverridesCount = 1
+	minExpectedHelmOverridesCount = 2
 	busyboxImageNameKey           = "busybox.image"
 	busyboxImageTagKey            = "busybox.tag"
 	testBomFilePath               = "../../testdata/test_bom.json"
@@ -265,7 +265,7 @@ func TestAppendMySQLOverridesUpgrade(t *testing.T) {
 	ctx := spi.NewFakeContext(mock, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
+	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
 	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
 	assert.Equal(t, "test-key", bom.FindKV(kvs, helmPwd))
 	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))

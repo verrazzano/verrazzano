@@ -60,6 +60,8 @@ const (
 	labelApp                     = "app"
 	labelNS                      = "namespace"
 	labelCluster                 = "cluster"
+	skipVerifications            = "Skip Verifications"
+	skipDeletions                = "Skip Deletions"
 
 	// application resources
 	appConfiguration     = "tests/testdata/test-applications/coherence/hello-coherence/hello-coherence-mc-app.yaml"
@@ -84,28 +86,29 @@ var _ = t.AfterEach(func() {
 })
 
 var _ = t.BeforeSuite(func() {
+	if !skipDeploy {
+		start := time.Now()
 
-	start := time.Now()
+		// deploy the VerrazzanoProject
+		Eventually(func() error {
+			return multicluster.DeployVerrazzanoProject(projectConfiguration, adminKubeconfig)
+		}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
-	// deploy the VerrazzanoProject
-	Eventually(func() error {
-		return multicluster.DeployVerrazzanoProject(projectConfiguration, adminKubeconfig)
-	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+		// wait for the namespace to be created on the cluster before deploying app
+		Eventually(func() bool {
+			return multicluster.TestNamespaceExists(adminKubeconfig, appNamespace)
+		}, waitTimeout, pollingInterval).Should(BeTrue())
 
-	// wait for the namespace to be created on the cluster before deploying app
-	Eventually(func() bool {
-		return multicluster.TestNamespaceExists(adminKubeconfig, appNamespace)
-	}, waitTimeout, pollingInterval).Should(BeTrue())
+		Eventually(func() error {
+			return multicluster.DeployCompResource(compConfiguration, appNamespace, adminKubeconfig)
+		}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() error {
-		return multicluster.DeployCompResource(compConfiguration, appNamespace, adminKubeconfig)
-	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
-
-	Eventually(func() error {
-		return multicluster.DeployAppResource(appConfiguration, appNamespace, adminKubeconfig)
-	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+		Eventually(func() error {
+			return multicluster.DeployAppResource(appConfiguration, appNamespace, adminKubeconfig)
+		}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
+	}
 	beforeSuitePassed = true
-	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
 var _ = t.AfterSuite(func() {
@@ -124,6 +127,9 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 		// WHEN the example application has been deployed to the admin cluster
 		// THEN expect that the multi-cluster resources have been created on the admin cluster
 		t.It("Has multi cluster resources", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
 			Eventually(func() bool {
 				return multicluster.VerifyMCResources(adminKubeconfig, true, false, appNamespace, appConfigName, appComp)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
@@ -133,6 +139,9 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 		// WHEN the multi-cluster example application has been created on admin cluster but not placed there
 		// THEN expect that the app is not deployed to the admin cluster consistently for some length of time
 		t.It("Does not have application placed", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
 			Consistently(func() bool {
 				result, err := multicluster.VerifyAppResourcesInCluster(adminKubeconfig, true, false, projectName, appNamespace, appPod)
 				if err != nil {
@@ -148,6 +157,9 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 		// WHEN the example application has been deployed to the admin cluster
 		// THEN expect that the multi-cluster resources have been created on the managed cluster
 		t.It("Has multi cluster resources", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
 			Eventually(func() bool {
 				return multicluster.VerifyMCResources(managedKubeconfig, false, true, appNamespace, appConfigName, appComp)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
@@ -156,6 +168,9 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 		// WHEN the multi-cluster example application has been created on admin cluster and placed in managed cluster
 		// THEN expect that the app is deployed to the managed cluster
 		t.It("Has application placed", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
 			Eventually(func() bool {
 				result, err := multicluster.VerifyAppResourcesInCluster(managedKubeconfig, false, true, projectName, appNamespace, appPod)
 				if err != nil {
@@ -181,12 +196,18 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 		kubeconfigDir := os.Getenv("KUBECONFIG_DIR")
 		for i := 3; i <= clusterCount; i++ {
 			kubeconfig := kubeconfigDir + "/" + fmt.Sprintf("%d", i) + "/kube_config"
-			It("Does not have multi cluster resources", func() {
+			t.It("Does not have multi cluster resources", func() {
+				if skipVerify {
+					Skip(skipVerifications)
+				}
 				Eventually(func() bool {
 					return multicluster.VerifyMCResources(kubeconfig, false, false, appNamespace, appConfigName, appComp)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
-			It("Does not have application placed", func() {
+			t.It("Does not have application placed", func() {
+				if skipVerify {
+					Skip(skipVerifications)
+				}
 				Eventually(func() bool {
 					result, err := multicluster.VerifyAppResourcesInCluster(kubeconfig, false, false, projectName, appNamespace, appPod)
 					if err != nil {
@@ -206,6 +227,9 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 		// WHEN GetHostnameFromGateway is called
 		// THEN return the host name found in the gateway.
 		t.It("Get host from gateway.", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
 			Eventually(func() (string, error) {
 				host, err = k8sutil.GetHostnameFromGatewayInCluster(appNamespace, "", managedKubeconfig)
 				return host, err
@@ -217,6 +241,9 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 		// WHEN the UI is accessed
 		// THEN the expected returned page should contain an expected value.
 		t.It("Verify '/catalogue' endpoint is working.", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/%s", host, appEndPoint)
 				return pkg.GetWebPageInCluster(url, host, managedKubeconfig)
@@ -231,12 +258,18 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 		// WHEN the example application has been deployed to the admin cluster
 		// THEN expect the Elasticsearch index for the app exists on the admin cluster Elasticsearch
 		t.It("Verify Elasticsearch index exists on admin cluster", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
 			Eventually(func() bool {
 				return pkg.LogIndexFoundInCluster(indexName, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for Coherence application")
 		})
 
 		t.It("Verify recent log record exists", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
 			Eventually(func() bool {
 				return pkg.LogRecordFoundInCluster(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					k8sLabelOAMComp:       componentName,
@@ -247,6 +280,9 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 		})
 
 		t.It("Verify recent application log record", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
 			Eventually(func() bool {
 				return pkg.LogRecordFoundInCluster(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					k8sLabelCoherenceCluster:     cohClusterName,
@@ -262,7 +298,9 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 		// Coherence metric fix available only from 1.3.0
 		if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0", adminKubeconfig); ok {
 			t.It("Retrieve application Prometheus scraped metrics", func() {
-
+				if skipVerify {
+					Skip(skipVerifications)
+				}
 				pkg.Concurrently(
 					func() {
 						clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
@@ -307,30 +345,45 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 
 	t.Context("Delete resources", func() {
 		t.It("on admin cluster", func() {
+			if skipUndeploy {
+				Skip(skipDeletions)
+			}
 			Eventually(func() error {
 				return cleanUp(adminKubeconfig)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
 		t.It("Verify deletion on admin cluster", func() {
+			if skipUndeploy {
+				Skip(skipDeletions)
+			}
 			Eventually(func() bool {
 				return multicluster.VerifyDeleteOnAdminCluster(adminKubeconfig, false, appNamespace, projectName, appConfigName, appPod)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
 		t.It("Verify automatic deletion on managed cluster", func() {
+			if skipUndeploy {
+				Skip(skipDeletions)
+			}
 			Eventually(func() bool {
 				return multicluster.VerifyDeleteOnManagedCluster(managedKubeconfig, appNamespace, projectName, appConfigName, appPod)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
 		t.It("Delete test namespace on managed cluster", func() {
+			if skipUndeploy {
+				Skip(skipDeletions)
+			}
 			Eventually(func() error {
 				return pkg.DeleteNamespaceInCluster(appNamespace, managedKubeconfig)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
 		t.It("Delete test namespace on admin cluster", func() {
+			if skipUndeploy {
+				Skip(skipDeletions)
+			}
 			Eventually(func() error {
 				return pkg.DeleteNamespaceInCluster(appNamespace, adminKubeconfig)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())

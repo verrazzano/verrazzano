@@ -118,7 +118,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum(vendor:coherence_journal_file_count{cluster=~\"$ClusterName\",name=~\"RamJournalRM\"})",
+          "expr": "sum(vendor:coherence_journal_file_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",name=~\"RamJournalRM\"})",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "",
@@ -200,7 +200,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum(vendor:coherence_journal_total_data_size{cluster=~\"$ClusterName\",name=~\"RamJournalRM\"})",
+          "expr": "sum(vendor:coherence_journal_total_data_size{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",name=~\"RamJournalRM\"})",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "",
@@ -282,7 +282,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum(vendor:coherence_journal_file_count{cluster=~\"$ClusterName\",name=~\"FlashJournalRM\"})",
+          "expr": "sum(vendor:coherence_journal_file_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",name=~\"FlashJournalRM\"})",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "",
@@ -364,7 +364,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum(vendor:coherence_journal_total_data_size{cluster=~\"$ClusterName\",name=~\"FlashJournalRM\"})",
+          "expr": "sum(vendor:coherence_journal_total_data_size{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",name=~\"FlashJournalRM\"})",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "",
@@ -426,7 +426,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(vendor:coherence_journal_total_data_size{cluster=~\"$ClusterName\",name=~\"RamJournalRM\"}) by (name)",
+          "expr": "sum(vendor:coherence_journal_total_data_size{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",name=~\"RamJournalRM\"}) by (verrazzano_cluster, name)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -517,7 +517,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(vendor:coherence_journal_total_data_size{cluster=~\"$ClusterName\",name=~\"FlashJournalRM\"}) by (name)",
+          "expr": "sum(vendor:coherence_journal_total_data_size{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",name=~\"FlashJournalRM\"}) by (verrazzano_cluster, name)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -610,7 +610,7 @@
       "steppedLine": true,
       "targets": [
         {
-          "expr": "vendor:coherence_journal_compaction_count{cluster=~\"$ClusterName\",name=~\"RamJournalRM\"} - vendor:coherence_journal_compaction_count{cluster=~\"$ClusterName\",name=~\"RamJournalRM\"} offset $__interval ",
+          "expr": "vendor:coherence_journal_compaction_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",name=~\"RamJournalRM\"} - vendor:coherence_journal_compaction_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",name=~\"RamJournalRM\"} offset $__interval ",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -618,7 +618,7 @@
           "refId": "A"
         },
         {
-          "expr": "vendor:coherence_journal_exhaustive_compaction_count{cluster=~\"$ClusterName\",name=~\"RamJournalRM\"}  - vendor:coherence_journal_exhaustive_compaction_count{cluster=~\"$ClusterName\",name=~\"RamJournalRM\"} offset $__interval ",
+          "expr": "vendor:coherence_journal_exhaustive_compaction_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",name=~\"RamJournalRM\"}  - vendor:coherence_journal_exhaustive_compaction_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",name=~\"RamJournalRM\"} offset $__interval ",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -712,7 +712,7 @@
       "steppedLine": true,
       "targets": [
         {
-          "expr": "vendor:coherence_journal_compaction_count{cluster=~\"$ClusterName\",name=~\"FlashJournalRM\"} - vendor:coherence_journal_compaction_count{cluster=~\"$ClusterName\",name=~\"FlashJournalRM\"} offset $__interval ",
+          "expr": "vendor:coherence_journal_compaction_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",name=~\"FlashJournalRM\"} - vendor:coherence_journal_compaction_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",name=~\"FlashJournalRM\"} offset $__interval ",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -720,7 +720,7 @@
           "refId": "A"
         },
         {
-          "expr": "vendor:coherence_journal_exhaustive_compaction_count{cluster=~\"$ClusterName\",name=~\"FlashJournalRM\"}  - vendor:coherence_journal_exhaustive_compaction_count{cluster=~\"$ClusterName\",name=~\"FlashJournalRM\"} offset $__interval ",
+          "expr": "vendor:coherence_journal_exhaustive_compaction_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",name=~\"FlashJournalRM\"}  - vendor:coherence_journal_exhaustive_compaction_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",name=~\"FlashJournalRM\"} offset $__interval ",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -782,17 +782,43 @@
       {
         "allValue": null,
         "current": {
+          "selected": false,
+          "text": "None",
+          "value": ""
         },
         "datasource": "Prometheus",
-        "definition": "",
+        "definition": "label_values(verrazzano_cluster)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Verrazzano Cluster",
+        "multi": false,
+        "name": "vzcluster",
+        "options": [],
+        "query": "label_values(verrazzano_cluster)",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {
+        },
+        "datasource": "Prometheus",
+        "definition": "label_values(vendor:coherence_cluster_size{verrazzano_cluster=~\"$vzcluster\"}, cluster)",
         "hide": 0,
         "includeAll": false,
         "index": -1,
-        "label": "Cluster Name",
+        "label": "Coherence Cluster",
         "multi": false,
         "name": "ClusterName",
         "options": [],
-        "query": "label_values(vendor:coherence_cluster_size, cluster)",
+        "query": "label_values(vendor:coherence_cluster_size{verrazzano_cluster=~\"$vzcluster\"}, cluster)",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -808,7 +834,7 @@
         "current": {
         },
         "datasource": "Prometheus",
-        "definition": "",
+        "definition": "label_values(vendor:coherence_cluster_size{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\"}, version)",
         "hide": 2,
         "includeAll": false,
         "index": -1,
@@ -816,7 +842,7 @@
         "multi": false,
         "name": "CoherenceVersion",
         "options": [],
-        "query": "label_values(vendor:coherence_cluster_size{cluster=~\"$ClusterName\"}, version)",
+        "query": "label_values(vendor:coherence_cluster_size{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\"}, version)",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
