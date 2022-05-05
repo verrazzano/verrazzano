@@ -16,6 +16,7 @@ properties([
 def releaseParamList
 node {
 releaseParamList = sh(returnStdout: true, script: "curl -s https://api.github.com/repos/verrazzano/verrazzano/tags | jq -r '.[] | .name' | awk '/v1[.]/'").trim()
+println(releaseParamList)
 }
 properties([parameters(releaseParamList)])
 pipeline {
