@@ -1,6 +1,12 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+def availableRegions = [ "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-mumbai-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
+                         "ap-tokyo-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
+                         "sa-saopaulo-1", "uk-london-1" ]
+def acmeEnvironments = [ "staging", "production" ]
+Collections.shuffle(availableRegions)
+
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 
 def listOfUpgradeJobs
@@ -44,14 +50,41 @@ pipeline {
                 trim: true)
         choice (description: 'Predefined config permutations for Verrazzano installation', name: 'VZ_INSTALL_CONFIG',
                 choices: ["dev-kind-all-default", "NONE"])
+        choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
+                        choices: ["KIND", "magicdns_oke", "ocidns_oke"])
+        choice (description: 'ACME Certificate Environment (Staging or Production)', name: 'ACME_ENVIRONMENT',
+                        choices: acmeEnvironments)
+        choice (description: 'OCI region to launch OKE clusters', name: 'OKE_CLUSTER_REGION',
+                // 1st choice is the default value
+                choices: availableRegions )
+        choice (description: 'OKE node pool configuration', name: 'OKE_NODE_POOL',
+                // 1st choice is the default value
+                choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2" ])
+        choice (name: 'OKE_CLUSTER_VERSION',
+                description: 'Kubernetes Version for OKE Cluster',
+                // 1st choice is the default value
+                choices: [ "v1.20.8", "v1.21.5", "v1.22.5" ])
+        choice (name: 'KIND_CLUSTER_VERSION',
+                description: 'Kubernetes Version for KIND Cluster',
+                // 1st choice is the default value
+                choices: [ "1.20", "1.21", "1.22", "1.23" ])
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
                         defaultValue: 'NONE',
                         description: 'This is for manually testing only where someone needs to use a specific operator image, otherwise the default value of NONE is used',
                         trim: true)
+        choice (name: 'ADMIN_CLUSTER_PROFILE',
+                        description: 'Verrazzano Admin Cluster install profile name',
+                        // 1st choice is the default value
+                        choices: [ "prod", "dev" ])
+        choice (name: 'MANAGED_CLUSTER_PROFILE',
+                description: 'Verrazzano Managed Cluster install profile name',
+                // 1st choice is the default value
+                choices: [ "managed-cluster", "prod", "dev" ])
         string (name: 'WILDCARD_DNS_DOMAIN',
                         defaultValue: 'nip.io',
                         description: 'This is the wildcard DNS domain',
                         trim: true)
+        booleanParam (description: 'Whether to create the cluster with Calico for AT testing', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
         string (name: 'TAGGED_TESTS',
                 defaultValue: '',
@@ -401,6 +434,14 @@ def getStageOfUpgradeJob(job) {
                     def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                     parameters: [
                         string(name: 'GIT_COMMIT_TO_USE', value: params.GIT_COMMIT_TO_USE),
+                        string(name: 'TEST_ENV', value: params.TEST_ENV),
+                        string(name: 'ACME_ENVIRONMENT', value: params.ACME_ENVIRONMENT),
+                        string(name: 'OKE_CLUSTER_REGION', value: params.OKE_CLUSTER_REGION),
+                        string(name: 'OKE_NODE_POOL', value: params.OKE_NODE_POOL),
+                        string(name: 'OKE_CLUSTER_VERSION', value: params.OKE_CLUSTER_VERSION),
+                        string(name: 'KIND_CLUSTER_VERSION', value: params.KIND_CLUSTER_VERSION),
+                        string(name: 'ADMIN_CLUSTER_PROFILE', value: params.ADMIN_CLUSTER_PROFILE),
+                        string(name: 'MANAGED_CLUSTER_PROFILE', value: params.MANAGED_CLUSTER_PROFILE),
                         string(name: 'VERSION_FOR_INSTALL', value: job[0]),
                         string(name: 'VERSION_FOR_UPGRADE', value: job[1]),
                         string(name: 'VZ_INSTALL_CONFIG', value: params.VZ_INSTALL_CONFIG),
@@ -410,7 +451,9 @@ def getStageOfUpgradeJob(job) {
                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
+                        string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH),
+                        booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: params.CREATE_CLUSTER_USE_CALICO)
                     ],  wait: true, propagate: true
                 }catch(err){
                     catchError(message: "${STAGE_NAME} Failed with ${err}", buildResult: 'FAILURE', stageResult: 'FAILURE'){
