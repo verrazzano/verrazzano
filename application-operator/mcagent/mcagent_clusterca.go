@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -15,9 +16,10 @@ import (
 )
 
 const (
-	keyCaCrtNoDot = "cacrt"
-	keyCaCrt      = "ca.crt"
-	keyCaBundle   = "ca-bundle"
+	keyCaCrtNoDot   = "cacrt"
+	keyCaCrt        = "ca.crt"
+	keyCaBundle     = "ca-bundle"
+	keyAdditionalCa = "ca-additional.pem"
 )
 
 // Synchronize Secret objects to the local cluster
@@ -75,13 +77,7 @@ func (s *Syncer) syncAdminClusterCA() error {
 
 // syncLocalClusterCA - synchronize the local cluster CA cert -- update admin copy if local CA changes
 func (s *Syncer) syncLocalClusterCA() error {
-
-	// Get the local cluster CA secret
-	localCASecret := corev1.Secret{}
-	err := s.LocalClient.Get(s.Context, client.ObjectKey{
-		Namespace: constants.VerrazzanoSystemNamespace,
-		Name:      constants.VerrazzanoIngressTLSSecret,
-	}, &localCASecret)
+	localCASecretData, err := s.getLocalClusterCASecretData()
 	if err != nil {
 		return err
 	}
@@ -106,9 +102,9 @@ func (s *Syncer) syncLocalClusterCA() error {
 	}
 
 	// Update the VMC cluster CA secret if the local CA is different
-	if !secretsEqualTrimmedWhitespace(vmcCASecret.Data[keyCaCrtNoDot], localCASecret.Data[keyCaCrt]) {
+	if !secretsEqualTrimmedWhitespace(vmcCASecret.Data[keyCaCrtNoDot], localCASecretData) {
 		result, err := controllerutil.CreateOrUpdate(s.Context, s.AdminClient, &vmcCASecret, func() error {
-			vmcCASecret.Data[keyCaCrtNoDot] = localCASecret.Data[keyCaCrt]
+			vmcCASecret.Data[keyCaCrtNoDot] = localCASecretData
 			return nil
 		})
 		if err != nil {
@@ -120,6 +116,33 @@ func (s *Syncer) syncLocalClusterCA() error {
 	}
 
 	return nil
+}
+
+// getLocalClusterCASecret gets the local cluster CA secret and returns the CA data in the secret
+// This could be in the Additional TLS secret in Rancher NS (for Let's Encrypt staging CA) or
+// the Verrazzano ingress TLS secret in Verrazzano System NS for other cases
+func (s *Syncer) getLocalClusterCASecretData() ([]byte, error) {
+	localCASecret := corev1.Secret{}
+	errAddlTLS := s.LocalClient.Get(s.Context, client.ObjectKey{
+		Namespace: globalconst.RancherSystemNamespace,
+		Name:      globalconst.AdditionalTLS,
+	}, &localCASecret)
+	if client.IgnoreNotFound(errAddlTLS) != nil {
+		return nil, errAddlTLS
+	}
+
+	if errAddlTLS == nil {
+		return localCASecret.Data[keyAdditionalCa], nil
+	}
+	// additional TLS secret not found, check for Verrazzano TLS secret
+	err := s.LocalClient.Get(s.Context, client.ObjectKey{
+		Namespace: constants.VerrazzanoSystemNamespace,
+		Name:      constants.VerrazzanoIngressTLSSecret,
+	}, &localCASecret)
+	if err != nil {
+		return nil, err
+	}
+	return localCASecret.Data[keyCaCrt], nil
 }
 
 func secretsEqualTrimmedWhitespace(secret1, secret2 []byte) bool {
