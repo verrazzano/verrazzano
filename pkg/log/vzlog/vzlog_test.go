@@ -91,6 +91,52 @@ func TestLogRepeat(t *testing.T) {
 	DeleteLogContext(rKey)
 }
 
+// TestErrorfThrottled tests the ProgressLogger function throttle repeated error messages
+// GIVEN a ProgressLogger with a frequency of 30 seconds
+// WHEN ErrorfThrottled is called 5 times with 1 message and no sleep
+// THEN ensure that 1 message is logged
+func TestErrorfThrottled(t *testing.T) {
+	msg := "test1"
+	logger := fakeLogger{expectedMsg: msg}
+	const rKey = "testns/errors"
+	rl := EnsureContext(rKey)
+	l := rl.EnsureLogger("comp1", &logger, zap.S()).SetFrequency(30)
+
+	// Calls to log should result in only 1 log messages being written
+	l.ErrorfThrottled(msg)
+	l.ErrorfThrottled(msg)
+	l.ErrorfThrottled(msg)
+	l.ErrorfThrottled(msg)
+	l.ErrorfThrottled(msg)
+	assert.Equal(t, 1, logger.count)
+	assert.Equal(t, msg, logger.actualMsg)
+	DeleteLogContext(rKey)
+}
+
+// TestErrorfThrottledNewErr tests the ProgressLogger function throttle repeated error messages
+// GIVEN a ProgressLogger with a frequency of 30 seconds
+// WHEN ErrorfThrottledNewErr is called 5 times with 1 message and no sleep
+// THEN ensure that 1 message is logged
+func TestErrorfThrottledNewErr(t *testing.T) {
+	const messageTemplate = "Mymessage %s"
+	const messageParameter = "test2"
+	msg := fmt.Sprintf(messageTemplate, messageParameter)
+	logger := fakeLogger{expectedMsg: msg}
+	const rKey = "testns/errorsNew"
+	rl := EnsureContext(rKey)
+	l := rl.EnsureLogger("comp1", &logger, zap.S()).SetFrequency(30)
+
+	// Calls to log should result in only 1 log messages being written
+	assert.Error(t, l.ErrorfThrottledNewErr(messageTemplate, messageParameter))
+	assert.Error(t, l.ErrorfThrottledNewErr(messageTemplate, messageParameter))
+	assert.Error(t, l.ErrorfThrottledNewErr(messageTemplate, messageParameter))
+	assert.Error(t, l.ErrorfThrottledNewErr(messageTemplate, messageParameter))
+	assert.Error(t, l.ErrorfThrottledNewErr(messageTemplate, messageParameter))
+	assert.Equal(t, 1, logger.count)
+	assert.Equal(t, msg, logger.actualMsg)
+	DeleteLogContext(rKey)
+}
+
 // TestHistory tests the ProgressLogger function ignore previous progrsss messages
 // GIVEN a ProgressLogger with a frequency of 2 seconds
 // WHEN log is called 5 times with 2 message using repeats, and no sleep
@@ -259,10 +305,12 @@ func (l *fakeLogger) Debugw(msg string, keysAndValues ...interface{}) {
 
 // Error is a wrapper for SugaredLogger Error
 func (l *fakeLogger) Error(args ...interface{}) {
+	l.Info(args...)
 }
 
 // Errorf is a wrapper for SugaredLogger Errorf
 func (l *fakeLogger) Errorf(template string, args ...interface{}) {
+	l.Infof(template, args...)
 }
 
 // Errorw formats a message and logs it

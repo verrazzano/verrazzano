@@ -256,11 +256,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg(vendor:coherence_memory_heap_memory_usage_used / vendor:coherence_memory_heap_memory_usage_max) by(cluster) * 100",
+          "expr": "avg(vendor:coherence_memory_heap_memory_usage_used / vendor:coherence_memory_heap_memory_usage_max) by(verrazzano_cluster,cluster) * 100",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Cluster Name;:{{cluster}}",
+          "legendFormat": "Cluster Name: {{cluster}}",
           "refId": "A"
         }
       ],
@@ -392,7 +392,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg(vendor:coherence_os_free_physical_memory_size / vendor:coherence_os_total_physical_memory_size)  by (machine) * 100",
+          "expr": "avg(vendor:coherence_os_free_physical_memory_size / vendor:coherence_os_total_physical_memory_size)  by (verrazzano_cluster, machine) * 100",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -529,7 +529,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "count(avg(vendor:coherence_service_partitions_unbalanced{type=~\"DistributedCache|FederatedCache\"}) by(name) > 0)",
+          "expr": "count(avg(vendor:coherence_service_partitions_unbalanced{type=~\"DistributedCache|FederatedCache\"}) by(verrazzano_cluster,name) > 0)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
