@@ -15,11 +15,16 @@ import (
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 )
 
+//configureJaeger configures Jaeger for Istio integration and returns install args for the Istio install.
+// If a Jaeger collector service is detected in a Verrazzano managed namespace:
+// create PERMISSIVE PeerAuthentication for Jaeger (so apps outside the mesh can send traces), and
+// return Istio install args for the tracing endpoint and the Istio tracing TLS mode
 func configureJaeger(ctx spi.ComponentContext) ([]vzapi.InstallArgs, error) {
 	if !vzconfig.IsJaegerOperatorEnabled(ctx.EffectiveCR()) {
 		return nil, nil
@@ -66,10 +71,27 @@ func findFirstJaegerCollectorService(ctx spi.ComponentContext) (*v1.Service, err
 	}
 	for idx, service := range services.Items {
 		if !strings.Contains(service.Name, "headless") {
-			return &services.Items[idx], nil
+			vzManaged, err := isNamespaceVerrazzanoManaged(ctx, service.Namespace)
+			if err != nil {
+				return nil, err
+			}
+			if vzManaged {
+				return &services.Items[idx], nil
+			}
 		}
 	}
 	return nil, nil
+}
+
+//isNamespaceVerrazzanoManaged returns true if the namespace is Verrazzano managed
+func isNamespaceVerrazzanoManaged(ctx spi.ComponentContext, namespaceName string) (bool, error) {
+	nsn := types.NamespacedName{Name: namespaceName}
+	ns := &v1.Namespace{}
+	if err := ctx.Client().Get(context.TODO(), nsn, ns); err != nil {
+		return false, err
+	}
+
+	return ns.Labels["verrazzano-managed"] == "true", nil
 }
 
 //zipkinPort retrieves the zipkin port from the service, if it is present. Defaults to 9411 for Jaeger collector

@@ -595,34 +595,15 @@ func TestBuildIstioOperatorYaml(t *testing.T) {
 	collectorLabels := map[string]string{
 		constants.KubernetesAppLabel: constants.JaegerCollectorService,
 	}
-	namespace := "foo"
 	clientForJaeger := fake.NewClientBuilder().WithScheme(testScheme).
 		WithObjects(&corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: namespace,
+				Namespace: testZipkinNamespace,
 				Name:      "jaeger-collector-headless",
 				Labels:    collectorLabels,
 			},
 		},
-			&corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespace,
-					Name:      "jaeger-collector",
-					Labels:    collectorLabels,
-				},
-				Spec: corev1.ServiceSpec{
-					Ports: []corev1.ServicePort{
-						{
-							Name: "http-foo",
-							Port: 1234,
-						},
-						{
-							Name: "http-zipkin",
-							Port: 5555,
-						},
-					},
-				},
-			}).Build()
+			&testZipkinService, testManagedNamespace).Build()
 	tests := []struct {
 		testName string
 		value    *vzapi.IstioComponent

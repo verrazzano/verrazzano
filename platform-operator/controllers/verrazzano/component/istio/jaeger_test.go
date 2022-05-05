@@ -14,10 +14,11 @@ import (
 	"testing"
 )
 
+var testZipkinNamespace = "foo"
 var testZipkinService = corev1.Service{
 	ObjectMeta: metav1.ObjectMeta{
-		Namespace: "foo",
-		Name:      "foo",
+		Namespace: testZipkinNamespace,
+		Name:      "jaeger-collector",
 		Labels: map[string]string{
 			constants.KubernetesAppLabel: constants.JaegerCollectorService,
 		},
@@ -30,8 +31,23 @@ var testZipkinService = corev1.Service{
 			},
 			{
 				Name: "http-zipkin",
-				Port: 2,
+				Port: 5555,
 			},
+		},
+	},
+}
+
+var testUnmanagedNamespace = &corev1.Namespace{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: testZipkinNamespace,
+	},
+}
+
+var testManagedNamespace = &corev1.Namespace{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: testZipkinNamespace,
+		Labels: map[string]string{
+			"verrazzano-managed": "true",
 		},
 	},
 }
@@ -50,7 +66,7 @@ func TestZipkinPort(t *testing.T) {
 		{
 			"service port when named port",
 			testZipkinService,
-			2,
+			5555,
 		},
 	}
 
@@ -63,8 +79,16 @@ func TestZipkinPort(t *testing.T) {
 
 func TestConfigureJaeger(t *testing.T) {
 	ctxNoService := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), jaegerEnabledCR, false)
-	ctxWithService := spi.NewFakeContext(fake.NewClientBuilder().
-		WithObjects(&testZipkinService).
+	ctxWithServiceAndUnmanagedNamespace := spi.NewFakeContext(fake.NewClientBuilder().
+		WithObjects(&testZipkinService, testUnmanagedNamespace).
+		WithScheme(testScheme).
+		Build(),
+		jaegerEnabledCR,
+		false,
+	)
+
+	ctxWithServiceAndManagedNamespace := spi.NewFakeContext(fake.NewClientBuilder().
+		WithObjects(&testZipkinService, testManagedNamespace).
 		WithScheme(testScheme).
 		Build(),
 		jaegerEnabledCR,
@@ -86,8 +110,13 @@ func TestConfigureJaeger(t *testing.T) {
 			0,
 		},
 		{
-			"two args when service present",
-			ctxWithService,
+			"0 args when service present but namespace is unmanaged",
+			ctxWithServiceAndUnmanagedNamespace,
+			0,
+		},
+		{
+			"2 args when service present and namespace is managed",
+			ctxWithServiceAndManagedNamespace,
 			2,
 		},
 	}
