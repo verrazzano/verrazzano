@@ -10,20 +10,14 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	securityv1beta1 "istio.io/api/security/v1beta1"
-	istiov1beta1 "istio.io/api/type/v1beta1"
-	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 )
 
 //configureJaeger configures Jaeger for Istio integration and returns install args for the Istio install.
 // If a Jaeger collector service is detected in a Verrazzano managed namespace:
-// create PERMISSIVE PeerAuthentication for Jaeger (so apps outside the mesh can send traces), and
 // return Istio install args for the tracing endpoint and the Istio tracing TLS mode
 func configureJaeger(ctx spi.ComponentContext) ([]vzapi.InstallArgs, error) {
 	if !vzconfig.IsJaegerOperatorEnabled(ctx.EffectiveCR()) {
@@ -35,10 +29,6 @@ func configureJaeger(ctx spi.ComponentContext) ([]vzapi.InstallArgs, error) {
 	}
 
 	if service != nil {
-		if err := createJaegerPeerAuthentication(ctx, service.Namespace); err != nil {
-			return nil, err
-		}
-
 		port := zipkinPort(*service)
 		collectorURL := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
 			service.Name,
@@ -102,29 +92,4 @@ func zipkinPort(service v1.Service) int32 {
 		}
 	}
 	return 9411
-}
-
-//createJaegerPeerAuthentication creates a PeerAuthentication resource specific for the Jaeger workload
-// This resource is PERMISSIVE, to allow applications outside the Istio mesh to export traces to Jaeger
-func createJaegerPeerAuthentication(ctx spi.ComponentContext, namespace string) error {
-	peerAuthentication := &istioclisec.PeerAuthentication{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      jaeger,
-			Namespace: namespace,
-		},
-	}
-	_, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), peerAuthentication, func() error {
-		peerAuthentication.Spec = securityv1beta1.PeerAuthentication{
-			Selector: &istiov1beta1.WorkloadSelector{
-				MatchLabels: map[string]string{
-					"app": jaeger,
-				},
-			},
-			Mtls: &securityv1beta1.PeerAuthentication_MutualTLS{
-				Mode: securityv1beta1.PeerAuthentication_MutualTLS_PERMISSIVE,
-			},
-		}
-		return nil
-	})
-	return err
 }
