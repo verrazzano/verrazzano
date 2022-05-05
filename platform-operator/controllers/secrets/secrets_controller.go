@@ -5,6 +5,7 @@ package secrets
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/types"
 	"time"
 
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
@@ -68,6 +69,11 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 	r.log = log
 
+	if !r.multiclusterNamespaceExists() {
+		// Multicluster namespace doesn't exist yet, nothing to do so requeue
+		return newRequeueWithDelay(), nil
+	}
+
 	// Get the local ca-bundle secret
 	mcCASecret := corev1.Secret{}
 	err = r.Get(context.TODO(), client.ObjectKey{
@@ -93,6 +99,7 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		mcCASecret.Data["ca-bundle"] = caSecret.Data["ca.crt"]
 		return nil
 	})
+
 	if err != nil {
 		r.log.ErrorfThrottled("Failed to create or update secret %s/%s: %s",
 			constants.VerrazzanoMultiClusterNamespace, constants.VerrazzanoLocalCABundleSecret, err.Error())
@@ -102,6 +109,19 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	r.log.Infof("Created or updated secret %s/%s (result: %v)",
 		constants.VerrazzanoMultiClusterNamespace, constants.VerrazzanoLocalCABundleSecret, result)
 	return ctrl.Result{}, nil
+}
+
+func (r *VerrazzanoSecretsReconciler) multiclusterNamespaceExists() bool {
+	ns := corev1.Namespace{}
+	err := r.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoMultiClusterNamespace}, &ns)
+	if err == nil {
+		return true
+	}
+	if !apierrors.IsNotFound(err) {
+		r.log.ErrorfThrottled("Unexpected error checking for namespace %s: %v", constants.VerrazzanoMultiClusterNamespace, err)
+	}
+	r.log.Progressf("Namespace %s does not exist, nothing to do", constants.VerrazzanoMultiClusterNamespace)
+	return false
 }
 
 // Create a new Result that will cause a reconcile requeue after a short delay
