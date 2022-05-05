@@ -45,8 +45,8 @@ pipeline {
         choice (description: 'Predefined config permutations for Verrazzano installation', name: 'VZ_INSTALL_CONFIG',
                 choices: ["dev-kind-all-default", "NONE"])
         string (name: 'EXCLUDE_RELEASES',
-                defaultValue: "[v1.0.0, v1.0.1, v1.0.2, v1.0.3, v1.0.4]",
-                description: 'This is to define total number of jobs executed in parallel per each batch', trim: true)
+                defaultValue: "v1.0.0, v1.0.1, v1.0.2, v1.0.3, v1.0.4",
+                description: 'This is to exclude the specified releases from upgrade tests.', trim: true)
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
                         defaultValue: 'NONE',
                         description: 'This is for manually testing only where someone needs to use a specific operator image, otherwise the default value of NONE is used',
@@ -161,7 +161,8 @@ pipeline {
                         echo "gitTags = ${gitTags}"
                         listOfUpgradeJobs = addTargetUpgradeVersion(gitTags)
                         def excludeReleases = ${params.EXCLUDE_RELEASES}
-                        listOfUpgradeJobs.removeAll(excludeReleases)
+                        def excludeReleasesArray = excludeReleases.trim().split('\\s*,\\s*')
+                        listOfUpgradeJobs.removeAll(excludeReleasesArray)
                         println(listOfUpgradeJobs)
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
                         echo "Number of jobs to be run in parallel : ${params.N_JOBS_FOR_EACH_BATCH}"
