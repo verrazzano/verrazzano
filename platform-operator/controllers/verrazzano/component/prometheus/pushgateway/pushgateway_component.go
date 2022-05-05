@@ -72,14 +72,16 @@ func (c prometheusPushgatewayComponent) PreInstall(ctx spi.ComponentContext) err
 
 // ValidateInstall verifies the installation of the Verrazzano object
 func (c prometheusPushgatewayComponent) ValidateInstall(effectiveCR *vzapi.Verrazzano) error {
-	if effectiveCR.Spec.Components.PrometheusPushgateway != nil {
-		return vzapi.ValidateHelmValueOverrides(effectiveCR.Spec.Components.PrometheusPushgateway.ValueOverrides)
-	}
-	return nil
+	validateHelmOverrides(effectiveCR)
 }
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
 func (c prometheusPushgatewayComponent) ValidateUpgrade(effectiveCR *vzapi.Verrazzano) error {
+	return validateHelmOverrides(effectiveCR)
+}
+
+// validateHelmOverrides validates the helm override values for the given verrazzano CR
+func validateHelmOverrides(effectiveCR *vzapi.Verrazzano) error {
 	if effectiveCR.Spec.Components.PrometheusPushgateway != nil {
 		return vzapi.ValidateHelmValueOverrides(effectiveCR.Spec.Components.PrometheusPushgateway.ValueOverrides)
 	}
