@@ -72,7 +72,7 @@ func (c prometheusPushgatewayComponent) PreInstall(ctx spi.ComponentContext) err
 
 // ValidateInstall verifies the installation of the Verrazzano object
 func (c prometheusPushgatewayComponent) ValidateInstall(effectiveCR *vzapi.Verrazzano) error {
-	validateHelmOverrides(effectiveCR)
+	return validateHelmOverrides(effectiveCR)
 }
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
