@@ -81,7 +81,7 @@ func (m NginxAutoscalingIstioRelicasAffintyModifier) ModifyCR(cr *vzapi.Verrazza
 	//	TopologyKey: "kubernetes.io/hostname",
 	//})
 	//cr.Spec.Components.Istio.Ingress.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution = requiredIngressAntiAffinity
-	// TODO update istio egress
+	// update istio ingress
 	if cr.Spec.Components.Istio.Egress == nil {
 		cr.Spec.Components.Istio.Egress = &vzapi.IstioEgressSection{}
 	}
