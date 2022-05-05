@@ -172,7 +172,7 @@ pipeline {
                                 }
                             }
                             if(excluded == false){
-                                finalReleaseList.add(item)
+                                finalReleaseList.add(releaseTag)
                             }
                         }
                         echo "List of Releases after excluding from the parameter: ${finalReleaseList}"
