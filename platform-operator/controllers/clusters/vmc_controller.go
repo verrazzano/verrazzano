@@ -133,35 +133,35 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 	err := r.syncServiceAccount(vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to sync the ServiceAccount", err, log)
-		return ctrl.Result{}, err
+		return newRequeueWithDelay(), err
 	}
 
 	log.Debugf("Syncing the RoleBinding for VMC %s", vmc.Name)
 	_, err = r.syncManagedRoleBinding(vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to sync the RoleBinding", err, log)
-		return ctrl.Result{}, err
+		return newRequeueWithDelay(), err
 	}
 
 	log.Debugf("Syncing the Agent secret for VMC %s", vmc.Name)
 	err = r.syncAgentSecret(vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to sync the agent secret", err, log)
-		return ctrl.Result{}, err
+		return newRequeueWithDelay(), err
 	}
 
 	log.Debugf("Syncing the Registration secret for VMC %s", vmc.Name)
 	err = r.syncRegistrationSecret(vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to sync the registration secret", err, log)
-		return ctrl.Result{}, err
+		return newRequeueWithDelay(), err
 	}
 
 	log.Debugf("Syncing the Manifest secret for VMC %s", vmc.Name)
 	err = r.syncManifestSecret(ctx, vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to sync the Manifest secret", err, log)
-		return ctrl.Result{}, err
+		return newRequeueWithDelay(), err
 	}
 
 	statusErr := r.updateStatusReady(ctx, vmc, "Ready")
@@ -178,7 +178,7 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 	err = r.syncPrometheusScraper(ctx, vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to setup the prometheus scraper for managed cluster", err, log)
-		return ctrl.Result{}, err
+		return newRequeueWithDelay(), err
 	}
 
 	return ctrl.Result{Requeue: true, RequeueAfter: constants.ReconcileLoopRequeueInterval}, nil
