@@ -97,18 +97,17 @@
       "name": "istio",
       "subcomponents": [
         {
-          "registry": "docker.io",
-          "repository": "istio",
+          "repository": "verrazzano",
           "name": "istiod",
           "images": [
             {
               "image": "pilot",
-              "tag": "1.12.6",
+              "tag": "1.13.2",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.12.6",
+              "tag": "1.13.2",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -187,10 +186,8 @@
               "helmTagKey": "nodeExporter.imageVersion"
             },
             {
-              "registry": "docker.io",
-              "repository": "istio",
               "image": "proxyv2",
-              "tag": "1.12.6",
+              "tag": "1.13.2",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -228,10 +225,8 @@
               "helmTagKey": "monitoringOperator.imageVersion"
             },
             {
-              "registry": "docker.io",
-              "repository": "istio",
               "image": "proxyv2",
-              "tag": "1.12.6",
+              "tag": "1.13.2",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
