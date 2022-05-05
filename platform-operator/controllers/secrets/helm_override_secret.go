@@ -5,7 +5,6 @@ package secrets
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -34,18 +33,7 @@ func (r *VerrazzanoSecretsReconciler) reconcileHelmOverrideSecret(ctx context.Co
 			return result, err
 		}
 
-		vzLog, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
-			Name:           vz.Name,
-			Namespace:      vz.Namespace,
-			ID:             string(vz.UID),
-			Generation:     vz.Generation,
-			ControllerName: "verrazzano",
-		})
-		if err != nil {
-			r.log.Errorf("Failed to create controller logger for Verrazzano controller: %v", err)
-			return newRequeueWithDelay(), err
-		}
-		componentCtx, err := spi.NewContext(vzLog, r.Client, vz, false)
+		componentCtx, err := spi.NewContext(r.log, r.Client, vz, false)
 		if err != nil {
 			r.log.Errorf("Failed to construct component context: %v", err)
 			return newRequeueWithDelay(), err

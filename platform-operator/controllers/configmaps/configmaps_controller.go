@@ -50,6 +50,9 @@ func (r *VerrazzanoConfigMapsReconciler) Reconcile(ctx context.Context, req ctrl
 	// 4. Create unit tests for new functions
 
 	// Get the Verrazzano CR
+	if ctx == nil {
+		ctx = context.TODO()
+	}
 	vz := &installv1alpha1.Verrazzano{}
 	if err := r.Get(ctx, types.NamespacedName{Namespace: constants.DefaultNamespace}, vz); err != nil {
 		if errors.IsNotFound(err) {
@@ -58,6 +61,7 @@ func (r *VerrazzanoConfigMapsReconciler) Reconcile(ctx context.Context, req ctrl
 		zap.S().Errorf("Failed to fetch Verrazzano resource: %v", err)
 		return newRequeueWithDelay(), err
 	}
+	zap.S().Infof("Successfully fetched verrazzano resource")
 
 	res, err := r.reconcileHelmOverrideConfigMap(ctx, req, vz)
 	if err != nil {
@@ -76,44 +80,40 @@ func (r *VerrazzanoConfigMapsReconciler) reconcileHelmOverrideConfigMap(ctx cont
 			zap.S().Errorf("Failed to fetch ConfigMap in Verrazzano CR namespace: %v", err)
 			return newRequeueWithDelay(), err
 		}
-
+		zap.S().Infof("Successfully fetched ConfigMap")
 		if result, err := r.initLogger(*configMap); err != nil {
 			return result, err
 		}
 
-		vzLog, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
-			Name:           vz.Name,
-			Namespace:      vz.Namespace,
-			ID:             string(vz.UID),
-			Generation:     vz.Generation,
-			ControllerName: "verrazzano",
-		})
-		if err != nil {
-			r.log.Errorf("Failed to create controller logger for Verrazzano controller: %v", err)
-			return newRequeueWithDelay(), err
-		}
-		componentCtx, err := spi.NewContext(vzLog, r.Client, vz, false)
+		r.log.Infof("ConfigMap Logger")
+		componentCtx, err := spi.NewContext(r.log, r.Client, vz, false)
 		if err != nil {
 			r.log.Errorf("Failed to construct component context: %v", err)
 			return newRequeueWithDelay(), err
 		}
+		r.log.Infof("Component context success")
+
 		if componentName, ok := controllers.VzContainsResource(componentCtx, configMap); ok {
 			err := r.updateVerrazzanoForHelmOverrides(componentCtx, componentName)
 			if err != nil {
 				r.log.Errorf("Failed to reconcile ConfigMap: %v", err)
 				return newRequeueWithDelay(), err
 			}
+			r.log.Infof("Updated VZ")
 		}
 	}
 	return ctrl.Result{}, nil
 }
+
 func (r *VerrazzanoConfigMapsReconciler) updateVerrazzanoForHelmOverrides(componentCtx spi.ComponentContext, componentName string) error {
 	cr := componentCtx.ActualCR()
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, cr, func() error {
 		cr.Status.Components[componentName].LastReconciledGeneration = 0
 		return nil
 	})
+
 	if err == nil {
+		r.log.Infof("VZ Updated")
 		return nil
 	}
 	return err
@@ -129,7 +129,7 @@ func (r *VerrazzanoConfigMapsReconciler) initLogger(cm corev1.ConfigMap) (ctrl.R
 		ControllerName: "ConfigMaps",
 	})
 	if err != nil {
-		zap.S().Errorf("Failed to create resource logger for VerrazzanoConfigMap controller", err)
+		zap.S().Errorf("Failed to create resource logger for VerrazzanoConfigMap controller: %v", err)
 		return newRequeueWithDelay(), err
 	}
 	r.log = log

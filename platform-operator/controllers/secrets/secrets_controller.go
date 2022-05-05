@@ -41,6 +41,9 @@ func (r *VerrazzanoSecretsReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// One secret we care about is the verrazzano ingress tls secret (verrazzano-tls)
+	if ctx == nil {
+		ctx = context.TODO()
+	}
 	if req.Name == constants.VerrazzanoIngressSecret && req.Namespace == constants.VerrazzanoSystemNamespace {
 		return r.reconcileVerrazzanoTLS(ctx, req)
 	}
