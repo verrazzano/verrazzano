@@ -256,7 +256,7 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 				vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, index)
 				drName := fmt.Sprintf("%s-rule-%d-dr", trait.Name, index)
 				r.createOrUpdateVirtualService(ctx, trait, rule, allHostsForTrait, vsName, services, gateway, &status, log)
-				r.createOrUpdateDestinationRule(ctx, trait, rule, drName, &status, log)
+				r.createOrUpdateDestinationRule(ctx, trait, rule, drName, &status, log, services)
 			}
 		}
 	}
@@ -689,7 +689,7 @@ func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualSer
 }
 
 //createOfUpdateDestinationRule creates or updates the DestinationRule.
-func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) {
+func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger, services []*corev1.Service) {
 	if rule.Destination.HTTPCookie != nil {
 		destinationRule := &istioclient.DestinationRule{
 			TypeMeta: metav1.TypeMeta{
@@ -701,7 +701,7 @@ func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *v
 		}
 
 		res, err := controllerutil.CreateOrUpdate(ctx, r.Client, destinationRule, func() error {
-			return r.mutateDestinationRule(destinationRule, trait, rule)
+			return r.mutateDestinationRule(destinationRule, trait, rule, services)
 		})
 
 		ref := vzapi.QualifiedResourceRelation{APIVersion: destinationRuleAPIVersion, Kind: destinationRuleKind, Name: name, Role: "destinationrule"}
@@ -715,10 +715,17 @@ func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *v
 	}
 }
 
-func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.DestinationRule, trait *vzapi.IngressTrait, rule vzapi.IngressRule) error {
+func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.DestinationRule, trait *vzapi.IngressTrait, rule vzapi.IngressRule, services []*corev1.Service) error {
+	dest, err := createDestinationFromRuleOrService(rule, services)
+	if err != nil {
+		return err
+	}
 	destinationRule.Spec = istionet.DestinationRule{
-		Host: rule.Destination.Host,
+		Host: dest.Destination.Host,
 		TrafficPolicy: &istionet.TrafficPolicy{
+			Tls: &istionet.ClientTLSSettings{
+				Mode: istionet.ClientTLSSettings_ISTIO_MUTUAL,
+			},
 			LoadBalancer: &istionet.LoadBalancerSettings{
 				LbPolicy: &istionet.LoadBalancerSettings_ConsistentHash{
 					ConsistentHash: &istionet.LoadBalancerSettings_ConsistentHashLB{
