@@ -22,7 +22,7 @@ import (
 const (
 	nginxLabelValue        = "controller"
 	nginxLabelKey          = "app.kubernetes.io/component"
-	istioIngressLabelValue = "istio-egressgateway"
+	istioIngressLabelValue = "istio-ingressgateway"
 	istioIngressLabelKey   = "app"
 )
 
