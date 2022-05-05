@@ -44,6 +44,8 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	if ctx == nil {
 		ctx = context.TODO()
 	}
+
+	zap.S().Info("Secret Controller")
 	if req.Name == constants.VerrazzanoIngressSecret && req.Namespace == constants.VerrazzanoSystemNamespace {
 		return r.reconcileVerrazzanoTLS(ctx, req)
 	}
@@ -55,6 +57,7 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	vz := &installv1alpha1.Verrazzano{}
 	if err := r.Get(ctx, types.NamespacedName{Namespace: constants.DefaultNamespace}, vz); err != nil {
 		if errors.IsNotFound(err) {
+			zap.S().Infof("VZ not found Secret")
 			return reconcile.Result{}, nil
 		}
 		zap.S().Errorf("Failed to fetch Verrazzano resource: %v", err)

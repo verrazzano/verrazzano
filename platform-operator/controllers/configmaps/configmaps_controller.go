@@ -53,9 +53,12 @@ func (r *VerrazzanoConfigMapsReconciler) Reconcile(ctx context.Context, req ctrl
 	if ctx == nil {
 		ctx = context.TODO()
 	}
+	zap.S().Info("ConfigMap controller")
+
 	vz := &installv1alpha1.Verrazzano{}
 	if err := r.Get(ctx, types.NamespacedName{Namespace: constants.DefaultNamespace}, vz); err != nil {
 		if errors.IsNotFound(err) {
+			zap.S().Infof("VZ Not found ConfigMap")
 			return reconcile.Result{}, nil
 		}
 		zap.S().Errorf("Failed to fetch Verrazzano resource: %v", err)
