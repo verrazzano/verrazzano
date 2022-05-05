@@ -429,19 +429,25 @@ func getEnvironmentName(envName string) string {
 	return envName
 }
 
-// updateKeycloakIngress updates the Ingress when using externalDNS
+// updateKeycloakIngress updates the Ingress
 func updateKeycloakIngress(ctx spi.ComponentContext) error {
 	ingress := networkv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{Name: "keycloak", Namespace: "keycloak"},
 	}
 	_, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &ingress, func() error {
-		dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
-		if err != nil {
-			return err
+		dnsSuffix, _ := vzconfig.GetDNSSuffix(ctx.Client(), ctx.EffectiveCR())
+		ingress.Annotations["cert-manager.io/common-name"] = fmt.Sprintf("%s.%s.%s",
+			ComponentName, ctx.EffectiveCR().Spec.EnvironmentName, dnsSuffix)
+		// update target annotation on Keycloak Ingress for external DNS
+		if vzconfig.IsExternalDNSEnabled(ctx.EffectiveCR()) {
+			dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
+			if err != nil {
+				return err
+			}
+			ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
+			ctx.Log().Debugf("updateKeycloakIngress: Updating Keycloak Ingress with ingressTarget = %s", ingressTarget)
+			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
 		}
-		ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
-		ctx.Log().Debugf("updateKeycloakIngress: Updating Keycloak Ingress with ingressTarget = %s", ingressTarget)
-		ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
 		return nil
 	})
 	ctx.Log().Debugf("updateKeycloakIngress: Keycloak ingress operation result: %v", err)
