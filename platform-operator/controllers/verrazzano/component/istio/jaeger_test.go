@@ -37,21 +37,6 @@ var testZipkinService = corev1.Service{
 	},
 }
 
-var testUnmanagedNamespace = &corev1.Namespace{
-	ObjectMeta: metav1.ObjectMeta{
-		Name: testZipkinNamespace,
-	},
-}
-
-var testManagedNamespace = &corev1.Namespace{
-	ObjectMeta: metav1.ObjectMeta{
-		Name: testZipkinNamespace,
-		Labels: map[string]string{
-			"verrazzano-managed": "true",
-		},
-	},
-}
-
 func TestZipkinPort(t *testing.T) {
 	var tests = []struct {
 		name    string
@@ -80,20 +65,13 @@ func TestZipkinPort(t *testing.T) {
 func TestConfigureJaeger(t *testing.T) {
 	ctxNoService := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), jaegerEnabledCR, false)
 	ctxWithServiceAndUnmanagedNamespace := spi.NewFakeContext(fake.NewClientBuilder().
-		WithObjects(&testZipkinService, testUnmanagedNamespace).
+		WithObjects(&testZipkinService).
 		WithScheme(testScheme).
 		Build(),
 		jaegerEnabledCR,
 		false,
 	)
 
-	ctxWithServiceAndManagedNamespace := spi.NewFakeContext(fake.NewClientBuilder().
-		WithObjects(&testZipkinService, testManagedNamespace).
-		WithScheme(testScheme).
-		Build(),
-		jaegerEnabledCR,
-		false,
-	)
 	var tests = []struct {
 		name    string
 		ctx     spi.ComponentContext
@@ -110,13 +88,8 @@ func TestConfigureJaeger(t *testing.T) {
 			0,
 		},
 		{
-			"0 args when service present but namespace is unmanaged",
+			"0 args when service present",
 			ctxWithServiceAndUnmanagedNamespace,
-			0,
-		},
-		{
-			"2 args when service present and namespace is managed",
-			ctxWithServiceAndManagedNamespace,
 			2,
 		},
 	}

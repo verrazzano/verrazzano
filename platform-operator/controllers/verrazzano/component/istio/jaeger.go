@@ -11,7 +11,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 )
@@ -61,27 +60,10 @@ func findFirstJaegerCollectorService(ctx spi.ComponentContext) (*v1.Service, err
 	}
 	for idx, service := range services.Items {
 		if !strings.Contains(service.Name, "headless") {
-			vzManaged, err := isNamespaceVerrazzanoManaged(ctx, service.Namespace)
-			if err != nil {
-				return nil, err
-			}
-			if vzManaged {
-				return &services.Items[idx], nil
-			}
+			return &services.Items[idx], nil
 		}
 	}
 	return nil, nil
-}
-
-//isNamespaceVerrazzanoManaged returns true if the namespace is Verrazzano managed
-func isNamespaceVerrazzanoManaged(ctx spi.ComponentContext, namespaceName string) (bool, error) {
-	nsn := types.NamespacedName{Name: namespaceName}
-	ns := &v1.Namespace{}
-	if err := ctx.Client().Get(context.TODO(), nsn, ns); err != nil {
-		return false, err
-	}
-
-	return ns.Labels["verrazzano-managed"] == "true", nil
 }
 
 //zipkinPort retrieves the zipkin port from the service, if it is present. Defaults to 9411 for Jaeger collector

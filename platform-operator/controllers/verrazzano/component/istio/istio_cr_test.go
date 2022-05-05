@@ -603,7 +603,7 @@ func TestBuildIstioOperatorYaml(t *testing.T) {
 				Labels:    collectorLabels,
 			},
 		},
-			&testZipkinService, testManagedNamespace).Build()
+			&testZipkinService).Build()
 	tests := []struct {
 		testName string
 		value    *vzapi.IstioComponent
