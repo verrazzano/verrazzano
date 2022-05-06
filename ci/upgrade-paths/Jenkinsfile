@@ -213,6 +213,9 @@ pipeline {
         VERSION_FOR_INSTALL = "${params.VERSION_FOR_INSTALL}"
 
         TARGET_UPGRADE_OPERATOR_YAML = "${WORKSPACE}/target-upgrade-operator.yaml"
+
+        //Setting to empty since the upgrade version will be calculated later
+        VERRAZZANO_DEV_VERSION = ""
     }
 
     stages {
@@ -283,6 +286,8 @@ pipeline {
                     // update the description with some meaningful info
                     setDisplayName()
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                    //Compute Verrazzano upgrade version
+                    computeVerrazzanoUpgradeVersion()
                     if (params.TEST_ENV != "KIND") {
                         // derive the prefix for the OKE cluster
                         OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${GO_REPO_PATH}/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
@@ -444,6 +449,9 @@ pipeline {
                     }
                 }
                 stage("verify-upgrade-required") {
+                    environment {
+                        VERRAZZANO_UPGRADE_VERSION="${VERRAZZANO_DEV_VERSION}"
+                    }
                     steps {
                         runGinkgoRandomize('upgrade/pre-upgrade/verify-upgrade-required')
                     }
@@ -918,8 +926,7 @@ def upgradePlatformOperatorOnCluster(count) {
     }
 }
 
-// Upgrade Verrazzano
-def upgradeVerrazzano() {
+def computeVerrazzanoUpgradeVersion() {
     script {
         // Download the bom for the target version that we are upgrading to, then extract the version
         // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
@@ -930,7 +937,12 @@ def upgradeVerrazzano() {
         } else if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "master"){
             VERRAZZANO_DEV_VERSION = VERSION_FOR_UPGRADE
         }
+    }
+}
 
+// Upgrade Verrazzano
+def upgradeVerrazzano() {
+    script {
         // Create a dictionary of Verrazzano upgrade steps to be executed in parallel
         // - the first one will always be the Admin cluster
         // - clusters 2-max are managed clusters

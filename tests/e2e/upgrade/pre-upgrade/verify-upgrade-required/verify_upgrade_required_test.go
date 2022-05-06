@@ -6,8 +6,10 @@ package verify
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzalpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -16,6 +18,8 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
+
+var upgradeVersion = os.Getenv("VERRAZZANO_UPGRADE_VERSION")
 
 var t = framework.NewTestFramework("verify")
 
@@ -54,6 +58,23 @@ var _ = t.Describe("Verify upgrade required before update is allowed", Label("f:
 	// THEN the edit is rejected by the webhook
 	t.Context("Verify upgrade-required checks", func() {
 		t.It("Upgrade required check", func() {
+			if upgradeVersion != "" {
+				upgradeSemVer, err := semver.NewSemVersion(upgradeVersion)
+				if err != nil {
+					t.Fail(fmt.Sprintf("Error constructing upgrade semantic version %s: %s", upgradeVersion, err.Error()))
+					return
+				}
+				minimumVersion := "1.3.0"
+				minimumVerrazzanoVersion, err := semver.NewSemVersion(minimumVersion)
+				if err != nil {
+					t.Fail(fmt.Sprintf("Error constructing minimum semantic version %s: %s", minimumVersion, err.Error()))
+					return
+				}
+				if upgradeSemVer.IsLessThan(minimumVerrazzanoVersion) {
+					Skip(fmt.Sprintf("Skipping the upgrade-required check spec since the upgrade Verrazzano "+
+						"version %s is less than %s version", upgradeVersion, minimumVersion))
+				}
+			}
 			vz, err := pkg.GetVerrazzano()
 			if err != nil {
 				t.Fail(fmt.Sprintf("Error getting Verrazzano instance: %s", err.Error()))
