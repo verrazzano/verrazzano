@@ -28,13 +28,13 @@ func RestartApps(log vzlog.VerrazzanoLogger, client clipkg.Client, generation in
 
 	// Start WebLogic domains that were shutdown
 	log.Infof("Starting WebLogic domains that were stopped pre-upgrade")
-	if err := StartDomainsStoppedByUpgrade(log, client, restartVersion); err != nil {
+	if err := startDomainsStoppedByUpgrade(log, client, restartVersion); err != nil {
 		return err
 	}
 
 	// Restart all other apps
 	log.Infof("Restarting all applications so they can get the new Envoy sidecar")
-	if err := RestartAllApps(log, client, restartVersion); err != nil {
+	if err := restartAllApps(log, client, restartVersion); err != nil {
 		return err
 	}
 	return nil
@@ -117,8 +117,8 @@ func stopDomain(client clipkg.Client, wlNamespace string, wlName string) error {
 	return err
 }
 
-// StartDomainsStoppedByUpgrade starts all the WebLogic domains that upgrade previously stopped
-func StartDomainsStoppedByUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVersion string) error {
+// startDomainsStoppedByUpgrade starts all the WebLogic domains that upgrade previously stopped
+func startDomainsStoppedByUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVersion string) error {
 	log.Progressf("RestartApps: checking if any domains need to be started")
 
 	// get all the app configs
@@ -165,8 +165,8 @@ func startDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, wlNam
 	return err
 }
 
-// RestartAllApps restarts all the applications
-func RestartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVersion string) error {
+// restartAllApps restarts all the applications
+func restartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVersion string) error {
 	log.Progressf("Restarting all OAM applications that have an old Istio proxy sidecar")
 
 	// Get the latest Istio proxy image name from the bom
