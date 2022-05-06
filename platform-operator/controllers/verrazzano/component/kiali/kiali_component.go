@@ -6,6 +6,7 @@ package kiali
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -147,8 +148,10 @@ func (c kialiComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 
 // createOrUpdateKialiResources create or update related Kiali resources
 func (c kialiComponent) createOrUpdateKialiResources(ctx spi.ComponentContext) error {
-	if err := createOrUpdateKialiIngress(ctx, c.ChartNamespace); err != nil {
-		return err
+	if vzconfig.IsNGINXEnabled(ctx.EffectiveCR()) {
+		if err := createOrUpdateKialiIngress(ctx, c.ChartNamespace); err != nil {
+			return err
+		}
 	}
 	if err := createOrUpdateAuthPolicy(ctx); err != nil {
 		return err
