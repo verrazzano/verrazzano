@@ -8,14 +8,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/types"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/onsi/gomega"
 	vpClient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
@@ -25,11 +24,13 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/api/networking/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -211,6 +212,21 @@ func GetDaemonSet(namespace string, daemonSetName string) (*appsv1.DaemonSet, er
 		return nil, err
 	}
 	return daemonset, nil
+}
+
+// GetIngressList returns a IngressList in the given namespace
+func GetIngressList(namespace string) (*v1beta1.IngressList, error) {
+	// Get the Kubernetes clientset
+	clientSet, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	ingressList, err := clientSet.ExtensionsV1beta1().Ingresses(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get Ingresses in namespace %s: %v ", namespace, err))
+		return nil, err
+	}
+	return ingressList, nil
 }
 
 // ListNodes returns the list of nodes for the cluster
