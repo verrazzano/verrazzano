@@ -125,13 +125,13 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.5.9-20211209021347-2e57ce2a4",
+              "tag": "v2.5.9-20220506124723-e049e83ce",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.5.9-20211209021347-2e57ce2a4"
+              "tag": "v2.5.9-20220506124723-e049e83ce"
             }
           ]
         },
@@ -150,19 +150,19 @@
             },
             {
               "image": "rancher-webhook",
-              "tag": "v0.1.2"
+              "tag": "v0.1.4"
             },
             {
               "image": "fleet-agent",
-              "tag": "v0.3.5"
+              "tag": "v0.3.9"
             },
             {
               "image": "fleet",
-              "tag": "v0.3.5"
+              "tag": "v0.3.9"
             },
             {
               "image": "gitjob",
-              "tag": "v0.1.15"
+              "tag": "v0.1.26"
             },
             {
               "image": "rancher-operator",
