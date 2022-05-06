@@ -78,7 +78,7 @@ var _ = t.Describe("Verify upgrade required before update is allowed", Label("f:
 					if _, exists := os.LookupEnv(preventUpdatesDuringUpgradeFileEnvVar); exists {
 						_, err = os.Create(preventUpdatesDuringUpgradeFileEnvVar)
 						if err != nil {
-							t.Logs.Warnf("Failed to create file %s", os.Getenv(preventUpdatesDuringUpgradeFileEnvVar))
+							t.Fail(fmt.Sprintf("Failed to create file %s", os.Getenv(preventUpdatesDuringUpgradeFileEnvVar)))
 						}
 					}
 					Skip(fmt.Sprintf("Skipping the upgrade-required check spec since the upgrade Verrazzano "+
