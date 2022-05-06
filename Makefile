@@ -68,7 +68,7 @@ docker-push-wit: ## build and push the WebLogic Image Tool image for the Image P
 
 .PHONY: create-test-deploy
 create-test-deploy: docker-push
-	(cd platform-operator; make create-test-deploy VZ_DEV_IMAGE=${VERRAZZANO_PLATFORM_OPERATOR_IMAGE} VZ_APP_OP_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} VZ_OS_HOOK_IMAGE=${VERRAZZANO_BACKUP_IMAGE})
+	(cd platform-operator; make create-test-deploy VZ_DEV_IMAGE=${VERRAZZANO_PLATFORM_OPERATOR_IMAGE} VZ_APP_OP_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE})
 
 .PHONY: test-platform-operator-install
 test-platform-operator-install:
