@@ -57,6 +57,7 @@ func (r *VerrazzanoConfigMapsReconciler) Reconcile(ctx context.Context, req ctrl
 		return newRequeueWithDelay(), err
 	}
 	if vzList != nil && len(vzList.Items) > 0 {
+		zap.S().Infof("VZ Resource")
 		vz := &vzList.Items[0]
 		_, err := r.reconcileHelmOverrideConfigMap(ctx, req, vz)
 		if err != nil {
