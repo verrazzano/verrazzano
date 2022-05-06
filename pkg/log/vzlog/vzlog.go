@@ -289,7 +289,7 @@ func (v *verrazzanoLogger) Progress(args ...interface{}) {
 // If the log message is new or has changed then it is logged immediately.
 func (v *verrazzanoLogger) doLog(once bool, args ...interface{}) {
 	msg := fmt.Sprint(args...)
-	cacheUpdated := v.checkLogCache(once, msg)
+	cacheUpdated := v.shouldLogMessage(once, msg)
 	if cacheUpdated {
 		v.sLogger.Info(msg)
 	}
@@ -299,18 +299,18 @@ func (v *verrazzanoLogger) doLog(once bool, args ...interface{}) {
 // are recorded as errors at the throttling frequency.  Errors are never once-only.
 func (v *verrazzanoLogger) doError(args ...interface{}) {
 	msg := fmt.Sprint(args...)
-	cacheUpdated := v.checkLogCache(false, msg)
-	if cacheUpdated {
+	doLog := v.shouldLogMessage(false, msg)
+	if doLog {
 		v.sLogger.Error(msg)
 	}
 }
 
-//checkLogCache Checks if a message exists in the log cache; returns true if the cache is updated.  The cache is updated
-// when
-// - A message is a log-once type that has not been recorded yet
-// - A message is throttled, but it has not exceeded it's frequency threshold since the last occurrence
-// - A message is newly added to the cache
-func (v *verrazzanoLogger) checkLogCache(once bool, msg string) bool {
+//shouldLogMessage Checks candidate log message against the cache and returns true if that message should be recorded in the log.
+//
+// A message should be recorded when
+// - A message is newly added to the cache (seen for the first time)
+// - A message is throttled, but it has not exceeded its frequency threshold since the last occurrence
+func (v *verrazzanoLogger) shouldLogMessage(once bool, msg string) bool {
 	// If the message is in the trash, that means it should never be logged again.
 	_, ok := v.trashMessages[msg]
 	if ok {
