@@ -217,7 +217,7 @@ pipeline {
         //Setting to empty since the upgrade version will be calculated later
         VERRAZZANO_DEV_VERSION = ""
 
-        ALLOW_UPDATES_DURING_UPGRADE = "true"
+        PREVENT_UPDATES_DURING_UPGRADE_FILE = "${WORKSPACE}/prevent_updates_during_upgrade_file.txt"
     }
 
     stages {
@@ -984,7 +984,7 @@ def upgradeVerrazzanoOnCluster(count, verrazzanoDevVersion) {
                 cp ${v8oInstallFile} ${v8oUpgradeFile}
                 ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${verrazzanoDevVersion}  ${v8oUpgradeFile}
                 
-                if [ "${ALLOW_UPDATES_DURING_UPGRADE}" == "true" ]; then
+                if [ ! -f "${PREVENT_UPDATES_DURING_UPGRADE_FILE}" ]; then
                     # Add some simple additional updates to validate update during an upgrade
                     yq -i eval '.spec.components.istio.ingress.kubernetes.replicas = 3' ${v8oUpgradeFile}
                     yq -i eval '.spec.components.istio.egress.kubernetes.replicas = 3' ${v8oUpgradeFile}
