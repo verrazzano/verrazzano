@@ -77,6 +77,7 @@ var (
 	testLoadBalancerAppGatewayServerHost = "test-appconf.test-namespace." + testLoadBalancerIP + ".nip.io"
 	testExternalIP                       = ip.RandomIP()
 	testExternalDomainName               = "myapp.myns." + testExternalIP + ".nip.io"
+	namespace                            = corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}}
 )
 
 // GIVEN a controller implementation
@@ -3029,8 +3030,10 @@ func TestMutateGatewayAddTrait(t *testing.T) {
 	}
 
 	reconciler := setupTraitTestFakes(appName, gw)
+	labels := map[string]string{"verrazzano-managed": "true", "istio-injection": "enabled"}
+	namespace.Labels = labels
 
-	_, _, err := reconciler.createOrUpdateChildResources(context.TODO(), trait, vzlog.DefaultLogger())
+	_, _, err := reconciler.createOrUpdateChildResources(context.TODO(), trait, vzlog.DefaultLogger(), &namespace)
 	assert.NoError(err)
 
 	updatedGateway := &istioclient.Gateway{}
@@ -3100,8 +3103,9 @@ func TestMutateGatewayHostsAddRemoveTraitRule(t *testing.T) {
 			WorkloadReference: createWorkloadReference(appName),
 		},
 	}
-
-	_, _, err := reconciler.createOrUpdateChildResources(context.TODO(), updatedTrait, vzlog.DefaultLogger())
+	labels := map[string]string{"verrazzano-managed": "true", "istio-injection": "enabled"}
+	namespace.Labels = labels
+	_, _, err := reconciler.createOrUpdateChildResources(context.TODO(), updatedTrait, vzlog.DefaultLogger(), &namespace)
 	assert.NoError(err)
 
 	updatedGateway := &istioclient.Gateway{}
@@ -3127,8 +3131,7 @@ func TestMutateGatewayHostsAddRemoveTraitRule(t *testing.T) {
 			WorkloadReference: createWorkloadReference(appName),
 		},
 	}
-
-	_, _, err2 := reconciler.createOrUpdateChildResources(context.TODO(), updatedTraitRemovedRule, vzlog.DefaultLogger())
+	_, _, err2 := reconciler.createOrUpdateChildResources(context.TODO(), updatedTraitRemovedRule, vzlog.DefaultLogger(), &namespace)
 	assert.NoError(err2)
 
 	updatedGatewayRemovedRule := &istioclient.Gateway{}
