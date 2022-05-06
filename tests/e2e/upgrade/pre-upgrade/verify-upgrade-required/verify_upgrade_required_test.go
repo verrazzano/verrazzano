@@ -75,11 +75,9 @@ var _ = t.Describe("Verify upgrade required before update is allowed", Label("f:
 					return
 				}
 				if upgradeSemVer.IsLessThan(minimumVerrazzanoVersion) {
-					if _, exists := os.LookupEnv(preventUpdatesDuringUpgradeFileEnvVar); exists {
-						_, err = os.Create(preventUpdatesDuringUpgradeFileEnvVar)
-						if err != nil {
-							t.Fail(fmt.Sprintf("Failed to create file %s", os.Getenv(preventUpdatesDuringUpgradeFileEnvVar)))
-						}
+					_, err = os.Create(preventUpdatesDuringUpgradeFileEnvVar)
+					if err != nil {
+						t.Fail(fmt.Sprintf("Failed to create file %s", os.Getenv(preventUpdatesDuringUpgradeFileEnvVar)))
 					}
 					Skip(fmt.Sprintf("Skipping the upgrade-required check spec since the upgrade Verrazzano "+
 						"version %s is less than version %s", upgradeVersion, minimumVersion))
