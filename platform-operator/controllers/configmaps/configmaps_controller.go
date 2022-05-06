@@ -6,7 +6,6 @@ package configmaps
 import (
 	"context"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -39,25 +38,13 @@ func (r *VerrazzanoConfigMapsReconciler) SetupWithManager(mgr ctrl.Manager) erro
 }
 
 func (r *VerrazzanoConfigMapsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	// TODO List:
-	// 1. Get the Verrazzano CR and verify that the Namespace of it and the request align
-	//      a) i.e. vz.Namespace == req.Namespace
-	// 2. Verify that the ConfigMap exists as a helm override (use vzconfig.vzContainsResources)
-	// 3. Update the Verrazzano CR to start a helm upgrade command
-	//      a) Update the status.ReconcileGeneration for the prometheus operator
-	//      b) as an example: vz.Status.Components["prometheus-operator"].LastReconciledGeneration = 0 (it should be component generic)
-	// 4. Create unit tests for new functions
 
-	// Get the Verrazzano CR
 	if ctx == nil {
 		ctx = context.TODO()
 	}
-	zap.S().Info("ConfigMap controller")
 
 	vzList := &installv1alpha1.VerrazzanoList{}
-	listOpts := []client.ListOption{
-		client.InNamespace(constants.DefaultNamespace),
-	}
+	listOpts := []client.ListOption{}
 	err := r.List(ctx, vzList, listOpts...)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -67,7 +54,6 @@ func (r *VerrazzanoConfigMapsReconciler) Reconcile(ctx context.Context, req ctrl
 		zap.S().Errorf("Failed to fetch Verrazzano resource: %v", err)
 		return newRequeueWithDelay(), err
 	}
-	zap.S().Infof("Successfully fetched verrazzano resource")
 	if vzList != nil && len(vzList.Items) > 0 {
 		vz := &vzList.Items[0]
 		_, err := r.reconcileHelmOverrideConfigMap(ctx, req, vz)
@@ -88,18 +74,15 @@ func (r *VerrazzanoConfigMapsReconciler) reconcileHelmOverrideConfigMap(ctx cont
 			zap.S().Errorf("Failed to fetch ConfigMap in Verrazzano CR namespace: %v", err)
 			return newRequeueWithDelay(), err
 		}
-		zap.S().Infof("Successfully fetched ConfigMap")
 		if result, err := r.initLogger(*configMap); err != nil {
 			return result, err
 		}
 
-		r.log.Infof("ConfigMap Logger")
 		componentCtx, err := spi.NewContext(r.log, r.Client, vz, false)
 		if err != nil {
 			r.log.Errorf("Failed to construct component context: %v", err)
 			return newRequeueWithDelay(), err
 		}
-		r.log.Infof("Component context success")
 
 		if componentName, ok := controllers.VzContainsResource(componentCtx, configMap); ok {
 			err := r.updateVerrazzanoForHelmOverrides(componentCtx, componentName)

@@ -16,11 +16,6 @@ import (
 )
 
 func (r *VerrazzanoSecretsReconciler) reconcileHelmOverrideSecret(ctx context.Context, req ctrl.Request, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
-	// TODO List (cont):
-	// 3. Update the Verrazzano CR to start a helm upgrade command
-	//      a) Update the status.ReconcileGeneration for the prometheus operator
-	//	    b) as an example: vz.Status.Components["prometheus-operator"].LastReconciledGeneration = 0 (it should be component generic)
-	// 4. Create unit tests for new functions
 
 	secret := &corev1.Secret{}
 	if vz.Namespace == req.Namespace {

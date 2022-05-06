@@ -44,19 +44,12 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		ctx = context.TODO()
 	}
 
-	zap.S().Info("Secret Controller")
 	if req.Name == constants.VerrazzanoIngressSecret && req.Namespace == constants.VerrazzanoSystemNamespace {
 		return r.reconcileVerrazzanoTLS(ctx, req)
 	}
 
-	// TODO List:
-	// 1. Get the Verrazzano CR and verify that the Namespace of it and the request align
-	//      a) i.e. vz.Namespace == req.Namespace
-	// 2. Verify that the Secret exists as a helm override (use vzconfig.vzContainsResources)
 	vzList := &installv1alpha1.VerrazzanoList{}
-	listOpts := []client.ListOption{
-		client.InNamespace(constants.DefaultNamespace),
-	}
+	listOpts := []client.ListOption{}
 	err := r.List(ctx, vzList, listOpts...)
 	if err != nil {
 		if errors.IsNotFound(err) {
