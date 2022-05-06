@@ -1,3 +1,6 @@
+// Copyright (c) 2022, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package opensearch
 
 import (
@@ -5,16 +8,17 @@ import (
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano-monitoring-operator/pkg/resources/nodes"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 )
 
-const minClusterSize = 3
-
 type (
+
+	//entryTracker is a Set like construct to track if a value was seen already
 	entryTracker struct {
 		set map[string]bool
 	}
 )
+
+const minClusterSize = 3
 
 func newTracker() entryTracker {
 	return entryTracker{
@@ -22,6 +26,7 @@ func newTracker() entryTracker {
 	}
 }
 
+//add an item to the set. If it's already present, return an error.
 func (e entryTracker) add(entry string) error {
 	if _, exists := e.set[entry]; exists {
 		return fmt.Errorf("%s already exists", entry)
@@ -30,8 +35,10 @@ func (e entryTracker) add(entry string) error {
 	return nil
 }
 
+//validateNoDuplicatedConfiguration rejects any updates that contain duplicated argument names:
+// Node group names or InstallArg names.
 func validateNoDuplicatedConfiguration(vz *vzapi.Verrazzano) error {
-	if !vzconfig.IsElasticsearchEnabled(vz) {
+	if vz.Spec.Components.Elasticsearch == nil {
 		return nil
 	}
 	opensearch := vz.Spec.Components.Elasticsearch
@@ -62,7 +69,12 @@ func validateNoDuplicateNodeGroups(opensearch *vzapi.ElasticsearchComponent) err
 	return nil
 }
 
+//validateClusterTopology rejects any updates that would corrupt the cluster state
 func validateClusterTopology(old, new *vzapi.Verrazzano) error {
+	if old.Spec.Components.Elasticsearch == nil || new.Spec.Components.Elasticsearch == nil {
+		return nil
+	}
+
 	oldNodes, err := nodeCount(old)
 	if err != nil {
 		return err
@@ -73,10 +85,10 @@ func validateClusterTopology(old, new *vzapi.Verrazzano) error {
 	}
 
 	if newNodes.Replicas > 0 {
-		if removesHalfOrMore(newNodes.MasterNodes, oldNodes.MasterNodes) {
+		if !allowMasterUpdate(newNodes.MasterNodes, oldNodes.MasterNodes) {
 			return nodeCountError(vmov1.MasterRole, oldNodes.MasterNodes)
 		}
-		if removesHalfOrMore(newNodes.DataNodes, oldNodes.DataNodes) {
+		if oldNodes.DataNodes > 0 && !allowNodeUpdate(newNodes.DataNodes, oldNodes.DataNodes) {
 			return nodeCountError(vmov1.DataRole, oldNodes.DataNodes)
 		}
 	}
@@ -84,16 +96,45 @@ func validateClusterTopology(old, new *vzapi.Verrazzano) error {
 }
 
 func nodeCountError(role vmov1.NodeRole, count int32) error {
-	return fmt.Errorf("%d %s nodes may be removed unless you are deleting the OpenSearch cluster", (count/2)-1, string(role))
+	return fmt.Errorf("%d %s node(s) may be removed unless you are deleting the OpenSearch cluster", count/2, string(role))
 }
 
-func removesHalfOrMore(n1, n2 int32) bool {
-	return n2 >= (n1 / 2)
+func allowMasterUpdate(new, old int32) bool {
+	// if we have 1-2 node cluster, we have to allow updates
+	if old < minClusterSize {
+		return true
+	}
+	// if old cluster is present but new cluster would be less than min size,
+	// we cannot scale (data corruption)
+	if new < minClusterSize {
+		return false
+	}
+	return allowNodeUpdate(new, old)
+}
+
+func allowNodeUpdate(new, old int32) bool {
+	return new > (old / 2)
 }
 
 func nodeCount(vz *vzapi.Verrazzano) (*nodes.NodeCount, error) {
 	vmi := &vmov1.VerrazzanoMonitoringInstance{}
-	vmiOpenSearch := &vmov1.Elasticsearch{}
+	vmiOpenSearch := &vmov1.Elasticsearch{
+		MasterNode: vmov1.ElasticsearchNode{
+			Roles: []vmov1.NodeRole{
+				vmov1.MasterRole,
+			},
+		},
+		DataNode: vmov1.ElasticsearchNode{
+			Roles: []vmov1.NodeRole{
+				vmov1.DataRole,
+			},
+		},
+		IngestNode: vmov1.ElasticsearchNode{
+			Roles: []vmov1.NodeRole{
+				vmov1.IngestRole,
+			},
+		},
+	}
 	vpoOpenSearch := vz.Spec.Components.Elasticsearch
 	if err := populateOpenSearchFromInstallArgs(vmiOpenSearch, vpoOpenSearch); err != nil {
 		return nil, err
