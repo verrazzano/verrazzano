@@ -96,7 +96,12 @@ func validateClusterTopology(old, new *vzapi.Verrazzano) error {
 }
 
 func nodeCountError(role vmov1.NodeRole, count int32) error {
-	return fmt.Errorf("%d %s node(s) may be removed unless you are deleting the OpenSearch cluster", count/2, string(role))
+	removableNodes := (count/2)-1
+	if removableNodes < 0 {
+		removableNodes = 0
+	}
+
+	return fmt.Errorf("%d %s node(s) may be removed unless you are deleting the OpenSearch cluster", removableNodes, string(role))
 }
 
 func allowMasterUpdate(new, old int32) bool {
