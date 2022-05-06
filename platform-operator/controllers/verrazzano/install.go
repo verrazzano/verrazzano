@@ -71,6 +71,14 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 		}
 		switch componentStatus.State {
 		case vzapi.CompStateReady:
+			// Don't reconcile (updates) during install
+			if !isInstalled(cr.Status) {
+				continue
+			}
+			if !checkConfigUpdated(spiCtx, componentStatus, compName) {
+				continue
+			}
+
 			// For delete, we should look at the VZ resource delete timestamp and shift into Quiescing/Uninstalling state
 			compLog.Oncef("Component %s is ready", compName)
 			if err := comp.Reconcile(compContext); err != nil {

@@ -1,11 +1,12 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package ingresstrait
 
 import (
 	"context"
-	"errors"
-	"fmt"
+
+	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 
 	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -18,18 +19,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// Cleanup cleans up the generated certificates and secrets associated with the given app config
-func Cleanup(appName types.NamespacedName, client client.Client, log vzlog.VerrazzanoLogger) (err error) {
-	certName, err := buildCertificateNameFromAppName(appName)
-	if err != nil {
-		log.Errorf("Failed building certificate name: %s", err)
-		return err
-	}
-	err = cleanupCert(certName, client, log)
+// cleanup cleans up the generated certificates and secrets associated with the given app config
+func cleanup(trait *vzapi.IngressTrait, client client.Client, log vzlog.VerrazzanoLogger) (err error) {
+	err = cleanupCert(buildCertificateName(trait), client, log)
 	if err != nil {
 		return
 	}
-	err = cleanupSecret(certName, client, log)
+	err = cleanupSecret(buildCertificateSecretName(trait), client, log)
 	if err != nil {
 		return
 	}
@@ -62,8 +58,7 @@ func cleanupCert(certName string, c client.Client, log vzlog.VerrazzanoLogger) (
 }
 
 // cleanupSecret deletes up the generated secret for the given app config
-func cleanupSecret(certName string, c client.Client, log vzlog.VerrazzanoLogger) (err error) {
-	secretName := fmt.Sprintf("%s-secret", certName)
+func cleanupSecret(secretName string, c client.Client, log vzlog.VerrazzanoLogger) (err error) {
 	nsn := types.NamespacedName{Name: secretName, Namespace: constants.IstioSystemNamespace}
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -84,13 +79,4 @@ func cleanupSecret(certName string, c client.Client, log vzlog.VerrazzanoLogger)
 	}
 	log.Debugf("Ingress secret %s deleted", nsn.Name)
 	return nil
-}
-
-// buildCertificateNameFromAppName will construct a cert name from the app name.
-func buildCertificateNameFromAppName(appName types.NamespacedName) (string, error) {
-	if len(appName.Name) == 0 {
-		return "", errors.New("OAM app name label missing from metadata, unable to generate certificate name")
-
-	}
-	return fmt.Sprintf("%s-%s-cert", appName.Namespace, appName.Name), nil
 }

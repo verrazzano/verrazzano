@@ -45,7 +45,7 @@ pipeline {
         choice (description: 'Kubernetes Version for KinD Cluster',
             name: 'KIND_CLUSTER_VERSION',
             // 1st choice is the default value
-            choices: [ "1.22", "1.21", "1.20" ])
+            choices: [ "1.22", "1.23", "1.21", "1.20" ])
         choice(description: 'Verrazzano Install Profile', name: "INSTALL_PROFILE", choices: installProfiles )
         string defaultValue: 'NONE', description: 'Verrazzano platform operator image name (within ghcr.io/verrazzano repo)', name: 'VERRAZZANO_OPERATOR_IMAGE', trim: true
         choice (name: 'WILDCARD_DNS_DOMAIN',
@@ -126,7 +126,7 @@ pipeline {
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
 
         INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
-        INSTALL_CONFIG_FILE_KIND = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-kind.yaml"
+        INSTALL_CONFIG_FILE_KIND = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-kind-no-persistence.yaml"
 
         VZ_ENVIRONMENT_NAME = "default"
 
@@ -421,7 +421,7 @@ pipeline {
                             sh """
                                 # Destroy the OKE cluster
                                 if [ "${keepOKEClusterOnFailure}" == "false" ]; then
-                                    TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${WORKSPACE}/tests/e2e/config/scripts/delete_oke_cluster.sh
+                                    TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${WORKSPACE}/tests/e2e/config/scripts/delete_oke_cluster.sh || true
                                 fi
                             """
                         }

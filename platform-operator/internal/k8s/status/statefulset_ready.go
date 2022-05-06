@@ -16,8 +16,6 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type StatefulSetFunc func(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedNames []types.NamespacedName, expectedReplicas int32, prefix string) bool
-
 // StatefulSetsAreReady Check that the named statefulsets have the minimum number of specified replicas ready and available
 func StatefulSetsAreReady(log vzlog.VerrazzanoLogger, client client.Client, namespacedNames []types.NamespacedName, expectedReplicas int32, prefix string) bool {
 	for _, namespacedName := range namespacedNames {

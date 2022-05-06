@@ -721,14 +721,12 @@ func TestUpgradeCompleted(t *testing.T) {
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *oamapi.ApplicationConfigurationList, opts ...client.ListOption) error {
 			return nil
-		}).Times(2)
+		}).AnyTimes()
 
 	// Expect a call to update the status of the Verrazzano resource
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			asserts.Len(verrazzano.Status.Conditions, 3, "Incorrect number of conditions")
-			asserts.Equal(vzapi.CondUpgradeComplete, verrazzano.Status.Conditions[2].Type, "Incorrect conditions")
 			return nil
 		}).AnyTimes()
 
@@ -831,8 +829,6 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			asserts.Len(verrazzano.Status.Conditions, 3, "Incorrect number of conditions")
-			asserts.Equal(vzapi.CondUpgradeComplete, verrazzano.Status.Conditions[2].Type, "Incorrect conditions")
 			return nil
 		}).AnyTimes()
 
@@ -935,8 +931,6 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			asserts.Len(verrazzano.Status.Conditions, 3, "Incorrect number of conditions")
-			asserts.Equal(verrazzano.Status.Conditions[2].Type, vzapi.CondUpgradeComplete, "Incorrect conditions")
 			return fmt.Errorf("Unexpected status error")
 		}).AnyTimes()
 
@@ -1069,26 +1063,26 @@ func TestUpgradeIsCompInstalledFailure(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
-	vz := vzapi.Verrazzano{}
-	vz.TypeMeta = metav1.TypeMeta{
-		APIVersion: "install.verrazzano.io/v1alpha1",
-		Kind:       "Verrazzano"}
-	vz.ObjectMeta = metav1.ObjectMeta{
-		Namespace:  namespace,
-		Name:       name,
-		Finalizers: []string{finalizerName},
-	}
-	vz.Spec = vzapi.VerrazzanoSpec{
-		Version: "0.2.0"}
-	vz.Status = vzapi.VerrazzanoStatus{
-		State: vzapi.VzStateUpgrading,
-		Conditions: []vzapi.Condition{
-			{
-				Type: vzapi.CondUpgradeStarted,
-			},
-		},
-		Components: makeVerrazzanoComponentStatusMap(),
-	}
+	// Expect a call to get the verrazzano resource.  Return resource with version
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
+			verrazzano.TypeMeta = metav1.TypeMeta{
+				APIVersion: "install.verrazzano.io/v1alpha1",
+				Kind:       "Verrazzano"}
+			verrazzano.ObjectMeta = metav1.ObjectMeta{
+				Namespace:  name.Namespace,
+				Name:       name.Name,
+				Generation: 1,
+				Finalizers: []string{finalizerName}}
+			verrazzano.Spec = vzapi.VerrazzanoSpec{
+				Version: "0.2.0"}
+			verrazzano.Status = vzapi.VerrazzanoStatus{
+				State:      vzapi.VzStateReady,
+				Components: makeVerrazzanoComponentStatusMap(),
+			}
+			return nil
+		}).AnyTimes()
 
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
@@ -1101,12 +1095,18 @@ func TestUpgradeIsCompInstalledFailure(t *testing.T) {
 	})
 	defer registry.ResetGetComponentsFn()
 
-	// Expect a call to update annotations and ensure annotations are accurate
+	// expect a call to list any pending upgrade secrets for the component
 	mock.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano) error {
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, secretList *v1.SecretList, opts ...client.ListOption) error {
 			return nil
-		}).Times(0)
+		}).AnyTimes()
+
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, nil)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, vzapi.Verrazzano{}, namespace, name)
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
@@ -1116,15 +1116,15 @@ func TestUpgradeIsCompInstalledFailure(t *testing.T) {
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			return nil
-		}).Times(0)
+		}).AnyTimes()
 
-	// Reconcile upgrade
+	// Reconcile
+	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconcileUpgradeLoop(reconciler, &vz)
+	result, _ := reconcileLoop(reconciler, request)
 
 	// Validate the results
 	mocker.Finish()
-	asserts.Error(err)
 	asserts.Equal(true, result.Requeue)
 }
 
@@ -1206,6 +1206,13 @@ func TestUpgradeComponent(t *testing.T) {
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to update the status of the Verrazzano resource
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			return nil
+		}).AnyTimes()
 
 	// Reconcile upgrade until state is done.  Put guard to prevent infinite loop
 	reconciler := newVerrazzanoReconciler(mock)
@@ -1389,6 +1396,13 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to update the status of the Verrazzano resource
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			return nil
+		}).AnyTimes()
 
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
@@ -2020,9 +2034,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Console: &vzapi.ConsoleComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &enabled,
-					},
+					Enabled: &enabled,
 				},
 			},
 		},
@@ -2247,9 +2259,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Console: &vzapi.ConsoleComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &enabled,
-					},
+					Enabled: &enabled,
 				},
 			},
 		},
@@ -2297,7 +2307,7 @@ func reconcileUpgradeLoop(reconciler Reconciler, cr *vzapi.Verrazzano) (ctrl.Res
 
 // reconcileLoop
 func reconcileLoop(reconciler Reconciler, request ctrl.Request) (ctrl.Result, error) {
-	numComponentStates := 7
+	numComponentStates := 20
 	var err error
 	var result ctrl.Result
 	for i := 0; i < numComponentStates; i++ {

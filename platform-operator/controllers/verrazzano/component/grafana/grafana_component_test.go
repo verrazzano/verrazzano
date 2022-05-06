@@ -49,9 +49,7 @@ func TestIsEnabled(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						Grafana: &vzapi.GrafanaComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{
-								Enabled: &trueValue,
-							},
+							Enabled: &trueValue,
 						},
 					},
 				},
@@ -67,9 +65,7 @@ func TestIsEnabled(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						Grafana: &vzapi.GrafanaComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{
-								Enabled: &falseValue,
-							},
+							Enabled: &falseValue,
 						},
 					},
 				},
@@ -114,9 +110,7 @@ func TestGetIngressNames(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						Grafana: &vzapi.GrafanaComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{
-								Enabled: &trueValue,
-							},
+							Enabled: &trueValue,
 						},
 						Ingress: &vzapi.IngressNginxComponent{
 							Enabled: &trueValue,
@@ -135,9 +129,7 @@ func TestGetIngressNames(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						Grafana: &vzapi.GrafanaComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{
-								Enabled: &trueValue,
-							},
+							Enabled: &trueValue,
 						},
 						Ingress: &vzapi.IngressNginxComponent{
 							Enabled: &falseValue,
@@ -185,9 +177,7 @@ func TestGetCertificateNames(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						Grafana: &vzapi.GrafanaComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{
-								Enabled: &trueValue,
-							},
+							Enabled: &trueValue,
 						},
 						Ingress: &vzapi.IngressNginxComponent{
 							Enabled: &trueValue,
@@ -206,9 +196,7 @@ func TestGetCertificateNames(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						Grafana: &vzapi.GrafanaComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{
-								Enabled: &trueValue,
-							},
+							Enabled: &trueValue,
 						},
 						Ingress: &vzapi.IngressNginxComponent{
 							Enabled: &falseValue,
@@ -314,9 +302,7 @@ func TestValidateUpdate(t *testing.T) {
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Grafana: &vzapi.GrafanaComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &trueValue,
-					},
+					Enabled: &trueValue,
 				},
 			},
 		},
@@ -326,9 +312,7 @@ func TestValidateUpdate(t *testing.T) {
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Grafana: &vzapi.GrafanaComponent{
-					MonitoringComponent: vzapi.MonitoringComponent{
-						Enabled: &falseValue,
-					},
+					Enabled: &falseValue,
 				},
 			},
 		},

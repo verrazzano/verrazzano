@@ -35,6 +35,7 @@ const (
 	mySQLKey            = "mysql-password"
 	mySQLRootKey        = "mysql-root-password"
 	mySQLInitFilePrefix = "init-mysql-"
+	mySQLHookFile       = "platform-operator/scripts/hooks/mysql-hook.sh"
 )
 
 // isMySQLReady checks to see if the MySQL component is in ready state
@@ -87,6 +88,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 		}
 		kvs = append(kvs, bom.KeyValue{Key: "initializationFiles.create-db\\.sql", Value: mySQLInitFile, SetFile: true})
+		kvs = append(kvs, bom.KeyValue{Key: "configurationFiles.mysql-hook\\.sh", Value: mySQLHookFile, SetFile: true})
 	}
 
 	// generate the MySQl PV overrides
@@ -115,7 +117,10 @@ func preInstall(compContext spi.ComponentContext, namespace string) error {
 			ns.Labels = make(map[string]string)
 		}
 		ns.Labels["verrazzano.io/namespace"] = namespace
-		ns.Labels["istio-injection"] = "enabled"
+		istio := compContext.EffectiveCR().Spec.Components.Istio
+		if istio != nil && istio.IsInjectionEnabled() {
+			ns.Labels["istio-injection"] = "enabled"
+		}
 		return nil
 	}); err != nil {
 		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}

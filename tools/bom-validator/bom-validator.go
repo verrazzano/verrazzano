@@ -40,9 +40,7 @@ type imageError struct {
 	clusterImageTags [tagLen]string
 }
 
-var ignoreSubComponents = []string{
-	"additional-rancher",
-}
+var ignoreSubComponents = []string{}
 
 func main() {
 	var vBom verrazzanoBom                                // BOM from platform operator in struct form

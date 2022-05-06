@@ -216,7 +216,7 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 
 	// Pre-create the Verrazzano System namespace if it doesn't already exist, before kicking off the install job,
 	// since it is needed for the subsequent step to syncLocalRegistration secret.
-	if err := r.createVerrazzanoSystemNamespace(ctx, log); err != nil {
+	if err := r.createVerrazzanoSystemNamespace(ctx, actualCR, log); err != nil {
 		return newRequeueWithDelay(), err
 	}
 
@@ -291,30 +291,33 @@ func (r *Reconciler) ProcUninstallingState(vzctx vzcontext.VerrazzanoContext) (c
 
 // ProcUpgradingState processes the CR while in the upgrading state
 func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
-	vz := vzctx.ActualCR
+	actualCR := vzctx.ActualCR
 	log := vzctx.Log
 	log.Debug("Entering ProcUpgradingState")
 
 	// Check if Verrazzano resource is being deleted
-	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.procDelete(context.TODO(), log, vz)
+	if !actualCR.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.procDelete(context.TODO(), log, actualCR)
 	}
 
 	// check for need to pause the upgrade due to VPO update
-	if bomVersion, isNewer := isOperatorNewerVersionThanCR(vz.Spec.Version); isNewer {
+	if bomVersion, isNewer := isOperatorNewerVersionThanCR(actualCR.Spec.Version); isNewer {
 		// upgrade needs to be restarted due to newer operator
 		log.Progressf("Upgrade is being paused pending Verrazzano version update to version %s", bomVersion)
 
-		err := r.updateStatus(log, vz,
-			fmt.Sprintf("Verrazzano upgrade to version %s paused. Upgrade will be performed when version is updated to %s", vz.Spec.Version, bomVersion),
+		err := r.updateStatus(log, actualCR,
+			fmt.Sprintf("Verrazzano upgrade to version %s paused. Upgrade will be performed when version is updated to %s", actualCR.Spec.Version, bomVersion),
 			installv1alpha1.CondUpgradePaused)
 		return newRequeueWithDelay(), err
 	}
 
-	if result, err := r.reconcileUpgrade(log, vz); err != nil {
-		return newRequeueWithDelay(), err
-	} else if vzctrl.ShouldRequeue(result) {
-		return result, nil
+	// Only upgrade if Version has changed.  When upgrade completes, it will update the status version, see upgrade.go
+	if len(actualCR.Spec.Version) > 0 && actualCR.Spec.Version != actualCR.Status.Version {
+		if result, err := r.reconcileUpgrade(log, actualCR); err != nil {
+			return newRequeueWithDelay(), err
+		} else if vzctrl.ShouldRequeue(result) {
+			return result, nil
+		}
 	}
 
 	// Install any new components and do any updates to existing components
@@ -325,9 +328,9 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 	}
 
 	// Upgrade done along with any post-upgrade installations of new components that are enabled by default.
-	msg := fmt.Sprintf("Verrazzano successfully upgraded to version %s", vz.Spec.Version)
+	msg := fmt.Sprintf("Verrazzano successfully upgraded to version %s", actualCR.Spec.Version)
 	log.Once(msg)
-	if err := r.updateStatus(log, vz, msg, installv1alpha1.CondUpgradeComplete); err != nil {
+	if err := r.updateStatus(log, actualCR, msg, installv1alpha1.CondUpgradeComplete); err != nil {
 		return newRequeueWithDelay(), err
 	}
 	return ctrl.Result{}, nil
@@ -915,17 +918,26 @@ func (r *Reconciler) getInternalConfigMap(ctx context.Context, vz *installv1alph
 }
 
 // createVerrazzanoSystemNamespace creates the Verrazzano system namespace if it does not already exist
-func (r *Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, log vzlog.VerrazzanoLogger) error {
+func (r *Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, cr *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) error {
+	// remove injection label if disabled
+	istio := cr.Spec.Components.Istio
+	if istio != nil && !istio.IsInjectionEnabled() {
+		log.Infof("Disabling istio sidecar injection for Verrazzano system components")
+		systemNamespaceLabels["istio-injection"] = "disabled"
+	}
+	log.Debugf("Verrazzano system namespace labels: %v", systemNamespaceLabels)
 	// First check if VZ system namespace exists. If not, create it.
 	var vzSystemNS corev1.Namespace
 	err := r.Get(ctx, types.NamespacedName{Name: vzconst.VerrazzanoSystemNamespace}, &vzSystemNS)
 	if err != nil {
+		log.Debugf("Creating Verrazzano system namespace")
 		if !errors.IsNotFound(err) {
 			log.Errorf("Failed to get namespace %s: %v", vzconst.VerrazzanoSystemNamespace, err)
 			return err
 		}
 		vzSystemNS.Name = vzconst.VerrazzanoSystemNamespace
 		vzSystemNS.Labels, _ = mergeMaps(nil, systemNamespaceLabels)
+		log.Oncef("Creating Verrazzano system namespace. Labels: %v", vzSystemNS.Labels)
 		if err := r.Create(ctx, &vzSystemNS); err != nil {
 			log.Errorf("Failed to create namespace %s: %v", vzconst.VerrazzanoSystemNamespace, err)
 			return err
@@ -933,6 +945,7 @@ func (r *Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, log vz
 		return nil
 	}
 	// Namespace exists, see if we need to add the label
+	log.Oncef("Updating Verrazzano system namespace")
 	var updated bool
 	vzSystemNS.Labels, updated = mergeMaps(vzSystemNS.Labels, systemNamespaceLabels)
 	if !updated {
@@ -953,9 +966,15 @@ func mergeMaps(to map[string]string, from map[string]string) (map[string]string,
 	}
 	var updated bool
 	for k, v := range from {
-		if _, ok := mergedMap[k]; !ok {
+		if existingVal, ok := mergedMap[k]; !ok {
 			mergedMap[k] = v
 			updated = true
+		} else {
+			// check to see if the value changed and, if it has, treat as an update
+			if v != existingVal {
+				mergedMap[k] = v
+				updated = true
+			}
 		}
 	}
 	return mergedMap, updated

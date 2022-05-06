@@ -25,7 +25,7 @@ pipeline {
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
-                choices: [ "1.22", "1.21", "1.20" ])
+                choices: [ "1.22", "1.23", "1.21", "1.20" ])
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
@@ -119,7 +119,7 @@ pipeline {
         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
 
         // how many nodes in the KIND cluster
-        KIND_NODE_COUNT = 2
+        KIND_NODE_COUNT = 3
     }
 
     stages {
@@ -420,6 +420,22 @@ pipeline {
                     }
                     steps {
                         runGinkgo('update/authproxy')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
+                stage('Nginx/Istio Update Tests') {
+                    environment {
+                        TEST_ENV = "KIND"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/nginx-istio-update"
+                    }
+                    steps {
+                        runGinkgo('update/nginxistio')
                     }
                     post {
                         always {

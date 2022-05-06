@@ -6,8 +6,10 @@ package secrets
 import (
 	"context"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
 	"time"
 
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
@@ -54,7 +56,7 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 	err := r.List(ctx, vzList, listOpts...)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			zap.S().Infof("VZ not found Secret")
 			return reconcile.Result{}, nil
 		}
@@ -89,6 +91,19 @@ func (r *VerrazzanoSecretsReconciler) initLogger(secret corev1.Secret) (ctrl.Res
 	}
 	r.log = log
 	return ctrl.Result{}, nil
+}
+
+func (r *VerrazzanoSecretsReconciler) multiclusterNamespaceExists() bool {
+	ns := corev1.Namespace{}
+	err := r.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoMultiClusterNamespace}, &ns)
+	if err == nil {
+		return true
+	}
+	if !apierrors.IsNotFound(err) {
+		r.log.ErrorfThrottled("Unexpected error checking for namespace %s: %v", constants.VerrazzanoMultiClusterNamespace, err)
+	}
+	r.log.Progressf("Namespace %s does not exist, nothing to do", constants.VerrazzanoMultiClusterNamespace)
+	return false
 }
 
 // Create a new Result that will cause a reconcile requeue after a short delay

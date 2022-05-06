@@ -194,6 +194,21 @@
           "unit": "none"
         },
         {
+          "alias": "Verrazzano Cluster",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "pattern": "verrazzano_cluster",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
           "alias": "",
           "align": "auto",
           "colorMode": null,
@@ -211,7 +226,7 @@
       ],
       "targets": [
         {
-          "expr": "count(vendor:coherence_connection_manager_total_request_count{cluster=~\"$ClusterName\",protocol=~\"http\"}) by (name) ",
+          "expr": "count(vendor:coherence_connection_manager_total_request_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",protocol=~\"http\"}) by (verrazzano_cluster, name) ",
           "format": "table",
           "instant": true,
           "intervalFactor": 1,
@@ -219,7 +234,7 @@
           "refId": "A"
         },
         {
-          "expr": "sum(vendor:coherence_connection_manager_total_request_count{cluster=~\"$ClusterName\",protocol=~\"http\"}) by (name) ",
+          "expr": "sum(vendor:coherence_connection_manager_total_request_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",protocol=~\"http\"}) by (verrazzano_cluster, name) ",
           "format": "table",
           "instant": true,
           "intervalFactor": 1,
@@ -227,7 +242,7 @@
           "refId": "B"
         },
         {
-          "expr": "sum(vendor:coherence_connection_manager_total_error_count{cluster=~\"$ClusterName\",protocol=~\"http\"}) by (name) ",
+          "expr": "sum(vendor:coherence_connection_manager_total_error_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",protocol=~\"http\"}) by (verrazzano_cluster, name) ",
           "format": "table",
           "instant": true,
           "intervalFactor": 1,
@@ -235,7 +250,7 @@
           "refId": "C"
         },
         {
-          "expr": "sum(vendor:coherence_connection_manager_average_request_time{cluster=~\"$ClusterName\",protocol=~\"http\"}) by (name) ",
+          "expr": "sum(vendor:coherence_connection_manager_average_request_time{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",protocol=~\"http\"}) by (verrazzano_cluster, name) ",
           "format": "table",
           "instant": true,
           "intervalFactor": 1,
@@ -290,7 +305,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "vendor:coherence_connection_manager_total_request_count{cluster=~\"$ClusterName\",protocol=~\"http\"} - vendor:coherence_connection_manager_total_request_count{cluster=~\"$ClusterName\",protocol=~\"http\"} offset $__interval ",
+          "expr": "vendor:coherence_connection_manager_total_request_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",protocol=~\"http\"} - vendor:coherence_connection_manager_total_request_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",protocol=~\"http\"} offset $__interval ",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -384,7 +399,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "vendor:coherence_connection_manager_response_1xx_count{cluster=~\"$ClusterName\",protocol=~\"http\"} - vendor:coherence_connection_manager_response_1xx_count{cluster=~\"$ClusterName\",protocol=~\"http\"} offset $__interval",
+          "expr": "vendor:coherence_connection_manager_response_1xx_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",protocol=~\"http\"} - vendor:coherence_connection_manager_response_1xx_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",protocol=~\"http\"} offset $__interval",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -392,7 +407,7 @@
           "refId": "A"
         },
         {
-          "expr": "vendor:coherence_connection_manager_response_2xx_count{cluster=~\"$ClusterName\",protocol=~\"http\"} - vendor:coherence_connection_manager_response_2xx_count{cluster=~\"$ClusterName\",protocol=~\"http\"} offset $__interval ",
+          "expr": "vendor:coherence_connection_manager_response_2xx_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",protocol=~\"http\"} - vendor:coherence_connection_manager_response_2xx_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",protocol=~\"http\"} offset $__interval ",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -400,7 +415,7 @@
           "refId": "B"
         },
         {
-          "expr": "vendor:coherence_connection_manager_response_3xx_count{cluster=~\"$ClusterName\",protocol=~\"http\"} - vendor:coherence_connection_manager_response_3xx_count{cluster=~\"$ClusterName\",protocol=~\"http\"} offset $__interval",
+          "expr": "vendor:coherence_connection_manager_response_3xx_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",protocol=~\"http\"} - vendor:coherence_connection_manager_response_3xx_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",protocol=~\"http\"} offset $__interval",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -408,7 +423,7 @@
           "refId": "C"
         },
         {
-          "expr": "vendor:coherence_connection_manager_response_4xx_count{cluster=~\"$ClusterName\",protocol=~\"http\"} - vendor:coherence_connection_manager_response_4xx_count{cluster=~\"$ClusterName\",protocol=~\"http\"} offset $__interval ",
+          "expr": "vendor:coherence_connection_manager_response_4xx_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",protocol=~\"http\"} - vendor:coherence_connection_manager_response_4xx_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",protocol=~\"http\"} offset $__interval ",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -416,7 +431,7 @@
           "refId": "D"
         },
         {
-          "expr": "vendor:coherence_connection_manager_response_5xx_count{cluster=~\"$ClusterName\",protocol=~\"http\"} - vendor:coherence_connection_manager_response_5xx_count{cluster=~\"$ClusterName\",protocol=~\"http\"} offset $__interval",
+          "expr": "vendor:coherence_connection_manager_response_5xx_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",protocol=~\"http\"} - vendor:coherence_connection_manager_response_5xx_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",protocol=~\"http\"} offset $__interval",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -478,17 +493,43 @@
       {
         "allValue": null,
         "current": {
+          "selected": false,
+          "text": "None",
+          "value": ""
         },
         "datasource": "Prometheus",
-        "definition": "",
+        "definition": "label_values(verrazzano_cluster)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Verrazzano Cluster",
+        "multi": false,
+        "name": "vzcluster",
+        "options": [],
+        "query": "label_values(verrazzano_cluster)",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {
+        },
+        "datasource": "Prometheus",
+        "definition": "label_values(vendor:coherence_cluster_size{verrazzano_cluster=~\"$vzcluster\"}, cluster)",
         "hide": 0,
         "includeAll": false,
         "index": -1,
-        "label": "Cluster Name",
+        "label": "Coherence Cluster",
         "multi": false,
         "name": "ClusterName",
         "options": [],
-        "query": "label_values(vendor:coherence_cluster_size, cluster)",
+        "query": "label_values(vendor:coherence_cluster_size{verrazzano_cluster=~\"$vzcluster\"}, cluster)",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -504,7 +545,7 @@
         "current": {
         },
         "datasource": "Prometheus",
-        "definition": "",
+        "definition": "label_values(vendor:coherence_cluster_size{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\"}, version)",
         "hide": 2,
         "includeAll": false,
         "index": -1,
@@ -512,7 +553,7 @@
         "multi": false,
         "name": "CoherenceVersion",
         "options": [],
-        "query": "label_values(vendor:coherence_cluster_size{cluster=~\"$ClusterName\"}, version)",
+        "query": "label_values(vendor:coherence_cluster_size{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\"}, version)",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,

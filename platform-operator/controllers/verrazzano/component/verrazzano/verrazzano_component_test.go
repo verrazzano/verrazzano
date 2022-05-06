@@ -201,7 +201,7 @@ func TestGetCertificateNames(t *testing.T) {
 				DNS: &vzapi.DNSComponent{
 					External: &vzapi.External{Suffix: "blah"},
 				},
-				Prometheus: &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &vmiEnabled}},
+				Prometheus: &vzapi.PrometheusComponent{Enabled: &vmiEnabled},
 			},
 		},
 	}
@@ -463,7 +463,7 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 			new: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
-						Console: &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &disabled}},
+						Console: &vzapi.ConsoleComponent{Enabled: &disabled},
 					},
 				},
 			},
@@ -475,7 +475,7 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 			new: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
-						Prometheus: &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &disabled}},
+						Prometheus: &vzapi.PrometheusComponent{Enabled: &disabled},
 					},
 				},
 			},

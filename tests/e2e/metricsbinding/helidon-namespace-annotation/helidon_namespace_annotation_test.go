@@ -31,7 +31,7 @@ var (
 
 var _ = clusterDump.BeforeSuite(func() {
 	start := time.Now()
-	metricsbinding.DeployApplicationAndTemplate(namespace, yamlPath, templatePath, applicationPodPrefix, map[string]string{"app.verrazzano.io/metrics": "standard-k8s-metrics-template"}, *t)
+	metricsbinding.DeployApplicationAndTemplate(namespace, yamlPath, templatePath, applicationPodPrefix, map[string]string{"app.verrazzano.io/metrics": "standard-k8s-metrics-template"}, *t, istioInjection)
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
