@@ -138,8 +138,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling ingress trait resource %v, generation %v", req.NamespacedName, trait.Generation)
-
-	res, err := r.doReconcile(ctx, trait, log)
+	// Get the namespace resource that the VerrazzanoCoherenceWorkload resource is deployed to
+	namespace := &corev1.Namespace{}
+	if err = r.Client.Get(ctx, client.ObjectKey{Namespace: "", Name: trait.Namespace}, namespace); err != nil {
+		return reconcile.Result{}, err
+	}
+	res, err := r.doReconcile(ctx, trait, log, namespace)
 	if clusters.ShouldRequeue(res) {
 		return res, nil
 	}
@@ -155,7 +159,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 }
 
 // doReconcile performs the reconciliation operations for the ingress trait
-func (r *Reconciler) doReconcile(ctx context.Context, trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
+func (r *Reconciler) doReconcile(ctx context.Context, trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger, namespace *corev1.Namespace) (ctrl.Result, error) {
 	// If the ingress trait no longer exists or is being deleted then cleanup the associated cert and secret resources
 	if isIngressTraitBeingDeleted(trait) {
 		log.Debugf("Deleting ingress trait %v", trait)
@@ -176,7 +180,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, trait *vzapi.IngressTrait,
 	}
 
 	// Create or update the child resources of the trait and collect the outcomes.
-	status, result, err := r.createOrUpdateChildResources(ctx, trait, log)
+	status, result, err := r.createOrUpdateChildResources(ctx, trait, log, namespace)
 	if err != nil {
 		return reconcile.Result{}, err
 	} else if result.Requeue {
@@ -222,7 +226,7 @@ func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, appConfig *vzap
 
 // createOrUpdateChildResources creates or updates the Gateway and VirtualService resources that
 // should be used to setup ingress to the service.
-func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) (*reconcileresults.ReconcileResults, ctrl.Result, error) {
+func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger, namespace *corev1.Namespace) (*reconcileresults.ReconcileResults, ctrl.Result, error) {
 	status := reconcileresults.ReconcileResults{}
 	rules := trait.Spec.Rules
 	// If there are no rules, create a single default rule
@@ -256,7 +260,7 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 				vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, index)
 				drName := fmt.Sprintf("%s-rule-%d-dr", trait.Name, index)
 				r.createOrUpdateVirtualService(ctx, trait, rule, allHostsForTrait, vsName, services, gateway, &status, log)
-				r.createOrUpdateDestinationRule(ctx, trait, rule, drName, &status, log, services)
+				r.createOrUpdateDestinationRule(ctx, trait, rule, drName, &status, log, services, namespace)
 			}
 		}
 	}
@@ -689,7 +693,7 @@ func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualSer
 }
 
 //createOfUpdateDestinationRule creates or updates the DestinationRule.
-func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger, services []*corev1.Service) {
+func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger, services []*corev1.Service, namespace *corev1.Namespace) {
 	if rule.Destination.HTTPCookie != nil {
 		destinationRule := &istioclient.DestinationRule{
 			TypeMeta: metav1.TypeMeta{
@@ -701,7 +705,7 @@ func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *v
 		}
 
 		res, err := controllerutil.CreateOrUpdate(ctx, r.Client, destinationRule, func() error {
-			return r.mutateDestinationRule(destinationRule, trait, rule, services)
+			return r.mutateDestinationRule(destinationRule, trait, rule, services, namespace)
 		})
 
 		ref := vzapi.QualifiedResourceRelation{APIVersion: destinationRuleAPIVersion, Kind: destinationRuleKind, Name: name, Role: "destinationrule"}
@@ -715,10 +719,16 @@ func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *v
 	}
 }
 
-func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.DestinationRule, trait *vzapi.IngressTrait, rule vzapi.IngressRule, services []*corev1.Service) error {
+func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.DestinationRule, trait *vzapi.IngressTrait, rule vzapi.IngressRule, services []*corev1.Service, namespace *corev1.Namespace) error {
 	dest, err := createDestinationFromRuleOrService(rule, services)
 	if err != nil {
 		return err
+	}
+
+	istioEnabled := false
+	value, ok := namespace.Labels["istio-injection"]
+	if ok && value == "enabled" {
+		istioEnabled = true
 	}
 	destinationRule.Spec = istionet.DestinationRule{
 		Host: dest.Destination.Host,
@@ -739,6 +749,17 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 				},
 			},
 		},
+	}
+	if !istioEnabled {
+		destinationRule.Spec.TrafficPolicy.PortLevelSettings = []*istionet.TrafficPolicy_PortTrafficPolicy{
+			{
+				// Disable mutual TLS for the Coherence extend port
+				Port: dest.Destination.Port,
+				Tls: &istionet.ClientTLSSettings{
+					Mode: istionet.ClientTLSSettings_DISABLE,
+				},
+			},
+		}
 	}
 
 	return controllerutil.SetControllerReference(trait, destinationRule, r.Scheme)
