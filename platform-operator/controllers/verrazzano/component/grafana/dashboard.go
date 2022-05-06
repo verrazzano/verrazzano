@@ -37,6 +37,7 @@ var dashboardList = []string{
 	"manifests/dashboards/coherence/machines-summary-dashboard.json",
 	"manifests/dashboards/helidon/helidon_dashboard.json",
 	"manifests/dashboards/system/system_dashboard.json",
+	"manifests/dashboards/system/opensearch_dashboard.json",
 }
 
 func createGrafanaConfigMaps(ctx spi.ComponentContext) error {
