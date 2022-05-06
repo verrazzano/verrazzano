@@ -21,6 +21,10 @@ import (
 
 var upgradeVersion = os.Getenv("VERRAZZANO_UPGRADE_VERSION")
 
+const (
+	allowUpdatesDuringUpgradeEnvVar = "ALLOW_UPDATES_DURING_UPGRADE"
+)
+
 var t = framework.NewTestFramework("verify")
 
 var _ = t.BeforeSuite(func() {
@@ -71,8 +75,9 @@ var _ = t.Describe("Verify upgrade required before update is allowed", Label("f:
 					return
 				}
 				if upgradeSemVer.IsLessThan(minimumVerrazzanoVersion) {
+					os.Setenv(allowUpdatesDuringUpgradeEnvVar, "false")
 					Skip(fmt.Sprintf("Skipping the upgrade-required check spec since the upgrade Verrazzano "+
-						"version %s is less than %s version", upgradeVersion, minimumVersion))
+						"version %s is less than version %s", upgradeVersion, minimumVersion))
 				}
 			}
 			vz, err := pkg.GetVerrazzano()
