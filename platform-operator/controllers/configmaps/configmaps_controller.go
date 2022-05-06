@@ -44,7 +44,9 @@ func (r *VerrazzanoConfigMapsReconciler) Reconcile(ctx context.Context, req ctrl
 	}
 
 	vzList := &installv1alpha1.VerrazzanoList{}
-	listOpts := []client.ListOption{}
+	listOpts := []client.ListOption{
+		client.InNamespace(""),
+	}
 	err := r.List(ctx, vzList, listOpts...)
 	if err != nil {
 		if errors.IsNotFound(err) {
