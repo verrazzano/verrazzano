@@ -15,7 +15,6 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 22,
   "links": [],
   "panels": [
     {
@@ -90,7 +89,7 @@
       "id": 2,
       "options": {
         "colorMode": "background",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
@@ -107,7 +106,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "es_cluster_status{cluster=\"system\"}",
+          "expr": "sum(es_cluster_status{cluster=\"system\"})/count(es_cluster_status{cluster=\"system\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -174,7 +173,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "es_cluster_nodes_number{verrazzano_cluster=\"local\"}",
+          "expr": "sum(es_cluster_nodes_number{verrazzano_cluster=\"local\"})/count(es_cluster_nodes_number{verrazzano_cluster=\"local\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -243,7 +242,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "es_cluster_datanodes_number{verrazzano_cluster=\"local\"}",
+          "expr": "sum(es_cluster_datanodes_number{verrazzano_cluster=\"local\"})/count(es_cluster_datanodes_number{verrazzano_cluster=\"local\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -369,7 +368,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "es_cluster_pending_tasks_number{verrazzano_cluster=\"local\"}",
+          "expr": "sum(es_cluster_pending_tasks_number{verrazzano_cluster=\"local\"})/count(es_cluster_pending_tasks_number{verrazzano_cluster=\"local\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -408,10 +407,6 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           }
@@ -528,8 +523,12 @@
                 "value": null
               },
               {
+                "color": "#EAB839",
+                "value": 3
+              },
+              {
                 "color": "red",
-                "value": 80
+                "value": 10
               }
             ]
           }
@@ -1328,14 +1327,14 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "(1 - (es_fs_path_available_bytes /es_fs_path_total_bytes))* 100",
+          "expr": "max((1 - (es_fs_path_available_bytes /es_fs_path_total_bytes))* 100)",
           "interval": "",
           "legendFormat": "current_disk_watermark",
           "refId": "A"
         },
         {
           "exemplar": true,
-          "expr": "es_cluster_routing_allocation_disk_watermark_low_pct{cluster=\"system\"}",
+          "expr": "max(es_cluster_routing_allocation_disk_watermark_low_pct{cluster=\"system\"})",
           "hide": false,
           "interval": "",
           "legendFormat": "disk_watermark_low_pct",
@@ -1343,7 +1342,7 @@
         },
         {
           "exemplar": true,
-          "expr": "es_cluster_routing_allocation_disk_watermark_high_pct{cluster=\"system\"}",
+          "expr": "max(es_cluster_routing_allocation_disk_watermark_high_pct{cluster=\"system\"})",
           "hide": false,
           "interval": "",
           "legendFormat": "disk_watermark_high_pct",
@@ -1351,7 +1350,7 @@
         },
         {
           "exemplar": true,
-          "expr": "es_cluster_routing_allocation_disk_watermark_flood_stage_pct{cluster=\"system\"}",
+          "expr": "max(es_cluster_routing_allocation_disk_watermark_flood_stage_pct{cluster=\"system\"})",
           "hide": false,
           "interval": "",
           "legendFormat": "disk_watermark_flood_stage_pct",
@@ -1498,6 +1497,7 @@
       }
     }
   ],
+  "refresh": false,
   "schemaVersion": 27,
   "style": "dark",
   "tags": [],
@@ -1512,5 +1512,5 @@
   "timezone": "",
   "title": "OpenSearch Prometheus",
   "uid": "pIZicTl7z",
-  "version": 4
+  "version": 1
 }
