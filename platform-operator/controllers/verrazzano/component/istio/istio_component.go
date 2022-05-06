@@ -178,7 +178,7 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 	vz := context.EffectiveCR()
 	defer os.Remove(tmpFile.Name())
 	if vz.Spec.Components.Istio != nil {
-		istioOperatorYaml, err := BuildIstioOperatorYaml(vz.Spec.Components.Istio)
+		istioOperatorYaml, err := BuildIstioOperatorYaml(context, vz.Spec.Components.Istio)
 		if err != nil {
 			return log.ErrorfNewErr("Failed to Build IstioOperator YAML: %v", err)
 		}
@@ -232,6 +232,9 @@ func (i istioComponent) GetDependencies() []string {
 }
 
 func (i istioComponent) PreUpgrade(context spi.ComponentContext) error {
+	if !vzconfig.IsApplicationOperatorEnabled(context.ActualCR()) {
+		return nil
+	}
 	context.Log().Infof("Stopping WebLogic domains that are have Envoy 1.7.3 sidecar")
 	return StopDomainsUsingOldEnvoy(context.Log(), context.Client())
 }
@@ -306,64 +309,10 @@ func removeIstioHelmSecrets(compContext spi.ComponentContext) error {
 	return nil
 }
 
-func appendJaegerCollectorArg(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	if !vzconfig.IsJaegerOperatorEnabled(ctx.EffectiveCR()) {
-		return kvs, nil
-	}
-
-	services := &v1.ServiceList{}
-	selector := clipkg.MatchingLabels{
-		constants.KubernetesAppLabel: constants.JaegerCollectorService,
-	}
-	if err := ctx.Client().List(context.TODO(), services, selector); err != nil {
-		return kvs, err
-	}
-
-	for _, service := range services.Items {
-		// do not use the headless service
-		if !strings.Contains(service.Name, "headless") {
-			port := zipkinPort(service)
-			collectorURL := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
-				service.Name,
-				service.Namespace,
-				port,
-			)
-			kvs = append(kvs, bom.KeyValue{
-				Key:   "meshConfig.defaultConfig.tracing.zipkin.address",
-				Value: collectorURL,
-			},
-				bom.KeyValue{
-					Key:   "meshConfig.defaultConfig.tracing.tlsSettings.mode",
-					Value: "ISTIO_MUTUAL",
-				},
-				bom.KeyValue{
-					Key:   "meshConfig.enableTracing",
-					Value: "true",
-				})
-			return kvs, nil
-		}
-	}
-	return kvs, nil
-}
-
-//zipkinPort retrieves the zipkin port from the service, if it is present. Defaults to 9411 for Jaeger collector
-func zipkinPort(service v1.Service) int32 {
-	for _, port := range service.Spec.Ports {
-		if port.Name == "http-zipkin" {
-			return port.Port
-		}
-	}
-	return 9411
-}
-
 func getOverridesString(ctx spi.ComponentContext) (string, error) {
 	var kvs []bom.KeyValue
 	// check for global image pull secret
 	kvs, err := secret.AddGlobalImagePullSecretHelmOverride(ctx.Log(), ctx.Client(), IstioNamespace, kvs, imagePullSecretHelmKey)
-	if err != nil {
-		return "", err
-	}
-	kvs, err = appendJaegerCollectorArg(ctx, kvs)
 	if err != nil {
 		return "", err
 	}

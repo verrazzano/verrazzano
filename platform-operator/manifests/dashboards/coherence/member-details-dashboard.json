@@ -13,7 +13,7 @@
       {
         "datasource": "Prometheus",
         "enable": true,
-        "expr": "changes(vendor:coherence_cluster_size{cluster=~\"$ClusterName\"}[1m])",
+        "expr": "changes(vendor:coherence_cluster_size{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\"}[1m])",
         "hide": false,
         "iconColor": "rgba(255, 96, 96, 1)",
         "limit": 100,
@@ -154,7 +154,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "vendor:coherence_memory_heap_memory_usage_used{cluster=~\"$ClusterName\",member=~\"$MemberName\"}  ",
+          "expr": "vendor:coherence_memory_heap_memory_usage_used{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",member=~\"$MemberName\"}  ",
           "format": "time_series",
           "instant": true,
           "intervalFactor": 1,
@@ -236,7 +236,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "vendor:coherence_memory_heap_memory_usage_max{cluster=~\"$ClusterName\",member=~\"$MemberName\"}  ",
+          "expr": "vendor:coherence_memory_heap_memory_usage_max{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",member=~\"$MemberName\"}  ",
           "format": "time_series",
           "instant": true,
           "intervalFactor": 1,
@@ -318,7 +318,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "vendor:coherence_memory_heap_memory_usage_used{cluster=~\"$ClusterName\",member=~\"$MemberName\"} / vendor:coherence_memory_heap_memory_usage_max{cluster=~\"$ClusterName\",member=~\"$MemberName\"}  ",
+          "expr": "vendor:coherence_memory_heap_memory_usage_used{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",member=~\"$MemberName\"} / vendor:coherence_memory_heap_memory_usage_max{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",member=~\"$MemberName\"}  ",
           "format": "time_series",
           "instant": true,
           "intervalFactor": 1,
@@ -400,7 +400,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "vendor:coherence_node_publisher_success_rate{cluster=~\"$ClusterName\",member=~\"$MemberName\"} ",
+          "expr": "vendor:coherence_node_publisher_success_rate{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",member=~\"$MemberName\"} ",
           "format": "time_series",
           "instant": true,
           "intervalFactor": 1,
@@ -482,7 +482,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "vendor:coherence_node_receiver_success_rate{cluster=~\"$ClusterName\",member=~\"$MemberName\"} ",
+          "expr": "vendor:coherence_node_receiver_success_rate{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",member=~\"$MemberName\"} ",
           "format": "time_series",
           "instant": true,
           "intervalFactor": 1,
@@ -622,6 +622,21 @@
           "unit": "percentunit"
         },
         {
+          "alias": "Verrazzano Cluster",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "pattern": "verrazzano_cluster",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
           "alias": "",
           "align": "auto",
           "colorMode": null,
@@ -647,7 +662,7 @@
           "refId": "D"
         },
         {
-          "expr": "sum(vendor:coherence_service_thread_count{cluster=~\"$ClusterName\",member=~\"$MemberName\"}) by (name) > 0",
+          "expr": "sum(vendor:coherence_service_thread_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",member=~\"$MemberName\"}) by (verrazzano_cluster, name) > 0",
           "format": "table",
           "instant": true,
           "intervalFactor": 1,
@@ -655,7 +670,7 @@
           "refId": "A"
         },
         {
-          "expr": "sum(vendor:coherence_service_thread_idle_count{cluster=~\"$ClusterName\",member=~\"$MemberName\"}) by (name) > 0",
+          "expr": "sum(vendor:coherence_service_thread_idle_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",member=~\"$MemberName\"}) by (verrazzano_cluster, name) > 0",
           "format": "table",
           "instant": true,
           "intervalFactor": 1,
@@ -663,7 +678,7 @@
           "refId": "B"
         },
         {
-          "expr": "(sum(vendor:coherence_service_thread_count{cluster=~\"$ClusterName\",member=~\"$MemberName\"}) by (name) - sum(vendor:coherence_service_thread_idle_count{cluster=~\"$ClusterName\",member=~\"$MemberName\"}) by (name)) / (sum(vendor:coherence_service_thread_count{cluster=~\"$ClusterName\",member=~\"$MemberName\"}) by (name)) ",
+          "expr": "(sum(vendor:coherence_service_thread_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",member=~\"$MemberName\"}) by (verrazzano_cluster, name) - sum(vendor:coherence_service_thread_idle_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",member=~\"$MemberName\"}) by (verrazzano_cluster, name)) / (sum(vendor:coherence_service_thread_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",member=~\"$MemberName\"}) by (verrazzano_cluster, name)) ",
           "format": "table",
           "instant": true,
           "intervalFactor": 1,
@@ -735,7 +750,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "vendor:coherence_gc_collection_count{cluster=~\"$ClusterName\", member=~\"$MemberName\"} - vendor:coherence_gc_collection_count{cluster=~\"$ClusterName\", member=~\"$MemberName\"} offset $__interval ",
+          "expr": "vendor:coherence_gc_collection_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\", member=~\"$MemberName\"} - vendor:coherence_gc_collection_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\", member=~\"$MemberName\"} offset $__interval ",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -828,7 +843,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "vendor:coherence_gc_collection_time{cluster=~\"$ClusterName\", member=~\"$MemberName\"} - vendor:coherence_gc_collection_time{cluster=~\"$ClusterName\", member=~\"$MemberName\"} offset $__interval ",
+          "expr": "vendor:coherence_gc_collection_time{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\", member=~\"$MemberName\"} - vendor:coherence_gc_collection_time{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\", member=~\"$MemberName\"} offset $__interval ",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -920,7 +935,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "vendor:coherence_memory_heap_memory_usage_max{cluster=~\"$ClusterName\", member=~\"$MemberName\"}",
+          "expr": "vendor:coherence_memory_heap_memory_usage_max{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\", member=~\"$MemberName\"}",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -928,7 +943,7 @@
           "refId": "A"
         },
         {
-          "expr": "vendor:coherence_memory_heap_memory_usage_used{cluster=~\"$ClusterName\", member=~\"$MemberName\"}",
+          "expr": "vendor:coherence_memory_heap_memory_usage_used{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\", member=~\"$MemberName\"}",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1019,7 +1034,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "vendor:coherence_memory_non_heap_memory_usage_used{cluster=~\"$ClusterName\", member=~\"$MemberName\"}",
+          "expr": "vendor:coherence_memory_non_heap_memory_usage_used{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\", member=~\"$MemberName\"}",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1027,7 +1042,7 @@
           "refId": "A"
         },
         {
-          "expr": "vendor:coherence_memory_non_heap_memory_usage_committed{cluster=~\"$ClusterName\", member=~\"$MemberName\"}",
+          "expr": "vendor:coherence_memory_non_heap_memory_usage_committed{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\", member=~\"$MemberName\"}",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1134,7 +1149,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "irate(vendor:coherence_node_packets_sent{cluster=~\"$ClusterName\", member=~\"$MemberName\"}[1m])  ",
+          "expr": "irate(vendor:coherence_node_packets_sent{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\", member=~\"$MemberName\"}[1m])  ",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1227,7 +1242,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "irate(vendor:coherence_node_packets_received{cluster=~\"$ClusterName\", member=~\"$MemberName\"}[1m])",
+          "expr": "irate(vendor:coherence_node_packets_received{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\", member=~\"$MemberName\"}[1m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1319,7 +1334,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "vendor:coherence_node_publisher_success_rate{cluster=~\"$ClusterName\", member=~\"$MemberName\"}",
+          "expr": "vendor:coherence_node_publisher_success_rate{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\", member=~\"$MemberName\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "",
@@ -1410,7 +1425,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "vendor:coherence_node_receiver_success_rate{cluster=~\"$ClusterName\", member=~\"$MemberName\"}",
+          "expr": "vendor:coherence_node_receiver_success_rate{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\", member=~\"$MemberName\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "",
@@ -1503,7 +1518,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "vendor:coherence_node_guard_recover_count{cluster=~\"$ClusterName\", member=~\"$MemberName\"}  - vendor:coherence_node_guard_recover_count{cluster=~\"$ClusterName\", member=~\"$MemberName\"} offset $__interval ",
+          "expr": "vendor:coherence_node_guard_recover_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\", member=~\"$MemberName\"}  - vendor:coherence_node_guard_recover_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\", member=~\"$MemberName\"} offset $__interval ",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1511,7 +1526,7 @@
           "refId": "A"
         },
         {
-          "expr": "vendor:coherence_node_guard_terminate_count{cluster=~\"$ClusterName\", member=~\"$MemberName\"} - vendor:coherence_node_guard_terminate_count{cluster=~\"$ClusterName\", member=~\"$MemberName\"} offset $__interval ",
+          "expr": "vendor:coherence_node_guard_terminate_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\", member=~\"$MemberName\"} - vendor:coherence_node_guard_terminate_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\", member=~\"$MemberName\"} offset $__interval ",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1603,7 +1618,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "vendor:coherence_node_send_queue_size{cluster=~\"$ClusterName\", member=~\"$MemberName\"}",
+          "expr": "vendor:coherence_node_send_queue_size{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\", member=~\"$MemberName\"}",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1666,17 +1681,19 @@
       {
         "allValue": null,
         "current": {
+          "selected": false,
+          "text": "None",
+          "value": ""
         },
         "datasource": "Prometheus",
-        "definition": "",
+        "definition": "label_values(verrazzano_cluster)",
         "hide": 0,
-        "includeAll": false,
-        "index": -1,
-        "label": "Cluster Name",
+        "includeAll": true,
+        "label": "Verrazzano Cluster",
         "multi": false,
-        "name": "ClusterName",
+        "name": "vzcluster",
         "options": [],
-        "query": "label_values(vendor:coherence_cluster_size, cluster)",
+        "query": "label_values(verrazzano_cluster)",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -1692,7 +1709,31 @@
         "current": {
         },
         "datasource": "Prometheus",
-        "definition": "",
+        "definition": "label_values(vendor:coherence_cluster_size{verrazzano_cluster=~\"$vzcluster\"}, cluster)",
+        "hide": 0,
+        "includeAll": false,
+        "index": -1,
+        "label": "Coherence Cluster",
+        "multi": false,
+        "name": "ClusterName",
+        "options": [],
+        "query": "label_values(vendor:coherence_cluster_size{verrazzano_cluster=~\"$vzcluster\"}, cluster)",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {
+        },
+        "datasource": "Prometheus",
+        "definition": "label_values(vendor:coherence_service_member_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\"}, member)",
         "hide": 0,
         "includeAll": false,
         "index": -1,
@@ -1700,7 +1741,7 @@
         "multi": false,
         "name": "MemberName",
         "options": [],
-        "query": "label_values(vendor:coherence_service_member_count{cluster=~\"$ClusterName\"}, member)",
+        "query": "label_values(vendor:coherence_service_member_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\"}, member)",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,

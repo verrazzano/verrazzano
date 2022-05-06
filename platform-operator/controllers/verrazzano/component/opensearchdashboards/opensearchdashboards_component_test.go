@@ -33,7 +33,7 @@ var dnsComponents = vzapi.ComponentSpec{
 var crEnabled = vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		Components: vzapi.ComponentSpec{
-			Kibana: &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: getBoolPtr(true)}},
+			Kibana: &vzapi.KibanaComponent{Enabled: getBoolPtr(true)},
 		},
 	},
 }
@@ -175,7 +175,7 @@ func TestGetCertificateNames(t *testing.T) {
 				DNS: &vzapi.DNSComponent{
 					External: &vzapi.External{Suffix: "blah"},
 				},
-				Kibana: &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &vmiEnabled}},
+				Kibana: &vzapi.KibanaComponent{Enabled: &vmiEnabled},
 			},
 		},
 	}
@@ -318,8 +318,7 @@ func Test_opensearchdashboardComponent_ValidateUpdate(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						Kibana: &vzapi.KibanaComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{
-								Enabled: &disabled},
+							Enabled: &disabled,
 						},
 					},
 				},
@@ -334,8 +333,7 @@ func Test_opensearchdashboardComponent_ValidateUpdate(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						Kibana: &vzapi.KibanaComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{
-								Enabled: &disabled},
+							Enabled: &disabled,
 						},
 					},
 				},
@@ -479,8 +477,7 @@ func Test_opensearchdashboardComponent_ValidateUpdate(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						Kibana: &vzapi.KibanaComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{
-								Enabled: &disabled},
+							Enabled: &disabled,
 						},
 					},
 				},

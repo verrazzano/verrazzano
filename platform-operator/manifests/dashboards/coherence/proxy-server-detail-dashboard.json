@@ -275,6 +275,21 @@
           "unit": "none"
         },
         {
+          "alias": "Verrazzano Cluster",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "pattern": "verrazzano_cluster",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
           "alias": "",
           "align": "auto",
           "colorMode": null,
@@ -292,7 +307,7 @@
       ],
       "targets": [
         {
-          "expr": "sum(vendor:coherence_connection_manager_connection_count{cluster=~\"$ClusterName\",name=~'$ServiceName'}) by (member, host_url)",
+          "expr": "sum(vendor:coherence_connection_manager_connection_count{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",name=~'$ServiceName'}) by (verrazzano_cluster, member, host_url)",
           "format": "table",
           "instant": true,
           "intervalFactor": 1,
@@ -300,7 +315,7 @@
           "refId": "D"
         },
         {
-          "expr": "sum(vendor:coherence_connection_manager_total_messages_received{cluster=~\"$ClusterName\",name=~'$ServiceName'}) by (member, host_url)",
+          "expr": "sum(vendor:coherence_connection_manager_total_messages_received{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",name=~'$ServiceName'}) by (verrazzano_cluster, member, host_url)",
           "format": "table",
           "instant": true,
           "intervalFactor": 1,
@@ -308,7 +323,7 @@
           "refId": "F"
         },
         {
-          "expr": "sum(vendor:coherence_connection_manager_total_messages_sent{cluster=~\"$ClusterName\",name=~'$ServiceName'}) by (member, host_url)",
+          "expr": "sum(vendor:coherence_connection_manager_total_messages_sent{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",name=~'$ServiceName'}) by (verrazzano_cluster, member, host_url)",
           "format": "table",
           "instant": true,
           "intervalFactor": 1,
@@ -316,7 +331,7 @@
           "refId": "E"
         },
         {
-          "expr": "sum(vendor:coherence_connection_manager_total_bytes_received {cluster=~\"$ClusterName\",name=~'$ServiceName'}) by (member, host_url)",
+          "expr": "sum(vendor:coherence_connection_manager_total_bytes_received {verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",name=~'$ServiceName'}) by (verrazzano_cluster, member, host_url)",
           "format": "table",
           "instant": true,
           "intervalFactor": 1,
@@ -324,7 +339,7 @@
           "refId": "B"
         },
         {
-          "expr": "sum(vendor:coherence_connection_manager_total_bytes_sent{cluster=~\"$ClusterName\",name=~'$ServiceName'}) by (member, host)",
+          "expr": "sum(vendor:coherence_connection_manager_total_bytes_sent{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",name=~'$ServiceName'}) by (verrazzano_cluster, member, host)",
           "format": "table",
           "instant": true,
           "intervalFactor": 1,
@@ -332,7 +347,7 @@
           "refId": "A"
         },
         {
-          "expr": "sum(vendor:coherence_connection_manager_outgoing_byte_backlog{cluster=~\"$ClusterName\",name=~'$ServiceName'}) by (member, host)",
+          "expr": "sum(vendor:coherence_connection_manager_outgoing_byte_backlog{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",name=~'$ServiceName'}) by (verrazzano_cluster, member, host)",
           "format": "table",
           "instant": true,
           "intervalFactor": 1,
@@ -340,7 +355,7 @@
           "refId": "C"
         },
         {
-          "expr": "sum(vendor:coherence_connection_manager_unauthorized_connection_attempts{cluster=~\"$ClusterName\",name=~'$ServiceName'}) by (member, host_url)",
+          "expr": "sum(vendor:coherence_connection_manager_unauthorized_connection_attempts{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",name=~'$ServiceName'}) by (verrazzano_cluster, member, host_url)",
           "format": "table",
           "instant": true,
           "intervalFactor": 1,
@@ -471,7 +486,7 @@
       ],
       "targets": [
         {
-          "expr": "avg(vendor:coherence_connection_connection_time_millis{cluster=~\"$ClusterName\",name=~'$ServiceName'}) by (remote_address, remote_port, member, node_id)",
+          "expr": "avg(vendor:coherence_connection_connection_time_millis{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",name=~'$ServiceName'}) by (verrazzano_cluster, remote_address, remote_port, member, node_id)",
           "format": "table",
           "instant": true,
           "intervalFactor": 1,
@@ -525,7 +540,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "vendor:coherence_connection_manager_outgoing_byte_backlog{cluster=~\"$ClusterName\", name=~'$ServiceName', protocol=~\"tcp\"} > 0",
+          "expr": "vendor:coherence_connection_manager_outgoing_byte_backlog{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\", name=~'$ServiceName', protocol=~\"tcp\"} > 0",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{member}}",
@@ -617,7 +632,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "vendor:coherence_connection_manager_outgoing_message_backlog{cluster=~\"$ClusterName\", name=~'$ServiceName'} > 0",
+          "expr": "vendor:coherence_connection_manager_outgoing_message_backlog{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\", name=~'$ServiceName'} > 0",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{member}}",
@@ -714,7 +729,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "vendor:coherence_connection_manager_total_bytes_sent{cluster=~\"$ClusterName\",protocol=~\"tcp\", name=~'$ServiceName'} - vendor:coherence_connection_manager_total_bytes_sent{cluster=~\"$ClusterName\",protocol=~\"tcp\", name=~'$ServiceName'} offset $__interval ",
+          "expr": "vendor:coherence_connection_manager_total_bytes_sent{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",protocol=~\"tcp\", name=~'$ServiceName'} - vendor:coherence_connection_manager_total_bytes_sent{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",protocol=~\"tcp\", name=~'$ServiceName'} offset $__interval ",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -812,7 +827,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "vendor:coherence_connection_manager_total_bytes_received{cluster=~\"$ClusterName\",protocol=~\"tcp\"}  - vendor:coherence_connection_manager_total_bytes_received{cluster=~\"$ClusterName\",protocol=~\"tcp\"} offset $__interval ",
+          "expr": "vendor:coherence_connection_manager_total_bytes_received{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",protocol=~\"tcp\"}  - vendor:coherence_connection_manager_total_bytes_received{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\",protocol=~\"tcp\"} offset $__interval ",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -875,17 +890,43 @@
       {
         "allValue": null,
         "current": {
+          "selected": false,
+          "text": "None",
+          "value": ""
         },
         "datasource": "Prometheus",
-        "definition": "",
+        "definition": "label_values(verrazzano_cluster)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Verrazzano Cluster",
+        "multi": false,
+        "name": "vzcluster",
+        "options": [],
+        "query": "label_values(verrazzano_cluster)",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {
+        },
+        "datasource": "Prometheus",
+        "definition": "label_values(vendor:coherence_cluster_size{verrazzano_cluster=~\"$vzcluster\"}, cluster)",
         "hide": 0,
         "includeAll": false,
         "index": -1,
-        "label": "Cluster Name",
+        "label": " Coherence Cluster",
         "multi": false,
         "name": "ClusterName",
         "options": [],
-        "query": "label_values(vendor:coherence_cluster_size, cluster)",
+        "query": "label_values(vendor:coherence_cluster_size{verrazzano_cluster=~\"$vzcluster\"}, cluster)",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -901,7 +942,7 @@
         "current": {
         },
         "datasource": "Prometheus",
-        "definition": "",
+        "definition": "label_values(vendor:coherence_cluster_size{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\"}, version)",
         "hide": 2,
         "includeAll": false,
         "index": -1,
@@ -909,7 +950,7 @@
         "multi": false,
         "name": "CoherenceVersion",
         "options": [],
-        "query": "label_values(vendor:coherence_cluster_size{cluster=~\"$ClusterName\"}, version)",
+        "query": "label_values(vendor:coherence_cluster_size{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\"}, version)",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -929,7 +970,7 @@
           "value": ""
         },
         "datasource": "Prometheus",
-        "definition": "label_values(vendor:coherence_connection_manager_total_messages_sent{cluster=~\"$ClusterName\"}, name)",
+        "definition": "label_values(vendor:coherence_connection_manager_total_messages_sent{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\"}, name)",
         "hide": 0,
         "includeAll": false,
         "index": -1,
@@ -937,7 +978,7 @@
         "multi": false,
         "name": "ServiceName",
         "options": [],
-        "query": "label_values(vendor:coherence_connection_manager_total_messages_sent{cluster=~\"$ClusterName\"}, name)",
+        "query": "label_values(vendor:coherence_connection_manager_total_messages_sent{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\"}, name)",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,

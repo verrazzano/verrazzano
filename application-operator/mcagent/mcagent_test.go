@@ -61,6 +61,14 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 			return nil
 		})
 
+	// Managed Cluster - expect call to get the tls-ca-additional secret. Return not found since it
+	// is ok for it to be not present.
+	mcMock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: vzconstants.RancherSystemNamespace, Name: vzconstants.AdditionalTLS}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			return errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, name.Name)
+		})
+
 	// Admin Cluster - expect a get followed by status update on VMC to record last agent connect time
 	vmcName := types.NamespacedName{Name: string(validSecret.Data[constants.ClusterNameData]), Namespace: constants.VerrazzanoMultiClusterNamespace}
 	expectGetAPIServerURLCalled(mcMock)
@@ -843,7 +851,7 @@ func Test_updateLoggingDaemonsetEnv(t *testing.T) {
 	asserts.Equal(t, newElasticURL, findEnv("ELASTICSEARCH_URL", &newEnvs).Value)
 	asserts.Equal(t, constants.MCRegistrationSecret, findEnv("ELASTICSEARCH_USER", &newEnvs).ValueFrom.SecretKeyRef.Name)
 	asserts.Equal(t, constants.MCRegistrationSecret, findEnv("ELASTICSEARCH_PASSWORD", &newEnvs).ValueFrom.SecretKeyRef.Name)
-	//un-registration of setting secretVersion back to ""
+	// un-registration of setting secretVersion back to ""
 	newEnvs = updateLoggingDaemonsetEnv(regSecret, false, defaultElasticURL, defaultSecretName, newEnvs)
 	asserts.NotNil(t, findEnv("FLUENTD_CONF", &newEnvs))
 	asserts.Equal(t, defaultClusterName, findEnv("CLUSTER_NAME", &newEnvs).Value)
@@ -888,7 +896,7 @@ func Test_updateLoggingDaemonsetVolumes(t *testing.T) {
 	asserts.NotNil(t, findVol("my-config", &newVols))
 	asserts.NotNil(t, findVol("varlog", &newVols))
 	asserts.Equal(t, constants.MCRegistrationSecret, findVol("secret-volume", &newVols).VolumeSource.Secret.SecretName)
-	//un-registration of setting secretVersion back to ""
+	// un-registration of setting secretVersion back to ""
 	newVols = updateLoggingDaemonsetVolumes(false, defaultSecretName, newVols)
 	asserts.Equal(t, defaultSecretName, findVol("secret-volume", &newVols).VolumeSource.Secret.SecretName)
 	asserts.NotNil(t, findVol("my-config", &newVols))

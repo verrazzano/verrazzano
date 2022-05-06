@@ -8,31 +8,34 @@ import (
 	"fmt"
 	"reflect"
 
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	vzsecret "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	v1 "k8s.io/api/core/v1"
+	vzsecret "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
-	system             = "system"
-	defaultStorageSize = "50Gi"
+	system                = "system"
+	vmoComponentName      = "verrazzano-monitoring-operator"
+	vmoComponentNamespace = constants.VerrazzanoSystemNamespace
+	defaultStorageSize    = "50Gi"
 )
 
 // ResourceRequestValues defines the storage information that will be passed to VMI instance
@@ -106,7 +109,7 @@ func CreateOrUpdateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error
 
 // EnsureVMISecret creates or updates the VMI secret
 func EnsureVMISecret(cli client.Client) error {
-	secret := &v1.Secret{
+	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.VMISecret,
 			Namespace: globalconst.VerrazzanoSystemNamespace,
@@ -131,7 +134,7 @@ func EnsureVMISecret(cli client.Client) error {
 
 // EnsureGrafanaAdminSecret creates or updates the Grafana admin secret
 func EnsureGrafanaAdminSecret(cli client.Client) error {
-	secret := &v1.Secret{
+	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.GrafanaSecret,
 			Namespace: globalconst.VerrazzanoSystemNamespace,
@@ -156,7 +159,7 @@ func EnsureGrafanaAdminSecret(cli client.Client) error {
 
 // EnsureBackupSecret creates or updates the VMI backup secret
 func EnsureBackupSecret(cli client.Client) error {
-	secret := &v1.Secret{
+	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.VMIBackupSecretName,
 			Namespace: globalconst.VerrazzanoSystemNamespace,
@@ -209,7 +212,7 @@ func FindStorageOverride(effectiveCR *vzapi.Verrazzano) (*ResourceRequestValues,
 func IsVMISecretReady(ctx spi.ComponentContext) bool {
 	if err := ctx.Client().Get(context.TODO(),
 		types.NamespacedName{Name: "verrazzano", Namespace: globalconst.VerrazzanoSystemNamespace},
-		&v1.Secret{}); err != nil {
+		&corev1.Secret{}); err != nil {
 		if !errors.IsNotFound(err) {
 			ctx.Log().Errorf("Failed, unexpected error getting verrazzano secret: %v", err)
 			return false
@@ -321,7 +324,7 @@ func addInstallArgReplicas(os *vzapi.ElasticsearchComponent, replicas *int32) er
 func IsGrafanaAdminSecretReady(ctx spi.ComponentContext) bool {
 	if err := ctx.Client().Get(context.TODO(),
 		types.NamespacedName{Name: constants.GrafanaSecret, Namespace: globalconst.VerrazzanoSystemNamespace},
-		&v1.Secret{}); err != nil {
+		&corev1.Secret{}); err != nil {
 		if !errors.IsNotFound(err) {
 			ctx.Log().Errorf("Failed, unexpected error getting grafana admin secret: %v", err)
 			return false
@@ -338,5 +341,51 @@ func SetStorageSize(storage *ResourceRequestValues, storageObject *vmov1.Storage
 		storageObject.Size = defaultStorageSize
 	} else {
 		storageObject.Size = storage.Storage
+	}
+}
+
+// ExportVMOHelmChart adds necessary annotations to verrazzano-monitoring-operator objects which allows them to be
+// managed by the verrazzano-monitoring-operator helm chart.  This is needed for the case when VMO was
+// previously installed by the verrazzano helm charrt.
+func ExportVMOHelmChart(ctx spi.ComponentContext) error {
+	releaseName := types.NamespacedName{Name: vmoComponentName, Namespace: vmoComponentNamespace}
+	managedResources := getVMOHelmManagedResources()
+	for _, managedResource := range managedResources {
+		if _, err := AssociateHelmObject(ctx.Client(), managedResource.Obj, releaseName, managedResource.NamespacedName, true); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ReassociateVMOResources updates the resources to ensure they are managed by the VMO release/component.  The resource policy
+// annotation is removed to ensure that helm manages the lifecycle of the resources (the resource policy annotation is
+// added to ensure the resources are disassociated from the VZ chart which used to manage these resources)
+func ReassociateVMOResources(ctx spi.ComponentContext) error {
+	managedResources := getVMOHelmManagedResources()
+	for _, managedResource := range managedResources {
+		if _, err := RemoveResourcePolicyAnnotation(ctx.Client(), managedResource.Obj, managedResource.NamespacedName); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// getVMOHelmManagedResources returns a list of resource types and their namespaced names that are managed by the
+// VMO helm chart
+func getVMOHelmManagedResources() []HelmManagedResource {
+	return []HelmManagedResource{
+		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-config", Namespace: vmoComponentNamespace}},
+		{Obj: &appsv1.Deployment{}, NamespacedName: types.NamespacedName{Name: vmoComponentName, Namespace: vmoComponentNamespace}},
+		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: vmoComponentName, Namespace: vmoComponentNamespace}},
+		{Obj: &corev1.ServiceAccount{}, NamespacedName: types.NamespacedName{Name: vmoComponentName, Namespace: vmoComponentNamespace}},
+		{Obj: &rbacv1.ClusterRole{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-cluster-role"}},
+		{Obj: &rbacv1.ClusterRole{}, NamespacedName: types.NamespacedName{Name: "vmi-cluster-role-default"}},
+		{Obj: &rbacv1.ClusterRole{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-get-nodes"}},
+		{Obj: &rbacv1.ClusterRoleBinding{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-cluster-role-binding"}},
+		{Obj: &rbacv1.ClusterRoleBinding{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-cluster-role-default-binding"}},
+		{Obj: &rbacv1.ClusterRoleBinding{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-get-nodes"}},
 	}
 }

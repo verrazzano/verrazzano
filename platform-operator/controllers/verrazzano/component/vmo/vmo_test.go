@@ -4,19 +4,17 @@
 package vmo
 
 import (
-	"context"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+
+	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -186,60 +184,4 @@ func TestAppendVmoOverridesOidcAuthDisabled(t *testing.T) {
 		Key:   "monitoringOperator.oidcAuthEnabled",
 		Value: "false",
 	})
-}
-
-// TestReassociateResources tests the VMO reassociateResources function
-// GIVEN a VMO component
-//  WHEN I call reassociateResources with a VMO service resource
-//  THEN no error is returned and the VMO service contains expected Helm labels and annotations
-func TestReassociateResources(t *testing.T) {
-	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
-	// for the Component interface hook
-	scheme := runtime.NewScheme()
-	_ = corev1.AddToScheme(scheme)
-
-	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ComponentNamespace,
-			Name:      ComponentName,
-		},
-	}).Build()
-	err := ExportVMOHelmChart(spi.NewFakeContext(fakeClient, nil, false))
-	assert.NoError(t, err)
-	err = ReassociateResources(spi.NewFakeContext(fakeClient, nil, false))
-	assert.NoError(t, err)
-	service := corev1.Service{}
-	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &service)
-	assert.NoError(t, err)
-	assert.Contains(t, service.Labels["app.kubernetes.io/managed-by"], "Helm")
-	assert.Contains(t, service.Annotations["meta.helm.sh/release-name"], ComponentName)
-	assert.Contains(t, service.Annotations["meta.helm.sh/release-namespace"], ComponentNamespace)
-	assert.NotContains(t, service.Annotations["helm.sh/resource-policy"], "keep")
-}
-
-// TestExportVMOHelmChart tests the VMO ExportVMOHelmChart function
-// GIVEN a VMO component
-//  WHEN I call ExportVMOHelmChart with a VMO service resource
-//  THEN no error is returned and the VMO service contains expected Helm labels and annotations
-func TestExportVMOHelmChart(t *testing.T) {
-	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
-	// for the Component interface hook
-	scheme := runtime.NewScheme()
-	_ = corev1.AddToScheme(scheme)
-
-	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ComponentNamespace,
-			Name:      ComponentName,
-		},
-	}).Build()
-	err := ExportVMOHelmChart(spi.NewFakeContext(fakeClient, nil, false))
-	assert.NoError(t, err)
-	service := corev1.Service{}
-	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &service)
-	assert.NoError(t, err)
-	assert.Contains(t, service.Labels["app.kubernetes.io/managed-by"], "Helm")
-	assert.Contains(t, service.Annotations["meta.helm.sh/release-name"], ComponentName)
-	assert.Contains(t, service.Annotations["meta.helm.sh/release-namespace"], ComponentNamespace)
-	assert.Contains(t, service.Annotations["helm.sh/resource-policy"], "keep")
 }

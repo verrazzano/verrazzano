@@ -6,6 +6,7 @@ package istio
 import (
 	"bytes"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"strings"
 	"text/template"
 
@@ -15,9 +16,23 @@ import (
 	vzyaml "github.com/verrazzano/verrazzano/platform-operator/internal/yaml"
 )
 
-// ExternalIPArg is used in a special case where Istio helm chart no longer supports ExternalIPs.
-// Put external IPs into the IstioOperator YAML, which does support it
-const ExternalIPArg = "gateways.istio-ingressgateway.externalIPs"
+const (
+	//ExternalIPArg is used in a special case where Istio helm chart no longer supports ExternalIPs.
+	// Put external IPs into the IstioOperator YAML, which does support it
+	ExternalIPArg = "gateways.istio-ingressgateway.externalIPs"
+
+	//meshConfigEnableTracingValue is a boolean flag to enable/disable tracing in the istio mesh
+	meshConfigEnableTracingValue = "meshConfig.enableTracing"
+
+	//meshConfigTracingAddress is the Jaeger collector address
+	meshConfigTracingAddress = "meshConfig.defaultConfig.tracing.zipkin.address"
+
+	//meshConfigTracingTLSMode is the TLS mode for Istio-Jaeger communication
+	meshConfigTracingTLSMode = "meshConfig.defaultConfig.tracing.tlsSettings.mode"
+
+	leftMargin      = 0
+	leftMarginExtIP = 12
+)
 
 // Define the IstioOperator template which is used to insert the generated YAML values.
 //
@@ -80,15 +95,22 @@ type ReplicaData struct {
 
 // BuildIstioOperatorYaml builds the IstioOperator CR YAML that will be passed as an override to istioctl
 // Transform the Verrazzano CR istioComponent provided by the user onto an IstioOperator formatted YAML
-func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
-	// All generated YAML will be indented 6 spaces
-	const leftMargin = 0
-	const leftMarginExtIP = 12
+func BuildIstioOperatorYaml(ctx spi.ComponentContext, comp *vzapi.IstioComponent) (string, error) {
 
 	var externalIPYAMLTemplateValue = ""
+	// Tracing is disabled by default
+	installArgs := append([]vzapi.InstallArgs{{Name: meshConfigEnableTracingValue, Value: "false"}}, comp.IstioInstallArgs...)
+
 	// Build a list of YAML strings from the istioComponent initargs, one for each arg.
 	expandedYamls := []string{}
-	for _, arg := range comp.IstioInstallArgs {
+
+	// get any install args for Jaeger
+	jaegerArgs, err := configureJaeger(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	for _, arg := range append(jaegerArgs, installArgs...) {
 		values := arg.ValueList
 		if len(values) == 0 {
 			values = []string{arg.Value}
@@ -109,12 +131,10 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 			externalIPYAMLTemplateValue = yamlString
 			continue
 		} else {
-			valueName := fmt.Sprintf("spec.values.%s", arg.Name)
-			yamlString, err := vzyaml.Expand(leftMargin, false, valueName, values...)
+			expandedYamls, err = addYAML(arg.Name, values, expandedYamls)
 			if err != nil {
 				return "", err
 			}
-			expandedYamls = append(expandedYamls, yamlString)
 		}
 	}
 	gatewayYaml, err := configureGateways(comp, fixExternalIPYaml(externalIPYAMLTemplateValue))
@@ -130,6 +150,15 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 	}
 
 	return merged, nil
+}
+
+func addYAML(name string, values, expandedYamls []string) ([]string, error) {
+	valueName := fmt.Sprintf("spec.values.%s", name)
+	yamlString, err := vzyaml.Expand(leftMargin, false, valueName, values...)
+	if err != nil {
+		return expandedYamls, err
+	}
+	return append(expandedYamls, yamlString), nil
 }
 
 // Change the YAML from

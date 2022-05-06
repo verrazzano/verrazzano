@@ -65,8 +65,8 @@ func resolveVerrazzanoNamespace(ns string) string {
 	return globalconst.VerrazzanoSystemNamespace
 }
 
-// checkVerrazzanoComponentStatus checks performs checks on the OpenSearch resources
-func checkVerrazzanoComponentStatus(ctx spi.ComponentContext, deploymentFunc status.DeploymentFunc, daemonsetFunc status.DaemonSetFunc) bool {
+// isVerrazzanoReady Verrazzano component ready-check
+func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 
 	// First, check deployments
@@ -87,7 +87,7 @@ func checkVerrazzanoComponentStatus(ctx spi.ComponentContext, deploymentFunc sta
 			})
 	}
 
-	if !deploymentFunc(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
+	if !status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
 		return false
 	}
 
@@ -107,11 +107,20 @@ func checkVerrazzanoComponentStatus(ctx spi.ComponentContext, deploymentFunc sta
 				Namespace: ComponentNamespace,
 			})
 	}
-	if !daemonsetFunc(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {
+	if !status.DaemonSetsAreReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {
 		return false
 	}
-
 	return common.IsVMISecretReady(ctx)
+}
+
+// doesPromExist is the verrazzano IsInstalled check
+func doesPromExist(ctx spi.ComponentContext) bool {
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	deploy := []types.NamespacedName{{
+		Name:      prometheusDeployment,
+		Namespace: ComponentNamespace,
+	}}
+	return status.DoDeploymentsExist(ctx.Log(), ctx.Client(), deploy, 1, prefix)
 }
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart
