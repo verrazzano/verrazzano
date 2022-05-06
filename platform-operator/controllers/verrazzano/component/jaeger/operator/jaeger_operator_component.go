@@ -106,6 +106,11 @@ func (c jaegerOperatorComponent) GetHelmOverrides(_ spi.ComponentContext) []vzap
 	return []vzapi.Overrides{}
 }
 
+// IsMonitoringEnabled indicates whether monitoring of Helm override sources is enabled for a component
+func (c jaegerOperatorComponent) IsMonitoringEnabled(_ spi.ComponentContext) bool {
+	return true
+}
+
 func (c jaegerOperatorComponent) IsOperatorInstallSupported() bool {
 	return true
 }

@@ -54,6 +54,8 @@ type ComponentInfo interface {
 	GetJSONName() string
 	// GetHelmOverrides returns the list of overrides for a component
 	GetHelmOverrides(context ComponentContext) []vzapi.Overrides
+	// IsMonitoringEnabled indicates whether the override sources for a component need to be monitored
+	IsMonitoringEnabled(context ComponentContext) bool
 }
 
 // ComponentInstaller interface defines installs operations for components that support it

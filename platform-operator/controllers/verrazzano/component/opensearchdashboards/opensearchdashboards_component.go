@@ -50,6 +50,11 @@ func (d opensearchDashboardsComponent) GetHelmOverrides(_ spi.ComponentContext) 
 	return []vzapi.Overrides{}
 }
 
+// IsMonitoringEnabled indicates whether monitoring of Helm override sources is enabled for a component
+func (c opensearchDashboardsComponent) IsMonitoringEnabled(_ spi.ComponentContext) bool {
+	return true
+}
+
 // IsOperatorInstallSupported OpenSearch-Dashboards component function
 func (d opensearchDashboardsComponent) IsOperatorInstallSupported() bool {
 	return true

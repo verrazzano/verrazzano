@@ -85,6 +85,11 @@ func (g grafanaComponent) GetHelmOverrides(_ spi.ComponentContext) []vzapi.Overr
 	return []vzapi.Overrides{}
 }
 
+// IsMonitoringEnabled indicates if monitoring of override sources is enabled or not for a component
+func (g grafanaComponent) IsMonitoringEnabled(_ spi.ComponentContext) bool {
+	return true
+}
+
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the Grafana component
 func (g grafanaComponent) GetMinVerrazzanoVersion() string {
 	return constants.VerrazzanoVersion1_0_0

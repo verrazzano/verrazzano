@@ -85,6 +85,11 @@ func (i istioComponent) GetHelmOverrides(_ spi.ComponentContext) []vzapi.Overrid
 	return []vzapi.Overrides{}
 }
 
+// IsMonitoringEnabled indicates whether monitoring of override sources is enabled for a component
+func (i istioComponent) IsMonitoringEnabled(_ spi.ComponentContext) bool {
+	return true
+}
+
 type upgradeFuncSig func(log vzlog.VerrazzanoLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
 
 // upgradeFunc is the default upgrade function

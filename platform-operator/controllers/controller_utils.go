@@ -18,8 +18,10 @@ const (
 // VzContainsResource checks to see if the resource is listed in the Verrazzano
 func VzContainsResource(ctx spi.ComponentContext, object client.Object) (string, bool) {
 	for _, component := range registry.GetComponents() {
-		if found := componentContainsResource(component.GetHelmOverrides(ctx), object); found {
-			return component.Name(), found
+		if component.IsMonitoringEnabled(ctx) {
+			if found := componentContainsResource(component.GetHelmOverrides(ctx), object); found {
+				return component.Name(), found
+			}
 		}
 	}
 	return "", false

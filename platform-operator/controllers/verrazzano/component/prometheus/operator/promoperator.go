@@ -128,3 +128,10 @@ func GetHelmOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
 	}
 	return []vzapi.Overrides{}
 }
+
+func IsMonitoringEnabled(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.PrometheusOperator.MonitorChanges != nil {
+		return *ctx.EffectiveCR().Spec.Components.PrometheusOperator.MonitorChanges
+	}
+	return true
+}

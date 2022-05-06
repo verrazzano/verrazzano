@@ -515,6 +515,10 @@ func (f fakeComponent) GetHelmOverrides(_ spi.ComponentContext) []v1alpha1.Overr
 	return []v1alpha1.Overrides{}
 }
 
+func (f fakeComponent) IsMonitoringEnabled(_ spi.ComponentContext) bool {
+	return true
+}
+
 func (f fakeComponent) GetDependencies() []string {
 	return f.dependencies
 }

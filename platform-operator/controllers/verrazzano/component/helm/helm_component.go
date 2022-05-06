@@ -228,6 +228,10 @@ func (h HelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazza
 	return nil
 }
 
+func (h HelmComponent) IsMonitoringEnabled(ctx spi.ComponentContext) bool {
+	return true
+}
+
 // Install installs the component using Helm
 func (h HelmComponent) Install(context spi.ComponentContext) error {
 
