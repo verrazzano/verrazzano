@@ -18,7 +18,7 @@ func Logger(filePath string) (*zap.SugaredLogger, error) {
 
 	cfg := zap.Config{
 		Encoding:         "json",
-		Level:            zap.NewAtomicLevelAt(zapcore.DebugLevel),
+		Level:            zap.NewAtomicLevelAt(zapcore.InfoLevel),
 		OutputPaths:      []string{filePath, "stderr"},
 		ErrorOutputPaths: []string{"stderr"},
 		EncoderConfig: zapcore.EncoderConfig{
@@ -26,7 +26,7 @@ func Logger(filePath string) (*zap.SugaredLogger, error) {
 			LevelKey:    "level",
 			EncodeLevel: zapcore.CapitalLevelEncoder,
 
-			TimeKey:    "time",
+			TimeKey:    "@timestamp",
 			EncodeTime: zapcore.ISO8601TimeEncoder,
 
 			CallerKey:    "caller",

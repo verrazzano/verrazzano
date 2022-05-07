@@ -15,7 +15,7 @@ import (
 	"testing"
 )
 
-func log_helper() (*zap.SugaredLogger, string) {
+func logHelper() (*zap.SugaredLogger, string) {
 	file, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("verrazzano-%s-hook-*.log", strings.ToLower("TEST")))
 	if err != nil {
 		fmt.Printf("Unable to create temp file")
@@ -27,16 +27,16 @@ func log_helper() (*zap.SugaredLogger, string) {
 }
 
 func TestEnsureOpenSearchIsReachable(t *testing.T) {
-	log, f := log_helper()
+	log, f := logHelper()
 	defer os.Remove(f)
 	o := Opensearch(&OpensearchImpl{})
-	ok := o.EnsureOpenSearchIsReachable(constants.ES_URL, log)
+	ok := o.EnsureOpenSearchIsReachable(constants.EsUrl, log)
 	assert.NotNil(t, ok)
 	assert.Equal(t, false, false)
 }
 
 func TestRegisterSnapshotRepository(t *testing.T) {
-	log, f := log_helper()
+	log, f := logHelper()
 	defer os.Remove(f)
 	var objsecret types.ObjectStoreSecret
 	objsecret.SecretName = "alpha"
@@ -47,7 +47,7 @@ func TestRegisterSnapshotRepository(t *testing.T) {
 	sdat.Secret = objsecret
 	sdat.BackupName = "mango"
 	sdat.RegionName = "region"
-	sdat.Endpoint = constants.ES_URL
+	sdat.Endpoint = constants.EsUrl
 
 	o := Opensearch(&OpensearchImpl{})
 	err := o.RegisterSnapshotRepository(&sdat, log)
@@ -55,7 +55,7 @@ func TestRegisterSnapshotRepository(t *testing.T) {
 }
 
 func TestTriggerSnapshot(t *testing.T) {
-	log, f := log_helper()
+	log, f := logHelper()
 	defer os.Remove(f)
 
 	o := Opensearch(&OpensearchImpl{})
@@ -64,7 +64,7 @@ func TestTriggerSnapshot(t *testing.T) {
 }
 
 func TestCheckSnapshotProgress(t *testing.T) {
-	log, f := log_helper()
+	log, f := logHelper()
 	defer os.Remove(f)
 
 	o := Opensearch(&OpensearchImpl{})
@@ -73,7 +73,7 @@ func TestCheckSnapshotProgress(t *testing.T) {
 }
 
 func TestDeleteDataStreams(t *testing.T) {
-	log, f := log_helper()
+	log, f := logHelper()
 	defer os.Remove(f)
 
 	o := Opensearch(&OpensearchImpl{})
@@ -82,7 +82,7 @@ func TestDeleteDataStreams(t *testing.T) {
 }
 
 func TestDeleteDataIndexes(t *testing.T) {
-	log, f := log_helper()
+	log, f := logHelper()
 	defer os.Remove(f)
 
 	o := Opensearch(&OpensearchImpl{})
@@ -91,7 +91,7 @@ func TestDeleteDataIndexes(t *testing.T) {
 }
 
 func TestTriggerRestore(t *testing.T) {
-	log, f := log_helper()
+	log, f := logHelper()
 	defer os.Remove(f)
 
 	o := Opensearch(&OpensearchImpl{})

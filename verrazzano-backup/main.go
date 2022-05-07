@@ -30,12 +30,6 @@ var (
 )
 
 func main() {
-
-	if os.Getenv("HOSTNAME") != "vmi-system-es-master-0" {
-		fmt.Printf("Hook cannot run on any other node except opensearch master 0\n")
-		os.Exit(1)
-	}
-
 	flag.StringVar(&VeleroBackupName, "velero-backup-name", "", "The Velero-backup-name associated with this operation.")
 	flag.StringVar(&Component, "component", "opensearch", "The Verrazzano component to be backed up or restored (Default = opensearch).")
 	flag.StringVar(&Operation, "operation", "", "The operation to be performed - backup/restore.")
@@ -89,7 +83,7 @@ func main() {
 	// Check opensearch health before proceeding with backup or restore
 	if Component == constants.OSComponent {
 		search = opensearch.Opensearch(&opensearch.OpensearchImpl{})
-		if !search.EnsureOpenSearchIsHealthy(constants.ES_URL, log) {
+		if !search.EnsureOpenSearchIsHealthy(constants.EsUrl, log) {
 			log.Errorf("Operation cannot be performed as Opensearch is not healthy")
 			os.Exit(1)
 		}
@@ -191,7 +185,6 @@ func main() {
 				log.Errorf("Unable to scale deployment '%s' due to %v", constants.VMODeploymentName, zap.Error(err))
 			}
 		}
-
 	}
 
 }

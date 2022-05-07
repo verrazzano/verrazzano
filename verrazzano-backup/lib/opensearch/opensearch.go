@@ -23,7 +23,7 @@ import (
 
 //EnsureOpenSearchIsReachable is used determine whether opensearch cluster is reachable
 func (o *OpensearchImpl) EnsureOpenSearchIsReachable(url string, log *zap.SugaredLogger) bool {
-	response, err := http.Get(url)
+	response, err := http.Get(url) //#nosec G204
 	if err != nil {
 		return false
 	}
@@ -60,12 +60,12 @@ func (o *OpensearchImpl) EnsureOpenSearchIsHealthy(url string, log *zap.SugaredL
 		}
 	}
 
-	health_url := fmt.Sprintf("%s/_cluster/health", url)
+	healthURL := fmt.Sprintf("%s/_cluster/health", url)
 	healthReachable := false
 	retryCount = 0
 
 	for !healthReachable {
-		response, err := http.Get(health_url)
+		response, err := http.Get(healthURL) //#nosec G204
 		if err != nil {
 			log.Error("HTTP GET failure ", zap.Error(err))
 			return false
@@ -87,7 +87,7 @@ func (o *OpensearchImpl) EnsureOpenSearchIsHealthy(url string, log *zap.SugaredL
 	retryCount = 0
 	var clusterHealth types.OpenSearchHealthResponse
 	for !healthGreen {
-		bdata, err := utils.HTTPHelper("GET", health_url, nil, log)
+		bdata, err := utils.HTTPHelper("GET", healthURL, nil, log)
 		if err != nil {
 			return false
 		}
@@ -182,13 +182,13 @@ func (o *OpensearchImpl) UpdateKeystore(client kubernetes.Interface, cfg *rest.C
 
 //ReloadOpensearchSecureSettings used to reload secure settings once object store keys are updated
 func (o *OpensearchImpl) ReloadOpensearchSecureSettings(log *zap.SugaredLogger) error {
-	url := fmt.Sprintf("%s/_nodes/reload_secure_settings", constants.ES_URL)
+	url := fmt.Sprintf("%s/_nodes/reload_secure_settings", constants.EsUrl)
 	nullBody := make(map[string]interface{})
 	postBody, err := json.Marshal(nullBody)
 	if err != nil {
 		return err
 	}
-	response, err := http.Post(url, constants.HttpContentType, bytes.NewBuffer(postBody))
+	response, err := http.Post(url, constants.HTTPContentType, bytes.NewBuffer(postBody))
 	if err != nil {
 		return err
 	}
@@ -217,7 +217,7 @@ func (o *OpensearchImpl) RegisterSnapshotRepository(secretData *types.Connection
 		return err
 	}
 
-	url := fmt.Sprintf("%s/_snapshot/%s", constants.ES_URL, constants.OpeSearchSnapShotRepoName)
+	url := fmt.Sprintf("%s/_snapshot/%s", constants.EsUrl, constants.OpeSearchSnapShotRepoName)
 	urlinfo := fmt.Sprintf("_snapshot/%s", constants.OpeSearchSnapShotRepoName)
 	log.Infof("POST on registry url => '%s'", urlinfo)
 
@@ -232,7 +232,7 @@ func (o *OpensearchImpl) RegisterSnapshotRepository(secretData *types.Connection
 		return err
 	}
 	//&& response.StatusCode == 200
-	if registerResponse.Acknowledged == true {
+	if registerResponse.Acknowledged {
 		log.Infof("Snapshot registered successfully !")
 		return nil
 	}
@@ -242,13 +242,13 @@ func (o *OpensearchImpl) RegisterSnapshotRepository(secretData *types.Connection
 //TriggerSnapshot this triggers a snapshot/backup of all the data streams/indices
 func (o *OpensearchImpl) TriggerSnapshot(backupName string, log *zap.SugaredLogger) error {
 	log.Infof("Triggering snapshot with name '%s'", backupName)
-	snapShotUrl := fmt.Sprintf("%s/_snapshot/%s/%s", constants.ES_URL, constants.OpeSearchSnapShotRepoName, backupName)
+	snapShotURL := fmt.Sprintf("%s/_snapshot/%s/%s", constants.EsUrl, constants.OpeSearchSnapShotRepoName, backupName)
 	nullBody := make(map[string]interface{})
 	postBody, err := json.Marshal(nullBody)
 	if err != nil {
 		return err
 	}
-	bdata, err := utils.HTTPHelper("POST", snapShotUrl, bytes.NewBuffer(postBody), log)
+	bdata, err := utils.HTTPHelper("POST", snapShotURL, bytes.NewBuffer(postBody), log)
 	if err != nil {
 		return err
 	}
@@ -259,7 +259,7 @@ func (o *OpensearchImpl) TriggerSnapshot(backupName string, log *zap.SugaredLogg
 		log.Errorf("json unmarshalling error %v", err)
 		return err
 	}
-	if snapshotResponse.Accepted != true {
+	if !snapshotResponse.Accepted {
 		return fmt.Errorf("Snapshot registration failure. Response = %v ", string(bdata))
 	}
 	log.Infof("Snapshot registered successfully !")
@@ -269,14 +269,14 @@ func (o *OpensearchImpl) TriggerSnapshot(backupName string, log *zap.SugaredLogg
 //CheckSnapshotProgress checks the data backup progress
 func (o *OpensearchImpl) CheckSnapshotProgress(backupName string, log *zap.SugaredLogger) error {
 	log.Infof("Checking snapshot progress with name '%s'", backupName)
-	snapShotUrl := fmt.Sprintf("%s/_snapshot/%s/%s", constants.ES_URL, constants.OpeSearchSnapShotRepoName, backupName)
+	snapShotURL := fmt.Sprintf("%s/_snapshot/%s/%s", constants.EsUrl, constants.OpeSearchSnapShotRepoName, backupName)
 	urlInfo := fmt.Sprintf("_snapshot/%s/%s", constants.OpeSearchSnapShotRepoName, backupName)
 	log.Infof("GET on snapshot progress => '%s'", urlInfo)
 	var snapshotInfo types.OpenSearchSnapshotStatus
 	done := false
 	retryCount := 0
 	for !done {
-		bdata, err := utils.HTTPHelper("GET", snapShotUrl, nil, log)
+		bdata, err := utils.HTTPHelper("GET", snapShotURL, nil, log)
 		if err != nil {
 			return err
 		}
@@ -315,14 +315,14 @@ func (o *OpensearchImpl) CheckSnapshotProgress(backupName string, log *zap.Sugar
 // This requires that ingest be turned off
 func (o *OpensearchImpl) DeleteDataStreams(log *zap.SugaredLogger) error {
 	log.Infof("Delete existing data streams ..")
-	snapShotUrl := fmt.Sprintf("%s/_data_stream/*", constants.ES_URL)
+	snapShotURL := fmt.Sprintf("%s/_data_stream/*", constants.EsUrl)
 	nullBody := make(map[string]interface{})
 	postBody, err := json.Marshal(nullBody)
 	if err != nil {
 		return err
 	}
 
-	bdata, err := utils.HTTPHelper("DELETE", snapShotUrl, bytes.NewBuffer(postBody), log)
+	bdata, err := utils.HTTPHelper("DELETE", snapShotURL, bytes.NewBuffer(postBody), log)
 	if err != nil {
 		return err
 	}
@@ -334,7 +334,7 @@ func (o *OpensearchImpl) DeleteDataStreams(log *zap.SugaredLogger) error {
 		return err
 	}
 
-	if deleteResponse.Acknowledged != true {
+	if !deleteResponse.Acknowledged {
 		return fmt.Errorf("Data streams deletion failure. Response = %v ", string(bdata))
 	}
 	log.Infof("Data streams deleted successfully !")
@@ -345,14 +345,14 @@ func (o *OpensearchImpl) DeleteDataStreams(log *zap.SugaredLogger) error {
 // This requires that ingest be turned off
 func (o *OpensearchImpl) DeleteDataIndexes(log *zap.SugaredLogger) error {
 	log.Infof("Delete existing data indices ..")
-	snapShotUrl := fmt.Sprintf("%s/*", constants.ES_URL)
+	snapShotURL := fmt.Sprintf("%s/*", constants.EsUrl)
 	nullBody := make(map[string]interface{})
 	postBody, err := json.Marshal(nullBody)
 	if err != nil {
 		return err
 	}
 
-	bdata, err := utils.HTTPHelper("DELETE", snapShotUrl, bytes.NewBuffer(postBody), log)
+	bdata, err := utils.HTTPHelper("DELETE", snapShotURL, bytes.NewBuffer(postBody), log)
 	if err != nil {
 		return err
 	}
@@ -373,14 +373,14 @@ func (o *OpensearchImpl) DeleteDataIndexes(log *zap.SugaredLogger) error {
 //TriggerRestore Triggers a restore from a specified snapshot
 func (o *OpensearchImpl) TriggerRestore(backupName string, log *zap.SugaredLogger) error {
 	log.Infof("Triggering restore with name '%s'", backupName)
-	restoreUrl := fmt.Sprintf("%s/_snapshot/%s/%s/_restore", constants.ES_URL, constants.OpeSearchSnapShotRepoName, backupName)
+	restoreURL := fmt.Sprintf("%s/_snapshot/%s/%s/_restore", constants.EsUrl, constants.OpeSearchSnapShotRepoName, backupName)
 	nullBody := make(map[string]interface{})
 	postBody, err := json.Marshal(nullBody)
 	if err != nil {
 		return err
 	}
 
-	bdata, err := utils.HTTPHelper("POST", restoreUrl, bytes.NewBuffer(postBody), log)
+	bdata, err := utils.HTTPHelper("POST", restoreURL, bytes.NewBuffer(postBody), log)
 	if err != nil {
 		return err
 	}
@@ -391,7 +391,7 @@ func (o *OpensearchImpl) TriggerRestore(backupName string, log *zap.SugaredLogge
 		log.Errorf("json unmarshalling error %v", err)
 		return err
 	}
-	if restoreResponse.Accepted != true {
+	if !restoreResponse.Accepted {
 		return fmt.Errorf("Snapshot registration failure. Response = %v ", string(bdata))
 	}
 	log.Infof("Snapshot registered successfully !")
@@ -401,14 +401,14 @@ func (o *OpensearchImpl) TriggerRestore(backupName string, log *zap.SugaredLogge
 //CheckRestoreProgress checks progress of restore process, by monitoring all the data streams
 func (o *OpensearchImpl) CheckRestoreProgress(backupName string, log *zap.SugaredLogger) error {
 	log.Infof("Checking restore progress with name '%s'", backupName)
-	dsUrl := fmt.Sprintf("%s/_data_stream", constants.ES_URL)
+	dsURL := fmt.Sprintf("%s/_data_stream", constants.EsUrl)
 	var snapshotInfo types.OpenSearchDataStreams
 	done := false
 	notGreen := false
 	retryCount := 0
 	for !done {
 
-		bdata, err := utils.HTTPHelper("GET", dsUrl, nil, log)
+		bdata, err := utils.HTTPHelper("GET", dsURL, nil, log)
 		if err != nil {
 			return err
 		}
@@ -420,7 +420,7 @@ func (o *OpensearchImpl) CheckRestoreProgress(backupName string, log *zap.Sugare
 
 		for _, ds := range snapshotInfo.DataStreams {
 			switch ds.Status {
-			case constants.DATA_STREAM_GREEN:
+			case constants.DataStreamGreen:
 				log.Infof("Data stream '%s' restore complete", ds.Name)
 			default:
 				notGreen = true

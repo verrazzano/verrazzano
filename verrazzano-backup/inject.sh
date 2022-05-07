@@ -11,26 +11,24 @@ function log () {
   echo $(date -u) $1
 }
 
-function check_command () {
-  if [ $? != 0 ] ; then
-    log "Command execution failed."
-    exit 1
+exit_trap () {
+  if [ $? != 0 ]; then
+    local lc="$BASH_COMMAND" rc=$?
+    log  "Command [$lc] exited with code [$rc]"
   fi
 }
+
+trap exit_trap EXIT
+set -e
+
 
 function copy_opensearch () {
   log "Copy file '${VZ_BINARY}' to '$1'"
   cp -f ${VZ_BINARY} $1
-  check_command
 }
 
-STR=$HOSTNAME
-case $STR in
-  "vmi-system-es-master-0")
-    log "Creating directory  ${OPENSEARCH_BINARY_PATH}"
-    mkdir -p ${OPENSEARCH_BINARY_PATH}
-    check_command
-    copy_opensearch ${OPENSEARCH_BINARY_PATH}
-esac
+log "Creating directory  ${OPENSEARCH_BINARY_PATH}"
+mkdir -p ${OPENSEARCH_BINARY_PATH}
+copy_opensearch ${OPENSEARCH_BINARY_PATH}
 
 
