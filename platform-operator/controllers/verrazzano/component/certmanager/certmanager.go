@@ -15,11 +15,6 @@ import (
 	"strings"
 	"text/template"
 
-	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
-	"github.com/verrazzano/verrazzano/pkg/security/password"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
@@ -28,8 +23,11 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -442,21 +440,17 @@ func createCAResources(compContext spi.ComponentContext) error {
 				Name:      caCertificateName,
 				Namespace: vzCertCA.ClusterResourceNamespace,
 			},
-		}
-		commonNameSuffix, err := password.GenerateRandomAlphaLower(8)
-		if err != nil {
-			return compContext.Log().ErrorfNewErr("Failed to generate CA common name suffix: %v", err)
-		}
-		if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &certObject, func() error {
-			certObject.Spec = certv1.CertificateSpec{
+			Spec: certv1.CertificateSpec{
 				SecretName: vzCertCA.SecretName,
-				CommonName: fmt.Sprintf("%s-%s", caCertCommonName, commonNameSuffix),
+				CommonName: caCertCommonName,
 				IsCA:       true,
 				IssuerRef: certmetav1.ObjectReference{
 					Name: issuer.Name,
 					Kind: issuer.Kind,
 				},
-			}
+			},
+		}
+		if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &certObject, func() error {
 			return nil
 		}); err != nil {
 			return compContext.Log().ErrorfNewErr("Failed to create or update the Certificate: %v", err)
