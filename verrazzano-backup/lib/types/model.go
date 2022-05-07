@@ -234,27 +234,4 @@ type OpenSearchSecureSettingsReloadStatus struct {
 		Failed     int `json:"failed"`
 	} `json:"_nodes"`
 	ClusterName string `json:"cluster_name"`
-	Nodes       struct {
-		IDLGk3ZOSE5LremeiFu8Q struct {
-			Name string `json:"name"`
-		} `json:"IdLGk3ZOSE-5LremeiFu8Q"`
-		ZeroT3P0FguQHy5X8GoUaDr5A struct {
-			Name string `json:"name"`
-		} `json:"0t3P0fguQHy5X8GoUaDr5A"`
-		T5M9GyIhRjGrovtZtfKSQ struct {
-			Name string `json:"name"`
-		} `json:"t5m9gyIhRjGrovt-ztfKSQ"`
-		ThreeORVTwsGScWZ4OKwRyACg struct {
-			Name string `json:"name"`
-		} `json:"3ORVTwsGScWZ4oKwRy_aCg"`
-		FDCaHPxYTLCPiXrFtF0LeA struct {
-			Name string `json:"name"`
-		} `json:"FDCaHPxYTLCPiXrFtF0LeA"`
-		GilrPCNeTMuxpqxjXjQEqw struct {
-			Name string `json:"name"`
-		} `json:"gilrPCNeTMuxpqxjXjQEqw"`
-		QElkkbsRuqe2LXIDqeIBg struct {
-			Name string `json:"name"`
-		} `json:"qElkkbs-Ruqe2LXIDqeIBg"`
-	} `json:"nodes"`
 }
