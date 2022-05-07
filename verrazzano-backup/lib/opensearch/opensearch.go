@@ -180,10 +180,10 @@ func (o *OpensearchImpl) ReloadOpensearchSecureSettings(log *zap.SugaredLogger) 
 		return err
 	}
 	if secureSettings.ClusterNodes.Failed == 0 && secureSettings.ClusterNodes.Total == secureSettings.ClusterNodes.Successful {
-		log.Infof("Secure settings reloaded sucessfully across all '%s' nodes of the cluster", secureSettings.ClusterNodes.Total)
+		log.Infof("Secure settings reloaded sucessfully across all '%v' nodes of the cluster", secureSettings.ClusterNodes.Total)
 		return nil
 	}
-	return fmt.Errorf("Not all nodes were updated successfully. Total = '%s', Failed = '%s' , Successful = '%s'", secureSettings.ClusterNodes.Total, secureSettings.ClusterNodes.Failed, secureSettings.ClusterNodes.Successful)
+	return fmt.Errorf("Not all nodes were updated successfully. Total = '%v', Failed = '%v' , Successful = '%v'", secureSettings.ClusterNodes.Total, secureSettings.ClusterNodes.Failed, secureSettings.ClusterNodes.Successful)
 }
 
 //RegisterSnapshotRepository Register an opbject store with Opensearch using the s3-plugin
