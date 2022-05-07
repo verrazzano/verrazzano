@@ -77,16 +77,7 @@ func TestDeleteDataStreams(t *testing.T) {
 	defer os.Remove(f)
 
 	o := Opensearch(&OpensearchImpl{})
-	err := o.DeleteDataStreams(log)
-	assert.NotNil(t, err)
-}
-
-func TestDeleteDataIndexes(t *testing.T) {
-	log, f := logHelper()
-	defer os.Remove(f)
-
-	o := Opensearch(&OpensearchImpl{})
-	err := o.DeleteDataIndexes(log)
+	err := o.DeleteData(log)
 	assert.NotNil(t, err)
 }
 
