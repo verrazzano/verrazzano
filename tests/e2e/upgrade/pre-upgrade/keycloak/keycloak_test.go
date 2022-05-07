@@ -57,11 +57,11 @@ var _ = t.Describe("Create users in Keycloak", Label("f:platform-lcm.install"), 
 })
 
 func verifyCreateUserMaster() bool {
-	return verifyCreateUser("master", "abc")
+	return verifyCreateUser("master", pkg.TestKeycloakMasterUserIdEnvVar)
 }
 
 func verifyCreateUserVz() bool {
-	return verifyCreateUser("verrazzano-system", "qwe")
+	return verifyCreateUser("verrazzano-system", pkg.TestKeycloakVerrazzanoUserIdEnvVar)
 }
 
 func verifyCreateUser(realm, userIDEnvVar string) bool {

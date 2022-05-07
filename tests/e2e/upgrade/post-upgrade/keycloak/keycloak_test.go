@@ -5,6 +5,7 @@ package keycloak
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -49,20 +50,24 @@ var _ = t.Describe("Verify users exist in Keycloak", Label("f:platform-lcm.insta
 	})
 	t.It("Verifying user in verrazzano-system realm", func() {
 		if !isManagedClusterProfile {
-			Eventually(verifyUserExistsVz, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(verifyUserExistsVerrazzano, waitTimeout, pollingInterval).Should(BeTrue())
 		}
 	})
 })
 
 func verifyUserExistsMaster() bool {
-	return verifyUserExists("master", "abc")
+	return verifyUserExists("master", pkg.TestKeycloakMasterUserIdEnvVar)
 }
 
-func verifyUserExistsVz() bool {
-	return verifyUserExists("verrazzano-system", "qwe")
+func verifyUserExistsVerrazzano() bool {
+	return verifyUserExists("verrazzano-system", pkg.TestKeycloakVerrazzanoUserIdEnvVar)
 }
 
-func verifyUserExists(realm, userID string) bool {
+func verifyUserExists(realm, userIDEnvVar string) bool {
+	if _, exists := os.LookupEnv(userIDEnvVar); !exists {
+		t.Fail(fmt.Sprintf("Environment variable %s must exist.", userIDEnvVar))
+	}
+	userID := os.Getenv(userIDEnvVar)
 	kc, err := pkg.NewKeycloakAdminRESTClient()
 	if err != nil {
 		t.Logs.Error(fmt.Printf("Failed to create Keycloak REST client: %v\n", err))
