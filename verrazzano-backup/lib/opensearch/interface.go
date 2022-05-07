@@ -13,15 +13,14 @@ import (
 type Opensearch interface {
 	Backup(secretData *types.ConnectionData, backupName string, log *zap.SugaredLogger) error
 	Restore(secretData *types.ConnectionData, backupName string, log *zap.SugaredLogger) error
-	EnsureOpenSearchIsReachable(url string, log *zap.SugaredLogger) bool
-	EnsureOpenSearchIsHealthy(url string, log *zap.SugaredLogger) bool
+	EnsureOpenSearchIsReachable(url string, log *zap.SugaredLogger) error
+	EnsureOpenSearchIsHealthy(url string, log *zap.SugaredLogger) error
 	UpdateKeystore(client kubernetes.Interface, cfg *rest.Config, connData *types.ConnectionData, log *zap.SugaredLogger) (bool, error)
 	ReloadOpensearchSecureSettings(log *zap.SugaredLogger) error
 	RegisterSnapshotRepository(secretData *types.ConnectionData, log *zap.SugaredLogger) error
 	TriggerSnapshot(backupName string, log *zap.SugaredLogger) error
 	CheckSnapshotProgress(backupName string, log *zap.SugaredLogger) error
-	DeleteDataStreams(log *zap.SugaredLogger) error
-	DeleteDataIndexes(log *zap.SugaredLogger) error
+	DeleteData(log *zap.SugaredLogger) error
 	TriggerRestore(backupName string, log *zap.SugaredLogger) error
 	CheckRestoreProgress(backupName string, log *zap.SugaredLogger) error
 }

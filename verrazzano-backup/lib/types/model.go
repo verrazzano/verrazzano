@@ -206,3 +206,55 @@ type OpenSearchDataStreams struct {
 		Template   string `json:"template"`
 	} `json:"data_streams"`
 }
+
+//OpenSearchClusterInfo renders opensearch cluster reachability
+type OpenSearchClusterInfo struct {
+	Name        string `json:"name"`
+	ClusterName string `json:"cluster_name"`
+	ClusterUUID string `json:"cluster_uuid"`
+	Version     struct {
+		Distribution                     string    `json:"distribution"`
+		Number                           string    `json:"number"`
+		BuildType                        string    `json:"build_type"`
+		BuildHash                        string    `json:"build_hash"`
+		BuildDate                        time.Time `json:"build_date"`
+		BuildSnapshot                    bool      `json:"build_snapshot"`
+		LuceneVersion                    string    `json:"lucene_version"`
+		MinimumWireCompatibilityVersion  string    `json:"minimum_wire_compatibility_version"`
+		MinimumIndexCompatibilityVersion string    `json:"minimum_index_compatibility_version"`
+	} `json:"version"`
+	Tagline string `json:"tagline"`
+}
+
+//OpenSearchSecureSettingsReloadStatus renders status of nodes on reload secure settings
+type OpenSearchSecureSettingsReloadStatus struct {
+	ClusterNodes struct {
+		Total      int `json:"total"`
+		Successful int `json:"successful"`
+		Failed     int `json:"failed"`
+	} `json:"_nodes"`
+	ClusterName string `json:"cluster_name"`
+	Nodes       struct {
+		IDLGk3ZOSE5LremeiFu8Q struct {
+			Name string `json:"name"`
+		} `json:"IdLGk3ZOSE-5LremeiFu8Q"`
+		ZeroT3P0FguQHy5X8GoUaDr5A struct {
+			Name string `json:"name"`
+		} `json:"0t3P0fguQHy5X8GoUaDr5A"`
+		T5M9GyIhRjGrovtZtfKSQ struct {
+			Name string `json:"name"`
+		} `json:"t5m9gyIhRjGrovt-ztfKSQ"`
+		ThreeORVTwsGScWZ4OKwRyACg struct {
+			Name string `json:"name"`
+		} `json:"3ORVTwsGScWZ4oKwRy_aCg"`
+		FDCaHPxYTLCPiXrFtF0LeA struct {
+			Name string `json:"name"`
+		} `json:"FDCaHPxYTLCPiXrFtF0LeA"`
+		GilrPCNeTMuxpqxjXjQEqw struct {
+			Name string `json:"name"`
+		} `json:"gilrPCNeTMuxpqxjXjQEqw"`
+		QElkkbsRuqe2LXIDqeIBg struct {
+			Name string `json:"name"`
+		} `json:"qElkkbs-Ruqe2LXIDqeIBg"`
+	} `json:"nodes"`
+}
