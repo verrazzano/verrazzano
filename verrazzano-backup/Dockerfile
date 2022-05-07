@@ -1,11 +1,11 @@
 # Copyright (C) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-FROM ghcr.io/oracle/oraclelinux:7-slim as builder-env
+FROM ghcr.io/oracle/oraclelinux:8-slim as builder-env
 
-RUN  yum update -y  && \
-     yum clean all && \
-     rm -rf /var/cache/yum/*
+RUN microdnf update -y && \
+    microdnf clean all && \
+    rm -rf /var/cache/yum/*
 
 WORKDIR /root/go/src/github.com/verrazzano/verrazzano/verrazzano-backup
 COPY out/linux_amd64/ .

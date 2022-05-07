@@ -19,7 +19,7 @@ const (
 
 //opensearch constants
 const (
-	EsUrl                                = "http://127.0.0.1:9200"
+	EsURL                                = "http://127.0.0.1:9200"
 	OSComponent                          = "opensearch"
 	OpenSearchDataPodPrefix              = "system-es-data"
 	OpenSearchDataPodContainerName       = "es-data"
@@ -35,6 +35,6 @@ const (
 	VMODeploymentName                    = "verrazzano-monitoring-operator"
 	VMOLabelSelector                     = "k8s-app=verrazzano-monitoring-operator"
 	DataStreamGreen                      = "GREEN"
-	OpensearchKeystoreAccessKeyCmd       = "/usr/share/opensearch/bin/opensearch-keystore add --stdin --force s3.client.default.access_key" //#nosec G204
-	OpensearchkeystoreSecretAccessKeyCmd = "/usr/share/opensearch/bin/opensearch-keystore add --stdin --force s3.client.default.secret_key" //#nosec G204
+	OpensearchKeystoreAccessKeyCmd       = "/usr/share/opensearch/bin/opensearch-keystore add --stdin --force s3.client.default.access_key" //nolint:gosec //#nosec G204
+	OpensearchkeystoreSecretAccessKeyCmd = "/usr/share/opensearch/bin/opensearch-keystore add --stdin --force s3.client.default.secret_key" //nolint:gosec //#nosec G204
 )

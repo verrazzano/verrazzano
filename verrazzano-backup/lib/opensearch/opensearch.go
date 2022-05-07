@@ -23,7 +23,10 @@ import (
 
 //EnsureOpenSearchIsReachable is used determine whether opensearch cluster is reachable
 func (o *OpensearchImpl) EnsureOpenSearchIsReachable(url string, log *zap.SugaredLogger) bool {
-	response, err := http.Get(url) //#nosec G204
+	var request *http.Request
+	client := &http.Client{}
+	request.Header.Add("Content-Type", constants.HTTPContentType)
+	response, err := client.Get(url)
 	if err != nil {
 		return false
 	}
@@ -40,7 +43,9 @@ func (o *OpensearchImpl) EnsureOpenSearchIsReachable(url string, log *zap.Sugare
 // Verifies if health url is reachable
 // Verifies health status is green
 func (o *OpensearchImpl) EnsureOpenSearchIsHealthy(url string, log *zap.SugaredLogger) bool {
-
+	var request *http.Request
+	client := &http.Client{}
+	request.Header.Add("Content-Type", constants.HTTPContentType)
 	done := false
 	retryCount := 0
 
@@ -65,7 +70,7 @@ func (o *OpensearchImpl) EnsureOpenSearchIsHealthy(url string, log *zap.SugaredL
 	retryCount = 0
 
 	for !healthReachable {
-		response, err := http.Get(healthURL) //#nosec G204
+		response, err := client.Get(healthURL)
 		if err != nil {
 			log.Error("HTTP GET failure ", zap.Error(err))
 			return false
@@ -182,7 +187,7 @@ func (o *OpensearchImpl) UpdateKeystore(client kubernetes.Interface, cfg *rest.C
 
 //ReloadOpensearchSecureSettings used to reload secure settings once object store keys are updated
 func (o *OpensearchImpl) ReloadOpensearchSecureSettings(log *zap.SugaredLogger) error {
-	url := fmt.Sprintf("%s/_nodes/reload_secure_settings", constants.EsUrl)
+	url := fmt.Sprintf("%s/_nodes/reload_secure_settings", constants.EsURL)
 	nullBody := make(map[string]interface{})
 	postBody, err := json.Marshal(nullBody)
 	if err != nil {
@@ -217,7 +222,7 @@ func (o *OpensearchImpl) RegisterSnapshotRepository(secretData *types.Connection
 		return err
 	}
 
-	url := fmt.Sprintf("%s/_snapshot/%s", constants.EsUrl, constants.OpeSearchSnapShotRepoName)
+	url := fmt.Sprintf("%s/_snapshot/%s", constants.EsURL, constants.OpeSearchSnapShotRepoName)
 	urlinfo := fmt.Sprintf("_snapshot/%s", constants.OpeSearchSnapShotRepoName)
 	log.Infof("POST on registry url => '%s'", urlinfo)
 
@@ -242,7 +247,7 @@ func (o *OpensearchImpl) RegisterSnapshotRepository(secretData *types.Connection
 //TriggerSnapshot this triggers a snapshot/backup of all the data streams/indices
 func (o *OpensearchImpl) TriggerSnapshot(backupName string, log *zap.SugaredLogger) error {
 	log.Infof("Triggering snapshot with name '%s'", backupName)
-	snapShotURL := fmt.Sprintf("%s/_snapshot/%s/%s", constants.EsUrl, constants.OpeSearchSnapShotRepoName, backupName)
+	snapShotURL := fmt.Sprintf("%s/_snapshot/%s/%s", constants.EsURL, constants.OpeSearchSnapShotRepoName, backupName)
 	nullBody := make(map[string]interface{})
 	postBody, err := json.Marshal(nullBody)
 	if err != nil {
@@ -269,7 +274,7 @@ func (o *OpensearchImpl) TriggerSnapshot(backupName string, log *zap.SugaredLogg
 //CheckSnapshotProgress checks the data backup progress
 func (o *OpensearchImpl) CheckSnapshotProgress(backupName string, log *zap.SugaredLogger) error {
 	log.Infof("Checking snapshot progress with name '%s'", backupName)
-	snapShotURL := fmt.Sprintf("%s/_snapshot/%s/%s", constants.EsUrl, constants.OpeSearchSnapShotRepoName, backupName)
+	snapShotURL := fmt.Sprintf("%s/_snapshot/%s/%s", constants.EsURL, constants.OpeSearchSnapShotRepoName, backupName)
 	urlInfo := fmt.Sprintf("_snapshot/%s/%s", constants.OpeSearchSnapShotRepoName, backupName)
 	log.Infof("GET on snapshot progress => '%s'", urlInfo)
 	var snapshotInfo types.OpenSearchSnapshotStatus
@@ -315,7 +320,7 @@ func (o *OpensearchImpl) CheckSnapshotProgress(backupName string, log *zap.Sugar
 // This requires that ingest be turned off
 func (o *OpensearchImpl) DeleteDataStreams(log *zap.SugaredLogger) error {
 	log.Infof("Delete existing data streams ..")
-	snapShotURL := fmt.Sprintf("%s/_data_stream/*", constants.EsUrl)
+	snapShotURL := fmt.Sprintf("%s/_data_stream/*", constants.EsURL)
 	nullBody := make(map[string]interface{})
 	postBody, err := json.Marshal(nullBody)
 	if err != nil {
@@ -345,7 +350,7 @@ func (o *OpensearchImpl) DeleteDataStreams(log *zap.SugaredLogger) error {
 // This requires that ingest be turned off
 func (o *OpensearchImpl) DeleteDataIndexes(log *zap.SugaredLogger) error {
 	log.Infof("Delete existing data indices ..")
-	snapShotURL := fmt.Sprintf("%s/*", constants.EsUrl)
+	snapShotURL := fmt.Sprintf("%s/*", constants.EsURL)
 	nullBody := make(map[string]interface{})
 	postBody, err := json.Marshal(nullBody)
 	if err != nil {
@@ -363,7 +368,7 @@ func (o *OpensearchImpl) DeleteDataIndexes(log *zap.SugaredLogger) error {
 		log.Errorf("json unmarshalling error %v", err)
 		return err
 	}
-	if deleteResponse.Acknowledged != true {
+	if !deleteResponse.Acknowledged {
 		return fmt.Errorf("Data indices deletion failure. Response = %v ", string(bdata))
 	}
 	log.Infof("Data indices deleted successfully !")
@@ -373,7 +378,7 @@ func (o *OpensearchImpl) DeleteDataIndexes(log *zap.SugaredLogger) error {
 //TriggerRestore Triggers a restore from a specified snapshot
 func (o *OpensearchImpl) TriggerRestore(backupName string, log *zap.SugaredLogger) error {
 	log.Infof("Triggering restore with name '%s'", backupName)
-	restoreURL := fmt.Sprintf("%s/_snapshot/%s/%s/_restore", constants.EsUrl, constants.OpeSearchSnapShotRepoName, backupName)
+	restoreURL := fmt.Sprintf("%s/_snapshot/%s/%s/_restore", constants.EsURL, constants.OpeSearchSnapShotRepoName, backupName)
 	nullBody := make(map[string]interface{})
 	postBody, err := json.Marshal(nullBody)
 	if err != nil {
@@ -401,7 +406,7 @@ func (o *OpensearchImpl) TriggerRestore(backupName string, log *zap.SugaredLogge
 //CheckRestoreProgress checks progress of restore process, by monitoring all the data streams
 func (o *OpensearchImpl) CheckRestoreProgress(backupName string, log *zap.SugaredLogger) error {
 	log.Infof("Checking restore progress with name '%s'", backupName)
-	dsURL := fmt.Sprintf("%s/_data_stream", constants.EsUrl)
+	dsURL := fmt.Sprintf("%s/_data_stream", constants.EsURL)
 	var snapshotInfo types.OpenSearchDataStreams
 	done := false
 	notGreen := false

@@ -48,27 +48,28 @@ func HTTPHelper(method, requestURL string, body io.Reader, log *zap.SugaredLogge
 	var response *http.Response
 	var request *http.Request
 	var err error
+	client := &http.Client{}
+	request.Header.Add("Content-Type", constants.HTTPContentType)
 	switch method {
 	case "GET":
-		response, err = http.Get(requestURL) //#nosec G204
+		response, err = client.Get(requestURL)
 		if err != nil {
 			log.Errorf("HTTP GET failure while invoking url '%s'", requestURL, zap.Error(err))
 			return nil, err
 		}
 	case "POST":
-		response, err = http.Post(requestURL, constants.HTTPContentType, body) //#nosec G204
+		response, err = client.Post(requestURL, constants.HTTPContentType, body)
 		if err != nil {
 			log.Errorf("HTTP POST failure while invoking url '%s'", requestURL, zap.Error(err))
 			return nil, err
 		}
 	case "DELETE":
-		request, err = http.NewRequest(http.MethodDelete, requestURL, body) //#nosec G204
+		request, err = http.NewRequest(http.MethodDelete, requestURL, body)
 		if err != nil {
 			log.Error("Error creating request ", zap.Error(err))
 			return nil, err
 		}
-		client := &http.Client{}
-		request.Header.Add("Content-Type", constants.HTTPContentType)
+
 		response, err = client.Do(request)
 		if err != nil {
 			log.Errorf("HTTP DELETE failure while invoking url '%s'", requestURL, zap.Error(err))

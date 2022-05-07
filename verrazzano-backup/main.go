@@ -83,7 +83,7 @@ func main() {
 	// Check opensearch health before proceeding with backup or restore
 	if Component == constants.OSComponent {
 		search = opensearch.Opensearch(&opensearch.OpensearchImpl{})
-		if !search.EnsureOpenSearchIsHealthy(constants.EsUrl, log) {
+		if !search.EnsureOpenSearchIsHealthy(constants.EsURL, log) {
 			log.Errorf("Operation cannot be performed as Opensearch is not healthy")
 			os.Exit(1)
 		}
