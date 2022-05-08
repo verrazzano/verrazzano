@@ -279,6 +279,12 @@
               "image": "oraclelinux",
               "tag": "7.9",
               "helmFullImageKey": "monitoringOperator.esInitImage"
+            },
+            {
+              "repository": "verrazzano",
+              "image": "VERRAZZANO_BACKUP_IMAGE",
+              "tag": "VERRAZZANO_BACKUP_TAG",
+              "helmFullImageKey": "monitoringOperator.esBackupInitImage"
             }
           ]
         }

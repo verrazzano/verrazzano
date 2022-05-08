@@ -25,22 +25,28 @@ fi
 VERRAZZANO_APPLICATION_OPERATOR_IMAGE=$3
 
 if [ -z "$4" ]; then
+  echo "You must specify the Backup Init Image"
+  exit 1
+fi
+VERRAZZANO_BACKUP_IMAGE=$4
+
+if [ -z "$5" ]; then
   echo "You must specify the Platform Operator Image Name"
   exit 1
 fi
-VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=$4
+VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=$5
 
-if [ -z "$5" ]; then
+if [ -z "$6" ]; then
   echo "You must specify the Image Tag"
   exit 1
 fi
-IMAGE_TAG=$5
+IMAGE_TAG=$6
 
-if [ -z "$6" ]; then
+if [ -z "$7" ]; then
   echo "You must specify the BOM filename as output"
   exit 1
 fi
-GENERATED_BOM_FILE=$6
+GENERATED_BOM_FILE=$7
 
 cp ${BOM_FILE} ${GENERATED_BOM_FILE}
 
@@ -54,6 +60,13 @@ if [[ ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} =~ $regex ]] ; then
 else
   sed -i"" -e "s|VERRAZZANO_APPLICATION_OPERATOR_IMAGE|${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}|g" ${GENERATED_BOM_FILE}
   sed -i"" -e "s|VERRAZZANO_APPLICATION_OPERATOR_TAG|${IMAGE_TAG}|g" ${GENERATED_BOM_FILE}
+fi
+if [[ ${VERRAZZANO_BACKUP_IMAGE} =~ $regex ]] ; then
+  sed -i"" -e "s|VERRAZZANO_BACKUP_IMAGE|$(echo ${VERRAZZANO_BACKUP_IMAGE} | rev | cut -d / -f 1 | rev | cut -d : -f 1)|g" ${GENERATED_BOM_FILE}
+  sed -i"" -e "s|VERRAZZANO_BACKUP_TAG|$(echo ${VERRAZZANO_BACKUP_IMAGE}:UNDEFINED | rev | cut -d / -f 1 | rev | cut -d : -f 2)|g" ${GENERATED_BOM_FILE}
+else
+  sed -i"" -e "s|VERRAZZANO_BACKUP_IMAGE|${VERRAZZANO_BACKUP_IMAGE}|g" ${GENERATED_BOM_FILE}
+  sed -i"" -e "s|VERRAZZANO_BACKUP_TAG|${IMAGE_TAG}|g" ${GENERATED_BOM_FILE}
 fi
 sed -i"" -e "s|VERRAZZANO_PLATFORM_OPERATOR_IMAGE|${VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME}|g" ${GENERATED_BOM_FILE}
 sed -i"" -e "s|VERRAZZANO_PLATFORM_OPERATOR_TAG|${IMAGE_TAG}|g" ${GENERATED_BOM_FILE}

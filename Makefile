@@ -54,9 +54,9 @@ clean: ## remove coverage and test results
 
 .PHONY: docker-push
 docker-push: ## build and push all images
+	(cd verrazzano-backup; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_BACKUP_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG})
 	(cd application-operator; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG})
 	(cd platform-operator; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} VERRAZZANO_APPLICATION_OPERATOR_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE})
-	(cd verrazzano-backup; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_BACKUP_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG})
 
 .PHONY: docker-push-ipo
 docker-push-ipo: ## build and push just the Image Patch Operator

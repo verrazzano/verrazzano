@@ -54,6 +54,8 @@ spec:
               value: {{ .Values.monitoringOperator.esImage }}
             - name: ELASTICSEARCH_INIT_IMAGE
               value: {{ .Values.monitoringOperator.esInitImage }}
+            - name: ELASTICSEARCH_BACKUP_INIT_IMAGE
+              value: {{ .Values.monitoringOperator.esBackupInitImage }}
             - name: KIBANA_IMAGE
               value: {{ .Values.monitoringOperator.kibanaImage }}
             - name: ELASTICSEARCH_WAIT_TARGET_VERSION
