@@ -10,13 +10,10 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
-type (
-
-	//entryTracker is a Set like construct to track if a value was seen already
-	entryTracker struct {
+//entryTracker is a Set like construct to track if a value was seen already
+type entryTracker struct {
 		set map[string]bool
-	}
-)
+}
 
 const minClusterSize = 3
 
@@ -49,6 +46,7 @@ func validateNoDuplicatedConfiguration(vz *vzapi.Verrazzano) error {
 
 }
 
+//validateNoDuplicateArgs rejects InstallArgs with duplicated names
 func validateNoDuplicateArgs(opensearch *vzapi.ElasticsearchComponent) error {
 	tracker := newTracker()
 	for _, arg := range opensearch.ESInstallArgs {
@@ -59,6 +57,7 @@ func validateNoDuplicateArgs(opensearch *vzapi.ElasticsearchComponent) error {
 	return nil
 }
 
+//validateNoDuplicateNodeGroups rejects Nodes with duplicated group names
 func validateNoDuplicateNodeGroups(opensearch *vzapi.ElasticsearchComponent) error {
 	tracker := newTracker()
 	for _, group := range opensearch.Nodes {
@@ -70,11 +69,13 @@ func validateNoDuplicateNodeGroups(opensearch *vzapi.ElasticsearchComponent) err
 }
 
 //validateClusterTopology rejects any updates that would corrupt the cluster state
+// e.g., removing half or more master nodes without deleting the cluster
 func validateClusterTopology(old, new *vzapi.Verrazzano) error {
 	if old.Spec.Components.Elasticsearch == nil || new.Spec.Components.Elasticsearch == nil {
 		return nil
 	}
 
+	// count node replicas and roles for the old and new states
 	oldNodes, err := nodeCount(old)
 	if err != nil {
 		return err
@@ -84,6 +85,7 @@ func validateClusterTopology(old, new *vzapi.Verrazzano) error {
 		return err
 	}
 
+	// if the new cluster has nodes, verify that the update would not corrupt the cluster state
 	if newNodes.Replicas > 0 {
 		if !allowMasterUpdate(newNodes.MasterNodes, oldNodes.MasterNodes) {
 			return nodeCountError(vmov1.MasterRole, oldNodes.MasterNodes)
@@ -95,6 +97,7 @@ func validateClusterTopology(old, new *vzapi.Verrazzano) error {
 	return nil
 }
 
+//nodeCountError emits an error related to why the node count may not be updated
 func nodeCountError(role vmov1.NodeRole, count int32) error {
 	removableNodes := (count / 2) - 1
 	if removableNodes < 1 {
@@ -103,6 +106,10 @@ func nodeCountError(role vmov1.NodeRole, count int32) error {
 	return fmt.Errorf("at most %d %s node(s) may be removed from the OpenSearch, unless you are deleting the cluster", removableNodes, string(role))
 }
 
+//allowMasterUpdate rejects master node updates if the update would:
+// - reduce the master node count below 3 without deleting the cluster
+// - reduce the master node count by half or more
+// Updates are always allowed if the cluster is 1-2 nodes
 func allowMasterUpdate(new, old int32) bool {
 	// if we have 1-2 node cluster, we have to allow updates
 	if old < minClusterSize {
@@ -116,10 +123,13 @@ func allowMasterUpdate(new, old int32) bool {
 	return allowNodeUpdate(new, old)
 }
 
+//allowNodeUpdate rejects nodes updates if the update would:
+// - reduce the node count by half or more
 func allowNodeUpdate(new, old int32) bool {
 	return new > (old / 2)
 }
 
+//nodeCount adapts the Verrazzano Nodes API to the VMI, and generates a NodeCount of node roles and replicas
 func nodeCount(vz *vzapi.Verrazzano) (*nodes.NodeCount, error) {
 	vmi := &vmov1.VerrazzanoMonitoringInstance{}
 	vmiOpenSearch := &vmov1.Elasticsearch{
