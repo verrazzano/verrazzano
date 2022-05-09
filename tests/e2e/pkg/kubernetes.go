@@ -25,7 +25,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
-	apiextv1beta1 "k8s.io/api/extensions/v1beta1"
+	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -216,13 +216,13 @@ func GetDaemonSet(namespace string, daemonSetName string) (*appsv1.DaemonSet, er
 }
 
 // GetIngressList returns a IngressList in the given namespace
-func GetIngressList(namespace string) (*apiextv1beta1.IngressList, error) {
+func GetIngressList(namespace string) (*netv1.IngressList, error) {
 	// Get the Kubernetes clientset
 	clientSet, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
 	}
-	ingressList, err := clientSet.ExtensionsV1beta1().Ingresses(namespace).List(context.TODO(), metav1.ListOptions{})
+	ingressList, err := clientSet.NetworkingV1().Ingresses(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get Ingresses in namespace %s: %v ", namespace, err))
 		return nil, err
