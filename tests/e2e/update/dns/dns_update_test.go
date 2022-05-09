@@ -18,7 +18,7 @@ import (
 
 const (
 	waitTimeout     = 5 * time.Minute
-	pollingInterval = 15 * time.Second
+	pollingInterval = 10 * time.Second
 )
 
 type EnvironmentNameModifier struct {
@@ -47,33 +47,31 @@ var (
 	t                      = framework.NewTestFramework("update dns")
 	currentEnvironmentName string
 	currentDNSDomain       string
-	testEnvironmentName    string = "test-env"
-	testDNSDomain          string = "sslip.io"
+	testEnvironmentName    string = "env"
+	testDNSDomain          string = "nip.io"
 )
 
-var _ = t.Describe("Update environment name", func() {
+var _ = t.Describe("Test updates to environment name and dns domain", func() {
 	t.It("Verify the current environment name", func() {
 		cr := update.GetCR()
 		currentEnvironmentName = cr.Spec.EnvironmentName
 		currentDNSDomain = cr.Spec.Components.DNS.Wildcard.Domain
 		validateIngressList(currentEnvironmentName, currentDNSDomain)
-		validateGatewayList(currentEnvironmentName, currentDNSDomain)
+		validateGatewayList(currentDNSDomain)
 	})
 
 	t.It("Verify the updated environment name", func() {
 		m := EnvironmentNameModifier{testEnvironmentName}
 		update.UpdateCR(m)
 		validateIngressList(testEnvironmentName, currentDNSDomain)
-		validateGatewayList(testEnvironmentName, currentDNSDomain)
+		validateGatewayList(currentDNSDomain)
 	})
-})
 
-var _ = t.Describe("Update wildcard dns domain", func() {
 	t.It("Verify the updated dns domain", func() {
 		m := WildcardDnsModifier{testDNSDomain}
 		update.UpdateCR(m)
 		validateIngressList(testEnvironmentName, testDNSDomain)
-		validateGatewayList(testEnvironmentName, testDNSDomain)
+		validateGatewayList(testDNSDomain)
 	})
 })
 
@@ -84,10 +82,13 @@ func validateIngressList(environmentName string, domain string) {
 		if err == nil {
 			// Verify that the ingresses contain the expected environment name and domain name
 			for _, ingress := range ingressList.Items {
-				hostname, loadbalancerIP := ingress.Spec.Rules[0].Host, ingress.Status.LoadBalancer.Ingress[0].IP
-				suffix := fmt.Sprintf("%s.%s.%s", environmentName, loadbalancerIP, domain)
-				if !strings.Contains(hostname, suffix) {
-					fmt.Println(fmt.Errorf("Ingress %s in namespace %s  with hostname %s must contain suffix %s", ingress.Name, ingress.Namespace, hostname, suffix))
+				hostname := ingress.Spec.Rules[0].Host
+				if !strings.Contains(hostname, environmentName) {
+					fmt.Println(fmt.Errorf("Ingress %s in namespace %s with hostname %s must contain %s", ingress.Name, ingress.Namespace, hostname, environmentName))
+					return false
+				}
+				if !strings.Contains(hostname, domain) {
+					fmt.Println(fmt.Errorf("Ingress %s in namespace %s with hostname %s must contain %s", ingress.Name, ingress.Namespace, hostname, domain))
 					return false
 				}
 			}
@@ -97,19 +98,17 @@ func validateIngressList(environmentName string, domain string) {
 	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected that the ingresses are valid")
 }
 
-func validateGatewayList(environmentName string, domain string) {
+func validateGatewayList(domain string) {
 	Eventually(func() bool {
 		// Fetch the istio load balancer IP
-		var loadbalancerIP string = ""
 		// Fetch the gateways for the deployed applications
 		gatewayList, err := pkg.GetGatewayList("")
 		if err == nil {
 			// Verify that the gateways contain the expected environment name and domain name
 			for _, gateway := range gatewayList.Items {
 				hostname := gateway.Spec.Servers[0].Hosts[0]
-				suffix := fmt.Sprintf("%s.%s.%s", environmentName, loadbalancerIP, domain)
-				if !strings.Contains(hostname, suffix) {
-					fmt.Println(fmt.Errorf("Ingress %s in namespace %s  with hostname %s must contain %s", gateway.Name, gateway.Namespace, hostname, suffix))
+				if !strings.Contains(hostname, domain) {
+					fmt.Println(fmt.Errorf("Gateway %s in namespace %s with hostname %s must contain %s", gateway.Name, gateway.Namespace, hostname, domain))
 					return false
 				}
 			}
