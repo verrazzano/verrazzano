@@ -720,6 +720,9 @@ func createOrUpdateCAResources(compContext spi.ComponentContext) (controllerutil
 					Name: issuer.Name,
 					Kind: issuer.Kind,
 				},
+				PrivateKey: &certv1.CertificatePrivateKey{
+					RotationPolicy: certv1.RotationPolicyAlways,
+				},
 			}
 			return nil
 		}); err != nil {
