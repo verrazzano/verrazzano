@@ -21,10 +21,11 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
+	istionetv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1beta1 "k8s.io/api/extensions/v1beta1"
+	apiextv1beta1 "k8s.io/api/extensions/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -215,7 +216,7 @@ func GetDaemonSet(namespace string, daemonSetName string) (*appsv1.DaemonSet, er
 }
 
 // GetIngressList returns a IngressList in the given namespace
-func GetIngressList(namespace string) (*v1beta1.IngressList, error) {
+func GetIngressList(namespace string) (*apiextv1beta1.IngressList, error) {
 	// Get the Kubernetes clientset
 	clientSet, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
@@ -227,6 +228,21 @@ func GetIngressList(namespace string) (*v1beta1.IngressList, error) {
 		return nil, err
 	}
 	return ingressList, nil
+}
+
+// GetGatewayList returns a GatewayList in the given namespace
+func GetGatewayList(namespace string) (*istionetv1beta1.GatewayList, error) {
+	// Get the Kubernetes clientset
+	clientSet, err := k8sutil.GetIstioClientset()
+	if err != nil {
+		return nil, err
+	}
+	gatewayList, err := clientSet.NetworkingV1beta1().Gateways(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get Gateways in namespace %s: %v ", namespace, err))
+		return nil, err
+	}
+	return gatewayList, nil
 }
 
 // ListNodes returns the list of nodes for the cluster
