@@ -298,6 +298,13 @@ data:
         ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
     end
 
+    function me.service_unavailable(msg, err)
+        me.audit(msg, err)
+        ngx.status = ngx.HTTP_SERVICE_UNAVAILABLE
+        ngx.say("503 Service Unavailable")
+        ngx.exit(ngx.HTTP_SERVICE_UNAVAILABLE)
+    end
+
     function me.unauthorized(msg, err)
         me.deleteCookies("vz_authn", "vz_userinfo", "vz_state")
         me.audit(msg, err)
@@ -698,6 +705,10 @@ data:
         if not res then
             me.info("Failed requesting token from Keycloak: response is nil")
             me.unauthorized("Error requesting token: response was nil")
+        end
+        if res.status >= 500 then
+            me.info("Failed requesting token from Keycloak: response body is "..res.body)
+            me.service_unavailable("Error requesting token: response status code was "..res.status)
         end
         local tokenRes = cjson.decode(res.body)
         if tokenRes.error or tokenRes.error_description then
