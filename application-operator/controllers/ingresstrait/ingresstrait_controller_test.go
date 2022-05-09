@@ -2658,7 +2658,7 @@ func createResourceFromTemplate(cli client.Client, template string, data interfa
 }
 
 // TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookieIstioEnabled tests the Reconcile method for the following use case.
-// GIVEN a request to reconcile an ingress trait resource that applies to a Verrazzano workload type with HTTPCookie defined for session affinity
+// GIVEN a request to reconcile an ingress trait resource that applies to a Verrazzano workload type with HTTPCookie defined for session affinity and inside the Istio meash
 // WHEN the trait exists but the ingress does not
 // THEN ensure that the workload is unwrapped and the trait is created.
 func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookieIstioEnabled(t *testing.T) {
@@ -2841,7 +2841,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookieIstioEna
 }
 
 // TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookieIstioDisabled tests the Reconcile method for the following use case.
-// GIVEN a request to reconcile an ingress trait resource that applies to a Verrazzano workload type with HTTPCookie defined for session affinity
+// GIVEN a request to reconcile an ingress trait resource that applies to a Verrazzano workload type with HTTPCookie defined for session affinity and outside the Istion mesh
 // WHEN the trait exists but the ingress does not
 // THEN ensure that the workload is unwrapped and the trait is created.
 func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookieIstioDisabled(t *testing.T) {
