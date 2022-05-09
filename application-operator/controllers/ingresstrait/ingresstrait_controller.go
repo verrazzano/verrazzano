@@ -138,12 +138,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling ingress trait resource %v, generation %v", req.NamespacedName, trait.Generation)
-	// Get the namespace resource that the VerrazzanoCoherenceWorkload resource is deployed to
-	namespace := &corev1.Namespace{}
-	if err = r.Client.Get(ctx, client.ObjectKey{Namespace: "", Name: trait.Namespace}, namespace); err != nil {
-		return reconcile.Result{}, err
-	}
-	res, err := r.doReconcile(ctx, trait, log, namespace)
+
+	res, err := r.doReconcile(ctx, trait, log)
 	if clusters.ShouldRequeue(res) {
 		return res, nil
 	}
@@ -159,7 +155,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 }
 
 // doReconcile performs the reconciliation operations for the ingress trait
-func (r *Reconciler) doReconcile(ctx context.Context, trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger, namespace *corev1.Namespace) (ctrl.Result, error) {
+func (r *Reconciler) doReconcile(ctx context.Context, trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
 	// If the ingress trait no longer exists or is being deleted then cleanup the associated cert and secret resources
 	if isIngressTraitBeingDeleted(trait) {
 		log.Debugf("Deleting ingress trait %v", trait)
@@ -180,7 +176,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, trait *vzapi.IngressTrait,
 	}
 
 	// Create or update the child resources of the trait and collect the outcomes.
-	status, result, err := r.createOrUpdateChildResources(ctx, trait, log, namespace)
+	status, result, err := r.createOrUpdateChildResources(ctx, trait, log)
 	if err != nil {
 		return reconcile.Result{}, err
 	} else if result.Requeue {
@@ -226,7 +222,7 @@ func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, appConfig *vzap
 
 // createOrUpdateChildResources creates or updates the Gateway and VirtualService resources that
 // should be used to setup ingress to the service.
-func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger, namespace *corev1.Namespace) (*reconcileresults.ReconcileResults, ctrl.Result, error) {
+func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) (*reconcileresults.ReconcileResults, ctrl.Result, error) {
 	status := reconcileresults.ReconcileResults{}
 	rules := trait.Spec.Rules
 	// If there are no rules, create a single default rule
@@ -260,7 +256,7 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 				vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, index)
 				drName := fmt.Sprintf("%s-rule-%d-dr", trait.Name, index)
 				r.createOrUpdateVirtualService(ctx, trait, rule, allHostsForTrait, vsName, services, gateway, &status, log)
-				r.createOrUpdateDestinationRule(ctx, trait, rule, drName, &status, log, services, namespace)
+				r.createOrUpdateDestinationRule(ctx, trait, rule, drName, &status, log, services)
 			}
 		}
 	}
@@ -693,7 +689,7 @@ func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualSer
 }
 
 //createOfUpdateDestinationRule creates or updates the DestinationRule.
-func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger, services []*corev1.Service, namespace *corev1.Namespace) {
+func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger, services []*corev1.Service) {
 	if rule.Destination.HTTPCookie != nil {
 		destinationRule := &istioclient.DestinationRule{
 			TypeMeta: metav1.TypeMeta{
@@ -703,6 +699,8 @@ func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *v
 				Namespace: trait.Namespace,
 				Name:      name},
 		}
+		namespace := &corev1.Namespace{}
+		_ = r.Client.Get(ctx, client.ObjectKey{Namespace: "", Name: trait.Namespace}, namespace)
 
 		res, err := controllerutil.CreateOrUpdate(ctx, r.Client, destinationRule, func() error {
 			return r.mutateDestinationRule(destinationRule, trait, rule, services, namespace)
