@@ -763,9 +763,6 @@ data:
       @id kubernetes_record_transformer
       enable_ruby true
       <record>
-        target_index verrazzano-namespace-${record["kubernetes"]["namespace_name"]}
-      </record>
-      <record>
         kubernetes_namespace_container_name ${record["kubernetes"]["namespace_name"]}.${record["kubernetes"]["container_name"]}
       </record>
     </filter>
