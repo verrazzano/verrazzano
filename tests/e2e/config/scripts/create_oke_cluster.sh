@@ -80,17 +80,10 @@ if [ ${status_code:-1} -eq 0 ]; then
     # if the cluster has been created with private endpoints then setup the ssh tunnel through the bastion host
     if [ "$TF_VAR_bastion_enabled" = true ] ; then
       echo "Setting up ssh tunnel through bastion host."
-      retries=0
-      until [ "$retries" -ge 3 ]
-      do
-        ../../setup_ssh_tunnel.sh && break
-        echo "Failed setting up ssh tunnel, retrying in 30 seconds..."
-        retries=$(($retries+1))
-        sleep 30
-      done
-      if [ "$retries" -ge 3 ] ; then
-        echo "Can't setup ssh tunnel through bastion host!"
-        exit 1
+      ../../setup_ssh_tunnel.sh
+      if [ $? -ne 0 ]; then
+          echo "Can't setup ssh tunnel through bastion host!"
+          exit 1
       fi
     fi
 
