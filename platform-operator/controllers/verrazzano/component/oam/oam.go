@@ -55,6 +55,7 @@ func ensureClusterRoles(ctx spi.ComponentContext) error {
 					"list",
 					"patch",
 					"update",
+					"deletecollection",
 				},
 			},
 		}
