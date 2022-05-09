@@ -47,8 +47,8 @@ var (
 	t                      = framework.NewTestFramework("update dns")
 	currentEnvironmentName string
 	currentDNSDomain       string
-	testEnvironmentName    string = "env"
-	testDNSDomain          string = "nip.io"
+	testEnvironmentName    string = "test-env"
+	testDNSDomain          string = "sslip.io"
 )
 
 var _ = t.Describe("Test updates to environment name and dns domain", func() {
