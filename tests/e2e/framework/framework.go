@@ -90,7 +90,7 @@ func NewDefaultFrameworkWithKubeConfig(baseName string, kubeConfig string) *Fram
 // NewFramework creates a test framework.
 func NewFramework(baseName string, kubeconfig string, client *clientset.Clientset) *Framework {
 	metricsIndex, _ := metrics.NewLogger(baseName, metrics.MetricsIndex)
-	logIndex, _ := metrics.NewLogger(baseName, metrics.TestLogIndex)
+	logIndex, _ := metrics.NewLogger(baseName, metrics.TestLogIndex, "stdout")
 
 	f := &Framework{
 		BaseName:   strings.ToLower(baseName),
