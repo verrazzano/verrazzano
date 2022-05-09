@@ -10,8 +10,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -46,10 +44,8 @@ func (r *VerrazzanoSecretsReconciler) reconcileHelmOverrideSecret(ctx context.Co
 
 func (r *VerrazzanoSecretsReconciler) updateVerrazzanoForHelmOverrides(componentCtx spi.ComponentContext, componentName string) error {
 	cr := componentCtx.ActualCR()
-	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, cr, func() error {
-		cr.Status.Components[componentName].LastReconciledGeneration = 0
-		return nil
-	})
+	cr.Status.Components[componentName].LastReconciledGeneration = 0
+	err := r.Status().Update(context.TODO(), cr)
 	if err == nil {
 		return nil
 	}
