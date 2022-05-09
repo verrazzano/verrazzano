@@ -49,3 +49,4 @@ tests/e2e/**/*.test
 **/.DS_Store
 **/.vscode
 ATTRIBUTION-HELPER-DEPS
+verrazzano-backup/THIRD_PARTY_LICENSES.txt
