@@ -20,7 +20,6 @@ import (
 )
 
 const vmiIngest = "vmi-system-es-ingest"
-const defaultElasticURL = "http://verrazzano-authproxy-elasticsearch:8775"
 const defaultSecretName = "verrazzano"
 const rancherCAAdditionalPem = "ca-additional.pem"
 
@@ -79,7 +78,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	// If the fluentd ELASTICSEARCH_URL is the default "http://verrazzano-authproxy-elasticsearch:8775", use VMI ES ingress URL.
 	// If the fluentd ELASTICSEARCH_URL is not the default, meaning it is a custom ES, use the external ES URL.
 	esURL := fluentdESURL
-	if esURL == defaultElasticURL {
+	if esURL == constants.DefaultOpensearchURL {
 		esURL, err = r.getVmiESURL()
 		if err != nil {
 			return err
@@ -143,7 +142,7 @@ func GetRegistrationSecretName(vmcName string) string {
 
 // getVzESURLSecret returns the elasticsearchURL and elasticsearchSecret from Verrazzano CR
 func (r *VerrazzanoManagedClusterReconciler) getVzESURLSecret(vzList *vzapi.VerrazzanoList) (string, string, error) {
-	url := defaultElasticURL
+	url := constants.DefaultOpensearchURL
 	secret := defaultSecretName
 	// what to do when there is more than one Verrazzano CR
 	for _, vz := range vzList.Items {
