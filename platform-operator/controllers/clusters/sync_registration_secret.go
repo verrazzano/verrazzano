@@ -21,7 +21,6 @@ import (
 
 const vmiIngest = "vmi-system-es-ingest"
 const defaultSecretName = "verrazzano"
-const rancherCAAdditionalPem = "ca-additional.pem"
 
 // Create a registration secret with the managed cluster information.  This secret will
 // be used on the managed cluster to get information about itself, like the cluster name
@@ -213,7 +212,7 @@ func (r *VerrazzanoManagedClusterReconciler) getAdminCaBundle() ([]byte, error) 
 		// Combine the two CA bundles
 		caBundle = make([]byte, len(secret.Data[CaCrtKey]))
 		copy(caBundle, secret.Data[CaCrtKey])
-		caBundle = append(caBundle, optSecret.Data[rancherCAAdditionalPem]...)
+		caBundle = append(caBundle, optSecret.Data[constants.AdditionalTLSCAKey]...)
 	}
 
 	return caBundle, nil

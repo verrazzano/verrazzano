@@ -16,10 +16,9 @@ import (
 )
 
 const (
-	keyCaCrtNoDot   = "cacrt"
-	keyCaCrt        = "ca.crt"
-	keyCaBundle     = "ca-bundle"
-	keyAdditionalCa = "ca-additional.pem"
+	keyCaCrtNoDot = "cacrt"
+	keyCaCrt      = "ca.crt"
+	keyCaBundle   = "ca-bundle"
 )
 
 // Synchronize Secret objects to the local cluster
@@ -132,7 +131,7 @@ func (s *Syncer) getLocalClusterCASecretData() ([]byte, error) {
 	}
 
 	if errAddlTLS == nil {
-		return localCASecret.Data[keyAdditionalCa], nil
+		return localCASecret.Data[globalconst.AdditionalTLSCAKey], nil
 	}
 	// additional TLS secret not found, check for Verrazzano TLS secret
 	err := s.LocalClient.Get(s.Context, client.ObjectKey{

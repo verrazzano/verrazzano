@@ -6,9 +6,11 @@ package secrets
 import (
 	"context"
 	"fmt"
+	"testing"
+
+	constants2 "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -22,52 +24,90 @@ import (
 )
 
 var mcNamespace = types.NamespacedName{Name: constants.VerrazzanoMultiClusterNamespace}
-var vzTLSSecret = types.NamespacedName{Name: "verrazzano-tls", Namespace: "verrazzano-system"}
-var vzLocalCaBundleSecret = types.NamespacedName{Name: "verrazzano-local-ca-bundle", Namespace: "verrazzano-mc"}
+var vzTLSSecret = types.NamespacedName{Name: constants.VerrazzanoIngressSecret, Namespace: constants.VerrazzanoSystemNamespace}
+var additionalTLSSecret = types.NamespacedName{Name: constants2.AdditionalTLS, Namespace: constants2.RancherSystemNamespace}
+var vzLocalCaBundleSecret = types.NamespacedName{Name: "verrazzano-local-ca-bundle", Namespace: constants.VerrazzanoMultiClusterNamespace}
 var unwatchedSecret = types.NamespacedName{Name: "any-secret", Namespace: "any-namespace"}
 
-// TestCreateLocalCABundle tests the Reconcile method for the following use case
-// GIVEN a request to reconcile the verrazzano-tls secret
+// TestCreateLocalCABundle tests the Reconcile method for the following use cases
+// GIVEN a request to reconcile the verrazzano-tls secret OR the tls-additional-ca secret
 // WHEN the local-ca-bundle secret doesn't exist
 // THEN the local-ca-bundle secret is updated
 func TestCreateLocalCABundle(t *testing.T) {
-	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
+	tests := []struct {
+		secretName string
+		secretNS   string
+	}{
+		{
+			secretName: vzTLSSecret.Name,
+			secretNS:   vzTLSSecret.Namespace,
+		},
+		{
+			secretName: additionalTLSSecret.Name,
+			secretNS:   additionalTLSSecret.Namespace,
+		},
+	}
+	for _, tt := range tests {
+		asserts := assert.New(t)
+		mocker := gomock.NewController(t)
+		mock := mocks.NewMockClient(mocker)
 
-	expectLocalCABundleIsCreated(t, mock)
+		expectLocalCABundleIsCreated(t, mock)
 
-	// Create and make the request
-	request := newRequest(vzTLSSecret.Namespace, vzTLSSecret.Name)
-	reconciler := newSecretsReconciler(mock)
-	result, err := reconciler.Reconcile(context.TODO(), request)
+		// Create and make the request
+		request := newRequest(tt.secretNS, tt.secretName)
+		reconciler := newSecretsReconciler(mock)
+		result, err := reconciler.Reconcile(context.TODO(), request)
 
-	// Validate the results
-	mocker.Finish()
-	asserts.NoError(err)
-	asserts.NotNil(result)
+		// Validate the results
+		mocker.Finish()
+		asserts.NoError(err)
+		asserts.NotNil(result)
+	}
 }
 
 // TestIgnoresOtherSecrets tests the Reconcile method for the following use case
-// GIVEN a request to reconcile a secret other than verrazzano-tls
+// GIVEN a request to reconcile a secret other than verrazzano TLS secret or additional TLS secret
 // WHEN any conditions
 // THEN the request is ignored
 func TestIgnoresOtherSecrets(t *testing.T) {
-	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
+	tests := []struct {
+		secretName string
+		secretNS   string
+	}{
+		// VZ TLS secret name in wrong NS
+		{
+			secretName: vzTLSSecret.Name,
+			secretNS:   additionalTLSSecret.Namespace,
+		},
+		// Additional TLS secret name in wrong NS
+		{
+			secretName: additionalTLSSecret.Name,
+			secretNS:   vzTLSSecret.Namespace,
+		},
+		// A totally different secret name and NS
+		{
+			secretName: unwatchedSecret.Name,
+			secretNS:   unwatchedSecret.Namespace,
+		},
+	}
+	for _, tt := range tests {
+		asserts := assert.New(t)
+		mocker := gomock.NewController(t)
+		mock := mocks.NewMockClient(mocker)
 
-	expectNothingForWrongSecret(t, mock)
+		expectNothingForWrongSecret(t, mock)
 
-	// Create and make the request
-	request := newRequest(unwatchedSecret.Namespace, unwatchedSecret.Name)
-	reconciler := newSecretsReconciler(mock)
-	result, err := reconciler.Reconcile(context.TODO(), request)
+		// Create and make the request
+		request := newRequest(tt.secretNS, tt.secretName)
+		reconciler := newSecretsReconciler(mock)
+		result, err := reconciler.Reconcile(context.TODO(), request)
 
-	// Validate the results
-	mocker.Finish()
-	asserts.NoError(err)
-	asserts.NotNil(result)
+		// Validate the results
+		mocker.Finish()
+		asserts.NoError(err)
+		asserts.NotNil(result)
+	}
 }
 
 // TestMultiClusterNamespaceDoesNotExist tests the Reconcile method for the following use case
@@ -126,6 +166,15 @@ func expectLocalCABundleIsCreated(t *testing.T, mock *mocks.MockClient) {
 	mock.EXPECT().
 		Get(gomock.Any(), mcNamespace, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+			return nil
+		}).AnyTimes()
+
+	// Expect a call to get the additional tls secret
+	mock.EXPECT().
+		Get(gomock.Any(), additionalTLSSecret, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Name = additionalTLSSecret.Name
+			secret.Namespace = additionalTLSSecret.Namespace
 			return nil
 		}).AnyTimes()
 

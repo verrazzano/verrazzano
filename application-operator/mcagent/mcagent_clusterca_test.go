@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
 
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
@@ -175,7 +176,7 @@ func TestSyncCACertsAdditionalTLSPresent(t *testing.T) {
 
 	newRegCA := testAdminCASecret.Data["ca-bundle"]
 	// Managed cluster additional TLS secret is the one to sync to admin cluster
-	newMCCA := testMCAdditionalTLSSecret.Data["ca-additional.pem"]
+	newMCCA := testMCAdditionalTLSSecret.Data[constants.AdditionalTLSCAKey]
 
 	adminClient := fake.NewFakeClientWithScheme(newClusterCAScheme(), &testAdminCASecret, &testMCCASecret, &testVMC)
 
