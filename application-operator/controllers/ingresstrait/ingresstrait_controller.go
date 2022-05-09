@@ -720,22 +720,23 @@ func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *v
 	}
 }
 
+// mutateDestinationRule changes the destination rule based upon a traits configuration
 func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.DestinationRule, trait *vzapi.IngressTrait, rule vzapi.IngressRule, services []*corev1.Service, namespace *corev1.Namespace) error {
 	dest, err := createDestinationFromRuleOrService(rule, services)
 	if err != nil {
 		return err
 	}
 
-	istioEnabled := false
+	mode := istionet.ClientTLSSettings_DISABLE
 	value, ok := namespace.Labels["istio-injection"]
 	if ok && value == "enabled" {
-		istioEnabled = true
+		mode = istionet.ClientTLSSettings_ISTIO_MUTUAL
 	}
 	destinationRule.Spec = istionet.DestinationRule{
 		Host: dest.Destination.Host,
 		TrafficPolicy: &istionet.TrafficPolicy{
 			Tls: &istionet.ClientTLSSettings{
-				Mode: istionet.ClientTLSSettings_ISTIO_MUTUAL,
+				Mode: mode,
 			},
 			LoadBalancer: &istionet.LoadBalancerSettings{
 				LbPolicy: &istionet.LoadBalancerSettings_ConsistentHash{
@@ -750,17 +751,6 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 				},
 			},
 		},
-	}
-	if !istioEnabled {
-		destinationRule.Spec.TrafficPolicy.PortLevelSettings = []*istionet.TrafficPolicy_PortTrafficPolicy{
-			{
-				// Disable mutual TLS for the Coherence extend port
-				Port: dest.Destination.Port,
-				Tls: &istionet.ClientTLSSettings{
-					Mode: istionet.ClientTLSSettings_DISABLE,
-				},
-			},
-		}
 	}
 
 	return controllerutil.SetControllerReference(trait, destinationRule, r.Scheme)

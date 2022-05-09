@@ -2714,7 +2714,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookieIstioEna
 		},
 	}
 
-	// Expect a call to get the Verrazzano Coherence workload resource
+	// Expect a call to get the Verrazzano workload resource
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testWorkloadName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *unstructured.Unstructured) error {
@@ -2725,7 +2725,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookieIstioEna
 			_ = unstructured.SetNestedMap(workload.Object, containedResource, "spec", "template")
 			return nil
 		})
-	// Expect a call to get the contained Coherence resource
+	// Expect a call to get the contained resource
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: containedName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *unstructured.Unstructured) error {
@@ -2748,7 +2748,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookieIstioEna
 			}
 			return nil
 		})
-	// Expect a call to list the child Deployment resources of the Coherence workload definition
+	// Expect a call to list the child Deployment resources of the workload definition
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
@@ -2756,7 +2756,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookieIstioEna
 			return nil
 		})
 	appCertificateExpectations(mock)
-	// Expect a call to list the child Service resources of the Coherence workload definition
+	// Expect a call to list the child Service resources of the workload definition
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
@@ -2897,7 +2897,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookieIstioDis
 		},
 	}
 
-	// Expect a call to get the Verrazzano Coherence workload resource
+	// Expect a call to get the Verrazzano workload resource
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testWorkloadName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *unstructured.Unstructured) error {
@@ -2908,7 +2908,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookieIstioDis
 			_ = unstructured.SetNestedMap(workload.Object, containedResource, "spec", "template")
 			return nil
 		})
-	// Expect a call to get the contained Coherence resource
+	// Expect a call to get the contained resource
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: containedName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *unstructured.Unstructured) error {
@@ -2931,7 +2931,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookieIstioDis
 			}
 			return nil
 		})
-	// Expect a call to list the child Deployment resources of the Coherence workload definition
+	// Expect a call to list the child Deployment resources of the workload definition
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
@@ -2939,7 +2939,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookieIstioDis
 			return nil
 		})
 	appCertificateExpectations(mock)
-	// Expect a call to list the child Service resources of the Coherence workload definition
+	// Expect a call to list the child Service resources of the workload definition
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
@@ -2998,10 +2998,10 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookieIstioDis
 			assert.Equal("test-service.test-space.svc.local", destinationrule.Spec.Host)
 			lbPolicy := destinationrule.Spec.TrafficPolicy.LoadBalancer.LbPolicy.(*istionet.LoadBalancerSettings_ConsistentHash)
 			hashKey := lbPolicy.ConsistentHash.HashKey.(*istionet.LoadBalancerSettings_ConsistentHashLB_HttpCookie)
-			portSettingMode := destinationrule.Spec.TrafficPolicy.PortLevelSettings[0].Tls.Mode
+			mode := destinationrule.Spec.TrafficPolicy.Tls.Mode
 			assert.Equal(int64(30), hashKey.HttpCookie.Ttl.Seconds)
 			assert.Equal(int32(0), hashKey.HttpCookie.Ttl.Nanos)
-			assert.Equal(istionet.ClientTLSSettings_DISABLE, portSettingMode)
+			assert.Equal(istionet.ClientTLSSettings_DISABLE, mode)
 			return nil
 		})
 	// Expect a call to update the status of the ingress trait.
