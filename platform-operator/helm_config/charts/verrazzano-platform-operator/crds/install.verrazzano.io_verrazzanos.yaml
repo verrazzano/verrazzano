@@ -3579,7 +3579,7 @@ spec:
                             description: Type of ingress.  Default is LoadBalancer
                             type: string
                         type: object
-                      injection-enabled:
+                      injectionEnabled:
                         type: boolean
                       istioInstallArgs:
                         description: Arguments for installing Istio

@@ -1258,12 +1258,6 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog
 		return ctrl.Result{}, nil
 	}
 
-	// Check if init done for this resource
-	_, ok := initializedSet[vz.Name]
-	if ok {
-		return ctrl.Result{}, nil
-	}
-
 	// Add our finalizer if not already added
 	if !vzstring.SliceContainsString(vz.ObjectMeta.Finalizers, finalizerName) {
 		log.Debugf("Adding finalizer %s", finalizerName)
@@ -1271,6 +1265,12 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog
 		if err := r.Update(context.TODO(), vz); err != nil {
 			return newRequeueWithDelay(), err
 		}
+	}
+
+	// Check if init done for this resource
+	_, ok := initializedSet[vz.Name]
+	if ok {
+		return ctrl.Result{}, nil
 	}
 
 	// Cleanup old resources that might be left around when the install used to be done
