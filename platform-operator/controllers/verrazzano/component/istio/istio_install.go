@@ -128,13 +128,14 @@ func (m *installMonitorType) run(args installRoutineParams) {
 		if err != nil {
 			result = false
 			err = log.ErrorfNewErr("Failed calling istioctl install: %v stderr: %s", err.Error(), string(stderr))
+		} else {
+			log.Oncef("Component Istio successfully ran istioctl install")
 		}
 
 		// Clean up the temp files
 		removeTempFiles(log)
 
 		// Write result
-		log.Oncef("Component Istio successfully ran istioctl install, result: %v", result)
 		outputCh <- result
 	}(m.inputCh, m.resultCh)
 

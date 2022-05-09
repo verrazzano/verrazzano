@@ -208,6 +208,11 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 }
 
 func (i istioComponent) IsReady(context spi.ComponentContext) bool {
+	prefix := fmt.Sprintf("Component %s", context.GetComponent())
+	if i.monitor.isRunning() {
+		context.Log().Progressf("%s is waiting for istioctl install to successfully complete", prefix)
+		return false
+	}
 	deployments := []types.NamespacedName{
 		{
 			Name:      IstiodDeployment,
@@ -222,7 +227,6 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 			Namespace: IstioNamespace,
 		},
 	}
-	prefix := fmt.Sprintf("Component %s", context.GetComponent())
 	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
