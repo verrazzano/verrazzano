@@ -34,7 +34,7 @@ const (
 	pollingInterval        = 5 * time.Second
 )
 
-var nginxIngressPorts = []corev1.ServicePort{
+var testNginxIngressPorts = []corev1.ServicePort{
 	{
 		Name:     "https",
 		Protocol: "TCP",
@@ -47,7 +47,7 @@ var nginxIngressPorts = []corev1.ServicePort{
 	},
 }
 
-var istioIngressPorts = []corev1.ServicePort{
+var testIstioIngressPorts = []corev1.ServicePort{
 	{
 		Name:       "https",
 		Protocol:   "TCP",
@@ -163,14 +163,14 @@ func (u NginxIstioServicePortsModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.Ingress == nil {
 		cr.Spec.Components.Ingress = &vzapi.IngressNginxComponent{}
 	}
-	cr.Spec.Components.Ingress.Ports = nginxIngressPorts
+	cr.Spec.Components.Ingress.Ports = testNginxIngressPorts
 	if cr.Spec.Components.Istio == nil {
 		cr.Spec.Components.Istio = &vzapi.IstioComponent{}
 	}
 	if cr.Spec.Components.Istio.Ingress == nil {
 		cr.Spec.Components.Istio.Ingress = &vzapi.IstioIngressSection{}
 	}
-	cr.Spec.Components.Istio.Ingress.Ports = istioIngressPorts
+	cr.Spec.Components.Istio.Ingress.Ports = testIstioIngressPorts
 }
 
 var t = framework.NewTestFramework("update nginx-istio")
@@ -248,15 +248,15 @@ func validateServicePorts() {
 		if err != nil {
 			return err
 		}
-		if !reflect.DeepEqual(nginxIngressPorts, nginxIngress.Spec.Ports) {
-			return fmt.Errorf("expect nginx with ports %v, but got %v", nginxIngressPorts, nginxIngress.Spec.Ports)
+		if !reflect.DeepEqual(testNginxIngressPorts, nginxIngress.Spec.Ports) {
+			return fmt.Errorf("expect nginx with ports %v, but got %v", testNginxIngressPorts, nginxIngress.Spec.Ports)
 		}
 		istioIngress, err := pkg.GetService(constants.IstioSystemNamespace, "istio-ingressgateway")
 		if err != nil {
 			return err
 		}
-		if !reflect.DeepEqual(istioIngressPorts, istioIngress.Spec.Ports) {
-			return fmt.Errorf("expect nginx with ports %v, but got %v", nginxIngressPorts, istioIngress.Spec.Ports)
+		if !reflect.DeepEqual(testIstioIngressPorts, istioIngress.Spec.Ports) {
+			return fmt.Errorf("expect nginx with ports %v, but got %v", testNginxIngressPorts, istioIngress.Spec.Ports)
 		}
 		return nil
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "expect to get correct ports setting from nginx and istio services")
