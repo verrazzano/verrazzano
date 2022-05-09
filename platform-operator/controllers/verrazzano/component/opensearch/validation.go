@@ -12,7 +12,7 @@ import (
 
 //entryTracker is a Set like construct to track if a value was seen already
 type entryTracker struct {
-		set map[string]bool
+	set map[string]bool
 }
 
 const minClusterSize = 3
