@@ -44,15 +44,17 @@ func isKialiReady(ctx spi.ComponentContext) bool {
 
 // AppendOverrides Build the set of Kiali overrides for the helm install
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	hostName, err := getKialiHostName(ctx)
-	if err != nil {
-		return kvs, err
+	if vzconfig.IsNGINXEnabled(ctx.EffectiveCR()) {
+		hostName, err := getKialiHostName(ctx)
+		if err != nil {
+			return kvs, err
+		}
+		// Service overrides
+		kvs = append(kvs, bom.KeyValue{
+			Key:   webFQDNKey,
+			Value: hostName,
+		})
 	}
-	// Service overrides
-	kvs = append(kvs, bom.KeyValue{
-		Key:   webFQDNKey,
-		Value: hostName,
-	})
 	return kvs, nil
 }
 
