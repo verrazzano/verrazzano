@@ -130,7 +130,7 @@ func main() {
 	// Get S3 access details from Velero Backup Storage location associated with Backup given as input
 	// Ensure the Backup Storage Location is NOT default
 	k8s := utils.K8s(&utils.K8sImpl{})
-	conData, err := k8s.PopulateConnData(dynClient, clientk, constants.VeleroNameSpace, VeleroBackupName, Profile, log)
+	conData, err := k8s.PopulateConnData(dynClient, clientk, constants.VeleroNameSpace, VeleroBackupName, log)
 	if err != nil {
 		log.Errorf("Unable to fetch secret: %v", err)
 		os.Exit(1)

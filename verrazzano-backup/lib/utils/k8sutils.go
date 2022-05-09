@@ -6,8 +6,6 @@ package utils
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"github.com/spf13/viper"
 	model "github.com/verrazzano/verrazzano/verrazzano-backup/lib/types"
 	"go.uber.org/zap"
 	apps "k8s.io/api/apps/v1"
@@ -20,13 +18,12 @@ import (
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	crtclient "sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 	"time"
 )
 
 type K8s interface {
-	PopulateConnData(dclient dynamic.Interface, client client.Client, veleroNamespace, backupName, profile string, log *zap.SugaredLogger) (*model.ConnectionData, error)
-	GetObjectStoreCreds(client client.Client, secretName, namespace, secretKey, profile string, log *zap.SugaredLogger) (*model.ObjectStoreSecret, error)
+	PopulateConnData(dclient dynamic.Interface, client client.Client, veleroNamespace, backupName string, log *zap.SugaredLogger) (*model.ConnectionData, error)
+	GetObjectStoreCreds(client client.Client, secretName, namespace, secretKey string, log *zap.SugaredLogger) (*model.ObjectStoreSecret, error)
 	GetBackup(client dynamic.Interface, veleroNamespace, backupName string, log *zap.SugaredLogger) (*model.VeleroBackup, error)
 	GetBackupStorageLocation(client dynamic.Interface, veleroNamespace, bslName string, log *zap.SugaredLogger) (*model.VeleroBackupStorageLocation, error)
 	ScaleDeployment(clientk client.Client, k8sclient *kubernetes.Clientset, labelSelector, namespace, deploymentName string, replicaCount int32, log *zap.SugaredLogger) error
@@ -36,7 +33,7 @@ type K8sImpl struct {
 }
 
 //PopulateConnData crestes the connection object thats used to communicate to object store
-func (k *K8sImpl) PopulateConnData(dclient dynamic.Interface, client client.Client, veleroNamespace, backupName, profile string, log *zap.SugaredLogger) (*model.ConnectionData, error) {
+func (k *K8sImpl) PopulateConnData(dclient dynamic.Interface, client client.Client, veleroNamespace, backupName string, log *zap.SugaredLogger) (*model.ConnectionData, error) {
 	log.Infof("Populating connection data from backup '%v' in namespace '%s'", backupName, veleroNamespace)
 
 	backup, err := k.GetBackup(dclient, veleroNamespace, backupName, log)
@@ -55,7 +52,7 @@ func (k *K8sImpl) PopulateConnData(dclient dynamic.Interface, client client.Clie
 		return nil, err
 	}
 
-	secretData, err := k.GetObjectStoreCreds(client, bsl.Spec.Credential.Name, bsl.Metadata.Namespace, bsl.Spec.Credential.Key, profile, log)
+	secretData, err := k.GetObjectStoreCreds(client, bsl.Spec.Credential.Name, bsl.Metadata.Namespace, bsl.Spec.Credential.Key, log)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +70,7 @@ func (k *K8sImpl) PopulateConnData(dclient dynamic.Interface, client client.Clie
 
 //GetObjectStoreCreds - Fetches credentials from Velero Backup object store location.
 //This object will be pre-created before the execution of this hook
-func (k *K8sImpl) GetObjectStoreCreds(client client.Client, secretName, namespace, secretKey, profile string, log *zap.SugaredLogger) (*model.ObjectStoreSecret, error) {
+func (k *K8sImpl) GetObjectStoreCreds(client client.Client, secretName, namespace, secretKey string, log *zap.SugaredLogger) (*model.ObjectStoreSecret, error) {
 	secret := v1.Secret{}
 	if err := client.Get(context.TODO(), crtclient.ObjectKey{Name: secretName, Namespace: namespace}, &secret); err != nil {
 		log.Errorf("Failed to retrieve secret '%s' due to : %v", secretName, err)
@@ -86,23 +83,17 @@ func (k *K8sImpl) GetObjectStoreCreds(client client.Client, secretName, namespac
 	}
 	defer os.Remove(file)
 
-	pathElements := strings.Split(file, "/")
-	viper.SetConfigName(pathElements[len(pathElements)-1])
-	viper.SetConfigType("ini")
-	viper.AddConfigPath("/tmp/")
-	err = viper.ReadInConfig()
+	accessKey, secretAccessKey, err := ReadTempCredsFile(file)
 	if err != nil {
+		log.Error("Error while reading creds from file ", zap.Error(err))
 		return nil, err
 	}
+
 	var secretData model.ObjectStoreSecret
 	secretData.SecretName = secretName
 	secretData.SecretKey = secretKey
-
-	accessKeyString := fmt.Sprintf("%s.aws_access_key_id", profile)
-	secretData.ObjectAccessKey = fmt.Sprintf("%s", viper.Get(accessKeyString))
-	secretAccessKeyString := fmt.Sprintf("%s.aws_secret_access_key", profile)
-	secretData.ObjectSecretKey = fmt.Sprintf("%s", viper.Get(secretAccessKeyString))
-
+	secretData.ObjectAccessKey = accessKey
+	secretData.ObjectSecretKey = secretAccessKey
 	return &secretData, nil
 }
 
@@ -182,6 +173,15 @@ func (k *K8sImpl) ScaleDeployment(clientk client.Client, k8sclient *kubernetes.C
 		return nil
 	}
 
+	done := false
+	listOptions := metav1.ListOptions{LabelSelector: labelSelector}
+	var podStateCondition []bool
+	var podNames []string
+	pods, err := k8sclient.CoreV1().Pods(namespace).List(context.TODO(), listOptions)
+	if err != nil {
+		return err
+	}
+
 	mergeFromDep := client.MergeFrom(depPatch.DeepCopy())
 	depPatch.Spec.Replicas = &replicaCount
 	if err := clientk.Patch(context.TODO(), &depPatch, mergeFromDep); err != nil {
@@ -189,20 +189,15 @@ func (k *K8sImpl) ScaleDeployment(clientk client.Client, k8sclient *kubernetes.C
 		return err
 	}
 
-	done := false
-	listOptions := metav1.ListOptions{LabelSelector: labelSelector}
-	var podStateCondition []bool
-	var podNames []string
-
 	for !done {
-		pods, err := k8sclient.CoreV1().Pods(namespace).List(context.TODO(), listOptions)
-		if err != nil {
-			return err
-		}
+		//pods, err := k8sclient.CoreV1().Pods(namespace).List(context.TODO(), listOptions)
+		//if err != nil {
+		//	return err
+		//}
 
 		//Scale up
 		if desiredValue > currentValue {
-			log.Info("Scaling up ...")
+			log.Info("Scaling up pods ...")
 			// There could be multiple pods in a deployment
 			for _, item := range pods.Items {
 				if item.Status.Phase == "Running" {
@@ -214,6 +209,7 @@ func (k *K8sImpl) ScaleDeployment(clientk client.Client, k8sclient *kubernetes.C
 			if int32(len(pods.Items)) == desiredValue && int32(len(podStateCondition)) == desiredValue {
 				// when all running pods is equal to desired input
 				// exit the check loop
+				log.Infof("Actual pod count = '%v', Desired pod count = '%v'", len(pods.Items), desiredValue)
 				done = true
 			} else {
 				// otherwise retry and keep monitoring the pod status
@@ -225,14 +221,27 @@ func (k *K8sImpl) ScaleDeployment(clientk client.Client, k8sclient *kubernetes.C
 
 		// scale down
 		if desiredValue < currentValue {
-			log.Info("Scaling down ..")
+			for _, item := range pods.Items {
+				// populate podNames for display
+				podNames = append(podNames, item.Name)
+			}
+
+			log.Info("Scaling down pods ..")
 			if int32(len(pods.Items)) != desiredValue {
 				duration := GenerateRandom()
 				log.Infof("Waiting for '%v' seconds for following '%v' pods  pods to go down.", duration, podNames)
 				time.Sleep(time.Second * time.Duration(duration))
 			} else {
+				// when all running pods is equal to desired input
+				// exit the check loop
+				log.Infof("Actual pod count = '%v', Desired pod count = '%v'", len(pods.Items), desiredValue)
 				done = true
 			}
+		}
+
+		pods, err = k8sclient.CoreV1().Pods(namespace).List(context.TODO(), listOptions)
+		if err != nil {
+			return err
 		}
 
 	}

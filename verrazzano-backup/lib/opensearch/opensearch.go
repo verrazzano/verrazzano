@@ -334,6 +334,7 @@ func (o *OpensearchImpl) CheckRestoreProgress(backupName string, log *zap.Sugare
 			return err
 		}
 		for _, ds := range snapshotInfo.DataStreams {
+			log.Infof("Data stream '%s' restore status '%s'", ds.Name, ds.Status)
 			switch ds.Status {
 			case constants.DataStreamGreen:
 				log.Infof("Data stream '%s' restore complete", ds.Name)

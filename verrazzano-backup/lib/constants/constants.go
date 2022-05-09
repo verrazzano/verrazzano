@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// general constants
 const (
 	CmdTimeout              = time.Second * 300
 	VerrazzanoNameSpaceName = "verrazzano-system"
@@ -17,7 +18,13 @@ const (
 	Max                     = 25
 )
 
-//opensearch constants
+// secret related constants
+const (
+	AwsAccessKeyString       = "aws_access_key_id"
+	AwsSecretAccessKeyString = "aws_secret_access_key"
+)
+
+// opensearch constants
 const (
 	OpenSearchURL                        = "http://127.0.0.1:9200"
 	OSComponent                          = "opensearch"

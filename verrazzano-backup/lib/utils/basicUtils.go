@@ -4,6 +4,7 @@
 package utils
 
 import (
+	"bufio"
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 	"math/big"
 	"net/http"
 	"os"
+	"strings"
 )
 
 //CreateTempFileWithData used to create temp cloud-creds utilized for object store access
@@ -95,4 +97,29 @@ func HTTPHelper(method, requestURL string, body io.Reader, data interface{}, log
 	}
 
 	return nil
+}
+
+//ReadTempCredsFile reads object store credentials from a temporary file for registration purpose
+func ReadTempCredsFile(filePath string) (string, string, error) {
+	var awsAccessKey, awsSecretAccessKey string
+	f, err := os.Open(filePath)
+	if err != nil {
+		return "", "", nil
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		for scanner.Scan() {
+			line := strings.TrimSpace(scanner.Text())
+			if strings.Contains(line, constants.AwsAccessKeyString) {
+				words := strings.Split(line, fmt.Sprintf("%s=", constants.AwsAccessKeyString))
+				awsAccessKey = words[len(words)-1]
+			}
+			if strings.Contains(line, constants.AwsSecretAccessKeyString) {
+				words := strings.Split(line, fmt.Sprintf("%s=", constants.AwsSecretAccessKeyString))
+				awsSecretAccessKey = words[len(words)-1]
+			}
+		}
+	}
+	return awsAccessKey, awsSecretAccessKey, nil
 }
