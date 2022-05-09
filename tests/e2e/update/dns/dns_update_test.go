@@ -45,21 +45,35 @@ func (u WildcardDnsModifier) ModifyCR(cr *vzapi.Verrazzano) {
 
 var (
 	t                      = framework.NewTestFramework("update dns")
-	defaultEnvironmentName string
+	currentEnvironmentName string
+	currentDNSDomain       string
 	testEnvironmentName    string = "test-env"
+	testDNSDomain          string = "sslip.io"
 )
 
 var _ = t.Describe("Update environment name", func() {
-	t.It("Verify the default environment name", func() {
+	t.It("Verify the current environment name", func() {
 		cr := update.GetCR()
-		defaultEnvironmentName = cr.Spec.EnvironmentName
-		validateIngressList(defaultEnvironmentName, "nip.io")
-		validateGatewayList(defaultEnvironmentName, "nip.io")
+		currentEnvironmentName = cr.Spec.EnvironmentName
+		currentDNSDomain = cr.Spec.Components.DNS.Wildcard.Domain
+		validateIngressList(currentEnvironmentName, currentDNSDomain)
+		validateGatewayList(currentEnvironmentName, currentDNSDomain)
 	})
 
 	t.It("Verify the updated environment name", func() {
-		validateIngressList(testEnvironmentName, "nip.io")
-		validateGatewayList(testEnvironmentName, "nip.io")
+		m := EnvironmentNameModifier{testEnvironmentName}
+		update.UpdateCR(m)
+		validateIngressList(testEnvironmentName, currentDNSDomain)
+		validateGatewayList(testEnvironmentName, currentDNSDomain)
+	})
+})
+
+var _ = t.Describe("Update wildcard dns domain", func() {
+	t.It("Verify the updated dns domain", func() {
+		m := WildcardDnsModifier{testDNSDomain}
+		update.UpdateCR(m)
+		validateIngressList(testEnvironmentName, testDNSDomain)
+		validateGatewayList(testEnvironmentName, testDNSDomain)
 	})
 })
 
