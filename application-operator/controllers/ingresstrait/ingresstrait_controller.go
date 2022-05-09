@@ -700,7 +700,10 @@ func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *v
 				Name:      name},
 		}
 		namespace := &corev1.Namespace{}
-		_ = r.Client.Get(ctx, client.ObjectKey{Namespace: "", Name: trait.Namespace}, namespace)
+		namespaceErr := r.Client.Get(ctx, client.ObjectKey{Namespace: "", Name: trait.Namespace}, namespace)
+		if namespaceErr != nil {
+			log.Errorf("Failed to retrieve namespace resource: %v", namespaceErr)
+		}
 
 		res, err := controllerutil.CreateOrUpdate(ctx, r.Client, destinationRule, func() error {
 			return r.mutateDestinationRule(destinationRule, trait, rule, services, namespace)
