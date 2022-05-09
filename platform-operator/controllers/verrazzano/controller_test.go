@@ -75,88 +75,106 @@ func TestGetUninstallJobName(t *testing.T) {
 	assert.Equalf(t, uninstallPrefix+name, jobName, "Expected uninstall job name did not match")
 }
 
-// TestSuccessfulInstall tests the Reconcile method for the following use case
+// TestInstall tests the Reconcile method for the following use case
 // GIVEN a request to reconcile a Verrazzano resource
 // WHEN a Verrazzano resource has been applied
-// THEN ensure all the objects are already created
-func TestSuccessfulInstall(t *testing.T) {
-	unitTesting = true
-	namespace := "verrazzano"
-	name := "test"
-	labels := map[string]string{"label1": "test"}
-	var verrazzanoToUse vzapi.Verrazzano
-	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
+// THEN ensure all the objects are already created and
+//      ensure a finalizer is added if it doesn't exist
+func TestInstall(t *testing.T) {
+	tests := []struct {
+		namespace string
+		name      string
+		finalizer string
+	}{
+		{"verrazzano", "test", ""},
+		{"verrazzano", "test", finalizerName},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			unitTesting = true
+			namespace := test.namespace
+			name := test.name
+			labels := map[string]string{"label1": "test"}
+			var verrazzanoToUse vzapi.Verrazzano
+			asserts := assert.New(t)
+			mocker := gomock.NewController(t)
+			mock := mocks.NewMockClient(mocker)
+			mockStatus := mocks.NewMockStatusWriter(mocker)
+			asserts.NotNil(mockStatus)
 
-	config.TestHelmConfigDir = "../../helm_config"
-	defer func() { config.TestHelmConfigDir = "" }()
+			config.TestHelmConfigDir = "../../helm_config"
+			defer func() { config.TestHelmConfigDir = "" }()
 
-	config.TestProfilesDir = "../../manifests/profiles"
-	defer func() { config.TestProfilesDir = "" }()
+			config.TestProfilesDir = "../../manifests/profiles"
+			defer func() { config.TestProfilesDir = "" }()
 
-	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
-		APIVersion: "install.verrazzano.io/v1alpha1",
-		Kind:       "Verrazzano"}
-	verrazzanoToUse.ObjectMeta = metav1.ObjectMeta{
-		Namespace:  namespace,
-		Name:       name,
-		Labels:     labels,
-		Finalizers: []string{finalizerName}}
-	verrazzanoToUse.Spec.Components.DNS = &vzapi.DNSComponent{External: &vzapi.External{Suffix: "mydomain.com"}}
+			verrazzanoToUse.TypeMeta = metav1.TypeMeta{
+				APIVersion: "install.verrazzano.io/v1alpha1",
+				Kind:       "Verrazzano"}
+			verrazzanoToUse.ObjectMeta = metav1.ObjectMeta{
+				Namespace:  namespace,
+				Name:       name,
+				Labels:     labels,
+				Finalizers: []string{test.finalizer}}
+			verrazzanoToUse.Spec.Components.DNS = &vzapi.DNSComponent{External: &vzapi.External{Suffix: "mydomain.com"}}
 
-	verrazzanoToUse.Status.State = vzapi.VzStateReady
-	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
+			verrazzanoToUse.Status.State = vzapi.VzStateReady
+			verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
-	// Sample bom file for version validation functions
-	config.SetDefaultBomFilePath(testBomFilePath)
-	defer config.SetDefaultBomFilePath("")
+			// Sample bom file for version validation functions
+			config.SetDefaultBomFilePath(testBomFilePath)
+			defer config.SetDefaultBomFilePath("")
 
-	registry.OverrideGetComponentsFn(func() []spi.Component {
-		return []spi.Component{
-			fakeComponent{},
-		}
-	})
-	defer registry.ResetGetComponentsFn()
+			registry.OverrideGetComponentsFn(func() []spi.Component {
+				return []spi.Component{
+					fakeComponent{},
+				}
+			})
+			defer registry.ResetGetComponentsFn()
 
-	// Expect a call to get the Verrazzano resource.
-	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
+			// Expect a call to get the Verrazzano resource.
+			expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
-	// Expect a call to get the service account
-	expectGetServiceAccountExists(mock, name, labels)
+			// Expect a call to get the service account
+			expectGetServiceAccountExists(mock, name, labels)
 
-	// Expect a call to get the ClusterRoleBinding
-	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+			// Expect a call to get the ClusterRoleBinding
+			expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
-	// Expect a call to get the Verrazzano system namespace (return exists)
-	expectGetVerrazzanoSystemNamespaceExists(mock, asserts)
+			// Expect a call to get the Verrazzano system namespace (return exists)
+			expectGetVerrazzanoSystemNamespaceExists(mock, asserts)
 
-	// Expect a call to get the status writer and return a mock.
-	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+			// Expect a call to get the status writer and return a mock.
+			mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 
-	// Expect a call to update the status of the Verrazzano resource
-	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			asserts.Len(verrazzano.Status.Conditions, 1)
-			return nil
-		}).Times(1)
+			// Expect a call to update the finalizers - return success
+			if test.finalizer != finalizerName {
+				mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+			}
 
-	// Expect local registration calls
-	expectSyncLocalRegistration(t, mock, name)
+			// Expect a call to update the status of the Verrazzano resource
+			mockStatus.EXPECT().
+				Update(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+					asserts.Len(verrazzano.Status.Conditions, 1)
+					return nil
+				}).Times(1)
 
-	// Create and make the request
-	request := newRequest(namespace, name)
-	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
-	asserts.NoError(err)
+			// Expect local registration calls
+			expectSyncLocalRegistration(t, mock, name)
 
-	// Validate the results
-	mocker.Finish()
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+			// Create and make the request
+			request := newRequest(namespace, name)
+			reconciler := newVerrazzanoReconciler(mock)
+			result, err := reconciler.Reconcile(nil, request)
+			asserts.NoError(err)
+
+			// Validate the results
+			mocker.Finish()
+			asserts.Equal(false, result.Requeue)
+			asserts.Equal(time.Duration(0), result.RequeueAfter)
+		})
+	}
 }
 
 // TestInstallInitComponents tests the reconcile method for the following use case
@@ -1307,92 +1325,6 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
 	asserts.NotZero(result.RequeueAfter)
-}
-
-// TestSetFinalizer tests the Reconcile method for the following use case
-// GIVEN a request to reconcile a Verrazzano resource
-// WHEN a Verrazzano resource doesn't have a finalizer
-// THEN ensure the finalizer is added
-func TestSetFinalizer(t *testing.T) {
-	unitTesting = true
-	namespace := "verrazzano"
-	name := "test"
-	labels := map[string]string{"label1": "test"}
-	var verrazzanoToUse vzapi.Verrazzano
-	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
-
-	config.TestHelmConfigDir = "../../helm_config"
-	defer func() { config.TestHelmConfigDir = "" }()
-
-	config.TestProfilesDir = "../../manifests/profiles"
-	defer func() { config.TestProfilesDir = "" }()
-
-	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
-		APIVersion: "install.verrazzano.io/v1alpha1",
-		Kind:       "Verrazzano"}
-	verrazzanoToUse.ObjectMeta = metav1.ObjectMeta{
-		Namespace: namespace,
-		Name:      name,
-		Labels:    labels}
-	verrazzanoToUse.Spec.Components.DNS = &vzapi.DNSComponent{External: &vzapi.External{Suffix: "mydomain.com"}}
-
-	verrazzanoToUse.Status.State = vzapi.VzStateReady
-	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
-
-	// Sample bom file for version validation functions
-	config.SetDefaultBomFilePath(testBomFilePath)
-	defer config.SetDefaultBomFilePath("")
-
-	registry.OverrideGetComponentsFn(func() []spi.Component {
-		return []spi.Component{
-			fakeComponent{},
-		}
-	})
-	defer registry.ResetGetComponentsFn()
-
-	// Expect a call to get the Verrazzano resource.
-	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
-
-	// Expect a call to get the service account
-	expectGetServiceAccountExists(mock, name, labels)
-
-	// Expect a call to get the ClusterRoleBinding
-	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
-
-	// Expect a call to get the Verrazzano system namespace (return exists)
-	expectGetVerrazzanoSystemNamespaceExists(mock, asserts)
-
-	// Expect a call to update the finalizers - return success
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-
-	// Expect a call to get the status writer and return a mock.
-	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
-
-	// Expect a call to update the status of the Verrazzano resource
-	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			asserts.Len(verrazzano.Status.Conditions, 1)
-			return nil
-		}).Times(1)
-
-	// Expect local registration calls
-	expectSyncLocalRegistration(t, mock, name)
-
-	// Create and make the request
-	request := newRequest(namespace, name)
-	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
-	asserts.NoError(err)
-
-	// Validate the results
-	mocker.Finish()
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
 
 // newScheme creates a new scheme that includes this package's object to use for testing
