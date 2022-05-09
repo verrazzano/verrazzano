@@ -209,10 +209,6 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 
 func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
-	if i.monitor.isRunning() {
-		context.Log().Progressf("%s is waiting for istioctl install to successfully complete", prefix)
-		return false
-	}
 	deployments := []types.NamespacedName{
 		{
 			Name:      IstiodDeployment,
@@ -227,7 +223,20 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 			Namespace: IstioNamespace,
 		},
 	}
-	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
+	ready := status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
+	if !ready {
+		return false
+	}
+
+	// Make sure istioctl successfully completed.  We have seen cases where the istio deployments are
+	// ready but istioctl still fails.
+	succeeded, err := i.monitor.checkResult()
+	if !succeeded || err != nil {
+		context.Log().Progressf("%s is waiting for istioctl install to successfully complete", prefix)
+		return false
+	}
+
+	return true
 }
 
 // GetDependencies returns the dependencies of this component
