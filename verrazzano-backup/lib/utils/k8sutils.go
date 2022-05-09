@@ -192,6 +192,7 @@ func (k *K8sImpl) ScaleDeployment(clientk client.Client, k8sclient *kubernetes.C
 	done := false
 	listOptions := metav1.ListOptions{LabelSelector: labelSelector}
 	var podStateCondition []bool
+	var podNames []string
 
 	for !done {
 		pods, err := k8sclient.CoreV1().Pods(namespace).List(context.TODO(), listOptions)
@@ -207,6 +208,7 @@ func (k *K8sImpl) ScaleDeployment(clientk client.Client, k8sclient *kubernetes.C
 				if item.Status.Phase == "Running" {
 					podStateCondition = append(podStateCondition, true)
 				}
+				podNames = append(podNames, item.Name)
 			}
 
 			if int32(len(pods.Items)) == desiredValue && int32(len(podStateCondition)) == desiredValue {
@@ -215,18 +217,19 @@ func (k *K8sImpl) ScaleDeployment(clientk client.Client, k8sclient *kubernetes.C
 				done = true
 			} else {
 				// otherwise retry and keep monitoring the pod status
-				log.Info("Waiting for 30 seconds for all pods to come up.")
-				time.Sleep(time.Second * 30)
+				duration := GenerateRandom()
+				log.Infof("Waiting for '%v' seconds for following '%v' pods to come up.", duration, podNames)
+				time.Sleep(time.Second * time.Duration(duration))
 			}
-
 		}
 
 		// scale down
 		if desiredValue < currentValue {
 			log.Info("Scaling down ..")
 			if int32(len(pods.Items)) != desiredValue {
-				log.Info("Waiting for 30 seconds for all  pods to go down.")
-				time.Sleep(time.Second * 30)
+				duration := GenerateRandom()
+				log.Infof("Waiting for '%v' seconds for following '%v' pods  pods to go down.", duration, podNames)
+				time.Sleep(time.Second * time.Duration(duration))
 			} else {
 				done = true
 			}

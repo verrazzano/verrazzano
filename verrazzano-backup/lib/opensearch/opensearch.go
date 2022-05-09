@@ -30,7 +30,7 @@ func (o *OpensearchImpl) EnsureOpenSearchIsReachable(url string, log *zap.Sugare
 	for !done {
 		err := utils.HTTPHelper("GET", url, nil, &osinfo, log)
 		if err != nil {
-			if retryCount <= constants.SnapshotRetryCount {
+			if retryCount <= constants.RetryCount {
 				duration := utils.GenerateRandom()
 				log.Infof("Cluster is not reachable. Retry after '%v' seconds", duration)
 				time.Sleep(time.Second * time.Duration(duration))
@@ -68,7 +68,7 @@ func (o *OpensearchImpl) EnsureOpenSearchIsHealthy(url string, log *zap.SugaredL
 	for !healthReachable {
 		err = utils.HTTPHelper("GET", healthURL, nil, &clusterHealth, log)
 		if err != nil {
-			if retryCount <= constants.SnapshotRetryCount {
+			if retryCount <= constants.RetryCount {
 				duration := utils.GenerateRandom()
 				log.Infof("Cluster health endpoint is not reachable. Retry after '%v' seconds", duration)
 				time.Sleep(time.Second * time.Duration(duration))
@@ -86,7 +86,7 @@ func (o *OpensearchImpl) EnsureOpenSearchIsHealthy(url string, log *zap.SugaredL
 	for !healthGreen {
 		err = utils.HTTPHelper("GET", healthURL, nil, &clusterHealth, log)
 		if err != nil {
-			if retryCount <= constants.SnapshotRetryCount {
+			if retryCount <= constants.RetryCount {
 				duration := utils.GenerateRandom()
 				log.Infof("Json unmarshalling error. Retry after '%v' seconds", duration)
 				time.Sleep(time.Second * time.Duration(duration))
@@ -98,7 +98,7 @@ func (o *OpensearchImpl) EnsureOpenSearchIsHealthy(url string, log *zap.SugaredL
 			}
 		}
 		if clusterHealth.Status != "green" {
-			if retryCount <= constants.SnapshotRetryCount {
+			if retryCount <= constants.RetryCount {
 				duration := utils.GenerateRandom()
 				log.Infof("Cluster health is '%s'. Retry after '%v' seconds", clusterHealth.Status, duration)
 				time.Sleep(time.Second * time.Duration(duration))
@@ -122,7 +122,7 @@ func (o *OpensearchImpl) UpdateKeystore(client kubernetes.Interface, cfg *rest.C
 
 	var accessKeyCmd, secretKeyCmd []string
 	accessKeyCmd = append(accessKeyCmd, "/bin/sh", "-c", fmt.Sprintf("echo %s | %s", strconv.Quote(connData.Secret.ObjectAccessKey), constants.OpensearchKeystoreAccessKeyCmd))
-	secretKeyCmd = append(secretKeyCmd, "/bin/sh", "-c", fmt.Sprintf("echo %s | %s", strconv.Quote(connData.Secret.ObjectSecretKey), constants.OpensearchkeystoreSecretAccessKeyCmd))
+	secretKeyCmd = append(secretKeyCmd, "/bin/sh", "-c", fmt.Sprintf("echo %s | %s", strconv.Quote(connData.Secret.ObjectSecretKey), constants.OpensearchKeystoreSecretAccessKeyCmd))
 
 	// Updating keystore in other masters
 	for i := 0; i < 3; i++ {
@@ -174,7 +174,7 @@ func (o *OpensearchImpl) UpdateKeystore(client kubernetes.Interface, cfg *rest.C
 //ReloadOpensearchSecureSettings used to reload secure settings once object store keys are updated
 func (o *OpensearchImpl) ReloadOpensearchSecureSettings(log *zap.SugaredLogger) error {
 	var secureSettings types.OpenSearchSecureSettingsReloadStatus
-	url := fmt.Sprintf("%s/_nodes/reload_secure_settings", constants.EsURL)
+	url := fmt.Sprintf("%s/_nodes/reload_secure_settings", constants.OpenSearchURL)
 	err := utils.HTTPHelper("POST", url, nil, &secureSettings, log)
 	if err != nil {
 		return err
@@ -203,10 +203,7 @@ func (o *OpensearchImpl) RegisterSnapshotRepository(secretData *types.Connection
 		return err
 	}
 
-	url := fmt.Sprintf("%s/_snapshot/%s", constants.EsURL, constants.OpeSearchSnapShotRepoName)
-	urlinfo := fmt.Sprintf("_snapshot/%s", constants.OpeSearchSnapShotRepoName)
-	log.Infof("POST on registry url => '%s'", urlinfo)
-
+	url := fmt.Sprintf("%s/_snapshot/%s", constants.OpenSearchURL, constants.OpeSearchSnapShotRepoName)
 	err = utils.HTTPHelper("POST", url, bytes.NewBuffer(postBody), &registerResponse, log)
 	if err != nil {
 		return err
@@ -223,7 +220,7 @@ func (o *OpensearchImpl) RegisterSnapshotRepository(secretData *types.Connection
 func (o *OpensearchImpl) TriggerSnapshot(backupName string, log *zap.SugaredLogger) error {
 	log.Infof("Triggering snapshot with name '%s'", backupName)
 	var snapshotResponse types.OpenSearchSnapshotResponse
-	snapShotURL := fmt.Sprintf("%s/_snapshot/%s/%s", constants.EsURL, constants.OpeSearchSnapShotRepoName, backupName)
+	snapShotURL := fmt.Sprintf("%s/_snapshot/%s/%s", constants.OpenSearchURL, constants.OpeSearchSnapShotRepoName, backupName)
 	err := utils.HTTPHelper("POST", snapShotURL, nil, &snapshotResponse, log)
 	if err != nil {
 		return err
@@ -239,7 +236,7 @@ func (o *OpensearchImpl) TriggerSnapshot(backupName string, log *zap.SugaredLogg
 //CheckSnapshotProgress checks the data backup progress
 func (o *OpensearchImpl) CheckSnapshotProgress(backupName string, log *zap.SugaredLogger) error {
 	log.Infof("Checking snapshot progress with name '%s'", backupName)
-	snapShotURL := fmt.Sprintf("%s/_snapshot/%s/%s", constants.EsURL, constants.OpeSearchSnapShotRepoName, backupName)
+	snapShotURL := fmt.Sprintf("%s/_snapshot/%s/%s", constants.OpenSearchURL, constants.OpeSearchSnapShotRepoName, backupName)
 	var snapshotInfo types.OpenSearchSnapshotStatus
 
 	done := false
@@ -251,7 +248,7 @@ func (o *OpensearchImpl) CheckSnapshotProgress(backupName string, log *zap.Sugar
 		}
 		switch snapshotInfo.Snapshots[0].State {
 		case constants.OpenSearchSnapShotInProgress:
-			if retryCount <= constants.SnapshotRetryCount {
+			if retryCount <= constants.RetryCount {
 				duration := utils.GenerateRandom()
 				log.Infof("Snapshot '%s' is in progress. Check again after '%v' seconds", backupName, duration)
 				time.Sleep(time.Second * time.Duration(duration))
@@ -279,8 +276,8 @@ func (o *OpensearchImpl) CheckSnapshotProgress(backupName string, log *zap.Sugar
 // This requires that ingest be turned off
 func (o *OpensearchImpl) DeleteData(log *zap.SugaredLogger) error {
 	log.Infof("Deleting data streams followed by index ..")
-	dataStreamURL := fmt.Sprintf("%s/_data_stream/*", constants.EsURL)
-	dataIndexURL := fmt.Sprintf("%s/*", constants.EsURL)
+	dataStreamURL := fmt.Sprintf("%s/_data_stream/*", constants.OpenSearchURL)
+	dataIndexURL := fmt.Sprintf("%s/*", constants.OpenSearchURL)
 	var deleteResponse types.OpenSearchOperationResponse
 
 	err := utils.HTTPHelper("DELETE", dataStreamURL, nil, &deleteResponse, log)
@@ -308,7 +305,7 @@ func (o *OpensearchImpl) DeleteData(log *zap.SugaredLogger) error {
 //TriggerRestore Triggers a restore from a specified snapshot
 func (o *OpensearchImpl) TriggerRestore(backupName string, log *zap.SugaredLogger) error {
 	log.Infof("Triggering restore with name '%s'", backupName)
-	restoreURL := fmt.Sprintf("%s/_snapshot/%s/%s/_restore", constants.EsURL, constants.OpeSearchSnapShotRepoName, backupName)
+	restoreURL := fmt.Sprintf("%s/_snapshot/%s/%s/_restore", constants.OpenSearchURL, constants.OpeSearchSnapShotRepoName, backupName)
 	var restoreResponse types.OpenSearchSnapshotResponse
 
 	err := utils.HTTPHelper("POST", restoreURL, nil, &restoreResponse, log)
@@ -326,7 +323,7 @@ func (o *OpensearchImpl) TriggerRestore(backupName string, log *zap.SugaredLogge
 //CheckRestoreProgress checks progress of restore process, by monitoring all the data streams
 func (o *OpensearchImpl) CheckRestoreProgress(backupName string, log *zap.SugaredLogger) error {
 	log.Infof("Checking restore progress with name '%s'", backupName)
-	dsURL := fmt.Sprintf("%s/_data_stream", constants.EsURL)
+	dsURL := fmt.Sprintf("%s/_data_stream", constants.OpenSearchURL)
 	var snapshotInfo types.OpenSearchDataStreams
 	done := false
 	notGreen := false
@@ -346,7 +343,7 @@ func (o *OpensearchImpl) CheckRestoreProgress(backupName string, log *zap.Sugare
 		}
 
 		if notGreen {
-			if retryCount <= constants.SnapshotRetryCount {
+			if retryCount <= constants.RetryCount {
 				duration := utils.GenerateRandom()
 				log.Infof("Restore is in progress. Check again after '%v' seconds", duration)
 				time.Sleep(time.Second * time.Duration(duration))

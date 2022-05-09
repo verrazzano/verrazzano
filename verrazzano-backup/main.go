@@ -83,7 +83,7 @@ func main() {
 	// Check opensearch health before proceeding with backup or restore
 	if Component == constants.OSComponent {
 		search = opensearch.Opensearch(&opensearch.OpensearchImpl{})
-		err = search.EnsureOpenSearchIsHealthy(constants.EsURL, log)
+		err = search.EnsureOpenSearchIsHealthy(constants.OpenSearchURL, log)
 		if err != nil {
 			log.Errorf("Operation cannot be performed as Opensearch is not healthy")
 			os.Exit(1)
@@ -114,7 +114,7 @@ func main() {
 		}
 
 		if !k8sContextReady {
-			if retryCount <= constants.SnapshotRetryCount {
+			if retryCount <= constants.RetryCount {
 				duration := utils.GenerateRandom()
 				log.Infof("Unable to get context. Still waiting for %v seconds", duration)
 				time.Sleep(time.Second * time.Duration(duration))
@@ -177,7 +177,7 @@ func main() {
 				log.Errorf("Operation '%s' unsuccessfull due to %v", Operation, zap.Error(err))
 				os.Exit(1)
 			}
-			err = k8s.ScaleDeployment(clientk, kubeClient, constants.IngestLabelSelector, constants.VerrazzanoNameSpaceName, constants.IngestDeploymentName, int32(1), log)
+			err = k8s.ScaleDeployment(clientk, kubeClient, constants.KibanaLabelSelector, constants.VerrazzanoNameSpaceName, constants.KibanaDeploymentName, int32(0), log)
 			if err != nil {
 				log.Errorf("Unable to scale deployment '%s' due to %v", constants.IngestDeploymentName, zap.Error(err))
 			}

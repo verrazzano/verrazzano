@@ -30,7 +30,7 @@ func TestEnsureOpenSearchIsReachable(t *testing.T) {
 	log, f := logHelper()
 	defer os.Remove(f)
 	o := Opensearch(&OpensearchImpl{})
-	ok := o.EnsureOpenSearchIsReachable(constants.EsURL, log)
+	ok := o.EnsureOpenSearchIsReachable(constants.OpenSearchURL, log)
 	assert.NotNil(t, ok)
 	assert.Equal(t, false, false)
 }
@@ -47,7 +47,7 @@ func TestRegisterSnapshotRepository(t *testing.T) {
 	sdat.Secret = objsecret
 	sdat.BackupName = "mango"
 	sdat.RegionName = "region"
-	sdat.Endpoint = constants.EsURL
+	sdat.Endpoint = constants.OpenSearchURL
 
 	o := Opensearch(&OpensearchImpl{})
 	err := o.RegisterSnapshotRepository(&sdat, log)

@@ -10,6 +10,7 @@ import (
 	"testing"
 )
 
+// TestCreateTempFileWithData Tests create a temp file for snapshot registration
 func TestCreateTempFileWithData(t *testing.T) {
 	nullBody := make(map[string]interface{})
 	data, _ := json.Marshal(nullBody)
@@ -19,8 +20,8 @@ func TestCreateTempFileWithData(t *testing.T) {
 	assert.NotNil(t, file)
 }
 
+//TestGenerateRandom generates a crypto safe random number in a predefined range
 func TestGenerateRandom(t *testing.T) {
 	d := GenerateRandom()
 	assert.NotNil(t, d)
-
 }

@@ -19,7 +19,7 @@ const (
 
 //opensearch constants
 const (
-	EsURL                                = "http://127.0.0.1:9200"
+	OpenSearchURL                        = "http://127.0.0.1:9200"
 	OSComponent                          = "opensearch"
 	OpenSearchDataPodPrefix              = "system-es-data"
 	OpenSearchDataPodContainerName       = "es-data"
@@ -27,14 +27,16 @@ const (
 	OpenSearchIngestLabel                = "system-es-ingest"
 	HTTPContentType                      = "application/json"
 	OpeSearchSnapShotRepoName            = "vzbackup"
-	SnapshotRetryCount                   = 20
+	RetryCount                           = 50
 	OpenSearchSnapShotSucess             = "SUCCESS"
 	OpenSearchSnapShotInProgress         = "IN_PROGRESS"
 	IngestDeploymentName                 = "vmi-system-es-ingest"
 	IngestLabelSelector                  = "app=system-es-ingest"
+	KibanaDeploymentName                 = "vmi-system-kibana"
+	KibanaLabelSelector                  = "app=system-kibana"
 	VMODeploymentName                    = "verrazzano-monitoring-operator"
 	VMOLabelSelector                     = "k8s-app=verrazzano-monitoring-operator"
 	DataStreamGreen                      = "GREEN"
 	OpensearchKeystoreAccessKeyCmd       = "/usr/share/opensearch/bin/opensearch-keystore add --stdin --force s3.client.default.access_key" //nolint:gosec //#nosec G204
-	OpensearchkeystoreSecretAccessKeyCmd = "/usr/share/opensearch/bin/opensearch-keystore add --stdin --force s3.client.default.secret_key" //nolint:gosec //#nosec G204
+	OpensearchKeystoreSecretAccessKeyCmd = "/usr/share/opensearch/bin/opensearch-keystore add --stdin --force s3.client.default.secret_key" //nolint:gosec //#nosec G204
 )
