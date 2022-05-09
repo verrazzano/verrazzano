@@ -349,7 +349,7 @@ func validateEntryExist(secret *corev1.Secret, entry string) error {
 	secretName := secret.Name
 	_, ok := secret.Data[entry]
 	if !ok {
-		return fmt.Errorf("missing %s in secret \"%s\"", entry, secretName)
+		return fmt.Errorf("invalid Fluentd configuration, missing %s entry in secret \"%s\"", entry, secretName)
 	}
 	return nil
 }
