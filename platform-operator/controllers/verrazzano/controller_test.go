@@ -1444,21 +1444,6 @@ func expectGetVerrazzanoSystemNamespaceExists(mock *mocks.MockClient, asserts *a
 		})
 }
 
-// expectVerrazzanoSystemNamespaceDoesNotExist expects a call to get the Verrazzano system namespace and returns
-// that it does not exist, then expects a call to create it
-func expectVerrazzanoSystemNamespaceDoesNotExist(mock *mocks.MockClient, asserts *assert.Assertions) {
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.ParseGroupResource("namespaces"), constants.VerrazzanoSystemNamespace))
-
-	mock.EXPECT().
-		Create(gomock.Any(), gomock.AssignableToTypeOf(&corev1.Namespace{})).
-		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.CreateOption) error {
-			asserts.Equalf(constants.VerrazzanoSystemNamespace, ns.Name, "Verrazzano system namespace did not match")
-			return nil
-		})
-}
-
 // expectClusterRoleBindingExists expects a call to get the cluster role binding for the Verrazzano with the given
 // namespace and name, and returns that it exists
 func expectClusterRoleBindingExists(mock *mocks.MockClient, verrazzanoToUse vzapi.Verrazzano, namespace string, name string) {
