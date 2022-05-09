@@ -230,8 +230,7 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 
 	// Make sure istioctl successfully completed.  We have seen cases where the istio deployments are
 	// ready but istioctl still fails.
-	succeeded, err := i.monitor.checkResult()
-	if !succeeded || err != nil {
+	if !i.monitor.isIstioctlSuccess() {
 		context.Log().Progressf("%s is waiting for istioctl install to successfully complete", prefix)
 		return false
 	}

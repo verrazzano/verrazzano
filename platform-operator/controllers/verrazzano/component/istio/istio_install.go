@@ -59,9 +59,10 @@ func setBashFunc(f bashFuncSig) {
 }
 
 type installMonitorType struct {
-	running  bool
-	resultCh chan bool
-	inputCh  chan installRoutineParams
+	running         bool
+	resultCh        chan bool
+	inputCh         chan installRoutineParams
+	istioctlSuccess bool
 }
 
 //installRoutineParams - Used to pass args to the install goroutine
@@ -79,10 +80,12 @@ type installMonitor interface {
 	checkResult() (bool, error)
 	// reset - Resets the monitor and closes any open channels
 	reset()
-	//isRunning - returns true of the monitor/goroutine are active
+	// isRunning - returns true of the monitor/goroutine are active
 	isRunning() bool
-	//run - Run the install with the specified args
+	// run - Run the install with the specified args
 	run(args installRoutineParams)
+	// isIstioctlSuccess - returns boolean to indicate whether istioctl completed successfully
+	isIstioctlSuccess() bool
 }
 
 //checkResult - checks for a result from the goroutine
@@ -90,8 +93,10 @@ type installMonitor interface {
 func (m *installMonitorType) checkResult() (bool, error) {
 	select {
 	case result := <-m.resultCh:
+		m.istioctlSuccess = result
 		return result, nil
 	default:
+		m.istioctlSuccess = false
 		return false, ctrlerrors.RetryableError{Source: ComponentName}
 	}
 }
@@ -111,6 +116,7 @@ func (m *installMonitorType) isRunning() bool {
 //run - Run the install in a goroutine
 func (m *installMonitorType) run(args installRoutineParams) {
 	m.running = true
+	m.istioctlSuccess = false
 	m.resultCh = make(chan bool, 2)
 	m.inputCh = make(chan installRoutineParams, 2)
 
@@ -141,6 +147,10 @@ func (m *installMonitorType) run(args installRoutineParams) {
 
 	// Pass in the args to get started
 	m.inputCh <- args
+}
+
+func (m *installMonitorType) isIstioctlSuccess() bool {
+	return m.istioctlSuccess
 }
 
 func (i istioComponent) IsOperatorInstallSupported() bool {

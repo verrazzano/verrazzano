@@ -365,8 +365,7 @@ func TestIsReady(t *testing.T) {
 	).Build()
 	var iComp istioComponent
 	iComp.monitor = &fakeMonitor{
-		result: true,
-		err:    nil,
+		istioctlSuccess: true,
 	}
 	compContext := spi.NewFakeContext(fakeClient, nil, false)
 	assert.True(t, iComp.IsReady(compContext))
