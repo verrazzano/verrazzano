@@ -25,7 +25,7 @@ type EnvironmentNameModifier struct {
 	EnvironmentName string
 }
 
-type WildcardDnsModifier struct {
+type WildcardDNSModifier struct {
 	Domain string
 }
 
@@ -33,7 +33,7 @@ func (u EnvironmentNameModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.EnvironmentName = u.EnvironmentName
 }
 
-func (u WildcardDnsModifier) ModifyCR(cr *vzapi.Verrazzano) {
+func (u WildcardDNSModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.DNS == nil {
 		cr.Spec.Components.DNS = &vzapi.DNSComponent{}
 	}
@@ -68,7 +68,7 @@ var _ = t.Describe("Test updates to environment name and dns domain", func() {
 	})
 
 	t.It("Verify the updated dns domain", func() {
-		m := WildcardDnsModifier{testDNSDomain}
+		m := WildcardDNSModifier{testDNSDomain}
 		update.UpdateCR(m)
 		validateIngressList(testEnvironmentName, testDNSDomain)
 		validateGatewayList(testDNSDomain)
