@@ -20,8 +20,8 @@ const (
 
 // secret related constants
 const (
-	AwsAccessKeyString       = "aws_access_key_id"
-	AwsSecretAccessKeyString = "aws_secret_access_key"
+	AwsAccessKeyString       = "aws_access_key_id"     //nolint:gosec //#gosec G101
+	AwsSecretAccessKeyString = "aws_secret_access_key" //nolint:gosec //#gosec G101
 )
 
 // opensearch constants
