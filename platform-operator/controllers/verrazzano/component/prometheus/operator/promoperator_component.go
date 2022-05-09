@@ -65,6 +65,14 @@ func (c prometheusComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
+// IsMonitoringEnabled checks whether monitoring is enabled for helm overrides sources
+func (c prometheusComponent) IsMonitoringEnabled(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.PrometheusOperator.MonitorChanges != nil {
+		return *ctx.EffectiveCR().Spec.Components.PrometheusOperator.MonitorChanges
+	}
+	return true
+}
+
 // PreInstall updates resources necessary for the Prometheus Operator Component installation
 func (c prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preInstall(ctx)
