@@ -44,7 +44,7 @@ func (r *VerrazzanoSecretsReconciler) reconcileHelmOverrideSecret(ctx context.Co
 
 func (r *VerrazzanoSecretsReconciler) updateVerrazzanoForHelmOverrides(componentCtx spi.ComponentContext, componentName string) error {
 	cr := componentCtx.ActualCR()
-	cr.Status.Components[componentName].LastReconciledGeneration = 0
+	cr.Status.Components[componentName].ReconcilingGeneration = 1
 	err := r.Status().Update(context.TODO(), cr)
 	if err == nil {
 		return nil
