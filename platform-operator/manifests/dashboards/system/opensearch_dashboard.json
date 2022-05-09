@@ -2040,7 +2040,7 @@
       "datasource": null,
       "fieldConfig": {
         "defaults": {
-          "unit": "decbytes"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -2108,7 +2108,7 @@
       "yaxes": [
         {
           "$$hashKey": "object:259",
-          "format": "decbytes",
+          "format": "short",
           "label": null,
           "logBase": 1,
           "max": null,
