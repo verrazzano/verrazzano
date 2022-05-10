@@ -127,6 +127,7 @@ func (m *installMonitorType) run(args installRoutineParams) {
 		log := args.log
 
 		result := true
+		m.istioctlSuccess = false
 		log.Oncef("Component Istio is running istioctl")
 		stdout, stderr, err := installFunc(log, args.overrides, args.fileOverrides...)
 		log.Debugf("istioctl stdout: %s", string(stdout))
