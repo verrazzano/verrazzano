@@ -4,17 +4,24 @@
 package oam
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 var testScheme = runtime.NewScheme()
+
+func init() {
+	_ = rbacv1.AddToScheme(testScheme)
+}
 
 func Test_oamComponent_ValidateUpdate(t *testing.T) {
 	disabled := false
@@ -78,5 +85,33 @@ func TestPreUpgrade(t *testing.T) {
 	// for the Component interface hook
 	config.TestHelmConfigDir = "../../../../thirdparty"
 	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), nil, false))
+	assert.NoError(t, err)
+}
+
+// TestPostInstall tests post-install processing
+// GIVEN an OAM component
+// WHEN I call PostInstall with defaults
+// THEN no error is returned and the expected cluster roles exists
+func TestPostInstall(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	err := NewComponent().PostInstall(spi.NewFakeContext(client, nil, false))
+	assert.NoError(t, err)
+
+	var clusterRole rbacv1.ClusterRole
+	err = client.Get(context.TODO(), types.NamespacedName{Name: pvcClusterRoleName}, &clusterRole)
+	assert.NoError(t, err)
+}
+
+// TestPostUpgrade tests post-upgrade processing
+// GIVEN an OAM component
+// WHEN I call PostUpgrade with defaults
+// THEN no error is returned and the expected cluster roles exists
+func TestPostUpgrade(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	err := NewComponent().PostUpgrade(spi.NewFakeContext(client, nil, false))
+	assert.NoError(t, err)
+
+	var clusterRole rbacv1.ClusterRole
+	err = client.Get(context.TODO(), types.NamespacedName{Name: pvcClusterRoleName}, &clusterRole)
 	assert.NoError(t, err)
 }
