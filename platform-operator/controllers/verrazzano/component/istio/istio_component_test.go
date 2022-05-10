@@ -367,7 +367,7 @@ func TestIsReady(t *testing.T) {
 	iComp.monitor = &fakeMonitor{
 		istioctlSuccess: true,
 	}
-	compContext := spi.NewFakeContext(fakeClient, nil, false)
+	compContext := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)
 	assert.True(t, iComp.IsReady(compContext))
 }
 
