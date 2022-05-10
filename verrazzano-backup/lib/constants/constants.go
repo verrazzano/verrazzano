@@ -16,6 +16,9 @@ const (
 	RestoreOperation        = "restore"
 	Min                     = 10
 	Max                     = 25
+	DevKey                  = "dev"
+	TruthString             = "true"
+	FalseString             = "false"
 )
 
 // secret related constants

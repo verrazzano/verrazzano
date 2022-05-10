@@ -27,6 +27,11 @@ func (o *OpensearchImpl) EnsureOpenSearchIsReachable(url string, log *zap.Sugare
 	done := false
 	retryCount := 0
 
+	if utils.GetEnvWithDefault(constants.DevKey, constants.FalseString) == constants.TruthString {
+		// if UT flag is set, skip to avoid retry logic
+		return nil
+	}
+
 	for !done {
 		err := utils.HTTPHelper("GET", url, nil, &osinfo, log)
 		if err != nil {
@@ -64,6 +69,11 @@ func (o *OpensearchImpl) EnsureOpenSearchIsHealthy(url string, log *zap.SugaredL
 	healthURL := fmt.Sprintf("%s/_cluster/health", url)
 	healthReachable := false
 	retryCount := 0
+
+	if utils.GetEnvWithDefault(constants.DevKey, constants.FalseString) == constants.TruthString {
+		// if UT flag is set, skip to avoid retry logic
+		return nil
+	}
 
 	for !healthReachable {
 		err = utils.HTTPHelper("GET", healthURL, nil, &clusterHealth, log)
@@ -239,6 +249,11 @@ func (o *OpensearchImpl) CheckSnapshotProgress(backupName string, log *zap.Sugar
 	snapShotURL := fmt.Sprintf("%s/_snapshot/%s/%s", constants.OpenSearchURL, constants.OpeSearchSnapShotRepoName, backupName)
 	var snapshotInfo types.OpenSearchSnapshotStatus
 
+	if utils.GetEnvWithDefault(constants.DevKey, constants.FalseString) == constants.TruthString {
+		// if UT flag is set, skip to avoid retry logic
+		return nil
+	}
+
 	done := false
 	retryCount := 0
 	for !done {
@@ -325,6 +340,12 @@ func (o *OpensearchImpl) CheckRestoreProgress(backupName string, log *zap.Sugare
 	log.Infof("Checking restore progress with name '%s'", backupName)
 	dsURL := fmt.Sprintf("%s/_data_stream", constants.OpenSearchURL)
 	var snapshotInfo types.OpenSearchDataStreams
+
+	if utils.GetEnvWithDefault(constants.DevKey, constants.FalseString) == constants.TruthString {
+		// if UT flag is set, skip to avoid retry logic
+		return nil
+	}
+
 	done := false
 	notGreen := false
 	retryCount := 0

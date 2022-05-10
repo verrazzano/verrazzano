@@ -123,3 +123,12 @@ func ReadTempCredsFile(filePath string) (string, string, error) {
 	}
 	return awsAccessKey, awsSecretAccessKey, nil
 }
+
+// GetEnvWithDefault retrieves env variable with default value
+func GetEnvWithDefault(key, defaultValue string) string {
+	value, ok := os.LookupEnv(key)
+	if !ok {
+		return defaultValue
+	}
+	return value
+}

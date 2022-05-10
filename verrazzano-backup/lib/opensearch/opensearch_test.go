@@ -1,13 +1,14 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package opensearch
+package opensearch_test
 
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/verrazzano-backup/lib/constants"
 	"github.com/verrazzano/verrazzano/verrazzano-backup/lib/klog"
+	"github.com/verrazzano/verrazzano/verrazzano-backup/lib/opensearch"
 	"github.com/verrazzano/verrazzano/verrazzano-backup/lib/types"
 	"go.uber.org/zap"
 	"os"
@@ -15,6 +16,9 @@ import (
 	"testing"
 )
 
+func init() {
+	os.Setenv(constants.DevKey, constants.TruthString)
+}
 func logHelper() (*zap.SugaredLogger, string) {
 	file, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("verrazzano-%s-hook-*.log", strings.ToLower("TEST")))
 	if err != nil {
@@ -26,15 +30,23 @@ func logHelper() (*zap.SugaredLogger, string) {
 	return log, file.Name()
 }
 
+// TestEnsureOpenSearchIsReachable tests the EnsureOpenSearchIsReachable method for the following use case.
+// GIVEN opensearch object
+// WHEN invoked with opensearch URL
+// THEN verifies whether opensearch is reachable or not
 func TestEnsureOpenSearchIsReachable(t *testing.T) {
 	log, f := logHelper()
 	defer os.Remove(f)
-	o := Opensearch(&OpensearchImpl{})
+	o := opensearch.Opensearch(&opensearch.OpensearchImpl{})
 	ok := o.EnsureOpenSearchIsReachable(constants.OpenSearchURL, log)
-	assert.NotNil(t, ok)
+	assert.Nil(t, ok)
 	assert.Equal(t, false, false)
 }
 
+// TestRegisterSnapshotRepository tests the RegisterSnapshotRepository method for the following use case.
+// GIVEN opensearch object
+// WHEN invoked with snapshot data and creds
+// THEN registers a repository to object store
 func TestRegisterSnapshotRepository(t *testing.T) {
 	log, f := logHelper()
 	defer os.Remove(f)
@@ -49,43 +61,59 @@ func TestRegisterSnapshotRepository(t *testing.T) {
 	sdat.RegionName = "region"
 	sdat.Endpoint = constants.OpenSearchURL
 
-	o := Opensearch(&OpensearchImpl{})
+	o := opensearch.Opensearch(&opensearch.OpensearchImpl{})
 	err := o.RegisterSnapshotRepository(&sdat, log)
 	assert.NotNil(t, err)
 }
 
+// TestTriggerSnapshot tests the TriggerSnapshot method for the following use case.
+// GIVEN opensearch object
+// WHEN invoked with snapshot name
+// THEN creates a snaphot in object store
 func TestTriggerSnapshot(t *testing.T) {
 	log, f := logHelper()
 	defer os.Remove(f)
 
-	o := Opensearch(&OpensearchImpl{})
+	o := opensearch.Opensearch(&opensearch.OpensearchImpl{})
 	err := o.TriggerSnapshot("mango", log)
 	assert.NotNil(t, err)
 }
 
+// TestCheckSnapshotProgress tests the CheckSnapshotProgress method for the following use case.
+// GIVEN opensearch object
+// WHEN invoked with snapshot name
+// THEN tracks snapshot progress towards completion
 func TestCheckSnapshotProgress(t *testing.T) {
 	log, f := logHelper()
 	defer os.Remove(f)
 
-	o := Opensearch(&OpensearchImpl{})
+	o := opensearch.Opensearch(&opensearch.OpensearchImpl{})
 	err := o.CheckSnapshotProgress("mango", log)
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 }
 
+// TestDeleteDataStreams tests the DeleteData method for the following use case.
+// GIVEN opensearch object
+// WHEN invoked with logger
+// THEN deletes data from Opensearch cluster
 func TestDeleteDataStreams(t *testing.T) {
 	log, f := logHelper()
 	defer os.Remove(f)
 
-	o := Opensearch(&OpensearchImpl{})
+	o := opensearch.Opensearch(&opensearch.OpensearchImpl{})
 	err := o.DeleteData(log)
 	assert.NotNil(t, err)
 }
 
+// TestTriggerSnapshot tests the TriggerRestore method for the following use case.
+// GIVEN opensearch object
+// WHEN invoked with snapshot name
+// THEN creates a restore from object store from given snapshot name
 func TestTriggerRestore(t *testing.T) {
 	log, f := logHelper()
 	defer os.Remove(f)
 
-	o := Opensearch(&OpensearchImpl{})
+	o := opensearch.Opensearch(&opensearch.OpensearchImpl{})
 	err := o.TriggerRestore("backup", log)
 	assert.NotNil(t, err)
 }
