@@ -4,8 +4,6 @@
 package opensearch
 
 import (
-	"fmt"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"strconv"
 	"time"
 
@@ -23,11 +21,11 @@ import (
 )
 
 const (
-	masterNodeName      = "system-es-master"
-	ingestNodeName      = "system-es-ingest"
-	dataNodeName        = "system-es-data"
-	waitTimeout         = 20 * time.Minute
-	pollingInterval     = 10 * time.Second
+	masterNodeName  = "system-es-master"
+	ingestNodeName  = "system-es-ingest"
+	dataNodeName    = "system-es-data"
+	waitTimeout     = 20 * time.Minute
+	pollingInterval = 10 * time.Second
 	//updatedReplicaCount = 5
 	//updatedNodeMemory   = "512Mi"
 	//updatedNodeStorage  = "2Gi"
@@ -214,35 +212,35 @@ func validatePods(deployName string, nameSpace string, expectedPodsRunning uint3
 	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get correct number of running and pending pods")
 }
 
-func validatePodMemoryRequest(deployName string, nameSpace, containerName, expectedMemory string) {
-	Eventually(func() bool {
-		var err error
-		pods, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": deployName}}, nameSpace)
-		if err != nil {
-			return false
-		}
-		memoryMatchedContainers := 0
-		for _, pod := range pods {
-			for _, container := range pod.Spec.Containers {
-				if container.Name != containerName {
-					continue
-				}
-				expectedNodeMemory, err := resource.ParseQuantity(expectedMemory)
-				if err != nil {
-					pkg.Log(pkg.Error, err.Error())
-					return false
-				}
-				pkg.Log(pkg.Info,
-					fmt.Sprintf("Chekcing container memory request %v to match the expected value %s",
-						container.Resources.Requests.Memory(), expectedMemory))
-				if container.Resources.Requests.Memory() == &expectedNodeMemory {
-					memoryMatchedContainers++
-				}
-			}
-		}
-		return memoryMatchedContainers == len(pods)
-	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find container with right memory settings")
-}
+//func validatePodMemoryRequest(deployName string, nameSpace, containerName, expectedMemory string) {
+//	Eventually(func() bool {
+//		var err error
+//		pods, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": deployName}}, nameSpace)
+//		if err != nil {
+//			return false
+//		}
+//		memoryMatchedContainers := 0
+//		for _, pod := range pods {
+//			for _, container := range pod.Spec.Containers {
+//				if container.Name != containerName {
+//					continue
+//				}
+//				expectedNodeMemory, err := resource.ParseQuantity(expectedMemory)
+//				if err != nil {
+//					pkg.Log(pkg.Error, err.Error())
+//					return false
+//				}
+//				pkg.Log(pkg.Info,
+//					fmt.Sprintf("Chekcing container memory request %v to match the expected value %s",
+//						container.Resources.Requests.Memory(), expectedMemory))
+//				if container.Resources.Requests.Memory() == &expectedNodeMemory {
+//					memoryMatchedContainers++
+//				}
+//			}
+//		}
+//		return memoryMatchedContainers == len(pods)
+//	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find container with right memory settings")
+//}
 
 //func validatePodStorage(deployName string, nameSpace string, expectedStorage uint32, hasPending bool) {
 //	Eventually(func() bool {
