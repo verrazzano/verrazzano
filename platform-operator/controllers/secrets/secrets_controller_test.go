@@ -37,14 +37,20 @@ func TestCreateLocalCABundle(t *testing.T) {
 	tests := []struct {
 		secretName string
 		secretNS   string
+		secretKey  string
+		secretData string
 	}{
 		{
 			secretName: vzTLSSecret.Name,
 			secretNS:   vzTLSSecret.Namespace,
+			secretKey:  "ca.crt",
+			secretData: "dnogdGxzIHNlY3JldA==", // "vz tls secret",
 		},
 		{
 			secretName: additionalTLSSecret.Name,
 			secretNS:   additionalTLSSecret.Namespace,
+			secretKey:  constants2.AdditionalTLSCAKey,
+			secretData: "YWRkaXRpb25hbCB0bHMgc2VjcmV0", // "additional tls secret",
 		},
 	}
 	for _, tt := range tests {
@@ -52,7 +58,7 @@ func TestCreateLocalCABundle(t *testing.T) {
 		mocker := gomock.NewController(t)
 		mock := mocks.NewMockClient(mocker)
 
-		expectLocalCABundleIsCreated(t, mock)
+		expectLocalCABundleIsCreated(t, mock, tt.secretNS, tt.secretName, tt.secretKey, tt.secretData)
 
 		// Create and make the request
 		request := newRequest(tt.secretNS, tt.secretName)
@@ -159,7 +165,7 @@ func runNamespaceErrorTest(t *testing.T, expectedErr error) {
 	asserts.NotEqual(ctrl.Result{}, result)
 }
 
-func expectLocalCABundleIsCreated(t *testing.T, mock *mocks.MockClient) {
+func expectLocalCABundleIsCreated(t *testing.T, mock *mocks.MockClient, secretNS string, secretName string, secretKey string, secretData string) {
 	asserts := assert.New(t)
 
 	// Expect  a call to get the verrazzano-mc namespace
@@ -169,32 +175,33 @@ func expectLocalCABundleIsCreated(t *testing.T, mock *mocks.MockClient) {
 			return nil
 		}).AnyTimes()
 
-	// Expect a call to get the additional tls secret
+	// Expect a call to get the specified tls secret
 	mock.EXPECT().
-		Get(gomock.Any(), additionalTLSSecret, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Name: secretName, Namespace: secretNS}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-			secret.Name = additionalTLSSecret.Name
-			secret.Namespace = additionalTLSSecret.Namespace
+			secret.Name = secretName
+			secret.Namespace = secretNS
+			secret.Data = map[string][]byte{secretKey: []byte(secretData)}
 			return nil
-		}).AnyTimes()
+		}).MinTimes(1)
 
-	// Expect a call to get the verrazzano-tls secret
-	mock.EXPECT().
-		Get(gomock.Any(), vzTLSSecret, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-			secret.Name = vzTLSSecret.Name
-			secret.Namespace = vzTLSSecret.Namespace
-			return nil
-		}).AnyTimes()
+	/*	// Expect a call to get the verrazzano-tls secret
+		mock.EXPECT().
+			Get(gomock.Any(), vzTLSSecret, gomock.Not(gomock.Nil())).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+				secret.Name = vzTLSSecret.Name
+				secret.Namespace = vzTLSSecret.Namespace
+				return nil
+			}).AnyTimes()*/
 
-	// Expect a call to get the verrazzano-tls secret
+	// Expect a call to get the local ca bundle secret
 	mock.EXPECT().
 		Get(gomock.Any(), vzLocalCaBundleSecret, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret2 *corev1.Secret) error {
 			secret2.Name = vzLocalCaBundleSecret.Name
 			secret2.Namespace = vzLocalCaBundleSecret.Namespace
 			return nil
-		}).AnyTimes()
+		}).MinTimes(1)
 
 	// Expect a call to update the verrazzano-local-ca-bundle finalizer
 	mock.EXPECT().
@@ -202,8 +209,9 @@ func expectLocalCABundleIsCreated(t *testing.T, mock *mocks.MockClient) {
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.UpdateOption) error {
 			asserts.Equal(vzLocalCaBundleSecret.Name, secret.Name, "wrong secret name")
 			asserts.Equal(vzLocalCaBundleSecret.Namespace, secret.Namespace, "wrong secret namespace")
+			asserts.Equal([]byte(secretData), secret.Data["ca-bundle"], "wrong secret ca-bundle")
 			return nil
-		})
+		}).MinTimes(1)
 }
 
 func expectNothingForWrongSecret(t *testing.T, mock *mocks.MockClient) {
