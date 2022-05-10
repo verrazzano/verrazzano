@@ -1,4 +1,4 @@
-package configmaps
+package secrets
 
 import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -8,24 +8,23 @@ import (
 )
 
 const (
-	testNS     = "default"
-	testCMName = "po-val"
-	testVZName = "test-vz"
+	testNS         = "default"
+	testSecretName = "po-val"
+	testVZName     = "test-vz"
 )
 
 var compStatusMap = makeVerrazzanoComponentStatusMap()
 
-var testConfigMap = corev1.ConfigMap{
+var testSecret = corev1.Secret{
 	TypeMeta: metav1.TypeMeta{
-		Kind: "ConfigMap",
+		Kind: "Secret",
 	},
 	ObjectMeta: metav1.ObjectMeta{
-		Name:      testCMName,
+		Name:      testSecretName,
 		Namespace: testNS,
 	},
-	Immutable:  nil,
-	Data:       map[string]string{"override": "true"},
-	BinaryData: nil,
+	Immutable: nil,
+	Data:      map[string][]byte{"override": []byte("true")},
 }
 
 var testVZ = vzapi.Verrazzano{
@@ -44,9 +43,9 @@ var testVZ = vzapi.Verrazzano{
 				MonitorChanges: True(),
 				ValueOverrides: []vzapi.Overrides{
 					{
-						ConfigMapRef: &corev1.ConfigMapKeySelector{
+						SecretRef: &corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
-								Name: testCMName,
+								Name: testSecretName,
 							},
 							Key:      "",
 							Optional: nil,

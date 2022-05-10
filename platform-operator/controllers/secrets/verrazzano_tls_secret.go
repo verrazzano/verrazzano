@@ -16,6 +16,12 @@ import (
 )
 
 func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+
+	if !r.multiclusterNamespaceExists() {
+		// Multicluster namespace doesn't exist yet, nothing to do so requeue
+		return newRequeueWithDelay(), nil
+	}
+
 	// Get the verrazzano ingress secret
 	caSecret := corev1.Secret{}
 	err := r.Get(ctx, req.NamespacedName, &caSecret)

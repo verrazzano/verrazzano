@@ -2,58 +2,40 @@ package configmaps
 
 import (
 	"context"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/mocks"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 )
 
-var defaultNamespace = "default"
-
-func TestConfigMapsReconcile(t *testing.T) {
+// TestConfigMapReconciler tests Reconciler method of Configmap controller.
+func TestConfigMapReconciler(t *testing.T) {
 	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
+	cli := fake.NewClientBuilder().WithObjects(&testVZ, &testConfigMap).WithScheme(newScheme()).Build()
 
-	expectListVerrazzanoExists(mock, testVZ)
-	expectGetConfigMapExists(mock, &testConfigMap, testNS, testCMName)
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
 	request := newRequest(testNS, testCMName)
-	reconciler := newConfigMapReconciler(mock)
-	result, err := reconciler.Reconcile(context.TODO(), request)
-	asserts.Nil(err)
-	asserts.Empty(result)
-}
+	reconciler := newConfigMapReconciler(cli)
+	res, err := reconciler.Reconcile(context.TODO(), request)
 
-func expectListVerrazzanoExists(mock *mocks.MockClient, verrazzanoToUse vzapi.Verrazzano) {
-	mock.EXPECT().
-		List(gomock.Any(), &vzapi.VerrazzanoList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, list *vzapi.VerrazzanoList, opts ...client.ListOption) error {
-			list.Items = append(list.Items, verrazzanoToUse)
-			return nil
-		}).AnyTimes()
-}
-
-func expectGetConfigMapExists(mock *mocks.MockClient, cmToUse *corev1.ConfigMap, namespace string, name string) {
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, cm *corev1.ConfigMap) error {
-			cm = cmToUse
-			return nil
-		}).AnyTimes()
+	asserts.NoError(err)
+	asserts.Equal(false, res.Requeue)
 }
 
 // newScheme creates a new scheme that includes this package's object to use for testing
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	_ = corev1.AddToScheme(scheme)
+	_ = vzapi.AddToScheme(scheme)
 	return scheme
 }
 
@@ -68,10 +50,12 @@ func newRequest(namespace string, name string) ctrl.Request {
 }
 
 func newConfigMapReconciler(c client.Client) VerrazzanoConfigMapsReconciler {
+	vzLog := vzlog.DefaultLogger()
 	scheme := newScheme()
 	reconciler := VerrazzanoConfigMapsReconciler{
 		Client: c,
 		Scheme: scheme,
+		log:    vzLog,
 	}
 	return reconciler
 }

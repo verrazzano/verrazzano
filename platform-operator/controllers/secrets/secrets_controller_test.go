@@ -6,8 +6,12 @@ package secrets
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -86,6 +90,21 @@ func TestMultiClusterNamespaceUnexpectedErr(t *testing.T) {
 	runNamespaceErrorTest(t, fmt.Errorf("unexpected error checking namespace"))
 }
 
+func TestSecretReconciler(t *testing.T) {
+	asserts := assert.New(t)
+	cli := fake.NewClientBuilder().WithObjects(&testVZ, &testSecret).WithScheme(newScheme()).Build()
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	request := newRequest(testNS, testSecretName)
+	reconciler := newSecretsReconciler(cli)
+	res, err := reconciler.Reconcile(context.TODO(), request)
+
+	asserts.NoError(err)
+	asserts.Empty(res)
+}
+
 func runNamespaceErrorTest(t *testing.T, expectedErr error) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -158,6 +177,12 @@ func expectLocalCABundleIsCreated(t *testing.T, mock *mocks.MockClient) {
 }
 
 func expectNothingForWrongSecret(t *testing.T, mock *mocks.MockClient) {
+
+	mock.EXPECT().
+		List(gomock.Any(), &vzapi.VerrazzanoList{}, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzanoList *vzapi.VerrazzanoList, options ...client.ListOption) error {
+			return nil
+		})
 	// Expect no calls to get a secret
 	mock.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).MaxTimes(0)
@@ -171,6 +196,7 @@ func expectNothingForWrongSecret(t *testing.T, mock *mocks.MockClient) {
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	_ = corev1.AddToScheme(scheme)
+	_ = vzapi.AddToScheme(scheme)
 	return scheme
 }
 
@@ -187,9 +213,11 @@ func newRequest(namespace string, name string) ctrl.Request {
 // newSecretsReconciler creates a new reconciler for testing
 // c - The Kerberos client to inject into the reconciler
 func newSecretsReconciler(c client.Client) VerrazzanoSecretsReconciler {
+	vzLog := vzlog.DefaultLogger()
 	scheme := newScheme()
 	reconciler := VerrazzanoSecretsReconciler{
 		Client: c,
-		Scheme: scheme}
+		Scheme: scheme,
+		log:    vzLog}
 	return reconciler
 }

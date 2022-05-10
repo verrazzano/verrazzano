@@ -1,19 +1,34 @@
-package configmaps
+package controllers
 
 import (
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"testing"
 )
 
 const (
-	testNS     = "default"
+	testNS     = "verrazzano"
 	testCMName = "po-val"
 	testVZName = "test-vz"
 )
 
-var compStatusMap = makeVerrazzanoComponentStatusMap()
+func TestVzContainsResource(t *testing.T) {
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	compContext := fakeComponentContext(mock, &testVZ)
+	res, ok := VzContainsResource(compContext, &testConfigMap)
+
+	asserts.True(ok)
+	asserts.NotEmpty(res)
+}
 
 var testConfigMap = corev1.ConfigMap{
 	TypeMeta: metav1.TypeMeta{
@@ -28,6 +43,12 @@ var testConfigMap = corev1.ConfigMap{
 	BinaryData: nil,
 }
 
+func fakeComponentContext(mock *mocks.MockClient, vz *vzapi.Verrazzano) spi.ComponentContext {
+	compContext := spi.NewFakeContext(mock, vz, false)
+	return compContext
+}
+
+var compStatusMap = makeVerrazzanoComponentStatusMap()
 var testVZ = vzapi.Verrazzano{
 	TypeMeta: metav1.TypeMeta{
 		APIVersion: "install.verrazzano.io/v1alpha1",
