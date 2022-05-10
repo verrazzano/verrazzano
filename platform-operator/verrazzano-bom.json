@@ -196,7 +196,7 @@
             },
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "1.2.2-20220425202630-3a5279a",
+              "tag": "1.2.3-20220510184606-62f55f8",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -242,7 +242,7 @@
             },
             {
               "image": "console",
-              "tag": "1.2.2-20220426152006-1a7e498",
+              "tag": "1.2.3-20220510184937-b8763d8",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
