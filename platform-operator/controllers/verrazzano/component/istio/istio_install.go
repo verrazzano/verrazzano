@@ -116,7 +116,6 @@ func (m *installMonitorType) isRunning() bool {
 //run - Run the install in a goroutine
 func (m *installMonitorType) run(args installRoutineParams) {
 	m.running = true
-	m.istioctlSuccess = false
 	m.resultCh = make(chan bool, 2)
 	m.inputCh = make(chan installRoutineParams, 2)
 
