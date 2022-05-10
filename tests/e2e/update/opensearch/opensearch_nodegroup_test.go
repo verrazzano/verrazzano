@@ -6,9 +6,7 @@ package opensearch
 import (
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"github.com/verrazzano/verrazzano/tests/e2e/update"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 
@@ -103,42 +101,42 @@ func newResources(requestMemory string) *corev1.ResourceRequirements {
 }
 
 var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
-	t.It("opensearch explicit master replicas", func() {
-		m := OpensearchMasterNodeGroupModifier{NodeReplicas: 2, NodeMemory: "256Mi", NodeStorage: "2Gi"}
-		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-		validatePods(masterNodeName, constants.VerrazzanoSystemNamespace, 2, false)
-	})
-
-	t.It("opensearch explicit master node memory", func() {
-		m := OpensearchMasterNodeGroupModifier{NodeReplicas: 1, NodeMemory: updatedNodeMemory, NodeStorage: "2Gi"}
-		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-		validatePods(masterNodeName, constants.VerrazzanoSystemNamespace, 1, false)
-		validatePodMemoryRequest(dataNodeName, constants.VerrazzanoSystemNamespace, "es-master", updatedNodeMemory)
-	})
-
-	t.It("opensearch explicit ingest replicas", func() {
-		m := OpensearchIngestNodeGroupModifier{NodeReplicas: 2, NodeMemory: "256Mi", NodeStorage: "2Gi"}
-		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-		validatePods(ingestNodeName, constants.VerrazzanoSystemNamespace, 2, true)
-	})
-
-	t.It("opensearch explicit ingest node memory", func() {
-		m := OpensearchIngestNodeGroupModifier{NodeReplicas: 1, NodeMemory: updatedNodeMemory, NodeStorage: "2Gi"}
-		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-		validatePods(ingestNodeName, constants.VerrazzanoSystemNamespace, 1, true)
-		validatePodMemoryRequest(dataNodeName, constants.VerrazzanoSystemNamespace, "es-ingest", updatedNodeMemory)
-	})
-
-	t.It("opensearch explicit data replicas", func() {
-		m := OpensearchDataNodeArgsModifier{NodeReplicas: 1, NodeMemory: "256Mi"}
-		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-		validatePods(dataNodeName, constants.VerrazzanoSystemNamespace, 1, false)
-	})
-
-	t.It("opensearch explicit data node memory", func() {
-		m := OpensearchDataNodeArgsModifier{NodeReplicas: 1, NodeMemory: updatedNodeMemory, NodeStorage: "2Gi"}
-		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-		validatePods(dataNodeName, constants.VerrazzanoSystemNamespace, 1, false)
-		validatePodMemoryRequest(dataNodeName, constants.VerrazzanoSystemNamespace, "es-data", updatedNodeMemory)
-	})
+	//t.It("opensearch explicit master replicas", func() {
+	//	m := OpensearchMasterNodeGroupModifier{NodeReplicas: 2, NodeMemory: "256Mi", NodeStorage: "2Gi"}
+	//	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+	//	validatePods(masterNodeName, constants.VerrazzanoSystemNamespace, 2, false)
+	//})
+	//
+	//t.It("opensearch explicit master node memory", func() {
+	//	m := OpensearchMasterNodeGroupModifier{NodeReplicas: 1, NodeMemory: updatedNodeMemory, NodeStorage: "2Gi"}
+	//	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+	//	validatePods(masterNodeName, constants.VerrazzanoSystemNamespace, 1, false)
+	//	validatePodMemoryRequest(dataNodeName, constants.VerrazzanoSystemNamespace, "es-master", updatedNodeMemory)
+	//})
+	//
+	//t.It("opensearch explicit ingest replicas", func() {
+	//	m := OpensearchIngestNodeGroupModifier{NodeReplicas: 2, NodeMemory: "256Mi", NodeStorage: "2Gi"}
+	//	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+	//	validatePods(ingestNodeName, constants.VerrazzanoSystemNamespace, 2, true)
+	//})
+	//
+	//t.It("opensearch explicit ingest node memory", func() {
+	//	m := OpensearchIngestNodeGroupModifier{NodeReplicas: 1, NodeMemory: updatedNodeMemory, NodeStorage: "2Gi"}
+	//	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+	//	validatePods(ingestNodeName, constants.VerrazzanoSystemNamespace, 1, true)
+	//	validatePodMemoryRequest(dataNodeName, constants.VerrazzanoSystemNamespace, "es-ingest", updatedNodeMemory)
+	//})
+	//
+	//t.It("opensearch explicit data replicas", func() {
+	//	m := OpensearchDataNodeArgsModifier{NodeReplicas: 1, NodeMemory: "256Mi"}
+	//	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+	//	validatePods(dataNodeName, constants.VerrazzanoSystemNamespace, 1, false)
+	//})
+	//
+	//t.It("opensearch explicit data node memory", func() {
+	//	m := OpensearchDataNodeArgsModifier{NodeReplicas: 1, NodeMemory: updatedNodeMemory, NodeStorage: "2Gi"}
+	//	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+	//	validatePods(dataNodeName, constants.VerrazzanoSystemNamespace, 1, false)
+	//	validatePodMemoryRequest(dataNodeName, constants.VerrazzanoSystemNamespace, "es-data", updatedNodeMemory)
+	//})
 })
