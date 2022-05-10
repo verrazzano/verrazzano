@@ -1066,12 +1066,12 @@ func TestUpgradeIsCompInstalledFailure(t *testing.T) {
 	})
 	defer registry.ResetGetComponentsFn()
 
-	// Reconcile upgrade
+	// Reconcile
+	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconcileUpgradeLoop(reconciler, &vz)
+	result, _ := reconcileLoop(reconciler, request)
 
 	// Validate the results
-	asserts.Error(err)
 	asserts.Equal(true, result.Requeue)
 }
 
