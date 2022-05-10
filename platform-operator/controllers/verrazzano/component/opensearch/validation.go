@@ -73,14 +73,6 @@ func validateNoDuplicateNodeGroups(opensearch *vzapi.ElasticsearchComponent) err
 	return nil
 }
 
-func addInstallArgGroupNames(opensearch *vzapi.ElasticsearchComponent, tracker entryTracker) {
-	for _, arg := range opensearch.ESInstallArgs {
-		if arg.Name == "nodes.master.replicas" {
-
-		}
-	}
-}
-
 //validateClusterTopology rejects any updates that would corrupt the cluster state
 // e.g., removing half or more master nodes without deleting the cluster
 func validateClusterTopology(old, new *vzapi.Verrazzano) error {
