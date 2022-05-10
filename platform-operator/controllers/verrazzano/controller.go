@@ -1254,9 +1254,6 @@ func createPredicate(f func(e event.CreateEvent) bool) predicate.Funcs {
 // Clean up old resources from a 1.0 release where jobs, etc were in the default namespace
 // Add a watch for each Verrazzano resource
 func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
-	if unitTesting {
-		return ctrl.Result{}, nil
-	}
 
 	// Add our finalizer if not already added
 	if !vzstring.SliceContainsString(vz.ObjectMeta.Finalizers, finalizerName) {
@@ -1265,6 +1262,10 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog
 		if err := r.Update(context.TODO(), vz); err != nil {
 			return newRequeueWithDelay(), err
 		}
+	}
+
+	if unitTesting {
+		return ctrl.Result{}, nil
 	}
 
 	// Check if init done for this resource
