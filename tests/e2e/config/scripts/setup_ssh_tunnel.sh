@@ -34,6 +34,7 @@ fi
 VCN_CIDR=$(oci network vcn list \
   --compartment-id "${TF_VAR_compartment_id}" \
   --display-name "${TF_VAR_label_prefix}-oke-vcn" \
+  --lifecycle-state AVAILABLE \
   | jq -r '.data[0]."cidr-block"')
 
 if [ -z "VCN_CIDR" ]; then
@@ -45,6 +46,7 @@ fi
 BASTION_ID=$(oci compute instance list \
   --compartment-id "${TF_VAR_compartment_id}" \
   --display-name "${TF_VAR_label_prefix}-bastion" \
+  --lifecycle-state RUNNING \
   | jq -r '.data[0]."id"')
 
 if [ -z "$BASTION_ID" ]; then

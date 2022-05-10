@@ -309,16 +309,6 @@ func removeIstioHelmSecrets(compContext spi.ComponentContext) error {
 	return nil
 }
 
-//zipkinPort retrieves the zipkin port from the service, if it is present. Defaults to 9411 for Jaeger collector
-func zipkinPort(service v1.Service) int32 {
-	for _, port := range service.Spec.Ports {
-		if port.Name == "http-zipkin" {
-			return port.Port
-		}
-	}
-	return 9411
-}
-
 func getOverridesString(ctx spi.ComponentContext) (string, error) {
 	var kvs []bom.KeyValue
 	// check for global image pull secret

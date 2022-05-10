@@ -615,7 +615,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 			fields: fields{
 				secretExists:   false,
 				dsClusterName:  defaultClusterName,
-				dsEsURL:        defaultElasticURL,
+				dsEsURL:        vzconstants.DefaultOpensearchURL,
 				dsSecretName:   defaultSecretName,
 				expectUpdateDS: false,
 			},
@@ -820,7 +820,7 @@ func Test_updateLoggingDaemonsetEnv(t *testing.T) {
 		},
 		{
 			Name:  "ELASTICSEARCH_URL",
-			Value: defaultElasticURL,
+			Value: vzconstants.DefaultOpensearchURL,
 		},
 		{
 			Name:  "ELASTICSEARCH_USER",
@@ -845,17 +845,17 @@ func Test_updateLoggingDaemonsetEnv(t *testing.T) {
 			constants.ElasticsearchPasswordData: []byte("somepassword"),
 		},
 	}
-	newEnvs := updateLoggingDaemonsetEnv(regSecret, true, defaultElasticURL, defaultSecretName, oldEnvs)
+	newEnvs := updateLoggingDaemonsetEnv(regSecret, true, vzconstants.DefaultOpensearchURL, defaultSecretName, oldEnvs)
 	asserts.NotNil(t, findEnv("FLUENTD_CONF", &newEnvs))
 	asserts.Equal(t, newClusterName, findEnv("CLUSTER_NAME", &newEnvs).Value)
 	asserts.Equal(t, newElasticURL, findEnv("ELASTICSEARCH_URL", &newEnvs).Value)
 	asserts.Equal(t, constants.MCRegistrationSecret, findEnv("ELASTICSEARCH_USER", &newEnvs).ValueFrom.SecretKeyRef.Name)
 	asserts.Equal(t, constants.MCRegistrationSecret, findEnv("ELASTICSEARCH_PASSWORD", &newEnvs).ValueFrom.SecretKeyRef.Name)
 	// un-registration of setting secretVersion back to ""
-	newEnvs = updateLoggingDaemonsetEnv(regSecret, false, defaultElasticURL, defaultSecretName, newEnvs)
+	newEnvs = updateLoggingDaemonsetEnv(regSecret, false, vzconstants.DefaultOpensearchURL, defaultSecretName, newEnvs)
 	asserts.NotNil(t, findEnv("FLUENTD_CONF", &newEnvs))
 	asserts.Equal(t, defaultClusterName, findEnv("CLUSTER_NAME", &newEnvs).Value)
-	asserts.Equal(t, defaultElasticURL, findEnv("ELASTICSEARCH_URL", &newEnvs).Value)
+	asserts.Equal(t, vzconstants.DefaultOpensearchURL, findEnv("ELASTICSEARCH_URL", &newEnvs).Value)
 	asserts.Equal(t, defaultSecretName, findEnv("ELASTICSEARCH_USER", &newEnvs).ValueFrom.SecretKeyRef.Name)
 	asserts.Equal(t, defaultSecretName, findEnv("ELASTICSEARCH_PASSWORD", &newEnvs).ValueFrom.SecretKeyRef.Name)
 
