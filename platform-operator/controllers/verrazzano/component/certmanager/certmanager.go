@@ -54,7 +54,27 @@ const (
 	crdOutputFile = "output.crd.yaml"
 
 	clusterResourceNamespaceKey = "clusterResourceNamespace"
+
+	// InstancePrincipal is used for instance principle auth type
+	instancePrincipal authenticationType = "instance_principal"
 )
+
+type authenticationType string
+
+// OCI DNS Secret Auth
+type authData struct {
+	Region      string             `json:"region"`
+	Tenancy     string             `json:"tenancy"`
+	User        string             `json:"user"`
+	Key         string             `json:"key"`
+	Fingerprint string             `json:"fingerprint"`
+	AuthType    authenticationType `json:"authtype"`
+}
+
+// OCI DNS Secret Auth Wrapper
+type ociAuth struct {
+	Auth authData `json:"auth"`
+}
 
 // Template for ClusterIssuer for Acme certificates
 const clusterIssuerTemplate = `
@@ -71,7 +91,7 @@ spec:
     solvers:
       - dns01:
           ocidns:
-            useInstancePrincipals: false
+            useInstancePrincipals: {{ .UseInstancePrincipals}}
             serviceAccountSecretRef:
               name: {{.SecretName}}
               key: "oci.yaml"
@@ -110,10 +130,13 @@ var ociDNSSnippet = strings.Split(`ocidns:
 
 // Template data for ClusterIssuer
 type templateData struct {
-	Email       string
-	Server      string
-	SecretName  string
-	OCIZoneName string
+	AcmeSecretName        string
+	ClusterIssuerName     string
+	Email                 string
+	Server                string
+	SecretName            string
+	OCIZoneName           string
+	UseInstancePrincipals bool
 }
 
 // CertIssuerType identifies the certificate issuer type
@@ -376,6 +399,17 @@ func createAcmeResources(compContext spi.ComponentContext) error {
 		Server:      acmeServer,
 		SecretName:  ociDNSConfigSecret,
 		OCIZoneName: ociDNSZoneName,
+	}
+
+	for key := range secret.Data {
+		var authProp ociAuth
+		if err := yaml.Unmarshal(secret.Data[key], &authProp); err != nil {
+			return err
+		}
+		if authProp.Auth.AuthType == instancePrincipal {
+			clusterIssuerData.UseInstancePrincipals = true
+			break
+		}
 	}
 
 	// Parse the template string and create the template object
