@@ -372,6 +372,10 @@ type ComponentSpec struct {
 	// +optional
 	WebLogicOperator *WebLogicOperatorComponent `json:"weblogicOperator,omitempty"`
 
+	// VeleroOperator configuration
+	// +optional
+	VeleroOperator *VeleroOperatorComponent `json:"veleroOperator,omitempty"`
+
 	// Verrazzano configuration
 	// +optional
 	Verrazzano *VerrazzanoComponent `json:"verrazzano,omitempty"`
@@ -657,6 +661,12 @@ type FluentdComponent struct {
 
 // WebLogicOperatorComponent specifies the WebLogic Operator configuration
 type WebLogicOperatorComponent struct {
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// VeleroOperatorComponent  specifies the Velero Operator configuration
+type VeleroOperatorComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 }

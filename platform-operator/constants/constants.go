@@ -172,3 +172,6 @@ const KubernetesAppLabel = "app.kubernetes.io/component"
 
 //JaegerCollectorService is a label value for Jaeger collector
 const JaegerCollectorService = "service-collector"
+
+//VeleroOperatorNameSpace
+const VeleroNameSpace = "velero"
