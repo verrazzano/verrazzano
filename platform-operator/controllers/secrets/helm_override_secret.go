@@ -37,6 +37,7 @@ func (r *VerrazzanoSecretsReconciler) reconcileHelmOverrideSecret(ctx context.Co
 				r.log.Errorf("Failed to reconcile ConfigMap: %v", err)
 				return newRequeueWithDelay(), err
 			}
+			r.log.Infof("Updated Verrazzano Resource")
 		}
 	}
 	return ctrl.Result{}, nil

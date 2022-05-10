@@ -91,7 +91,7 @@ func (r *VerrazzanoConfigMapsReconciler) reconcileHelmOverrideConfigMap(ctx cont
 				r.log.Errorf("Failed to reconcile ConfigMap: %v", err)
 				return newRequeueWithDelay(), err
 			}
-			r.log.Infof("Updated VZ")
+			r.log.Infof("Updated Verrazzano Resource")
 		}
 	}
 	return ctrl.Result{}, nil
@@ -102,7 +102,6 @@ func (r *VerrazzanoConfigMapsReconciler) updateVerrazzanoForHelmOverrides(compon
 	cr.Status.Components[componentName].ReconcilingGeneration = 1
 	err := r.Status().Update(context.TODO(), cr)
 	if err == nil {
-		r.log.Infof("VZ Updated")
 		return nil
 	}
 	return err
