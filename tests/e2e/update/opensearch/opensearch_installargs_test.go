@@ -28,13 +28,13 @@ const (
 	dataNodeName        = "system-es-data"
 	waitTimeout         = 20 * time.Minute
 	pollingInterval     = 10 * time.Second
-	updatedReplicaCount = 5
-	updatedNodeMemory   = "512Mi"
+	//updatedReplicaCount = 5
+	//updatedNodeMemory   = "512Mi"
 	//updatedNodeStorage  = "2Gi"
-	defaultProdMasterCount = 3
-	defaultProdIngestCount = 1
-	defaultProdDataCount   = 3
-	defaultDevMasterCount  = 1
+	//defaultProdMasterCount = 3
+	//defaultProdIngestCount = 1
+	//defaultProdDataCount   = 3
+	//defaultDevMasterCount  = 1
 )
 
 type OpensearchMasterNodeArgsModifier struct {
