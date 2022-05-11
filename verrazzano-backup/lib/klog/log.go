@@ -9,6 +9,7 @@ import (
 	"log"
 )
 
+//Logger constructs a logger that prints out messages in json and also logs to a file
 func Logger(filePath string) (*zap.SugaredLogger, error) {
 	logger, err := zap.NewProduction()
 	if err != nil {

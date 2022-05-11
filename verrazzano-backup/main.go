@@ -159,7 +159,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Control flow based on
+	// Control flow based on component value
 	switch strings.ToLower(Component) {
 	case constants.OSComponent:
 		// OpenSearch backup handling

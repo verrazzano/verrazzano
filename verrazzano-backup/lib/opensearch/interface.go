@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// OpenSearch interface implements all the method utilized in the application
 type Opensearch interface {
 	Backup(secretData *types.ConnectionData, log *zap.SugaredLogger) error
 	Restore(secretData *types.ConnectionData, log *zap.SugaredLogger) error
