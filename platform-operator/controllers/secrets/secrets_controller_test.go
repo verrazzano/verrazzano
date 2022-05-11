@@ -30,7 +30,7 @@ var additionalTLSSecret = types.NamespacedName{Name: constants2.AdditionalTLS, N
 var vzLocalCaBundleSecret = types.NamespacedName{Name: "verrazzano-local-ca-bundle", Namespace: constants.VerrazzanoMultiClusterNamespace}
 var unwatchedSecret = types.NamespacedName{Name: "any-secret", Namespace: "any-namespace"}
 
-const addnlTLSSecretData = "YWRkaXRpb25hbCB0bHMgc2VjcmV0" // "additional tls secret"
+const addnlTLSData = "YWRkaXRpb25hbCB0bHMgc2VjcmV0" // "additional tls secret"
 
 // TestCreateLocalCABundle tests the Reconcile method for the following use cases
 // GIVEN a request to reconcile the verrazzano-tls secret OR the tls-additional-ca secret
@@ -62,7 +62,7 @@ func TestCreateLocalCABundle(t *testing.T) {
 			secretName:     additionalTLSSecret.Name,
 			secretNS:       additionalTLSSecret.Namespace,
 			secretKey:      constants2.AdditionalTLSCAKey,
-			secretData:     addnlTLSSecretData,
+			secretData:     addnlTLSData,
 			addnlTLSExists: true,
 		},
 	}
