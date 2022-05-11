@@ -109,7 +109,7 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 		createCustomCACertificate(testCertName, testCertSecretNamespace, testCertSecretName)
 		m := CustomCACertificateModifier{testCertSecretNamespace, testCertSecretName}
 		update.UpdateCR(m)
-		validateCertManagerResourcesCleanup(currentCertNamespace, currentCertName, currentCertIssuerNamespace, currentCertIssuerName, currentCertSecretNamespace, currentCertSecretName)
+		validateCertManagerResourcesCleanup()
 		validateCACertificateIssuer(testCertIssuerName)
 	})
 })
@@ -184,34 +184,34 @@ func validateCACertificateIssuer(certIssuer string) {
 	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected that the certificates have a valid issuer")
 }
 
-func validateCertManagerResourcesCleanup(certNamespace, certName, certIssuerNamespace, certIssuerName, certSecretNamespace, certSecretName string) {
+func validateCertManagerResourcesCleanup() {
 	Eventually(func() bool {
 		// Verify that the existing certificate has been removed
-		certificateList, err := pkg.GetCertificateList(certNamespace)
+		certificateList, err := pkg.GetCertificateList(currentCertNamespace)
 		if err != nil {
 			log.Fatalf("Error while fetching CertificateList\n%s", err)
 		}
 		for _, certificate := range certificateList.Items {
-			if certificate.Name == certName {
-				log.Printf("Certificate %s should NOT exist in the namespace %s\n", certName, certNamespace)
+			if certificate.Name == currentCertName {
+				log.Printf("Certificate %s should NOT exist in the namespace %s\n", currentCertName, currentCertNamespace)
 				return false
 			}
 		}
 		// Verify that the certificate issuer has been removed
-		issuerList, err := pkg.GetIssuerList(certIssuerNamespace)
+		issuerList, err := pkg.GetIssuerList(currentCertIssuerNamespace)
 		if err != nil {
 			log.Fatalf("Error while fetching IssuerList\n%s", err)
 		}
 		for _, issuer := range issuerList.Items {
-			if issuer.Name == certIssuerName {
-				log.Printf("Issuer %s should NOT exist in the namespace %s\n", certIssuerName, certIssuerNamespace)
+			if issuer.Name == currentCertIssuerName {
+				log.Printf("Issuer %s should NOT exist in the namespace %s\n", currentCertIssuerName, currentCertIssuerNamespace)
 				return false
 			}
 		}
 		// Verify that the secret used for the default certificate has been removed
-		_, err = pkg.GetSecret(certSecretNamespace, certSecretName)
+		_, err = pkg.GetSecret(currentCertSecretNamespace, currentCertSecretName)
 		if err == nil {
-			log.Printf("Secret %s should NOT exist in the namespace %s\n", certSecretName, certSecretNamespace)
+			log.Printf("Secret %s should NOT exist in the namespace %s\n", currentCertSecretName, currentCertSecretNamespace)
 			return false
 		}
 		return true
