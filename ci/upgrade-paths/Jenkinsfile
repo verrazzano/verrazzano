@@ -415,25 +415,49 @@ pipeline {
                 stage ('Pre-upgrade Acceptance Tests') {
                     stages {
                         stage('Register managed clusters') {
+                            when { expression { isMultiCluster() } }
                             steps {
                                 registerManagedClusters()
                             }
                         }
                         stage('Verify Register') {
+                            when { expression { isMultiCluster() } }
                             steps {
                                 verifyRegisterManagedClusters(true)
                             }
                         }
-                        stage ('Deploy Examples Helidon') {
-                            steps {
-                                runGinkgoVerify('examples/helidon', "false", "true", "true", "hello-helidon")
-                                runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true")
-                            }
-                        }
-                        stage ('Deploy Example Coherence') {
-                            steps {
-                                runGinkgoVerify('workloads/coherence', "false", "false", "true", "hello-coherence")
-                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload", "false", "false", "false")
+                        stage ('Deploy Example applications') {
+                            parallel {
+                                stage ('Deploy Helidon Examples') {
+                                    parallel {
+                                        stage ('Deploy Helidon example application - single cluster') {
+                                            steps {
+                                                runGinkgoVerify('examples/helidon', "false", "true", "true", "hello-helidon")
+                                            }
+                                        }
+                                        stage ('Deploy Helidon example application - multi cluster') {
+                                            when { expression { isMultiCluster() } }
+                                            steps {
+                                                runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true")
+                                            }
+                                        }
+                                    }
+                                }
+                                stage ('Deploy Coherence Examples') {
+                                    parallel {
+                                        stage ('Deploy Coherence example application - single cluster') {
+                                            steps {
+                                                runGinkgoVerify('workloads/coherence', "false", "false", "true", "hello-coherence")
+                                            }
+                                        }
+                                        stage ('Deploy Coherence example application - multi cluster') {
+                                            when { expression { isMultiCluster() } }
+                                            steps {
+                                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload", "false", "false", "false")
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -462,11 +486,13 @@ pipeline {
             // Rerun some stages to verify the upgrade
             parallel {
                 stage ('Verify Register') {
+                    when { expression { isMultiCluster() } }
                     steps {
                         verifyRegisterManagedClusters(false)
                     }
                 }
                 stage ('Verify Managed Cluster Permissions') {
+                    when { expression { isMultiCluster() } }
                     steps {
                         verifyManagedClusterPermissions()
                     }
@@ -495,6 +521,7 @@ pipeline {
                 }
 
                 stage ('multicluster/verify-install') {
+                    when { expression { isMultiCluster() } }
                     steps {
                         runGinkgoRandomize('multicluster/verify-install')
                     }
@@ -548,6 +575,7 @@ pipeline {
                     }
                 }
                 stage ('Verify & Uninstall Example Apps') {
+                    when { expression { isMultiCluster() } }
                     parallel {
                         stage ('Examples Helidon') {
                             steps {
@@ -567,6 +595,7 @@ pipeline {
                     }
                 }
                 stage ('Multi-cluster Verify Api') {
+                    when { expression { isMultiCluster() } }
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             script {
@@ -609,6 +638,7 @@ pipeline {
         stage('Cleanup Tests') {
             stages {
                 stage('verify deregister') {
+                    when { expression { isMultiCluster() } }
                     steps {
                         verifyDeregisterManagedClusters()
                     }
@@ -1526,3 +1556,6 @@ def setVZConfigForInstallation(){
 
 }
 
+def isMultiCluster() {
+    return params.TOTAL_CLUSTERS.toInteger() >= 2
+}
