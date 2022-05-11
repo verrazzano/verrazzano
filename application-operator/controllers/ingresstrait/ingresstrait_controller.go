@@ -1069,8 +1069,6 @@ func createVirtualServiceMatchURIFromIngressTraitPath(path vzapi.IngressPath) *i
 // - If there are no valid hosts provided, then a DNS host name is automatically generated and used.
 // - A hostname can only appear once
 func createHostsFromIngressTraitRule(cli client.Reader, rule vzapi.IngressRule, trait *vzapi.IngressTrait, toList ...string) ([]string, error) {
-	zap.S().With(vzlogInit.FieldController, controllerName).
-		Infof("------start createHostsFromIngressTraitRule: %v", toList)
 	validHosts := toList
 	for _, h := range rule.Hosts {
 		h = strings.TrimSpace(h)
@@ -1085,8 +1083,6 @@ func createHostsFromIngressTraitRule(cli client.Reader, rule vzapi.IngressRule, 
 		h = strings.ToLower(strings.TrimSpace(h))
 		validHosts = append(validHosts, h)
 	}
-	zap.S().With(vzlogInit.FieldController, controllerName).
-		Infof("------1 createHostsFromIngressTraitRule: %v", validHosts)
 	// Use default hostname if none of the user specified hosts were valid
 	if len(validHosts) == 0 {
 		hostName, err := buildAppFullyQualifiedHostName(cli, trait)
@@ -1095,8 +1091,6 @@ func createHostsFromIngressTraitRule(cli client.Reader, rule vzapi.IngressRule, 
 		}
 		validHosts = []string{hostName}
 	}
-	zap.S().With(vzlogInit.FieldController, controllerName).
-		Infof("------createHostsFromIngressTraitRule: %v", validHosts)
 	return validHosts, nil
 }
 
@@ -1181,8 +1175,6 @@ func convertAPIVersionAndKindToNamespacedName(apiVersion string, kind string) ty
 //   dns-subdomain is The DNS subdomain name
 // For example: sales.cars.example.com
 func buildAppFullyQualifiedHostName(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
-	zap.S().With(vzlogInit.FieldController, controllerName).
-		Infof("------start buildAppFullyQualifiedHostName")
 	appName, ok := trait.Labels[oam.LabelAppName]
 	if !ok {
 		return "", errors.New("OAM app name label missing from metadata, unable to add ingress trait")
@@ -1191,8 +1183,6 @@ func buildAppFullyQualifiedHostName(cli client.Reader, trait *vzapi.IngressTrait
 	if err != nil {
 		return "", err
 	}
-	zap.S().With(vzlogInit.FieldController, controllerName).
-		Infof("------buildAppFullyQualifiedHostName: %v", fmt.Sprintf("%s.%s", appName, domainName))
 	return fmt.Sprintf("%s.%s", appName, domainName), nil
 }
 
@@ -1202,8 +1192,6 @@ func buildAppFullyQualifiedHostName(cli client.Reader, trait *vzapi.IngressTrait
 //   dns-subdomain is The DNS subdomain name
 // For example: cars.example.com
 func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
-	zap.S().With(vzlogInit.FieldController, controllerName).
-		Infof("------start buildNamespacedDomainName")
 	const externalDNSKey = "external-dns.alpha.kubernetes.io/target"
 	const wildcardDomainKey = "verrazzano.io/dns.wildcard.domain"
 
@@ -1235,16 +1223,12 @@ func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (st
 			return "", err
 		}
 	}
-	zap.S().With(vzlogInit.FieldController, controllerName).
-		Infof("------buildNamespacedDomainName: %v", fmt.Sprintf("%s.%s", trait.Namespace, domain))
 	return fmt.Sprintf("%s.%s", trait.Namespace, domain), nil
 }
 
 // buildDomainNameForWildcard generates a domain name in the format of "<IP>.<wildcard-domain>"
 // Get the IP from Istio resources
 func buildDomainNameForWildcard(cli client.Reader, trait *vzapi.IngressTrait, suffix string) (string, error) {
-	zap.S().With(vzlogInit.FieldController, controllerName).
-		Infof("------start buildDomainNameForWildcard")
 	istio := corev1.Service{}
 	err := cli.Get(context.TODO(), types.NamespacedName{Name: istioIngressGateway, Namespace: constants.IstioSystemNamespace}, &istio)
 	if err != nil {
@@ -1263,7 +1247,5 @@ func buildDomainNameForWildcard(cli client.Reader, trait *vzapi.IngressTrait, su
 		return "", fmt.Errorf("Unsupported service type %s for istio_ingress", string(istio.Spec.Type))
 	}
 	domain := IP + "." + suffix
-	zap.S().With(vzlogInit.FieldController, controllerName).
-		Infof("------buildDomainNameForWildcard: %v", domain)
 	return domain, nil
 }
