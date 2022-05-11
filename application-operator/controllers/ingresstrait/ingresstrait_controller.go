@@ -193,28 +193,26 @@ func isIngressTraitBeingDeleted(trait *vzapi.IngressTrait) bool {
 	return trait != nil && trait.GetDeletionTimestamp() != nil
 }
 
-// removeFinalizerIfRequired removes the finalizer from the application configuration if required
-// The finalizer is only removed if the application configuration is being deleted and the finalizer had been added
+// removeFinalizerIfRequired removes the finalizer from the ingress trait if required
+// The finalizer is only removed if the ingress trait is being deleted and the finalizer had been added
 func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) error {
 	if !trait.DeletionTimestamp.IsZero() && vzstring.SliceContainsString(trait.Finalizers, finalizerName) {
-		appName := vznav.GetNamespacedNameFromObjectMeta(trait.ObjectMeta)
-		log.Debugf("Removing finalizer from application configuration %s", appName)
+		log.Debugf("Removing finalizer from ingress trait %s", trait.Name)
 		trait.Finalizers = vzstring.RemoveStringFromSlice(trait.Finalizers, finalizerName)
 		err := r.Update(ctx, trait)
-		return vzlogInit.ConflictWithLog(fmt.Sprintf("Failed to remove finalizer from application configuration %s", appName), err, zap.S())
+		return vzlogInit.ConflictWithLog(fmt.Sprintf("Failed to remove finalizer from ingress trait %s", trait.Name), err, zap.S())
 	}
 	return nil
 }
 
-// addFinalizerIfRequired adds the finalizer to the app config if required
-// The finalizer is only added if the app config is not being deleted and the finalizer has not previously been added
-func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, appConfig *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) error {
-	if appConfig.GetDeletionTimestamp().IsZero() && !vzstring.SliceContainsString(appConfig.Finalizers, finalizerName) {
-		appName := vznav.GetNamespacedNameFromObjectMeta(appConfig.ObjectMeta)
-		log.Debugf("Adding finalizer for appConfig %s", appName)
-		appConfig.Finalizers = append(appConfig.Finalizers, finalizerName)
-		err := r.Update(ctx, appConfig)
-		_, err = vzlogInit.IgnoreConflictWithLog(fmt.Sprintf("Failed to add finalizer to appConfig %s", appName), err, zap.S())
+// addFinalizerIfRequired adds the finalizer to the ingress trait if required
+// The finalizer is only added if the ingress trait is not being deleted and the finalizer has not previously been added
+func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) error {
+	if trait.GetDeletionTimestamp().IsZero() && !vzstring.SliceContainsString(trait.Finalizers, finalizerName) {
+		log.Debugf("Adding finalizer for ingress trait %s", trait.Name)
+		trait.Finalizers = append(trait.Finalizers, finalizerName)
+		err := r.Update(ctx, trait)
+		_, err = vzlogInit.IgnoreConflictWithLog(fmt.Sprintf("Failed to add finalizer to ingress trait %s", trait.Name), err, zap.S())
 		return err
 	}
 	return nil
@@ -232,6 +230,7 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 
 	// Create a list of unique hostnames across all rules in the trait
 	allHostsForTrait := r.coallateAllHostsForTrait(trait, status)
+	log.Infof("----------------coallateAllHostsForTrait got: %v", allHostsForTrait)
 	// Generate the certificate and secret for all hosts in the trait rules
 	secretName := r.createOrUseGatewaySecret(ctx, trait, allHostsForTrait, &status, log)
 	if secretName != "" {
@@ -241,6 +240,7 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 		} else {
 			// The Gateway is shared across all traits, update it with all known hosts for the trait
 			// - Must create GW before service so that external DNS sees the GW once the service is created
+			log.Infof("----------------createOrUpdateGateway with: %v", allHostsForTrait)
 			gateway := r.createOrUpdateGateway(ctx, trait, allHostsForTrait, gwName, secretName, &status, log)
 			for index, rule := range rules {
 				// Find the services associated with the trait in the application configuration.
