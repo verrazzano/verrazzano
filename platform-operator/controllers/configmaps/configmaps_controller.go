@@ -78,6 +78,10 @@ func (r *VerrazzanoConfigMapsReconciler) reconcileHelmOverrideConfigMap(ctx cont
 	if vz.Namespace == req.Namespace {
 		if err := r.Get(ctx, req.NamespacedName, configMap); err != nil {
 			zap.S().Errorf("Failed to fetch ConfigMap in Verrazzano CR namespace: %v", err)
+			// Do not reconcile if the ConfigMap was deleted
+			if errors.IsNotFound(err) {
+				return reconcile.Result{}, nil
+			}
 			return newRequeueWithDelay(), err
 		}
 		if result, err := r.initLogger(*configMap); err != nil {
@@ -91,10 +95,14 @@ func (r *VerrazzanoConfigMapsReconciler) reconcileHelmOverrideConfigMap(ctx cont
 		}
 
 		if componentName, ok := controllers.VzContainsResource(componentCtx, configMap); ok {
-			err := controllers.UpdateVerrazzanoForHelmOverrides(r.Client, componentCtx, componentName)
+			res, err := controllers.UpdateVerrazzanoForHelmOverrides(r.Client, componentCtx, componentName)
 			if err != nil {
 				r.log.Errorf("Failed to reconcile ConfigMap: %v", err)
 				return newRequeueWithDelay(), err
+			} else {
+				if res.Requeue {
+					return res, nil
+				}
 			}
 			r.log.Infof("Updated Verrazzano Resource")
 		}

@@ -24,10 +24,19 @@ func TestVzContainsResource(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 
 	compContext := fakeComponentContext(mock, &testVZ)
-	res, ok := VzContainsResource(compContext, &testConfigMap)
+	res0, ok0 := VzContainsResource(compContext, &testConfigMap)
 
-	asserts.True(ok)
-	asserts.NotEmpty(res)
+	asserts.True(ok0)
+	asserts.NotEmpty(res0)
+	asserts.Equal(res0, "prometheus-operator")
+
+	anotherCM := testConfigMap
+	anotherCM.Name = "MonfigCap"
+
+	res1, ok1 := VzContainsResource(compContext, &anotherCM)
+
+	asserts.False(ok1)
+	asserts.Empty(res1)
 }
 
 var testConfigMap = corev1.ConfigMap{

@@ -2,10 +2,12 @@ package configmaps
 
 import (
 	"context"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -13,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
+	"time"
 )
 
 // TestConfigMapReconciler tests Reconciler method of Configmap controller.
@@ -23,12 +26,67 @@ func TestConfigMapReconciler(t *testing.T) {
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
-	request := newRequest(testNS, testCMName)
+	request0 := newRequest(testNS, testCMName)
 	reconciler := newConfigMapReconciler(cli)
-	res, err := reconciler.Reconcile(context.TODO(), request)
+	res0, err0 := reconciler.Reconcile(context.TODO(), request0)
 
+	asserts.NoError(err0)
+	asserts.Equal(false, res0.Requeue)
+}
+
+// TestConfigMapCall tests that the call to get the ConfigMap is placed
+func TestConfigMapCall(t *testing.T) {
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	expectGetConfigMapExists(mock, &testConfigMap, testNS, testCMName)
+
+	request := newRequest(testNS, testCMName)
+	reconciler := newConfigMapReconciler(mock)
+	result, err := reconciler.reconcileHelmOverrideConfigMap(context.TODO(), request, &testVZ)
 	asserts.NoError(err)
-	asserts.Equal(false, res.Requeue)
+	mocker.Finish()
+	asserts.Equal(false, result.Requeue)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestOtherNS tests that the API call to get the ConfigMap is not made
+// if the request namespace does not match Verrazzano Namespace
+func TestOtherNS(t *testing.T) {
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	// Do not expect a call to get the ConfigMap if it's a different namespace
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).MaxTimes(0)
+
+	request := newRequest("test0", "test1")
+	reconciler := newConfigMapReconciler(mock)
+	result, err := reconciler.reconcileHelmOverrideConfigMap(context.TODO(), request, &testVZ)
+	asserts.NoError(err)
+	mocker.Finish()
+	asserts.Equal(false, result.Requeue)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
+
+}
+
+// mock client request to get the configmap
+func expectGetConfigMapExists(mock *mocks.MockClient, cmToUse *corev1.ConfigMap, namespace string, name string) {
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, cm *corev1.ConfigMap) error {
+			cm = cmToUse
+			return nil
+		})
 }
 
 // newScheme creates a new scheme that includes this package's object to use for testing

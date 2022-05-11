@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -90,6 +91,7 @@ func TestMultiClusterNamespaceUnexpectedErr(t *testing.T) {
 	runNamespaceErrorTest(t, fmt.Errorf("unexpected error checking namespace"))
 }
 
+// TestSecretReconciler tests Reconciler method for secrets controller.
 func TestSecretReconciler(t *testing.T) {
 	asserts := assert.New(t)
 	cli := fake.NewClientBuilder().WithObjects(&testVZ, &testSecret).WithScheme(newScheme()).Build()
@@ -99,10 +101,25 @@ func TestSecretReconciler(t *testing.T) {
 
 	request := newRequest(testNS, testSecretName)
 	reconciler := newSecretsReconciler(cli)
-	res, err := reconciler.Reconcile(context.TODO(), request)
+	res0, err0 := reconciler.Reconcile(context.TODO(), request)
 
-	asserts.NoError(err)
-	asserts.Empty(res)
+	asserts.NoError(err0)
+	asserts.Empty(res0)
+
+	request1 := newRequest(testNS, "test")
+	res1, err1 := reconciler.Reconcile(context.TODO(), request1)
+
+	// Expect an error and Requeue as the ConfigMap with this name does not exist
+	asserts.NotNil(err1)
+	asserts.Equal(true, res1.Requeue)
+
+	// Case where request namespace doesn't match with Verrazzano CR's namespace
+	request2 := newRequest("test0", "test1")
+	res2, err2 := reconciler.Reconcile(context.TODO(), request2)
+
+	// Do not expect an error and requeue this time as the request to Get the ConfigMap will not take place
+	asserts.Nil(err2)
+	asserts.Equal(false, res2.Requeue)
 }
 
 func runNamespaceErrorTest(t *testing.T, expectedErr error) {
@@ -136,6 +153,61 @@ func runNamespaceErrorTest(t *testing.T, expectedErr error) {
 	asserts.NoError(err)
 	asserts.NotNil(result)
 	asserts.NotEqual(ctrl.Result{}, result)
+}
+
+// TestConfigMapCall tests that the call to get the ConfigMap is placed
+func TestConfigMapCall(t *testing.T) {
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	expectGetSecretExists(mock, &testSecret, testNS, testSecretName)
+
+	request := newRequest(testNS, testSecretName)
+	reconciler := newSecretsReconciler(mock)
+	result, err := reconciler.reconcileHelmOverrideSecret(context.TODO(), request, &testVZ)
+	asserts.NoError(err)
+	mocker.Finish()
+	asserts.Equal(false, result.Requeue)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestOtherNS tests that the API call to get the Secret is not made
+// if the request namespace does not match Verrazzano Namespace
+func TestOtherNS(t *testing.T) {
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	// Do not expect a call to get the Secret if it's a different namespace
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).MaxTimes(0)
+
+	request := newRequest("test0", "test1")
+	reconciler := newSecretsReconciler(mock)
+	result, err := reconciler.reconcileHelmOverrideSecret(context.TODO(), request, &testVZ)
+	asserts.NoError(err)
+	mocker.Finish()
+	asserts.Equal(false, result.Requeue)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
+
+}
+
+// mock client request to get the secret
+func expectGetSecretExists(mock *mocks.MockClient, SecretToUse *corev1.Secret, namespace string, name string) {
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret = SecretToUse
+			return nil
+		})
 }
 
 func expectLocalCABundleIsCreated(t *testing.T, mock *mocks.MockClient) {
