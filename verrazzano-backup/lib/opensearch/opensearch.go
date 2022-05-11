@@ -119,7 +119,7 @@ func (o *OpensearchImpl) EnsureOpenSearchIsHealthy(url string, conData *types.Co
 				timeSeconds = timeSeconds + float64(duration)
 				continue
 			} else {
-				return fmt.Errorf("Timeout '%s' exceeded. Json unmarshalling error while checking cluster health %v.", conData.Timeout, err)
+				return fmt.Errorf("Timeout '%s' exceeded. Json unmarshalling error while checking cluster health %v", conData.Timeout, zap.Error(err))
 			}
 		}
 
@@ -130,7 +130,7 @@ func (o *OpensearchImpl) EnsureOpenSearchIsHealthy(url string, conData *types.Co
 				time.Sleep(time.Second * time.Duration(duration))
 				timeSeconds = timeSeconds + float64(duration)
 			} else {
-				return fmt.Errorf("Timeout '%s' exceeded. Cluster health expected 'green' , current state %s.", conData.Timeout, clusterHealth.Status)
+				return fmt.Errorf("Timeout '%s' exceeded. Cluster health expected 'green' , current state '%s'", conData.Timeout, clusterHealth.Status)
 			}
 		} else {
 			healthGreen = true
@@ -160,12 +160,12 @@ func (o *OpensearchImpl) UpdateKeystore(client kubernetes.Interface, cfg *rest.C
 	}
 	for _, pod := range esMasterPods.Items {
 		log.Infof("Updating keystore in pod '%s'", pod.Name)
-		_, _, err = k8sutil.ExecPod(client, cfg, &pod, constants.OpenSearchMasterPodContainerName, accessKeyCmd)
+		_, _, err = k8sutil.ExecPod(client, cfg, &pod, constants.OpenSearchMasterPodContainerName, accessKeyCmd) //nolint:gosec //#gosec G601
 		if err != nil {
 			log.Errorf("Unable to exec into pod %s due to %v", pod.Name, err)
 			return false, err
 		}
-		_, _, err = k8sutil.ExecPod(client, cfg, &pod, constants.OpenSearchMasterPodContainerName, secretKeyCmd)
+		_, _, err = k8sutil.ExecPod(client, cfg, &pod, constants.OpenSearchMasterPodContainerName, secretKeyCmd) //nolint:gosec //#gosec G601
 		if err != nil {
 			log.Errorf("Unable to exec into pod %s due to %v", pod.Name, err)
 			return false, err
@@ -181,12 +181,12 @@ func (o *OpensearchImpl) UpdateKeystore(client kubernetes.Interface, cfg *rest.C
 
 	for _, pod := range esDataPods.Items {
 		log.Infof("Updating keystore in pod '%s'", pod.Name)
-		_, _, err = k8sutil.ExecPod(client, cfg, &pod, constants.OpenSearchDataPodContainerName, accessKeyCmd)
+		_, _, err = k8sutil.ExecPod(client, cfg, &pod, constants.OpenSearchDataPodContainerName, accessKeyCmd) //nolint:gosec //#gosec G601
 		if err != nil {
 			log.Errorf("Unable to exec into pod %s due to %v", pod.Name, err)
 			return false, err
 		}
-		_, _, err = k8sutil.ExecPod(client, cfg, &pod, constants.OpenSearchDataPodContainerName, secretKeyCmd)
+		_, _, err = k8sutil.ExecPod(client, cfg, &pod, constants.OpenSearchDataPodContainerName, secretKeyCmd) //nolint:gosec //#gosec G601
 		if err != nil {
 			log.Errorf("Unable to exec into pod %s due to %v", pod.Name, err)
 			return false, err

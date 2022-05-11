@@ -60,7 +60,7 @@ func main() {
 	// Auto detect component based on injection
 	componentFound, err := utils.GetComponent(constants.ComponentPath)
 	if err != nil {
-		fmt.Errorf("Component detection failure %v", err)
+		fmt.Printf("Component detection failure %v", err)
 		os.Exit(1)
 	}
 	Component = componentFound
