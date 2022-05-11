@@ -422,12 +422,20 @@ func expectAdminVMCStatusUpdateSuccess(adminMock *mocks.MockClient, vmcName type
 func expectCASyncSuccess(localMock, adminMock *mocks.MockClient, assert *asserts.Assertions, testClusterName string) {
 	localRegistrationSecret := types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCRegistrationSecret}
 	adminCASecret := types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: constants.VerrazzanoLocalCABundleSecret}
+	adminRegSecret := types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: getRegistrationSecretName(testClusterName)}
 	localIngressTLSSecret := types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VerrazzanoIngressTLSSecret}
 	adminMock.EXPECT().
 		Get(gomock.Any(), adminCASecret, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Name = adminCASecret.Name
 			secret.Namespace = adminCASecret.Namespace
+			return nil
+		})
+	adminMock.EXPECT().
+		Get(gomock.Any(), adminRegSecret, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Name = adminRegSecret.Name
+			secret.Namespace = adminRegSecret.Namespace
 			return nil
 		})
 	localMock.EXPECT().
