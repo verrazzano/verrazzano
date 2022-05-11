@@ -5,6 +5,7 @@ package dns
 
 import (
 	"log"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -75,6 +76,11 @@ var (
 	testCertSecretNamespace string = "test-namespace"
 	testCertIssuerName      string = "verrazzano-cluster-issuer"
 )
+
+var _ = t.AfterSuite(func() {
+	files := []string{testCertName + ".crt", testCertName + ".key"}
+	cleanupTemporaryFiles(files)
+})
 
 var _ = t.Describe("Test updates to environment name, dns domain and cert-manager CA certificates", func() {
 	t.It("Verify the current environment name", func() {
@@ -210,4 +216,20 @@ func validateCertManagerResourcesCleanup(certNamespace, certName, certIssuerName
 		}
 		return true
 	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected that the default CA resources should be cleaned up")
+}
+
+func cleanupTemporaryFiles(files []string) error {
+	var err error
+	for _, file := range files {
+		_, err = os.Stat(file)
+		if os.IsNotExist(err) {
+			log.Printf("File %s does not exist", file)
+			continue
+		}
+		err = os.Remove(file)
+		if err != nil {
+			log.Fatalf("Error while cleaning up temporary file %s\n%s", file, err)
+		}
+	}
+	return err
 }
