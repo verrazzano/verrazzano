@@ -95,14 +95,10 @@ func (r *VerrazzanoConfigMapsReconciler) reconcileHelmOverrideConfigMap(ctx cont
 		}
 
 		if componentName, ok := controllers.VzContainsResource(componentCtx, configMap); ok {
-			res, err := controllers.UpdateVerrazzanoForHelmOverrides(r.Client, componentCtx, componentName)
+			err := controllers.UpdateVerrazzanoForHelmOverrides(r.Client, componentCtx, componentName)
 			if err != nil {
 				r.log.Errorf("Failed to reconcile ConfigMap: %v", err)
 				return newRequeueWithDelay(), err
-			} else {
-				if res.Requeue {
-					return res, nil
-				}
 			}
 			r.log.Infof("Updated Verrazzano Resource")
 		}

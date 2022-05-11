@@ -34,6 +34,26 @@ func TestConfigMapReconciler(t *testing.T) {
 	asserts.Equal(false, res0.Requeue)
 }
 
+// TestConfigMapRequeue tests that we requeue if Component Status hasn't been
+// initialized by Verrazzano
+func TestConfigMapRequeue(t *testing.T) {
+	asserts := assert.New(t)
+	vz := testVZ
+	vz.Status.Components = nil
+	asserts.Nil(vz.Status.Components)
+	cli := fake.NewClientBuilder().WithObjects(&vz, &testConfigMap).WithScheme(newScheme()).Build()
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	request0 := newRequest(testNS, testCMName)
+	reconciler := newConfigMapReconciler(cli)
+	res0, err0 := reconciler.Reconcile(context.TODO(), request0)
+
+	asserts.Error(err0)
+	asserts.Equal(true, res0.Requeue)
+}
+
 // TestConfigMapCall tests that the call to get the ConfigMap is placed
 func TestConfigMapCall(t *testing.T) {
 	asserts := assert.New(t)
@@ -84,7 +104,6 @@ func expectGetConfigMapExists(mock *mocks.MockClient, cmToUse *corev1.ConfigMap,
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, cm *corev1.ConfigMap) error {
-			cm = cmToUse
 			return nil
 		})
 }

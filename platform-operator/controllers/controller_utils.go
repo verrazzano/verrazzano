@@ -5,8 +5,7 @@ package controllers
 
 import (
 	"context"
-	ctrl "sigs.k8s.io/controller-runtime"
-
+	"fmt"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -50,15 +49,15 @@ func componentContainsResource(Overrides []installv1alpha1.Overrides, object cli
 
 // UpdateVerrazzanoForHelmOverrides mutates the status subresource of Verrazzano Custom Resource specific
 // to a component to cause a reconcile
-func UpdateVerrazzanoForHelmOverrides(c client.Client, componentCtx spi.ComponentContext, componentName string) (ctrl.Result, error) {
+func UpdateVerrazzanoForHelmOverrides(c client.Client, componentCtx spi.ComponentContext, componentName string) error {
 	cr := componentCtx.ActualCR()
 	if cr.Status.Components == nil {
-		return ctrl.Result{Requeue: true}, nil
+		return fmt.Errorf("Components not initialized")
 	}
 	cr.Status.Components[componentName].ReconcilingGeneration = 1
 	err := c.Status().Update(context.TODO(), cr)
 	if err == nil {
-		return ctrl.Result{}, nil
+		return nil
 	}
-	return ctrl.Result{}, err
+	return err
 }

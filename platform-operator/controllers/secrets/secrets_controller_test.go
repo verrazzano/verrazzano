@@ -155,6 +155,26 @@ func runNamespaceErrorTest(t *testing.T, expectedErr error) {
 	asserts.NotEqual(ctrl.Result{}, result)
 }
 
+// TestSecretRequeue tests that we requeue if Component Status hasn't been
+// initialized by Verrazzano
+func TestSecretRequeue(t *testing.T) {
+	asserts := assert.New(t)
+	vz := testVZ
+	vz.Status.Components = nil
+	asserts.Nil(vz.Status.Components)
+	cli := fake.NewClientBuilder().WithObjects(&vz, &testSecret).WithScheme(newScheme()).Build()
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	request0 := newRequest(testNS, testSecretName)
+	reconciler := newSecretsReconciler(cli)
+	res0, err0 := reconciler.Reconcile(context.TODO(), request0)
+
+	asserts.Error(err0)
+	asserts.Equal(true, res0.Requeue)
+}
+
 // TestConfigMapCall tests that the call to get the ConfigMap is placed
 func TestConfigMapCall(t *testing.T) {
 	asserts := assert.New(t)
@@ -205,7 +225,6 @@ func expectGetSecretExists(mock *mocks.MockClient, SecretToUse *corev1.Secret, n
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-			secret = SecretToUse
 			return nil
 		})
 }
