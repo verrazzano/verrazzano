@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
+	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	oamapi "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	//	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -524,6 +524,11 @@ func TestUpgradeCompleted(t *testing.T) {
 	config.SetDefaultBomFilePath(fname)
 	asserts := assert.New(t)
 
+	// Setup fake client to provide workloads for restart platform testing
+	goClient, err := initFakeClient()
+	asserts.NoError(err)
+	k8sutil.SetFakeClient(goClient)
+
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
@@ -535,7 +540,7 @@ func TestUpgradeCompleted(t *testing.T) {
 	defer registry.ResetGetComponentsFn()
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	//	_ = oamcore.AddToScheme(k8scheme.Scheme)
+	_ = oamcore.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
 			ObjectMeta: metav1.ObjectMeta{
@@ -555,29 +560,6 @@ func TestUpgradeCompleted(t *testing.T) {
 						Type: vzapi.CondUpgradeStarted,
 					},
 				},
-			}},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "testDeployment",
-				Namespace: "verrazzano-system",
-			},
-			Spec: appsv1.DeploymentSpec{
-				Replicas: nil,
-				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"app": "foo"},
-				},
-			}},
-		&v1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "testPod",
-				Namespace: "verrazzano-system",
-				Labels:    map[string]string{"app": "foo"},
-			},
-			Spec: v1.PodSpec{
-				Containers: []v1.Container{{
-					Name:  "c1",
-					Image: "myimage",
-				}},
 			}},
 		rbac.NewServiceAccount(namespace, name, []string{}, nil),
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
