@@ -1,4 +1,8 @@
 #!/bin/bash
+#
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+#
 # Script to create a custom CA cert and secret for use with Verrazzano
 # - CA is self-signed
 secretName=
