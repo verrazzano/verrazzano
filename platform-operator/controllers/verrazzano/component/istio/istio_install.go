@@ -198,7 +198,7 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 			return nil
 		}
 		// if we were unsuccessful, reset and drop through to try again
-		compContext.Log().Info("Error during istio install, retrying")
+		compContext.Log().Debug("Error during istio install, retrying")
 	}
 
 	var userFileCR *os.File
