@@ -11,6 +11,7 @@ import (
 	constants2 "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -29,28 +30,40 @@ var additionalTLSSecret = types.NamespacedName{Name: constants2.AdditionalTLS, N
 var vzLocalCaBundleSecret = types.NamespacedName{Name: "verrazzano-local-ca-bundle", Namespace: constants.VerrazzanoMultiClusterNamespace}
 var unwatchedSecret = types.NamespacedName{Name: "any-secret", Namespace: "any-namespace"}
 
+const addnlTLSSecretData = "YWRkaXRpb25hbCB0bHMgc2VjcmV0" // "additional tls secret"
+
 // TestCreateLocalCABundle tests the Reconcile method for the following use cases
 // GIVEN a request to reconcile the verrazzano-tls secret OR the tls-additional-ca secret
 // WHEN the local-ca-bundle secret doesn't exist
 // THEN the local-ca-bundle secret is updated
 func TestCreateLocalCABundle(t *testing.T) {
 	tests := []struct {
-		secretName string
-		secretNS   string
-		secretKey  string
-		secretData string
+		secretName     string
+		secretNS       string
+		secretKey      string
+		secretData     string
+		addnlTLSExists bool
 	}{
 		{
-			secretName: vzTLSSecret.Name,
-			secretNS:   vzTLSSecret.Namespace,
-			secretKey:  "ca.crt",
-			secretData: "dnogdGxzIHNlY3JldA==", // "vz tls secret",
+			secretName:     vzTLSSecret.Name,
+			secretNS:       vzTLSSecret.Namespace,
+			secretKey:      "ca.crt",
+			secretData:     "dnogdGxzIHNlY3JldA==", // "vz tls secret",
+			addnlTLSExists: false,
 		},
 		{
-			secretName: additionalTLSSecret.Name,
-			secretNS:   additionalTLSSecret.Namespace,
-			secretKey:  constants2.AdditionalTLSCAKey,
-			secretData: "YWRkaXRpb25hbCB0bHMgc2VjcmV0", // "additional tls secret",
+			secretName:     vzTLSSecret.Name,
+			secretNS:       vzTLSSecret.Namespace,
+			secretKey:      "ca.crt",
+			secretData:     "dnogdGxzIHNlY3JldA==", // "vz tls secret",
+			addnlTLSExists: true,
+		},
+		{
+			secretName:     additionalTLSSecret.Name,
+			secretNS:       additionalTLSSecret.Namespace,
+			secretKey:      constants2.AdditionalTLSCAKey,
+			secretData:     addnlTLSSecretData,
+			addnlTLSExists: true,
 		},
 	}
 	for _, tt := range tests {
@@ -58,7 +71,21 @@ func TestCreateLocalCABundle(t *testing.T) {
 		mocker := gomock.NewController(t)
 		mock := mocks.NewMockClient(mocker)
 
-		expectLocalCABundleIsCreated(t, mock, tt.secretNS, tt.secretName, tt.secretKey, tt.secretData)
+		isAddnlTLSSecret := (tt.secretName == additionalTLSSecret.Name)
+
+		if !isAddnlTLSSecret {
+			// When reconciling secrets other than additionalTLS secret, expect a call to check if
+			// additional TLS secret exists. Expect the local secret to be updated ONLY if additional
+			// TLS doesn't exist
+			expectGetAdditionalTLS(t, mock, tt.addnlTLSExists, "")
+		}
+
+		// only expect reconcile to happen if we are reconciling the additional TLS secret, OR
+		// we are reconciling another secret but the additional TLS secret does NOT exist
+		if isAddnlTLSSecret || !tt.addnlTLSExists {
+			expectGetCalls(t, mock, tt.secretNS, tt.secretName, tt.secretKey, tt.secretData)
+			expectUpdateLocalSecret(t, mock, tt.secretData)
+		}
 
 		// Create and make the request
 		request := newRequest(tt.secretNS, tt.secretName)
@@ -165,9 +192,27 @@ func runNamespaceErrorTest(t *testing.T, expectedErr error) {
 	asserts.NotEqual(ctrl.Result{}, result)
 }
 
-func expectLocalCABundleIsCreated(t *testing.T, mock *mocks.MockClient, secretNS string, secretName string, secretKey string, secretData string) {
-	asserts := assert.New(t)
+func expectGetAdditionalTLS(t *testing.T, mock *mocks.MockClient, exists bool, secretData string) {
+	// Expect a call to get the additional-tls secret (to check if it exists), and return
+	// one if exists == true, otherwise return not found
+	if exists {
+		mock.EXPECT().
+			Get(gomock.Any(), additionalTLSSecret, gomock.Not(gomock.Nil())).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+				secret.Name = additionalTLSSecret.Name
+				secret.Namespace = additionalTLSSecret.Namespace
+				secret.Data = map[string][]byte{constants2.AdditionalTLSCAKey: []byte(secretData)}
+				return nil
+			}).MinTimes(1)
+	} else {
+		mock.EXPECT().
+			Get(gomock.Any(), additionalTLSSecret, gomock.Not(gomock.Nil())).
+			Return(errors.NewNotFound(schema.GroupResource{Group: constants2.RancherSystemNamespace, Resource: "Secret"}, additionalTLSSecret.Name)).
+			MinTimes(1)
+	}
+}
 
+func expectGetCalls(t *testing.T, mock *mocks.MockClient, secretNS string, secretName string, secretKey string, secretData string) {
 	// Expect  a call to get the verrazzano-mc namespace
 	mock.EXPECT().
 		Get(gomock.Any(), mcNamespace, gomock.Not(gomock.Nil())).
@@ -185,15 +230,6 @@ func expectLocalCABundleIsCreated(t *testing.T, mock *mocks.MockClient, secretNS
 			return nil
 		}).MinTimes(1)
 
-	/*	// Expect a call to get the verrazzano-tls secret
-		mock.EXPECT().
-			Get(gomock.Any(), vzTLSSecret, gomock.Not(gomock.Nil())).
-			DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-				secret.Name = vzTLSSecret.Name
-				secret.Namespace = vzTLSSecret.Namespace
-				return nil
-			}).AnyTimes()*/
-
 	// Expect a call to get the local ca bundle secret
 	mock.EXPECT().
 		Get(gomock.Any(), vzLocalCaBundleSecret, gomock.Not(gomock.Nil())).
@@ -202,14 +238,17 @@ func expectLocalCABundleIsCreated(t *testing.T, mock *mocks.MockClient, secretNS
 			secret2.Namespace = vzLocalCaBundleSecret.Namespace
 			return nil
 		}).MinTimes(1)
+}
 
-	// Expect a call to update the verrazzano-local-ca-bundle finalizer
+func expectUpdateLocalSecret(t *testing.T, mock *mocks.MockClient, expectedSecretData string) {
+	asserts := assert.New(t)
+	// Expect a call to update the verrazzano-local-ca-bundle
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.UpdateOption) error {
 			asserts.Equal(vzLocalCaBundleSecret.Name, secret.Name, "wrong secret name")
 			asserts.Equal(vzLocalCaBundleSecret.Namespace, secret.Namespace, "wrong secret namespace")
-			asserts.Equal([]byte(secretData), secret.Data["ca-bundle"], "wrong secret ca-bundle")
+			asserts.Equal([]byte(expectedSecretData), secret.Data["ca-bundle"], "wrong secret ca-bundle")
 			return nil
 		}).MinTimes(1)
 }

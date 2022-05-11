@@ -55,6 +55,12 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		caKey = vzconst.AdditionalTLSCAKey
 	}
 
+	if isVzIngressSecret && r.additionalTLSSecretExists() {
+		// When the additional TLS secret exists, it is considered the source of truth - ignore
+		// reconciles for the VZ Ingress TLS secret in that case
+		return ctrl.Result{}, nil
+	}
+
 	// Get the secret
 	caSecret := corev1.Secret{}
 	err := r.Get(context.TODO(), req.NamespacedName, &caSecret)
@@ -121,6 +127,18 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	r.log.Infof("Created or updated secret %s/%s (result: %v)",
 		constants.VerrazzanoMultiClusterNamespace, constants.VerrazzanoLocalCABundleSecret, result)
 	return ctrl.Result{}, nil
+}
+
+func (r *VerrazzanoSecretsReconciler) additionalTLSSecretExists() bool {
+	sec := corev1.Secret{}
+	err := r.Get(context.TODO(), client.ObjectKey{
+		Namespace: vzconst.RancherSystemNamespace,
+		Name:      vzconst.AdditionalTLS,
+	}, &sec)
+	if err != nil && apierrors.IsNotFound(err) {
+		return false
+	}
+	return true
 }
 
 func isAdditionalTLSSecretName(secretName types.NamespacedName) bool {
