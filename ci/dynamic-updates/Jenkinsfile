@@ -412,6 +412,38 @@ pipeline {
                         }
                     }
                 }
+                
+                stage('Nginx/Istio Update Tests') {
+                    environment {
+                        TEST_ENV = "KIND"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/nginx-istio-update"
+                    }
+                    steps {
+                        runGinkgo('update/nginxistio')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
+                stage('Fluentd Update Tests') {
+                    environment {
+                        TEST_ENV = "KIND"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/fluentd-update"
+                    }
+                    steps {
+                        runGinkgo('update/fluentd')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
 
                 stage('Post-update2 Verify Tests') {
                     environment {
@@ -436,38 +468,6 @@ pipeline {
                         script {
                             parallel generateVerifyInfraStages("${TEST_DUMP_ROOT}/post-update2-infra-tests")
                         }
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                    }
-                }
-
-                stage('Nginx/Istio Update Tests') {
-                    environment {
-                        TEST_ENV = "KIND"
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/nginx-istio-update"
-                    }
-                    steps {
-                        runGinkgo('update/nginxistio')
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                    }
-                }
-
-                stage('Fluentd Update Tests') {
-                    environment {
-                        TEST_ENV = "KIND"
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/fluentd-update"
-                    }
-                    steps {
-                        runGinkgo('update/fluentd')
                     }
                     post {
                         always {
