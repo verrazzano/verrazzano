@@ -4,14 +4,18 @@
 package controllers
 
 import (
+	"context"
+
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 )
 
@@ -43,6 +47,53 @@ func TestVzContainsResource(t *testing.T) {
 
 	asserts.False(ok1)
 	asserts.Empty(res1)
+}
+
+// TestUpdateVerrazzanoForHelmOverrides tests that the call to update Verrazzano Status
+// is made and doesn't return an error
+func TestUpdateVerrazzanoForHelmOverrides(t *testing.T) {
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	compContext := fakeComponentContext(mock, &testVZ)
+
+	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vz *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			return nil
+		})
+	err := UpdateVerrazzanoForHelmOverrides(mock, compContext, "prometheus-operator")
+	asserts.Nil(err)
+}
+
+// TestUpdateVerrazzanoForHelmOverrides tests that if Verrazzano hasn't initialized component status
+// an error will be returned by the function
+func TestUpdateVerrazzanoForHelmOverridesError(t *testing.T) {
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	vz := testVZ
+	vz.Status.Components = nil
+	compContext := fakeComponentContext(mock, &vz)
+
+	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).MaxTimes(0)
+	err := UpdateVerrazzanoForHelmOverrides(mock, compContext, "prometheus-operator")
+	asserts.NotNil(err)
 }
 
 var testConfigMap = corev1.ConfigMap{
