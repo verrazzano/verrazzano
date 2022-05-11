@@ -1239,6 +1239,8 @@ func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (st
 // buildDomainNameForWildcard generates a domain name in the format of "<IP>.<wildcard-domain>"
 // Get the IP from Istio resources
 func buildDomainNameForWildcard(cli client.Reader, trait *vzapi.IngressTrait, suffix string) (string, error) {
+	zap.S().With(vzlogInit.FieldController, controllerName).
+		Infof("------start buildDomainNameForWildcard")
 	istio := corev1.Service{}
 	err := cli.Get(context.TODO(), types.NamespacedName{Name: istioIngressGateway, Namespace: constants.IstioSystemNamespace}, &istio)
 	if err != nil {
