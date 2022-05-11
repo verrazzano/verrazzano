@@ -1069,6 +1069,8 @@ func createVirtualServiceMatchURIFromIngressTraitPath(path vzapi.IngressPath) *i
 // - If there are no valid hosts provided, then a DNS host name is automatically generated and used.
 // - A hostname can only appear once
 func createHostsFromIngressTraitRule(cli client.Reader, rule vzapi.IngressRule, trait *vzapi.IngressTrait, toList ...string) ([]string, error) {
+	zap.S().With(vzlogInit.FieldController, controllerName).
+		Infof("------start createHostsFromIngressTraitRule: %v", toList)
 	validHosts := toList
 	for _, h := range rule.Hosts {
 		h = strings.TrimSpace(h)
@@ -1083,6 +1085,8 @@ func createHostsFromIngressTraitRule(cli client.Reader, rule vzapi.IngressRule, 
 		h = strings.ToLower(strings.TrimSpace(h))
 		validHosts = append(validHosts, h)
 	}
+	zap.S().With(vzlogInit.FieldController, controllerName).
+		Infof("------1 createHostsFromIngressTraitRule: %v", validHosts)
 	// Use default hostname if none of the user specified hosts were valid
 	if len(validHosts) == 0 {
 		hostName, err := buildAppFullyQualifiedHostName(cli, trait)
