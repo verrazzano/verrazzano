@@ -76,7 +76,7 @@ type badRunner struct {
 }
 
 // TestUpgradeNoVersion tests the reconcileUpgrade method for the following use case
-// GIVEN a request to reconcile an verrazzano resource after install is completed
+// GIVEN a request to reconcile a verrazzano resource after install is completed
 // WHEN a verrazzano version is empty
 // THEN ensure a condition with type UpgradeStarted is not added
 func TestUpgradeNoVersion(t *testing.T) {
@@ -88,59 +88,43 @@ func TestUpgradeNoVersion(t *testing.T) {
 
 	config.SetDefaultBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
-	// Expect a call to get the verrazzano resource.  Return resource with version
 	keycloakEnabled := false
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-			verrazzano.TypeMeta = metav1.TypeMeta{
-				APIVersion: "install.verrazzano.io/v1alpha1",
-				Kind:       "Verrazzano"}
-			verrazzano.ObjectMeta = metav1.ObjectMeta{
-				Namespace:  name.Namespace,
-				Name:       name.Name,
-				Finalizers: []string{finalizerName}}
-			verrazzano.Spec.Components = vzapi.ComponentSpec{
-				Keycloak: &vzapi.KeycloakComponent{
-					Enabled: &keycloakEnabled,
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&vzapi.Verrazzano{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:  namespace,
+				Name:       name,
+				Finalizers: []string{finalizerName}},
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					Keycloak: &vzapi.KeycloakComponent{
+						Enabled: &keycloakEnabled,
+					},
+					Istio: &vzapi.IstioComponent{
+						Enabled: &istioEnabled,
+					},
 				},
-				Istio: &vzapi.IstioComponent{
-					Enabled: &istioEnabled,
-				},
-			}
-			verrazzano.Status = vzapi.VerrazzanoStatus{
+			},
+			Status: vzapi.VerrazzanoStatus{
 				State: vzapi.VzStateReady,
 				Conditions: []vzapi.Condition{
 					{
 						Type: vzapi.CondInstallComplete,
 					},
 				},
-			}
-			verrazzano.Status.Components = makeVerrazzanoComponentStatusMap()
-			verrazzano.Status.Components[keycloak.ComponentName].State = vzapi.CompStateDisabled
-			verrazzano.Status.Components[istio.ComponentName].State = vzapi.CompStateDisabled
-			return nil
-		})
-
-	// The mocks are added to accommodate the expected calls to List instance when component is Ready
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList, opts ...client.ListOption) error {
-			ingressList.Items = []networkingv1.Ingress{}
-			return nil
-		}).AnyTimes()
-	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
-	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
-			return nil
-		}).AnyTimes()
+				Components: func() vzapi.ComponentStatusMap {
+					statusMap := makeVerrazzanoComponentStatusMap()
+					statusMap[keycloak.ComponentName].State = vzapi.CompStateDisabled
+					statusMap[istio.ComponentName].State = vzapi.CompStateDisabled
+					return statusMap
+				}(),
+			},
+		},
+		rbac.NewServiceAccount(namespace, name, []string{}, labels),
+		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
+	).Build()
 
 	// Sample bom file for version validation functions
 	config.SetDefaultBomFilePath(testBomFilePath)
@@ -152,12 +136,6 @@ func TestUpgradeNoVersion(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-
-	// Expect a call to get the service account
-	expectGetServiceAccountExists(mock, name, labels)
-
-	// Expect a call to get the ClusterRoleBinding
-	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
 	// Sample bom file for version validation functions
 	config.SetDefaultBomFilePath(testBomFilePath)
@@ -175,11 +153,10 @@ func TestUpgradeNoVersion(t *testing.T) {
 	defer helm.SetDefaultChartStatusFunction()
 	// Create and make the request
 	request := newRequest(namespace, name)
-	reconciler := newVerrazzanoReconciler(mock)
+	reconciler := newVerrazzanoReconciler(c)
 	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
-	mocker.Finish()
 	asserts.NoError(err)
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
