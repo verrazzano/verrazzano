@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/google/uuid"
 	"github.com/onsi/gomega"
 	vpClient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
@@ -215,7 +216,7 @@ func GetDaemonSet(namespace string, daemonSetName string) (*appsv1.DaemonSet, er
 	return daemonset, nil
 }
 
-// GetIngressList returns a IngressList in the given namespace
+// GetIngressList returns a list of ingresses in the given namespace
 func GetIngressList(namespace string) (*netv1.IngressList, error) {
 	// Get the Kubernetes clientset
 	clientSet, err := k8sutil.GetKubernetesClientset()
@@ -230,9 +231,9 @@ func GetIngressList(namespace string) (*netv1.IngressList, error) {
 	return ingressList, nil
 }
 
-// GetGatewayList returns a GatewayList in the given namespace
+// GetGatewayList returns a list of gateways in the given namespace
 func GetGatewayList(namespace string) (*istionetv1beta1.GatewayList, error) {
-	// Get the Kubernetes clientset
+	// Get the Istio clientset
 	clientSet, err := k8sutil.GetIstioClientset()
 	if err != nil {
 		return nil, err
@@ -243,6 +244,51 @@ func GetGatewayList(namespace string) (*istionetv1beta1.GatewayList, error) {
 		return nil, err
 	}
 	return gatewayList, nil
+}
+
+// GetCertificateList returns a list of certificates in the given namespace
+func GetCertificateList(namespace string) (*certmanagerv1.CertificateList, error) {
+	// Get the Cert-manager clientset
+	clientSet, err := k8sutil.GetCertManagerClienset()
+	if err != nil {
+		return nil, err
+	}
+	certificateList, err := clientSet.Certificates(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get Certificates in namespace %s: %v ", namespace, err))
+		return nil, err
+	}
+	return certificateList, nil
+}
+
+// GetClusterIssuerList returns a list of cluster issuers
+func GetClusterIssuerList() (*certmanagerv1.ClusterIssuerList, error) {
+	// Get the Cert-manager clientset
+	clientSet, err := k8sutil.GetCertManagerClienset()
+	if err != nil {
+		return nil, err
+	}
+	clusterIssuerList, err := clientSet.ClusterIssuers().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get Cluster Issuers: %v ", err))
+		return nil, err
+	}
+	return clusterIssuerList, nil
+}
+
+// GetIssuerList returns a list of cluster issuers
+func GetIssuerList(namespace string) (*certmanagerv1.IssuerList, error) {
+	// Get the Cert-manager clientset
+	clientSet, err := k8sutil.GetCertManagerClienset()
+	if err != nil {
+		return nil, err
+	}
+	issuerList, err := clientSet.Issuers(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get Issuers in namespace %s: %v ", namespace, err))
+		return nil, err
+	}
+	return issuerList, nil
 }
 
 // ListNodes returns the list of nodes for the cluster
