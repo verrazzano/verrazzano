@@ -580,7 +580,7 @@ func TestUpgradeCompleted(t *testing.T) {
 }
 
 // TestUpgradeCompletedMultipleReconcile tests the reconcileUpgrade method for the following use case
-// GIVEN a request to reconcile an verrazzano resource after install is completed
+// GIVEN a request to reconcile a verrazzano resource after install is completed
 // WHEN spec.version doesn't match status.version and reconcile is called multiple times
 // THEN ensure a condition with type UpgradeCompleted is added
 func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
@@ -592,10 +592,6 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 	fname, _ := filepath.Abs(unitTestBomFile)
 	config.SetDefaultBomFilePath(fname)
 	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
@@ -616,20 +612,17 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 	})
 	defer registry.ResetGetComponentsFn()
 
-	// Expect a call to get the verrazzano resource.  Return resource with version
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-			verrazzano.TypeMeta = metav1.TypeMeta{
-				APIVersion: "install.verrazzano.io/v1alpha1",
-				Kind:       "Verrazzano"}
-			verrazzano.ObjectMeta = metav1.ObjectMeta{
-				Namespace:  name.Namespace,
-				Name:       name.Name,
-				Finalizers: []string{finalizerName}}
-			verrazzano.Spec = vzapi.VerrazzanoSpec{
-				Version: "1.2.0"}
-			verrazzano.Status = vzapi.VerrazzanoStatus{
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	_ = oamcore.AddToScheme(k8scheme.Scheme)
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&vzapi.Verrazzano{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:  namespace,
+				Name:       name,
+				Finalizers: []string{finalizerName}},
+			Spec: vzapi.VerrazzanoSpec{
+				Version: "1.2.0"},
+			Status: vzapi.VerrazzanoStatus{
 				State:      vzapi.VzStateUpgrading,
 				Components: makeVerrazzanoComponentStatusMap(),
 				Conditions: []vzapi.Condition{
@@ -640,46 +633,23 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 						Type: vzapi.CondUpgradeStarted,
 					},
 				},
-			}
-			return nil
-		}).AnyTimes()
-
-	// Expect 2 calls to get the service account
-	expectGetServiceAccountExists(mock, name, nil)
-
-	// Expect 2 calls to get the ClusterRoleBinding
-	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
-
-	// Expect calls to get the status writer and return a mock.
-	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *oamapi.ApplicationConfigurationList, opts ...client.ListOption) error {
-			return nil
-		}).AnyTimes()
-
-	// Expect a call to update the status of the Verrazzano resource
-	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			return nil
-		}).AnyTimes()
+			}},
+		rbac.NewServiceAccount(namespace, name, []string{}, nil),
+		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
+	).Build()
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
-	reconciler := newVerrazzanoReconciler(mock)
+	reconciler := newVerrazzanoReconciler(c)
 	result, err := reconcileLoop(reconciler, request)
 
 	// Validate the results
-	mocker.Finish()
 	asserts.NoError(err)
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
-	asserts.Len(upgradeTrackerMap, 0, "Expect upgradeTrackerMap to be empty")
 }
 
 // TestUpgradeCompletedStatusReturnsError tests the reconcileUpgrade method for the following use case
