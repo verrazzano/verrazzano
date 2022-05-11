@@ -69,6 +69,7 @@ var testVZ = vzapi.Verrazzano{
 	},
 }
 
+// create component status map required for testing
 func makeVerrazzanoComponentStatusMap() vzapi.ComponentStatusMap {
 	statusMap := make(vzapi.ComponentStatusMap)
 	for _, comp := range registry.GetComponents() {
@@ -88,6 +89,7 @@ func makeVerrazzanoComponentStatusMap() vzapi.ComponentStatusMap {
 	return statusMap
 }
 
+// return address of a bool var with true value
 func True() *bool {
 	x := true
 	return &x

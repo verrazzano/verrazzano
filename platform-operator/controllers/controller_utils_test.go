@@ -21,6 +21,9 @@ const (
 	testVZName = "test-vz"
 )
 
+// TestVzContainsResource tests that the component name along with
+// bool value true is returned if k8s object is referenced in the CR as
+// override. Return false along with an empty string for other cases
 func TestVzContainsResource(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -55,6 +58,7 @@ var testConfigMap = corev1.ConfigMap{
 	BinaryData: nil,
 }
 
+// creates a component context for testing
 func fakeComponentContext(mock *mocks.MockClient, vz *vzapi.Verrazzano) spi.ComponentContext {
 	compContext := spi.NewFakeContext(mock, vz, false)
 	return compContext
@@ -100,6 +104,7 @@ var testVZ = vzapi.Verrazzano{
 	},
 }
 
+// creates a component status map for testing
 func makeVerrazzanoComponentStatusMap() vzapi.ComponentStatusMap {
 	statusMap := make(vzapi.ComponentStatusMap)
 	for _, comp := range registry.GetComponents() {
@@ -119,6 +124,7 @@ func makeVerrazzanoComponentStatusMap() vzapi.ComponentStatusMap {
 	return statusMap
 }
 
+// return address of a bool var with true value
 func True() *bool {
 	x := true
 	return &x

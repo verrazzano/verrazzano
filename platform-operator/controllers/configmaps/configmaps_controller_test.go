@@ -129,6 +129,7 @@ func newRequest(namespace string, name string) ctrl.Request {
 			Name:      name}}
 }
 
+// newConfigMapReconciler creates a new reconciler for testing
 func newConfigMapReconciler(c client.Client) VerrazzanoConfigMapsReconciler {
 	vzLog := vzlog.DefaultLogger()
 	scheme := newScheme()
