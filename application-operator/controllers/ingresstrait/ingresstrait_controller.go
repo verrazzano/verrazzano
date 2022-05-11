@@ -1177,6 +1177,8 @@ func convertAPIVersionAndKindToNamespacedName(apiVersion string, kind string) ty
 //   dns-subdomain is The DNS subdomain name
 // For example: sales.cars.example.com
 func buildAppFullyQualifiedHostName(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
+	zap.S().With(vzlogInit.FieldController, controllerName).
+		Infof("------start buildAppFullyQualifiedHostName")
 	appName, ok := trait.Labels[oam.LabelAppName]
 	if !ok {
 		return "", errors.New("OAM app name label missing from metadata, unable to add ingress trait")
@@ -1185,6 +1187,8 @@ func buildAppFullyQualifiedHostName(cli client.Reader, trait *vzapi.IngressTrait
 	if err != nil {
 		return "", err
 	}
+	zap.S().With(vzlogInit.FieldController, controllerName).
+		Infof("------buildAppFullyQualifiedHostName: %v", fmt.Sprintf("%s.%s", appName, domainName))
 	return fmt.Sprintf("%s.%s", appName, domainName), nil
 }
 
@@ -1194,6 +1198,8 @@ func buildAppFullyQualifiedHostName(cli client.Reader, trait *vzapi.IngressTrait
 //   dns-subdomain is The DNS subdomain name
 // For example: cars.example.com
 func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
+	zap.S().With(vzlogInit.FieldController, controllerName).
+		Infof("------start buildNamespacedDomainName")
 	const externalDNSKey = "external-dns.alpha.kubernetes.io/target"
 	const wildcardDomainKey = "verrazzano.io/dns.wildcard.domain"
 
