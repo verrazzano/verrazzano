@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -73,8 +73,8 @@ export TF_VAR_calico_version="$(grep 'calico-version=' ${SCRIPT_DIR}/../../../..
 
 echo "Create cluster started at $(date)"
 ./create-cluster.sh
-echo "Create cluster completed at $(date)"
 status_code=$?
+echo "Create cluster completed at $(date)"
 if [ ${status_code:-1} -eq 0 ]; then
 
     # if the cluster has been created with private endpoints then setup the ssh tunnel through the bastion host
