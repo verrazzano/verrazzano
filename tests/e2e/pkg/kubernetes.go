@@ -217,7 +217,7 @@ func GetDaemonSet(namespace string, daemonSetName string) (*appsv1.DaemonSet, er
 	return daemonset, nil
 }
 
-/// GetService returns a Service with the given name and namespace
+// GetService returns a Service with the given name and namespace
 func GetService(namespace string, serviceName string) (*corev1.Service, error) {
 	// Get the Kubernetes clientset
 	clientSet, err := k8sutil.GetKubernetesClientset()
