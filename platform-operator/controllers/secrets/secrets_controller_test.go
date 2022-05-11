@@ -162,7 +162,7 @@ func TestSecretRequeue(t *testing.T) {
 	asserts.Equal(true, res0.Requeue)
 }
 
-// TestSecretCall tests that the call to get the ConfigMap is placed
+// TestSecretCall tests that the call to get the Secret is placed
 func TestSecretCall(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
