@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/verrazzano-backup/lib/constants"
 	log "github.com/verrazzano/verrazzano/verrazzano-backup/lib/klog"
 	"github.com/verrazzano/verrazzano/verrazzano-backup/lib/opensearch"
+	model "github.com/verrazzano/verrazzano/verrazzano-backup/lib/types"
 	"github.com/verrazzano/verrazzano/verrazzano-backup/lib/utils"
 	"go.uber.org/zap"
 	"k8s.io/client-go/dynamic"
@@ -31,7 +32,7 @@ var (
 
 func main() {
 	flag.StringVar(&VeleroBackupName, "velero-backup-name", "", "The Velero-backup-name associated with this operation.")
-	flag.StringVar(&Component, "component", "opensearch", "The Verrazzano component to be backed up or restored (Default = opensearch).")
+	flag.StringVar(&Component, "", "", "The Verrazzano component to be backed up or restored (Default = opensearch).")
 	flag.StringVar(&Operation, "operation", "", "The operation to be performed - backup/restore.")
 	flag.StringVar(&Profile, "profile", "default", "Object store credentials profile")
 
@@ -56,6 +57,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Auto detect component based on injection
+	componentFound, err := utils.GetComponent(constants.ComponentPath)
+	if err != nil {
+		fmt.Errorf("Component detection failure %v", err)
+		os.Exit(1)
+	}
+	Component = componentFound
+
 	// Initialize the zap log
 	file, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("verrazzano-%s-hook-*.log", strings.ToLower(Operation)))
 	if err != nil {
@@ -79,18 +88,20 @@ func main() {
 	var clientk client.Client
 	var dynClient dynamic.Interface
 	var search opensearch.Opensearch
+	var cData model.ConnectionData
+	cData.Timeout = utils.GetEnvWithDefault(constants.OpenSearchHealthCheckTimeoutKey, constants.OpenSearchHealthCheckTimeoutDefaultValue)
 
-	// Check opensearch health before proceeding with backup or restore
+	// Check OpenSearch health before proceeding with backup or restore
 	if Component == constants.OSComponent {
 		search = opensearch.Opensearch(&opensearch.OpensearchImpl{})
-		err = search.EnsureOpenSearchIsHealthy(constants.OpenSearchURL, log)
+		err = search.EnsureOpenSearchIsHealthy(constants.OpenSearchURL, &cData, log)
 		if err != nil {
-			log.Errorf("Operation cannot be performed as Opensearch is not healthy")
+			log.Errorf("Operation cannot be performed as OpenSearch is not healthy")
 			os.Exit(1)
 		}
 	}
 
-	// feedback loop to gather k8s context
+	// Feedback loop to gather k8s context
 	for !done {
 		config, err = ctrl.GetConfig()
 		if err != nil {
@@ -136,7 +147,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Update Opensearch keystores
+	// Update OpenSearch keystores
 	_, err = search.UpdateKeystore(kubeClient, config, conData, log)
 	if err != nil {
 		log.Errorf("Unable to update keystore")
@@ -151,40 +162,53 @@ func main() {
 	// Control flow based on
 	switch strings.ToLower(Component) {
 	case constants.OSComponent:
-		// Opensearch backup handling
+		// OpenSearch backup handling
 		if strings.ToLower(Operation) == constants.BackupOperation {
 			log.Info("Commencing opensearch backup ..")
-			err = search.Backup(conData, VeleroBackupName, log)
+			err = search.Backup(conData, log)
 			if err != nil {
 				log.Errorf("Operation '%s' unsuccessfull due to %v", Operation, zap.Error(err))
 				os.Exit(1)
 			}
+			log.Infof("%s backup was successfull", strings.ToTitle(Component))
 		}
 
-		// Opensearch restore handling
+		// OpenSearch restore handling
 		if strings.ToLower(Operation) == constants.RestoreOperation {
-			log.Infof("Commencing opensearch restore ..")
+			log.Infof("Commencing OpenSearch restore ..")
 			err = k8s.ScaleDeployment(clientk, kubeClient, constants.VMOLabelSelector, constants.VerrazzanoNameSpaceName, constants.VMODeploymentName, int32(0), log)
 			if err != nil {
 				log.Errorf("Unable to scale deployment '%s' due to %v", constants.VMODeploymentName, zap.Error(err))
+				os.Exit(1)
 			}
 			err = k8s.ScaleDeployment(clientk, kubeClient, constants.IngestLabelSelector, constants.VerrazzanoNameSpaceName, constants.IngestDeploymentName, int32(0), log)
 			if err != nil {
 				log.Errorf("Unable to scale deployment '%s' due to %v", constants.IngestDeploymentName, zap.Error(err))
+				os.Exit(1)
 			}
-			err = search.Restore(conData, VeleroBackupName, log)
+			err = search.Restore(conData, log)
 			if err != nil {
 				log.Errorf("Operation '%s' unsuccessfull due to %v", Operation, zap.Error(err))
 				os.Exit(1)
 			}
-			err = k8s.ScaleDeployment(clientk, kubeClient, constants.KibanaLabelSelector, constants.VerrazzanoNameSpaceName, constants.KibanaDeploymentName, int32(0), log)
+
+			ok, err := k8s.CheckDeployment(kubeClient, constants.KibanaDeploymentLabelSelector, constants.VerrazzanoNameSpaceName, log)
 			if err != nil {
-				log.Errorf("Unable to scale deployment '%s' due to %v", constants.IngestDeploymentName, zap.Error(err))
+				log.Errorf("Unable to detect Kibana deployment '%s' due to %v", constants.KibanaDeploymentLabelSelector, zap.Error(err))
+				os.Exit(1)
+			}
+			// If kibana is deployed then scale it down
+			if ok {
+				err = k8s.ScaleDeployment(clientk, kubeClient, constants.KibanaLabelSelector, constants.VerrazzanoNameSpaceName, constants.KibanaDeploymentName, int32(0), log)
+				if err != nil {
+					log.Errorf("Unable to scale deployment '%s' due to %v", constants.IngestDeploymentName, zap.Error(err))
+				}
 			}
 			err = k8s.ScaleDeployment(clientk, kubeClient, constants.VMOLabelSelector, constants.VerrazzanoNameSpaceName, constants.VMODeploymentName, int32(1), log)
 			if err != nil {
 				log.Errorf("Unable to scale deployment '%s' due to %v", constants.VMODeploymentName, zap.Error(err))
 			}
+			log.Infof("%s restore was successfull", strings.ToTitle(Component))
 		}
 	}
 

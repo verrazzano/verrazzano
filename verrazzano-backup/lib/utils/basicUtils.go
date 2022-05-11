@@ -109,16 +109,14 @@ func ReadTempCredsFile(filePath string) (string, string, error) {
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
-		for scanner.Scan() {
-			line := strings.TrimSpace(scanner.Text())
-			if strings.Contains(line, constants.AwsAccessKeyString) {
-				words := strings.Split(line, fmt.Sprintf("%s=", constants.AwsAccessKeyString))
-				awsAccessKey = words[len(words)-1]
-			}
-			if strings.Contains(line, constants.AwsSecretAccessKeyString) {
-				words := strings.Split(line, fmt.Sprintf("%s=", constants.AwsSecretAccessKeyString))
-				awsSecretAccessKey = words[len(words)-1]
-			}
+		line := strings.TrimSpace(scanner.Text())
+		if strings.Contains(line, constants.AwsAccessKeyString) {
+			words := strings.Split(line, fmt.Sprintf("%s=", constants.AwsAccessKeyString))
+			awsAccessKey = words[len(words)-1]
+		}
+		if strings.Contains(line, constants.AwsSecretAccessKeyString) {
+			words := strings.Split(line, fmt.Sprintf("%s=", constants.AwsSecretAccessKeyString))
+			awsSecretAccessKey = words[len(words)-1]
 		}
 	}
 	return awsAccessKey, awsSecretAccessKey, nil
@@ -131,4 +129,23 @@ func GetEnvWithDefault(key, defaultValue string) string {
 		return defaultValue
 	}
 	return value
+}
+
+// GetComponent retrieves component info from file
+func GetComponent(filePath string) (string, error) {
+	var line string
+	_, err := os.Stat(constants.ComponentPath)
+	if err != nil {
+		return "", err
+	}
+	f, err := os.Open(filePath)
+	if err != nil {
+		return "", nil
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line = strings.TrimSpace(scanner.Text())
+	}
+	return line, nil
 }

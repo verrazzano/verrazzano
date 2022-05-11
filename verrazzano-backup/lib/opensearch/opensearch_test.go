@@ -37,8 +37,10 @@ func logHelper() (*zap.SugaredLogger, string) {
 func TestEnsureOpenSearchIsReachable(t *testing.T) {
 	log, f := logHelper()
 	defer os.Remove(f)
+	var c types.ConnectionData
+	c.BackupName = "mango"
 	o := opensearch.Opensearch(&opensearch.OpensearchImpl{})
-	ok := o.EnsureOpenSearchIsReachable(constants.OpenSearchURL, log)
+	ok := o.EnsureOpenSearchIsReachable(constants.OpenSearchURL, &c, log)
 	assert.Nil(t, ok)
 	assert.Equal(t, false, false)
 }
@@ -75,7 +77,9 @@ func TestTriggerSnapshot(t *testing.T) {
 	defer os.Remove(f)
 
 	o := opensearch.Opensearch(&opensearch.OpensearchImpl{})
-	err := o.TriggerSnapshot("mango", log)
+	var c types.ConnectionData
+	c.BackupName = "mango"
+	err := o.TriggerSnapshot(&c, log)
 	assert.NotNil(t, err)
 }
 
@@ -88,7 +92,9 @@ func TestCheckSnapshotProgress(t *testing.T) {
 	defer os.Remove(f)
 
 	o := opensearch.Opensearch(&opensearch.OpensearchImpl{})
-	err := o.CheckSnapshotProgress("mango", log)
+	var c types.ConnectionData
+	c.BackupName = "mango"
+	err := o.CheckSnapshotProgress(&c, log)
 	assert.Nil(t, err)
 }
 
@@ -114,6 +120,8 @@ func TestTriggerRestore(t *testing.T) {
 	defer os.Remove(f)
 
 	o := opensearch.Opensearch(&opensearch.OpensearchImpl{})
-	err := o.TriggerRestore("backup", log)
+	var c types.ConnectionData
+	c.BackupName = "mango"
+	err := o.TriggerRestore(&c, log)
 	assert.NotNil(t, err)
 }

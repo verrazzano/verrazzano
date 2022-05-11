@@ -21,27 +21,34 @@ import (
 )
 
 //EnsureOpenSearchIsReachable is used determine whether opensearch cluster is reachable
-func (o *OpensearchImpl) EnsureOpenSearchIsReachable(url string, log *zap.SugaredLogger) error {
+func (o *OpensearchImpl) EnsureOpenSearchIsReachable(url string, conData *types.ConnectionData, log *zap.SugaredLogger) error {
 	log.Infof("Checking if cluster is reachable")
 	var osinfo types.OpenSearchClusterInfo
 	done := false
-	retryCount := 0
+	var timeSeconds float64
 
 	if utils.GetEnvWithDefault(constants.DevKey, constants.FalseString) == constants.TruthString {
 		// if UT flag is set, skip to avoid retry logic
 		return nil
 	}
 
+	timeParse, err := time.ParseDuration(conData.Timeout)
+	if err != nil {
+		log.Errorf("Unable to pasr time duration ", zap.Error(err))
+		return err
+	}
+	totalSeconds := timeParse.Seconds()
+
 	for !done {
 		err := utils.HTTPHelper("GET", url, nil, &osinfo, log)
 		if err != nil {
-			if retryCount <= constants.RetryCount {
+			if timeSeconds < totalSeconds {
 				duration := utils.GenerateRandom()
 				log.Infof("Cluster is not reachable. Retry after '%v' seconds", duration)
 				time.Sleep(time.Second * time.Duration(duration))
-				retryCount = retryCount + 1
+				timeSeconds = timeSeconds + float64(duration)
 			} else {
-				log.Errorf("Cluster not reachable after '%v' retries", retryCount)
+				log.Errorf("Timeout '%s' exceeded. Cluster not reachable", conData.Timeout)
 				return err
 			}
 		} else {
@@ -58,17 +65,24 @@ func (o *OpensearchImpl) EnsureOpenSearchIsReachable(url string, log *zap.Sugare
 // Verifies if cluster is reachable
 // Verifies if health url is reachable
 // Verifies health status is green
-func (o *OpensearchImpl) EnsureOpenSearchIsHealthy(url string, log *zap.SugaredLogger) error {
+func (o *OpensearchImpl) EnsureOpenSearchIsHealthy(url string, conData *types.ConnectionData, log *zap.SugaredLogger) error {
 	log.Infof("Checking if cluster is healthy")
 	var clusterHealth types.OpenSearchHealthResponse
-	err := o.EnsureOpenSearchIsReachable(url, log)
+	err := o.EnsureOpenSearchIsReachable(url, conData, log)
 	if err != nil {
 		return err
 	}
 
 	healthURL := fmt.Sprintf("%s/_cluster/health", url)
 	healthReachable := false
-	retryCount := 0
+	var timeSeconds float64
+
+	timeParse, err := time.ParseDuration(conData.Timeout)
+	if err != nil {
+		log.Errorf("Unable to pasr time duration ", zap.Error(err))
+		return err
+	}
+	totalSeconds := timeParse.Seconds()
 
 	if utils.GetEnvWithDefault(constants.DevKey, constants.FalseString) == constants.TruthString {
 		// if UT flag is set, skip to avoid retry logic
@@ -78,41 +92,45 @@ func (o *OpensearchImpl) EnsureOpenSearchIsHealthy(url string, log *zap.SugaredL
 	for !healthReachable {
 		err = utils.HTTPHelper("GET", healthURL, nil, &clusterHealth, log)
 		if err != nil {
-			if retryCount <= constants.RetryCount {
+			if timeSeconds < totalSeconds {
 				duration := utils.GenerateRandom()
 				log.Infof("Cluster health endpoint is not reachable. Retry after '%v' seconds", duration)
 				time.Sleep(time.Second * time.Duration(duration))
-				retryCount = retryCount + 1
+				timeSeconds = timeSeconds + float64(duration)
+			} else {
+				log.Errorf("Timeout '%s' exceeded. Cluster health endpoint is not reachable", conData.Timeout)
+				return err
 			}
 		} else {
-			log.Errorf("Cluster health endpoint is reachable now")
+			log.Infof("Cluster health endpoint is reachable now")
 			healthReachable = true
 		}
 	}
 
 	healthGreen := false
-	retryCount = 0
 
 	for !healthGreen {
 		err = utils.HTTPHelper("GET", healthURL, nil, &clusterHealth, log)
 		if err != nil {
-			if retryCount <= constants.RetryCount {
+			if timeSeconds < totalSeconds {
 				duration := utils.GenerateRandom()
 				log.Infof("Json unmarshalling error. Retry after '%v' seconds", duration)
 				time.Sleep(time.Second * time.Duration(duration))
-				retryCount = retryCount + 1
+				timeSeconds = timeSeconds + float64(duration)
 				continue
 			} else {
-				log.Errorf("Json unmarshalling error while checking cluster health %v. Retry count exceeded", err)
-				return err
+				return fmt.Errorf("Timeout '%s' exceeded. Json unmarshalling error while checking cluster health %v.", conData.Timeout, err)
 			}
 		}
+
 		if clusterHealth.Status != "green" {
-			if retryCount <= constants.RetryCount {
+			if timeSeconds < totalSeconds {
 				duration := utils.GenerateRandom()
 				log.Infof("Cluster health is '%s'. Retry after '%v' seconds", clusterHealth.Status, duration)
 				time.Sleep(time.Second * time.Duration(duration))
-				retryCount = retryCount + 1
+				timeSeconds = timeSeconds + float64(duration)
+			} else {
+				return fmt.Errorf("Timeout '%s' exceeded. Cluster health expected 'green' , current state %s.", conData.Timeout, clusterHealth.Status)
 			}
 		} else {
 			healthGreen = true
@@ -131,52 +149,50 @@ func (o *OpensearchImpl) EnsureOpenSearchIsHealthy(url string, log *zap.SugaredL
 func (o *OpensearchImpl) UpdateKeystore(client kubernetes.Interface, cfg *rest.Config, connData *types.ConnectionData, log *zap.SugaredLogger) (bool, error) {
 
 	var accessKeyCmd, secretKeyCmd []string
-	accessKeyCmd = append(accessKeyCmd, "/bin/sh", "-c", fmt.Sprintf("echo %s | %s", strconv.Quote(connData.Secret.ObjectAccessKey), constants.OpensearchKeystoreAccessKeyCmd))
-	secretKeyCmd = append(secretKeyCmd, "/bin/sh", "-c", fmt.Sprintf("echo %s | %s", strconv.Quote(connData.Secret.ObjectSecretKey), constants.OpensearchKeystoreSecretAccessKeyCmd))
+	accessKeyCmd = append(accessKeyCmd, "/bin/sh", "-c", fmt.Sprintf("echo %s | %s", strconv.Quote(connData.Secret.ObjectAccessKey), constants.OpenSearchKeystoreAccessKeyCmd))
+	secretKeyCmd = append(secretKeyCmd, "/bin/sh", "-c", fmt.Sprintf("echo %s | %s", strconv.Quote(connData.Secret.ObjectSecretKey), constants.OpenSearchKeystoreSecretAccessKeyCmd))
 
 	// Updating keystore in other masters
-	for i := 0; i < 3; i++ {
-
-		podName := fmt.Sprintf("vmi-system-es-master-%v", i)
-		log.Infof("Updating keystore in pod '%s'", podName)
-		pod, err := client.CoreV1().Pods(constants.VerrazzanoNameSpaceName).Get(context.TODO(), podName, metav1.GetOptions{})
-		if err != nil {
-			return false, err
-		}
-		_, _, err = k8sutil.ExecPod(client, cfg, pod, constants.OpenSearchMasterPodContainerName, accessKeyCmd)
+	listOptions := metav1.ListOptions{LabelSelector: constants.OpenSearchMasterLabel}
+	esMasterPods, err := client.CoreV1().Pods(constants.VerrazzanoNameSpaceName).List(context.TODO(), listOptions)
+	if err != nil {
+		return false, err
+	}
+	for _, pod := range esMasterPods.Items {
+		log.Infof("Updating keystore in pod '%s'", pod.Name)
+		_, _, err = k8sutil.ExecPod(client, cfg, &pod, constants.OpenSearchMasterPodContainerName, accessKeyCmd)
 		if err != nil {
 			log.Errorf("Unable to exec into pod %s due to %v", pod.Name, err)
 			return false, err
 		}
-		_, _, err = k8sutil.ExecPod(client, cfg, pod, constants.OpenSearchMasterPodContainerName, secretKeyCmd)
+		_, _, err = k8sutil.ExecPod(client, cfg, &pod, constants.OpenSearchMasterPodContainerName, secretKeyCmd)
 		if err != nil {
 			log.Errorf("Unable to exec into pod %s due to %v", pod.Name, err)
 			return false, err
 		}
-
 	}
 
-	for i := 0; i < 3; i++ {
-		labelkv := fmt.Sprintf("app=%s,index=%v", constants.OpenSearchDataPodPrefix, i)
-		listOptions := metav1.ListOptions{LabelSelector: labelkv}
-		podItems, err := client.CoreV1().Pods(constants.VerrazzanoNameSpaceName).List(context.TODO(), listOptions)
-		if err != nil {
-			return false, err
-		}
-
-		log.Infof("Updating keystore in pod '%s'", podItems.Items[0].GetName())
-		_, _, err = k8sutil.ExecPod(client, cfg, &podItems.Items[0], constants.OpenSearchDataPodContainerName, accessKeyCmd)
-		if err != nil {
-			log.Errorf("Unable to exec into pod %s due to %v", podItems.Items[0].GetName(), err)
-			return false, err
-		}
-		_, _, err = k8sutil.ExecPod(client, cfg, &podItems.Items[0], constants.OpenSearchDataPodContainerName, secretKeyCmd)
-		if err != nil {
-			log.Errorf("Unable to exec into pod %s due to %v", podItems.Items[0].GetName(), err)
-			return false, err
-		}
-
+	// Updating keystore in data nodes
+	listOptions = metav1.ListOptions{LabelSelector: constants.OpenSearchDataLabel}
+	esDataPods, err := client.CoreV1().Pods(constants.VerrazzanoNameSpaceName).List(context.TODO(), listOptions)
+	if err != nil {
+		return false, err
 	}
+
+	for _, pod := range esDataPods.Items {
+		log.Infof("Updating keystore in pod '%s'", pod.Name)
+		_, _, err = k8sutil.ExecPod(client, cfg, &pod, constants.OpenSearchDataPodContainerName, accessKeyCmd)
+		if err != nil {
+			log.Errorf("Unable to exec into pod %s due to %v", pod.Name, err)
+			return false, err
+		}
+		_, _, err = k8sutil.ExecPod(client, cfg, &pod, constants.OpenSearchDataPodContainerName, secretKeyCmd)
+		if err != nil {
+			log.Errorf("Unable to exec into pod %s due to %v", pod.Name, err)
+			return false, err
+		}
+	}
+
 	return true, nil
 
 }
@@ -227,10 +243,10 @@ func (o *OpensearchImpl) RegisterSnapshotRepository(secretData *types.Connection
 }
 
 //TriggerSnapshot this triggers a snapshot/backup of all the data streams/indices
-func (o *OpensearchImpl) TriggerSnapshot(backupName string, log *zap.SugaredLogger) error {
-	log.Infof("Triggering snapshot with name '%s'", backupName)
+func (o *OpensearchImpl) TriggerSnapshot(conData *types.ConnectionData, log *zap.SugaredLogger) error {
+	log.Infof("Triggering snapshot with name '%s'", conData.BackupName)
 	var snapshotResponse types.OpenSearchSnapshotResponse
-	snapShotURL := fmt.Sprintf("%s/_snapshot/%s/%s", constants.OpenSearchURL, constants.OpeSearchSnapShotRepoName, backupName)
+	snapShotURL := fmt.Sprintf("%s/_snapshot/%s/%s", constants.OpenSearchURL, constants.OpeSearchSnapShotRepoName, conData.BackupName)
 	err := utils.HTTPHelper("POST", snapShotURL, nil, &snapshotResponse, log)
 	if err != nil {
 		return err
@@ -244,9 +260,9 @@ func (o *OpensearchImpl) TriggerSnapshot(backupName string, log *zap.SugaredLogg
 }
 
 //CheckSnapshotProgress checks the data backup progress
-func (o *OpensearchImpl) CheckSnapshotProgress(backupName string, log *zap.SugaredLogger) error {
-	log.Infof("Checking snapshot progress with name '%s'", backupName)
-	snapShotURL := fmt.Sprintf("%s/_snapshot/%s/%s", constants.OpenSearchURL, constants.OpeSearchSnapShotRepoName, backupName)
+func (o *OpensearchImpl) CheckSnapshotProgress(conData *types.ConnectionData, log *zap.SugaredLogger) error {
+	log.Infof("Checking snapshot progress with name '%s'", conData.BackupName)
+	snapShotURL := fmt.Sprintf("%s/_snapshot/%s/%s", constants.OpenSearchURL, constants.OpeSearchSnapShotRepoName, conData.BackupName)
 	var snapshotInfo types.OpenSearchSnapshotStatus
 
 	if utils.GetEnvWithDefault(constants.DevKey, constants.FalseString) == constants.TruthString {
@@ -254,8 +270,15 @@ func (o *OpensearchImpl) CheckSnapshotProgress(backupName string, log *zap.Sugar
 		return nil
 	}
 
+	var timeSeconds float64
+	timeParse, err := time.ParseDuration(conData.Timeout)
+	if err != nil {
+		log.Errorf("Unable to pasr time duration ", zap.Error(err))
+		return err
+	}
+	totalSeconds := timeParse.Seconds()
+
 	done := false
-	retryCount := 0
 	for !done {
 		err := utils.HTTPHelper("GET", snapShotURL, nil, &snapshotInfo, log)
 		if err != nil {
@@ -263,19 +286,19 @@ func (o *OpensearchImpl) CheckSnapshotProgress(backupName string, log *zap.Sugar
 		}
 		switch snapshotInfo.Snapshots[0].State {
 		case constants.OpenSearchSnapShotInProgress:
-			if retryCount <= constants.RetryCount {
+			if timeSeconds < totalSeconds {
 				duration := utils.GenerateRandom()
-				log.Infof("Snapshot '%s' is in progress. Check again after '%v' seconds", backupName, duration)
+				log.Infof("Snapshot '%s' is in progress. Check again after '%v' seconds", conData.BackupName, duration)
 				time.Sleep(time.Second * time.Duration(duration))
-				retryCount = retryCount + 1
+				timeSeconds = timeSeconds + float64(duration)
 			} else {
-				return fmt.Errorf("Retry count exceeded. Snapshot '%s' state is still IN_PROGRESS", backupName)
+				return fmt.Errorf("Timeout '%s' exceeded. Snapshot '%s' state is still IN_PROGRESS", conData.Timeout, conData.BackupName)
 			}
 		case constants.OpenSearchSnapShotSucess:
-			log.Infof("Snapshot '%s' complete", backupName)
+			log.Infof("Snapshot '%s' complete", conData.BackupName)
 			done = true
 		default:
-			return fmt.Errorf("Snapshot '%s' state is invalid '%s'", backupName, snapshotInfo.Snapshots[0].State)
+			return fmt.Errorf("Snapshot '%s' state is invalid '%s'", conData.BackupName, snapshotInfo.Snapshots[0].State)
 		}
 	}
 
@@ -318,9 +341,9 @@ func (o *OpensearchImpl) DeleteData(log *zap.SugaredLogger) error {
 }
 
 //TriggerRestore Triggers a restore from a specified snapshot
-func (o *OpensearchImpl) TriggerRestore(backupName string, log *zap.SugaredLogger) error {
-	log.Infof("Triggering restore with name '%s'", backupName)
-	restoreURL := fmt.Sprintf("%s/_snapshot/%s/%s/_restore", constants.OpenSearchURL, constants.OpeSearchSnapShotRepoName, backupName)
+func (o *OpensearchImpl) TriggerRestore(conData *types.ConnectionData, log *zap.SugaredLogger) error {
+	log.Infof("Triggering restore with name '%s'", conData.BackupName)
+	restoreURL := fmt.Sprintf("%s/_snapshot/%s/%s/_restore", constants.OpenSearchURL, constants.OpeSearchSnapShotRepoName, conData.BackupName)
 	var restoreResponse types.OpenSearchSnapshotResponse
 
 	err := utils.HTTPHelper("POST", restoreURL, nil, &restoreResponse, log)
@@ -336,8 +359,8 @@ func (o *OpensearchImpl) TriggerRestore(backupName string, log *zap.SugaredLogge
 }
 
 //CheckRestoreProgress checks progress of restore process, by monitoring all the data streams
-func (o *OpensearchImpl) CheckRestoreProgress(backupName string, log *zap.SugaredLogger) error {
-	log.Infof("Checking restore progress with name '%s'", backupName)
+func (o *OpensearchImpl) CheckRestoreProgress(conData *types.ConnectionData, log *zap.SugaredLogger) error {
+	log.Infof("Checking restore progress with name '%s'", conData.BackupName)
 	dsURL := fmt.Sprintf("%s/_data_stream", constants.OpenSearchURL)
 	var snapshotInfo types.OpenSearchDataStreams
 
@@ -346,9 +369,16 @@ func (o *OpensearchImpl) CheckRestoreProgress(backupName string, log *zap.Sugare
 		return nil
 	}
 
+	var timeSeconds float64
+	timeParse, err := time.ParseDuration(conData.Timeout)
+	if err != nil {
+		log.Errorf("Unable to pasr time duration ", zap.Error(err))
+		return err
+	}
+	totalSeconds := timeParse.Seconds()
 	done := false
 	notGreen := false
-	retryCount := 0
+
 	for !done {
 		err := utils.HTTPHelper("GET", dsURL, nil, &snapshotInfo, log)
 		if err != nil {
@@ -365,14 +395,14 @@ func (o *OpensearchImpl) CheckRestoreProgress(backupName string, log *zap.Sugare
 		}
 
 		if notGreen {
-			if retryCount <= constants.RetryCount {
+			if timeSeconds < totalSeconds {
 				duration := utils.GenerateRandom()
 				log.Infof("Restore is in progress. Check again after '%v' seconds", duration)
 				time.Sleep(time.Second * time.Duration(duration))
-				retryCount = retryCount + 1
+				timeSeconds = timeSeconds + float64(duration)
 				notGreen = false
 			} else {
-				return fmt.Errorf("Retry count exceeded. Snapshot '%s' state is still IN_PROGRESS", backupName)
+				return fmt.Errorf("Timeout '%s' exceeded. Restore '%s' state is still IN_PROGRESS", conData.Timeout, conData.BackupName)
 			}
 		} else {
 			// This section is hit when all data streams are green
@@ -387,29 +417,28 @@ func (o *OpensearchImpl) CheckRestoreProgress(backupName string, log *zap.Sugare
 }
 
 //Backup - Toplevel method to invoke Opensearch backup
-func (o *OpensearchImpl) Backup(secretData *types.ConnectionData, backupName string, log *zap.SugaredLogger) error {
+func (o *OpensearchImpl) Backup(secretData *types.ConnectionData, log *zap.SugaredLogger) error {
 	log.Info("Start backup steps ....")
 	err := o.RegisterSnapshotRepository(secretData, log)
 	if err != nil {
 		return err
 	}
 
-	err = o.TriggerSnapshot(backupName, log)
+	err = o.TriggerSnapshot(secretData, log)
 	if err != nil {
 		return err
 	}
 
-	err = o.CheckSnapshotProgress(backupName, log)
+	err = o.CheckSnapshotProgress(secretData, log)
 	if err != nil {
 		return err
 	}
 
-	log.Infof("Opensearch snapshot taken successfully. ")
 	return nil
 }
 
 //Restore - Top level method to invoke opensearch restore
-func (o *OpensearchImpl) Restore(secretData *types.ConnectionData, backupName string, log *zap.SugaredLogger) error {
+func (o *OpensearchImpl) Restore(secretData *types.ConnectionData, log *zap.SugaredLogger) error {
 	log.Info("Start restore steps ....")
 	err := o.RegisterSnapshotRepository(secretData, log)
 	if err != nil {
@@ -421,16 +450,15 @@ func (o *OpensearchImpl) Restore(secretData *types.ConnectionData, backupName st
 		return err
 	}
 
-	err = o.TriggerRestore(backupName, log)
+	err = o.TriggerRestore(secretData, log)
 	if err != nil {
 		return err
 	}
 
-	err = o.CheckRestoreProgress(backupName, log)
+	err = o.CheckRestoreProgress(secretData, log)
 	if err != nil {
 		return err
 	}
 
-	log.Infof("Opensearch snapshot taken successfully. ")
 	return nil
 }

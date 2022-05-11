@@ -31,12 +31,12 @@ const (
 const (
 	OpenSearchURL                        = "http://127.0.0.1:9200"
 	OSComponent                          = "opensearch"
+	ComponentPath                        = "/usr/share/opensearch/data/verrazzano-bin/.component"
 	OpenSearchDataPodPrefix              = "system-es-data"
 	OpenSearchDataPodContainerName       = "es-data"
 	OpenSearchMasterPodContainerName     = "es-master"
-	OpenSearchIngestLabel                = "system-es-ingest"
 	HTTPContentType                      = "application/json"
-	OpeSearchSnapShotRepoName            = "vzbackup"
+	OpeSearchSnapShotRepoName            = "verrazzano-backup"
 	RetryCount                           = 50
 	OpenSearchSnapShotSucess             = "SUCCESS"
 	OpenSearchSnapShotInProgress         = "IN_PROGRESS"
@@ -44,9 +44,18 @@ const (
 	IngestLabelSelector                  = "app=system-es-ingest"
 	KibanaDeploymentName                 = "vmi-system-kibana"
 	KibanaLabelSelector                  = "app=system-kibana"
+	KibanaDeploymentLabelSelector        = "verrazzano-component=kibana"
 	VMODeploymentName                    = "verrazzano-monitoring-operator"
 	VMOLabelSelector                     = "k8s-app=verrazzano-monitoring-operator"
 	DataStreamGreen                      = "GREEN"
-	OpensearchKeystoreAccessKeyCmd       = "/usr/share/opensearch/bin/opensearch-keystore add --stdin --force s3.client.default.access_key" //nolint:gosec //#nosec G204
-	OpensearchKeystoreSecretAccessKeyCmd = "/usr/share/opensearch/bin/opensearch-keystore add --stdin --force s3.client.default.secret_key" //nolint:gosec //#nosec G204
+	OpenSearchKeystoreAccessKeyCmd       = "/usr/share/opensearch/bin/opensearch-keystore add --stdin --force s3.client.default.access_key" //nolint:gosec //#nosec G204
+	OpenSearchKeystoreSecretAccessKeyCmd = "/usr/share/opensearch/bin/opensearch-keystore add --stdin --force s3.client.default.secret_key" //nolint:gosec //#nosec G204
+	OpenSearchMasterLabel                = "opensearch.verrazzano.io/role-master=true"
+	OpenSearchDataLabel                  = "opensearch.verrazzano.io/role-data=true"
+)
+
+// Env Values
+const (
+	OpenSearchHealthCheckTimeoutKey          = "HEALTH_CHECK"
+	OpenSearchHealthCheckTimeoutDefaultValue = "10m"
 )

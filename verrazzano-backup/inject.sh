@@ -5,6 +5,7 @@
 #
 
 OPENSEARCH_BINARY_PATH="/usr/share/opensearch/data/verrazzano-bin"
+COMPONENT_PATH="/usr/share/opensearch/data/verrazzano-bin/.component"
 VZ_BINARY="verrazzano-backup"
 
 function log () {
@@ -30,5 +31,11 @@ function copy_opensearch () {
 log "Creating directory  ${OPENSEARCH_BINARY_PATH}"
 mkdir -p ${OPENSEARCH_BINARY_PATH}
 copy_opensearch ${OPENSEARCH_BINARY_PATH}
+
+# Setup component flag. Will be used for more components later on
+OPENSEARCH_FILE_PATH=$(df -h | grep -i /usr/share/opensearch/data | awk '{print $NF}')
+if [ ${OPENSEARCH_FILE_PATH} != "" ]; then
+  echo "opensearch" > ${COMPONENT_PATH}
+fi
 
 

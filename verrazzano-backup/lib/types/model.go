@@ -14,6 +14,7 @@ type ConnectionData struct {
 	RegionName string            `json:"region_name"`
 	BucketName string            `json:"bucket_name"`
 	BackupName string            `json:"backup_name"`
+	Timeout    string            `json:"timeout"`
 }
 
 //ObjectStoreSecret to render secret details
@@ -95,14 +96,14 @@ type VeleroBackup struct {
 					} `json:"matchLabels"`
 				} `json:"labelSelector"`
 				Name string `json:"name"`
-				Pre  []struct {
+				Post []struct {
 					Exec struct {
 						Command   []string `json:"command"`
 						Container string   `json:"container"`
 						OnError   string   `json:"onError"`
 						Timeout   string   `json:"timeout"`
 					} `json:"exec"`
-				} `json:"pre"`
+				} `json:"post"`
 			} `json:"resources"`
 		} `json:"hooks"`
 		IncludedNamespaces []string `json:"includedNamespaces"`

@@ -27,12 +27,13 @@ type K8s interface {
 	GetBackup(client dynamic.Interface, veleroNamespace, backupName string, log *zap.SugaredLogger) (*model.VeleroBackup, error)
 	GetBackupStorageLocation(client dynamic.Interface, veleroNamespace, bslName string, log *zap.SugaredLogger) (*model.VeleroBackupStorageLocation, error)
 	ScaleDeployment(clientk client.Client, k8sclient *kubernetes.Clientset, labelSelector, namespace, deploymentName string, replicaCount int32, log *zap.SugaredLogger) error
+	CheckDeployment(k8sclient *kubernetes.Clientset, labelSelector, namespace string, log *zap.SugaredLogger) (bool, error)
 }
 
 type K8sImpl struct {
 }
 
-//PopulateConnData crestes the connection object thats used to communicate to object store
+//PopulateConnData creates the connection object thats used to communicate to object store
 func (k *K8sImpl) PopulateConnData(dclient dynamic.Interface, client client.Client, veleroNamespace, backupName string, log *zap.SugaredLogger) (*model.ConnectionData, error) {
 	log.Infof("Populating connection data from backup '%v' in namespace '%s'", backupName, veleroNamespace)
 
@@ -63,6 +64,8 @@ func (k *K8sImpl) PopulateConnData(dclient dynamic.Interface, client client.Clie
 	conData.Endpoint = bsl.Spec.Config.S3URL
 	conData.BucketName = bsl.Spec.ObjectStorage.Bucket
 	conData.BackupName = backupName
+	// For now, we will look at the first POST hook in the first Hook in Backup
+	conData.Timeout = backup.Spec.Hooks.Resources[0].Post[0].Exec.Timeout
 
 	return &conData, nil
 
@@ -190,11 +193,6 @@ func (k *K8sImpl) ScaleDeployment(clientk client.Client, k8sclient *kubernetes.C
 	}
 
 	for !done {
-		//pods, err := k8sclient.CoreV1().Pods(namespace).List(context.TODO(), listOptions)
-		//if err != nil {
-		//	return err
-		//}
-
 		//Scale up
 		if desiredValue > currentValue {
 			log.Info("Scaling up pods ...")
@@ -249,4 +247,20 @@ func (k *K8sImpl) ScaleDeployment(clientk client.Client, k8sclient *kubernetes.C
 	log.Infof("Successfully scaled deployment '%s' in namespace '%s' from '%v' to '%v' replicas ", deploymentName, namespace, currentValue, replicaCount)
 	return nil
 
+}
+
+// CheckDeployment checks the existence of a deployment
+func (k *K8sImpl) CheckDeployment(k8sclient *kubernetes.Clientset, labelSelector, namespace string, log *zap.SugaredLogger) (bool, error) {
+	log.Infof("Checking deployment with labelselector '%v' exists in namespace '%s", labelSelector, namespace)
+	listOptions := metav1.ListOptions{LabelSelector: labelSelector}
+	deployment, err := k8sclient.AppsV1().Deployments(namespace).List(context.TODO(), listOptions)
+	if err != nil {
+		return false, err
+	}
+
+	// There should be one deployment of kibana
+	if len(deployment.Items) == 1 {
+		return true, nil
+	}
+	return false, nil
 }
