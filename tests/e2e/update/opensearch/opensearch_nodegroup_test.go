@@ -4,14 +4,17 @@
 package opensearch
 
 import (
+	. "github.com/onsi/ginkgo/v2"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/update"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-
-	. "github.com/onsi/ginkgo/v2"
 )
+
+const NodeGroupLabel = "node-group"
 
 type OpensearchMasterNodeGroupModifier struct {
 	NodeReplicas int32
@@ -39,7 +42,7 @@ func (u OpensearchMasterNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Elasticsearch.Nodes =
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
-				Name:      "es-master",
+				Name:      string(vmov1.MasterRole),
 				Replicas:  u.NodeReplicas,
 				Roles:     []vmov1.NodeRole{vmov1.MasterRole},
 				Resources: newResources(u.NodeMemory),
@@ -56,9 +59,9 @@ func (u OpensearchIngestNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Elasticsearch.Nodes =
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
-				Name:      "ingest",
+				Name:      string(vmov1.IngestRole),
 				Replicas:  u.NodeReplicas,
-				Roles:     []vmov1.NodeRole{vmov1.IngestRole},
+				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.IngestRole},
 				Storage:   newNodeStorage(u.NodeStorage),
 				Resources: newResources(u.NodeMemory),
 			},
@@ -73,9 +76,9 @@ func (u OpensearchDataNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Elasticsearch.Nodes =
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
-				Name:      "es-data",
+				Name:      string(vmov1.DataRole),
 				Replicas:  u.NodeReplicas,
-				Roles:     []vmov1.NodeRole{vmov1.DataRole},
+				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole},
 				Storage:   newNodeStorage(u.NodeStorage),
 				Resources: newResources(u.NodeMemory),
 			},
@@ -101,42 +104,27 @@ func newResources(requestMemory string) *corev1.ResourceRequirements {
 }
 
 var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
-	//t.It("opensearch explicit master replicas", func() {
-	//	m := OpensearchMasterNodeGroupModifier{NodeReplicas: 2, NodeMemory: "256Mi", NodeStorage: "2Gi"}
-	//	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-	//	validatePods(masterNodeName, constants.VerrazzanoSystemNamespace, 2, false)
-	//})
-	//
-	//t.It("opensearch explicit master node memory", func() {
-	//	m := OpensearchMasterNodeGroupModifier{NodeReplicas: 1, NodeMemory: updatedNodeMemory, NodeStorage: "2Gi"}
-	//	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-	//	validatePods(masterNodeName, constants.VerrazzanoSystemNamespace, 1, false)
-	//	validatePodMemoryRequest(dataNodeName, constants.VerrazzanoSystemNamespace, "es-master", updatedNodeMemory)
-	//})
-	//
-	//t.It("opensearch explicit ingest replicas", func() {
-	//	m := OpensearchIngestNodeGroupModifier{NodeReplicas: 2, NodeMemory: "256Mi", NodeStorage: "2Gi"}
-	//	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-	//	validatePods(ingestNodeName, constants.VerrazzanoSystemNamespace, 2, true)
-	//})
-	//
-	//t.It("opensearch explicit ingest node memory", func() {
-	//	m := OpensearchIngestNodeGroupModifier{NodeReplicas: 1, NodeMemory: updatedNodeMemory, NodeStorage: "2Gi"}
-	//	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-	//	validatePods(ingestNodeName, constants.VerrazzanoSystemNamespace, 1, true)
-	//	validatePodMemoryRequest(dataNodeName, constants.VerrazzanoSystemNamespace, "es-ingest", updatedNodeMemory)
-	//})
-	//
-	//t.It("opensearch explicit data replicas", func() {
-	//	m := OpensearchDataNodeArgsModifier{NodeReplicas: 1, NodeMemory: "256Mi"}
-	//	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-	//	validatePods(dataNodeName, constants.VerrazzanoSystemNamespace, 1, false)
-	//})
-	//
-	//t.It("opensearch explicit data node memory", func() {
-	//	m := OpensearchDataNodeArgsModifier{NodeReplicas: 1, NodeMemory: updatedNodeMemory, NodeStorage: "2Gi"}
-	//	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-	//	validatePods(dataNodeName, constants.VerrazzanoSystemNamespace, 1, false)
-	//	validatePodMemoryRequest(dataNodeName, constants.VerrazzanoSystemNamespace, "es-data", updatedNodeMemory)
-	//})
+	t.It("opensearch update master node group", func() {
+		m := OpensearchMasterNodeGroupModifier{NodeReplicas: 2, NodeMemory: "512Mi", NodeStorage: "2Gi"}
+		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+		update.ValidatePods(string(vmov1.MasterRole), NodeGroupLabel, constants.VerrazzanoSystemNamespace, 2, false)
+		update.ValidatePodMemoryRequest(map[string]string{NodeGroupLabel: string(vmov1.MasterRole)},
+			constants.VerrazzanoSystemNamespace, "es-master", "512Mi")
+	})
+
+	t.It("opensearch update ingest node group", func() {
+		m := OpensearchIngestNodeGroupModifier{NodeReplicas: 2, NodeMemory: "512Mi", NodeStorage: "2Gi"}
+		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+		update.ValidatePods(string(vmov1.IngestRole), NodeGroupLabel, constants.VerrazzanoSystemNamespace, 2, false)
+		update.ValidatePodMemoryRequest(map[string]string{NodeGroupLabel: string(vmov1.IngestRole)},
+			constants.VerrazzanoSystemNamespace, "es-", "512Mi")
+	})
+
+	t.It("opensearch explicit data replicas", func() {
+		m := OpensearchDataNodeGroupModifier{NodeReplicas: 2, NodeMemory: "512Mi", NodeStorage: "2Gi"}
+		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+		update.ValidatePods(string(vmov1.DataRole), NodeGroupLabel, constants.VerrazzanoSystemNamespace, 2, false)
+		update.ValidatePodMemoryRequest(map[string]string{NodeGroupLabel: string(vmov1.DataRole)},
+			constants.VerrazzanoSystemNamespace, "es-", "512Mi")
+	})
 })

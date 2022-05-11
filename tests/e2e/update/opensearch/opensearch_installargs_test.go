@@ -9,14 +9,9 @@ import (
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
-	"github.com/verrazzano/verrazzano/pkg/constants"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/update"
 )
 
@@ -33,6 +28,7 @@ const (
 	//defaultProdIngestCount = 1
 	//defaultProdDataCount   = 3
 	//defaultDevMasterCount  = 1
+	AppLabel = "app"
 )
 
 type OpensearchMasterNodeArgsModifier struct {
@@ -130,10 +126,10 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 				expectedMasterRunning = 3
 				expectedIngestRunning = 1
 				expectedDataRunning = 3
-				validatePods(ingestNodeName, constants.VerrazzanoSystemNamespace, expectedIngestRunning, false)
-				validatePods(dataNodeName, constants.VerrazzanoSystemNamespace, expectedDataRunning, false)
+				update.ValidatePods(ingestNodeName, AppLabel, constants.VerrazzanoSystemNamespace, expectedIngestRunning, false)
+				update.ValidatePods(dataNodeName, AppLabel, constants.VerrazzanoSystemNamespace, expectedDataRunning, false)
 			}
-			validatePods(masterNodeName, constants.VerrazzanoSystemNamespace, expectedMasterRunning, false)
+			update.ValidatePods(masterNodeName, AppLabel, constants.VerrazzanoSystemNamespace, expectedMasterRunning, false)
 		})
 	})
 
@@ -189,58 +185,6 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 	//})
 
 })
-
-func validatePods(deployName string, nameSpace string, expectedPodsRunning uint32, hasPending bool) {
-	Eventually(func() bool {
-		var err error
-		pods, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": deployName}}, nameSpace)
-		if err != nil {
-			return false
-		}
-		// Compare the number of running/pending pods to the expected numbers
-		var runningPods uint32 = 0
-		var pendingPods = false
-		for _, pod := range pods {
-			if pod.Status.Phase == corev1.PodRunning {
-				runningPods++
-			}
-			if pod.Status.Phase == corev1.PodPending {
-				pendingPods = true
-			}
-		}
-		return runningPods == expectedPodsRunning && pendingPods == hasPending
-	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get correct number of running and pending pods")
-}
-
-//func validatePodMemoryRequest(deployName string, nameSpace, containerName, expectedMemory string) {
-//	Eventually(func() bool {
-//		var err error
-//		pods, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": deployName}}, nameSpace)
-//		if err != nil {
-//			return false
-//		}
-//		memoryMatchedContainers := 0
-//		for _, pod := range pods {
-//			for _, container := range pod.Spec.Containers {
-//				if container.Name != containerName {
-//					continue
-//				}
-//				expectedNodeMemory, err := resource.ParseQuantity(expectedMemory)
-//				if err != nil {
-//					pkg.Log(pkg.Error, err.Error())
-//					return false
-//				}
-//				pkg.Log(pkg.Info,
-//					fmt.Sprintf("Chekcing container memory request %v to match the expected value %s",
-//						container.Resources.Requests.Memory(), expectedMemory))
-//				if container.Resources.Requests.Memory() == &expectedNodeMemory {
-//					memoryMatchedContainers++
-//				}
-//			}
-//		}
-//		return memoryMatchedContainers == len(pods)
-//	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find container with right memory settings")
-//}
 
 //func validatePodStorage(deployName string, nameSpace string, expectedStorage uint32, hasPending bool) {
 //	Eventually(func() bool {
