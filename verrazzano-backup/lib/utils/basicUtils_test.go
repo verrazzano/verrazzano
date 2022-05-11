@@ -91,3 +91,27 @@ func TestReadTempCredsFile(t *testing.T) {
 	assert.Equal(t, "", data2)
 	assert.Nil(t, err)
 }
+
+// TestGetComponent tests the GetComponent method for the following use case.
+// GIVEN a file with a single line
+// WHEN the file exists
+// THEN read and return the single line
+func TestGetComponent(t *testing.T) {
+	file, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("component-%s-hook-*.log", strings.ToLower("TEST")))
+	if err != nil {
+		fmt.Printf("Unable to create temp file")
+		os.Exit(1)
+	}
+	d1 := []byte("opensearch")
+	file.Write(d1)
+	file.Close()
+
+	value, err := utils.GetComponent(file.Name())
+	assert.Nil(t, err)
+	assert.Equal(t, value, "opensearch")
+	os.Remove(file.Name())
+
+	_, err = utils.GetComponent("/tmp/foo")
+	assert.NotNil(t, err)
+
+}

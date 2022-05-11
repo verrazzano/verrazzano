@@ -134,7 +134,7 @@ func GetEnvWithDefault(key, defaultValue string) string {
 // GetComponent retrieves component info from file
 func GetComponent(filePath string) (string, error) {
 	var line string
-	_, err := os.Stat(constants.ComponentPath)
+	_, err := os.Stat(filePath)
 	if err != nil {
 		return "", err
 	}

@@ -31,9 +31,9 @@ func logHelper() (*zap.SugaredLogger, string) {
 }
 
 // TestEnsureOpenSearchIsReachable tests the EnsureOpenSearchIsReachable method for the following use case.
-// GIVEN opensearch object
-// WHEN invoked with opensearch URL
-// THEN verifies whether opensearch is reachable or not
+// GIVEN OpenSearch object
+// WHEN invoked with OpenSearch URL
+// THEN verifies whether OpenSearch is reachable or not
 func TestEnsureOpenSearchIsReachable(t *testing.T) {
 	log, f := logHelper()
 	defer os.Remove(f)
@@ -46,7 +46,7 @@ func TestEnsureOpenSearchIsReachable(t *testing.T) {
 }
 
 // TestRegisterSnapshotRepository tests the RegisterSnapshotRepository method for the following use case.
-// GIVEN opensearch object
+// GIVEN OpenSearch object
 // WHEN invoked with snapshot data and creds
 // THEN registers a repository to object store
 func TestRegisterSnapshotRepository(t *testing.T) {
@@ -69,9 +69,9 @@ func TestRegisterSnapshotRepository(t *testing.T) {
 }
 
 // TestTriggerSnapshot tests the TriggerSnapshot method for the following use case.
-// GIVEN opensearch object
+// GIVEN OpenSearch object
 // WHEN invoked with snapshot name
-// THEN creates a snaphot in object store
+// THEN creates a snapshot in object store
 func TestTriggerSnapshot(t *testing.T) {
 	log, f := logHelper()
 	defer os.Remove(f)
@@ -84,7 +84,7 @@ func TestTriggerSnapshot(t *testing.T) {
 }
 
 // TestCheckSnapshotProgress tests the CheckSnapshotProgress method for the following use case.
-// GIVEN opensearch object
+// GIVEN OpenSearch object
 // WHEN invoked with snapshot name
 // THEN tracks snapshot progress towards completion
 func TestCheckSnapshotProgress(t *testing.T) {
@@ -99,7 +99,7 @@ func TestCheckSnapshotProgress(t *testing.T) {
 }
 
 // TestDeleteDataStreams tests the DeleteData method for the following use case.
-// GIVEN opensearch object
+// GIVEN OpenSearch object
 // WHEN invoked with logger
 // THEN deletes data from Opensearch cluster
 func TestDeleteDataStreams(t *testing.T) {
@@ -112,7 +112,7 @@ func TestDeleteDataStreams(t *testing.T) {
 }
 
 // TestTriggerSnapshot tests the TriggerRestore method for the following use case.
-// GIVEN opensearch object
+// GIVEN OpenSearch object
 // WHEN invoked with snapshot name
 // THEN creates a restore from object store from given snapshot name
 func TestTriggerRestore(t *testing.T) {
@@ -124,4 +124,19 @@ func TestTriggerRestore(t *testing.T) {
 	c.BackupName = "mango"
 	err := o.TriggerRestore(&c, log)
 	assert.NotNil(t, err)
+}
+
+// TestCheckRestoreProgress tests the CheckRestoreProgress method for the following use case.
+// GIVEN OpenSearch object
+// WHEN invoked with snapshot name
+// THEN tracks snapshot restore towards completion
+func TestCheckRestoreProgress(t *testing.T) {
+	log, f := logHelper()
+	defer os.Remove(f)
+
+	o := opensearch.Opensearch(&opensearch.OpensearchImpl{})
+	var c types.ConnectionData
+	c.BackupName = "mango"
+	err := o.CheckRestoreProgress(&c, log)
+	assert.Nil(t, err)
 }

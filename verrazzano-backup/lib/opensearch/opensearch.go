@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-//EnsureOpenSearchIsReachable is used determine whether opensearch cluster is reachable
+//EnsureOpenSearchIsReachable is used determine whether OpenSearch cluster is reachable
 func (o *OpensearchImpl) EnsureOpenSearchIsReachable(url string, conData *types.ConnectionData, log *zap.SugaredLogger) error {
 	log.Infof("Checking if cluster is reachable")
 	var osinfo types.OpenSearchClusterInfo
@@ -61,7 +61,7 @@ func (o *OpensearchImpl) EnsureOpenSearchIsReachable(url string, conData *types.
 	return nil
 }
 
-//EnsureOpenSearchIsHealthy ensures opensearch cluster is healthy
+//EnsureOpenSearchIsHealthy ensures OpenSearch cluster is healthy
 // Verifies if cluster is reachable
 // Verifies if health url is reachable
 // Verifies health status is green
@@ -197,7 +197,7 @@ func (o *OpensearchImpl) UpdateKeystore(client kubernetes.Interface, cfg *rest.C
 
 }
 
-//ReloadOpensearchSecureSettings used to reload secure settings once object store keys are updated
+//ReloadOpenSearchSecureSettings used to reload secure settings once object store keys are updated
 func (o *OpensearchImpl) ReloadOpensearchSecureSettings(log *zap.SugaredLogger) error {
 	var secureSettings types.OpenSearchSecureSettingsReloadStatus
 	url := fmt.Sprintf("%s/_nodes/reload_secure_settings", constants.OpenSearchURL)
@@ -212,7 +212,7 @@ func (o *OpensearchImpl) ReloadOpensearchSecureSettings(log *zap.SugaredLogger) 
 	return fmt.Errorf("Not all nodes were updated successfully. Total = '%v', Failed = '%v' , Successful = '%v'", secureSettings.ClusterNodes.Total, secureSettings.ClusterNodes.Failed, secureSettings.ClusterNodes.Successful)
 }
 
-//RegisterSnapshotRepository Register an opbject store with Opensearch using the s3-plugin
+//RegisterSnapshotRepository Register an opbject store with OpenSearch using the s3-plugin
 func (o *OpensearchImpl) RegisterSnapshotRepository(secretData *types.ConnectionData, log *zap.SugaredLogger) error {
 	log.Infof("Registering s3 backend repository '%s'", constants.OpeSearchSnapShotRepoName)
 	var snapshotPayload types.OpenSearchSnapshotRequestPayload
@@ -416,7 +416,7 @@ func (o *OpensearchImpl) CheckRestoreProgress(conData *types.ConnectionData, log
 	return nil
 }
 
-//Backup - Toplevel method to invoke Opensearch backup
+//Backup - Toplevel method to invoke OpenSearch backup
 func (o *OpensearchImpl) Backup(secretData *types.ConnectionData, log *zap.SugaredLogger) error {
 	log.Info("Start backup steps ....")
 	err := o.RegisterSnapshotRepository(secretData, log)
