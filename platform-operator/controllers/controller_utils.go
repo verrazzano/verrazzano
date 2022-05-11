@@ -4,6 +4,8 @@
 package controllers
 
 import (
+	"context"
+
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -43,4 +45,16 @@ func componentContainsResource(Overrides []installv1alpha1.Overrides, object cli
 		}
 	}
 	return false
+}
+
+// UpdateVerrazzanoForHelmOverrides mutates the status subresource of Verrazzano Custom Resource specific
+// to a component to cause a reconcile
+func UpdateVerrazzanoForHelmOverrides(c client.Client, componentCtx spi.ComponentContext, componentName string) error {
+	cr := componentCtx.ActualCR()
+	cr.Status.Components[componentName].ReconcilingGeneration = 1
+	err := c.Status().Update(context.TODO(), cr)
+	if err == nil {
+		return nil
+	}
+	return err
 }

@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+// reconcileVerrazzanoTLS reconciles secret containing the admin ca bundle in the Multi Cluster namespace
 func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	if !r.multiclusterNamespaceExists() {

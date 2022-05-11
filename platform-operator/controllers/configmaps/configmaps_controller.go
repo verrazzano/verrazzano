@@ -5,20 +5,22 @@ package configmaps
 
 import (
 	"context"
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"time"
 
-	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers"
-	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+
+	"go.uber.org/zap"
 )
 
 // VerrazzanoConfigMapsReconciler reconciles ConfigMaps.
@@ -36,6 +38,7 @@ func (r *VerrazzanoConfigMapsReconciler) SetupWithManager(mgr ctrl.Manager) erro
 		Complete(r)
 }
 
+// Reconcile the ConfigMap
 func (r *VerrazzanoConfigMapsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	if ctx == nil {
@@ -66,6 +69,8 @@ func (r *VerrazzanoConfigMapsReconciler) Reconcile(ctx context.Context, req ctrl
 	return ctrl.Result{}, nil
 }
 
+// reconcileHelmOverrideConfigMap looks through the Verrazzano CR for the ConfigMap
+// if the request is from the same namespace as the CR
 func (r *VerrazzanoConfigMapsReconciler) reconcileHelmOverrideConfigMap(ctx context.Context, req ctrl.Request, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 
 	// Get the ConfigMap present in the Verrazzano CR namespace
@@ -86,7 +91,7 @@ func (r *VerrazzanoConfigMapsReconciler) reconcileHelmOverrideConfigMap(ctx cont
 		}
 
 		if componentName, ok := controllers.VzContainsResource(componentCtx, configMap); ok {
-			err := r.updateVerrazzanoForHelmOverrides(componentCtx, componentName)
+			err := controllers.UpdateVerrazzanoForHelmOverrides(r.Client, componentCtx, componentName)
 			if err != nil {
 				r.log.Errorf("Failed to reconcile ConfigMap: %v", err)
 				return newRequeueWithDelay(), err
@@ -97,16 +102,7 @@ func (r *VerrazzanoConfigMapsReconciler) reconcileHelmOverrideConfigMap(ctx cont
 	return ctrl.Result{}, nil
 }
 
-func (r *VerrazzanoConfigMapsReconciler) updateVerrazzanoForHelmOverrides(componentCtx spi.ComponentContext, componentName string) error {
-	cr := componentCtx.ActualCR()
-	cr.Status.Components[componentName].ReconcilingGeneration = 1
-	err := r.Status().Update(context.TODO(), cr)
-	if err == nil {
-		return nil
-	}
-	return err
-}
-
+// initialize logger for ConfigMap
 func (r *VerrazzanoConfigMapsReconciler) initLogger(cm corev1.ConfigMap) (ctrl.Result, error) {
 	// Get the resource logger needed to log message using 'progress' and 'once' methods
 	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{

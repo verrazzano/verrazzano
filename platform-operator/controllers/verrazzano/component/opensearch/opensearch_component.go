@@ -51,7 +51,7 @@ func (o opensearchComponent) GetHelmOverrides(_ spi.ComponentContext) []vzapi.Ov
 }
 
 // IsMonitoringEnabled indicates whether monitoring of Helm override sources is enabled for a component
-func (c opensearchComponent) IsMonitoringEnabled(_ spi.ComponentContext) bool {
+func (o opensearchComponent) IsMonitoringEnabled(_ spi.ComponentContext) bool {
 	return true
 }
 
