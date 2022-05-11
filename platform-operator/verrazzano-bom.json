@@ -409,7 +409,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "15.0.2-20220428013239-620b97bc83",
+              "tag": "15.0.2-20220510113519-620b97bc83",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -421,7 +421,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "1.3.0-20220226065029-dc513a7"
+              "tag": "1.3.0-20220510114742-dc513a7"
             }
           ]
         }
