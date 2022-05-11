@@ -909,7 +909,7 @@
           "type": "hidden"
         },
         {
-          "alias": "Total Heap Used",
+          "alias": "Heap Used",
           "align": "auto",
           "colorMode": null,
           "colors": [
@@ -926,7 +926,7 @@
           "unit": "decbytes"
         },
         {
-          "alias": "Total Heap Max",
+          "alias": "Heap Max",
           "align": "auto",
           "colorMode": null,
           "colors": [
@@ -977,7 +977,7 @@
           "unit": "short"
         },
         {
-          "alias": "Total Heap Used %",
+          "alias": "Heap Used %",
           "align": "auto",
           "colorMode": "value",
           "colors": [
@@ -995,6 +995,21 @@
           ],
           "type": "number",
           "unit": "percentunit"
+        },
+        {
+          "alias": "Verrazzano Cluster",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "pattern": "verrazzano_cluster",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
         },
         {
           "alias": "",
@@ -1176,7 +1191,7 @@
           "type": "hidden"
         },
         {
-          "alias": "Free Physical Memory",
+          "alias": "Free Memory",
           "align": "auto",
           "colorMode": "value",
           "colors": [
@@ -1213,6 +1228,21 @@
           "pattern": "machine",
           "thresholds": [],
           "type": "number",
+          "unit": "short"
+        },
+        {
+          "alias": "Verrazzano Cluster",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "pattern": "verrazzano_cluster",
+          "thresholds": [],
+          "type": "string",
           "unit": "short"
         },
         {
@@ -1332,6 +1362,21 @@
           "unit": "percentunit"
         },
         {
+          "alias": "Verrazzano Cluster",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "pattern": "verrazzano_cluster",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
           "alias": "",
           "align": "auto",
           "colorMode": null,
@@ -1448,6 +1493,21 @@
           "unit": "percentunit"
         },
         {
+          "alias": "Verrazzano Cluster",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "pattern": "verrazzano_cluster",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
           "alias": "",
           "align": "auto",
           "colorMode": null,
@@ -1559,6 +1619,21 @@
           "thresholds": [],
           "type": "number",
           "unit": "ms"
+        },
+        {
+          "alias": "Verrazzano Cluster",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "pattern": "verrazzano_cluster",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
         },
         {
           "alias": "",
@@ -1673,6 +1748,21 @@
           "unit": "none"
         },
         {
+          "alias": "Verrazzano Cluster",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "pattern": "verrazzano_cluster",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
           "alias": "",
           "align": "auto",
           "colorMode": null,
@@ -1783,6 +1873,21 @@
           "thresholds": [],
           "type": "number",
           "unit": "none"
+        },
+        {
+          "alias": "Verrazzano Cluster",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "pattern": "verrazzano_cluster",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
         },
         {
           "alias": "",
@@ -2188,6 +2293,21 @@
           "unit": "short"
         },
         {
+          "alias": "Verrazzano Cluster",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "pattern": "verrazzano_cluster",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
           "alias": "",
           "align": "auto",
           "colorMode": null,
@@ -2298,6 +2418,21 @@
           "thresholds": [],
           "type": "number",
           "unit": "none"
+        },
+        {
+          "alias": "Verrazzano Cluster",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "pattern": "verrazzano_cluster",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
         },
         {
           "alias": "",
@@ -2436,6 +2571,21 @@
           "unit": "short"
         },
         {
+          "alias": "Verrazzano Cluster",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "pattern": "verrazzano_cluster",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
           "alias": "",
           "align": "auto",
           "colorMode": null,
@@ -2566,6 +2716,21 @@
           "linkUrl": "/d/coh-cache-details?var-ClusterName=$ClusterName&var-ServiceName=${__cell_3}&var-CacheName=${__cell}",
           "mappingType": 1,
           "pattern": "cache",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
+          "alias": "Verrazzano Cluster",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "pattern": "verrazzano_cluster",
           "thresholds": [],
           "type": "string",
           "unit": "short"

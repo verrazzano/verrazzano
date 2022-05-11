@@ -5,13 +5,8 @@ package istio
 
 import (
 	"bytes"
-	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	v1 "k8s.io/api/core/v1"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 	"text/template"
 
@@ -27,7 +22,7 @@ const (
 	ExternalIPArg = "gateways.istio-ingressgateway.externalIPs"
 
 	//meshConfigEnableTracingValue is a boolean flag to enable/disable tracing in the istio mesh
-	meshConfigEnableTracingValue = "spec.values.meshConfig.enableTracing"
+	meshConfigEnableTracingValue = "meshConfig.enableTracing"
 
 	//meshConfigTracingAddress is the Jaeger collector address
 	meshConfigTracingAddress = "meshConfig.defaultConfig.tracing.zipkin.address"
@@ -104,16 +99,18 @@ func BuildIstioOperatorYaml(ctx spi.ComponentContext, comp *vzapi.IstioComponent
 
 	var externalIPYAMLTemplateValue = ""
 	// Tracing is disabled by default
-	enableTracing, err := vzyaml.Expand(leftMargin, false, meshConfigEnableTracingValue, "false")
+	installArgs := append([]vzapi.InstallArgs{{Name: meshConfigEnableTracingValue, Value: "false"}}, comp.IstioInstallArgs...)
+
+	// Build a list of YAML strings from the istioComponent initargs, one for each arg.
+	expandedYamls := []string{}
+
+	// get any install args for Jaeger
+	jaegerArgs, err := configureJaeger(ctx)
 	if err != nil {
 		return "", err
 	}
-	// Build a list of YAML strings from the istioComponent initargs, one for each arg.
-	expandedYamls := []string{
-		enableTracing,
-	}
 
-	for _, arg := range comp.IstioInstallArgs {
+	for _, arg := range append(jaegerArgs, installArgs...) {
 		values := arg.ValueList
 		if len(values) == 0 {
 			values = []string{arg.Value}
@@ -145,10 +142,6 @@ func BuildIstioOperatorYaml(ctx spi.ComponentContext, comp *vzapi.IstioComponent
 		return "", err
 	}
 	expandedYamls = append(expandedYamls, gatewayYaml)
-	expandedYamls, err = addJaegerYAML(ctx, expandedYamls)
-	if err != nil {
-		return "", err
-	}
 	// Merge all of the expanded YAMLs into a single YAML,
 	// second has precedence over first, third over second, and so forth.
 	merged, err := vzyaml.ReplacementMerge(expandedYamls...)
@@ -166,40 +159,6 @@ func addYAML(name string, values, expandedYamls []string) ([]string, error) {
 		return expandedYamls, err
 	}
 	return append(expandedYamls, yamlString), nil
-}
-
-func addJaegerYAML(ctx spi.ComponentContext, expandedYamls []string) ([]string, error) {
-	if !vzconfig.IsJaegerOperatorEnabled(ctx.EffectiveCR()) {
-		return expandedYamls, nil
-	}
-
-	services := &v1.ServiceList{}
-	selector := clipkg.MatchingLabels{
-		constants.KubernetesAppLabel: constants.JaegerCollectorService,
-	}
-	if err := ctx.Client().List(context.TODO(), services, selector); err != nil {
-		return expandedYamls, err
-	}
-
-	for _, service := range services.Items {
-		// do not use the headless service
-		if !strings.Contains(service.Name, "headless") {
-			port := zipkinPort(service)
-			collectorURL := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
-				service.Name,
-				service.Namespace,
-				port,
-			)
-
-			var err error
-			expandedYamls, err = addYAML(meshConfigTracingAddress, []string{collectorURL}, expandedYamls)
-			if err != nil {
-				return expandedYamls, err
-			}
-			return addYAML(meshConfigTracingTLSMode, []string{"ISTIO_MUTUAL"}, expandedYamls)
-		}
-	}
-	return expandedYamls, nil
 }
 
 // Change the YAML from

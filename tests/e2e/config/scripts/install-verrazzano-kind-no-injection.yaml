@@ -19,5 +19,5 @@ spec:
     prometheusNodeExporter:
       enabled: true
     istio:
-      injection-enabled: false
+      injectionEnabled: false
 

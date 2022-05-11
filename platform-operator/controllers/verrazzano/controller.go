@@ -291,30 +291,33 @@ func (r *Reconciler) ProcUninstallingState(vzctx vzcontext.VerrazzanoContext) (c
 
 // ProcUpgradingState processes the CR while in the upgrading state
 func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
-	vz := vzctx.ActualCR
+	actualCR := vzctx.ActualCR
 	log := vzctx.Log
 	log.Debug("Entering ProcUpgradingState")
 
 	// Check if Verrazzano resource is being deleted
-	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.procDelete(context.TODO(), log, vz)
+	if !actualCR.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.procDelete(context.TODO(), log, actualCR)
 	}
 
 	// check for need to pause the upgrade due to VPO update
-	if bomVersion, isNewer := isOperatorNewerVersionThanCR(vz.Spec.Version); isNewer {
+	if bomVersion, isNewer := isOperatorNewerVersionThanCR(actualCR.Spec.Version); isNewer {
 		// upgrade needs to be restarted due to newer operator
 		log.Progressf("Upgrade is being paused pending Verrazzano version update to version %s", bomVersion)
 
-		err := r.updateStatus(log, vz,
-			fmt.Sprintf("Verrazzano upgrade to version %s paused. Upgrade will be performed when version is updated to %s", vz.Spec.Version, bomVersion),
+		err := r.updateStatus(log, actualCR,
+			fmt.Sprintf("Verrazzano upgrade to version %s paused. Upgrade will be performed when version is updated to %s", actualCR.Spec.Version, bomVersion),
 			installv1alpha1.CondUpgradePaused)
 		return newRequeueWithDelay(), err
 	}
 
-	if result, err := r.reconcileUpgrade(log, vz); err != nil {
-		return newRequeueWithDelay(), err
-	} else if vzctrl.ShouldRequeue(result) {
-		return result, nil
+	// Only upgrade if Version has changed.  When upgrade completes, it will update the status version, see upgrade.go
+	if len(actualCR.Spec.Version) > 0 && actualCR.Spec.Version != actualCR.Status.Version {
+		if result, err := r.reconcileUpgrade(log, actualCR); err != nil {
+			return newRequeueWithDelay(), err
+		} else if vzctrl.ShouldRequeue(result) {
+			return result, nil
+		}
 	}
 
 	// Install any new components and do any updates to existing components
@@ -325,9 +328,9 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 	}
 
 	// Upgrade done along with any post-upgrade installations of new components that are enabled by default.
-	msg := fmt.Sprintf("Verrazzano successfully upgraded to version %s", vz.Spec.Version)
+	msg := fmt.Sprintf("Verrazzano successfully upgraded to version %s", actualCR.Spec.Version)
 	log.Once(msg)
-	if err := r.updateStatus(log, vz, msg, installv1alpha1.CondUpgradeComplete); err != nil {
+	if err := r.updateStatus(log, actualCR, msg, installv1alpha1.CondUpgradeComplete); err != nil {
 		return newRequeueWithDelay(), err
 	}
 	return ctrl.Result{}, nil
@@ -1251,15 +1254,6 @@ func createPredicate(f func(e event.CreateEvent) bool) predicate.Funcs {
 // Clean up old resources from a 1.0 release where jobs, etc were in the default namespace
 // Add a watch for each Verrazzano resource
 func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
-	if unitTesting {
-		return ctrl.Result{}, nil
-	}
-
-	// Check if init done for this resource
-	_, ok := initializedSet[vz.Name]
-	if ok {
-		return ctrl.Result{}, nil
-	}
 
 	// Add our finalizer if not already added
 	if !vzstring.SliceContainsString(vz.ObjectMeta.Finalizers, finalizerName) {
@@ -1268,6 +1262,16 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog
 		if err := r.Update(context.TODO(), vz); err != nil {
 			return newRequeueWithDelay(), err
 		}
+	}
+
+	if unitTesting {
+		return ctrl.Result{}, nil
+	}
+
+	// Check if init done for this resource
+	_, ok := initializedSet[vz.Name]
+	if ok {
+		return ctrl.Result{}, nil
 	}
 
 	// Cleanup old resources that might be left around when the install used to be done

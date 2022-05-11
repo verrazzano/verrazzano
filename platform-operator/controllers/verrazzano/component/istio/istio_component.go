@@ -232,6 +232,9 @@ func (i istioComponent) GetDependencies() []string {
 }
 
 func (i istioComponent) PreUpgrade(context spi.ComponentContext) error {
+	if !vzconfig.IsApplicationOperatorEnabled(context.ActualCR()) {
+		return nil
+	}
 	context.Log().Infof("Stopping WebLogic domains that are have Envoy 1.7.3 sidecar")
 	return StopDomainsUsingOldEnvoy(context.Log(), context.Client())
 }
@@ -304,16 +307,6 @@ func removeIstioHelmSecrets(compContext spi.ComponentContext) error {
 		}
 	}
 	return nil
-}
-
-//zipkinPort retrieves the zipkin port from the service, if it is present. Defaults to 9411 for Jaeger collector
-func zipkinPort(service v1.Service) int32 {
-	for _, port := range service.Spec.Ports {
-		if port.Name == "http-zipkin" {
-			return port.Port
-		}
-	}
-	return 9411
 }
 
 func getOverridesString(ctx spi.ComponentContext) (string, error) {

@@ -14,7 +14,8 @@ import (
 	"time"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	"github.com/google/uuid"
+
+  "github.com/google/uuid"
 	"github.com/onsi/gomega"
 	vpClient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -214,6 +215,21 @@ func GetDaemonSet(namespace string, daemonSetName string) (*appsv1.DaemonSet, er
 		return nil, err
 	}
 	return daemonset, nil
+}
+
+// GetService returns a Service with the given name and namespace
+func GetService(namespace string, serviceName string) (*corev1.Service, error) {
+  // Get the Kubernetes clientset
+	clientSet, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+  }
+	svc, err := clientSet.CoreV1().Services(namespace).Get(context.TODO(), serviceName, metav1.GetOptions)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get Service %s from namespace %s: %v ", serviceName, namespace, err))
+		return nil, err
+	}
+	return svc, nil
 }
 
 // GetIngressList returns a list of ingresses in the given namespace

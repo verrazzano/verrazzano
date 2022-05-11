@@ -338,7 +338,6 @@ func (s *Syncer) updateLoggingDaemonSet(regSecret corev1.Secret, ds *appsv1.Daem
 
 const (
 	defaultClusterName   = constants.DefaultClusterName
-	defaultElasticURL    = "http://verrazzano-authproxy-elasticsearch:8775"
 	defaultSecretName    = "verrazzano-es-internal" //nolint:gosec //#gosec G101
 	esConfigMapName      = "fluentd-es-config"
 	esConfigMapURLKey    = "es-url"
@@ -477,7 +476,7 @@ func (s *Syncer) GetPrometheusHost() (string, error) {
 
 // getVzESURLSecret returns the elasticsearchURL and elasticsearchSecret from Verrazzano CR
 func (s *Syncer) getVzESURLSecret() (string, string, error) {
-	url := defaultElasticURL
+	url := vzconstants.DefaultOpensearchURL
 	secret := defaultSecretName
 	esConfig := corev1.ConfigMap{}
 	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: esConfigMapName, Namespace: constants.VerrazzanoSystemNamespace}, &esConfig)
