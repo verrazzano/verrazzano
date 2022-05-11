@@ -49,6 +49,23 @@ func TestVzContainsResource(t *testing.T) {
 	asserts.Empty(res1)
 }
 
+// TestVzContainsResourceMonitoringDisabled tests that if MonitorChanges is set to false,
+// then the component should be ignored and an empty string along with false bool value is
+// returned.
+func TestVzContainsResourceMonitoringDisabled(t *testing.T) {
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	vz := testVZ
+	*vz.Spec.Components.PrometheusOperator.MonitorChanges = false
+	compContext := fakeComponentContext(mock, &vz)
+	res0, ok0 := VzContainsResource(compContext, &testConfigMap)
+
+	asserts.False(ok0)
+	asserts.Empty(res0)
+}
+
 // TestUpdateVerrazzanoForHelmOverrides tests that the call to update Verrazzano Status
 // is made and doesn't return an error
 func TestUpdateVerrazzanoForHelmOverrides(t *testing.T) {
