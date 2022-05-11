@@ -231,19 +231,19 @@ func GetIngressList(namespace string) (*netv1.IngressList, error) {
 	return ingressList, nil
 }
 
-// GetGatewayList returns a list of gateways in the given namespace
-func GetGatewayList(namespace string) (*istionetv1beta1.GatewayList, error) {
+// GetVirtualServiceList returns a list of virtual services in the given namespace
+func GetVirtualServiceList(namespace string) (*istionetv1beta1.VirtualServiceList, error) {
 	// Get the Istio clientset
 	clientSet, err := k8sutil.GetIstioClientset()
 	if err != nil {
 		return nil, err
 	}
-	gatewayList, err := clientSet.NetworkingV1beta1().Gateways(namespace).List(context.TODO(), metav1.ListOptions{})
+	VirtualServiceList, err := clientSet.NetworkingV1beta1().VirtualServices(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get Gateways in namespace %s: %v ", namespace, err))
 		return nil, err
 	}
-	return gatewayList, nil
+	return VirtualServiceList, nil
 }
 
 // GetCertificateList returns a list of certificates in the given namespace

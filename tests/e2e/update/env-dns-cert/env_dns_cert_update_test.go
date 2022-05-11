@@ -88,21 +88,21 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 		currentEnvironmentName = cr.Spec.EnvironmentName
 		currentDNSDomain = cr.Spec.Components.DNS.Wildcard.Domain
 		validateIngressList(currentEnvironmentName, currentDNSDomain)
-		validateGatewayList(currentDNSDomain)
+		validateVirtualServiceList(currentDNSDomain)
 	})
 
 	t.It("Update and verify environment name", func() {
 		m := EnvironmentNameModifier{testEnvironmentName}
 		update.UpdateCR(m)
 		validateIngressList(testEnvironmentName, currentDNSDomain)
-		validateGatewayList(currentDNSDomain)
+		validateVirtualServiceList(currentDNSDomain)
 	})
 
 	t.It("Update and verify dns domain", func() {
 		m := WildcardDNSModifier{testDNSDomain}
 		update.UpdateCR(m)
 		validateIngressList(testEnvironmentName, testDNSDomain)
-		validateGatewayList(testDNSDomain)
+		validateVirtualServiceList(testDNSDomain)
 	})
 
 	t.It("Update and verify CA certificate", func() {
@@ -134,26 +134,26 @@ func validateIngressList(environmentName string, domain string) {
 			}
 		}
 		return true
-	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected that the ingresses contain the expected environment and domain names")
+	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected that the ingress hosts contain the expected environment and domain names")
 }
 
-func validateGatewayList(domain string) {
+func validateVirtualServiceList(domain string) {
 	Eventually(func() bool {
-		// Fetch the gateways for the deployed applications
-		gatewayList, err := pkg.GetGatewayList("")
+		// Fetch the virtual services for the deployed applications
+		virtualServiceList, err := pkg.GetVirtualServiceList("")
 		if err != nil {
 			log.Fatalf("Error while fetching GatewayList\n%s", err)
 		}
-		// Verify that the gateways contain the expected environment name and domain nameƒ
-		for _, gateway := range gatewayList.Items {
-			hostname := gateway.Spec.Servers[0].Hosts[0]
+		// Verify that the virtual services contain the expected environment name and domain nameƒ
+		for _, virtualService := range virtualServiceList.Items {
+			hostname := virtualService.Spec.Hosts[0]
 			if !strings.Contains(hostname, domain) {
-				log.Printf("Gateway %s in namespace %s with hostname %s must contain %s\n", gateway.Name, gateway.Namespace, hostname, domain)
+				log.Printf("Virtual Service %s in namespace %s with hostname %s must contain %s\n", virtualService.Name, virtualService.Namespace, hostname, domain)
 				return false
 			}
 		}
 		return true
-	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected that the application gateways contain the expected domain name")
+	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected that the application virtual service hosts contain the expected domain name")
 }
 
 func createCustomCACertificate(certName string, secretNamespace string, secretName string) {
