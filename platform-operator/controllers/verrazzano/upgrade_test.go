@@ -14,8 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-
 	oamapi "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -26,13 +24,13 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/rbac"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vzinstance"
-
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	appsv1 "k8s.io/api/apps/v1"
