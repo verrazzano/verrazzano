@@ -7,7 +7,9 @@ import (
 	"context"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+
 	"go.uber.org/zap"
+
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
