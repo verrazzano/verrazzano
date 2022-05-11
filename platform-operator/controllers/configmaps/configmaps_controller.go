@@ -45,6 +45,7 @@ func (r *VerrazzanoConfigMapsReconciler) Reconcile(ctx context.Context, req ctrl
 		ctx = context.TODO()
 	}
 
+	// Get Verrazzano from the cluster
 	vzList := &installv1alpha1.VerrazzanoList{}
 	listOpts := []client.ListOption{
 		client.InNamespace(""),
@@ -94,6 +95,7 @@ func (r *VerrazzanoConfigMapsReconciler) reconcileHelmOverrideConfigMap(ctx cont
 			return newRequeueWithDelay(), err
 		}
 
+		// Check if the ConfigMap is listed as an override source under a component
 		if componentName, ok := controllers.VzContainsResource(componentCtx, configMap); ok {
 			err := controllers.UpdateVerrazzanoForHelmOverrides(r.Client, componentCtx, componentName)
 			if err != nil {

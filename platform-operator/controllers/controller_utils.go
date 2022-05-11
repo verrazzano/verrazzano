@@ -51,9 +51,11 @@ func componentContainsResource(Overrides []installv1alpha1.Overrides, object cli
 // to a component to cause a reconcile
 func UpdateVerrazzanoForHelmOverrides(c client.Client, componentCtx spi.ComponentContext, componentName string) error {
 	cr := componentCtx.ActualCR()
+	// Return an error to requeue if Verrazzano Component Status hasn't been initialized
 	if cr.Status.Components == nil {
 		return fmt.Errorf("Components not initialized")
 	}
+	// Set ReconcilingGeneration to 1 to re-enter install flow
 	cr.Status.Components[componentName].ReconcilingGeneration = 1
 	err := c.Status().Update(context.TODO(), cr)
 	if err == nil {

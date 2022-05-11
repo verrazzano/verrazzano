@@ -106,20 +106,6 @@ func TestSecretReconciler(t *testing.T) {
 	asserts.NoError(err0)
 	asserts.Empty(res0)
 
-	request1 := newRequest(testNS, "test")
-	res1, err1 := reconciler.Reconcile(context.TODO(), request1)
-
-	// Expect an error and Requeue as the ConfigMap with this name does not exist
-	asserts.NotNil(err1)
-	asserts.Equal(true, res1.Requeue)
-
-	// Case where request namespace doesn't match with Verrazzano CR's namespace
-	request2 := newRequest("test0", "test1")
-	res2, err2 := reconciler.Reconcile(context.TODO(), request2)
-
-	// Do not expect an error and requeue this time as the request to Get the ConfigMap will not take place
-	asserts.Nil(err2)
-	asserts.Equal(false, res2.Requeue)
 }
 
 func runNamespaceErrorTest(t *testing.T, expectedErr error) {
@@ -175,8 +161,8 @@ func TestSecretRequeue(t *testing.T) {
 	asserts.Equal(true, res0.Requeue)
 }
 
-// TestConfigMapCall tests that the call to get the ConfigMap is placed
-func TestConfigMapCall(t *testing.T) {
+// TestSecretCall tests that the call to get the ConfigMap is placed
+func TestSecretCall(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)

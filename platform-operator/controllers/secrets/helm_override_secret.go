@@ -5,6 +5,8 @@ package secrets
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers"
@@ -22,8 +24,13 @@ func (r *VerrazzanoSecretsReconciler) reconcileHelmOverrideSecret(ctx context.Co
 
 	secret := &corev1.Secret{}
 	if vz.Namespace == req.Namespace {
+		// Get the secret if the request namespace matches verrazzano namespace
 		if err := r.Get(ctx, req.NamespacedName, secret); err != nil {
 			zap.S().Errorf("Failed to fetch Secret in Verrazzano CR namespace: %v", err)
+			// Do not retry if secret is deleted
+			if errors.IsNotFound(err) {
+				return reconcile.Result{}, nil
+			}
 			return newRequeueWithDelay(), err
 		}
 
