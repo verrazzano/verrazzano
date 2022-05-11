@@ -160,6 +160,10 @@ func TestUpgradeNoVersion(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	verrazzano := vzapi.Verrazzano{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &verrazzano)
+	asserts.NoError(err)
+	asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
 }
 
 // TestUpgradeSameVersion tests the reconcileUpgrade method for the following use case
@@ -249,6 +253,10 @@ func TestUpgradeSameVersion(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	verrazzano := vzapi.Verrazzano{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &verrazzano)
+	asserts.NoError(err)
+	asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
 }
 
 // TestUpgradeInitComponents tests the reconcileUpgrade method for the following use case
@@ -302,10 +310,10 @@ func TestUpgradeInitComponents(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
 	asserts.NotEqual(time.Duration(0), result.RequeueAfter)
-	vz := vzapi.Verrazzano{}
-	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &vz)
+	verrazzano := vzapi.Verrazzano{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &verrazzano)
 	asserts.NoError(err)
-	asserts.NotZero(len(vz.Status.Components), "Status.Components len should not be zero")
+	asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
 }
 
 // TestUpgradeStarted tests the reconcileUpgrade method for the following use case
