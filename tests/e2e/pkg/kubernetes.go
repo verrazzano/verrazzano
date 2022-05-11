@@ -1225,7 +1225,7 @@ func GetServiceAccount(namespace, name string) (*corev1.ServiceAccount, error) {
 	return sa, nil
 }
 
-func GetPersistentVolumes(namespace string) (map[string]*corev1.PersistentVolumeClaim, error) {
+func GetPersistentVolumeClaims(namespace string) (map[string]*corev1.PersistentVolumeClaim, error) {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
