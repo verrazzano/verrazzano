@@ -31,8 +31,6 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
-	istionet "istio.io/api/networking/v1alpha3"
-	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,8 +47,6 @@ import (
 const (
 	metadataField                         = "metadata"
 	specField                             = "spec"
-	destinationRuleAPIVersion             = "networking.istio.io/v1alpha3"
-	destinationRuleKind                   = "DestinationRule"
 	loggingNamePart                       = "logging-stdout"
 	loggingMountPath                      = "/fluentd/etc/custom.conf"
 	loggingKey                            = "custom.conf"
@@ -405,10 +401,6 @@ func (r *Reconciler) doReconcile(ctx context.Context, workload *vzapi.Verrazzano
 		return reconcile.Result{}, err
 	}
 
-	if err = r.createDestinationRule(ctx, log, namespace.Name, namespace.Labels, workload.ObjectMeta.Labels); err != nil {
-		return reconcile.Result{}, err
-	}
-
 	if err = r.updateStatusReconcileDone(ctx, workload); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -653,68 +645,6 @@ func (r *Reconciler) createRuntimeEncryptionSecret(ctx context.Context, log vzlo
 		return err
 	}
 	log.Debugf("Secret %s:%s already exist", namespaceName, secretName)
-
-	return nil
-}
-
-// createDestinationRule creates an Istio destinationRule required by WebLogic servers.
-// The destinationRule is only created when the namespace has the label istio-injection=enabled.
-func (r *Reconciler) createDestinationRule(ctx context.Context, log vzlog.VerrazzanoLogger, namespace string, namespaceLabels map[string]string, workloadLabels map[string]string) error {
-	istioEnabled := false
-	value, ok := namespaceLabels["istio-injection"]
-	if ok && value == "enabled" {
-		istioEnabled = true
-	}
-
-	if !istioEnabled {
-		return nil
-	}
-
-	appName, ok := workloadLabels[oam.LabelAppName]
-	if !ok {
-		return errors.New("OAM app name label missing from metadata, unable to generate destination rule name")
-	}
-
-	// Create a destination rule if it does not already exist
-	destinationRule := &istioclient.DestinationRule{}
-	err := r.Get(ctx, client.ObjectKey{Namespace: namespace, Name: appName}, destinationRule)
-	if err != nil && k8serrors.IsNotFound(err) {
-		destinationRule = &istioclient.DestinationRule{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: destinationRuleAPIVersion,
-				Kind:       destinationRuleKind},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: namespace,
-				Name:      appName,
-			},
-		}
-		destinationRule.Spec.Host = fmt.Sprintf("*.%s.svc.cluster.local", namespace)
-		destinationRule.Spec.TrafficPolicy = &istionet.TrafficPolicy{
-			Tls: &istionet.ClientTLSSettings{
-				Mode: istionet.ClientTLSSettings_ISTIO_MUTUAL,
-			},
-		}
-
-		// Set the owner reference.
-		appConfig := &v1alpha2.ApplicationConfiguration{}
-		err := r.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: appName}, appConfig)
-		if err != nil {
-			return err
-		}
-		err = controllerutil.SetControllerReference(appConfig, destinationRule, r.Scheme)
-		if err != nil {
-			return err
-		}
-
-		log.Debugf("Creating Istio destination rule %s:%s", namespace, appName)
-		err = r.Create(ctx, destinationRule)
-		if err != nil {
-			return err
-		}
-	} else if err != nil {
-		return err
-	}
-	log.Debugf("Istio destination rule %s:%s already exist", namespace, appName)
 
 	return nil
 }
