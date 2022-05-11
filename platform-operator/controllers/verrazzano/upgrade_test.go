@@ -411,17 +411,6 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 	).Build()
 
-	// Expect a call to create the uninstall Job - return success
-	/*
-		mock.EXPECT().
-			Create(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, job *batchv1.Job, opts ...client.CreateOption) error {
-				asserts.Equalf(getInstallNamespace(), job.Namespace, "Job namespace did not match")
-				asserts.Equalf(buildUninstallJobName(name), job.Name, "Job name did not match")
-				return nil
-			})
-	*/
-
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
@@ -451,29 +440,22 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 
 	config.SetDefaultBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
-	// Expect a call to get the verrazzano resource.  Return resource with version
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-			verrazzano.TypeMeta = metav1.TypeMeta{
-				APIVersion: "install.verrazzano.io/v1alpha1",
-				Kind:       "Verrazzano"}
-			verrazzano.ObjectMeta = metav1.ObjectMeta{
-				Namespace:  name.Namespace,
-				Name:       name.Name,
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&vzapi.Verrazzano{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:  namespace,
+				Name:       name,
 				Generation: 2,
-				Finalizers: []string{finalizerName}}
-			verrazzano.Spec = vzapi.VerrazzanoSpec{
-				Version: "0.2.0"}
-			verrazzano.Status = vzapi.VerrazzanoStatus{
+				Finalizers: []string{finalizerName}},
+			Spec: vzapi.VerrazzanoSpec{
+				Version: "0.2.0",
+			},
+			Status: vzapi.VerrazzanoStatus{
 				State:      vzapi.VzStateReady,
 				Components: makeVerrazzanoComponentStatusMap(),
 				Conditions: []vzapi.Condition{
@@ -504,40 +486,28 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 						Message: "Upgrade failed generation:2",
 					},
 				},
-			}
-			return nil
-		})
-
-	// Expect a call to get the service account
-	expectGetServiceAccountExists(mock, name, nil)
-
-	// Expect a call to get the ClusterRoleBinding
-	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
-
-	// Expect a call to get the status writer and return a mock.
-	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
-
-	// Expect a call to update the status of the Verrazzano resource
-	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			asserts.Equal(verrazzano.Status.State, vzapi.VzStateUpgrading)
-			return nil
-		})
+			},
+		},
+		rbac.NewServiceAccount(namespace, name, []string{}, nil),
+		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
+	).Build()
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
-	reconciler := newVerrazzanoReconciler(mock)
+	reconciler := newVerrazzanoReconciler(c)
 	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
-	mocker.Finish()
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
 	asserts.True(result.RequeueAfter.Seconds() <= 3)
+	verrazzano := vzapi.Verrazzano{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &verrazzano)
+	asserts.NoError(err)
+	asserts.Equal(verrazzano.Status.State, vzapi.VzStateUpgrading)
 }
 
 // TestUpgradeCompleted tests the reconcileUpgrade method for the following use case
