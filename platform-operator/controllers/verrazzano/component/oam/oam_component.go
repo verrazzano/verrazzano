@@ -75,3 +75,19 @@ func (c oamComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzan
 func (c oamComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return common.ApplyCRDYaml(ctx, config.GetHelmOamChartsDir())
 }
+
+// PostInstall runs post-install processing for the OAM component
+func (c oamComponent) PostInstall(ctx spi.ComponentContext) error {
+	if err := ensureClusterRoles(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PostInstall(ctx)
+}
+
+// PostUpgrade runs post-upgrade processing for the OAM component
+func (c oamComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	if err := ensureClusterRoles(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PostUpgrade(ctx)
+}

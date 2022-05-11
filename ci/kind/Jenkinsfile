@@ -416,6 +416,14 @@ pipeline {
                                 runGinkgo('workloads/coherence')
                             }
                         }
+                        stage('OAM workloads') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/oam-workloads"
+                            }
+                            steps {
+                                runGinkgo('workloads/oam')
+                            }
+                        }
                         stage('examples helidon-metrics') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/helidonmetrics"

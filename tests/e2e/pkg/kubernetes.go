@@ -8,12 +8,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/types"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/google/uuid"
 	vpClient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
@@ -211,6 +212,21 @@ func GetDaemonSet(namespace string, daemonSetName string) (*appsv1.DaemonSet, er
 		return nil, err
 	}
 	return daemonset, nil
+}
+
+// GetService returns a Service with the given name and namespace
+func GetService(namespace string, serviceName string) (*corev1.Service, error) {
+	// Get the Kubernetes clientset
+	clientSet, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	svc, err := clientSet.CoreV1().Services(namespace).Get(context.TODO(), serviceName, metav1.GetOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get Service %s from namespace %s: %v ", serviceName, namespace, err))
+		return nil, err
+	}
+	return svc, nil
 }
 
 // ListNodes returns the list of nodes for the cluster
@@ -1209,7 +1225,7 @@ func GetServiceAccount(namespace, name string) (*corev1.ServiceAccount, error) {
 	return sa, nil
 }
 
-func GetPersistentVolumes(namespace string) (map[string]*corev1.PersistentVolumeClaim, error) {
+func GetPersistentVolumeClaims(namespace string) (map[string]*corev1.PersistentVolumeClaim, error) {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
