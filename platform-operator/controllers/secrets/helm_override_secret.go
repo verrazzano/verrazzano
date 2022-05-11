@@ -39,7 +39,7 @@ func (r *VerrazzanoSecretsReconciler) reconcileHelmOverrideSecret(ctx context.Co
 		if componentName, ok := controllers.VzContainsResource(componentCtx, secret); ok {
 			err := controllers.UpdateVerrazzanoForHelmOverrides(r.Client, componentCtx, componentName)
 			if err != nil {
-				r.log.Errorf("Failed to reconcile ConfigMap: %v", err)
+				r.log.Errorf("Failed to reconcile Secret: %v", err)
 				return newRequeueWithDelay(), err
 			}
 			r.log.Infof("Updated Verrazzano Resource")
