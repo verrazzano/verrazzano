@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package env-dns-cert
+package env_dns_cert
 
 import (
 	"testing"
@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestDns(t *testing.T) {
+func TestEnvDnsCert(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Update env-dns-cert Suite")
 }
