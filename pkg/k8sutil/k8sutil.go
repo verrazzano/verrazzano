@@ -11,8 +11,6 @@ import (
 	"os"
 	"path/filepath"
 
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
@@ -22,6 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
