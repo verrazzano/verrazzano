@@ -230,7 +230,6 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 
 	// Create a list of unique hostnames across all rules in the trait
 	allHostsForTrait := r.coallateAllHostsForTrait(trait, status)
-	log.Infof("----------------coallateAllHostsForTrait got: %v", allHostsForTrait)
 	// Generate the certificate and secret for all hosts in the trait rules
 	secretName := r.createOrUseGatewaySecret(ctx, trait, allHostsForTrait, &status, log)
 	if secretName != "" {
@@ -240,7 +239,6 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 		} else {
 			// The Gateway is shared across all traits, update it with all known hosts for the trait
 			// - Must create GW before service so that external DNS sees the GW once the service is created
-			log.Infof("----------------createOrUpdateGateway with: %v", allHostsForTrait)
 			gateway := r.createOrUpdateGateway(ctx, trait, allHostsForTrait, gwName, secretName, &status, log)
 			for index, rule := range rules {
 				// Find the services associated with the trait in the application configuration.
@@ -1093,6 +1091,8 @@ func createHostsFromIngressTraitRule(cli client.Reader, rule vzapi.IngressRule, 
 		}
 		validHosts = []string{hostName}
 	}
+	zap.S().With(vzlogInit.FieldResourceNamespace, trait.Namespace, vzlogInit.FieldResourceName, trait.Name, vzlogInit.FieldController, controllerName).
+		Infof("------createHostsFromIngressTraitRule: %v", validHosts)
 	return validHosts, nil
 }
 
@@ -1225,6 +1225,8 @@ func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (st
 			return "", err
 		}
 	}
+	zap.S().With(vzlogInit.FieldResourceNamespace, trait.Namespace, vzlogInit.FieldResourceName, trait.Name, vzlogInit.FieldController, controllerName).
+		Infof("------buildNamespacedDomainName: %v", fmt.Sprintf("%s.%s", trait.Namespace, domain))
 	return fmt.Sprintf("%s.%s", trait.Namespace, domain), nil
 }
 
@@ -1249,5 +1251,7 @@ func buildDomainNameForWildcard(cli client.Reader, trait *vzapi.IngressTrait, su
 		return "", fmt.Errorf("Unsupported service type %s for istio_ingress", string(istio.Spec.Type))
 	}
 	domain := IP + "." + suffix
+	zap.S().With(vzlogInit.FieldResourceNamespace, trait.Namespace, vzlogInit.FieldResourceName, trait.Name, vzlogInit.FieldController, controllerName).
+		Infof("------buildDomainNameForWildcard: %v", domain)
 	return domain, nil
 }
