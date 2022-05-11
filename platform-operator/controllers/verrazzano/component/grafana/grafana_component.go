@@ -81,12 +81,12 @@ func (g grafanaComponent) GetJSONName() string {
 }
 
 // GetHelmOverrides returns the Helm overrides for a component
-func (g grafanaComponent) GetHelmOverrides(_ spi.ComponentContext) []vzapi.Overrides {
+func (g grafanaComponent) GetOverrides(_ spi.ComponentContext) []vzapi.Overrides {
 	return []vzapi.Overrides{}
 }
 
-// IsMonitoringEnabled indicates if monitoring of override sources is enabled or not for a component
-func (g grafanaComponent) IsMonitoringEnabled(_ spi.ComponentContext) bool {
+// MonitorOverrides indicates if monitoring of override sources is enabled or not for a component
+func (g grafanaComponent) MonitorOverrides(_ spi.ComponentContext) bool {
 	return true
 }
 

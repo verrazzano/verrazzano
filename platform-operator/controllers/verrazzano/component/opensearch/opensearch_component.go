@@ -46,12 +46,12 @@ func (o opensearchComponent) GetJSONName() string {
 }
 
 // GetHelmOverrides returns the Helm override sources for a component
-func (o opensearchComponent) GetHelmOverrides(_ spi.ComponentContext) []vzapi.Overrides {
+func (o opensearchComponent) GetOverrides(_ spi.ComponentContext) []vzapi.Overrides {
 	return []vzapi.Overrides{}
 }
 
-// IsMonitoringEnabled indicates whether monitoring of Helm override sources is enabled for a component
-func (o opensearchComponent) IsMonitoringEnabled(_ spi.ComponentContext) bool {
+// MonitorOverrides indicates whether monitoring of Helm override sources is enabled for a component
+func (o opensearchComponent) MonitorOverrides(_ spi.ComponentContext) bool {
 	return true
 }
 

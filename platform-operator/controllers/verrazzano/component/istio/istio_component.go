@@ -81,12 +81,12 @@ func (i istioComponent) GetJSONName() string {
 }
 
 // GetHelmOverrides returns the Helm override sources for a component
-func (i istioComponent) GetHelmOverrides(_ spi.ComponentContext) []vzapi.Overrides {
+func (i istioComponent) GetOverrides(_ spi.ComponentContext) []vzapi.Overrides {
 	return []vzapi.Overrides{}
 }
 
-// IsMonitoringEnabled indicates whether monitoring of override sources is enabled for a component
-func (i istioComponent) IsMonitoringEnabled(_ spi.ComponentContext) bool {
+// MonitorOverrides indicates whether monitoring of override sources is enabled for a component
+func (i istioComponent) MonitorOverrides(_ spi.ComponentContext) bool {
 	return true
 }
 

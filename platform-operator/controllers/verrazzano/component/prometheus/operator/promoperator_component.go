@@ -42,7 +42,7 @@ func NewComponent() spi.Component {
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-values.yaml"),
 			Dependencies:            []string{},
 			AppendOverridesFunc:     AppendOverrides,
-			GetHelmOverridesFunc:    GetHelmOverrides,
+			GetHelmOverridesFunc:    GetOverrides,
 		},
 	}
 }
@@ -65,8 +65,8 @@ func (c prometheusComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
-// IsMonitoringEnabled checks whether monitoring is enabled for helm overrides sources
-func (c prometheusComponent) IsMonitoringEnabled(ctx spi.ComponentContext) bool {
+// MonitorOverrides checks whether monitoring is enabled for helm overrides sources
+func (c prometheusComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	if ctx.EffectiveCR().Spec.Components.PrometheusOperator.MonitorChanges != nil {
 		return *ctx.EffectiveCR().Spec.Components.PrometheusOperator.MonitorChanges
 	}

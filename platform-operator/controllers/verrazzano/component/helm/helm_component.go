@@ -111,7 +111,7 @@ type preUpgradeFuncSig func(log vzlog.VerrazzanoLogger, client clipkg.Client, re
 // appendOverridesSig is an optional function called to generate additional overrides.
 type appendOverridesSig func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error)
 
-// appendOverridesSig is an optional function called to generate additional overrides.
+// getHelmOverridesSig is an optional function called to generate additional overrides.
 type getHelmOverridesSig func(context spi.ComponentContext) []vzapi.Overrides
 
 // resolveNamespaceSig is an optional function called for special namespace processing
@@ -145,7 +145,7 @@ func (h HelmComponent) GetJSONName() string {
 }
 
 // GetHelmOverrides returns the list of Helm value overrides for a component
-func (h HelmComponent) GetHelmOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
+func (h HelmComponent) GetOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
 	if h.GetHelmOverridesFunc != nil {
 		return h.GetHelmOverridesFunc(ctx)
 	}
@@ -228,7 +228,7 @@ func (h HelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazza
 	return nil
 }
 
-func (h HelmComponent) IsMonitoringEnabled(ctx spi.ComponentContext) bool {
+func (h HelmComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	return true
 }
 
@@ -380,7 +380,7 @@ func (h HelmComponent) buildCustomHelmOverrides(context spi.ComponentContext, na
 
 	// Sort the kvs list by priority (0th term has the highest priority)
 	// Getting user defined Helm overrides as the highest priority
-	kvs, err = h.retrieveHelmOverrideResources(context, h.GetHelmOverrides(context))
+	kvs, err = h.retrieveHelmOverrideResources(context, h.GetOverrides(context))
 	if err != nil {
 		return overrides, err
 	}

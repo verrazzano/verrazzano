@@ -102,12 +102,12 @@ func (c jaegerOperatorComponent) GetJSONName() string {
 }
 
 // GetHelmOverrides returns the Helm override sources for a component
-func (c jaegerOperatorComponent) GetHelmOverrides(_ spi.ComponentContext) []vzapi.Overrides {
+func (c jaegerOperatorComponent) GetOverrides(_ spi.ComponentContext) []vzapi.Overrides {
 	return []vzapi.Overrides{}
 }
 
-// IsMonitoringEnabled indicates whether monitoring of Helm override sources is enabled for a component
-func (c jaegerOperatorComponent) IsMonitoringEnabled(_ spi.ComponentContext) bool {
+// MonitorOverrides indicates whether monitoring of Helm override sources is enabled for a component
+func (c jaegerOperatorComponent) MonitorOverrides(_ spi.ComponentContext) bool {
 	return true
 }
 
