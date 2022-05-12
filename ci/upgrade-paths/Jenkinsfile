@@ -428,34 +428,26 @@ pipeline {
                         }
                         stage ('Deploy Example applications') {
                             parallel {
-                                stage ('Deploy Helidon Examples') {
-                                    parallel {
-                                        stage ('Deploy Helidon example application - single cluster') {
-                                            steps {
-                                                runGinkgoVerify('examples/helidon', "false", "true", "true", "hello-helidon")
-                                            }
-                                        }
-                                        stage ('Deploy Helidon example application - multi cluster') {
-                                            when { expression { isMultiCluster() } }
-                                            steps {
-                                                runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true")
-                                            }
-                                        }
+                                stage ('Deploy Helidon example application - single cluster') {
+                                    steps {
+                                        runGinkgoVerify('examples/helidon', "false", "true", "true", "hello-helidon")
                                     }
                                 }
-                                stage ('Deploy Coherence Examples') {
-                                    parallel {
-                                        stage ('Deploy Coherence example application - single cluster') {
-                                            steps {
-                                                runGinkgoVerify('workloads/coherence', "false", "false", "true", "hello-coherence")
-                                            }
-                                        }
-                                        stage ('Deploy Coherence example application - multi cluster') {
-                                            when { expression { isMultiCluster() } }
-                                            steps {
-                                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload", "false", "false", "false")
-                                            }
-                                        }
+                                stage ('Deploy Helidon example application - multi cluster') {
+                                    when { expression { isMultiCluster() } }
+                                    steps {
+                                        runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true")
+                                    }
+                                }
+                                stage ('Deploy Coherence example application - single cluster') {
+                                    steps {
+                                        runGinkgoVerify('workloads/coherence', "false", "false", "true", "hello-coherence")
+                                    }
+                                }
+                                stage ('Deploy Coherence example application - multi cluster') {
+                                    when { expression { isMultiCluster() } }
+                                    steps {
+                                        runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload", "false", "false", "false")
                                     }
                                 }
                             }
