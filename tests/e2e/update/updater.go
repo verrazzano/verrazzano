@@ -141,7 +141,7 @@ func IsCRReadyAfterUpdate(cr *vzapi.Verrazzano, updatedTime time.Time) bool {
 				return false
 			}
 			if transitionTime.After(updatedTime) {
-				pkg.Log(pkg.Info, "Update operation completed at "+updatedTime.String())
+				pkg.Log(pkg.Info, "Update operation completed at "+transitionTime.String())
 				return true
 			}
 		}
