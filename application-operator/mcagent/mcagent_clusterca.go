@@ -9,6 +9,7 @@ import (
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -16,15 +17,12 @@ import (
 )
 
 const (
-	keyCaCrtNoDot   = "cacrt"
-	keyCaCrt        = "ca.crt"
-	keyCaBundle     = "ca-bundle"
-	keyAdditionalCa = "ca-additional.pem"
+	keyCaCrtNoDot = "cacrt"
 )
 
 // Synchronize Secret objects to the local cluster
-func (s *Syncer) syncClusterCAs() error {
-	err := s.syncAdminClusterCA()
+func (s *Syncer) syncClusterCAs() (controllerutil.OperationResult, error) {
+	managedClusterResult, err := s.syncRegistrationFromAdminCluster()
 	if err != nil {
 		s.Log.Errorf("Error syncing Admin Cluster CA: %v", err)
 	}
@@ -32,20 +30,34 @@ func (s *Syncer) syncClusterCAs() error {
 	if err != nil {
 		s.Log.Errorf("Error syncing Local Cluster CA: %v", err)
 	}
-	return nil
+	return managedClusterResult, nil
 }
 
-// syncAdminClusterCA - synchronize the admin cluster CA cert -- update local copy if admin CA changes
-func (s *Syncer) syncAdminClusterCA() error {
+// syncRegistrationFromAdminCluster - synchronize the admin cluster registration info including
+// CA cert, URLs and credentials -- update local registration if any of those change
+func (s *Syncer) syncRegistrationFromAdminCluster() (controllerutil.OperationResult, error) {
 
-	// Get the cluster CA secret from the admin cluster
+	opResult := controllerutil.OperationResultNone
+	// Get the cluster CA secret from the admin cluster - for the CA secret, this is considered
+	// the source of truth
 	adminCASecret := corev1.Secret{}
 	err := s.AdminClient.Get(s.Context, client.ObjectKey{
 		Namespace: constants.VerrazzanoMultiClusterNamespace,
 		Name:      constants.VerrazzanoLocalCABundleSecret,
 	}, &adminCASecret)
 	if err != nil {
-		return err
+		return opResult, err
+	}
+
+	// Get the managed cluster registration secret for THIS managed cluster, from the admin cluster.
+	// This will be used to sync registration information here on the managed cluster.
+	adminRegistrationSecret := corev1.Secret{}
+	err = s.AdminClient.Get(s.Context, client.ObjectKey{
+		Namespace: constants.VerrazzanoMultiClusterNamespace,
+		Name:      getRegistrationSecretName(s.ManagedClusterName),
+	}, &adminRegistrationSecret)
+	if err != nil {
+		return opResult, err
 	}
 
 	// Get the local cluster registration secret
@@ -55,24 +67,47 @@ func (s *Syncer) syncAdminClusterCA() error {
 		Name:      constants.MCRegistrationSecret,
 	}, &registrationSecret)
 	if err != nil {
-		return err
+		return opResult, err
 	}
 
-	// Update the local cluster registration secret if the admin CA certs are different
-	if !secretsEqualTrimmedWhitespace(registrationSecret.Data[keyCaBundle], adminCASecret.Data[keyCaBundle]) {
-		result, err := controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &registrationSecret, func() error {
-			registrationSecret.Data[keyCaBundle] = adminCASecret.Data[keyCaBundle]
+	// Update the local cluster registration secret if the admin CA certs are different, or if
+	// any of the registration info on admin cluster is different
+	if !byteSlicesEqualTrimmedWhitespace(registrationSecret.Data[mcconstants.AdminCaBundleKey], adminCASecret.Data[mcconstants.AdminCaBundleKey]) ||
+		!registrationInfoEqual(registrationSecret, adminRegistrationSecret) {
+		opResult, err = controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &registrationSecret, func() error {
+			// Get CA info from admin CA secret
+			registrationSecret.Data[mcconstants.AdminCaBundleKey] = adminCASecret.Data[mcconstants.AdminCaBundleKey]
+
+			// Get other registration info from admin registration secret for this managed cluster
+			registrationSecret.Data[mcconstants.ESURLKey] = adminRegistrationSecret.Data[mcconstants.ESURLKey]
+			registrationSecret.Data[mcconstants.RegistrationUsernameKey] = adminRegistrationSecret.Data[mcconstants.RegistrationUsernameKey]
+			registrationSecret.Data[mcconstants.RegistrationPasswordKey] = adminRegistrationSecret.Data[mcconstants.RegistrationPasswordKey]
+			registrationSecret.Data[mcconstants.KeycloakURLKey] = adminRegistrationSecret.Data[mcconstants.KeycloakURLKey]
+			registrationSecret.Data[mcconstants.ESCaBundleKey] = adminRegistrationSecret.Data[mcconstants.ESCaBundleKey]
 			return nil
 		})
 		if err != nil {
 			s.Log.Errorw(fmt.Sprintf("Failed syncing admin CA certificate: %v", err),
 				"Secret", registrationSecret.Name)
 		} else {
-			s.Log.Infof("Updated local cluster registration secret, result was: %v", result)
+			s.Log.Infof("Updated local cluster registration secret, result was: %v", opResult)
 		}
 	}
 
-	return nil
+	return opResult, nil
+}
+
+func registrationInfoEqual(regSecret1 corev1.Secret, regSecret2 corev1.Secret) bool {
+	return byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.ESURLKey],
+		regSecret2.Data[mcconstants.ESURLKey]) &&
+		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.KeycloakURLKey],
+			regSecret2.Data[mcconstants.KeycloakURLKey]) &&
+		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.RegistrationUsernameKey],
+			regSecret2.Data[mcconstants.RegistrationUsernameKey]) &&
+		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.RegistrationPasswordKey],
+			regSecret2.Data[mcconstants.RegistrationPasswordKey]) &&
+		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.ESCaBundleKey],
+			regSecret2.Data[mcconstants.ESCaBundleKey])
 }
 
 // syncLocalClusterCA - synchronize the local cluster CA cert -- update admin copy if local CA changes
@@ -102,7 +137,7 @@ func (s *Syncer) syncLocalClusterCA() error {
 	}
 
 	// Update the VMC cluster CA secret if the local CA is different
-	if !secretsEqualTrimmedWhitespace(vmcCASecret.Data[keyCaCrtNoDot], localCASecretData) {
+	if !byteSlicesEqualTrimmedWhitespace(vmcCASecret.Data[keyCaCrtNoDot], localCASecretData) {
 		result, err := controllerutil.CreateOrUpdate(s.Context, s.AdminClient, &vmcCASecret, func() error {
 			vmcCASecret.Data[keyCaCrtNoDot] = localCASecretData
 			return nil
@@ -132,7 +167,7 @@ func (s *Syncer) getLocalClusterCASecretData() ([]byte, error) {
 	}
 
 	if errAddlTLS == nil {
-		return localCASecret.Data[keyAdditionalCa], nil
+		return localCASecret.Data[globalconst.AdditionalTLSCAKey], nil
 	}
 	// additional TLS secret not found, check for Verrazzano TLS secret
 	err := s.LocalClient.Get(s.Context, client.ObjectKey{
@@ -142,11 +177,23 @@ func (s *Syncer) getLocalClusterCASecretData() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return localCASecret.Data[keyCaCrt], nil
+	return localCASecret.Data[mcconstants.CaCrtKey], nil
 }
 
-func secretsEqualTrimmedWhitespace(secret1, secret2 []byte) bool {
-	a := bytes.Trim(secret1, " \t\n\r")
-	b := bytes.Trim(secret2, " \t\n\r")
+func byteSlicesEqualTrimmedWhitespace(byteSlice1, byteSlice2 []byte) bool {
+	a := bytes.Trim(byteSlice1, " \t\n\r")
+	b := bytes.Trim(byteSlice2, " \t\n\r")
 	return bytes.Equal(a, b)
+}
+
+// Generate the common name used by all resources specific to a given managed cluster
+func generateManagedResourceName(clusterName string) string {
+	return fmt.Sprintf("verrazzano-cluster-%s", clusterName)
+}
+
+// getRegistrationSecretName returns the registration secret name for a managed cluster on the admin
+// cluster
+func getRegistrationSecretName(clusterName string) string {
+	const registrationSecretSuffix = "-registration"
+	return generateManagedResourceName(clusterName) + registrationSecretSuffix
 }

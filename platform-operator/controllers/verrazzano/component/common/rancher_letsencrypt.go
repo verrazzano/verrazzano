@@ -53,7 +53,7 @@ func (c *certBuilder) appendCertWithHTTP(uri string) error {
 	return nil
 }
 
-//buildLetsEncryptStagingChain builds the LetsEncrypt Staging certificate chain
+// buildLetsEncryptStagingChain builds the LetsEncrypt Staging certificate chain
 // LetsEncrypt staging provides a certificate chain for staging environments, mimicking production.
 // Verrazzano uses the LetsEncrypt staging certificate chain for Rancher ingress on ACME staging environments.
 // See https://letsencrypt.org/docs/staging-environment/ for more information.
@@ -113,7 +113,7 @@ func createAdditionalCertificates(log vzlog.VerrazzanoLogger, cli client.Client,
 			return err
 		}
 		secret.Data = map[string][]byte{
-			RancherCAAdditionalPem: builder.cert,
+			constants.AdditionalTLSCAKey: builder.cert,
 		}
 		return nil
 	})

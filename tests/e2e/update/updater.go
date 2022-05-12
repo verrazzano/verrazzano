@@ -56,7 +56,7 @@ func GetCR() *vzapi.Verrazzano {
 // First it waits for CR to be "Ready" before using the specified CRModifier modifies the CR.
 // Then, it updates the modified.
 // Any error during the process will cause Ginkgo Fail.
-func UpdateCR(m CRModifier) {
+func UpdateCR(m CRModifier) error {
 	// Get the CR
 	cr := GetCR()
 
@@ -79,9 +79,7 @@ func UpdateCR(m CRModifier) {
 	}
 	vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
 	_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
-	if err != nil {
-		ginkgov2.Fail(fmt.Sprintf("error updating Verrazzano instance: %v", err))
-	}
+	return err
 }
 
 // UpdateCRWithRetries updates the CR with the given CRModifier.
