@@ -59,22 +59,23 @@ func (u CustomCACertificateModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 var (
-	t                          = framework.NewTestFramework("update dns")
-	currentEnvironmentName     string
-	currentDNSDomain           string
-	currentCertName            string = "verrazzano-ca-certificate"
-	currentCertNamespace       string = "cert-manager"
-	currentCertSecretName      string = "verrazzano-ca-certificate-secret"
-	currentCertSecretNamespace string = "cert-manager"
-	currentCertIssuerName      string = "verrazzano-selfsigned-issuer"
-	currentCertIssuerNamespace string = "cert-manager"
-
+	t                              = framework.NewTestFramework("update dns")
 	testEnvironmentName     string = "test-env"
 	testDNSDomain           string = "sslip.io"
 	testCertName            string = "test-ca"
 	testCertSecretName      string = "test-secret-ca"
 	testCertSecretNamespace string = "test-namespace"
 	testCertIssuerName      string = "verrazzano-cluster-issuer"
+
+	currentEnvironmentName     string
+	currentDNSDomain           string
+	currentCertNamespace       string = "cert-manager"
+	currentCertName            string = "verrazzano-ca-certificate"
+	currentCertIssuerNamespace string = "cert-manager"
+	currentCertIssuerName      string = "verrazzano-selfsigned-issuer"
+	currentCertSecretNamespace string = "cert-manager"
+	/* #nosec G101 -- This is a false positive*/
+	currentCertSecretName string = "verrazzano-ca-certificate-secret"
 )
 
 var _ = t.AfterSuite(func() {
