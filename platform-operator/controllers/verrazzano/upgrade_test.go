@@ -266,6 +266,18 @@ func TestUpgradeSameVersion(t *testing.T) {
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &verrazzano)
 	asserts.NoError(err)
 	asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
+
+	// check for upgrade started condition not true
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &verrazzano)
+	asserts.NoError(err)
+	found := false
+	for _, condition := range verrazzano.Status.Conditions {
+		if condition.Type == vzapi.CondUpgradeStarted {
+			found = true
+			break
+		}
+	}
+	asserts.False(found, "expected upgrade started to be false")
 }
 
 // TestUpgradeInitComponents tests the reconcileUpgrade method for the following use case
