@@ -791,9 +791,9 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 }
 
 // TestUpgradeHelmError tests the reconcileUpgrade method for the following use case
-// GIVEN a request to reconcile an verrazzano resource after install is completed
+// GIVEN a request to reconcile a verrazzano resource after install is completed
 // WHEN spec.version doesn't match status.version
-// THEN ensure a condition with type UpgradeCompleted is added
+// THEN ensure a condition with type UpgradePaused is added
 func TestUpgradeHelmError(t *testing.T) {
 	initUnitTesing()
 	namespace := "verrazzano"
@@ -859,6 +859,19 @@ func TestUpgradeHelmError(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
 	asserts.GreaterOrEqual(result.RequeueAfter.Seconds(), time.Duration(30).Seconds())
+
+	// check for upgrade paused condition
+	verrazzano := vzapi.Verrazzano{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &verrazzano)
+	asserts.NoError(err)
+	found := false
+	for _, condition := range verrazzano.Status.Conditions {
+		if condition.Type == vzapi.CondUpgradePaused {
+			found = true
+			break
+		}
+	}
+	asserts.True(found, "expected upgrade completed to be true")
 }
 
 // TestUpgradeIsCompInstalledFailure tests the reconcileUpgrade method for the following use case
