@@ -656,9 +656,6 @@ func IsPrometheusEnabled(kubeconfigPath string) bool {
 		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
 		return false
 	}
-	if !IsPrometheusOperatorEnabled(kubeconfigPath) {
-		return false
-	}
 	if vz.Spec.Components.Prometheus == nil || vz.Spec.Components.Prometheus.Enabled == nil {
 		return true
 	}
