@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
@@ -88,10 +89,13 @@ func TestSyncCACertsNoDifference(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncClusterCAs()
+	localClusterResult, err := s.syncClusterCAs()
 
 	// Validate the results
 	assert.NoError(err)
+
+	// assert no update on local cluster
+	assert.Equal(controllerutil.OperationResultNone, localClusterResult)
 
 	// Verify the CA secrets were not updated
 	localSecret := &corev1.Secret{}
@@ -157,10 +161,13 @@ func TestSyncCACertsAreDifferent(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncClusterCAs()
+	localClusterResult, err := s.syncClusterCAs()
 
 	// Validate the results
 	assert.NoError(err)
+
+	// assert there was a change on local cluster
+	assert.NotEqual(controllerutil.OperationResultNone, localClusterResult)
 
 	// Verify the CA secrets were updated
 	localSecret := &corev1.Secret{}
@@ -230,10 +237,13 @@ func TestSyncCACertsAdditionalTLSPresent(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncClusterCAs()
+	localClusterResult, err := s.syncClusterCAs()
 
 	// Validate the results
 	assert.NoError(err)
+
+	// assert there was a change on local cluster
+	assert.NotEqual(controllerutil.OperationResultNone, localClusterResult)
 
 	// Verify the CA secrets were updated
 	localSecret := &corev1.Secret{}
@@ -302,10 +312,13 @@ func TestSyncRegistrationInfoDifferent(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncClusterCAs()
+	localClusterResult, err := s.syncClusterCAs()
 
 	// Validate the results
 	assert.NoError(err)
+
+	// assert there was a change on local cluster
+	assert.NotEqual(controllerutil.OperationResultNone, localClusterResult)
 
 	// Verify the CA secrets were NOT updated
 	localSecret := &corev1.Secret{}

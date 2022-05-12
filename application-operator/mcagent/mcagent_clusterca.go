@@ -21,8 +21,8 @@ const (
 )
 
 // Synchronize Secret objects to the local cluster
-func (s *Syncer) syncClusterCAs() error {
-	err := s.syncRegistrationFromAdminCluster()
+func (s *Syncer) syncClusterCAs() (controllerutil.OperationResult, error) {
+	managedClusterResult, err := s.syncRegistrationFromAdminCluster()
 	if err != nil {
 		s.Log.Errorf("Error syncing Admin Cluster CA: %v", err)
 	}
@@ -30,13 +30,14 @@ func (s *Syncer) syncClusterCAs() error {
 	if err != nil {
 		s.Log.Errorf("Error syncing Local Cluster CA: %v", err)
 	}
-	return nil
+	return managedClusterResult, nil
 }
 
 // syncRegistrationFromAdminCluster - synchronize the admin cluster registration info including
 // CA cert, URLs and credentials -- update local registration if any of those change
-func (s *Syncer) syncRegistrationFromAdminCluster() error {
+func (s *Syncer) syncRegistrationFromAdminCluster() (controllerutil.OperationResult, error) {
 
+	opResult := controllerutil.OperationResultNone
 	// Get the cluster CA secret from the admin cluster - for the CA secret, this is considered
 	// the source of truth
 	adminCASecret := corev1.Secret{}
@@ -45,7 +46,7 @@ func (s *Syncer) syncRegistrationFromAdminCluster() error {
 		Name:      constants.VerrazzanoLocalCABundleSecret,
 	}, &adminCASecret)
 	if err != nil {
-		return err
+		return opResult, err
 	}
 
 	// Get the managed cluster registration secret for THIS managed cluster, from the admin cluster.
@@ -56,7 +57,7 @@ func (s *Syncer) syncRegistrationFromAdminCluster() error {
 		Name:      getRegistrationSecretName(s.ManagedClusterName),
 	}, &adminRegistrationSecret)
 	if err != nil {
-		return err
+		return opResult, err
 	}
 
 	// Get the local cluster registration secret
@@ -66,14 +67,14 @@ func (s *Syncer) syncRegistrationFromAdminCluster() error {
 		Name:      constants.MCRegistrationSecret,
 	}, &registrationSecret)
 	if err != nil {
-		return err
+		return opResult, err
 	}
 
 	// Update the local cluster registration secret if the admin CA certs are different, or if
 	// any of the registration info on admin cluster is different
 	if !byteSlicesEqualTrimmedWhitespace(registrationSecret.Data[mcconstants.AdminCaBundleKey], adminCASecret.Data[mcconstants.AdminCaBundleKey]) ||
 		!registrationInfoEqual(registrationSecret, adminRegistrationSecret) {
-		result, err := controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &registrationSecret, func() error {
+		opResult, err = controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &registrationSecret, func() error {
 			// Get CA info from admin CA secret
 			registrationSecret.Data[mcconstants.AdminCaBundleKey] = adminCASecret.Data[mcconstants.AdminCaBundleKey]
 
@@ -88,11 +89,11 @@ func (s *Syncer) syncRegistrationFromAdminCluster() error {
 			s.Log.Errorw(fmt.Sprintf("Failed syncing admin CA certificate: %v", err),
 				"Secret", registrationSecret.Name)
 		} else {
-			s.Log.Infof("Updated local cluster registration secret, result was: %v", result)
+			s.Log.Infof("Updated local cluster registration secret, result was: %v", opResult)
 		}
 	}
 
-	return nil
+	return opResult, nil
 }
 
 func registrationInfoEqual(regSecret1 corev1.Secret, regSecret2 corev1.Secret) bool {
