@@ -6,6 +6,8 @@ package utils
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"github.com/verrazzano/verrazzano/verrazzano-backup/lib/constants"
 	model "github.com/verrazzano/verrazzano/verrazzano-backup/lib/types"
 	"go.uber.org/zap"
 	apps "k8s.io/api/apps/v1"
@@ -18,6 +20,7 @@ import (
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	crtclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sync"
 	"time"
 )
 
@@ -28,6 +31,9 @@ type K8s interface {
 	GetBackupStorageLocation(client dynamic.Interface, veleroNamespace, bslName string, log *zap.SugaredLogger) (*model.VeleroBackupStorageLocation, error)
 	ScaleDeployment(clientk client.Client, k8sclient *kubernetes.Clientset, labelSelector, namespace, deploymentName string, replicaCount int32, log *zap.SugaredLogger) error
 	CheckDeployment(k8sclient *kubernetes.Clientset, labelSelector, namespace string, log *zap.SugaredLogger) (bool, error)
+	CheckPodStatus(k8sclient *kubernetes.Clientset, podName, namespace, checkFlag string, timeout string, log *zap.SugaredLogger, wg *sync.WaitGroup) error
+	CheckAllPodsAfterRestore(k8sclient *kubernetes.Clientset, log *zap.SugaredLogger) error
+	IsPodReady(pod *v1.Pod, log *zap.SugaredLogger) (bool, error)
 }
 
 type K8sImpl struct {
@@ -164,6 +170,7 @@ func (k *K8sImpl) GetBackup(client dynamic.Interface, veleroNamespace, backupNam
 // labelselectors,namespace, deploymentName are used to identify deployments and specific pods associated with them
 func (k *K8sImpl) ScaleDeployment(clientk client.Client, k8sclient *kubernetes.Clientset, labelSelector, namespace, deploymentName string, replicaCount int32, log *zap.SugaredLogger) error {
 	log.Infof("Scale deployment '%s' in namespace '%s", deploymentName, namespace)
+	var wg sync.WaitGroup
 	depPatch := apps.Deployment{}
 	if err := clientk.Get(context.TODO(), types.NamespacedName{Name: deploymentName, Namespace: namespace}, &depPatch); err != nil {
 		return err
@@ -176,14 +183,12 @@ func (k *K8sImpl) ScaleDeployment(clientk client.Client, k8sclient *kubernetes.C
 		return nil
 	}
 
-	done := false
 	listOptions := metav1.ListOptions{LabelSelector: labelSelector}
-	var podStateCondition []bool
-	var podNames []string
 	pods, err := k8sclient.CoreV1().Pods(namespace).List(context.TODO(), listOptions)
 	if err != nil {
 		return err
 	}
+	wg.Add(len(pods.Items))
 
 	mergeFromDep := client.MergeFrom(depPatch.DeepCopy())
 	depPatch.Spec.Replicas = &replicaCount
@@ -192,58 +197,28 @@ func (k *K8sImpl) ScaleDeployment(clientk client.Client, k8sclient *kubernetes.C
 		return err
 	}
 
-	for !done {
-		//Scale up
-		if desiredValue > currentValue {
-			log.Info("Scaling up pods ...")
-			// There could be multiple pods in a deployment
-			for _, item := range pods.Items {
-				if item.Status.Phase == "Running" {
-					podStateCondition = append(podStateCondition, true)
-				}
-				podNames = append(podNames, item.Name)
-			}
+	timeout := GetEnvWithDefault(constants.OpenSearchHealthCheckTimeoutKey, constants.OpenSearchHealthCheckTimeoutDefaultValue)
 
-			if int32(len(pods.Items)) == desiredValue && int32(len(podStateCondition)) == desiredValue {
-				// when all running pods is equal to desired input
-				// exit the check loop
-				log.Infof("Actual pod count = '%v', Desired pod count = '%v'", len(pods.Items), desiredValue)
-				done = true
-			} else {
-				// otherwise retry and keep monitoring the pod status
-				duration := GenerateRandom()
-				log.Infof("Waiting for '%v' seconds for following '%v' pods to come up.", duration, podNames)
-				time.Sleep(time.Second * time.Duration(duration))
-			}
+	if desiredValue > currentValue {
+		//log.Info("Scaling up pods ...")
+		duration := GenerateRandom()
+		log.Infof("Waiting for '%v' seconds after scaling up", duration)
+		time.Sleep(time.Second * time.Duration(duration))
+		for _, item := range pods.Items {
+			log.Debugf("Firing go routine to check on pod '%s'", item.Name)
+			go k.CheckPodStatus(k8sclient, item.Name, namespace, "up", timeout, log, &wg)
 		}
-
-		// scale down
-		if desiredValue < currentValue {
-			for _, item := range pods.Items {
-				// populate podNames for display
-				podNames = append(podNames, item.Name)
-			}
-
-			log.Info("Scaling down pods ..")
-			if int32(len(pods.Items)) != desiredValue {
-				duration := GenerateRandom()
-				log.Infof("Waiting for '%v' seconds for following '%v' pods  pods to go down.", duration, podNames)
-				time.Sleep(time.Second * time.Duration(duration))
-			} else {
-				// when all running pods is equal to desired input
-				// exit the check loop
-				log.Infof("Actual pod count = '%v', Desired pod count = '%v'", len(pods.Items), desiredValue)
-				done = true
-			}
-		}
-
-		pods, err = k8sclient.CoreV1().Pods(namespace).List(context.TODO(), listOptions)
-		if err != nil {
-			return err
-		}
-
 	}
 
+	if desiredValue < currentValue {
+		log.Info("Scaling down pods ...")
+		for _, item := range pods.Items {
+			log.Debugf("Firing go routine to check on pod '%s'", item.Name)
+			go k.CheckPodStatus(k8sclient, item.Name, namespace, "down", timeout, log, &wg)
+		}
+	}
+
+	wg.Wait()
 	log.Infof("Successfully scaled deployment '%s' in namespace '%s' from '%v' to '%v' replicas ", deploymentName, namespace, currentValue, replicaCount)
 	return nil
 
@@ -263,4 +238,123 @@ func (k *K8sImpl) CheckDeployment(k8sclient *kubernetes.Clientset, labelSelector
 		return true, nil
 	}
 	return false, nil
+}
+
+// IsPodReady checks whether pod is Ready
+func (k *K8sImpl) IsPodReady(pod *v1.Pod, log *zap.SugaredLogger) (bool, error) {
+	for _, condition := range pod.Status.Conditions {
+		if condition.Type == "Ready" && condition.Status == "True" {
+			log.Infof("Pod '%s' in namespace '%s' is now in '%s' state", pod.Name, pod.Namespace, condition.Type)
+			return true, nil
+		}
+	}
+	log.Infof("Pod '%s' in namespace '%s' is still not Ready", pod.Name, pod.Namespace)
+	return false, nil
+}
+
+// CheckPodStatus checks the state of the pod depending on checkFlag
+func (k *K8sImpl) CheckPodStatus(k8sclient *kubernetes.Clientset, podName, namespace, checkFlag string, timeout string, log *zap.SugaredLogger, wg *sync.WaitGroup) error {
+	log.Infof("Checking Pod '%s' status in namespace '%s", podName, namespace)
+	var timeSeconds float64
+	defer wg.Done()
+	timeParse, err := time.ParseDuration(timeout)
+	if err != nil {
+		log.Errorf("Unable to pasr time duration ", zap.Error(err))
+		return err
+	}
+	totalSeconds := timeParse.Seconds()
+	done := false
+	wait := false
+
+	for !done {
+		pod, err := k8sclient.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+
+		if pod == nil && checkFlag == "down" {
+			// break loop when scaling down condition is met
+			log.Infof("Pod '%s' has scaled down successfully", pod.Name)
+			done = true
+		}
+
+		// If pod is found
+		if pod != nil {
+			switch checkFlag {
+			case "up":
+				pod.Status.Conditions[0].Type = "Ready"
+				// Check status and apply retry logic
+				if pod.Status.Phase != "Running" {
+					wait = true
+				} else {
+					// break loop when scaling up condition is met
+					log.Infof("Pod '%s' is in 'Running' state", pod.Name)
+					ok, err := k.IsPodReady(pod, log)
+					if err != nil {
+						return err
+					}
+					if ok {
+						// break loop pod is Running and pod is in Ready !!
+						done = true
+					}
+
+				}
+			case "down":
+				wait = true
+			}
+
+			if wait {
+				if timeSeconds < totalSeconds {
+					duration := GenerateRandom()
+					log.Infof("Pod '%s' is in '%s' state. Check again after '%v' seconds", pod.Name, pod.Status.Phase, duration)
+					time.Sleep(time.Second * time.Duration(duration))
+					timeSeconds = timeSeconds + float64(duration)
+				} else {
+					return fmt.Errorf("Timeout '%s' exceeded. POd '%s' is still not in running state", timeout, pod.Name)
+				}
+				// change wait to false after each wait
+				wait = false
+			}
+		}
+	}
+	return nil
+}
+
+// CheckDeployment checks the existence of a deployment
+func (k *K8sImpl) CheckAllPodsAfterRestore(k8sclient *kubernetes.Clientset, log *zap.SugaredLogger) error {
+
+	duration := GenerateRandom()
+	log.Infof("Waiting for '%v' seconds after Verrazzano Monitoring Operator is Ready", duration)
+	time.Sleep(time.Second * time.Duration(duration))
+
+	var wg sync.WaitGroup
+	log.Infof("Checking pods with labelselector '%v' in namespace '%s", constants.IngestLabelSelector, constants.VerrazzanoNameSpaceName)
+	listOptions := metav1.ListOptions{LabelSelector: constants.IngestLabelSelector}
+	ingestPods, err := k8sclient.CoreV1().Pods(constants.VerrazzanoNameSpaceName).List(context.TODO(), listOptions)
+	if err != nil {
+		return err
+	}
+
+	timeout := GetEnvWithDefault(constants.OpenSearchHealthCheckTimeoutKey, constants.OpenSearchHealthCheckTimeoutDefaultValue)
+	wg.Add(len(ingestPods.Items))
+	for _, pod := range ingestPods.Items {
+		log.Debugf("Firing go routine to check on pod '%s'", pod.Name)
+		go k.CheckPodStatus(k8sclient, pod.Name, constants.VerrazzanoNameSpaceName, "up", timeout, log, &wg)
+	}
+
+	log.Infof("Checking pods with labelselector '%v' in namespace '%s", constants.KibanaLabelSelector, constants.VerrazzanoNameSpaceName)
+	listOptions = metav1.ListOptions{LabelSelector: constants.KibanaLabelSelector}
+	kibanaPods, err := k8sclient.CoreV1().Pods(constants.VerrazzanoNameSpaceName).List(context.TODO(), listOptions)
+	if err != nil {
+		return err
+	}
+
+	wg.Add(len(kibanaPods.Items))
+	for _, pod := range kibanaPods.Items {
+		log.Debugf("Firing go routine to check on pod '%s'", pod.Name)
+		go k.CheckPodStatus(k8sclient, pod.Name, constants.VerrazzanoNameSpaceName, "up", timeout, log, &wg)
+	}
+
+	wg.Wait()
+	return nil
 }

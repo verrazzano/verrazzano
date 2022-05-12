@@ -208,6 +208,12 @@ func main() {
 			if err != nil {
 				log.Errorf("Unable to scale deployment '%s' due to %v", constants.VMODeploymentName, zap.Error(err))
 			}
+
+			err = k8s.CheckAllPodsAfterRestore(kubeClient, log)
+			if err != nil {
+				log.Errorf("Unable to check deployments after restoring Verrazzano Monitoring Operator %v", zap.Error(err))
+			}
+
 			log.Infof("%s restore was successfull", strings.ToTitle(Component))
 		}
 	}
