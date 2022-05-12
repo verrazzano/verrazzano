@@ -1514,7 +1514,7 @@ def runMulticlusterVerifyApi() {
 
 def runMulticlusterVerifyRegistry() {
     int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-    for(int count=2; count<=clusterCount; count++) {
+    for(int count=1; count<=clusterCount; count++) {
         sh """
           export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
           cd ${GO_REPO_PATH}/verrazzano/tests/e2e
