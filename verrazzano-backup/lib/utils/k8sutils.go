@@ -30,9 +30,9 @@ type K8s interface {
 	GetBackup(client dynamic.Interface, veleroNamespace, backupName string, log *zap.SugaredLogger) (*model.VeleroBackup, error)
 	GetBackupStorageLocation(client dynamic.Interface, veleroNamespace, bslName string, log *zap.SugaredLogger) (*model.VeleroBackupStorageLocation, error)
 	ScaleDeployment(clientk client.Client, k8sclient *kubernetes.Clientset, labelSelector, namespace, deploymentName string, replicaCount int32, log *zap.SugaredLogger) error
-	CheckDeployment(k8sclient *kubernetes.Clientset, labelSelector, namespace string, log *zap.SugaredLogger) (bool, error)
-	CheckPodStatus(k8sclient *kubernetes.Clientset, podName, namespace, checkFlag string, timeout string, log *zap.SugaredLogger, wg *sync.WaitGroup) error
-	CheckAllPodsAfterRestore(k8sclient *kubernetes.Clientset, log *zap.SugaredLogger) error
+	CheckDeployment(k8sclient kubernetes.Interface, labelSelector, namespace string, log *zap.SugaredLogger) (bool, error)
+	CheckPodStatus(k8sclient kubernetes.Interface, podName, namespace, checkFlag string, timeout string, log *zap.SugaredLogger, wg *sync.WaitGroup) error
+	CheckAllPodsAfterRestore(k8sclient kubernetes.Interface, log *zap.SugaredLogger) error
 	IsPodReady(pod *v1.Pod, log *zap.SugaredLogger) (bool, error)
 }
 
@@ -201,9 +201,12 @@ func (k *K8sImpl) ScaleDeployment(clientk client.Client, k8sclient *kubernetes.C
 
 	if desiredValue > currentValue {
 		//log.Info("Scaling up pods ...")
-		duration := GenerateRandom()
-		log.Infof("Waiting for '%v' seconds after scaling up", duration)
-		time.Sleep(time.Second * time.Duration(duration))
+		message := "Wait for pods to come up"
+		_, err := WaitRandom(message, timeout, log)
+		if err != nil {
+			return err
+		}
+
 		for _, item := range pods.Items {
 			log.Debugf("Firing go routine to check on pod '%s'", item.Name)
 			go k.CheckPodStatus(k8sclient, item.Name, namespace, "up", timeout, log, &wg)
@@ -225,7 +228,7 @@ func (k *K8sImpl) ScaleDeployment(clientk client.Client, k8sclient *kubernetes.C
 }
 
 // CheckDeployment checks the existence of a deployment
-func (k *K8sImpl) CheckDeployment(k8sclient *kubernetes.Clientset, labelSelector, namespace string, log *zap.SugaredLogger) (bool, error) {
+func (k *K8sImpl) CheckDeployment(k8sclient kubernetes.Interface, labelSelector, namespace string, log *zap.SugaredLogger) (bool, error) {
 	log.Infof("Checking deployment with labelselector '%v' exists in namespace '%s", labelSelector, namespace)
 	listOptions := metav1.ListOptions{LabelSelector: labelSelector}
 	deployment, err := k8sclient.AppsV1().Deployments(namespace).List(context.TODO(), listOptions)
@@ -253,13 +256,13 @@ func (k *K8sImpl) IsPodReady(pod *v1.Pod, log *zap.SugaredLogger) (bool, error) 
 }
 
 // CheckPodStatus checks the state of the pod depending on checkFlag
-func (k *K8sImpl) CheckPodStatus(k8sclient *kubernetes.Clientset, podName, namespace, checkFlag string, timeout string, log *zap.SugaredLogger, wg *sync.WaitGroup) error {
+func (k *K8sImpl) CheckPodStatus(k8sclient kubernetes.Interface, podName, namespace, checkFlag string, timeout string, log *zap.SugaredLogger, wg *sync.WaitGroup) error {
 	log.Infof("Checking Pod '%s' status in namespace '%s", podName, namespace)
 	var timeSeconds float64
 	defer wg.Done()
 	timeParse, err := time.ParseDuration(timeout)
 	if err != nil {
-		log.Errorf("Unable to pasr time duration ", zap.Error(err))
+		log.Errorf("Unable to parse time duration ", zap.Error(err))
 		return err
 	}
 	totalSeconds := timeParse.Seconds()
@@ -304,13 +307,17 @@ func (k *K8sImpl) CheckPodStatus(k8sclient *kubernetes.Clientset, podName, names
 			}
 
 			if wait {
+				fmt.Printf("timeSeconds = %v, totalSeconds = %v ", timeSeconds, totalSeconds)
 				if timeSeconds < totalSeconds {
-					duration := GenerateRandom()
-					log.Infof("Pod '%s' is in '%s' state. Check again after '%v' seconds", pod.Name, pod.Status.Phase, duration)
-					time.Sleep(time.Second * time.Duration(duration))
+					message := fmt.Sprintf("Pod '%s' is in '%s' state", pod.Name, pod.Status.Phase)
+					duration, err := WaitRandom(message, timeout, log)
+					if err != nil {
+						return err
+					}
 					timeSeconds = timeSeconds + float64(duration)
+
 				} else {
-					return fmt.Errorf("Timeout '%s' exceeded. POd '%s' is still not in running state", timeout, pod.Name)
+					return fmt.Errorf("Timeout '%s' exceeded. Pod '%s' is still not in running state", timeout, pod.Name)
 				}
 				// change wait to false after each wait
 				wait = false
@@ -321,11 +328,14 @@ func (k *K8sImpl) CheckPodStatus(k8sclient *kubernetes.Clientset, podName, names
 }
 
 // CheckDeployment checks the existence of a deployment
-func (k *K8sImpl) CheckAllPodsAfterRestore(k8sclient *kubernetes.Clientset, log *zap.SugaredLogger) error {
+func (k *K8sImpl) CheckAllPodsAfterRestore(k8sclient kubernetes.Interface, log *zap.SugaredLogger) error {
+	timeout := GetEnvWithDefault(constants.OpenSearchHealthCheckTimeoutKey, constants.OpenSearchHealthCheckTimeoutDefaultValue)
 
-	duration := GenerateRandom()
-	log.Infof("Waiting for '%v' seconds after Verrazzano Monitoring Operator is Ready", duration)
-	time.Sleep(time.Second * time.Duration(duration))
+	message := "Waiting for Verrazzano Monitoring Operator to come up"
+	_, err := WaitRandom(message, timeout, log)
+	if err != nil {
+		return err
+	}
 
 	var wg sync.WaitGroup
 	log.Infof("Checking pods with labelselector '%v' in namespace '%s", constants.IngestLabelSelector, constants.VerrazzanoNameSpaceName)
@@ -335,7 +345,6 @@ func (k *K8sImpl) CheckAllPodsAfterRestore(k8sclient *kubernetes.Clientset, log 
 		return err
 	}
 
-	timeout := GetEnvWithDefault(constants.OpenSearchHealthCheckTimeoutKey, constants.OpenSearchHealthCheckTimeoutDefaultValue)
 	wg.Add(len(ingestPods.Items))
 	for _, pod := range ingestPods.Items {
 		log.Debugf("Firing go routine to check on pod '%s'", pod.Name)

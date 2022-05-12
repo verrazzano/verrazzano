@@ -31,6 +31,7 @@ func logHelper() (*zap.SugaredLogger, string) {
 // WHEN file needs to be created as a temp file
 // THEN creates a files under temp and returns the filepath
 func TestCreateTempFileWithData(t *testing.T) {
+	t.Parallel()
 	nullBody := make(map[string]interface{})
 	data, _ := json.Marshal(nullBody)
 	file, err := utils.CreateTempFileWithData(data)
@@ -39,13 +40,17 @@ func TestCreateTempFileWithData(t *testing.T) {
 	assert.NotNil(t, file)
 }
 
-// TestGenerateRandom tests the GenerateRandom method
+// TestWaitRandom tests the WaitRandom method
 // GIVEN min and max limits
 // WHEN invoked from another method
-// THEN generates a crypto safe random number in a predefined range
-func TestGenerateRandom(t *testing.T) {
-	d := utils.GenerateRandom()
-	assert.NotNil(t, d)
+// THEN generates a crypto safe random number in a predefined range and waits for that duration
+func TestWaitRandom(t *testing.T) {
+	t.Parallel()
+	log, fname := logHelper()
+	defer os.Remove(fname)
+	message := "Waiting for Verrazzano Monitoring Operator to come up"
+	_, err := utils.WaitRandom(message, "1s", log)
+	assert.Nil(t, err)
 }
 
 // TestHTTPHelper tests the HTTPHelper method for the following use case.
@@ -53,6 +58,7 @@ func TestGenerateRandom(t *testing.T) {
 // WHEN the method type is GET/POST/DELETE with a body
 // THEN Invoke the http request and return the appropriate response
 func TestHTTPHelper(t *testing.T) {
+	t.Parallel()
 	log, fname := logHelper()
 	defer os.Remove(fname)
 	URL := "http://127.0.0.1"
@@ -73,6 +79,7 @@ func TestHTTPHelper(t *testing.T) {
 // WHEN the file exists
 // THEN read the keys from the file
 func TestReadTempCredsFile(t *testing.T) {
+	t.Parallel()
 	file, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("test-%s-hook-*.log", strings.ToLower("TEST")))
 	if err != nil {
 		fmt.Printf("Unable to create temp file")
@@ -97,6 +104,7 @@ func TestReadTempCredsFile(t *testing.T) {
 // WHEN the file exists
 // THEN read and return the single line
 func TestGetComponent(t *testing.T) {
+	t.Parallel()
 	file, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("component-%s-hook-*.log", strings.ToLower("TEST")))
 	if err != nil {
 		fmt.Printf("Unable to create temp file")

@@ -20,7 +20,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"strings"
-	"time"
 )
 
 var (
@@ -126,9 +125,11 @@ func main() {
 
 		if !k8sContextReady {
 			if retryCount <= constants.RetryCount {
-				duration := utils.GenerateRandom()
-				log.Infof("Unable to get context. Still waiting for %v seconds", duration)
-				time.Sleep(time.Second * time.Duration(duration))
+				message := "Unable to get context"
+				_, err := utils.WaitRandom(message, cData.Timeout, log)
+				if err != nil {
+					log.Panic(err)
+				}
 				retryCount = retryCount + 1
 			}
 		} else {

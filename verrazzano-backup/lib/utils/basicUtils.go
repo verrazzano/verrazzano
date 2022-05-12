@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 //CreateTempFileWithData used to create temp cloud-creds utilized for object store access
@@ -33,16 +34,26 @@ func CreateTempFileWithData(data []byte) (string, error) {
 }
 
 //GenerateRandom generates a random number between min and max
-func GenerateRandom() int {
+func WaitRandom(message, timeout string, log *zap.SugaredLogger) (int, error) {
 	randomBig, err := rand.Int(rand.Reader, big.NewInt(constants.Max))
 	if err != nil {
-		fmt.Println(err)
+		return 0, fmt.Errorf("Unable to generate random number %v", zap.Error(err))
 	}
 	randomInt := int(randomBig.Int64())
 	if randomInt < constants.Min {
-		return (constants.Min + constants.Max) / 2
+		randomInt = (constants.Min + constants.Max) / 2
 	}
-	return randomInt
+	timeParse, err := time.ParseDuration(timeout)
+	if err != nil {
+		return 0, fmt.Errorf("Unable to parse time duration %v", zap.Error(err))
+	}
+	// handle timeouts lesser that generated min!
+	if float64(randomInt) > timeParse.Seconds() {
+		randomInt = int(timeParse.Seconds())
+	}
+	log.Infof("%v . Wait for '%v' seconds ...", message, randomInt)
+	time.Sleep(time.Second * time.Duration(randomInt))
+	return randomInt, nil
 }
 
 //HTTPHelper supports net/http calls of type GTE/POST/DELETE

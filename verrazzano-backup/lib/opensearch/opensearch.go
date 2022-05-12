@@ -43,9 +43,11 @@ func (o *OpensearchImpl) EnsureOpenSearchIsReachable(url string, conData *types.
 		err := utils.HTTPHelper("GET", url, nil, &osinfo, log)
 		if err != nil {
 			if timeSeconds < totalSeconds {
-				duration := utils.GenerateRandom()
-				log.Infof("Cluster is not reachable. Retry after '%v' seconds", duration)
-				time.Sleep(time.Second * time.Duration(duration))
+				message := "Cluster is not reachable"
+				duration, err := utils.WaitRandom(message, conData.Timeout, log)
+				if err != nil {
+					return err
+				}
 				timeSeconds = timeSeconds + float64(duration)
 			} else {
 				log.Errorf("Timeout '%s' exceeded. Cluster not reachable", conData.Timeout)
@@ -93,9 +95,11 @@ func (o *OpensearchImpl) EnsureOpenSearchIsHealthy(url string, conData *types.Co
 		err = utils.HTTPHelper("GET", healthURL, nil, &clusterHealth, log)
 		if err != nil {
 			if timeSeconds < totalSeconds {
-				duration := utils.GenerateRandom()
-				log.Infof("Cluster health endpoint is not reachable. Retry after '%v' seconds", duration)
-				time.Sleep(time.Second * time.Duration(duration))
+				message := "Cluster health endpoint is not reachable"
+				duration, err := utils.WaitRandom(message, conData.Timeout, log)
+				if err != nil {
+					return err
+				}
 				timeSeconds = timeSeconds + float64(duration)
 			} else {
 				log.Errorf("Timeout '%s' exceeded. Cluster health endpoint is not reachable", conData.Timeout)
@@ -113,9 +117,11 @@ func (o *OpensearchImpl) EnsureOpenSearchIsHealthy(url string, conData *types.Co
 		err = utils.HTTPHelper("GET", healthURL, nil, &clusterHealth, log)
 		if err != nil {
 			if timeSeconds < totalSeconds {
-				duration := utils.GenerateRandom()
-				log.Infof("Json unmarshalling error. Retry after '%v' seconds", duration)
-				time.Sleep(time.Second * time.Duration(duration))
+				message := "Json unmarshalling error"
+				duration, err := utils.WaitRandom(message, conData.Timeout, log)
+				if err != nil {
+					return err
+				}
 				timeSeconds = timeSeconds + float64(duration)
 				continue
 			} else {
@@ -125,9 +131,11 @@ func (o *OpensearchImpl) EnsureOpenSearchIsHealthy(url string, conData *types.Co
 
 		if clusterHealth.Status != "green" {
 			if timeSeconds < totalSeconds {
-				duration := utils.GenerateRandom()
-				log.Infof("Cluster health is '%s'. Retry after '%v' seconds", clusterHealth.Status, duration)
-				time.Sleep(time.Second * time.Duration(duration))
+				message := fmt.Sprintf("Cluster health is '%s'", clusterHealth.Status)
+				duration, err := utils.WaitRandom(message, conData.Timeout, log)
+				if err != nil {
+					return err
+				}
 				timeSeconds = timeSeconds + float64(duration)
 			} else {
 				return fmt.Errorf("Timeout '%s' exceeded. Cluster health expected 'green' , current state '%s'", conData.Timeout, clusterHealth.Status)
@@ -287,9 +295,11 @@ func (o *OpensearchImpl) CheckSnapshotProgress(conData *types.ConnectionData, lo
 		switch snapshotInfo.Snapshots[0].State {
 		case constants.OpenSearchSnapShotInProgress:
 			if timeSeconds < totalSeconds {
-				duration := utils.GenerateRandom()
-				log.Infof("Snapshot '%s' is in progress. Check again after '%v' seconds", conData.BackupName, duration)
-				time.Sleep(time.Second * time.Duration(duration))
+				message := fmt.Sprintf("Snapshot '%s' is in progress", conData.BackupName)
+				duration, err := utils.WaitRandom(message, conData.Timeout, log)
+				if err != nil {
+					return err
+				}
 				timeSeconds = timeSeconds + float64(duration)
 			} else {
 				return fmt.Errorf("Timeout '%s' exceeded. Snapshot '%s' state is still IN_PROGRESS", conData.Timeout, conData.BackupName)
@@ -396,9 +406,11 @@ func (o *OpensearchImpl) CheckRestoreProgress(conData *types.ConnectionData, log
 
 		if notGreen {
 			if timeSeconds < totalSeconds {
-				duration := utils.GenerateRandom()
-				log.Infof("Restore is in progress. Check again after '%v' seconds", duration)
-				time.Sleep(time.Second * time.Duration(duration))
+				message := "Restore is in progress"
+				duration, err := utils.WaitRandom(message, conData.Timeout, log)
+				if err != nil {
+					return err
+				}
 				timeSeconds = timeSeconds + float64(duration)
 				notGreen = false
 			} else {
