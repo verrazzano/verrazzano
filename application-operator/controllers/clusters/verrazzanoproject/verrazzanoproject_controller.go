@@ -183,8 +183,18 @@ func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp clustersv1
 			var namespace corev1.Namespace
 			namespace.Name = nsTemplate.Metadata.Name
 
+			// ascertain whether istio injection is enabled
+			istioInjection := "enabled"
+			vzns := corev1.Namespace{}
+			if err := r.Client.Get(context.TODO(), client.ObjectKey{Namespace: "", Name: constants.VerrazzanoSystemNamespace}, &vzns); err != nil {
+				return err
+			}
+			if val, ok := vzns.Labels[constants.LabelIstioInjection]; ok {
+				istioInjection = val
+			}
+
 			opResult, err := controllerutil.CreateOrUpdate(ctx, r.Client, &namespace, func() error {
-				r.mutateNamespace(nsTemplate, &namespace)
+				r.mutateNamespace(nsTemplate, istioInjection, &namespace)
 				return nil
 			})
 			if err != nil {
@@ -203,7 +213,7 @@ func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp clustersv1
 	return nil
 }
 
-func (r *Reconciler) mutateNamespace(nsTemplate clustersv1alpha1.NamespaceTemplate, namespace *corev1.Namespace) {
+func (r *Reconciler) mutateNamespace(nsTemplate clustersv1alpha1.NamespaceTemplate, istioInjection string, namespace *corev1.Namespace) {
 	namespace.Annotations = nsTemplate.Metadata.Annotations
 	namespace.Spec = nsTemplate.Spec
 
@@ -214,7 +224,7 @@ func (r *Reconciler) mutateNamespace(nsTemplate clustersv1alpha1.NamespaceTempla
 
 	// Apply the standard Verrazzano labels
 	namespace.Labels[constants.LabelVerrazzanoManaged] = constants.LabelVerrazzanoManagedDefault
-	namespace.Labels[constants.LabelIstioInjection] = constants.LabelIstioInjectionDefault
+	namespace.Labels[constants.LabelIstioInjection] = istioInjection
 
 	// Apply user specified labels, which may override standard Verrazzano labels
 	for label, value := range nsTemplate.Metadata.Labels {

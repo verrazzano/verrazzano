@@ -12,11 +12,9 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/istio"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
-	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	os2 "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	istiosec "istio.io/api/security/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -61,9 +59,10 @@ func setBashFunc(f bashFuncSig) {
 }
 
 type installMonitorType struct {
-	running  bool
-	resultCh chan bool
-	inputCh  chan installRoutineParams
+	running         bool
+	resultCh        chan bool
+	inputCh         chan installRoutineParams
+	istioctlSuccess bool
 }
 
 //installRoutineParams - Used to pass args to the install goroutine
@@ -81,10 +80,12 @@ type installMonitor interface {
 	checkResult() (bool, error)
 	// reset - Resets the monitor and closes any open channels
 	reset()
-	//isRunning - returns true of the monitor/goroutine are active
+	// isRunning - returns true of the monitor/goroutine are active
 	isRunning() bool
-	//run - Run the install with the specified args
+	// run - Run the install with the specified args
 	run(args installRoutineParams)
+	// isIstioctlSuccess - returns boolean to indicate whether istioctl completed successfully
+	isIstioctlSuccess() bool
 }
 
 //checkResult - checks for a result from the goroutine
@@ -92,8 +93,10 @@ type installMonitor interface {
 func (m *installMonitorType) checkResult() (bool, error) {
 	select {
 	case result := <-m.resultCh:
+		m.istioctlSuccess = result
 		return result, nil
 	default:
+		m.istioctlSuccess = false
 		return false, ctrlerrors.RetryableError{Source: ComponentName}
 	}
 }
@@ -124,24 +127,30 @@ func (m *installMonitorType) run(args installRoutineParams) {
 		log := args.log
 
 		result := true
+		m.istioctlSuccess = false
 		log.Oncef("Component Istio is running istioctl")
 		stdout, stderr, err := installFunc(log, args.overrides, args.fileOverrides...)
 		log.Debugf("istioctl stdout: %s", string(stdout))
 		if err != nil {
 			result = false
 			err = log.ErrorfNewErr("Failed calling istioctl install: %v stderr: %s", err.Error(), string(stderr))
+		} else {
+			log.Infof("Component Istio successfully ran istioctl install")
 		}
 
 		// Clean up the temp files
 		removeTempFiles(log)
 
 		// Write result
-		log.Oncef("Component Istio successfully ran istioctl install, result: %s", result)
 		outputCh <- result
 	}(m.inputCh, m.resultCh)
 
 	// Pass in the args to get started
 	m.inputCh <- args
+}
+
+func (m *installMonitorType) isIstioctlSuccess() bool {
+	return m.istioctlSuccess
 }
 
 func (i istioComponent) IsOperatorInstallSupported() bool {
@@ -193,15 +202,13 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 	}
 
 	var userFileCR *os.File
-	var kvs []bom.KeyValue
 	var err error
 	cr := compContext.EffectiveCR()
 	log := compContext.Log()
-	client := compContext.Client()
 
 	// Only create override file if the CR has an Istio component
 	if cr.Spec.Components.Istio != nil {
-		istioOperatorYaml, err := BuildIstioOperatorYaml(cr.Spec.Components.Istio)
+		istioOperatorYaml, err := BuildIstioOperatorYaml(compContext, cr.Spec.Components.Istio)
 		if err != nil {
 			return log.ErrorfNewErr("Failed to Build IstioOperator YAML: %v", err)
 		}
@@ -220,16 +227,7 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 		log.Debugf("Created values file from Istio install args: %s", userFileCR.Name())
 	}
 
-	// check for global image pull secret
-	kvs, err = secret.AddGlobalImagePullSecretHelmOverride(log, client, IstioNamespace, kvs, imagePullSecretHelmKey)
-	if err != nil {
-		return err
-	}
-
-	// Build comma separated string of overrides that will be passed to
-	// isioctl as --set values.
-	// This include BOM image overrides as well as other overrides
-	overrideStrings, err := buildOverridesString(kvs...)
+	overrideStrings, err := getOverridesString(compContext)
 	if err != nil {
 		return err
 	}

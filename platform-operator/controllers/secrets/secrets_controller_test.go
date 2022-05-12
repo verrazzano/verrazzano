@@ -5,6 +5,9 @@ package secrets
 
 import (
 	"context"
+	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -18,6 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+var mcNamespace = types.NamespacedName{Name: constants.VerrazzanoMultiClusterNamespace}
 var vzTLSSecret = types.NamespacedName{Name: "verrazzano-tls", Namespace: "verrazzano-system"}
 var vzLocalCaBundleSecret = types.NamespacedName{Name: "verrazzano-local-ca-bundle", Namespace: "verrazzano-mc"}
 var unwatchedSecret = types.NamespacedName{Name: "any-secret", Namespace: "any-namespace"}
@@ -66,8 +70,64 @@ func TestIgnoresOtherSecrets(t *testing.T) {
 	asserts.NotNil(result)
 }
 
+// TestMultiClusterNamespaceDoesNotExist tests the Reconcile method for the following use case
+// GIVEN a request to reconcile the verrazzano-tls secret
+// WHEN the verrazzano-mc namespace does not exist
+// THEN a requeue request is returned with no error
+func TestMultiClusterNamespaceDoesNotExist(t *testing.T) {
+	runNamespaceErrorTest(t, errors.NewNotFound(corev1.Resource("Namespace"), constants.VerrazzanoMultiClusterNamespace))
+}
+
+// TestMultiClusterNamespaceUnexpectedErr tests the Reconcile method for the following use case
+// GIVEN a request to reconcile the verrazzano-tls secret
+// WHEN an unexpected error occurs checking the verrazzano-mc namespace existence
+// THEN a requeue request is returned with no error
+func TestMultiClusterNamespaceUnexpectedErr(t *testing.T) {
+	runNamespaceErrorTest(t, fmt.Errorf("unexpected error checking namespace"))
+}
+
+func runNamespaceErrorTest(t *testing.T, expectedErr error) {
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	// Expect  a call to get the verrazzano-mc namespace
+	mock.EXPECT().
+		Get(gomock.Any(), mcNamespace, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+			return expectedErr
+		})
+
+	// Expect a call to get the verrazzano-tls secret
+	mock.EXPECT().
+		Get(gomock.Any(), vzTLSSecret, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Name = vzTLSSecret.Name
+			secret.Namespace = vzTLSSecret.Namespace
+			return nil
+		}).AnyTimes()
+
+	// Create and make the request
+	request := newRequest(vzTLSSecret.Namespace, vzTLSSecret.Name)
+	reconciler := newSecretsReconciler(mock)
+	result, err := reconciler.Reconcile(context.TODO(), request)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+	asserts.NotNil(result)
+	asserts.NotEqual(ctrl.Result{}, result)
+}
+
 func expectLocalCABundleIsCreated(t *testing.T, mock *mocks.MockClient) {
 	asserts := assert.New(t)
+
+	// Expect  a call to get the verrazzano-mc namespace
+	mock.EXPECT().
+		Get(gomock.Any(), mcNamespace, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+			return nil
+		}).AnyTimes()
 
 	// Expect a call to get the verrazzano-tls secret
 	mock.EXPECT().

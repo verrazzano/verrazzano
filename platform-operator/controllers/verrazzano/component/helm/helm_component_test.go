@@ -19,7 +19,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
@@ -180,7 +179,14 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 		ImagePullSecretKeyname:  "imagePullSecrets",
 		ValuesFile:              "ValuesFile",
 		PreUpgradeFunc:          fakePreUpgrade,
-		AppendOverridesFunc:     istio.AppendIstioOverrides,
+		AppendOverridesFunc: func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+			return []bom.KeyValue{
+				{
+					Key:   "global.hub",
+					Value: "myreg.io/myrepo/verrazzano",
+				},
+			}, nil
+		},
 	}
 
 	_ = os.Setenv(constants.RegistryOverrideEnvVar, "myreg.io")

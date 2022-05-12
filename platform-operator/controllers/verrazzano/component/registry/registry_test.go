@@ -4,6 +4,7 @@
 package registry
 
 import (
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -13,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
@@ -58,7 +60,7 @@ func TestGetComponents(t *testing.T) {
 	a := assert.New(t)
 	comps := GetComponents()
 
-	a.Len(comps, 23, "Wrong number of components")
+	a.Len(comps, 24, "Wrong number of components")
 	a.Equal(comps[0].Name(), oam.ComponentName)
 	a.Equal(comps[1].Name(), appoper.ComponentName)
 	a.Equal(comps[2].Name(), istio.ComponentName)
@@ -71,17 +73,18 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[9].Name(), vmo.ComponentName)
 	a.Equal(comps[10].Name(), opensearch.ComponentName)
 	a.Equal(comps[11].Name(), opensearchdashboards.ComponentName)
-	a.Equal(comps[12].Name(), authproxy.ComponentName)
-	a.Equal(comps[13].Name(), coherence.ComponentName)
-	a.Equal(comps[14].Name(), mysql.ComponentName)
-	a.Equal(comps[15].Name(), keycloak.ComponentName)
-	a.Equal(comps[16].Name(), kiali.ComponentName)
-	a.Equal(comps[17].Name(), promoperator.ComponentName)
-	a.Equal(comps[18].Name(), promadapter.ComponentName)
-	a.Equal(comps[19].Name(), kubestatemetrics.ComponentName)
-	a.Equal(comps[20].Name(), pushgateway.ComponentName)
-	a.Equal(comps[21].Name(), promnodeexporter.ComponentName)
-	a.Equal(comps[22].Name(), jaegeroperator.ComponentName)
+	a.Equal(comps[12].Name(), grafana.ComponentName)
+	a.Equal(comps[13].Name(), authproxy.ComponentName)
+	a.Equal(comps[14].Name(), coherence.ComponentName)
+	a.Equal(comps[15].Name(), mysql.ComponentName)
+	a.Equal(comps[16].Name(), keycloak.ComponentName)
+	a.Equal(comps[17].Name(), kiali.ComponentName)
+	a.Equal(comps[18].Name(), promoperator.ComponentName)
+	a.Equal(comps[19].Name(), promadapter.ComponentName)
+	a.Equal(comps[20].Name(), kubestatemetrics.ComponentName)
+	a.Equal(comps[21].Name(), pushgateway.ComponentName)
+	a.Equal(comps[22].Name(), promnodeexporter.ComponentName)
+	a.Equal(comps[23].Name(), jaegeroperator.ComponentName)
 }
 
 // TestFindComponent tests FindComponent
@@ -98,41 +101,19 @@ func TestFindComponent(t *testing.T) {
 // TestComponentDependenciesMet tests ComponentDependenciesMet
 // GIVEN a component
 //  WHEN I call ComponentDependenciesMet for it
-//  THEN the true is returned if all depdencies are met
+//  THEN the true is returned if all dependencies are met
 func TestComponentDependenciesMet(t *testing.T) {
 	comp := helm2.HelmComponent{
 		ReleaseName:    "foo",
 		ChartDir:       "chartDir",
 		ChartNamespace: "bar",
-		Dependencies:   []string{istio.ComponentName},
+		Dependencies:   []string{coherence.ComponentName},
 	}
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "istio-system",
-				Name:      "istiod",
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "istio-system",
-				Name:      "istio-ingressgateway",
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "istio-system",
-				Name:      "istio-egressgateway",
+				Namespace: vzconst.VerrazzanoSystemNamespace,
+				Name:      "coherence-operator",
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
@@ -145,14 +126,14 @@ func TestComponentDependenciesMet(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "default"}}, false))
+	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "default"}}, true))
 	assert.True(t, ready)
 }
 
 // TestComponentDependenciesNotMet tests ComponentDependenciesMet
 // GIVEN a component
 //  WHEN I call ComponentDependenciesMet for it
-//  THEN the false is returned if any depdencies are not met
+//  THEN the false is returned if any dependencies are not met
 func TestComponentDependenciesNotMet(t *testing.T) {
 	comp := helm2.HelmComponent{
 		ReleaseName:    "foo",
@@ -262,18 +243,16 @@ func TestComponentMultipleDependenciesPartiallyMet(t *testing.T) {
 // TestComponentMultipleDependenciesMet tests ComponentDependenciesMet
 // GIVEN a component
 //  WHEN I call ComponentDependenciesMet for it
-//  THEN the true is returned if all depdencies are met
+//  THEN the true is returned if all dependencies are met
 func TestComponentMultipleDependenciesMet(t *testing.T) {
 	comp := helm2.HelmComponent{
 		ReleaseName:    "foo",
 		ChartDir:       "chartDir",
 		ChartNamespace: "bar",
-		Dependencies:   []string{istio.ComponentName, "cert-manager"},
+		Dependencies:   []string{oam.ComponentName, certmanager.ComponentName},
 	}
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		newReadyDeployment("istiod", "istio-system"),
-		newReadyDeployment("istio-ingressgateway", "istio-system"),
-		newReadyDeployment("istio-egressgateway", "istio-system"),
+		newReadyDeployment("oam-kubernetes-runtime", vzconst.VerrazzanoSystemNamespace),
 		newReadyDeployment(certManagerDeploymentName, certManagerNamespace),
 		newReadyDeployment(cainjectorDeploymentName, certManagerNamespace),
 		newReadyDeployment(webhookDeploymentName, certManagerNamespace),

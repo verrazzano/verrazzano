@@ -73,7 +73,7 @@ func deployFooApplication() {
 
 	t.Logs.Info("Create namespace")
 	Eventually(func() (*v1.Namespace, error) {
-		return pkg.CreateNamespace(fooNamespace, map[string]string{"verrazzano-managed": "true", "istio-injection": "enabled"})
+		return pkg.CreateNamespace(fooNamespace, map[string]string{"verrazzano-managed": "true", "istio-injection": istioInjection})
 	}, waitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	t.Logs.Info("Create AuthPolicy App resources")
@@ -103,7 +103,7 @@ func deployBarApplication() {
 
 	t.Logs.Info("Create namespace")
 	Eventually(func() (*v1.Namespace, error) {
-		return pkg.CreateNamespace(barNamespace, map[string]string{"verrazzano-managed": "true", "istio-injection": "enabled"})
+		return pkg.CreateNamespace(barNamespace, map[string]string{"verrazzano-managed": "true", "istio-injection": istioInjection})
 	}, waitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	t.Logs.Info("Create AuthPolicy App resources")

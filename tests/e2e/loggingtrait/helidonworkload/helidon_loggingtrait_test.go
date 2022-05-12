@@ -32,7 +32,7 @@ var (
 )
 
 var _ = clusterDump.BeforeSuite(func() {
-	loggingtrait.DeployApplication(namespace, componentsPath, applicationPath, applicationPodName, t)
+	loggingtrait.DeployApplication(namespace, istioInjection, componentsPath, applicationPath, applicationPodName, t)
 })
 
 var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails

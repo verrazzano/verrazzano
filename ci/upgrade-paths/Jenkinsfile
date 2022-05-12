@@ -35,8 +35,8 @@ pipeline {
     parameters {
         booleanParam (description: 'Whether to use External Elasticsearch', name: 'EXTERNAL_ELASTICSEARCH', defaultValue: false)
         choice (description: 'Number of Cluster', name: 'TOTAL_CLUSTERS', choices: ["2", "1", "3"])
-        choice (description: 'Predefined config permutations for Verrazzano installation', name: 'VZ_SETUP_PROFILE',
-                choices: ["NONE","dev-kind-all-default"])
+        choice (description: 'Predefined config permutations for Verrazzano installation. Prod profile is the default profile for NONE', name: 'VZ_INSTALL_CONFIG',
+                choices: ["NONE", "dev-kind-persistence"])
         choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
                 choices: ["KIND", "magicdns_oke", "ocidns_oke"])
         choice (description: 'ACME Certificate Environment (Staging or Production)', name: 'ACME_ENVIRONMENT',
@@ -54,7 +54,7 @@ pipeline {
         choice (name: 'KIND_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KIND Cluster',
                 // 1st choice is the default value
-                choices: [ "1.20", "1.21", "1.22" ])
+                choices: [ "1.20", "1.21", "1.22", "1.23" ])
         string (name: 'VERSION_FOR_INSTALL',
                 defaultValue: 'v1.1.2',
                 description: 'This is the Verrazzano version for install before doing an upgrade.  By default, the v1.1.2 release will be installed',
@@ -289,13 +289,8 @@ pipeline {
                     }
                     // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
                     env.K8S_VERSION_LABEL = "${params.TEST_ENV == 'KIND' ? params.KIND_CLUSTER_VERSION : sh(returnStdout: true, script: '${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}').trim()}"
-                    def latestReleaseBranch = getLatestReleaseVersion()
-                    if(latestReleaseBranch == "1.2"){
-                        ADMIN_CLUSTER_PROFILE = "dev"
-                        MANAGED_CLUSTER_PROFILE = "managed-cluster"
-                        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
-                        CREATE_EXTERNAL_OPENSEARCH = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create-external-es.sh"
-                   }
+                    // Sets the VZ installation configuration based on VZ_INSTALL_CONFIG parameter.
+                    setVZConfigForInstallation()
                 }
             }
         }
@@ -316,9 +311,6 @@ pipeline {
                         stage('Create Kind Clusters') {
                             when { expression { return params.TEST_ENV == 'KIND' } }
                             steps {
-                                script{
-                                    setVZConfigForInstallation()
-                                }
                                 createKindClusters()
                             }
                         }
@@ -438,6 +430,12 @@ pipeline {
                                 runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true")
                             }
                         }
+                        stage ('Deploy Example Coherence') {
+                            steps {
+                                runGinkgoVerify('workloads/coherence', "false", "false", "true", "hello-coherence")
+                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload", "false", "false", "false")
+                            }
+                        }
                     }
                 }
                 stage("upgrade-platform-operator") {
@@ -549,11 +547,16 @@ pipeline {
                         }
                     }
                 }
-                stage ('Verify Example Apps') {
+                stage ('Verify & Uninstall Example Apps') {
                     parallel {
                         stage ('Examples Helidon') {
                             steps {
                                 runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload", "true", "false", "false")
+                            }
+                        }
+                        stage ('Verify/Uninstall Example Coherence') {
+                            steps {
+                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload", "false", "false", "false")
                             }
                         }
                     }
@@ -682,7 +685,7 @@ pipeline {
                           ./tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
                         fi
                         cd ${TEST_SCRIPTS_DIR}
-                        TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./delete_oke_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}"
+                        TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./delete_oke_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}" || true
                     """
                 }
                 sh """
@@ -955,22 +958,23 @@ def upgradeVerrazzanoOnCluster(count, verrazzanoDevVersion) {
 
                 # Get the install job in verrazzano-install namespace
                 kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-pre-upgrade-job.out
-                  
+
                 echo "Upgrading the Verrazzano installation to version" ${verrazzanoDevVersion}
                 # Modify the version field in the Verrazzano CR file to be this new Verrazzano version
                 cd ${GO_REPO_PATH}/verrazzano
                 cp ${v8oInstallFile} ${v8oUpgradeFile}
                 ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${verrazzanoDevVersion}  ${v8oUpgradeFile}
+
                 # Do the upgrade
                 echo "Following is the verrazzano CR file with the new version:"
                 cat ${v8oUpgradeFile}
                 kubectl --kubeconfig=${kubeClusterConfig} apply -f ${v8oUpgradeFile}
                 # wait for the upgrade to complete
                 kubectl --kubeconfig=${kubeClusterConfig} wait --timeout=25m --for=condition=UpgradeComplete verrazzano/my-verrazzano
-                            
+
                 # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
                 kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-post-upgrade-job.out
-             
+
                 echo "Ensuring that the install job(s) in verrazzzano-system are identical pre and post install"
                 cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-post-upgrade-job.out
 
@@ -1514,16 +1518,11 @@ def emitJobMetrics() {
 }
 
 def setVZConfigForInstallation(){
-    if(params.VZ_SETUP_PROFILE == "dev-kind-all-default"){
-        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-no-persistence.yaml"
+    if(params.VZ_INSTALL_CONFIG == "dev-kind-persistence"){
+        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
         ADMIN_CLUSTER_PROFILE = "dev"
         MANAGED_CLUSTER_PROFILE = "managed-cluster"
     }
-    def latestRelease = getLatestReleaseVersion()
-    if(params.VZ_SETUP_PROFILE == "dev-kind-all-default" && latestRelease == "1.2"){
-        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind.yaml"
-        CREATE_EXTERNAL_OPENSEARCH = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create-external-es.sh"
-        ADMIN_CLUSTER_PROFILE = "dev"
-        MANAGED_CLUSTER_PROFILE = "managed-cluster"
-    }
+
 }
+

@@ -20,7 +20,7 @@ import (
 const (
 	shortWaitTimeout     = 10 * time.Minute
 	shortPollingInterval = 10 * time.Second
-	longWaitTimeout      = 15 * time.Minute
+	longWaitTimeout      = 20 * time.Minute
 	longPollingInterval  = 20 * time.Second
 	namespace            = "console-ingress"
 )
@@ -66,7 +66,7 @@ func deployApplication() {
 	Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
-			"istio-injection":    "enabled"}
+			"istio-injection":    istioInjection}
 		return pkg.CreateNamespace(namespace, nsLabels)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
@@ -172,7 +172,7 @@ var _ = t.Describe("console-ingress app test", Label("f:app-lcm.oam",
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/console/login/LoginForm.jsp", host)
 				return pkg.GetWebPage(url, host)
-			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Oracle WebLogic Server Administration Console")))
+			}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Oracle WebLogic Server Administration Console")))
 		})
 
 		// Verify the application REST endpoint is working.
@@ -183,7 +183,7 @@ var _ = t.Describe("console-ingress app test", Label("f:app-lcm.oam",
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/todo/rest/items", host)
 				return pkg.GetWebPage(url, host)
-			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("["), pkg.BodyContains("]")))
+			}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("["), pkg.BodyContains("]")))
 		})
 	})
 })

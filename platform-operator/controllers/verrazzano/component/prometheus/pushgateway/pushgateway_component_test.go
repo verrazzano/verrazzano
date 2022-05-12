@@ -39,9 +39,7 @@ func TestIsEnabled(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						PrometheusPushgateway: &vzapi.PrometheusPushgatewayComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{
-								Enabled: &trueValue,
-							},
+							Enabled: &trueValue,
 						},
 					},
 				},
@@ -56,9 +54,7 @@ func TestIsEnabled(t *testing.T) {
 			actualCR: vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
-						PrometheusPushgateway: &vzapi.PrometheusPushgatewayComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{},
-						},
+						PrometheusPushgateway: &vzapi.PrometheusPushgatewayComponent{},
 					},
 				},
 			},
@@ -87,9 +83,7 @@ func TestIsEnabled(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						PrometheusPushgateway: &vzapi.PrometheusPushgatewayComponent{
-							MonitoringComponent: vzapi.MonitoringComponent{
-								Enabled: &falseValue,
-							},
+							Enabled: &falseValue,
 						},
 					},
 				},

@@ -42,8 +42,11 @@ pipeline {
                 defaultValue: '3',
                 description: 'This is to define total number of jobs executed in parallel per each batch',
                 trim: true)
-        choice (description: 'Predefined config permutations for Verrazzano installation', name: 'VZ_SETUP_PROFILE',
-                choices: ["NONE","dev-kind-all-default"])
+        choice (description: 'Predefined config permutations for Verrazzano installation. Prod profile is the default profile for NONE', name: 'VZ_INSTALL_CONFIG',
+                choices: ["NONE", "dev-kind-persistence"])
+        string (name: 'EXCLUDE_RELEASES',
+                defaultValue: "v1.0.0, v1.0.1, v1.0.2, v1.0.3, v1.0.4",
+                description: 'This is to exclude the specified releases from upgrade tests.', trim: true)
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
                         defaultValue: 'NONE',
                         description: 'This is for manually testing only where someone needs to use a specific operator image, otherwise the default value of NONE is used',
@@ -75,7 +78,7 @@ pipeline {
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
-        KUBERNETES_VERSION = '1.20,1.21,1.22'
+        KUBERNETES_VERSION = '1.20,1.21,1.22,1.23'
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
@@ -154,9 +157,26 @@ pipeline {
                 steps {
                     script {
                         final String fileContent = readFile(file: "${workspace}/tags.txt")
-                        final List gitTags = extractReleaseTags(fileContent)
+                        List gitTags = extractReleaseTags(fileContent)
                         echo "gitTags = ${gitTags}"
-                        listOfUpgradeJobs = addTargetUpgradeVersion(gitTags)
+                        def excludeReleases = params.EXCLUDE_RELEASES
+                        def excludeReleasesList = excludeReleases.trim().split('\\s*,\\s*')
+                        println(excludeReleasesList)
+                        def finalReleaseList  = []
+                        //Remove the excluded releases from jobs
+                        for(releaseTag in gitTags){
+                            def excluded = false
+                            for(excludedRelease in excludeReleasesList){
+                                if(releaseTag == excludedRelease){
+                                    excluded = true
+                                }
+                            }
+                            if(excluded == false){
+                                finalReleaseList.add(releaseTag)
+                            }
+                        }
+                        echo "List of Releases after excluding the user requested releases: ${finalReleaseList}"
+                        listOfUpgradeJobs = addTargetUpgradeVersion(finalReleaseList)
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
                         echo "Number of jobs to be run in parallel : ${params.N_JOBS_FOR_EACH_BATCH}"
                         def k = 0
@@ -400,9 +420,10 @@ def getStageOfUpgradeJob(job) {
                     echo "Running upgrade job from version ${job[0]} to ${job[1]}"
                     def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                     parameters: [
+                        string(name: 'GIT_COMMIT_TO_USE', value: params.GIT_COMMIT_TO_USE),
                         string(name: 'VERSION_FOR_INSTALL', value: job[0]),
                         string(name: 'VERSION_FOR_UPGRADE', value: job[1]),
-                        string(name: 'VZ_SETUP_PROFILE', value: params.VZ_SETUP_PROFILE),
+                        string(name: 'VZ_INSTALL_CONFIG', value: params.VZ_INSTALL_CONFIG),
                         string(name: 'IS_TRIGGERED_MANUALLY', value: "NO"),
                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
@@ -431,3 +452,5 @@ def getCronSchedule() {
     }
     return ""
 }
+
+

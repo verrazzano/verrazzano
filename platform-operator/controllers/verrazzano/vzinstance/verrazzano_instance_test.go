@@ -112,9 +112,7 @@ func TestGetInstanceInfo(t *testing.T) {
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
 				Console: &v1alpha1.ConsoleComponent{
-					MonitoringComponent: v1alpha1.MonitoringComponent{
-						Enabled: &enabled,
-					},
+					Enabled: &enabled,
 				},
 			},
 		},
@@ -250,9 +248,7 @@ func TestGetInstanceInfoNoIngresses(t *testing.T) {
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
 				Console: &v1alpha1.ConsoleComponent{
-					MonitoringComponent: v1alpha1.MonitoringComponent{
-						Enabled: &enabled,
-					},
+					Enabled: &enabled,
 				},
 			},
 		},

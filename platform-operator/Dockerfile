@@ -22,14 +22,16 @@ FROM ghcr.io/oracle/oraclelinux:7-slim
 ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 
 # Use olcne13, which is required for kubectl
+# Use olcne15, which is required for istioctl
+# Use developer/olcne, which is required for helm
 RUN yum update -y \
     && yum install -y openssl jq patch wget \
     && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne13/x86_64/ \
-    && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne14/x86_64/ \
+    && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne15/x86_64/ \
     && yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/olcne/x86_64 \
     && yum install -y kubectl-1.20.11-4.el7 \
     && yum install -y helm-3.8.0-1.el7 \
-    && yum install -y istio-istioctl-1.11.4-1.el7 \
+    && yum install -y istio-istioctl-1.13.2-1.el7 \
     && yum clean all \
     && rm -rf /var/cache/yum
 
@@ -50,6 +52,7 @@ COPY --from=build_base --chown=verrazzano:verrazzano /usr/local/bin/verrazzano-p
 WORKDIR /verrazzano
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/thirdparty ./platform-operator/thirdparty
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/manifests ./platform-operator/manifests
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/scripts/hooks ./platform-operator/scripts/hooks
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/scripts/install ./platform-operator/scripts/install
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/scripts/uninstall ./platform-operator/scripts/uninstall
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/config/scripts/run.sh .

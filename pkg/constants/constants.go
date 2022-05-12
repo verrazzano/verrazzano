@@ -107,3 +107,6 @@ const TestPrometheusJobScrapeInterval = "0s"
 
 // TestPrometheusJob - Name of a test prometheus scraper job
 const TestPrometheusScrapeJob = "test_job"
+
+// Default Opensearch URL
+const DefaultOpensearchURL = "http://verrazzano-authproxy-elasticsearch:8775"

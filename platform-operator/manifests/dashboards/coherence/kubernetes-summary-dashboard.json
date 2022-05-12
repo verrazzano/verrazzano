@@ -13,7 +13,7 @@
       {
         "datasource": "Prometheus",
         "enable": true,
-        "expr": "changes(vendor:coherence_cluster_size{cluster=~\"$ClusterName\"}[1m])",
+        "expr": "changes(vendor:coherence_cluster_size{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\"}[1m])",
         "hide": false,
         "iconColor": "rgba(255, 96, 96, 1)",
         "limit": 100,
@@ -161,6 +161,21 @@
           "unit": "short"
         },
         {
+          "alias": "Verrazzano Cluster",
+          "align": "auto",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "pattern": "verrazzano_cluster",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        },
+        {
           "alias": "Coherence Version",
           "colorMode": null,
           "colors": [
@@ -177,7 +192,7 @@
       ],
       "targets": [
         {
-          "expr": "avg(vendor:coherence_cluster_size{cluster=~\"$ClusterName\"}) by (pod, version, namespace)",
+          "expr": "avg(vendor:coherence_cluster_size{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\"}) by (verrazzano_cluster, pod, version, namespace)",
           "format": "table",
           "instant": true,
           "intervalFactor": 1,
@@ -225,7 +240,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg(vendor:coherence_os_process_cpu_load{cluster=~\"$ClusterName\"}) by (pod)",
+          "expr": "avg(vendor:coherence_os_process_cpu_load{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\"}) by (verrazzano_cluster, pod)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -311,7 +326,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "vendor:coherence_memory_heap_memory_usage_used{cluster=~\"$ClusterName\"} ",
+          "expr": "vendor:coherence_memory_heap_memory_usage_used{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\"} ",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -373,16 +388,42 @@
       {
         "allValue": null,
         "current": {
+          "selected": false,
+          "text": "None",
+          "value": ""
         },
         "datasource": "Prometheus",
-        "definition": "",
+        "definition": "label_values(verrazzano_cluster)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Verrazzano Cluster",
+        "multi": false,
+        "name": "vzcluster",
+        "options": [],
+        "query": "label_values(verrazzano_cluster)",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {
+        },
+        "datasource": "Prometheus",
+        "definition": "label_values(vendor:coherence_cluster_size{verrazzano_cluster=~\"$vzcluster\"}, cluster)",
         "hide": 0,
         "includeAll": false,
-        "label": "Cluster Name",
+        "label": "Coherehnce Cluster",
         "multi": false,
         "name": "ClusterName",
         "options": [],
-        "query": "label_values(vendor:coherence_cluster_size, cluster)",
+        "query": "label_values(vendor:coherence_cluster_size{verrazzano_cluster=~\"$vzcluster\"}, cluster)",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -398,14 +439,14 @@
         "current": {
         },
         "datasource": "Prometheus",
-        "definition": "",
+        "definition": "label_values(vendor:coherence_cluster_size{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\"}, version)",
         "hide": 2,
         "includeAll": false,
         "label": "Coherence Version",
         "multi": false,
         "name": "CoherenceVersion",
         "options": [],
-        "query": "label_values(vendor:coherence_cluster_size{cluster=~\"$ClusterName\"}, version)",
+        "query": "label_values(vendor:coherence_cluster_size{verrazzano_cluster=~\"$vzcluster\", cluster=~\"$ClusterName\"}, version)",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,

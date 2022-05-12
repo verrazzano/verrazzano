@@ -10,7 +10,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -38,7 +37,7 @@ func (o opensearchComponent) GetDependencies() []string {
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the OpenSearch component
 func (o opensearchComponent) GetMinVerrazzanoVersion() string {
-	return constants.VerrazzanoVersion1_3_0
+	return constants.VerrazzanoVersion1_0_0
 }
 
 // GetJSONName returns the josn name of the OpenSearch component in CRD
@@ -54,7 +53,7 @@ func (o opensearchComponent) IsInstalled(ctx spi.ComponentContext) (bool, error)
 	return doesOSExist(ctx), nil
 }
 
-func (o opensearchComponent) Reconcile(ctx spi.ComponentContext) error {
+func (o opensearchComponent) Reconcile(_ spi.ComponentContext) error {
 	return nil
 }
 
@@ -98,7 +97,7 @@ func (o opensearchComponent) Upgrade(ctx spi.ComponentContext) error {
 
 // IsReady component check
 func (o opensearchComponent) IsReady(ctx spi.ComponentContext) bool {
-	return checkOpenSearchStatus(ctx, status.DeploymentsAreReady, status.StatefulSetsAreReady)
+	return isOSReady(ctx)
 }
 
 // PostInstall OpenSearch post-install processing
@@ -144,12 +143,13 @@ func (o opensearchComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 	if err := common.CompareStorageOverrides(old, new, ComponentJSONName); err != nil {
 		return err
 	}
-	return nil
+	// Reject edits that duplicate names of install args or node groups
+	return validateNoDuplicatedConfiguration(new)
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (o opensearchComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
-	return nil
+func (o opensearchComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return validateNoDuplicatedConfiguration(vz)
 }
 
 // Name returns the component name

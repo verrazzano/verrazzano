@@ -6,19 +6,20 @@ package appconfig
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/ingresstrait"
+	"time"
+
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -95,23 +96,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 // doReconcile performs the reconciliation operations for the application configuration
 func (r *Reconciler) doReconcile(ctx context.Context, appConfig *oamv1.ApplicationConfiguration, log vzlog2.VerrazzanoLogger) (ctrl.Result, error) {
-	// If the application configuration no longer exists or is being deleted then cleanup the associated cert and secret resources
+	// the logic to delete cert/secret is moved to the ingress trait finalizer
+	// but there could be apps deployed by older version of Verrazzano that are stuck being deleted, with finalizer
+	// remove the finalizer
 	if isAppConfigBeingDeleted(appConfig) {
 		log.Debugf("Deleting application configuration %v", appConfig)
-		if err := ingresstrait.Cleanup(types.NamespacedName{Namespace: appConfig.Namespace, Name: appConfig.Name}, r.Client, log); err != nil {
-			// Requeue without error to avoid higher level log message
-			return reconcile.Result{Requeue: true}, nil
-		}
-		// resource cleanup has succeeded, remove the finalizer
 		if err := r.removeFinalizerIfRequired(ctx, appConfig, log); err != nil {
 			return vzctrl.NewRequeueWithDelay(2, 3, time.Second), nil
 		}
 		return reconcile.Result{}, nil
-	}
-
-	// add finalizer
-	if err := r.addFinalizerIfRequired(ctx, appConfig, log); err != nil {
-		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), nil
 	}
 
 	// get the user-specified restart version - if it's missing then there's nothing to do here
@@ -130,6 +123,19 @@ func (r *Reconciler) doReconcile(ctx context.Context, appConfig *oamv1.Applicati
 	}
 	log.Debug("Successfully reconciled ApplicationConfiguration")
 	return reconcile.Result{}, nil
+}
+
+// removeFinalizerIfRequired removes the finalizer from the application configuration if required
+// The finalizer is only removed if the application configuration is being deleted and the finalizer had been added
+func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, appConfig *oamv1.ApplicationConfiguration, log vzlog2.VerrazzanoLogger) error {
+	if !appConfig.DeletionTimestamp.IsZero() && vzstring.SliceContainsString(appConfig.Finalizers, finalizerName) {
+		appName := vznav.GetNamespacedNameFromObjectMeta(appConfig.ObjectMeta)
+		log.Debugf("Removing finalizer from application configuration %s", appName)
+		appConfig.Finalizers = vzstring.RemoveStringFromSlice(appConfig.Finalizers, finalizerName)
+		err := r.Update(ctx, appConfig)
+		return vzlog.ConflictWithLog(fmt.Sprintf("Failed to remove finalizer from application configuration %s", appName), err, zap.S())
+	}
+	return nil
 }
 
 func (r *Reconciler) restartComponent(ctx context.Context, wlNamespace string, wlStatus oamv1.WorkloadStatus, restartVersion string, log vzlog2.VerrazzanoLogger) error {
@@ -215,33 +221,6 @@ func (r *Reconciler) restartDaemonSet(ctx context.Context, restartVersion, name,
 	}
 	log.Debugf("Marking daemonSet %s in namespace %s with restart-version %s", name, namespace, restartVersion)
 	return DoRestartDaemonSet(ctx, r.Client, restartVersion, &daemonSet, log)
-}
-
-// removeFinalizerIfRequired removes the finalizer from the application configuration if required
-// The finalizer is only removed if the application configuration is being deleted and the finalizer had been added
-func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, appConfig *oamv1.ApplicationConfiguration, log vzlog2.VerrazzanoLogger) error {
-	if !appConfig.DeletionTimestamp.IsZero() && vzstring.SliceContainsString(appConfig.Finalizers, finalizerName) {
-		appName := vznav.GetNamespacedNameFromObjectMeta(appConfig.ObjectMeta)
-		log.Debugf("Removing finalizer from application configuration %s", appName)
-		appConfig.Finalizers = vzstring.RemoveStringFromSlice(appConfig.Finalizers, finalizerName)
-		err := r.Update(ctx, appConfig)
-		return vzlog.ConflictWithLog(fmt.Sprintf("Failed to remove finalizer from application configuration %s", appName), err, zap.S())
-	}
-	return nil
-}
-
-// addFinalizerIfRequired adds the finalizer to the app config if required
-// The finalizer is only added if the app config is not being deleted and the finalizer has not previously been added
-func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, appConfig *oamv1.ApplicationConfiguration, log vzlog2.VerrazzanoLogger) error {
-	if appConfig.GetDeletionTimestamp().IsZero() && !vzstring.SliceContainsString(appConfig.Finalizers, finalizerName) {
-		appName := vznav.GetNamespacedNameFromObjectMeta(appConfig.ObjectMeta)
-		log.Debugf("Adding finalizer for appConfig %s", appName)
-		appConfig.Finalizers = append(appConfig.Finalizers, finalizerName)
-		err := r.Update(ctx, appConfig)
-		_, err = vzlog.IgnoreConflictWithLog(fmt.Sprintf("Failed to add finalizer to appConfig %s", appName), err, zap.S())
-		return err
-	}
-	return nil
 }
 
 func DoRestartDeployment(ctx context.Context, client client.Client, restartVersion string, deployment *appsv1.Deployment, log vzlog2.VerrazzanoLogger) error {

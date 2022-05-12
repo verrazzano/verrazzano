@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package namespace
 
@@ -24,13 +24,13 @@ func CreateAndLabelNamespace(client client.Client, ns string, isVerrazzanoManage
 }
 
 //CreateVerrazzanoSystemNamespace - Create/Update and label the Verrazzano system namespace
-func CreateVerrazzanoSystemNamespace(client client.Client) error {
-	return CreateAndLabelNamespace(client, globalconst.VerrazzanoSystemNamespace, true, true)
+func CreateVerrazzanoSystemNamespace(client client.Client, istioInjectionEnabled bool) error {
+	return CreateAndLabelNamespace(client, globalconst.VerrazzanoSystemNamespace, true, istioInjectionEnabled)
 }
 
 //CreateKeycloakNamespace - Create/Update and label the Keycloak namespace
-func CreateKeycloakNamespace(client client.Client) error {
-	return CreateAndLabelNamespace(client, globalconst.KeycloakNamespace, true, true)
+func CreateKeycloakNamespace(client client.Client, istioInjectionEnabled bool) error {
+	return CreateAndLabelNamespace(client, globalconst.KeycloakNamespace, true, istioInjectionEnabled)
 }
 
 //CreateRancherNamespace - Create/Update and label the Rancher system namespace

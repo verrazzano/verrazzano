@@ -77,7 +77,7 @@ func deployToDoListExample(namespace string) {
 	Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
-			"istio-injection":    "enabled"}
+			"istio-injection":    istioInjection}
 		return pkg.CreateNamespace(namespace, nsLabels)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
@@ -148,7 +148,7 @@ func undeployToDoListExample() {
 	// THEN the certificate should have been cleaned up
 	t.Logs.Info("Deleted certificate check")
 	Eventually(func() bool {
-		_, err := pkg.GetCertificate("istio-system", namespace+"-todo-appconf-cert")
+		_, err := pkg.GetCertificate("istio-system", namespace+"-todo-domain-ingress-cert")
 		return err != nil && errors.IsNotFound(err)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "ingress trait cert deleted")
 
@@ -157,7 +157,7 @@ func undeployToDoListExample() {
 	// THEN the secret should have been cleaned up
 	t.Logs.Info("Waiting for secret containing certificate to be deleted")
 	Eventually(func() bool {
-		_, err := pkg.GetSecret("istio-system", namespace+"-todo-appconf-cert-secret")
+		_, err := pkg.GetSecret("istio-system", namespace+"-todo-domain-ingress-cert-secret")
 		if err != nil && errors.IsNotFound(err) {
 			t.Logs.Info("Secret deleted")
 			return true
@@ -179,9 +179,9 @@ var _ = t.Describe("ToDo List test", Label("f:app-lcm.oam",
 		// GIVEN the ToDoList app is deployed
 		// WHEN the app config secret generated to support secure gateways is fetched
 		// THEN the secret should exist
-		t.It("Verify 'todo-list-todo-appconf-cert-secret' has been created", Label("f:cert-mgmt"), func() {
+		t.It("Verify cert secret for todo-list has been created", Label("f:cert-mgmt"), func() {
 			Eventually(func() (*v1.Secret, error) {
-				return pkg.GetSecret("istio-system", namespace+"-todo-appconf-cert-secret")
+				return pkg.GetSecret("istio-system", namespace+"-todo-domain-ingress-cert-secret")
 			}, longWaitTimeout, longPollingInterval).ShouldNot(BeNil())
 		})
 		// GIVEN the ToDoList app is deployed
