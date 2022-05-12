@@ -7,7 +7,6 @@ go 1.17
 
 require (
 	github.com/Jeffail/gabs/v2 v2.2.0
-	github.com/cert-manager/cert-manager v1.8.0
 	github.com/crossplane/crossplane-runtime v0.10.0
 	github.com/crossplane/oam-kubernetes-runtime v0.3.2
 	github.com/gertd/go-pluralize v0.1.7
@@ -49,6 +48,7 @@ require (
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/cert-manager/cert-manager v1.7.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/go-restful v2.9.5+incompatible // indirect

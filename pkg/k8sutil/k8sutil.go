@@ -11,9 +11,8 @@ import (
 	"os"
 	"path/filepath"
 
+	certmanagerv1 "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-
-	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioClient "istio.io/client-go/pkg/clientset/versioned"
 	v1 "k8s.io/api/core/v1"
