@@ -180,6 +180,12 @@ func runNamespaceErrorTest(t *testing.T, expectedErr error) {
 			return nil
 		}).AnyTimes()
 
+	// Expect a call to get the verrazzano-tls secret
+	mock.EXPECT().
+		Get(gomock.Any(), additionalTLSSecret, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants2.RancherSystemNamespace, Resource: "Secret"}, additionalTLSSecret.Name)).
+		MinTimes(1)
+
 	// Create and make the request
 	request := newRequest(vzTLSSecret.Namespace, vzTLSSecret.Name)
 	reconciler := newSecretsReconciler(mock)
