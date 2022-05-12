@@ -161,6 +161,18 @@ func TestUpgradeNoVersion(t *testing.T) {
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &verrazzano)
 	asserts.NoError(err)
 	asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
+
+	// check for upgrade started condition not true
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &verrazzano)
+	asserts.NoError(err)
+	found := false
+	for _, condition := range verrazzano.Status.Conditions {
+		if condition.Type == vzapi.CondUpgradeStarted {
+			found = true
+			break
+		}
+	}
+	asserts.False(found, "expected upgrade started to be false")
 }
 
 // TestUpgradeSameVersion tests the reconcileUpgrade method for the following use case
@@ -871,7 +883,7 @@ func TestUpgradeHelmError(t *testing.T) {
 			break
 		}
 	}
-	asserts.True(found, "expected upgrade completed to be true")
+	asserts.True(found, "expected upgrade paused to be true")
 }
 
 // TestUpgradeIsCompInstalledFailure tests the reconcileUpgrade method for the following use case
@@ -1473,7 +1485,6 @@ func TestTransitionFromPausedUpgrade(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Len(vz.Status.Conditions, 1, "Incorrect number of conditions")
 	asserts.Equal(vz.Status.State, vzapi.VzStateReady, "Incorrect State")
-
 }
 
 // TestDontRetryUpgrade tests the retryUpgrade method for the following use case
