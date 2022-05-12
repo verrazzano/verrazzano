@@ -396,6 +396,12 @@ pipeline {
                         }
                     }
                 }
+                stage("Update external OpenSearch") {
+                    when { expression { return params.EXTERNAL_ELASTICSEARCH == true } }
+                    steps {
+                        runGinkgoAdmin('update/fluentdextes')
+                    }
+                }
                 stage ('Register managed clusters') {
                     steps {
                         registerManagedClusters()
@@ -438,21 +444,9 @@ pipeline {
 
         stage('Verify Upgrade') {
             // Rerun some stages to verify the upgrade
-            parallel {
-                stage ('Verify Register') {
-                    steps {
-                        verifyRegisterManagedClusters()
-                    }
-                }
-                stage ('Verify Managed Cluster Permissions') {
-                    steps {
-                        verifyManagedClusterPermissions()
-                    }
-                }
-                stage ('Verify Metrics') {
-                    steps {
-                        runGinkgoRandomize('metrics/syscomponents')
-                    }
+            steps {
+                script {
+                    parallel verifyUpgrade()
                 }
             }
             post {
@@ -1089,6 +1083,16 @@ def runGinkgoRandomizeAdmin(testSuitePath) {
     """
 }
 
+// Run a test suite against just the admin cluster
+def runGinkgoAdmin(testSuitePath) {
+    sh """
+        export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+        export CLUSTER_NAME="admin"
+        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+        ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+    """
+}
+
 // Configure the Admin and Managed cluster installer custom resources
 def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript, String... extraArgs) {
     script {
@@ -1532,4 +1536,18 @@ def emitJobMetrics() {
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
     env.TIME_WAITING = startTimeInMillis-timeInMillis
     runGinkgoRandomizeAdmin('jobmetrics')
+}
+
+def verifyUpgrade() {
+    return [
+        "Verify Register": {
+            verifyRegisterManagedClusters()
+        },
+        "Verify Managed Cluster Permissions": {
+            verifyManagedClusterPermissions()
+        },
+        "Verify Metrics": {
+            runGinkgoRandomize('metrics/syscomponents')
+        },
+    ]
 }
