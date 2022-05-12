@@ -29,11 +29,11 @@ var (
 		Status: v1.PodStatus{
 			Phase: "Running",
 			Conditions: []v1.PodCondition{
-				v1.PodCondition{
+				{
 					Type:   "Ready",
 					Status: "True",
 				},
-				v1.PodCondition{
+				{
 					Type:   "NotReady",
 					Status: "True",
 				},
@@ -121,6 +121,10 @@ func TestCheckPodStatus(t *testing.T) {
 	wg.Wait()
 }
 
+// TestCheckAllPodsAfterRestore tests the CheckAllPodsAfterRestore method for the following use case.
+// GIVEN k8s client
+// WHEN restore is complete
+// THEN checks kibana and ingest pods are Ready after reboot
 func TestCheckAllPodsAfterRestore(t *testing.T) {
 	t.Parallel()
 	IngestLabel := make(map[string]string)
@@ -137,11 +141,11 @@ func TestCheckAllPodsAfterRestore(t *testing.T) {
 		Status: v1.PodStatus{
 			Phase: "Running",
 			Conditions: []v1.PodCondition{
-				v1.PodCondition{
+				{
 					Type:   "Ready",
 					Status: "True",
 				},
-				v1.PodCondition{
+				{
 					Type:   "NotReady",
 					Status: "True",
 				},
@@ -159,11 +163,11 @@ func TestCheckAllPodsAfterRestore(t *testing.T) {
 		Status: v1.PodStatus{
 			Phase: "Running",
 			Conditions: []v1.PodCondition{
-				v1.PodCondition{
+				{
 					Type:   "Ready",
 					Status: "True",
 				},
-				v1.PodCondition{
+				{
 					Type:   "NotReady",
 					Status: "True",
 				},
