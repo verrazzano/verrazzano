@@ -424,9 +424,24 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
 	asserts.Equal(time.Duration(2)*time.Second, result.RequeueAfter)
+
+	// check that an uninstall job was created
 	uninstallJob := batchv1.Job{}
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, &uninstallJob)
 	asserts.NoError(err)
+
+	// check for uninstall started condition
+	verrazzano := vzapi.Verrazzano{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &verrazzano)
+	asserts.NoError(err)
+	found := false
+	for _, condition := range verrazzano.Status.Conditions {
+		if condition.Type == vzapi.CondUninstallStarted {
+			found = true
+			break
+		}
+	}
+	asserts.True(found, "expected uninstall started to be true")
 }
 
 // TestUpgradeStartedWhenPrevFailures tests the reconcileUpgrade method for the following use case
