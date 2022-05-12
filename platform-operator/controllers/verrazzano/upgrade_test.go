@@ -592,6 +592,19 @@ func TestUpgradeCompleted(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
+
+	// check for upgrade completed condition
+	verrazzano := vzapi.Verrazzano{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &verrazzano)
+	asserts.NoError(err)
+	found := false
+	for _, condition := range verrazzano.Status.Conditions {
+		if condition.Type == vzapi.CondUpgradeComplete {
+			found = true
+			break
+		}
+	}
+	asserts.True(found, "expected upgrade completed to be true")
 }
 
 // TestUpgradeCompletedMultipleReconcile tests the reconcileUpgrade method for the following use case
