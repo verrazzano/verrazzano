@@ -74,7 +74,7 @@ var (
 	currentCertIssuerNamespace string = "cert-manager"
 	currentCertIssuerName      string = "verrazzano-selfsigned-issuer"
 	currentCertSecretNamespace string = "cert-manager"
-	/* #nosec G101 -- This is a false positive*/
+	/* #nosec G101 -- This is a false positive */
 	currentCertSecretName string = "verrazzano-ca-certificate-secret"
 )
 
