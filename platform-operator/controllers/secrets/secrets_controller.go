@@ -70,7 +70,7 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			req.Namespace, req.Name, err)
 		return newRequeueWithDelay(), nil
 	}
-	zap.S().Infof("DEVA Fetched secret %s/%s ", req.NamespacedName.Namespace, req.NamespacedName.Name)
+	zap.S().Debugf("Fetched secret %s/%s ", req.NamespacedName.Namespace, req.NamespacedName.Name)
 
 	// Get the resource logger needed to log message using 'progress' and 'once' methods
 	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
@@ -113,7 +113,7 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		if mcCASecret.Data == nil {
 			mcCASecret.Data = make(map[string][]byte)
 		}
-		zap.S().Infof("DEVA Updating MC CA secret with data from %s key of %s/%s secret ", caKey, caSecret.Namespace, caSecret.Name)
+		zap.S().Debugf("Updating MC CA secret with data from %s key of %s/%s secret ", caKey, caSecret.Namespace, caSecret.Name)
 		mcCASecret.Data["ca-bundle"] = caSecret.Data[caKey]
 		return nil
 	})
