@@ -10,7 +10,7 @@ kubeStateMetrics:
 prometheus:
   enabled: true
 alertmanager:
-  enabled: true
+  enabled: false
 prometheusOperator:
   admissionWebhooks:
     enabled: true

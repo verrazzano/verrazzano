@@ -6,6 +6,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"strconv"
 
@@ -44,7 +45,14 @@ func preInstall(ctx spi.ComponentContext) error {
 
 	// Create the verrazzano-monitoring namespace
 	ctx.Log().Debugf("Creating namespace %s for the Prometheus Operator", ComponentNamespace)
-	namespace := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ComponentNamespace}}
+	namespace := v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ComponentNamespace,
+			Labels: map[string]string{
+				constants.LabelIstioInjection: "enabled",
+			},
+		},
+	}
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &namespace, func() error {
 		return nil
 	}); err != nil {
