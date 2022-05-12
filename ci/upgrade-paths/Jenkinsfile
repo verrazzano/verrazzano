@@ -527,6 +527,7 @@ pipeline {
         stage('Post-upgrade Acceptance Tests') {
             stages {
                 stage ('Console') {
+                    when { expression { isMultiCluster() } }
                     steps {
                         runConsoleTests()
                     }
