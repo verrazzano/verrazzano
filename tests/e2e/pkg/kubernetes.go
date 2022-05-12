@@ -641,10 +641,10 @@ func IsPrometheusOperatorEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
-		return false
+		return true
 	}
 	if vz.Spec.Components.PrometheusOperator == nil || vz.Spec.Components.PrometheusOperator.Enabled == nil {
-		return false
+		return true
 	}
 	return *vz.Spec.Components.PrometheusOperator.Enabled
 }
