@@ -117,9 +117,10 @@ var installCR = &installv1alpha1.Verrazzano{
 }
 
 type fakeMonitor struct {
-	result  bool
-	err     error
-	running bool
+	result          bool
+	istioctlSuccess bool
+	err             error
+	running         bool
 }
 
 func (f *fakeMonitor) run(args installRoutineParams) {
@@ -134,6 +135,8 @@ func (f *fakeMonitor) init() {}
 func (f *fakeMonitor) sendResult(r bool) {}
 
 func (f *fakeMonitor) isRunning() bool { return f.running }
+
+func (f *fakeMonitor) isIstioctlSuccess() bool { return f.istioctlSuccess }
 
 var _ installMonitor = &fakeMonitor{}
 
