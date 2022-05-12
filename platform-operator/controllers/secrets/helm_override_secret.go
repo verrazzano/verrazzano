@@ -5,6 +5,7 @@ package secrets
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -44,6 +45,27 @@ func (r *VerrazzanoSecretsReconciler) reconcileHelmOverrideSecret(ctx context.Co
 			return newRequeueWithDelay(), err
 		}
 		if componentName, ok := controllers.VzContainsResource(componentCtx, secret); ok {
+			if secret.DeletionTimestamp.IsZero() {
+
+				// Add finalizer if not added
+				if secret.Finalizers == nil {
+					secret.Finalizers = append(secret.Finalizers, constants.VerrazzanoFinalizer)
+
+					err := r.Update(context.TODO(), secret)
+					if err != nil {
+						return newRequeueWithDelay(), nil
+					}
+					return ctrl.Result{Requeue: true}, nil
+				}
+
+			} else {
+				secret.Finalizers = nil
+				err := r.Update(context.TODO(), secret)
+				if err != nil {
+					return newRequeueWithDelay(), err
+				}
+			}
+
 			err := controllers.UpdateVerrazzanoForHelmOverrides(r.Client, componentCtx, componentName)
 			if err != nil {
 				r.log.Errorf("Failed to reconcile Secret: %v", err)
