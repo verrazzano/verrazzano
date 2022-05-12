@@ -72,16 +72,10 @@ func (c prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
 
 // ValidateInstall verifies the installation of the Verrazzano object
 func (c prometheusComponent) ValidateInstall(effectiveCR *vzapi.Verrazzano) error {
-	if effectiveCR.Spec.Components.PrometheusOperator != nil {
-		return vzapi.ValidateHelmValueOverrides(effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides)
-	}
-	return nil
+	return c.validatePrometheusOperator(effectiveCR)
 }
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
 func (c prometheusComponent) ValidateUpgrade(effectiveCR *vzapi.Verrazzano) error {
-	if effectiveCR.Spec.Components.PrometheusOperator != nil {
-		return vzapi.ValidateHelmValueOverrides(effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides)
-	}
-	return nil
+	return c.validatePrometheusOperator(effectiveCR)
 }

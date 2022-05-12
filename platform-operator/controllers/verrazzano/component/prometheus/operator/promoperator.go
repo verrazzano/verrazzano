@@ -133,3 +133,21 @@ func appendDefaultImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, s
 
 	return kvs, nil
 }
+
+// validatePrometheus Operator checks scenarios in which the Verrazzano CR violates install verification due to Prometheus Operator specifications
+func (c prometheusComponent) validatePrometheusOperator(effectiveCR *vzapi.Verrazzano) error {
+	// Validate if Prometheus is enabled, Prometheus Operator should be enabled
+	prometheus := effectiveCR.Spec.Components.Prometheus
+	prometheusEnabled := prometheus != nil && prometheus.Enabled != nil && *prometheus.Enabled
+	if !c.IsEnabled(effectiveCR) && prometheusEnabled {
+		return fmt.Errorf("Prometheus cannot be enabled if the Prometheus Operator is disabled")
+	}
+
+	// Validate Helm value overrides
+	if effectiveCR.Spec.Components.PrometheusOperator != nil {
+		if err := vzapi.ValidateHelmValueOverrides(effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides); err != nil {
+			return err
+		}
+	}
+	return nil
+}

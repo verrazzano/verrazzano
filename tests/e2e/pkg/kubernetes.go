@@ -649,6 +649,22 @@ func IsPrometheusOperatorEnabled(kubeconfigPath string) bool {
 	return *vz.Spec.Components.PrometheusOperator.Enabled
 }
 
+// IsPrometheusEnabled returns true if the Prometheus component is not set and the Prometheus Operator is enabled, or the value of its Enabled field otherwise
+func IsPrometheusEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
+		return false
+	}
+	if !IsPrometheusOperatorEnabled(kubeconfigPath) {
+		return false
+	}
+	if vz.Spec.Components.Prometheus == nil || vz.Spec.Components.Prometheus.Enabled == nil {
+		return true
+	}
+	return *vz.Spec.Components.Prometheus.Enabled
+}
+
 // IsKubeStateMetricsEnabled returns false if the Kube State Metrics component is not set, or the value of its Enabled field otherwise
 func IsKubeStateMetricsEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
