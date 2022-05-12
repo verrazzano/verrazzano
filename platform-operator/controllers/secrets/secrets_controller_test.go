@@ -96,7 +96,7 @@ func TestMultiClusterNamespaceUnexpectedErr(t *testing.T) {
 func TestSecretReconciler(t *testing.T) {
 	asserts := assert.New(t)
 	secret := testSecret
-	secret.Finalizers = append(secret.Finalizers, constants.VerrazzanoFinalizer)
+	secret.Finalizers = append(secret.Finalizers, constants.KubeFinalizer)
 	cli := fake.NewClientBuilder().WithObjects(&testVZ, &secret).WithScheme(newScheme()).Build()
 
 	config.TestProfilesDir = "../../manifests/profiles"
@@ -157,7 +157,7 @@ func TestSecretRequeue(t *testing.T) {
 	vz.Status.Components = nil
 	asserts.Nil(vz.Status.Components)
 	secret := testSecret
-	secret.Finalizers = append(secret.Finalizers, constants.VerrazzanoFinalizer)
+	secret.Finalizers = append(secret.Finalizers, constants.KubeFinalizer)
 	cli := fake.NewClientBuilder().WithObjects(&vz, &secret).WithScheme(newScheme()).Build()
 
 	config.TestProfilesDir = "../../manifests/profiles"

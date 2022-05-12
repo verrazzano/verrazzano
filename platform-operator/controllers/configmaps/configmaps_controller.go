@@ -101,7 +101,7 @@ func (r *VerrazzanoConfigMapsReconciler) reconcileHelmOverrideConfigMap(ctx cont
 		if componentName, ok := controllers.VzContainsResource(componentCtx, configMap); ok {
 			if configMap.DeletionTimestamp.IsZero() {
 				if configMap.Finalizers == nil {
-					configMap.Finalizers = append(configMap.Finalizers, constants.VerrazzanoFinalizer)
+					configMap.Finalizers = append(configMap.Finalizers, constants.KubeFinalizer)
 					err := r.Update(context.TODO(), configMap)
 					if err != nil {
 						return newRequeueWithDelay(), err

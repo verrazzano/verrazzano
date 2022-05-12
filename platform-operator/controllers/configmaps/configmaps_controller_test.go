@@ -29,7 +29,7 @@ import (
 func TestConfigMapReconciler(t *testing.T) {
 	asserts := assert.New(t)
 	cm := testConfigMap
-	cm.Finalizers = append(cm.Finalizers, constants.VerrazzanoFinalizer)
+	cm.Finalizers = append(cm.Finalizers, constants.KubeFinalizer)
 	cli := fake.NewClientBuilder().WithObjects(&testVZ, &cm).WithScheme(newScheme()).Build()
 
 	config.TestProfilesDir = "../../manifests/profiles"
@@ -78,7 +78,7 @@ func TestConfigMapRequeue(t *testing.T) {
 	vz.Status.Components = nil
 	asserts.Nil(vz.Status.Components)
 	cm := testConfigMap
-	cm.Finalizers = append(cm.Finalizers, constants.VerrazzanoFinalizer)
+	cm.Finalizers = append(cm.Finalizers, constants.KubeFinalizer)
 	cli := fake.NewClientBuilder().WithObjects(&vz, &cm).WithScheme(newScheme()).Build()
 
 	config.TestProfilesDir = "../../manifests/profiles"

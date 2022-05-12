@@ -49,7 +49,7 @@ func (r *VerrazzanoSecretsReconciler) reconcileHelmOverrideSecret(ctx context.Co
 
 				// Add finalizer if not added
 				if secret.Finalizers == nil {
-					secret.Finalizers = append(secret.Finalizers, constants.VerrazzanoFinalizer)
+					secret.Finalizers = append(secret.Finalizers, constants.KubeFinalizer)
 
 					err := r.Update(context.TODO(), secret)
 					if err != nil {
