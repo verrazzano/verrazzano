@@ -57,7 +57,7 @@ func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUp
 			s.Log.Errorf("Failed processing multi-cluster resources: %v", err)
 		}
 		s.updateDeployment("verrazzano-monitoring-operator")
-		s.configureLogging()
+		s.configureLogging(false)
 		if !s.AgentReadyToSync() {
 			// there is no admin cluster we are connected to, so nowhere to send any status updates
 			// received - discard them
@@ -120,12 +120,18 @@ func (s *Syncer) ProcessAgentThread() error {
 	s.SyncMultiClusterResources()
 
 	// Check whether the admin or local clusters' CA certs have rolled, and sync as necessary
-	err = s.syncClusterCAs()
+	managedClusterResult, err := s.syncClusterCAs()
 	if err != nil {
 		// we couldn't sync the cluster CAs - but we should keep going with the rest of the work
 		s.Log.Errorf("Failed to synchronize cluster CA certificates: %v", err)
 	}
 
+	// if managed cluster information resulted in a change, the fluentd daemonset needs to be restarted
+	if managedClusterResult != controllerutil.OperationResultNone {
+		// configure logging and force a restart of the fluentd daemonset since CA or registration
+		// were updated
+		s.configureLogging(true)
+	}
 	return nil
 }
 
@@ -281,7 +287,7 @@ func (s *Syncer) updateDeployment(name string) {
 }
 
 // reconfigure Fluentd by restarting Fluentd DaemonSet if ManagedClusterName has been changed
-func (s *Syncer) configureLogging() {
+func (s *Syncer) configureLogging(forceRestart bool) {
 	loggingName := types.NamespacedName{Name: vzconstants.FluentdDaemonSetName, Namespace: constants.VerrazzanoSystemNamespace}
 	daemonSet := appsv1.DaemonSet{}
 	err := s.LocalClient.Get(context.TODO(), loggingName, &daemonSet)
@@ -301,6 +307,12 @@ func (s *Syncer) configureLogging() {
 	// CreateOrUpdate updates the fluentd daemonset - if no changes to the daemonset after we mutate it in memory,
 	// controllerutil will not update it
 	controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &daemonSet, func() error {
+		if forceRestart {
+			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
+				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			}
+			daemonSet.Spec.Template.ObjectMeta.Annotations[vzconstants.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
+		}
 		s.updateLoggingDaemonSet(regSecret, &daemonSet)
 		return nil
 	})
