@@ -9,6 +9,11 @@ kubeStateMetrics:
   enabled: false
 prometheus:
   enabled: true
+  prometheusSpec:
+    resources:
+      requests:
+        memory: 128Mi
+        storage: 50Gi
 alertmanager:
   enabled: false
 prometheusOperator:
