@@ -5,6 +5,7 @@ package configmaps
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"testing"
 	"time"
 
@@ -27,7 +28,9 @@ import (
 // TestConfigMapReconciler tests Reconciler method of Configmap controller.
 func TestConfigMapReconciler(t *testing.T) {
 	asserts := assert.New(t)
-	cli := fake.NewClientBuilder().WithObjects(&testVZ, &testConfigMap).WithScheme(newScheme()).Build()
+	cm := testConfigMap
+	cm.Finalizers = append(cm.Finalizers, constants.VerrazzanoFinalizer)
+	cli := fake.NewClientBuilder().WithObjects(&testVZ, &cm).WithScheme(newScheme()).Build()
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
@@ -38,6 +41,33 @@ func TestConfigMapReconciler(t *testing.T) {
 
 	asserts.NoError(err0)
 	asserts.Equal(false, res0.Requeue)
+
+	vz := vzapi.Verrazzano{}
+	err := cli.Get(context.TODO(), types.NamespacedName{Namespace: testNS, Name: testVZName}, &vz)
+	asserts.NoError(err)
+	asserts.Equal(int64(1), vz.Status.Components["prometheus-operator"].ReconcilingGeneration)
+}
+
+// TestFinalizer tests that a finalizer is added to ConfigMap that's missing
+// and there is a requeue and the finalizer is added
+func TestFinalizer(t *testing.T) {
+	asserts := assert.New(t)
+	cli := fake.NewClientBuilder().WithObjects(&testVZ, &testConfigMap).WithScheme(newScheme()).Build()
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	request0 := newRequest(testNS, testCMName)
+	reconciler := newConfigMapReconciler(cli)
+	res0, err0 := reconciler.Reconcile(context.TODO(), request0)
+
+	asserts.NoError(err0)
+	asserts.Equal(true, res0.Requeue)
+
+	cm := corev1.ConfigMap{}
+	err := cli.Get(context.TODO(), types.NamespacedName{Namespace: testNS, Name: testCMName}, &cm)
+	asserts.NoError(err)
+	asserts.NotZero(len(cm.Finalizers))
 }
 
 // TestConfigMapRequeue tests that we requeue if Component Status hasn't been
@@ -47,7 +77,9 @@ func TestConfigMapRequeue(t *testing.T) {
 	vz := testVZ
 	vz.Status.Components = nil
 	asserts.Nil(vz.Status.Components)
-	cli := fake.NewClientBuilder().WithObjects(&vz, &testConfigMap).WithScheme(newScheme()).Build()
+	cm := testConfigMap
+	cm.Finalizers = append(cm.Finalizers, constants.VerrazzanoFinalizer)
+	cli := fake.NewClientBuilder().WithObjects(&vz, &cm).WithScheme(newScheme()).Build()
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()

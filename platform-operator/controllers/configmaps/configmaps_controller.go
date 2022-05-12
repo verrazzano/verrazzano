@@ -62,11 +62,12 @@ func (r *VerrazzanoConfigMapsReconciler) Reconcile(ctx context.Context, req ctrl
 	}
 	if vzList != nil && len(vzList.Items) > 0 {
 		vz := &vzList.Items[0]
-		_, err := r.reconcileHelmOverrideConfigMap(ctx, req, vz)
+		res, err := r.reconcileHelmOverrideConfigMap(ctx, req, vz)
 		if err != nil {
 			zap.S().Errorf("Failed to reconcile ConfigMap: %v", err)
 			return newRequeueWithDelay(), err
 		}
+		return res, nil
 	}
 	return ctrl.Result{}, nil
 }
@@ -101,12 +102,12 @@ func (r *VerrazzanoConfigMapsReconciler) reconcileHelmOverrideConfigMap(ctx cont
 			if configMap.DeletionTimestamp.IsZero() {
 				if configMap.Finalizers == nil {
 					configMap.Finalizers = append(configMap.Finalizers, constants.VerrazzanoFinalizer)
+					err := r.Update(context.TODO(), configMap)
+					if err != nil {
+						return newRequeueWithDelay(), err
+					}
+					return reconcile.Result{Requeue: true}, nil
 				}
-				err := r.Update(context.TODO(), configMap)
-				if err != nil {
-					return newRequeueWithDelay(), err
-				}
-				return ctrl.Result{Requeue: true}, nil
 			} else {
 				configMap.Finalizers = nil
 				err := r.Update(context.TODO(), configMap)

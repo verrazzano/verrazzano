@@ -95,7 +95,9 @@ func TestMultiClusterNamespaceUnexpectedErr(t *testing.T) {
 // TestSecretReconciler tests Reconciler method for secrets controller.
 func TestSecretReconciler(t *testing.T) {
 	asserts := assert.New(t)
-	cli := fake.NewClientBuilder().WithObjects(&testVZ, &testSecret).WithScheme(newScheme()).Build()
+	secret := testSecret
+	secret.Finalizers = append(secret.Finalizers, constants.VerrazzanoFinalizer)
+	cli := fake.NewClientBuilder().WithObjects(&testVZ, &secret).WithScheme(newScheme()).Build()
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
@@ -106,6 +108,11 @@ func TestSecretReconciler(t *testing.T) {
 
 	asserts.NoError(err0)
 	asserts.Empty(res0)
+
+	vz := vzapi.Verrazzano{}
+	err := cli.Get(context.TODO(), types.NamespacedName{Namespace: testNS, Name: testVZName}, &vz)
+	asserts.NoError(err)
+	asserts.Equal(int64(1), vz.Status.Components["prometheus-operator"].ReconcilingGeneration)
 
 }
 
@@ -149,7 +156,9 @@ func TestSecretRequeue(t *testing.T) {
 	vz := testVZ
 	vz.Status.Components = nil
 	asserts.Nil(vz.Status.Components)
-	cli := fake.NewClientBuilder().WithObjects(&vz, &testSecret).WithScheme(newScheme()).Build()
+	secret := testSecret
+	secret.Finalizers = append(secret.Finalizers, constants.VerrazzanoFinalizer)
+	cli := fake.NewClientBuilder().WithObjects(&vz, &secret).WithScheme(newScheme()).Build()
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
@@ -160,6 +169,28 @@ func TestSecretRequeue(t *testing.T) {
 
 	asserts.Error(err0)
 	asserts.Equal(true, res0.Requeue)
+}
+
+// TestFinalizer tests that a finalizer is added to Secret that's missing
+// and there is a requeue and the finalizer is added
+func TestFinalizer(t *testing.T) {
+	asserts := assert.New(t)
+	cli := fake.NewClientBuilder().WithObjects(&testVZ, &testSecret).WithScheme(newScheme()).Build()
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	request0 := newRequest(testNS, testSecretName)
+	reconciler := newSecretsReconciler(cli)
+	res0, err0 := reconciler.Reconcile(context.TODO(), request0)
+
+	asserts.NoError(err0)
+	asserts.Equal(true, res0.Requeue)
+
+	secret := corev1.Secret{}
+	err := cli.Get(context.TODO(), types.NamespacedName{Namespace: testNS, Name: testSecretName}, &secret)
+	asserts.NoError(err)
+	asserts.NotZero(len(secret.Finalizers))
 }
 
 // TestSecretCall tests that the call to get the Secret is placed

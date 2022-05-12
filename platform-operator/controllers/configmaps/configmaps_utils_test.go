@@ -24,8 +24,10 @@ var testConfigMap = corev1.ConfigMap{
 		Kind: "ConfigMap",
 	},
 	ObjectMeta: metav1.ObjectMeta{
-		Name:      testCMName,
-		Namespace: testNS,
+		Name:              testCMName,
+		Namespace:         testNS,
+		Finalizers:        nil,
+		DeletionTimestamp: nil,
 	},
 	Immutable:  nil,
 	Data:       map[string]string{"override": "true"},
