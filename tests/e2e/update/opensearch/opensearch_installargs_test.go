@@ -111,7 +111,7 @@ var t = framework.NewTestFramework("update opensearch")
 
 var _ = t.AfterSuite(func() {
 	m := OpensearchCleanUpArgsModifier{}
-	update.UpdateCR(m)
+	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 })
 
 var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {

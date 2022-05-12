@@ -6,10 +6,11 @@ package update
 import (
 	"context"
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
 	"time"
 
 	ginkgov2 "github.com/onsi/ginkgo/v2"
-	gomega "github.com/onsi/gomega"
+	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
@@ -88,7 +89,7 @@ func UpdateCR(m CRModifier) error {
 func UpdateCRWithRetries(m CRModifier, pollingInterval, timeout time.Duration) {
 	gomega.Eventually(func() bool {
 		// Wait till the custom resource becomes ready.
-		WaitForReadyState(pollingInterval, timeout)
+		WaitForReadyState(time.Time{}, pollingInterval, timeout)
 		cr, err := pkg.GetVerrazzano()
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
@@ -115,33 +116,48 @@ func UpdateCRWithRetries(m CRModifier, pollingInterval, timeout time.Duration) {
 		}
 		vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
 		_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
-		// Wait till the resource edit is complete and the verrazzano custom resource comes to ready state
-		WaitForReadyState(pollingInterval, timeout)
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
 			return false
 		}
+		// Wait till the resource edit is complete and the verrazzano custom resource comes to ready state
+		WaitForReadyState(time.Now(), pollingInterval, timeout)
 		return true
 	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(gomega.BeTrue())
 }
 
-// IsCRReady return true if the verrazzano custom resource is in ready state false otherwise
-func IsCRReady(cr *vzapi.Verrazzano) bool {
+// IsCRReady return true if the verrazzano custom resource is in ready state after an update operation false otherwise
+func IsCRReadyAfterUpdate(cr *vzapi.Verrazzano, updatedTime time.Time) bool {
 	if cr == nil || cr.Status.State != vzapi.VzStateReady {
 		pkg.Log(pkg.Error, "VZ CR is nil or not in ready state")
 		return false
 	}
-	return true
+	for _, condition := range cr.Status.Conditions {
+		if condition.Type == vzapi.CondInstallComplete && condition.Status == corev1.ConditionTrue {
+			// check if the transistion time is post the time of update
+			transitionTime, err := time.Parse(time.RFC3339, condition.LastTransitionTime)
+			if err != nil {
+				pkg.Log(pkg.Error, "Unable to parse the transistion time '"+condition.LastTransitionTime+"'")
+				return false
+			}
+			if transitionTime.After(updatedTime) {
+				pkg.Log(pkg.Info, "Update operation completed at "+updatedTime.String())
+				return true
+			}
+		}
+	}
+	// Return true if the state is ready and there are no conditions updated in the status.
+	return len(cr.Status.Conditions) == 0
 }
 
 // WaitForReadyState waits till the verrazzano custom resource becomes ready or times out
-func WaitForReadyState(pollingInterval, timeout time.Duration) {
+func WaitForReadyState(updateTime time.Time, pollingInterval, timeout time.Duration) {
 	gomega.Eventually(func() bool {
 		cr, err := pkg.GetVerrazzano()
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
 			return false
 		}
-		return IsCRReady(cr)
+		return IsCRReadyAfterUpdate(cr, updateTime)
 	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(gomega.BeTrue())
 }
