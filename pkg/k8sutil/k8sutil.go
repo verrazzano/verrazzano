@@ -8,18 +8,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os"
 	"path/filepath"
 
+	certmanagerv1 "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-
 	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioClient "istio.io/client-go/pkg/clientset/versioned"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -144,6 +144,26 @@ func GetIstioClientsetInCluster(kubeconfigPath string) (*istioClient.Clientset, 
 		return cs, err
 	}
 	cs, err = istioClient.NewForConfig(kubeConfig)
+	return cs, err
+}
+
+// GetCertManagerClienset returns the clientset object for CertManager
+func GetCertManagerClienset() (*certmanagerv1.CertmanagerV1Client, error) {
+	kubeConfigLoc, err := GetKubeConfigLocation()
+	if err != nil {
+		return nil, err
+	}
+	return GetCertManagerClientsetInCluster(kubeConfigLoc)
+}
+
+// GetCertManagerClienset returns the clientset object for CertManager
+func GetCertManagerClientsetInCluster(kubeconfigPath string) (*certmanagerv1.CertmanagerV1Client, error) {
+	var cs *certmanagerv1.CertmanagerV1Client
+	kubeConfig, err := GetKubeConfigGivenPath(kubeconfigPath)
+	if err != nil {
+		return cs, err
+	}
+	cs, err = certmanagerv1.NewForConfig(kubeConfig)
 	return cs, err
 }
 
