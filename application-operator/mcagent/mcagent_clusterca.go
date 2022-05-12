@@ -83,6 +83,7 @@ func (s *Syncer) syncRegistrationFromAdminCluster() (controllerutil.OperationRes
 			registrationSecret.Data[mcconstants.RegistrationUsernameKey] = adminRegistrationSecret.Data[mcconstants.RegistrationUsernameKey]
 			registrationSecret.Data[mcconstants.RegistrationPasswordKey] = adminRegistrationSecret.Data[mcconstants.RegistrationPasswordKey]
 			registrationSecret.Data[mcconstants.KeycloakURLKey] = adminRegistrationSecret.Data[mcconstants.KeycloakURLKey]
+			registrationSecret.Data[mcconstants.ESCaBundleKey] = adminRegistrationSecret.Data[mcconstants.ESCaBundleKey]
 			return nil
 		})
 		if err != nil {
@@ -104,7 +105,9 @@ func registrationInfoEqual(regSecret1 corev1.Secret, regSecret2 corev1.Secret) b
 		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.RegistrationUsernameKey],
 			regSecret2.Data[mcconstants.RegistrationUsernameKey]) &&
 		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.RegistrationPasswordKey],
-			regSecret2.Data[mcconstants.RegistrationPasswordKey])
+			regSecret2.Data[mcconstants.RegistrationPasswordKey]) &&
+		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.ESCaBundleKey],
+			regSecret2.Data[mcconstants.ESCaBundleKey])
 }
 
 // syncLocalClusterCA - synchronize the local cluster CA cert -- update admin copy if local CA changes

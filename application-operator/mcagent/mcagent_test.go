@@ -654,7 +654,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 				dsEsURL:        regSecretEsURL,
 				dsSecretName:   constants.MCRegistrationSecret,
 				forceDSRestart: true,
-				expectUpdateDS: false,
+				expectUpdateDS: true,
 			},
 		},
 		{

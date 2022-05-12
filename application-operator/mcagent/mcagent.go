@@ -304,16 +304,15 @@ func (s *Syncer) configureLogging(forceRestart bool) {
 		}
 	}
 
-	if forceRestart {
-		if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
-			daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-		}
-		daemonSet.Spec.Template.ObjectMeta.Annotations[vzconstants.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
-	}
-
 	// CreateOrUpdate updates the fluentd daemonset - if no changes to the daemonset after we mutate it in memory,
 	// controllerutil will not update it
 	controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &daemonSet, func() error {
+		if forceRestart {
+			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
+				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			}
+			daemonSet.Spec.Template.ObjectMeta.Annotations[vzconstants.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
+		}
 		s.updateLoggingDaemonSet(regSecret, &daemonSet)
 		return nil
 	})
