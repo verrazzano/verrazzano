@@ -90,10 +90,7 @@ func TestUpgradeNoVersion(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  namespace,
-				Name:       name,
-				Finalizers: []string{finalizerName}},
+			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 			Spec: vzapi.VerrazzanoSpec{
 				Components: vzapi.ComponentSpec{
 					Keycloak: &vzapi.KeycloakComponent{
@@ -191,10 +188,7 @@ func TestUpgradeSameVersion(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  namespace,
-				Name:       name,
-				Finalizers: []string{finalizerName}},
+			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 			Spec: vzapi.VerrazzanoSpec{
 				Version: "1.2.0",
 				Components: vzapi.ComponentSpec{
@@ -298,10 +292,7 @@ func TestUpgradeInitComponents(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  namespace,
-				Name:       name,
-				Finalizers: []string{finalizerName}},
+			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 			Spec: vzapi.VerrazzanoSpec{
 				Version: "1.1.0"},
 			Status: vzapi.VerrazzanoStatus{
@@ -351,10 +342,7 @@ func TestUpgradeStarted(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  namespace,
-				Name:       name,
-				Finalizers: []string{finalizerName}},
+			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 			Spec: vzapi.VerrazzanoSpec{
 				Version: "0.2.0"},
 			Status: vzapi.VerrazzanoStatus{
@@ -578,10 +566,7 @@ func TestUpgradeCompleted(t *testing.T) {
 	_ = oamcore.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  namespace,
-				Name:       name,
-				Finalizers: []string{finalizerName}},
+			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 			Spec: vzapi.VerrazzanoSpec{
 				Version: "1.2.0"},
 			Status: vzapi.VerrazzanoStatus{
@@ -664,10 +649,7 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 	_ = oamcore.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  namespace,
-				Name:       name,
-				Finalizers: []string{finalizerName}},
+			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 			Spec: vzapi.VerrazzanoSpec{
 				Version: "1.2.0"},
 			Status: vzapi.VerrazzanoStatus{
@@ -910,11 +892,7 @@ func TestUpgradeIsCompInstalledFailure(t *testing.T) {
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
 	vz := vzapi.Verrazzano{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:  namespace,
-			Name:       name,
-			Finalizers: []string{finalizerName},
-		},
+		ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 		Spec: vzapi.VerrazzanoSpec{
 			Version: "0.2.0",
 		},
@@ -981,11 +959,7 @@ func TestUpgradeComponent(t *testing.T) {
 	vz.TypeMeta = metav1.TypeMeta{
 		APIVersion: "install.verrazzano.io/v1alpha1",
 		Kind:       "Verrazzano"}
-	vz.ObjectMeta = metav1.ObjectMeta{
-		Namespace:  namespace,
-		Name:       name,
-		Finalizers: []string{finalizerName},
-	}
+	vz.ObjectMeta = createObjectMeta(namespace, name, []string{finalizerName})
 	vz.Spec = vzapi.VerrazzanoSpec{
 		Version: "1.2.0"}
 	vz.Status = vzapi.VerrazzanoStatus{
@@ -1077,11 +1051,7 @@ func TestUpgradeComponentWithBlockingStatus(t *testing.T) {
 	vz.TypeMeta = metav1.TypeMeta{
 		APIVersion: "install.verrazzano.io/v1alpha1",
 		Kind:       "Verrazzano"}
-	vz.ObjectMeta = metav1.ObjectMeta{
-		Namespace:  namespace,
-		Name:       name,
-		Finalizers: []string{finalizerName},
-	}
+	vz.ObjectMeta = createObjectMeta(namespace, name, []string{finalizerName})
 	vz.Spec = vzapi.VerrazzanoSpec{
 		Version: "0.2.0"}
 	vz.Status = vzapi.VerrazzanoStatus{
@@ -1171,11 +1141,7 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	vz.TypeMeta = metav1.TypeMeta{
 		APIVersion: "install.verrazzano.io/v1alpha1",
 		Kind:       "Verrazzano"}
-	vz.ObjectMeta = metav1.ObjectMeta{
-		Namespace:  namespace,
-		Name:       name,
-		Finalizers: []string{finalizerName},
-	}
+	vz.ObjectMeta = createObjectMeta(namespace, name, []string{finalizerName})
 	vz.Spec = vzapi.VerrazzanoSpec{
 		Version: "1.2.0"}
 	vz.Status = vzapi.VerrazzanoStatus{
@@ -1326,11 +1292,7 @@ func TestTransitionToPausedUpgradeFromFailed(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  namespace,
-				Name:       name,
-				Finalizers: []string{finalizerName},
-			},
+			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 			Spec: vzapi.VerrazzanoSpec{
 				Version: "1.0.0",
 			},
@@ -1388,11 +1350,7 @@ func TestTransitionToPausedUpgradeFromStarted(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  namespace,
-				Name:       name,
-				Finalizers: []string{finalizerName},
-			},
+			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 			Spec: vzapi.VerrazzanoSpec{
 				Version: "1.0.0",
 			},
@@ -1446,11 +1404,7 @@ func TestTransitionFromPausedUpgrade(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  namespace,
-				Name:       name,
-				Finalizers: []string{finalizerName},
-			},
+			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 			Spec: vzapi.VerrazzanoSpec{
 				Version: "1.0.1",
 			},
@@ -1621,11 +1575,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 
 	keycloakEnabled := false
 	verrazzanoToUse := vzapi.Verrazzano{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:  namespace,
-			Name:       name,
-			Finalizers: []string{finalizerName},
-		},
+		ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Keycloak: &vzapi.KeycloakComponent{
@@ -1803,11 +1753,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  name,
-				Name:       namespace,
-				Finalizers: []string{finalizerName},
-			},
+			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 			Spec: vzapi.VerrazzanoSpec{
 				Components: vzapi.ComponentSpec{
 					Keycloak: &vzapi.KeycloakComponent{
@@ -2056,4 +2002,12 @@ func initFakeClient() (kubernetes.Interface, error) {
 	}
 	clientSet := gofake.NewSimpleClientset(dep, pod)
 	return clientSet, nil
+}
+
+func createObjectMeta(namespace string, name string, finalizers []string) metav1.ObjectMeta {
+	return metav1.ObjectMeta{
+		Namespace:  namespace,
+		Name:       name,
+		Finalizers: finalizers,
+	}
 }
