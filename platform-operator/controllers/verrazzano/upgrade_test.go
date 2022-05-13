@@ -163,8 +163,6 @@ func TestUpgradeNoVersion(t *testing.T) {
 	asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
 
 	// check for upgrade started condition not true
-	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &verrazzano)
-	asserts.NoError(err)
 	found := false
 	for _, condition := range verrazzano.Status.Conditions {
 		if condition.Type == vzapi.CondUpgradeStarted {
@@ -268,8 +266,6 @@ func TestUpgradeSameVersion(t *testing.T) {
 	asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
 
 	// check for upgrade started condition not true
-	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &verrazzano)
-	asserts.NoError(err)
 	found := false
 	for _, condition := range verrazzano.Status.Conditions {
 		if condition.Type == vzapi.CondUpgradeStarted {
@@ -339,7 +335,7 @@ func TestUpgradeInitComponents(t *testing.T) {
 // TestUpgradeStarted tests the reconcileUpgrade method for the following use case
 // GIVEN a request to reconcile a verrazzano resource after install is completed
 // WHEN upgrade has not been started and spec.version doesn't match status.version
-// THEN ensure a condition with type UpgradeStarted is added
+// THEN ensure status state is updated to upgrading
 func TestUpgradeStarted(t *testing.T) {
 	initUnitTesing()
 	namespace := "verrazzano"
