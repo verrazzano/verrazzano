@@ -85,6 +85,7 @@ pipeline {
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
         TARGET_UPGRADE_VERSION = "master"
+        CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
     }
 
     stages {
