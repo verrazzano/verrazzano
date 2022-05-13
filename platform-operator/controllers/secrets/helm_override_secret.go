@@ -73,7 +73,7 @@ func (r *VerrazzanoSecretsReconciler) reconcileHelmOverrideSecret(ctx context.Co
 
 			err := controllers.UpdateVerrazzanoForHelmOverrides(r.Client, componentCtx, componentName)
 			if err != nil {
-				r.log.Errorf("Failed to reconcile Secret: %v", err)
+				r.log.ErrorfThrottled("Failed to reconcile Secret: %v", err)
 				return newRequeueWithDelay(), err
 			}
 			r.log.Infof("Updated Verrazzano Resource")
