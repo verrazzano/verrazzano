@@ -6,6 +6,8 @@ package configmaps
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 	"time"
 
@@ -68,6 +70,55 @@ func TestFinalizer(t *testing.T) {
 	err := cli.Get(context.TODO(), types.NamespacedName{Namespace: testNS, Name: testCMName}, &cm)
 	asserts.NoError(err)
 	asserts.NotZero(len(cm.Finalizers))
+}
+
+// TestOtherFinalizers tests that if more than one finalizers are present
+// the we requeue
+func TestOtherFinalizers(t *testing.T) {
+	asserts := assert.New(t)
+	cm := testConfigMap
+	cm.Finalizers = append(cm.Finalizers, constants.KubeFinalizer, "test")
+	cm.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+	cli := fake.NewClientBuilder().WithObjects(&testVZ, &cm).WithScheme(newScheme()).Build()
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	request0 := newRequest(testNS, testCMName)
+	reconciler := newConfigMapReconciler(cli)
+	res0, err0 := reconciler.Reconcile(context.TODO(), request0)
+
+	asserts.NoError(err0)
+	asserts.Equal(true, res0.Requeue)
+}
+
+// TestDeletion tests that if the object is scheduled for deletion with
+// only our finalizer, then the finalizer is removed and Verrazzano resource is updated
+func TestDeletion(t *testing.T) {
+	asserts := assert.New(t)
+	cm := testConfigMap
+	cm.Finalizers = append(cm.Finalizers, constants.KubeFinalizer)
+	cm.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+	cli := fake.NewClientBuilder().WithObjects(&testVZ, &cm).WithScheme(newScheme()).Build()
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	request0 := newRequest(testNS, testCMName)
+	reconciler := newConfigMapReconciler(cli)
+	res0, err0 := reconciler.Reconcile(context.TODO(), request0)
+
+	asserts.NoError(err0)
+	asserts.Equal(false, res0.Requeue)
+
+	cm1 := &corev1.ConfigMap{}
+	err1 := cli.Get(context.TODO(), types.NamespacedName{Namespace: testNS, Name: testCMName}, cm1)
+	asserts.True(errors.IsNotFound(err1))
+
+	vz := &vzapi.Verrazzano{}
+	err2 := cli.Get(context.TODO(), types.NamespacedName{Namespace: testNS, Name: testVZName}, vz)
+	asserts.NoError(err2)
+	asserts.Equal(int64(1), vz.Status.Components["prometheus-operator"].ReconcilingGeneration)
 }
 
 // TestConfigMapRequeue tests that we requeue if Component Status hasn't been

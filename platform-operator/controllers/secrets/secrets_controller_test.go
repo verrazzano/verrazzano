@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 	"time"
@@ -229,6 +230,55 @@ func TestFinalizer(t *testing.T) {
 	err := cli.Get(context.TODO(), types.NamespacedName{Namespace: testNS, Name: testSecretName}, &secret)
 	asserts.NoError(err)
 	asserts.NotZero(len(secret.Finalizers))
+}
+
+// TestOtherFinalizers tests that if more than one finalizers are present
+// the we requeue
+func TestOtherFinalizers(t *testing.T) {
+	asserts := assert.New(t)
+	secret := testSecret
+	secret.Finalizers = append(secret.Finalizers, constants.KubeFinalizer, "test")
+	secret.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+	cli := fake.NewClientBuilder().WithObjects(&testVZ, &secret).WithScheme(newScheme()).Build()
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	request0 := newRequest(testNS, testSecretName)
+	reconciler := newSecretsReconciler(cli)
+	res0, err0 := reconciler.Reconcile(context.TODO(), request0)
+
+	asserts.NoError(err0)
+	asserts.Equal(true, res0.Requeue)
+}
+
+// TestDeletion tests that if the object is scheduled for deletion with
+// only our finalizer, then the finalizer is removed and Verrazzano resource is updated
+func TestDeletion(t *testing.T) {
+	asserts := assert.New(t)
+	secret := testSecret
+	secret.Finalizers = append(secret.Finalizers, constants.KubeFinalizer)
+	secret.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+	cli := fake.NewClientBuilder().WithObjects(&testVZ, &secret).WithScheme(newScheme()).Build()
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	request0 := newRequest(testNS, testSecretName)
+	reconciler := newSecretsReconciler(cli)
+	res0, err0 := reconciler.Reconcile(context.TODO(), request0)
+
+	asserts.NoError(err0)
+	asserts.Equal(false, res0.Requeue)
+
+	sec1 := &corev1.Secret{}
+	err1 := cli.Get(context.TODO(), types.NamespacedName{Namespace: testNS, Name: testSecretName}, sec1)
+	asserts.True(errors.IsNotFound(err1))
+
+	vz := &vzapi.Verrazzano{}
+	err2 := cli.Get(context.TODO(), types.NamespacedName{Namespace: testNS, Name: testVZName}, vz)
+	asserts.NoError(err2)
+	asserts.Equal(int64(1), vz.Status.Components["prometheus-operator"].ReconcilingGeneration)
 }
 
 // TestSecretCall tests that the call to get the Secret is placed

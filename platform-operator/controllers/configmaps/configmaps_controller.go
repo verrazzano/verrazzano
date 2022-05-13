@@ -6,6 +6,7 @@ package configmaps
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -100,7 +101,8 @@ func (r *VerrazzanoConfigMapsReconciler) reconcileHelmOverrideConfigMap(ctx cont
 		// Check if the ConfigMap is listed as an override source under a component
 		if componentName, ok := controllers.VzContainsResource(componentCtx, configMap); ok {
 			if configMap.DeletionTimestamp.IsZero() {
-				if configMap.Finalizers == nil {
+				// Check if our finalizer is already present
+				if !controllerutil.ContainsFinalizer(configMap, constants.KubeFinalizer) {
 					configMap.Finalizers = append(configMap.Finalizers, constants.KubeFinalizer)
 					err := r.Update(context.TODO(), configMap)
 					if err != nil {
@@ -109,12 +111,20 @@ func (r *VerrazzanoConfigMapsReconciler) reconcileHelmOverrideConfigMap(ctx cont
 					return reconcile.Result{Requeue: true}, nil
 				}
 			} else {
-				configMap.Finalizers = nil
+				// Requeue if other finalizers are present
+				if len(configMap.Finalizers) > 1 {
+					return newRequeueWithDelay(), nil
+				}
+
+				// Now since only our finalizer is present, therefore we remove it to delete the ConfigMap
+				// and trigger verrazzano reconcile
+				controllerutil.RemoveFinalizer(configMap, constants.KubeFinalizer)
 				err := r.Update(context.TODO(), configMap)
 				if err != nil {
 					return newRequeueWithDelay(), err
 				}
 			}
+
 			err := controllers.UpdateVerrazzanoForHelmOverrides(r.Client, componentCtx, componentName)
 			if err != nil {
 				r.log.Errorf("Failed to reconcile ConfigMap: %v", err)

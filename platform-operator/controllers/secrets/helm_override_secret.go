@@ -7,6 +7,7 @@ import (
 	"context"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -48,9 +49,8 @@ func (r *VerrazzanoSecretsReconciler) reconcileHelmOverrideSecret(ctx context.Co
 			if secret.DeletionTimestamp.IsZero() {
 
 				// Add finalizer if not added
-				if secret.Finalizers == nil {
+				if !controllerutil.ContainsFinalizer(secret, constants.KubeFinalizer) {
 					secret.Finalizers = append(secret.Finalizers, constants.KubeFinalizer)
-
 					err := r.Update(context.TODO(), secret)
 					if err != nil {
 						return newRequeueWithDelay(), nil
@@ -59,7 +59,12 @@ func (r *VerrazzanoSecretsReconciler) reconcileHelmOverrideSecret(ctx context.Co
 				}
 
 			} else {
-				secret.Finalizers = nil
+				// Requeue as other finalizers haven't been removed
+				if len(secret.Finalizers) > 1 {
+					return newRequeueWithDelay(), nil
+				}
+
+				controllerutil.RemoveFinalizer(secret, constants.KubeFinalizer)
 				err := r.Update(context.TODO(), secret)
 				if err != nil {
 					return newRequeueWithDelay(), err
