@@ -5,8 +5,10 @@ package secrets
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/types"
 	"time"
+
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"k8s.io/apimachinery/pkg/types"
 
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -39,21 +41,36 @@ func (r *VerrazzanoSecretsReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-
-	// The only secret we care about (for now) is the verrazzano ingress tls secret (verrazzano-tls)
-	if req.Name != constants.VerrazzanoIngressSecret || req.Namespace != constants.VerrazzanoSystemNamespace {
+	// We only care about the CA secret for the cluster - this can come from the verrazzano ingress
+	// tls secret (verrazzano-tls in verrazzano-system NS), OR from the tls-additional-ca in the
+	// cattle-system NS (used in the Let's Encrypt staging cert case)
+	isVzIngressSecret := isVerrazzanoIngressSecretName(req.NamespacedName)
+	isAddnlTLSSecret := isAdditionalTLSSecretName(req.NamespacedName)
+	if !isVzIngressSecret && !isAddnlTLSSecret {
 		return ctrl.Result{}, nil
 	}
 
-	// Get the verrazzano ingress secret
+	caKey := "ca.crt"
+	if isAddnlTLSSecret {
+		caKey = vzconst.AdditionalTLSCAKey
+	}
+
+	if isVzIngressSecret && r.additionalTLSSecretExists() {
+		// When the additional TLS secret exists, it is considered the source of truth - ignore
+		// reconciles for the VZ Ingress TLS secret in that case
+		return ctrl.Result{}, nil
+	}
+
+	// Get the secret
 	caSecret := corev1.Secret{}
 	err := r.Get(context.TODO(), req.NamespacedName, &caSecret)
 	if err != nil {
 		// Secret should never be not found, unless we're running while installation is still underway
 		zap.S().Errorf("Failed to fetch secret %s/%s: %v",
-			constants.VerrazzanoSystemNamespace, constants.VerrazzanoIngressSecret, err)
+			req.Namespace, req.Name, err)
 		return newRequeueWithDelay(), nil
 	}
+	zap.S().Debugf("Fetched secret %s/%s ", req.NamespacedName.Namespace, req.NamespacedName.Name)
 
 	// Get the resource logger needed to log message using 'progress' and 'once' methods
 	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
@@ -96,7 +113,8 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		if mcCASecret.Data == nil {
 			mcCASecret.Data = make(map[string][]byte)
 		}
-		mcCASecret.Data["ca-bundle"] = caSecret.Data["ca.crt"]
+		zap.S().Debugf("Updating MC CA secret with data from %s key of %s/%s secret ", caKey, caSecret.Namespace, caSecret.Name)
+		mcCASecret.Data["ca-bundle"] = caSecret.Data[caKey]
 		return nil
 	})
 
@@ -109,6 +127,26 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	r.log.Infof("Created or updated secret %s/%s (result: %v)",
 		constants.VerrazzanoMultiClusterNamespace, constants.VerrazzanoLocalCABundleSecret, result)
 	return ctrl.Result{}, nil
+}
+
+func (r *VerrazzanoSecretsReconciler) additionalTLSSecretExists() bool {
+	sec := corev1.Secret{}
+	err := r.Get(context.TODO(), client.ObjectKey{
+		Namespace: vzconst.RancherSystemNamespace,
+		Name:      vzconst.AdditionalTLS,
+	}, &sec)
+	if err != nil && apierrors.IsNotFound(err) {
+		return false
+	}
+	return true
+}
+
+func isAdditionalTLSSecretName(secretName types.NamespacedName) bool {
+	return secretName.Name == vzconst.AdditionalTLS && secretName.Namespace == vzconst.RancherSystemNamespace
+}
+
+func isVerrazzanoIngressSecretName(secretName types.NamespacedName) bool {
+	return secretName.Name == constants.VerrazzanoIngressSecret && secretName.Namespace == constants.VerrazzanoSystemNamespace
 }
 
 func (r *VerrazzanoSecretsReconciler) multiclusterNamespaceExists() bool {

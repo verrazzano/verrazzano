@@ -10,6 +10,7 @@ import (
 
 	"github.com/Jeffail/gabs/v2"
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -117,7 +118,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutatePrometheusConfigMap(vmc *clus
 		return err
 	}
 	if newScrapeConfig == nil {
-		//deletion
+		// deletion
 		delete(configMap.Data, getCAKey(vmc))
 	}
 	existingReplaced := false
@@ -170,7 +171,7 @@ func (r *VerrazzanoManagedClusterReconciler) newScrapeConfig(cacrtSecret *v1.Sec
 	newScrapeConfigMappings := map[string]string{
 		"##JOB_NAME##":     vmc.Name,
 		"##HOST##":         vmc.Status.PrometheusHost,
-		"##PASSWORD##":     string(vzPromSecret.Data[VerrazzanoPasswordKey]),
+		"##PASSWORD##":     string(vzPromSecret.Data[mcconstants.VerrazzanoPasswordKey]),
 		"##CLUSTER_NAME##": vmc.Name}
 	configTemplate := scrapeConfigTemplate
 	for key, value := range newScrapeConfigMappings {

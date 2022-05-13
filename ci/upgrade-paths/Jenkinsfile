@@ -254,44 +254,14 @@ pipeline {
                     chmod 600 $HOME/.netrc
                 """
 
-                script {
-                    try {
-                        sh """
-                            echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                        """
-                    } catch(error) {
-                        echo "docker login failed, retrying after sleep"
-                        retry(4) {
-                            sleep(30)
-                            sh """
-                                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                            """
-                        }
-                    }
-                }
+                performDockerLogin()
+
                 sh """
                     rm -rf ${GO_REPO_PATH}/verrazzano
                     mkdir -p ${GO_REPO_PATH}/verrazzano
                     tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
                 """
-                script {
-                    def props = readProperties file: '.verrazzano-development-version'
-                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
-                    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
-                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-                    DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
-                    // update the description with some meaningful info
-                    setDisplayName()
-                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
-                    if (params.TEST_ENV != "KIND") {
-                        // derive the prefix for the OKE cluster
-                        OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${GO_REPO_PATH}/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
-                    }
-                    // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
-                    env.K8S_VERSION_LABEL = "${params.TEST_ENV == 'KIND' ? params.KIND_CLUSTER_VERSION : sh(returnStdout: true, script: '${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}').trim()}"
-                    // Sets the VZ installation configuration based on VZ_INSTALL_CONFIG parameter.
-                    setVZConfigForInstallation()
-                }
+                setInitValues()
             }
         }
 
@@ -415,25 +385,37 @@ pipeline {
                 stage ('Pre-upgrade Acceptance Tests') {
                     stages {
                         stage('Register managed clusters') {
+                            when { expression { isMultiCluster() } }
                             steps {
                                 registerManagedClusters()
                             }
                         }
                         stage('Verify Register') {
+                            when { expression { isMultiCluster() } }
                             steps {
                                 verifyRegisterManagedClusters(true)
                             }
                         }
-                        stage ('Deploy Examples Helidon') {
+                        stage ('Deploy Helidon example application - single cluster') {
                             steps {
-                                runGinkgoVerify('examples/helidon', "false", "true", "true", "hello-helidon")
-                                runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true")
+                                runGinkgoVerify('examples/helidon', "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true", "hello-helidon")
                             }
                         }
-                        stage ('Deploy Example Coherence') {
+                        stage ('Deploy Helidon example application - multi cluster') {
+                            when { expression { isMultiCluster() } }
                             steps {
-                                runGinkgoVerify('workloads/coherence', "false", "false", "true", "hello-coherence")
-                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload", "false", "false", "false")
+                                runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/mchelidon-workload", "false", "true", "true")
+                            }
+                        }
+                        stage ('Deploy Coherence example application - single cluster') {
+                            steps {
+                                runGinkgoVerify('workloads/coherence', "${TEST_DUMP_ROOT}/coherence-workload", "false", "false", "true", "hello-coherence")
+                            }
+                        }
+                        stage ('Deploy Coherence example application - multi cluster') {
+                            when { expression { isMultiCluster() } }
+                            steps {
+                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", "false", "false", "false")
                             }
                         }
                     }
@@ -462,11 +444,13 @@ pipeline {
             // Rerun some stages to verify the upgrade
             parallel {
                 stage ('Verify Register') {
+                    when { expression { isMultiCluster() } }
                     steps {
                         verifyRegisterManagedClusters(false)
                     }
                 }
                 stage ('Verify Managed Cluster Permissions') {
+                    when { expression { isMultiCluster() } }
                     steps {
                         verifyManagedClusterPermissions()
                     }
@@ -495,6 +479,7 @@ pipeline {
                 }
 
                 stage ('multicluster/verify-install') {
+                    when { expression { isMultiCluster() } }
                     steps {
                         runGinkgoRandomize('multicluster/verify-install')
                     }
@@ -538,6 +523,7 @@ pipeline {
         stage('Post-upgrade Acceptance Tests') {
             stages {
                 stage ('Console') {
+                    when { expression { isMultiCluster() } }
                     steps {
                         runConsoleTests()
                     }
@@ -548,15 +534,16 @@ pipeline {
                     }
                 }
                 stage ('Verify & Uninstall Example Apps') {
+                    when { expression { isMultiCluster() } }
                     parallel {
                         stage ('Examples Helidon') {
                             steps {
-                                runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload", "true", "false", "false")
+                                runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/mchelidon-workload", "true", "false", "false")
                             }
                         }
                         stage ('Verify/Uninstall Example Coherence') {
                             steps {
-                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload", "false", "false", "false")
+                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", "false", "false", "false")
                             }
                         }
                     }
@@ -567,6 +554,7 @@ pipeline {
                     }
                 }
                 stage ('Multi-cluster Verify Api') {
+                    when { expression { isMultiCluster() } }
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             script {
@@ -609,6 +597,7 @@ pipeline {
         stage('Cleanup Tests') {
             stages {
                 stage('verify deregister') {
+                    when { expression { isMultiCluster() } }
                     steps {
                         verifyDeregisterManagedClusters()
                     }
@@ -1111,11 +1100,13 @@ def runGinkgoRandomizeAdmin(testSuitePath) {
     """
 }
 
-def runGinkgoVerify(testSuitePath, skipDeploy, skipUndeploy, skipVerify, namespace) {
+def runGinkgoVerify(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export CLUSTER_NAME="admin"
+            export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+            export DUMP_DIRECTORY="${clusterDumpDirectory}"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify} --namespace=${namespace}
         """
@@ -1526,3 +1517,45 @@ def setVZConfigForInstallation(){
 
 }
 
+def isMultiCluster() {
+    return params.TOTAL_CLUSTERS.toInteger() >= 2
+}
+
+def setInitValues() {
+    script {
+        def props = readProperties file: '.verrazzano-development-version'
+        VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+        TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+        SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+        DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
+        // update the description with some meaningful info
+        setDisplayName()
+        currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+        if (params.TEST_ENV != "KIND") {
+            // derive the prefix for the OKE cluster
+            OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${GO_REPO_PATH}/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
+        }
+        // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
+        env.K8S_VERSION_LABEL = "${params.TEST_ENV == 'KIND' ? params.KIND_CLUSTER_VERSION : sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}").trim()}"
+        // Sets the VZ installation configuration based on VZ_INSTALL_CONFIG parameter.
+        setVZConfigForInstallation()
+    }
+}
+
+def performDockerLogin() {
+    script {
+        try {
+            sh """
+                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+            """
+        } catch(error) {
+            echo "docker login failed, retrying after sleep"
+            retry(4) {
+                sleep(30)
+                sh """
+                    echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                """
+            }
+        }
+    }
+}
