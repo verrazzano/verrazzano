@@ -396,11 +396,11 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:         namespace,
-				Name:              name,
-				DeletionTimestamp: &metav1.Time{Time: time.Now()},
-				Finalizers:        []string{finalizerName}},
+			ObjectMeta: func() metav1.ObjectMeta {
+				om := createObjectMeta(namespace, name, []string{finalizerName})
+				om.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+				return om
+			}(),
 			Spec: vzapi.VerrazzanoSpec{
 				Version: "0.2.0"},
 			Status: vzapi.VerrazzanoStatus{
