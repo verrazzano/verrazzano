@@ -314,7 +314,7 @@ pipeline {
                         }
                     }
                 }
-                stages("Setup OCI DNS") {
+                stage("Setup OCI DNS") {
                     when { expression { return params.TEST_ENV == 'ocidns_oke' || params.UPDATE_DNS_TO_OCI == 'yes'} }
                     stage('Create OCI DNS zone') {
                         steps {
