@@ -4,10 +4,8 @@
 package registry
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -22,34 +20,12 @@ import (
 const (
 	waitTimeout     = 2 * time.Minute
 	pollingInterval = 10 * time.Second
-	// Pod Substring for finding the platform operator pod
-	platformOperatorPodNameSearchString = "verrazzano-platform-operator"
 )
 
 var registry = os.Getenv("REGISTRY")
-var imagePrefix = pkg.GetImagePrefix()
 
 // Map that contains the images present in the BOM with the associated registry URL
 var imageRegistryMap = make(map[string]string)
-
-// Struct based on Verrazzano BOM JSON
-type verrazzanoBom struct {
-	Registry   string `json:"registry"`
-	Version    string `json:"version"`
-	Components []struct {
-		Name          string `json:"name"`
-		Subcomponents []struct {
-			Registry   string `json:"registry"`
-			Repository string `json:"repository"`
-			Name       string `json:"name"`
-			Images     []struct {
-				Image            string `json:"image"`
-				Tag              string `json:"tag"`
-				HelmFullImageKey string `json:"helmFullImageKey"`
-			} `json:"images"`
-		} `json:"subcomponents"`
-	} `json:"components"`
-}
 
 // List of namespaces from which all the pods are queried to confirm the images are loaded from the target registry/repo
 var listOfNamespaces = []string{
@@ -113,96 +89,67 @@ var _ = t.Describe("Image Registry Verification", Label("f:platform-lcm.private-
 	})
 
 // getRegistryURL returns the private registry url if the private registry env is set
-// If private registry not set, the registry url is determined based on what is specified in the BOM
-func getRegistryURL(image string) (string, error) {
-	// If it is private registry
+// If private registry is not set, the registry url is determined based on what is specified in the BOM
+// for a given image
+func getRegistryURL(containerImage string) (string, error) {
+	// For private registry, determine the registry url from the corresponding env variables
 	if len(registry) > 0 {
-		return imagePrefix, nil
+		return pkg.GetImagePrefix(), nil
 	}
-	// Get the images and the corresponding registries from the BOM
+	// Populate image registry map if not already done
 	if len(imageRegistryMap) == 0 {
 		err := populateImageRegistryMap()
 		if err != nil {
 			return "", err
 		}
 	}
-	// Remove the version from image
-	imageURL := strings.Split(image, ":")[0]
-	imageParts := strings.Split(imageURL, "/")
-	imageName := imageParts[len(imageParts)-1]
+	imageName := getImageName(containerImage)
 	// If the image is not defined in the bom, return the default registry
 	if imageRegistryMap[imageName] == "" {
-		return imagePrefix, nil
+		return pkg.GetImagePrefix(), nil
 	}
-	imageURLFromBom := imageRegistryMap[imageName] + "/" + imageName
-	imagePartsFromBom := strings.Split(imageURLFromBom, "/")
-	if len(imageParts) != len(imagePartsFromBom) {
-		// If docker.io is not specified in the container image, remove docker.io from the constructed registry url
-		if (imagePartsFromBom[0] == "docker.io") && pkg.SlicesContainSameStrings(imagePartsFromBom[1:], imageParts) {
-			imagePartsFromBom = imagePartsFromBom[1:]
-		}
+	registryURLFromBom := imageRegistryMap[imageName]
+	// If the registry of the image is docker.io and the container image does not have the registry prefix,
+	// remove docker.io from the constructed registry url. This is mainly to address the case where some of the
+	// images such as rancher-webhook does not have "docker.io" prefix in the image in the pod output.
+	if strings.HasPrefix(registryURLFromBom, "docker.io") && !strings.HasPrefix(containerImage, "docker.io") {
+		return strings.TrimPrefix(registryURLFromBom, "docker.io/"), nil
 	}
-	// Remove image name
-	return strings.Join(imagePartsFromBom[:len(imagePartsFromBom)-1], "/"), nil
+	return registryURLFromBom, nil
 }
 
-// Populate image registries map from BOM
+// Populate image registry map from BOM
 func populateImageRegistryMap() error {
-	var vBom verrazzanoBom
 	// Get the BOM from installed Platform Operator
-	err := getBOM(&vBom)
+	bomDoc, err := pkg.GetBOMDoc()
 	if err != nil {
 		return err
 	}
-	globalRegistry := vBom.Registry
-	for _, component := range vBom.Components {
-		for _, subComponent := range component.Subcomponents {
+	globalRegistry := bomDoc.Registry
+	for _, component := range bomDoc.Components {
+		for _, subComponent := range component.SubComponents {
+			registry := globalRegistry
+			if len(subComponent.Registry) > 0 {
+				registry = subComponent.Registry
+			}
+			repository := subComponent.Repository
 			for _, image := range subComponent.Images {
-				registry := globalRegistry
-				if len(subComponent.Registry) > 0 {
+				if len(image.Registry) > 0 {
 					registry = subComponent.Registry
 				}
-				imageRegistryMap[image.Image] = registry + "/" + subComponent.Repository
+				if len(image.Repository) > 0 {
+					repository = image.Repository
+				}
+				imageRegistryMap[image.ImageName] = registry + "/" + repository
 			}
 		}
 	}
 	return nil
 }
 
-// Get the BOM from the platform operator in the cluster and build the BOM structure from it
-func getBOM(vBom *verrazzanoBom) error {
-	var platformOperatorPodName = ""
-
-	out, err := exec.Command("kubectl", "get", "pod", "-o", "name", "--no-headers=true", "-n", "verrazzano-install").Output()
-	if err != nil {
-		return fmt.Errorf("error in gettting %s pod name: %v", platformOperatorPodNameSearchString, err)
-	}
-
-	vzInstallPods := string(out)
-	vzInstallPodArray := strings.Split(vzInstallPods, "\n")
-	for _, podName := range vzInstallPodArray {
-		if strings.Contains(podName, platformOperatorPodNameSearchString) {
-			platformOperatorPodName = podName
-			break
-		}
-	}
-	if platformOperatorPodName == "" {
-		return fmt.Errorf("platform operator pod name not found in verrazzano-install namespace")
-	}
-
-	platformOperatorPodName = strings.TrimSuffix(platformOperatorPodName, "\n")
-	fmt.Printf("Getting the registry details in BOM from the platform operator %s\n", platformOperatorPodName)
-
-	//  Get the BOM from platform-operator
-	out, err = exec.Command("kubectl", "exec", "-it", platformOperatorPodName, "-n", "verrazzano-install", "--",
-		"cat", "/verrazzano/platform-operator/verrazzano-bom.json").Output()
-	if err != nil {
-		return err
-	}
-	if len(string(out)) == 0 {
-		return fmt.Errorf("error retrieving BOM from platform operator, zero length")
-	}
-
-	json.Unmarshal(out, &vBom)
-	return nil
+// Get the name of the image from the image URL
+func getImageName(imageURL string) string {
+	imageWithoutVer := strings.Split(imageURL, ":")[0]
+	imageParts := strings.Split(imageWithoutVer, "/")
+	return imageParts[len(imageParts)-1]
 }

@@ -12,5 +12,5 @@ import (
 
 func TestKubernetes(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Private Registry Suite")
+	ginkgo.RunSpecs(t, "Registry Suite")
 }
