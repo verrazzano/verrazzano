@@ -832,13 +832,13 @@ def getPlatformOperatorForRelease(){
         VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
         def operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file"
 
-        if(VERSION_FOR_UPGRADE != "master" && params.IS_TRIGGERED_MANUALLY != "YES" && VERSION_FOR_UPGRADE != "NONE"){
+        if(VERSION_FOR_UPGRADE != "current_branch" && params.IS_TRIGGERED_MANUALLY != "YES" && VERSION_FOR_UPGRADE != "NONE"){
 
             def latestReleaseBranch = getLatestReleaseVersion()
 
             operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name release-${latestReleaseBranch}/operator.yaml --file"
 
-        }else if(params.IS_TRIGGERED_MANUALLY == "YES" && VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "master"){
+        }else if(params.IS_TRIGGERED_MANUALLY == "YES" && VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "current_branch"){
             operatorCMD = "curl -L https://github.com/verrazzano/verrazzano/releases/download/v${VERSION_FOR_UPGRADE}/operator.yaml --output"
         }
 
@@ -848,7 +848,7 @@ def getPlatformOperatorForRelease(){
 
 def getLatestReleaseVersion(){
     def latestReleaseBranch
-    if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "master"){
+    if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "current_branch"){
         VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
         def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
         latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
@@ -911,7 +911,7 @@ def upgradeVerrazzano() {
 
         if(VERSION_FOR_UPGRADE == "NONE"){
             VERSION_FOR_UPGRADE = VERRAZZANO_DEV_VERSION
-        } else if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "master"){
+        } else if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "current_branch"){
             VERRAZZANO_DEV_VERSION = VERSION_FOR_UPGRADE
         }
 
