@@ -60,6 +60,7 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 		currentDNSDomain = cr.Spec.Components.DNS.Wildcard.Domain
 		validateIngressList(currentEnvironmentName, currentDNSDomain)
 		validateVirtualServiceList(currentDNSDomain)
+		log.Println(testDNSZoneName, testDNSZoneOCID, testDNSZoneCompartmentOCID, testOCIConfigSecret)
 	})
 
 	// t.It("Update and verify dns domain", func() {
