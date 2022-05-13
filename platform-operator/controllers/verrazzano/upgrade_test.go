@@ -402,8 +402,7 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 				DeletionTimestamp: &metav1.Time{Time: time.Now()},
 				Finalizers:        []string{finalizerName}},
 			Spec: vzapi.VerrazzanoSpec{
-				Version: "0.2.0",
-			},
+				Version: "0.2.0"},
 			Status: vzapi.VerrazzanoStatus{
 				State: vzapi.VzStateUpgrading,
 				Conditions: []vzapi.Condition{
@@ -833,8 +832,7 @@ func TestUpgradeHelmError(t *testing.T) {
 				Finalizers: []string{finalizerName},
 			},
 			Spec: vzapi.VerrazzanoSpec{
-				Version: "0.2.0",
-			},
+				Version: "0.2.0"},
 			Status: vzapi.VerrazzanoStatus{
 				State:      vzapi.VzStateUpgrading,
 				Components: makeVerrazzanoComponentStatusMap(),
@@ -894,8 +892,7 @@ func TestUpgradeIsCompInstalledFailure(t *testing.T) {
 	vz := vzapi.Verrazzano{
 		ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 		Spec: vzapi.VerrazzanoSpec{
-			Version: "0.2.0",
-		},
+			Version: "0.2.0"},
 		Status: vzapi.VerrazzanoStatus{
 			State:      vzapi.VzStateReady,
 			Components: makeVerrazzanoComponentStatusMap(),
@@ -1235,8 +1232,7 @@ func TestRetryUpgrade(t *testing.T) {
 				},
 			},
 			Spec: vzapi.VerrazzanoSpec{
-				Version: "0.2.0",
-			},
+				Version: "0.2.0"},
 			Status: vzapi.VerrazzanoStatus{
 				State: vzapi.VzStateFailed,
 				Conditions: []vzapi.Condition{
@@ -1294,8 +1290,7 @@ func TestTransitionToPausedUpgradeFromFailed(t *testing.T) {
 		&vzapi.Verrazzano{
 			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 			Spec: vzapi.VerrazzanoSpec{
-				Version: "1.0.0",
-			},
+				Version: "1.0.0"},
 			Status: vzapi.VerrazzanoStatus{
 				State: vzapi.VzStateFailed,
 				Conditions: []vzapi.Condition{
@@ -1352,8 +1347,7 @@ func TestTransitionToPausedUpgradeFromStarted(t *testing.T) {
 		&vzapi.Verrazzano{
 			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 			Spec: vzapi.VerrazzanoSpec{
-				Version: "1.0.0",
-			},
+				Version: "1.0.0"},
 			Status: vzapi.VerrazzanoStatus{
 				State: vzapi.VzStateUpgrading,
 				Conditions: []vzapi.Condition{
@@ -1406,8 +1400,7 @@ func TestTransitionFromPausedUpgrade(t *testing.T) {
 		&vzapi.Verrazzano{
 			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 			Spec: vzapi.VerrazzanoSpec{
-				Version: "1.0.1",
-			},
+				Version: "1.0.1"},
 			Status: vzapi.VerrazzanoStatus{
 				State: vzapi.VzStatePaused,
 				Conditions: []vzapi.Condition{
@@ -1472,8 +1465,7 @@ func TestDontRetryUpgrade(t *testing.T) {
 				},
 			},
 			Spec: vzapi.VerrazzanoSpec{
-				Version: "1.1.0",
-			},
+				Version: "1.1.0"},
 			Status: vzapi.VerrazzanoStatus{
 				State: vzapi.VzStateFailed,
 				Conditions: []vzapi.Condition{
