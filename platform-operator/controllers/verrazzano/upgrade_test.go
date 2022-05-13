@@ -470,11 +470,11 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  namespace,
-				Name:       name,
-				Generation: 2,
-				Finalizers: []string{finalizerName}},
+			ObjectMeta: func() metav1.ObjectMeta {
+				om := createObjectMeta(namespace, name, []string{finalizerName})
+				om.Generation = 2
+				return om
+			}(),
 			Spec: vzapi.VerrazzanoSpec{
 				Version: "0.2.0"},
 			Status: vzapi.VerrazzanoStatus{
@@ -825,12 +825,11 @@ func TestUpgradeHelmError(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  namespace,
-				Name:       name,
-				Generation: 1,
-				Finalizers: []string{finalizerName},
-			},
+			ObjectMeta: func() metav1.ObjectMeta {
+				om := createObjectMeta(namespace, name, []string{finalizerName})
+				om.Generation = 1
+				return om
+			}(),
 			Spec: vzapi.VerrazzanoSpec{
 				Version: "0.2.0"},
 			Status: vzapi.VerrazzanoStatus{
@@ -1223,14 +1222,11 @@ func TestRetryUpgrade(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  namespace,
-				Name:       name,
-				Finalizers: []string{finalizerName},
-				Annotations: map[string]string{
-					constants.UpgradeRetryVersion: "a",
-				},
-			},
+			ObjectMeta: func() metav1.ObjectMeta {
+				om := createObjectMeta(namespace, name, []string{finalizerName})
+				om.Annotations = map[string]string{constants.UpgradeRetryVersion: "a"}
+				return om
+			}(),
 			Spec: vzapi.VerrazzanoSpec{
 				Version: "0.2.0"},
 			Status: vzapi.VerrazzanoStatus{
@@ -1455,15 +1451,11 @@ func TestDontRetryUpgrade(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  namespace,
-				Name:       name,
-				Finalizers: []string{finalizerName},
-				Annotations: map[string]string{
-					constants.UpgradeRetryVersion:         "b",
-					constants.ObservedUpgradeRetryVersion: "b",
-				},
-			},
+			ObjectMeta: func() metav1.ObjectMeta {
+				om := createObjectMeta(namespace, name, []string{finalizerName})
+				om.Annotations = map[string]string{constants.UpgradeRetryVersion: "b", constants.ObservedUpgradeRetryVersion: "b"}
+				return om
+			}(),
 			Spec: vzapi.VerrazzanoSpec{
 				Version: "1.1.0"},
 			Status: vzapi.VerrazzanoStatus{
