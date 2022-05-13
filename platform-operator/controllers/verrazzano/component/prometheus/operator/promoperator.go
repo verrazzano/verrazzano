@@ -6,6 +6,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -88,6 +89,27 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		Key:   "prometheusOperator.admissionWebhooks.certManager.enabled",
 		Value: strconv.FormatBool(vzconfig.IsCertManagerEnabled(ctx.EffectiveCR())),
 	})
+
+	// If we specify a storage or the prod is used, create a PVC for Prometheus
+	resourceRequest, err := common.FindStorageOverride(ctx.EffectiveCR())
+	if ctx.EffectiveCR().Spec.Profile == vzapi.Prod || resourceRequest != nil {
+		storage := "50Gi"
+		memory := "128Mi"
+		if resourceRequest != nil {
+			storage = resourceRequest.Storage
+			memory = resourceRequest.Memory
+		}
+		kvs = append(kvs, []bom.KeyValue{
+			{
+				Key:   "prometheusOperator.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName.resources.requests.storage",
+				Value: storage,
+			},
+			{
+				Key:   "prometheusOperator.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName.resources.requests.memory",
+				Value: memory,
+			},
+		}...)
+	}
 
 	return kvs, nil
 }
