@@ -37,6 +37,8 @@ pipeline {
         choice (description: 'Number of Cluster', name: 'TOTAL_CLUSTERS', choices: ["2", "1", "3"])
         choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
                 choices: ["KIND", "magicdns_oke", "ocidns_oke"])
+        choice (description: 'Update DNS to OCI Public Zone (if TEST_ENV != magicdns_oke)', name: 'UPDATE_DNS_TO_OCI',
+                choices: ["yes", "no"])
         choice (description: 'ACME Certificate Environment (Staging or Production)', name: 'ACME_ENVIRONMENT',
                 choices: acmeEnvironments)
         choice (description: 'OCI region to launch OKE clusters', name: 'OKE_CLUSTER_REGION',
@@ -274,7 +276,7 @@ pipeline {
                         OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${GO_REPO_PATH}/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
                     }
                     // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
-                    env.K8S_VERSION_LABEL = "${params.TEST_ENV == 'KIND' ? params.KIND_CLUSTER_VERSION : sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}").trim()}"
+                    env.K8S_VERSION_LABEL = "${params.TEST_ENV == 'KIND' ? params.KIND_CLUSTER_VERSION : sh(returnStdout: true, script: '${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}').trim()}"
                 }
             }
         }
@@ -310,7 +312,7 @@ pipeline {
                 stage("Configure Clusters") {
                     parallel {
                         stage("Configure OKE/OCI DNS") {
-                            when { expression { return params.TEST_ENV == 'ocidns_oke' } }
+                            when { expression { return params.TEST_ENV == 'ocidns_oke' || params.UPDATE_DNS_TO_OCI == 'yes'} }
                             stages {
                                 stage('Create OCI DNS zone') {
                                     steps {
@@ -339,6 +341,7 @@ pipeline {
                                     }
                                 }
                                 stage('Configure OCI DNS Installers') {
+                                    when { expression { return params.TEST_ENV == 'ocidns_oke' } }
                                     environment {
                                         OCI_DNS_COMPARTMENT_OCID = credentials('oci-dns-compartment')
                                         OCI_PRIVATE_KEY_FILE = credentials('oci-api-key')
@@ -454,6 +457,22 @@ pipeline {
                     script {
                         dumpK8sCluster("${WORKSPACE}/multicluster-verify-upgrade-cluster-dump")
                     }
+                }
+            }
+        }
+
+        stage("Update Wildcard DNS to OCI Public DNS") {
+            when { expression { return params.TEST_ENV != 'ocidns_oke' && params.UPDATE_DNS_TO_OCI == true } }
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/ocidns-update"
+            }
+            steps {
+                runGinkgoAdmin('update/ocidns')
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
             }
         }
@@ -1536,6 +1555,7 @@ def emitJobMetrics() {
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
     env.TIME_WAITING = startTimeInMillis-timeInMillis
     runGinkgoRandomizeAdmin('jobmetrics')
+<<<<<<< HEAD
 }
 
 def verifyUpgrade() {
@@ -1551,3 +1571,6 @@ def verifyUpgrade() {
         },
     ]
 }
+=======
+}
+>>>>>>> Added AT for OCI public zone
