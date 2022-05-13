@@ -315,14 +315,22 @@ pipeline {
                     when { expression { return params.TEST_ENV == 'ocidns_oke' || params.UPDATE_DNS_TO_OCI == 'yes'} }
                     stages {
                         stage('Create OCI DNS zone') {
-                            steps {
-                                when { expression { return params.OCI_DNS_TYPE == 'public' } } 
-                                script {
-                                    dns_zone_ocid = sh(script: "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId} -k GLOBAL", returnStdout: true)
+                            parallel {
+                                stage('Create OCI public DNS zone') {
+                                    when { expression { return params.OCI_DNS_TYPE == 'public' } } 
+                                    steps {
+                                        script {
+                                            dns_zone_ocid = sh(script: "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId} -k GLOBAL", returnStdout: true)
+                                        }
+                                    }
                                 }
-                                when { expression { return parama.TEST_ENV != 'KIND' && params.OCI_DNS_TYPE == 'private' } } 
-                                script {
-                                    dns_zone_ocid = sh(script: "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId} -k PRIVATE", returnStdout: true)
+                                stage('Create OCI private DNS zone') {
+                                    when { expression { return parama.TEST_ENV != 'KIND' && params.OCI_DNS_TYPE == 'private' } } 
+                                    steps {
+                                        script {
+                                            dns_zone_ocid = sh(script: "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId} -k PRIVATE", returnStdout: true)
+                                        }
+                                    }
                                 }
                             }
                         }
