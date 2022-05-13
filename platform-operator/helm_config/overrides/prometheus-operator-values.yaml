@@ -9,13 +9,6 @@ kubeStateMetrics:
   enabled: false
 prometheus:
   enabled: true
-  serviceAccount:
-    name: prometheus-operator-kube-p-prometheus
-  prometheusSpec:
-    resources:
-      requests:
-        memory: 128Mi
-        storage: 50Gi
 alertmanager:
   enabled: false
 prometheusOperator:
