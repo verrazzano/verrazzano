@@ -84,7 +84,7 @@ pipeline {
         OCI_OS_BUCKET="verrazzano-builds"
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
-        TARGET_UPGRADE_VERSION = "master"
+        TARGET_UPGRADE_VERSION = "current_branch"
     }
 
     stages {
@@ -414,10 +414,10 @@ List extractReleaseTags(final String fileContent) {
 
 def getStageOfUpgradeJob(job) {
     return {
-        stage("Upgrade Verrazzano from version ${job[0]} to  ${CLEAN_BRANCH_NAME.replace("%2F", "/")}"){
+        stage("Upgrade Verrazzano from version ${job[0]} to  ${job[1]}"){
             script {
                 try {
-                    echo "Running upgrade job from version ${job[0]} to ${CLEAN_BRANCH_NAME.replace("%2F", "/")}"
+                    echo "Running upgrade job from version ${job[0]} to ${job[1]}"
                     def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                     parameters: [
                         string(name: 'GIT_COMMIT_TO_USE', value: params.GIT_COMMIT_TO_USE),
