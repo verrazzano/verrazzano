@@ -414,7 +414,7 @@ List extractReleaseTags(final String fileContent) {
 
 def getStageOfUpgradeJob(job) {
     return {
-        stage("Upgrade Verrazzano from version ${job[0]} to  ${job[1]}"){
+        stage("Upgrade Verrazzano from version ${job[0]} to  ${CLEAN_BRANCH_NAME}"){
             script {
                 try {
                     echo "Running upgrade job from version ${job[0]} to ${job[1]}"
