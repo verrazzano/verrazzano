@@ -154,11 +154,7 @@ func (o opensearchComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 		return err
 	}
 	// Reject edits that duplicate names of install args or node groups
-	if err := validateNoDuplicatedConfiguration(new); err != nil {
-		return err
-	}
-	// Reject edits that would corrupt the cluster state
-	return validateClusterTopology(old, new)
+	return validateNoDuplicatedConfiguration(new)
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed

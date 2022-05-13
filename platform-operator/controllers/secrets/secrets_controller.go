@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -48,7 +49,10 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		ctx = context.TODO()
 	}
 
-	if req.Name == constants.VerrazzanoIngressSecret && req.Namespace == constants.VerrazzanoSystemNamespace {
+	// We care about the CA secret for the cluster - this can come from the verrazzano ingress
+	// tls secret (verrazzano-tls in verrazzano-system NS), OR from the tls-additional-ca in the
+	// cattle-system NS (used in the Let's Encrypt staging cert case)
+	if isVerrazzanoIngressSecretName(req.NamespacedName) || isAdditionalTLSSecretName(req.NamespacedName) {
 		return r.reconcileVerrazzanoTLS(ctx, req)
 	}
 
@@ -97,7 +101,26 @@ func (r *VerrazzanoSecretsReconciler) initLogger(secret corev1.Secret) (ctrl.Res
 	return ctrl.Result{}, nil
 }
 
-// multiclusterNamespaceExists checks if the Verrazzano Multi Cluster namespace exists
+func (r *VerrazzanoSecretsReconciler) additionalTLSSecretExists() bool {
+	sec := corev1.Secret{}
+	err := r.Get(context.TODO(), client.ObjectKey{
+		Namespace: vzconst.RancherSystemNamespace,
+		Name:      vzconst.AdditionalTLS,
+	}, &sec)
+	if err != nil && apierrors.IsNotFound(err) {
+		return false
+	}
+	return true
+}
+
+func isAdditionalTLSSecretName(secretName types.NamespacedName) bool {
+	return secretName.Name == vzconst.AdditionalTLS && secretName.Namespace == vzconst.RancherSystemNamespace
+}
+
+func isVerrazzanoIngressSecretName(secretName types.NamespacedName) bool {
+	return secretName.Name == constants.VerrazzanoIngressSecret && secretName.Namespace == constants.VerrazzanoSystemNamespace
+}
+
 func (r *VerrazzanoSecretsReconciler) multiclusterNamespaceExists() bool {
 	ns := corev1.Namespace{}
 	err := r.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoMultiClusterNamespace}, &ns)

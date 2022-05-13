@@ -5,6 +5,7 @@ package secrets
 
 import (
 	"context"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 
@@ -20,17 +21,32 @@ import (
 // reconcileVerrazzanoTLS reconciles secret containing the admin ca bundle in the Multi Cluster namespace
 func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
-	// Get the verrazzano ingress secret
+	isVzIngressSecret := isVerrazzanoIngressSecretName(req.NamespacedName)
+	isAddnlTLSSecret := isAdditionalTLSSecretName(req.NamespacedName)
+
+	caKey := "ca.crt"
+	if isAddnlTLSSecret {
+		caKey = vzconst.AdditionalTLSCAKey
+	}
+
+	if isVzIngressSecret && r.additionalTLSSecretExists() {
+		// When the additional TLS secret exists, it is considered the source of truth - ignore
+		// reconciles for the VZ Ingress TLS secret in that case
+		return ctrl.Result{}, nil
+	}
+
+	// Get the secret
 	caSecret := corev1.Secret{}
-	err := r.Get(ctx, req.NamespacedName, &caSecret)
+	err := r.Get(context.TODO(), req.NamespacedName, &caSecret)
 	if err != nil {
 		// Secret should never be not found, unless we're running while installation is still underway
 		zap.S().Errorf("Failed to fetch secret %s/%s: %v",
-			constants.VerrazzanoSystemNamespace, constants.VerrazzanoIngressSecret, err)
+			req.Namespace, req.Name, err)
 		return newRequeueWithDelay(), nil
 	}
+	zap.S().Debugf("Fetched secret %s/%s ", req.NamespacedName.Namespace, req.NamespacedName.Name)
 
-	// Initialize the logger with the Secret details
+	// Get the resource logger needed to log message using 'progress' and 'once' methods
 	if result, err := r.initLogger(caSecret); err != nil {
 		return result, err
 	}
@@ -42,7 +58,7 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context
 
 	// Get the local ca-bundle secret
 	mcCASecret := corev1.Secret{}
-	err = r.Get(ctx, client.ObjectKey{
+	err = r.Get(context.TODO(), client.ObjectKey{
 		Namespace: constants.VerrazzanoMultiClusterNamespace,
 		Name:      constants.VerrazzanoLocalCABundleSecret,
 	}, &mcCASecret)
@@ -58,16 +74,18 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context
 		mcCASecret.Namespace = constants.VerrazzanoMultiClusterNamespace
 	}
 
-	result, err := controllerutil.CreateOrUpdate(ctx, r.Client, &mcCASecret, func() error {
+	result, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &mcCASecret, func() error {
 		if mcCASecret.Data == nil {
 			mcCASecret.Data = make(map[string][]byte)
 		}
-		mcCASecret.Data["ca-bundle"] = caSecret.Data["ca.crt"]
+		zap.S().Debugf("Updating MC CA secret with data from %s key of %s/%s secret ", caKey, caSecret.Namespace, caSecret.Name)
+		mcCASecret.Data["ca-bundle"] = caSecret.Data[caKey]
 		return nil
 	})
+
 	if err != nil {
-		r.log.Errorf("Failed to create or update secret %s/%s: %v",
-			constants.VerrazzanoMultiClusterNamespace, constants.VerrazzanoLocalCABundleSecret, err)
+		r.log.ErrorfThrottled("Failed to create or update secret %s/%s: %s",
+			constants.VerrazzanoMultiClusterNamespace, constants.VerrazzanoLocalCABundleSecret, err.Error())
 		return newRequeueWithDelay(), nil
 	}
 
