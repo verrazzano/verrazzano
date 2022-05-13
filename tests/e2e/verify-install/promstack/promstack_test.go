@@ -43,7 +43,7 @@ var (
 		{podName: "kube-state-metrics", enabledFunc: pkg.IsKubeStateMetricsEnabled},
 		{podName: "prometheus-pushgateway", enabledFunc: pkg.IsPrometheusPushgatewayEnabled},
 		{podName: "prometheus-node-exporter", enabledFunc: pkg.IsPrometheusNodeExporterEnabled},
-		{podName: "prometheus-operator-kube-p-prometheus", enabledFunc: pkg.IsPrometheusEnabled},
+		{podName: "prometheus-prometheus-operator-kube-p-prometheus", enabledFunc: pkg.IsPrometheusEnabled},
 	}
 	promOperatorCrds = []string{
 		"alertmanagerconfigs.monitoring.coreos.com",
