@@ -20,11 +20,6 @@ import (
 // reconcileVerrazzanoTLS reconciles secret containing the admin ca bundle in the Multi Cluster namespace
 func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
-	if !r.multiclusterNamespaceExists() {
-		// Multicluster namespace doesn't exist yet, nothing to do so requeue
-		return newRequeueWithDelay(), nil
-	}
-
 	// Get the verrazzano ingress secret
 	caSecret := corev1.Secret{}
 	err := r.Get(ctx, req.NamespacedName, &caSecret)
@@ -38,6 +33,11 @@ func (r *VerrazzanoSecretsReconciler) reconcileVerrazzanoTLS(ctx context.Context
 	// Initialize the logger with the Secret details
 	if result, err := r.initLogger(caSecret); err != nil {
 		return result, err
+	}
+
+	if !r.multiclusterNamespaceExists() {
+		// Multicluster namespace doesn't exist yet, nothing to do so requeue
+		return newRequeueWithDelay(), nil
 	}
 
 	// Get the local ca-bundle secret
