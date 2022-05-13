@@ -92,6 +92,9 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 
 	// If we specify a storage or the prod is used, create a PVC for Prometheus
 	resourceRequest, err := common.FindStorageOverride(ctx.EffectiveCR())
+	if err != nil {
+		return kvs, err
+	}
 	if ctx.EffectiveCR().Spec.Profile == vzapi.Prod || resourceRequest != nil {
 		storage := "50Gi"
 		memory := "128Mi"
