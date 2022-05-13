@@ -9,6 +9,8 @@ kubeStateMetrics:
   enabled: false
 prometheus:
   enabled: true
+  serviceAccount:
+    name: prometheus-operator-kube-p-prometheus
   prometheusSpec:
     resources:
       requests:
