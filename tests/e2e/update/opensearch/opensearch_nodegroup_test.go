@@ -104,6 +104,10 @@ func newResources(requestMemory string) *corev1.ResourceRequirements {
 }
 
 var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
+
+	// GIVEN a VZ custom resource in dev profile,
+	// WHEN node group section for opensearch component is updated for adding master nodes
+	// THEN master pods gets created.
 	t.It("opensearch update master node group", func() {
 		m := OpensearchMasterNodeGroupModifier{NodeReplicas: 2, NodeMemory: "512Mi", NodeStorage: "2Gi"}
 		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
@@ -112,6 +116,9 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 			constants.VerrazzanoSystemNamespace, "es-master", "512Mi")
 	})
 
+	// GIVEN a VZ custom resource in dev profile,
+	// WHEN node group section for opensearch component is updated for adding ingest nodes
+	// THEN ingest pods gets created.
 	t.It("opensearch update ingest node group", func() {
 		m := OpensearchIngestNodeGroupModifier{NodeReplicas: 2, NodeMemory: "512Mi", NodeStorage: "2Gi"}
 		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
@@ -120,7 +127,10 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 			constants.VerrazzanoSystemNamespace, "es-", "512Mi")
 	})
 
-	t.It("opensearch explicit data replicas", func() {
+	// GIVEN a VZ custom resource in dev profile,
+	// WHEN node group section for opensearch component is updated for adding data nodes
+	// THEN data pods gets created.
+	t.It("opensearch update data node group", func() {
 		m := OpensearchDataNodeGroupModifier{NodeReplicas: 2, NodeMemory: "512Mi", NodeStorage: "2Gi"}
 		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 		update.ValidatePods(string(vmov1.DataRole), NodeGroupLabel, constants.VerrazzanoSystemNamespace, 2, false)
