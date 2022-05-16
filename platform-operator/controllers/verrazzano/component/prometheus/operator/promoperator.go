@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"sigs.k8s.io/yaml"
 	"strconv"
 
 	vmoconst "github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
@@ -202,55 +201,34 @@ func appendIstioOverrides(ctx spi.ComponentContext, annotationsKey, volumeMountK
 	}
 
 	// Istio annotations for certs
-	annotations, err := yaml.Marshal(map[string]string{
+	annotations := map[string]string{
 		`proxy.istio.io/config`:                            `{"proxyMetadata":{ "OUTPUT_CERTS": "/etc/istio-output-certs"}}`,
 		"sidecar.istio.io/userVolumeMount":                 `[{"name": "istio-certs-dir", "mountPath": "/etc/istio-output-certs"}]`,
 		"traffic.sidecar.istio.io/includeOutboundIPRanges": fmt.Sprintf("%s/32", svc.Spec.ClusterIP),
-	})
-	if err != nil {
-		return kvs, err
+	}
+	for key, value := range annotations {
+		kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[%s]", annotationsKey, key), Value: value})
 	}
 
 	// Volume mount annotation for certs
-	volumeMountData, err := yaml.Marshal([]corev1.VolumeMount{
-		{
-			Name:      istioVolumeName,
-			MountPath: vmoconst.IstioCertsMountPath,
-		},
-	})
-	if err != nil {
-		return kvs, err
+	vm := corev1.VolumeMount{
+		Name:      istioVolumeName,
+		MountPath: vmoconst.IstioCertsMountPath,
 	}
+	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[0].name", volumeMountKey), Value: vm.Name})
+	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[0].mountPath", volumeMountKey), Value: vm.MountPath})
 
 	// Volume annotation for certs
-	volumeData, err := yaml.Marshal([]corev1.Volume{
-		{
-			Name: istioVolumeName,
-			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{
-					Medium: corev1.StorageMediumMemory,
-				},
+	vol := corev1.Volume{
+		Name: istioVolumeName,
+		VolumeSource: corev1.VolumeSource{
+			EmptyDir: &corev1.EmptyDirVolumeSource{
+				Medium: corev1.StorageMediumMemory,
 			},
 		},
-	})
-	if err != nil {
-		return kvs, err
 	}
+	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[0].name", volumeKey), Value: vol.Name})
+	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[0].emptyDir.medium", volumeKey), Value: string(vol.VolumeSource.EmptyDir.Medium)})
 
-	// Append the new Istio annotations
-	kvs = append(kvs, []bom.KeyValue{
-		{
-			Key:   annotationsKey,
-			Value: string(annotations),
-		},
-		{
-			Key:   volumeMountKey,
-			Value: string(volumeMountData),
-		},
-		{
-			Key:   volumeKey,
-			Value: string(volumeData),
-		},
-	}...)
 	return kvs, nil
 }
