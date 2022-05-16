@@ -43,7 +43,7 @@ traffic.sidecar.istio.io/includeOutboundIPRanges: ""
 
 			assert.Equal(t, len(tt.expectAnnotations), len(kvs))
 
-			for i, _ := range tt.expectAnnotations {
+			for i := range tt.expectAnnotations {
 				assert.Equal(t, tt.expectAnnotations[i], kvs[i])
 			}
 			assert.NoError(t, err)
