@@ -581,94 +581,94 @@ pipeline {
         //     }
         // }
 
-        stage('Acceptance Tests') {
-            stages {
-                stage ('Example apps') {
-                    parallel {
-                        stage ('Examples Helidon') {
-                            steps {
-                                runGinkgo("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload")
-                            }
-                        }
-                        stage ('Examples Helidon Deprecated') {
-                            steps {
-                                runGinkgo("multicluster/examples/helidon-deprecated", "${TEST_DUMP_ROOT}/helidon-deprecated")
-                            }
-                        }
-                        stage ('Delete Deployed App NS') {
-                            steps {
-                                script {
-                                    runHelidonNsOpsTest()
-                                }
-                            }
-                        }
-                        stage ('WebLogic Workload') {
-                            steps {
-                                runGinkgo("multicluster/workloads/mcweblogic", "${TEST_DUMP_ROOT}/weblogic-workload")
-                            }
-                        }
-                        stage ('Coherence Workload') {
-                            steps {
-                                runGinkgo("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload")
-                            }
-                        }
-                    }
-                }
-                stage ('Console') {
-                    steps {
-                        runConsoleTests()
-                    }
-                    post {
-                        always {
-                            sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_screenshots.sh"
-                        }
-                    }
-                }
-                stage ('Undeploy Sample Application') {
-                    steps {
-                        undeploySampleApp()
-                    }
-                }
-                stage ('Multi-cluster Verify Api') {
-                    steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            script {
-                                runMulticlusterVerifyApi()
-                            }
-                        }
-                    }
-                    post {
-                        failure {
-                            script {
-                                dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump-pre-uninstall")
-                            }
-                        }
-                    }
-                }
-            }
-            post {
-                failure {
-                    script {
-                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
-                        dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
-                    }
-                }
-                aborted {
-                    script {
-                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
-                        dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
-                    }
-                }
-                success {
-                    script {
-                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
-                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                            dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
-                        }
-                    }
-                }
-            }
-        }
+        // stage('Acceptance Tests') {
+        //     stages {
+        //         stage ('Example apps') {
+        //             parallel {
+        //                 stage ('Examples Helidon') {
+        //                     steps {
+        //                         runGinkgo("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload")
+        //                     }
+        //                 }
+        //                 stage ('Examples Helidon Deprecated') {
+        //                     steps {
+        //                         runGinkgo("multicluster/examples/helidon-deprecated", "${TEST_DUMP_ROOT}/helidon-deprecated")
+        //                     }
+        //                 }
+        //                 stage ('Delete Deployed App NS') {
+        //                     steps {
+        //                         script {
+        //                             runHelidonNsOpsTest()
+        //                         }
+        //                     }
+        //                 }
+        //                 stage ('WebLogic Workload') {
+        //                     steps {
+        //                         runGinkgo("multicluster/workloads/mcweblogic", "${TEST_DUMP_ROOT}/weblogic-workload")
+        //                     }
+        //                 }
+        //                 stage ('Coherence Workload') {
+        //                     steps {
+        //                         runGinkgo("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload")
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //         stage ('Console') {
+        //             steps {
+        //                 runConsoleTests()
+        //             }
+        //             post {
+        //                 always {
+        //                     sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_screenshots.sh"
+        //                 }
+        //             }
+        //         }
+        //         stage ('Undeploy Sample Application') {
+        //             steps {
+        //                 undeploySampleApp()
+        //             }
+        //         }
+        //         stage ('Multi-cluster Verify Api') {
+        //             steps {
+        //                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        //                     script {
+        //                         runMulticlusterVerifyApi()
+        //                     }
+        //                 }
+        //             }
+        //             post {
+        //                 failure {
+        //                     script {
+        //                         dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump-pre-uninstall")
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
+        //     post {
+        //         failure {
+        //             script {
+        //                 METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
+        //                 dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
+        //             }
+        //         }
+        //         aborted {
+        //             script {
+        //                 METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
+        //                 dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
+        //             }
+        //         }
+        //         success {
+        //             script {
+        //                 METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
+        //                 if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+        //                     dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
         stage('Cleanup Tests') {
             stages {
                 stage('verify deregister') {
