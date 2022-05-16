@@ -6,6 +6,8 @@ package operator
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/yaml"
 	"strconv"
 
@@ -111,9 +113,11 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	}
 
 	// Append the Istio Annotations for Prometheus
-	kvs, err = appendIstioOverrides("prometheus.prometheusSpec.podMetadata.annotations",
+	kvs, err = appendIstioOverrides(ctx,
+		"prometheus.prometheusSpec.podMetadata.annotations",
 		"prometheus.prometheusSpec.volumeMounts",
-		"prometheus.prometheusSpec.volumes", kvs)
+		"prometheus.prometheusSpec.volumes",
+		kvs)
 	if err != nil {
 		return kvs, ctx.Log().ErrorfNewErr("Failed applying the Istio Overrides for Prometheus")
 	}
@@ -184,12 +188,24 @@ func (c prometheusComponent) validatePrometheusOperator(effectiveCR *vzapi.Verra
 }
 
 // appendIstioAnnotations appends Istio annotations necessary for Prometheus in Istio
-func appendIstioOverrides(annotationsKey, volumeMountKey, volumeKey string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+func appendIstioOverrides(ctx spi.ComponentContext, annotationsKey, volumeMountKey, volumeKey string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	// Set the Istio annotation on Prometheus to exclude Keycloak HTTP Service IP address.
+	// The includeOutboundIPRanges implies all others are excluded.
+	// This is done by adding the traffic.sidecar.istio.io/includeOutboundIPRanges=<Keycloak IP>/32 annotation.
+	svc := corev1.Service{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: "keycloak-http", Namespace: constants.KeycloakNamespace}, &svc)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return kvs, nil
+		}
+		return kvs, ctx.Log().ErrorfNewErr("Failed to get keycloak-http service: %v", err)
+	}
+
 	// Istio annotations for certs
 	annotations, err := yaml.Marshal(map[string]string{
 		`proxy.istio.io/config`:                            `{"proxyMetadata":{ "OUTPUT_CERTS": "/etc/istio-output-certs"}}`,
 		"sidecar.istio.io/userVolumeMount":                 `[{"name": "istio-certs-dir", "mountPath": "/etc/istio-output-certs"}]`,
-		"traffic.sidecar.istio.io/includeOutboundIPRanges": "",
+		"traffic.sidecar.istio.io/includeOutboundIPRanges": fmt.Sprintf("%s/32", svc.Spec.ClusterIP),
 	})
 	if err != nil {
 		return kvs, err
