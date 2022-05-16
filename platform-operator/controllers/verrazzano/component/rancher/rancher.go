@@ -4,13 +4,19 @@
 package rancher
 
 import (
+	"context"
 	"fmt"
+	"io"
+	"strings"
 
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -75,6 +81,14 @@ func getRancherHostname(c client.Client, vz *vzapi.Verrazzano) (string, error) {
 func isRancherReady(ctx spi.ComponentContext) bool {
 	log := ctx.Log()
 	c := ctx.Client()
+
+	// Temporary work around for Rancher issue 36914
+	err := checkRancherLogs(c, log)
+	if err != nil {
+		log.ErrorfThrottled("Error checking Rancher pod logs: %s", err.Error())
+		return false
+	}
+
 	deployments := []types.NamespacedName{
 		{
 			Name:      ComponentName,
@@ -100,4 +114,64 @@ func isRancherReady(ctx spi.ComponentContext) bool {
 
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	return status.DeploymentsAreReady(log, c, deployments, 1, prefix)
+}
+
+// checkRancherLogs - temporary work around for Rancher issue 36914. During an upgrade, the Rancher pods
+// are recycled.  When the leader pod is restarted, it is possible that a Rancher 2.5.9 pod could
+// acquire leader and recreate the downloaded the helm charts it's requires.
+//
+// If one of the Rancher pods is failing to find the rancher-webhook, recycle that pod.
+func checkRancherLogs(c client.Client, log vzlog.VerrazzanoLogger) error {
+	ctx := context.TODO()
+	podList := &corev1.PodList{}
+	err := c.List(ctx, podList, client.InNamespace(ComponentNamespace), client.MatchingLabels{"app": "rancher"})
+	if err != nil {
+		return err
+	}
+
+	clientSet, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return err
+	}
+
+	// Check the log of each pod
+	for _, pod := range podList.Items {
+		// Get the log stream
+		logStream, err := clientSet.CoreV1().Pods(ComponentNamespace).GetLogs(pod.Name, &corev1.PodLogOptions{}).Stream(ctx)
+		if err != nil {
+			return err
+		}
+		defer logStream.Close()
+
+		// Search the stream for the expected text
+		restartPod := false
+		for {
+			buf := make([]byte, 1024)
+			numBytes, err := logStream.Read(buf)
+			if numBytes == 0 {
+				continue
+			}
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				return err
+			}
+			if strings.Contains(string(buf[:numBytes]), "Failed to find system chart rancher-webhook will try again in 5 seconds") {
+				restartPod = true
+				break
+			}
+		}
+
+		// Recycle the pod?
+		if restartPod {
+			log.Infof("Rancher IsReady: Restarting pod %s", pod.Name)
+			err := c.Delete(ctx, &pod)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }

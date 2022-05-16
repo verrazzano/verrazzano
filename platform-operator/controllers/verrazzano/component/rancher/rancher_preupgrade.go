@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -33,6 +34,44 @@ func deleteClusterRepos(log vzlog.VerrazzanoLogger) error {
 
 	// Configure the GVR
 	gvr := schema.GroupVersionResource{
+		Group:    "management.cattle.io",
+		Version:  "v3",
+		Resource: "settings",
+	}
+
+	// Get the name of the default branch for the helm charts
+	name := "chart-default-branch"
+	chartDefaultBranch, err := dynamicClient.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
+	if errors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		log.Debugf("Rancher IsReady: Failed getting settings.management.cattle.io %s: %v", name, err)
+		return err
+	}
+
+	// Obtain the name of the default branch from the custom resource
+	defaultBranch, _, err := unstructured.NestedString(chartDefaultBranch.Object, "default")
+	if err != nil {
+		log.Debugf("Rancher IsReady: Failed to find default branch value in settings.management.cattle.io %s: %v", name, err)
+		return err
+	}
+
+	log.Infof("Rancher Pre-Upgrade: The default release branch is currently set to %s", defaultBranch)
+	if defaultBranch != "release-v2.5" {
+		return nil
+	}
+
+	// Delete settings.management.cattle.io chart-default-branch
+	err = dynamicClient.Resource(gvr).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		log.Debugf("Rancher Pre-Upgrade: Failed deleting settings.management.cattle.io %s: %v", name, err)
+		return err
+	}
+	log.Infof("Rancher Pre-Upgrade: Deleted settings.management.cattle.io %s", name)
+
+	// Reconfigure the GVR
+	gvr = schema.GroupVersionResource{
 		Group:    "catalog.cattle.io",
 		Version:  "v1",
 		Resource: "clusterrepos",
@@ -48,22 +87,6 @@ func deleteClusterRepos(log vzlog.VerrazzanoLogger) error {
 		}
 		log.Infof("Rancher Pre-Upgrade: Deleted clusterrepos.catalog.cattle.io %s", name)
 	}
-
-	// Reconfigure the GVR
-	gvr = schema.GroupVersionResource{
-		Group:    "management.cattle.io",
-		Version:  "v3",
-		Resource: "settings",
-	}
-
-	// Delete settings.management.cattle.io chart-default-branch
-	name := "chart-default-branch"
-	err = dynamicClient.Resource(gvr).Delete(context.TODO(), name, metav1.DeleteOptions{})
-	if err != nil && !errors.IsNotFound(err) {
-		log.Debugf("Rancher Pre-Upgrade: Failed deleting settings.management.cattle.io %s: %v", name, err)
-		return err
-	}
-	log.Infof("Rancher Pre-Upgrade: Deleted settings.management.cattle.io %s", name)
 
 	return nil
 }
