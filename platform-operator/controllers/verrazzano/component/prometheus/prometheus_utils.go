@@ -14,7 +14,8 @@ var VerrazzanoMonitoringNamespace = corev1.Namespace{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: vpoconst.VerrazzanoMonitoringNamespace,
 		Labels: map[string]string{
-			v8oconst.LabelIstioInjection: "enabled",
+			v8oconst.LabelIstioInjection:      "enabled",
+			v8oconst.LabelVerrazzanoNamespace: vpoconst.VerrazzanoMonitoringNamespace,
 		},
 	},
 }
