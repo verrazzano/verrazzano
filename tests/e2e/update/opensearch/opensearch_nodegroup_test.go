@@ -5,103 +5,12 @@ package opensearch
 
 import (
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/gomega"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/update"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
+	"strings"
 )
-
-const NodeGroupLabel = "node-group"
-
-type OpensearchMasterNodeGroupModifier struct {
-	NodeReplicas int32
-	NodeMemory   string
-	NodeStorage  string
-}
-
-type OpensearchIngestNodeGroupModifier struct {
-	NodeReplicas int32
-	NodeMemory   string
-	NodeStorage  string
-}
-
-type OpensearchDataNodeGroupModifier struct {
-	NodeReplicas int32
-	NodeStorage  string
-	NodeMemory   string
-}
-
-func (u OpensearchMasterNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
-	if cr.Spec.Components.Elasticsearch == nil {
-		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
-	}
-	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{}
-	cr.Spec.Components.Elasticsearch.Nodes =
-		append(cr.Spec.Components.Elasticsearch.Nodes,
-			vzapi.OpenSearchNode{
-				Name:      string(vmov1.MasterRole),
-				Replicas:  u.NodeReplicas,
-				Roles:     []vmov1.NodeRole{vmov1.MasterRole},
-				Resources: newResources(u.NodeMemory),
-				Storage:   newNodeStorage(u.NodeStorage),
-			},
-		)
-}
-
-func (u OpensearchIngestNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
-	if cr.Spec.Components.Elasticsearch == nil {
-		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
-	}
-	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{}
-	cr.Spec.Components.Elasticsearch.Nodes =
-		append(cr.Spec.Components.Elasticsearch.Nodes,
-			vzapi.OpenSearchNode{
-				Name:      string(vmov1.IngestRole),
-				Replicas:  u.NodeReplicas,
-				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.IngestRole},
-				Storage:   newNodeStorage(u.NodeStorage),
-				Resources: newResources(u.NodeMemory),
-			},
-		)
-}
-
-func (u OpensearchDataNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
-	if cr.Spec.Components.Elasticsearch == nil {
-		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
-	}
-	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{}
-	cr.Spec.Components.Elasticsearch.Nodes =
-		append(cr.Spec.Components.Elasticsearch.Nodes,
-			vzapi.OpenSearchNode{
-				Name:      string(vmov1.DataRole),
-				Replicas:  u.NodeReplicas,
-				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole},
-				Storage:   newNodeStorage(u.NodeStorage),
-				Resources: newResources(u.NodeMemory),
-			},
-		)
-}
-
-func newNodeStorage(size string) *vzapi.OpenSearchNodeStorage {
-	storage := new(vzapi.OpenSearchNodeStorage)
-	storage.Size = size
-	return storage
-}
-
-func newResources(requestMemory string) *corev1.ResourceRequirements {
-	memoryReq, err := resource.ParseQuantity(requestMemory)
-	if err != nil {
-		pkg.Log(pkg.Error, err.Error())
-		return nil
-	}
-	resourceRequirements := new(corev1.ResourceRequirements)
-	resourceRequirements.Requests = make(corev1.ResourceList)
-	resourceRequirements.Requests[corev1.ResourceMemory] = memoryReq
-	return resourceRequirements
-}
 
 var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 
@@ -136,5 +45,20 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 		update.ValidatePods(string(vmov1.DataRole), NodeGroupLabel, constants.VerrazzanoSystemNamespace, 2, false)
 		update.ValidatePodMemoryRequest(map[string]string{NodeGroupLabel: string(vmov1.DataRole)},
 			constants.VerrazzanoSystemNamespace, "es-", "512Mi")
+	})
+
+	// GIVEN a VZ custom resource in dev profile,
+	// WHEN opensearch component is updated with duplicate node groups
+	// THEN the update fails and an error is reported to the user
+	t.It("OpenSearch update with duplicate names should fail", func() {
+		m := OpensearchDuplicateNodeGroupModifier{string(vmov1.DataRole)}
+		errMsg := "OpenSearch node group name is duplicated or invalid"
+		gomega.Eventually(func() bool {
+			err := update.UpdateCRExpectError(m)
+			if err != nil && strings.Contains(err.Error(), errMsg) {
+				return true
+			}
+			return false
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(gomega.BeTrue())
 	})
 })

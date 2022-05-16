@@ -126,6 +126,40 @@ func UpdateCRWithRetries(m CRModifier, pollingInterval, timeout time.Duration) {
 	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(gomega.BeTrue())
 }
 
+func UpdateCRExpectError(m CRModifier) error {
+	cr, err := pkg.GetVerrazzano()
+	if err != nil {
+		pkg.Log(pkg.Error, err.Error())
+		return err
+	}
+	// Modify the CR
+	m.ModifyCR(cr)
+
+	// Update the CR
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		pkg.Log(pkg.Error, err.Error())
+		return err
+	}
+	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
+	if err != nil {
+		pkg.Log(pkg.Error, err.Error())
+		return err
+	}
+	client, err := vpoClient.NewForConfig(config)
+	if err != nil {
+		pkg.Log(pkg.Error, err.Error())
+		return err
+	}
+	vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
+	_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
+	if err != nil {
+		pkg.Log(pkg.Error, err.Error())
+		return err
+	}
+	return nil
+}
+
 // IsCRReady return true if the verrazzano custom resource is in ready state after an update operation false otherwise
 func IsCRReadyAfterUpdate(cr *vzapi.Verrazzano, updatedTime time.Time) bool {
 	if cr == nil || cr.Status.State != vzapi.VzStateReady {
