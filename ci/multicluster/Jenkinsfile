@@ -476,21 +476,21 @@ pipeline {
             }
         }
 
-        // stage("Update Wildcard DNS to OCI Public DNS") {
-        //     when { expression { return params.TEST_ENV != 'ocidns_oke' && params.UPDATE_DNS_TO_OCI == true } }
-        //     environment {
-        //         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/ocidns-update"
-        //     }
-        //     steps {
-        //         runGinkgoAdmin('update/ocidns')
-        //     }
-        //     post {
-        //         always {
-        //             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-        //             junit testResults: '**/*test-result.xml', allowEmptyResults: true
-        //         }
-        //     }
-        // }
+        stage("Update Wildcard DNS to OCI Public DNS") {
+            when { expression { return params.TEST_ENV != 'ocidns_oke' && params.UPDATE_DNS_TO_OCI == true } }
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/ocidns-update"
+            }
+            steps {
+                runGinkgoAdmin('update/ocidns')
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
 
         stage ('Verify Install') {
             stages {
