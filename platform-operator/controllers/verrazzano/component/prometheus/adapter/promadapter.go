@@ -6,6 +6,8 @@ package adapter
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
@@ -25,6 +27,11 @@ func isPrometheusAdapterReady(ctx spi.ComponentContext) bool {
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+}
+
+// AppendOverrides appends the necessary helm overrides for the Prometheus Adapter
+func AppendOverrides(_ spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	return prometheus.AppendIstioAnnotations("podAnnotations", kvs), nil
 }
 
 // PreInstall implementation for the Prometheus Adapter Component

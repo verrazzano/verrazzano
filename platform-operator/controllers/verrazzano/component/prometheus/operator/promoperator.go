@@ -6,6 +6,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus"
 	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -113,6 +114,9 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 			},
 		}...)
 	}
+
+	// Append the Istio Annotations for prometheus
+	kvs = prometheus.AppendIstioAnnotations("prometheus.prometheusSpec.podMetadata.annotations", kvs)
 
 	return kvs, nil
 }
