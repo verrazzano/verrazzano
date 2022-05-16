@@ -39,7 +39,7 @@ pipeline {
                 choices: ["KIND", "magicdns_oke", "ocidns_oke"])
         choice (description: 'Update Wildcard DNS to OCI DNS\n Works only if Wildcard DNS is selected, i.e. TEST_ENV != ocidns_oke', name: 'UPDATE_DNS_TO_OCI',
                 choices: ["yes", "no"])
-        choice (description: 'OCI DNS type\n Private zone works only in case of OKE clusters, i.e. TEST_ENV != KIND', name: 'OCI_DNS_TYPE',
+        choice (description: 'Private zone works only in case of OKE clusters, i.e. TEST_ENV != KIND', name: 'OCI_DNS_TYPE',
                 choices: ["public", "private"])
         choice (description: 'ACME Certificate Environment (Staging or Production)', name: 'ACME_ENVIRONMENT',
                 choices: acmeEnvironments)
@@ -324,14 +324,14 @@ pipeline {
                                         }
                                     }
                                 }
-                                stage('Create OCI private DNS zone') {
-                                    when { expression { return parama.TEST_ENV != 'KIND' && params.OCI_DNS_TYPE == 'private' } } 
-                                    steps {
-                                        script {
-                                            dns_zone_ocid = sh(script: "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId} -k PRIVATE", returnStdout: true)
-                                        }
-                                    }
-                                }
+                                // stage('Create OCI private DNS zone') {
+                                //     when { expression { return params.OCI_DNS_TYPE == 'private' } } 
+                                //     steps {
+                                //         script {
+                                //             dns_zone_ocid = sh(script: "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId} -k PRIVATE", returnStdout: true)
+                                //         }
+                                //     }
+                                // }
                             }
                         }
                         stage('Configure OCI DNS Resources') {
