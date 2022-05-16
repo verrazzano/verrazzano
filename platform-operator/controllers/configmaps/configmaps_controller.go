@@ -49,18 +49,15 @@ func (r *VerrazzanoConfigMapsReconciler) Reconcile(ctx context.Context, req ctrl
 
 	// Get Verrazzano from the cluster
 	vzList := &installv1alpha1.VerrazzanoList{}
-	listOpts := []client.ListOption{
-		client.InNamespace(""),
-	}
-	err := r.List(ctx, vzList, listOpts...)
+	err := r.List(ctx, vzList)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			zap.S().Infof("VZ Not found ConfigMap")
 			return reconcile.Result{}, nil
 		}
 		zap.S().Errorf("Failed to fetch Verrazzano resource: %v", err)
 		return newRequeueWithDelay(), err
 	}
+
 	if vzList != nil && len(vzList.Items) > 0 {
 		vz := &vzList.Items[0]
 		res, err := r.reconcileHelmOverrideConfigMap(ctx, req, vz)
@@ -81,13 +78,18 @@ func (r *VerrazzanoConfigMapsReconciler) reconcileHelmOverrideConfigMap(ctx cont
 	configMap := &corev1.ConfigMap{}
 	if vz.Namespace == req.Namespace {
 		if err := r.Get(ctx, req.NamespacedName, configMap); err != nil {
-			zap.S().Errorf("Failed to fetch ConfigMap in Verrazzano CR namespace: %v", err)
 			// Do not reconcile if the ConfigMap was deleted
 			if errors.IsNotFound(err) {
+				if err := controllers.ProcDeletedOverride(r.Client, vz, req.Name, constants.ConfigMapKind); err != nil {
+					// Do not return an error as it's most likely due to timing
+					return newRequeueWithDelay(), nil
+				}
 				return reconcile.Result{}, nil
 			}
+			zap.S().Errorf("Failed to fetch ConfigMap in Verrazzano CR namespace: %v", err)
 			return newRequeueWithDelay(), err
 		}
+
 		if result, err := r.initLogger(*configMap); err != nil {
 			return result, err
 		}
@@ -99,11 +101,11 @@ func (r *VerrazzanoConfigMapsReconciler) reconcileHelmOverrideConfigMap(ctx cont
 		}
 
 		// Check if the ConfigMap is listed as an override source under a component
-		if componentName, ok := controllers.VzContainsResource(componentCtx, configMap); ok {
+		if componentName, ok := controllers.VzContainsResource(componentCtx, configMap.Name, configMap.Kind); ok {
 			if configMap.DeletionTimestamp.IsZero() {
 				// Check if our finalizer is already present
-				if !controllerutil.ContainsFinalizer(configMap, constants.KubeFinalizer) {
-					configMap.Finalizers = append(configMap.Finalizers, constants.KubeFinalizer)
+				if !controllerutil.ContainsFinalizer(configMap, constants.OverridesFinalizer) {
+					configMap.Finalizers = append(configMap.Finalizers, constants.OverridesFinalizer)
 					err := r.Update(context.TODO(), configMap)
 					if err != nil {
 						return newRequeueWithDelay(), err
@@ -112,13 +114,13 @@ func (r *VerrazzanoConfigMapsReconciler) reconcileHelmOverrideConfigMap(ctx cont
 				}
 			} else {
 				// Requeue if other finalizers are present
-				if len(configMap.Finalizers) > 1 {
-					return newRequeueWithDelay(), nil
+				if configMap.Finalizers != nil && !controllerutil.ContainsFinalizer(configMap, constants.OverridesFinalizer) {
+					return reconcile.Result{Requeue: true}, nil
 				}
 
 				// Now since only our finalizer is present, therefore we remove it to delete the ConfigMap
 				// and trigger verrazzano reconcile
-				controllerutil.RemoveFinalizer(configMap, constants.KubeFinalizer)
+				controllerutil.RemoveFinalizer(configMap, constants.OverridesFinalizer)
 				err := r.Update(context.TODO(), configMap)
 				if err != nil {
 					return newRequeueWithDelay(), err

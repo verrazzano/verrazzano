@@ -173,5 +173,11 @@ const KubernetesAppLabel = "app.kubernetes.io/component"
 //JaegerCollectorService is a label value for Jaeger collector
 const JaegerCollectorService = "service-collector"
 
-// KubeFinalizer is a label value for Verrazzano finalizer
-const KubeFinalizer = "kubernetes"
+// OverridesFinalizer is a label value for value override object finalizer
+const OverridesFinalizer = "overrides.finalizers.verrazzano.io/finalizer"
+
+// ConfigMapKind is a label value for ConfigMap kind
+const ConfigMapKind = "ConfigMap"
+
+// SecretKind is a label value for Secret Kind
+const SecretKind = "Secret"

@@ -5,9 +5,6 @@ package configmaps
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 	"time"
 
@@ -16,10 +13,13 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -27,11 +27,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-// TestConfigMapReconciler tests Reconciler method of Configmap controller.
+// TestConfigMapReconciler tests Reconciler method for the following use case
+// GIVEN a request to reconcile a ConfigMap
+// WHEN the ConfigMap is referenced in the Verrazzano CR under a component and is also present the CR namespace
+// THEN the ReconcilingGeneration of the target component is set to 1
 func TestConfigMapReconciler(t *testing.T) {
 	asserts := assert.New(t)
 	cm := testConfigMap
-	cm.Finalizers = append(cm.Finalizers, constants.KubeFinalizer)
+	cm.Finalizers = append(cm.Finalizers, constants.OverridesFinalizer)
 	cli := fake.NewClientBuilder().WithObjects(&testVZ, &cm).WithScheme(newScheme()).Build()
 
 	config.TestProfilesDir = "../../manifests/profiles"
@@ -50,9 +53,11 @@ func TestConfigMapReconciler(t *testing.T) {
 	asserts.Equal(int64(1), vz.Status.Components["prometheus-operator"].ReconcilingGeneration)
 }
 
-// TestFinalizer tests that a finalizer is added to ConfigMap that's missing
-// and there is a requeue and the finalizer is added
-func TestFinalizer(t *testing.T) {
+// TestAddFinalizer tests the Reconcile loop for the following use case
+// GIVEN a request to reconcile a ConfigMap that qualifies as an override
+// WHEN the ConfigMap is found without the overrides finalizer
+// THEN the overrides finalizer is added and we requeue without an error
+func TestAddFinalizer(t *testing.T) {
 	asserts := assert.New(t)
 	cli := fake.NewClientBuilder().WithObjects(&testVZ, &testConfigMap).WithScheme(newScheme()).Build()
 
@@ -72,12 +77,14 @@ func TestFinalizer(t *testing.T) {
 	asserts.NotZero(len(cm.Finalizers))
 }
 
-// TestOtherFinalizers tests that if more than one finalizers are present
-// the we requeue
+// TestOtherFinalizers tests the Reconcile loop for the following use case
+// GIVEN a request to reconcile a ConfigMap that qualifies as an override resource and is scheduled for deletion
+// WHEN the ConfigMap is found with finalizers but the override finalizer is missing
+// THEN without updating the Verrazzano CR a requeue request is returned without an error
 func TestOtherFinalizers(t *testing.T) {
 	asserts := assert.New(t)
 	cm := testConfigMap
-	cm.Finalizers = append(cm.Finalizers, constants.KubeFinalizer, "test")
+	cm.Finalizers = append(cm.Finalizers, "test")
 	cm.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 	cli := fake.NewClientBuilder().WithObjects(&testVZ, &cm).WithScheme(newScheme()).Build()
 
@@ -90,14 +97,21 @@ func TestOtherFinalizers(t *testing.T) {
 
 	asserts.NoError(err0)
 	asserts.Equal(true, res0.Requeue)
+
+	vz := &vzapi.Verrazzano{}
+	err1 := cli.Get(context.TODO(), types.NamespacedName{Namespace: testNS, Name: testVZName}, vz)
+	asserts.NoError(err1)
+	asserts.NotEqual(int64(1), vz.Status.Components["prometheus-operator"].ReconcilingGeneration)
 }
 
-// TestDeletion tests that if the object is scheduled for deletion with
-// only our finalizer, then the finalizer is removed and Verrazzano resource is updated
+// TestDeletion tests the Reconcile loop for the following use case
+// GIVEN a request to reconcile a ConfigMap that qualifies as an override
+// WHEN we find that it is scheduled for deletion and contains overrides finalizer
+// THEN the override finalizer is removed from the ConfigMap and Verrazzano CR is updated and request is returned without an error
 func TestDeletion(t *testing.T) {
 	asserts := assert.New(t)
 	cm := testConfigMap
-	cm.Finalizers = append(cm.Finalizers, constants.KubeFinalizer)
+	cm.Finalizers = append(cm.Finalizers, constants.OverridesFinalizer)
 	cm.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 	cli := fake.NewClientBuilder().WithObjects(&testVZ, &cm).WithScheme(newScheme()).Build()
 
@@ -121,15 +135,17 @@ func TestDeletion(t *testing.T) {
 	asserts.Equal(int64(1), vz.Status.Components["prometheus-operator"].ReconcilingGeneration)
 }
 
-// TestConfigMapRequeue tests that we requeue if Component Status hasn't been
-// initialized by Verrazzano
+// TestConfigMapRequeue the Reconciler method for the following use case
+// GIVEN a request to reconcile a ConfigMap that qualifies as an override
+// WHEN the status of the Verrazzano CR is found without the Component Status details
+// THEN a requeue request is returned with an error
 func TestConfigMapRequeue(t *testing.T) {
 	asserts := assert.New(t)
 	vz := testVZ
 	vz.Status.Components = nil
 	asserts.Nil(vz.Status.Components)
 	cm := testConfigMap
-	cm.Finalizers = append(cm.Finalizers, constants.KubeFinalizer)
+	cm.Finalizers = append(cm.Finalizers, constants.OverridesFinalizer)
 	cli := fake.NewClientBuilder().WithObjects(&vz, &cm).WithScheme(newScheme()).Build()
 
 	config.TestProfilesDir = "../../manifests/profiles"
@@ -143,7 +159,10 @@ func TestConfigMapRequeue(t *testing.T) {
 	asserts.Equal(true, res0.Requeue)
 }
 
-// TestConfigMapCall tests that the call to get the ConfigMap is placed
+// TestConfigMapCall tests the reconcileHelmOverrideConfigMap for the following use case
+// GIVEN a request to reconcile a ConfigMap
+// WHEN the request namespace matches the Verrazzano CR namespace
+// THEN expect a call to get the ConfigMap
 func TestConfigMapCall(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -165,8 +184,10 @@ func TestConfigMapCall(t *testing.T) {
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
 
-// TestOtherNS tests that the API call to get the ConfigMap is not made
-// if the request namespace does not match Verrazzano Namespace
+// TestOtherNS tests the reconcileHelmOverrideConfigMap for the following use case
+// GIVEN a request to reconcile a ConfigMap
+// WHEN the request namespace does not match with the CR namespace
+// THEN the request is ignored
 func TestOtherNS(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)

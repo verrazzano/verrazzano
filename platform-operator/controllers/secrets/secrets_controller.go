@@ -57,10 +57,7 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	vzList := &installv1alpha1.VerrazzanoList{}
-	listOpts := []client.ListOption{
-		client.InNamespace(""),
-	}
-	err := r.List(ctx, vzList, listOpts...)
+	err := r.List(ctx, vzList)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			zap.S().Infof("VZ not found Secret")

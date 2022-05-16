@@ -36,7 +36,7 @@ func TestVzContainsResource(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 
 	compContext := fakeComponentContext(mock, &testVZ)
-	res0, ok0 := VzContainsResource(compContext, &testConfigMap)
+	res0, ok0 := VzContainsResource(compContext, testConfigMap.Name, testConfigMap.Kind)
 
 	asserts.True(ok0)
 	asserts.NotEmpty(res0)
@@ -45,8 +45,8 @@ func TestVzContainsResource(t *testing.T) {
 	anotherCM := testConfigMap
 	anotherCM.Name = "MonfigCap"
 
-	res1, ok1 := VzContainsResource(compContext, &anotherCM)
-
+	res1, ok1 := VzContainsResource(compContext, anotherCM.Name, anotherCM.Kind)
+	mocker.Finish()
 	asserts.False(ok1)
 	asserts.Empty(res1)
 }
@@ -62,8 +62,9 @@ func TestVzContainsResourceMonitoringDisabled(t *testing.T) {
 	vz := testVZ
 	*vz.Spec.Components.PrometheusOperator.MonitorChanges = false
 	compContext := fakeComponentContext(mock, &vz)
-	res0, ok0 := VzContainsResource(compContext, &testConfigMap)
+	res0, ok0 := VzContainsResource(compContext, testConfigMap.Name, testConfigMap.Kind)
 
+	mocker.Finish()
 	asserts.False(ok0)
 	asserts.Empty(res0)
 }
@@ -89,6 +90,7 @@ func TestUpdateVerrazzanoForHelmOverrides(t *testing.T) {
 			return nil
 		})
 	err := UpdateVerrazzanoForHelmOverrides(mock, compContext, "prometheus-operator")
+	mocker.Finish()
 	asserts.Nil(err)
 }
 
@@ -112,6 +114,7 @@ func TestUpdateVerrazzanoForHelmOverridesError(t *testing.T) {
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).MaxTimes(0)
 	err := UpdateVerrazzanoForHelmOverrides(mock, compContext, "prometheus-operator")
+	mocker.Finish()
 	asserts.NotNil(err)
 }
 

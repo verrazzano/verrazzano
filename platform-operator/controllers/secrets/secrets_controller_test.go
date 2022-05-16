@@ -6,25 +6,25 @@ package secrets
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 	"time"
 
 	constants2 "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -164,11 +164,14 @@ func TestMultiClusterNamespaceUnexpectedErr(t *testing.T) {
 	runNamespaceErrorTest(t, fmt.Errorf("unexpected error checking namespace"))
 }
 
-// TestSecretReconciler tests Reconciler method for secrets controller.
+// TestSecretReconciler tests the Reconciler method for the following use case
+// GIVEN a request to reconcile a Secret
+// WHEN the Secret is referenced in the Verrazzano CR under a component and is also present the CR namespace
+// THEN the ReconcilingGeneration of the target component is set to 1
 func TestSecretReconciler(t *testing.T) {
 	asserts := assert.New(t)
 	secret := testSecret
-	secret.Finalizers = append(secret.Finalizers, constants.KubeFinalizer)
+	secret.Finalizers = append(secret.Finalizers, constants.OverridesFinalizer)
 	cli := fake.NewClientBuilder().WithObjects(&testVZ, &secret).WithScheme(newScheme()).Build()
 
 	config.TestProfilesDir = "../../manifests/profiles"
@@ -188,15 +191,17 @@ func TestSecretReconciler(t *testing.T) {
 
 }
 
-// TestSecretRequeue tests that we requeue if Component Status hasn't been
-// initialized by Verrazzano
+// TestSecretRequeue tests the Reconcile method for the following use case
+// GIVEN a request to reconcile a Secret that qualifies as an override
+// WHEN the status of the Verrazzano CR is found without the Component Status details
+// THEN a requeue request is returned with an error
 func TestSecretRequeue(t *testing.T) {
 	asserts := assert.New(t)
 	vz := testVZ
 	vz.Status.Components = nil
 	asserts.Nil(vz.Status.Components)
 	secret := testSecret
-	secret.Finalizers = append(secret.Finalizers, constants.KubeFinalizer)
+	secret.Finalizers = append(secret.Finalizers, constants.OverridesFinalizer)
 	cli := fake.NewClientBuilder().WithObjects(&vz, &secret).WithScheme(newScheme()).Build()
 
 	config.TestProfilesDir = "../../manifests/profiles"
@@ -210,9 +215,11 @@ func TestSecretRequeue(t *testing.T) {
 	asserts.Equal(true, res0.Requeue)
 }
 
-// TestFinalizer tests that a finalizer is added to Secret that's missing
-// and there is a requeue and the finalizer is added
-func TestFinalizer(t *testing.T) {
+// TestAddFinalizer tests the Reconciler for the following use case
+// GIVEN a request to reconcile a Secret that qualifies as an override
+// WHEN the Secret is found without the overrides finalizer
+// THEN the overrides finalizer is added and we requeue without an error
+func TestAddFinalizer(t *testing.T) {
 	asserts := assert.New(t)
 	cli := fake.NewClientBuilder().WithObjects(&testVZ, &testSecret).WithScheme(newScheme()).Build()
 
@@ -232,12 +239,14 @@ func TestFinalizer(t *testing.T) {
 	asserts.NotZero(len(secret.Finalizers))
 }
 
-// TestOtherFinalizers tests that if more than one finalizers are present
-// the we requeue
+// TestOtherFinalizers tests the Reconcile loop for the following use case
+// GIVEN a request to reconcile a Secret that qualifies as an override resource and is scheduled for deletion
+// WHEN the Secret is found with finalizers but the override finalizer is missing
+// THEN without updating the Verrazzano CR a requeue request is returned without an error
 func TestOtherFinalizers(t *testing.T) {
 	asserts := assert.New(t)
 	secret := testSecret
-	secret.Finalizers = append(secret.Finalizers, constants.KubeFinalizer, "test")
+	secret.Finalizers = append(secret.Finalizers, "test")
 	secret.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 	cli := fake.NewClientBuilder().WithObjects(&testVZ, &secret).WithScheme(newScheme()).Build()
 
@@ -250,14 +259,21 @@ func TestOtherFinalizers(t *testing.T) {
 
 	asserts.NoError(err0)
 	asserts.Equal(true, res0.Requeue)
+
+	vz := &vzapi.Verrazzano{}
+	err1 := cli.Get(context.TODO(), types.NamespacedName{Namespace: testNS, Name: testVZName}, vz)
+	asserts.NoError(err1)
+	asserts.NotEqual(int64(1), vz.Status.Components["prometheus-operator"].ReconcilingGeneration)
 }
 
-// TestDeletion tests that if the object is scheduled for deletion with
-// only our finalizer, then the finalizer is removed and Verrazzano resource is updated
+// TestDeletion tests the Reconcile loop for the following use case
+// GIVEN a request to reconcile a Secret that qualifies as an override
+// WHEN we find that it is scheduled for deletion and contains overrides finalizer
+// THEN the override finalizer is removed from the Secret and Verrazzano CR is updated and request is returned without an error
 func TestDeletion(t *testing.T) {
 	asserts := assert.New(t)
 	secret := testSecret
-	secret.Finalizers = append(secret.Finalizers, constants.KubeFinalizer)
+	secret.Finalizers = append(secret.Finalizers, constants.OverridesFinalizer)
 	secret.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 	cli := fake.NewClientBuilder().WithObjects(&testVZ, &secret).WithScheme(newScheme()).Build()
 
@@ -281,7 +297,10 @@ func TestDeletion(t *testing.T) {
 	asserts.Equal(int64(1), vz.Status.Components["prometheus-operator"].ReconcilingGeneration)
 }
 
-// TestSecretCall tests that the call to get the Secret is placed
+// TestSecretCall tests the reconcileHelmOverrideSecret for the following use case
+// GIVEN a request to reconcile a Secret
+// WHEN the request namespace matches the Verrazzano CR namespace
+// THEN expect a call to get the Secret
 func TestSecretCall(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -303,8 +322,10 @@ func TestSecretCall(t *testing.T) {
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
 
-// TestOtherNS tests that the API call to get the Secret is not made
-// if the request namespace does not match Verrazzano Namespace
+// TestOtherNS tests the reconcileHelmOverrideSecret for the following use case
+// GIVEN a request to reconcile a Secret
+// WHEN the request namespace does not match with the CR namespace
+// THEN the request is ignored
 func TestOtherNS(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
