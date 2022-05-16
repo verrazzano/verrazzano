@@ -242,7 +242,7 @@ pipeline {
                 stage("Setup OCI DNS") {
                     when { expression { return params.TEST_ENV == 'ocidns_oke' || params.UPDATE_DNS_TO_OCI == 'yes'} }
                     stages {
-                        stage('Create OCI DNS zone') {
+                        stage {
                             parallel {
                                 stage('Create OCI public DNS zone') {
                                     when { expression { return params.OCI_DNS_TYPE == 'public' } } 
