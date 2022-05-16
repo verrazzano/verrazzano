@@ -150,10 +150,10 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 			requeue = true
 		}
 	}
+	r.ClearWatches()
 	if requeue {
 		return newRequeueWithDelay(), nil
 	}
-	r.ClearWatches()
 	return ctrl.Result{}, nil
 }
 
