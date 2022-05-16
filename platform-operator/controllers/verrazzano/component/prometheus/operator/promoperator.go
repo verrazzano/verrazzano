@@ -194,17 +194,20 @@ func appendIstioOverrides(ctx spi.ComponentContext, annotationsKey, volumeMountK
 	svc := corev1.Service{}
 	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: "keycloak-http", Namespace: constants.KeycloakNamespace}, &svc)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			return kvs, nil
+		if !errors.IsNotFound(err) {
+			return kvs, ctx.Log().ErrorfNewErr("Failed to get keycloak-http service: %v", err)
 		}
-		return kvs, ctx.Log().ErrorfNewErr("Failed to get keycloak-http service: %v", err)
+	}
+	outboundIP := fmt.Sprintf("%s/32", svc.Spec.ClusterIP)
+	if svc.Spec.ClusterIP == "" {
+		outboundIP = "0.0.0.0/0"
 	}
 
 	// Istio annotations for certs
 	annotations := map[string]string{
 		`proxy.istio.io/config`:                            `{"proxyMetadata":{ "OUTPUT_CERTS": "/etc/istio-output-certs"}}`,
 		"sidecar.istio.io/userVolumeMount":                 `[{"name": "istio-certs-dir", "mountPath": "/etc/istio-output-certs"}]`,
-		"traffic.sidecar.istio.io/includeOutboundIPRanges": fmt.Sprintf("%s/32", svc.Spec.ClusterIP),
+		"traffic.sidecar.istio.io/includeOutboundIPRanges": outboundIP,
 	}
 	for key, value := range annotations {
 		kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[%s]", annotationsKey, key), Value: value})
