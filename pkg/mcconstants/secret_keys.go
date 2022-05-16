@@ -1,7 +1,8 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package clusters
+// Package mcconstants - Constants in this file are keys in MultiCluster related secrets
+package mcconstants
 
 // CaCrtKey is the CA cert key in the tls secret
 const CaCrtKey = "ca.crt"
