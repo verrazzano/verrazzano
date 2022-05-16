@@ -6,6 +6,7 @@ package secrets
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"testing"
 	"time"
 
@@ -237,7 +238,7 @@ func TestAddFinalizer(t *testing.T) {
 	secret := corev1.Secret{}
 	err := cli.Get(context.TODO(), types.NamespacedName{Namespace: testNS, Name: testSecretName}, &secret)
 	asserts.NoError(err)
-	asserts.NotZero(len(secret.Finalizers))
+	asserts.True(controllerutil.ContainsFinalizer(&secret, constants.OverridesFinalizer))
 }
 
 // TestOtherFinalizers tests the Reconcile loop for the following use case

@@ -5,6 +5,7 @@ package configmaps
 
 import (
 	"context"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"testing"
 	"time"
 
@@ -74,7 +75,7 @@ func TestAddFinalizer(t *testing.T) {
 	cm := corev1.ConfigMap{}
 	err := cli.Get(context.TODO(), types.NamespacedName{Namespace: testNS, Name: testCMName}, &cm)
 	asserts.NoError(err)
-	asserts.NotZero(len(cm.Finalizers))
+	asserts.True(controllerutil.ContainsFinalizer(&cm, constants.OverridesFinalizer))
 }
 
 // TestOtherFinalizers tests the Reconcile loop for the following use case
