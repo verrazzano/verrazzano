@@ -104,6 +104,48 @@ func TestOtherFinalizers(t *testing.T) {
 	asserts.NotEqual(int64(1), vz.Status.Components["prometheus-operator"].ReconcilingGeneration)
 }
 
+// TestConfigMapNotFound tests the Reconcile method for the following use cases
+// GIVEN requests to reconcile a ConfigMap
+// WHEN the ConfigMap is not found in the cluster
+// THEN Verrazzano is updated if it's listed as an override, otherwise the request is ignored
+func TestConfigMapNotFound(t *testing.T) {
+	tests := []struct {
+		nsn types.NamespacedName
+	}{
+		{
+			nsn: types.NamespacedName{Namespace: testNS, Name: testCMName},
+		},
+		{
+			nsn: types.NamespacedName{Namespace: testNS, Name: "test"},
+		},
+	}
+
+	for i, tt := range tests {
+		asserts := assert.New(t)
+		cli := fake.NewClientBuilder().WithObjects(&testVZ).WithScheme(newScheme()).Build()
+
+		config.TestProfilesDir = "../../manifests/profiles"
+		defer func() { config.TestProfilesDir = "" }()
+
+		request0 := newRequest(tt.nsn.Namespace, tt.nsn.Name)
+		reconciler := newConfigMapReconciler(cli)
+		res0, err0 := reconciler.Reconcile(context.TODO(), request0)
+
+		asserts.NoError(err0)
+		asserts.Equal(false, res0.Requeue)
+
+		vz := &vzapi.Verrazzano{}
+		err1 := cli.Get(context.TODO(), types.NamespacedName{Namespace: testNS, Name: testVZName}, vz)
+		asserts.NoError(err1)
+		if i == 0 {
+			asserts.Equal(int64(1), vz.Status.Components["prometheus-operator"].ReconcilingGeneration)
+		} else {
+			asserts.NotEqual(int64(1), vz.Status.Components["prometheus-operator"].ReconcilingGeneration)
+		}
+	}
+
+}
+
 // TestDeletion tests the Reconcile loop for the following use case
 // GIVEN a request to reconcile a ConfigMap that qualifies as an override
 // WHEN we find that it is scheduled for deletion and contains overrides finalizer
