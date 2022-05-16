@@ -206,81 +206,9 @@ pipeline {
 
     stages {
         stage('Clean workspace and checkout') {
-            steps {
-                sh """
-                    echo "${NODE_LABELS}"
-                """
-
-                script {
-                    EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
-                    if (params.GIT_COMMIT_TO_USE == "NONE") {
-                        echo "Specific GIT commit was not specified, use current head"
-                        def scmInfo = checkout scm
-                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
-                    } else {
-                        echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
-                        def scmInfo = checkout([
-                            $class: 'GitSCM',
-                            branches: [[name: params.GIT_COMMIT_TO_USE]],
-                            doGenerateSubmoduleConfigurations: false,
-                            extensions: [],
-                            submoduleCfg: [],
-                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
-                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
-                        // If the commit we were handed is not what the SCM says we are using, fail
-                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
-                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
-                            exit 1
-                        }
-                    }
-                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
-                }
-
-                sh """
-                    cp -f "${NETRC_FILE}" $HOME/.netrc
-                    chmod 600 $HOME/.netrc
-                """
-
-                script {
-                    try {
-                        sh """
-                            echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                        """
-                    } catch(error) {
-                        echo "docker login failed, retrying after sleep"
-                        retry(4) {
-                            sleep(30)
-                            sh """
-                                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                            """
-                        }
-                    }
-	            }
-                sh """
-                    rm -rf ${GO_REPO_PATH}/verrazzano
-                    mkdir -p ${GO_REPO_PATH}/verrazzano
-                    tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
-                """
-                script {
-                    def props = readProperties file: '.verrazzano-development-version'
-                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
-                    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
-                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-                    DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
-                    // update the description with some meaningful info
-                    setDisplayName()
-                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
-
-                    if (params.TEST_ENV != "KIND") {
-                        // derive the prefix for the OKE cluster
-                        OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${GO_REPO_PATH}/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
-                    }
-                    // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
-                    env.K8S_VERSION_LABEL = "${params.TEST_ENV == 'KIND' ? params.KIND_CLUSTER_VERSION : sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}").trim()}"
-                }
-            }
+           script {
+               cleanWorkspace()
+           } 
         }
 
         stage('Install and Configure') {
@@ -340,18 +268,7 @@ pipeline {
                                 OCI_PRIVATE_KEY_FILE = credentials('oci-api-key')
                                 OCI_DNS_ZONE_OCID = "${dns_zone_ocid}"
                             }
-                            steps {
-                                script {
-                                    int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                                    for(int count=1; count<=clusterCount; count++) {
-                                        sh """
-                                            export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
-                                            cd ${GO_REPO_PATH}/verrazzano
-                                            ./tests/e2e/config/scripts/create-test-oci-config-secret.sh
-                                        """
-                                    }
-                                }
-                            }
+                            configureOCIDNS()
                         }
                     }
                 }
@@ -702,95 +619,7 @@ pipeline {
         }
         always {
             script {
-                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                    dumpVerrazzanoSystemPods()
-                    dumpCattleSystemPods()
-                    dumpNginxIngressControllerLogs()
-                    dumpVerrazzanoPlatformOperatorLogs()
-                    dumpVerrazzanoApplicationOperatorLogs()
-                    dumpOamKubernetesRuntimeLogs()
-                    dumpVerrazzanoApiLogs()
-                }
-                dumpUninstallLogs()
-            }
-            sh """
-                # Copy the generated test reports to WORKSPACE to archive them
-                mkdir -p ${TEST_REPORT_DIR}
-                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
-            """
-            archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump*/**,**/test-cluster-dumps/**,**/${TEST_REPORT}", allowEmptyArchive: true
-            junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
-
-            script {
-                 // Create a dictionary of Verrazzano uninstall steps to be executed in parallel
-                 // - the first one will always be the Admin cluster
-                 // - clusters 2-max are managed clusters
-                 def verrazzanoUninstallStages = [:]
-                 int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                 for (int count = 1; count <= clusterCount; count++) {
-                     def installerPath = "${KUBECONFIG_DIR}/${count}/${installerFileName}"
-                     def key = "vz-mgd-${count - 1}"
-                     if (count == 1) {
-                         key = "vz-admin"
-                     }
-                     verrazzanoUninstallStages["${key}"] = uninstallVerrazzano(count, installerPath)
-                 }
-                 parallel verrazzanoUninstallStages
-            }
-
-            script {
-                // Create a dictionary of Verrazzano verify uninstall steps to be executed in parallel
-                // - the first one will always be the Admin cluster
-                // - clusters 2-max are managed clusters
-                def verifyUninstallStages = [:]
-                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                for (int count = 1; count <= clusterCount; count++) {
-                    def key = "vz-mgd-${count - 1}"
-                    if (count == 1) {
-                        key = "vz-admin"
-                    }
-                    verifyUninstallStages["${key}"] = verifyUninstall(count)
-                }
-                parallel verifyUninstallStages
-            }
-
-            script {
-                if (params.EMIT_METRICS) {
-                    withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
-                        sh """
-                            ${GO_REPO_PATH}/verrazzano/ci/scripts/dashboard/emit_metrics.sh "${GO_REPO_PATH}/verrazzano/tests/e2e" "${PROMETHEUS_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
-                        """
-                    }
-                }
-
-                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                if (env.TEST_ENV == "KIND") {
-                    for(int count=1; count<=clusterCount; count++) {
-                        sh """
-                            if [ "${env.TEST_ENV}" == "KIND" ]
-                            then
-                                kind delete cluster --name ${CLUSTER_NAME_PREFIX}-$count
-                            fi
-                        """
-                    }
-                } else {
-                    sh """
-                        mkdir -p ${KUBECONFIG_DIR}
-                        if [ "${TEST_ENV}" == "ocidns_oke" ]; then
-                          cd ${GO_REPO_PATH}/verrazzano
-                          ./tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
-                        fi
-                        cd ${TEST_SCRIPTS_DIR}
-                        TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./delete_oke_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}" || true
-                    """
-                }
-                sh """
-                    if [ -f ${POST_DUMP_FAILED_FILE} ]; then
-                        echo "Failures seen during dumping of artifacts, treat post as failed"
-                        exit 1
-                    fi
-                """
+                runPostPipelineFailureScript()
             }
         }
         cleanup {
@@ -1626,4 +1455,191 @@ def verifyUpgrade() {
             runGinkgoRandomize('metrics/syscomponents')
         },
     ]
+}
+
+def cleanWorkspace() {
+    steps {
+        sh """
+            echo "${NODE_LABELS}"
+        """
+
+        script {
+            EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
+            if (params.GIT_COMMIT_TO_USE == "NONE") {
+                echo "Specific GIT commit was not specified, use current head"
+                def scmInfo = checkout scm
+                env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                env.GIT_BRANCH = scmInfo.GIT_BRANCH
+            } else {
+                echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
+                def scmInfo = checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: params.GIT_COMMIT_TO_USE]],
+                    doGenerateSubmoduleConfigurations: false,
+                    extensions: [],
+                    submoduleCfg: [],
+                    userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+                env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                // If the commit we were handed is not what the SCM says we are using, fail
+                if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
+                    echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
+                    exit 1
+                }
+            }
+            echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+        }
+
+        sh """
+            cp -f "${NETRC_FILE}" $HOME/.netrc
+            chmod 600 $HOME/.netrc
+        """
+
+        script {
+            try {
+                sh """
+                    echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                """
+            } catch(error) {
+                echo "docker login failed, retrying after sleep"
+                retry(4) {
+                    sleep(30)
+                    sh """
+                        echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                    """
+                }
+            }
+        }
+        sh """
+            rm -rf ${GO_REPO_PATH}/verrazzano
+            mkdir -p ${GO_REPO_PATH}/verrazzano
+            tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
+        """
+        script {
+            def props = readProperties file: '.verrazzano-development-version'
+            VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+            TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+            SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+            DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
+            // update the description with some meaningful info
+            setDisplayName()
+            currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+
+            if (params.TEST_ENV != "KIND") {
+                // derive the prefix for the OKE cluster
+                OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${GO_REPO_PATH}/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
+            }
+            // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
+            env.K8S_VERSION_LABEL = "${params.TEST_ENV == 'KIND' ? params.KIND_CLUSTER_VERSION : sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}").trim()}"
+        }
+    }
+}
+
+def configureOCIDNS() {
+    steps {
+        script {
+            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+            for(int count=1; count<=clusterCount; count++) {
+                sh """
+                    export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
+                    cd ${GO_REPO_PATH}/verrazzano
+                    ./tests/e2e/config/scripts/create-test-oci-config-secret.sh
+                """
+            }
+        }
+    }
+}
+
+def runPostPipelineFailureScript() {
+script {
+    if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+            dumpVerrazzanoSystemPods()
+            dumpCattleSystemPods()
+            dumpNginxIngressControllerLogs()
+            dumpVerrazzanoPlatformOperatorLogs()
+            dumpVerrazzanoApplicationOperatorLogs()
+            dumpOamKubernetesRuntimeLogs()
+            dumpVerrazzanoApiLogs()
+        }
+        dumpUninstallLogs()
+    }
+    sh """
+        # Copy the generated test reports to WORKSPACE to archive them
+        mkdir -p ${TEST_REPORT_DIR}
+        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+        find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
+    """
+    archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump*/**,**/test-cluster-dumps/**,**/${TEST_REPORT}", allowEmptyArchive: true
+    junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
+
+    script {
+            // Create a dictionary of Verrazzano uninstall steps to be executed in parallel
+            // - the first one will always be the Admin cluster
+            // - clusters 2-max are managed clusters
+            def verrazzanoUninstallStages = [:]
+            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+            for (int count = 1; count <= clusterCount; count++) {
+                def installerPath = "${KUBECONFIG_DIR}/${count}/${installerFileName}"
+                def key = "vz-mgd-${count - 1}"
+                if (count == 1) {
+                    key = "vz-admin"
+                }
+                verrazzanoUninstallStages["${key}"] = uninstallVerrazzano(count, installerPath)
+            }
+            parallel verrazzanoUninstallStages
+    }
+
+    script {
+        // Create a dictionary of Verrazzano verify uninstall steps to be executed in parallel
+        // - the first one will always be the Admin cluster
+        // - clusters 2-max are managed clusters
+        def verifyUninstallStages = [:]
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for (int count = 1; count <= clusterCount; count++) {
+            def key = "vz-mgd-${count - 1}"
+            if (count == 1) {
+                key = "vz-admin"
+            }
+            verifyUninstallStages["${key}"] = verifyUninstall(count)
+        }
+        parallel verifyUninstallStages
+    }
+
+    script {
+        if (params.EMIT_METRICS) {
+            withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+                sh """
+                    ${GO_REPO_PATH}/verrazzano/ci/scripts/dashboard/emit_metrics.sh "${GO_REPO_PATH}/verrazzano/tests/e2e" "${PROMETHEUS_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
+                """
+            }
+        }
+
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        if (env.TEST_ENV == "KIND") {
+            for(int count=1; count<=clusterCount; count++) {
+                sh """
+                    if [ "${env.TEST_ENV}" == "KIND" ]
+                    then
+                        kind delete cluster --name ${CLUSTER_NAME_PREFIX}-$count
+                    fi
+                """
+            }
+        } else {
+            sh """
+                mkdir -p ${KUBECONFIG_DIR}
+                if [ "${TEST_ENV}" == "ocidns_oke" ]; then
+                    cd ${GO_REPO_PATH}/verrazzano
+                    ./tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
+                fi
+                cd ${TEST_SCRIPTS_DIR}
+                TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./delete_oke_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}" || true
+            """
+        }
+        sh """
+            if [ -f ${POST_DUMP_FAILED_FILE} ]; then
+                echo "Failures seen during dumping of artifacts, treat post as failed"
+                exit 1
+            fi
+        """
+    }
 }
