@@ -60,7 +60,6 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	err := r.List(ctx, vzList)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			zap.S().Infof("VZ not found Secret")
 			return reconcile.Result{}, nil
 		}
 		zap.S().Errorf("Failed to fetch Verrazzano resource: %v", err)
