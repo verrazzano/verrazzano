@@ -5,6 +5,10 @@ package operator
 
 import (
 	"context"
+	"fmt"
+	"github.com/golang/mock/gomock"
+	vmoconst "github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
+	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	"strings"
 	"testing"
 
@@ -25,17 +29,6 @@ import (
 
 const (
 	testBomFilePath = "../../../testdata/test_bom.json"
-	annotation      = `proxy.istio.io/config: '{"proxyMetadata":{ "OUTPUT_CERTS": "/etc/istio-output-certs"}}'
-sidecar.istio.io/userVolumeMount: '[{"name": "istio-certs-dir", "mountPath": "/etc/istio-output-certs"}]'
-traffic.sidecar.istio.io/includeOutboundIPRanges: ""
-`
-	volumeMount = `- mountPath: /etc/istio-certs
-  name: istio-certs-dir
-`
-	volume = `- emptyDir:
-    medium: Memory
-  name: istio-certs-dir
-`
 )
 
 var (
@@ -206,28 +199,60 @@ func TestAppendIstioOverrides(t *testing.T) {
 			name: "test expect annotations",
 			expectAnnotations: []bom.KeyValue{
 				{
-					Key:   annotationKey,
-					Value: annotation,
+					Key:   fmt.Sprintf("%s[traffic.sidecar.istio.io/includeOutboundIPRanges]", annotationKey),
+					Value: "0.0.0.0/32",
 				},
 				{
-					Key:   volumeMountKey,
-					Value: volumeMount,
+					Key:   fmt.Sprintf("%s[proxy.istio.io/config]", annotationKey),
+					Value: `{"proxyMetadata":{ "OUTPUT_CERTS": "/etc/istio-output-certs"}}`,
 				},
 				{
-					Key:   volumeKey,
-					Value: volume,
+					Key:   fmt.Sprintf("%s[sidecar.istio.io/userVolumeMount]", annotationKey),
+					Value: `[{"name": "istio-certs-dir", "mountPath": "/etc/istio-output-certs"}]`,
+				},
+				{
+					Key:   fmt.Sprintf("%s[0].name", volumeMountKey),
+					Value: istioVolumeName,
+				},
+				{
+					Key:   fmt.Sprintf("%s[0].mountPath", volumeMountKey),
+					Value: vmoconst.IstioCertsMountPath,
+				},
+				{
+					Key:   fmt.Sprintf("%s[0].name", volumeKey),
+					Value: istioVolumeName,
+				},
+				{
+					Key:   fmt.Sprintf("%s[0].emptyDir.medium", volumeKey),
+					Value: string(v1.StorageMediumMemory),
 				},
 			},
 		},
 	}
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).DoAndReturn(
+		func(ctx context.Context, name types.NamespacedName, service *v1.Service) error {
+			service.Spec.ClusterIP = "0.0.0.0"
+			return nil
+		})
+	vz := vzapi.Verrazzano{}
+	ctx := spi.NewFakeContext(mock, &vz, false)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			kvs, err := appendIstioOverrides(annotationKey, volumeMountKey, volumeKey, []bom.KeyValue{})
+			kvs, err := appendIstioOverrides(ctx, annotationKey, volumeMountKey, volumeKey, []bom.KeyValue{})
 
 			assert.Equal(t, len(tt.expectAnnotations), len(kvs))
 
-			for i := range tt.expectAnnotations {
-				assert.Equal(t, tt.expectAnnotations[i], kvs[i])
+			for _, kvsVal := range kvs {
+				found := false
+				for _, expVal := range tt.expectAnnotations {
+					if expVal == kvsVal {
+						found = true
+						break
+					}
+				}
+				assert.True(t, found, fmt.Sprintf("Could not find key %s, value %s in expected key value pairs", kvsVal.Key, kvsVal.Value))
 			}
 			assert.NoError(t, err)
 		})
