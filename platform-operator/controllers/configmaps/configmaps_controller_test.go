@@ -198,6 +198,7 @@ func TestConfigMapRequeue(t *testing.T) {
 	res0, err0 := reconciler.Reconcile(context.TODO(), request0)
 
 	asserts.Error(err0)
+	asserts.Contains(err0.Error(), "Components not initialized")
 	asserts.Equal(true, res0.Requeue)
 }
 
