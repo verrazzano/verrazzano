@@ -206,8 +206,8 @@ pipeline {
 
     stages {
         stage('Clean workspace and checkout') {
-           script {
-               cleanWorkspace()
+           steps {
+               cleanWorkspaceAndCheckout()
            } 
         }
 
@@ -268,7 +268,9 @@ pipeline {
                                 OCI_PRIVATE_KEY_FILE = credentials('oci-api-key')
                                 OCI_DNS_ZONE_OCID = "${dns_zone_ocid}"
                             }
-                            configureOCIDNS()
+                            steps {
+                                configureOCIDNSResources()
+                            }
                         }
                     }
                 }
@@ -1457,7 +1459,7 @@ def verifyUpgrade() {
     ]
 }
 
-def cleanWorkspace() {
+def cleanWorkspaceAndCheckout() {
     steps {
         sh """
             echo "${NODE_LABELS}"
@@ -1535,7 +1537,7 @@ def cleanWorkspace() {
     }
 }
 
-def configureOCIDNS() {
+def configureOCIDNSResources() {
     steps {
         script {
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
