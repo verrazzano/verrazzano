@@ -135,7 +135,7 @@ func populateImageRegistryMap() error {
 			repository := subComponent.Repository
 			for _, image := range subComponent.Images {
 				if len(image.Registry) > 0 {
-					registry = subComponent.Registry
+					registry = image.Registry
 				}
 				if len(image.Repository) > 0 {
 					repository = image.Repository
