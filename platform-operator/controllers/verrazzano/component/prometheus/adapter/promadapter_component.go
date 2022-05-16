@@ -41,7 +41,6 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:  "image.pullSecrets[0]",
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-adapter-values.yaml"),
 			Dependencies:            []string{},
-			AppendOverridesFunc:     AppendOverrides,
 		},
 	}
 }

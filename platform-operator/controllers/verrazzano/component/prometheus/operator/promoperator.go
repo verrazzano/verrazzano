@@ -115,9 +115,13 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		}...)
 	}
 
-	// Append the Istio Annotations for prometheus
-	kvs = prometheus.AppendIstioAnnotations("prometheus.prometheusSpec.podMetadata.annotations", kvs)
-
+	// Append the Istio Annotations for Prometheus
+	kvs, err = prometheus.AppendIstioOverrides("prometheus.prometheusSpec.podMetadata.annotations",
+		"prometheus.prometheusSpec.volumeMounts",
+		"prometheus.prometheusSpec.volumes", kvs)
+	if err != nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed applying the Istio Overrides for Prometheus")
+	}
 	return kvs, nil
 }
 
