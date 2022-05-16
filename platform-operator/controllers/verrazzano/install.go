@@ -169,14 +169,14 @@ func (r *Reconciler) checkConfigUpdated(ctx spi.ComponentContext, componentStatu
 	if name == mysql.ComponentName {
 		return false
 	}
+	// The component should be reconciled if it is watched
+	if r.IsWatchedComponent(name) {
+		return true
+	}
 	// The component is being reconciled/installed with ReconcilingGeneration of the CR
 	// if CR.Generation > ReconcilingGeneration then re-enter install flow
 	if componentStatus.ReconcilingGeneration > 0 {
 		return ctx.ActualCR().Generation > componentStatus.ReconcilingGeneration
-	}
-	// The component should be reconciled if it is watched
-	if r.IsWatchedComponent(name) {
-		return true
 	}
 	// The component has been reconciled/installed with LastReconciledGeneration of the CR
 	// if CR.Generation > LastReconciledGeneration then re-enter install flow
