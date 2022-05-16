@@ -25,6 +25,17 @@ import (
 
 const (
 	testBomFilePath = "../../../testdata/test_bom.json"
+	annotation      = `proxy.istio.io/config: '{"proxyMetadata":{ "OUTPUT_CERTS": "/etc/istio-output-certs"}}'
+sidecar.istio.io/userVolumeMount: '[{"name": "istio-certs-dir", "mountPath": "/etc/istio-output-certs"}]'
+traffic.sidecar.istio.io/includeOutboundIPRanges: ""
+`
+	volumeMount = `- mountPath: /etc/istio-certs
+  name: istio-certs-dir
+`
+	volume = `- emptyDir:
+    medium: Memory
+  name: istio-certs-dir
+`
 )
 
 var (
@@ -129,7 +140,7 @@ func TestAppendOverrides(t *testing.T) {
 	var err error
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 7)
+	assert.Len(t, kvs, 10)
 
 	assert.Equal(t, "ghcr.io/verrazzano/prometheus-config-reloader", bom.FindKV(kvs, "prometheusOperator.prometheusConfigReloader.image.repository"))
 	assert.NotEmpty(t, bom.FindKV(kvs, "prometheusOperator.prometheusConfigReloader.image.tag"))
@@ -161,7 +172,7 @@ func TestAppendOverrides(t *testing.T) {
 
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 7)
+	assert.Len(t, kvs, 10)
 
 	assert.Equal(t, "false", bom.FindKV(kvs, "prometheusOperator.admissionWebhooks.certManager.enabled"))
 }
@@ -180,4 +191,45 @@ func TestPreInstall(t *testing.T) {
 	ns := v1.Namespace{}
 	err = client.Get(context.TODO(), types.NamespacedName{Name: ComponentNamespace}, &ns)
 	assert.NoError(t, err)
+}
+
+// TestAppendIstioCerts tests that the istio cert annotations get applied
+func TestAppendIstioOverrides(t *testing.T) {
+	annotationKey := "annKey"
+	volumeMountKey := "vmKey"
+	volumeKey := "volKey"
+	tests := []struct {
+		name              string
+		expectAnnotations []bom.KeyValue
+	}{
+		{
+			name: "test expect annotations",
+			expectAnnotations: []bom.KeyValue{
+				{
+					Key:   annotationKey,
+					Value: annotation,
+				},
+				{
+					Key:   volumeMountKey,
+					Value: volumeMount,
+				},
+				{
+					Key:   volumeKey,
+					Value: volume,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			kvs, err := appendIstioOverrides(annotationKey, volumeMountKey, volumeKey, []bom.KeyValue{})
+
+			assert.Equal(t, len(tt.expectAnnotations), len(kvs))
+
+			for i := range tt.expectAnnotations {
+				assert.Equal(t, tt.expectAnnotations[i], kvs[i])
+			}
+			assert.NoError(t, err)
+		})
+	}
 }

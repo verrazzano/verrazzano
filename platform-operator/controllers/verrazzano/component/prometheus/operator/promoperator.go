@@ -6,21 +6,27 @@ package operator
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus"
+	"sigs.k8s.io/yaml"
 	"strconv"
 
+	vmoconst "github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
-const deploymentName = "prometheus-operator-kube-p-operator"
+const (
+	deploymentName  = "prometheus-operator-kube-p-operator"
+	istioVolumeName = "istio-certs-dir"
+)
 
 // isPrometheusOperatorReady checks if the Prometheus operator deployment is ready
 func isPrometheusOperatorReady(ctx spi.ComponentContext) bool {
@@ -105,7 +111,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	}
 
 	// Append the Istio Annotations for Prometheus
-	kvs, err = prometheus.AppendIstioOverrides("prometheus.prometheusSpec.podMetadata.annotations",
+	kvs, err = appendIstioOverrides("prometheus.prometheusSpec.podMetadata.annotations",
 		"prometheus.prometheusSpec.volumeMounts",
 		"prometheus.prometheusSpec.volumes", kvs)
 	if err != nil {
@@ -175,4 +181,60 @@ func (c prometheusComponent) validatePrometheusOperator(effectiveCR *vzapi.Verra
 		}
 	}
 	return nil
+}
+
+// appendIstioAnnotations appends Istio annotations necessary for Prometheus in Istio
+func appendIstioOverrides(annotationsKey, volumeMountKey, volumeKey string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	// Istio annotations for certs
+	annotations, err := yaml.Marshal(map[string]string{
+		`proxy.istio.io/config`:                            `{"proxyMetadata":{ "OUTPUT_CERTS": "/etc/istio-output-certs"}}`,
+		"sidecar.istio.io/userVolumeMount":                 `[{"name": "istio-certs-dir", "mountPath": "/etc/istio-output-certs"}]`,
+		"traffic.sidecar.istio.io/includeOutboundIPRanges": "",
+	})
+	if err != nil {
+		return kvs, err
+	}
+
+	// Volume mount annotation for certs
+	volumeMountData, err := yaml.Marshal([]corev1.VolumeMount{
+		{
+			Name:      istioVolumeName,
+			MountPath: vmoconst.IstioCertsMountPath,
+		},
+	})
+	if err != nil {
+		return kvs, err
+	}
+
+	// Volume annotation for certs
+	volumeData, err := yaml.Marshal([]corev1.Volume{
+		{
+			Name: istioVolumeName,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{
+					Medium: corev1.StorageMediumMemory,
+				},
+			},
+		},
+	})
+	if err != nil {
+		return kvs, err
+	}
+
+	// Append the new Istio annotations
+	kvs = append(kvs, []bom.KeyValue{
+		{
+			Key:   annotationsKey,
+			Value: string(annotations),
+		},
+		{
+			Key:   volumeMountKey,
+			Value: string(volumeMountData),
+		},
+		{
+			Key:   volumeKey,
+			Value: string(volumeData),
+		},
+	}...)
+	return kvs, nil
 }
