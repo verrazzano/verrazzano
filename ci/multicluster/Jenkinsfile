@@ -324,14 +324,14 @@ pipeline {
                                         }
                                     }
                                 }
-                                // stage('Create OCI private DNS zone') {
-                                //     when { expression { return params.OCI_DNS_TYPE == 'private' } } 
-                                //     steps {
-                                //         script {
-                                //             dns_zone_ocid = sh(script: "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId} -k PRIVATE", returnStdout: true)
-                                //         }
-                                //     }
-                                // }
+                                stage('Create OCI private DNS zone') {
+                                    when { expression { return params.OCI_DNS_TYPE == 'private' } } 
+                                    steps {
+                                        script {
+                                            dns_zone_ocid = sh(script: "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId} -k PRIVATE", returnStdout: true)
+                                        }
+                                    }
+                                }
                             }
                         }
                         stage('Configure OCI DNS Resources') {
@@ -460,12 +460,23 @@ pipeline {
             }
         }
 
-<<<<<<< HEAD
         stage('Verify Upgrade') {
             // Rerun some stages to verify the upgrade
-            steps {
-                script {
-                    parallel verifyUpgrade()
+            parallel {
+                stage ('Verify Register') {
+                    steps {
+                        verifyRegisterManagedClusters()
+                    }
+                }
+                stage ('Verify Managed Cluster Permissions') {
+                    steps {
+                        verifyManagedClusterPermissions()
+                    }
+                }
+                stage ('Verify Metrics') {
+                    steps {
+                        runGinkgoRandomize('metrics/syscomponents')
+                    }
                 }
             }
             post {
@@ -476,35 +487,34 @@ pipeline {
                 }
             }
         }
-=======
-        // stage('Verify Upgrade') {
-        //     // Rerun some stages to verify the upgrade
-        //     parallel {
-        //         stage ('Verify Register') {
-        //             steps {
-        //                 verifyRegisterManagedClusters()
-        //             }
-        //         }
-        //         stage ('Verify Managed Cluster Permissions') {
-        //             steps {
-        //                 verifyManagedClusterPermissions()
-        //             }
-        //         }
-        //         stage ('Verify Metrics') {
-        //             steps {
-        //                 runGinkgoRandomize('metrics/syscomponents')
-        //             }
-        //         }
-        //     }
-        //     post {
-        //         failure {
-        //             script {
-        //                 dumpK8sCluster("${WORKSPACE}/multicluster-verify-upgrade-cluster-dump")
-        //             }
-        //         }
-        //     }
-        // }
->>>>>>> Updated Jenkinsfile
+
+        stage('Verify Upgrade') {
+            // Rerun some stages to verify the upgrade
+            parallel {
+                stage ('Verify Register') {
+                    steps {
+                        verifyRegisterManagedClusters()
+                    }
+                }
+                stage ('Verify Managed Cluster Permissions') {
+                    steps {
+                        verifyManagedClusterPermissions()
+                    }
+                }
+                stage ('Verify Metrics') {
+                    steps {
+                        runGinkgoRandomize('metrics/syscomponents')
+                    }
+                }
+            }
+            post {
+                failure {
+                    script {
+                        dumpK8sCluster("${WORKSPACE}/multicluster-verify-upgrade-cluster-dump")
+                    }
+                }
+            }
+        }
 
         stage("Update Wildcard DNS to OCI Public DNS") {
             when { expression { return params.TEST_ENV != 'ocidns_oke' && params.UPDATE_DNS_TO_OCI == true } }
@@ -522,21 +532,21 @@ pipeline {
             }
         }
 
-        // stage ('Verify Install') {
-        //     stages {
-        //         stage('verify-install') {
-        //             steps {
-        //                 runGinkgoRandomize('verify-install')
-        //             }
-        //         }
+        stage ('Verify Install') {
+            stages {
+                stage('verify-install') {
+                    steps {
+                        runGinkgoRandomize('verify-install')
+                    }
+                }
 
-        //         stage ('multicluster/verify-install') {
-        //             steps {
-        //                 runGinkgoRandomize('multicluster/verify-install')
-        //             }
-        //         }
-        //     }
-        // }
+                stage ('multicluster/verify-install') {
+                    steps {
+                        runGinkgoRandomize('multicluster/verify-install')
+                    }
+                }
+            }
+        }
 
         // stage ('Verify Infra') {
         //     // NOTE: The stages are executed in parallel, however the tests themselves are executed against
@@ -1617,9 +1627,3 @@ def verifyUpgrade() {
         },
     ]
 }
-=======
-}
->>>>>>> Added AT for OCI public zone
-=======
-}
->>>>>>> Updated Jenkinsfile
