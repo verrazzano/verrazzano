@@ -135,7 +135,7 @@ func checkRancherLogs(c client.Client, log vzlog.VerrazzanoLogger) error {
 	}
 
 	// Check the log of each pod
-	for _, pod := range podList.Items {
+	for i, pod := range podList.Items {
 		// Get the log stream
 		logStream, err := clientSet.CoreV1().Pods(ComponentNamespace).GetLogs(pod.Name, &corev1.PodLogOptions{}).Stream(ctx)
 		if err != nil {
@@ -166,7 +166,7 @@ func checkRancherLogs(c client.Client, log vzlog.VerrazzanoLogger) error {
 		// Recycle the pod?
 		if restartPod {
 			log.Infof("Rancher IsReady: Restarting pod %s", pod.Name)
-			err := c.Delete(ctx, &pod)
+			err := c.Delete(ctx, &podList.Items[i])
 			if err != nil {
 				return err
 			}
