@@ -27,6 +27,7 @@ type OCIPublicDNSModifier struct {
 	DNSZoneOCID            string
 	DNSZoneCompartmentOCID string
 	OCIConfigSecret        string
+	DNSScope               string
 }
 
 func (u OCIPublicDNSModifier) ModifyCR(cr *vzapi.Verrazzano) {
@@ -48,6 +49,7 @@ var (
 	testDNSZoneOCID            string = os.Getenv("OCI_DNS_ZONE_OCID")
 	testDNSZoneCompartmentOCID string = os.Getenv("OCI_DNS_COMPARTMENT_OCID")
 	testOCIConfigSecret        string = os.Getenv("OCI_CONFIG_SECRET")
+	testDNSScope               string = os.Getenv("OCI_DNS_SCOPE")
 
 	currentEnvironmentName string
 	currentDNSDomain       string
@@ -60,11 +62,11 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 		currentDNSDomain = cr.Spec.Components.DNS.Wildcard.Domain
 		validateIngressList(currentEnvironmentName, currentDNSDomain)
 		validateVirtualServiceList(currentDNSDomain)
-		log.Println(testDNSZoneName, testDNSZoneOCID, testDNSZoneCompartmentOCID, testOCIConfigSecret)
+		log.Println(testDNSZoneName, testDNSZoneOCID, testDNSZoneCompartmentOCID, testOCIConfigSecret, testDNSScope)
 	})
 
 	// t.It("Update and verify dns domain", func() {
-	// 	m := OCIPublicDNSModifier{testDNSZoneName, testDNSZoneOCID, testDNSZoneCompartmentOCID, testOCIConfigSecret}
+	// 	m := OCIPublicDNSModifier{testDNSZoneName, testDNSZoneOCID, testDNSZoneCompartmentOCID, testOCIConfigSecret, testDNSScope}
 	// 	update.UpdateCR(m)
 	// 	validateIngressList(currentEnvironmentName, testDNSZoneName)
 	// 	validateVirtualServiceList(testDNSZoneName)
