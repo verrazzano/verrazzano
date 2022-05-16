@@ -1349,11 +1349,10 @@ func (r *Reconciler) AddWatch(name string) {
 	r.WatchedComponents[name] = true
 }
 
-//ClearWatches removes all component watches
-func (r *Reconciler) ClearWatches() {
+func (r *Reconciler) ClearWatch(name string) {
 	r.WatchMutex.Lock()
 	defer r.WatchMutex.Unlock()
-	r.WatchedComponents = map[string]bool{}
+	delete(r.WatchedComponents, name)
 }
 
 //IsWatchedComponent checks if a component is watched or not
