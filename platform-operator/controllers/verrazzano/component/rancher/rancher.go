@@ -9,7 +9,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"k8s.io/client-go/kubernetes"
+	ctrl "sigs.k8s.io/controller-runtime"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -129,7 +131,12 @@ func checkRancherLogs(c client.Client, log vzlog.VerrazzanoLogger) error {
 		return err
 	}
 
-	clientSet, err := k8sutil.GetKubernetesClientset()
+	config, err := ctrl.GetConfig()
+	if err != nil {
+		return err
+	}
+
+	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return err
 	}
