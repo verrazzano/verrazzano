@@ -101,38 +101,43 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 		// WHEN we check to make sure the default Jaeger images are from Verrazzano
 		// THEN we see that the env is correctly populated
 		WhenJaegerOperatorInstalledIt("should have the correct default Jaeger images", func() {
-			verifyImages := func() (bool, error) {
+			verifyImages := func() bool {
 				if isJaegerOperatorEnabled() {
 					// Check if Jaeger operator is running with the expected Verrazzano Jaeger Operator image
 					image, err := pkg.GetContainerImage(verrazzanoMonitoringNamespace, jaegerOperatorName, jaegerOperatorName)
 					if err != nil {
-						AbortSuite(fmt.Sprintf("Container %v is not running in the namespace: %v, error: %v", jaegerOperatorName, verrazzanoMonitoringNamespace, err))
+						pkg.Log(pkg.Error, fmt.Sprintf("Container %s is not running in the namespace: %s, error: %v", jaegerOperatorName, verrazzanoMonitoringNamespace, err))
+						return false
 					}
 					if !strings.HasPrefix(image, operatorImage) {
-						AbortSuite(fmt.Sprintf("Container %v image %s is not running with the expected image %s in the namespace: %v", jaegerOperatorName, image, operatorImage, verrazzanoMonitoringNamespace))
+						pkg.Log(pkg.Error, fmt.Sprintf("Container %s image %s is not running with the expected image %s in the namespace: %s", jaegerOperatorName, image, operatorImage, verrazzanoMonitoringNamespace))
+						return false
 					}
 					// Check if Jaeger operator env has been set to use Verrazzano Jaeger images
 					containerEnv, err := pkg.GetContainerEnv(verrazzanoMonitoringNamespace, jaegerOperatorName, jaegerOperatorName)
 					if err != nil {
-						AbortSuite(fmt.Sprintf("Not able to get the environment variables in the container %v, error: %v", jaegerOperatorName, err))
+						pkg.Log(pkg.Error, fmt.Sprintf("Not able to get the environment variables in the container %s, error: %v", jaegerOperatorName, err))
+						return false
 					}
 					for name, val := range expectedJaegerImages {
 						found := false
 						for _, actualEnv := range containerEnv {
 							if actualEnv.Name == name {
 								if !strings.HasPrefix(actualEnv.Value, val) {
-									AbortSuite(fmt.Sprintf("The value %v of the env %v for the container %v does not have the image %v as expected",
+									pkg.Log(pkg.Error, fmt.Sprintf("The value %s of the env %s for the container %s does not have the image %s as expected",
 										actualEnv.Value, actualEnv.Name, jaegerOperatorName, val))
+									return false
 								}
 								found = true
 							}
 						}
 						if !found {
-							AbortSuite(fmt.Sprintf("The env %v not set for the container %v", name, jaegerOperatorName))
+							pkg.Log(pkg.Error, fmt.Sprintf("The env %s not set for the container %s", name, jaegerOperatorName))
+							return false
 						}
 					}
 				}
-				return true, nil
+				return true
 			}
 			Eventually(verifyImages, waitTimeout, pollingInterval).Should(BeTrue())
 		})
