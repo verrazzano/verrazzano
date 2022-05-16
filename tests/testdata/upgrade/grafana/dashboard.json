@@ -1,0 +1,12 @@
+{
+  "dashboard": {
+    "id": 6,
+    "uid": "pIZicTl8z",
+    "title": "Production Overview",
+    "tags": [ "templated" ],
+    "timezone": "browser",
+    "schemaVersion": 27,
+    "version": 1,
+    "refresh": "25s"
+  }
+}
