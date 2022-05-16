@@ -1,3 +1,6 @@
+// Copyright (c) 2022, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package prometheus
 
 import (
@@ -9,6 +12,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
+
+const istioVolumeName = "istio-certs-dir"
 
 var VerrazzanoMonitoringNamespace = corev1.Namespace{
 	ObjectMeta: metav1.ObjectMeta{
@@ -34,7 +39,7 @@ func AppendIstioOverrides(annotationsKey, volumeMountKey, volumeKey string, kvs 
 	// Volume mount annotation for certs
 	volumeMountData, err := yaml.Marshal([]corev1.VolumeMount{
 		{
-			Name:      "istio-certs-dir",
+			Name:      istioVolumeName,
 			MountPath: vmoconst.IstioCertsMountPath,
 		},
 	})
@@ -43,10 +48,14 @@ func AppendIstioOverrides(annotationsKey, volumeMountKey, volumeKey string, kvs 
 	}
 
 	// Volume annotation for certs
-	volumeData, err := yaml.Marshal([]corev1.VolumeMount{
+	volumeData, err := yaml.Marshal([]corev1.Volume{
 		{
-			Name:      "istio-certs-dir",
-			MountPath: vmoconst.IstioCertsMountPath,
+			Name: istioVolumeName,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{
+					Medium: corev1.StorageMediumMemory,
+				},
+			},
 		},
 	})
 	if err != nil {
