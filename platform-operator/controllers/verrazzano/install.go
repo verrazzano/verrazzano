@@ -51,7 +51,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 			compLog.Debugf("Did not find status details in map for component %s", comp.Name())
 			continue
 		}
-		if checkConfigUpdated(spiCtx, componentStatus, compName) && comp.IsEnabled(compContext.EffectiveCR()) {
+		if r.checkConfigUpdated(spiCtx, componentStatus, compName) && comp.IsEnabled(compContext.EffectiveCR()) {
 			oldState := componentStatus.State
 			oldGen := componentStatus.ReconcilingGeneration
 			componentStatus.ReconcilingGeneration = 0
@@ -75,7 +75,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 			if !isInstalled(cr.Status) {
 				continue
 			}
-			if !checkConfigUpdated(spiCtx, componentStatus, compName) {
+			if !r.checkConfigUpdated(spiCtx, componentStatus, compName) {
 				continue
 			}
 
@@ -153,12 +153,13 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 	if requeue {
 		return newRequeueWithDelay(), nil
 	}
+	r.ClearWatches()
 	return ctrl.Result{}, nil
 }
 
 // checkConfigUpdated checks if the component confg in the VZ CR has been updated and the component needs to
 // reset the state back to pre-install to re-enter install flow
-func checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.ComponentStatusDetails, name string) bool {
+func (r *Reconciler) checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.ComponentStatusDetails, name string) bool {
 	vzState := ctx.ActualCR().Status.State
 	// Do not interrupt upgrade flow
 	if vzState == vzapi.VzStateUpgrading || vzState == vzapi.VzStatePaused {
@@ -172,6 +173,10 @@ func checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.Compone
 	// if CR.Generation > ReconcilingGeneration then re-enter install flow
 	if componentStatus.ReconcilingGeneration > 0 {
 		return ctx.ActualCR().Generation > componentStatus.ReconcilingGeneration
+	}
+	// The component should be reconciled if it is watched
+	if r.IsWatchedComponent(name) {
+		return true
 	}
 	// The component has been reconciled/installed with LastReconciledGeneration of the CR
 	// if CR.Generation > LastReconciledGeneration then re-enter install flow

@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -1351,8 +1352,11 @@ func newRequest(namespace string, name string) ctrl.Request {
 func newVerrazzanoReconciler(c client.Client) Reconciler {
 	scheme := newScheme()
 	reconciler := Reconciler{
-		Client: c,
-		Scheme: scheme}
+		Client:            c,
+		Scheme:            scheme,
+		WatchedComponents: map[string]bool{},
+		WatchMutex:        &sync.RWMutex{},
+	}
 	return reconciler
 }
 
