@@ -31,3 +31,5 @@ spec:
       enabled: true
     prometheusNodeExporter:
       enabled: true
+    jaegerOperator:
+      enabled: true

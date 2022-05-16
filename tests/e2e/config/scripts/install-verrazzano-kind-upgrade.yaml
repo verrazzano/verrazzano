@@ -26,6 +26,8 @@ spec:
       enabled: true
     prometheusNodeExporter:
       enabled: true
+    jaegerOperator:
+      enabled: true
   volumeClaimSpecTemplates:
     - metadata:
         name: mysql
