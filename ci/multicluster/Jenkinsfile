@@ -278,7 +278,7 @@ pipeline {
                         OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${GO_REPO_PATH}/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
                     }
                     // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
-                    env.K8S_VERSION_LABEL = "${params.TEST_ENV == 'KIND' ? params.KIND_CLUSTER_VERSION : sh(returnStdout: true, script: '${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}').trim()}"
+                    env.K8S_VERSION_LABEL = "${params.TEST_ENV == 'KIND' ? params.KIND_CLUSTER_VERSION : sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}").trim()}"
                 }
             }
         }
@@ -460,6 +460,7 @@ pipeline {
             }
         }
 
+<<<<<<< HEAD
         stage('Verify Upgrade') {
             // Rerun some stages to verify the upgrade
             steps {
@@ -475,6 +476,35 @@ pipeline {
                 }
             }
         }
+=======
+        // stage('Verify Upgrade') {
+        //     // Rerun some stages to verify the upgrade
+        //     parallel {
+        //         stage ('Verify Register') {
+        //             steps {
+        //                 verifyRegisterManagedClusters()
+        //             }
+        //         }
+        //         stage ('Verify Managed Cluster Permissions') {
+        //             steps {
+        //                 verifyManagedClusterPermissions()
+        //             }
+        //         }
+        //         stage ('Verify Metrics') {
+        //             steps {
+        //                 runGinkgoRandomize('metrics/syscomponents')
+        //             }
+        //         }
+        //     }
+        //     post {
+        //         failure {
+        //             script {
+        //                 dumpK8sCluster("${WORKSPACE}/multicluster-verify-upgrade-cluster-dump")
+        //             }
+        //         }
+        //     }
+        // }
+>>>>>>> Updated Jenkinsfile
 
         stage("Update Wildcard DNS to OCI Public DNS") {
             when { expression { return params.TEST_ENV != 'ocidns_oke' && params.UPDATE_DNS_TO_OCI == true } }
@@ -492,54 +522,54 @@ pipeline {
             }
         }
 
-        stage ('Verify Install') {
-            stages {
-                stage('verify-install') {
-                    steps {
-                        runGinkgoRandomize('verify-install')
-                    }
-                }
+        // stage ('Verify Install') {
+        //     stages {
+        //         stage('verify-install') {
+        //             steps {
+        //                 runGinkgoRandomize('verify-install')
+        //             }
+        //         }
 
-                stage ('multicluster/verify-install') {
-                    steps {
-                        runGinkgoRandomize('multicluster/verify-install')
-                    }
-                }
-            }
-        }
+        //         stage ('multicluster/verify-install') {
+        //             steps {
+        //                 runGinkgoRandomize('multicluster/verify-install')
+        //             }
+        //         }
+        //     }
+        // }
 
-        stage ('Verify Infra') {
-            // NOTE: The stages are executed in parallel, however the tests themselves are executed against
-            //       each cluster in sequence. If possible, we should parallelize that as well.
-            parallel {
-                stage('verify-scripts') {
-                    steps {
-                        runGinkgoRandomize('scripts')
-                    }
-                }
-                stage('verify-infra restapi') {
-                    steps {
-                        runGinkgoRandomize('verify-infra/restapi')
-                    }
-                }
-                stage('verify-infra oam') {
-                    steps {
-                        runGinkgoRandomize('verify-infra/oam')
-                    }
-                }
-                stage('verify-infra vmi') {
-                    steps {
-                        runGinkgoRandomize('verify-infra/vmi')
-                    }
-                }
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-            }
-        }
+        // stage ('Verify Infra') {
+        //     // NOTE: The stages are executed in parallel, however the tests themselves are executed against
+        //     //       each cluster in sequence. If possible, we should parallelize that as well.
+        //     parallel {
+        //         stage('verify-scripts') {
+        //             steps {
+        //                 runGinkgoRandomize('scripts')
+        //             }
+        //         }
+        //         stage('verify-infra restapi') {
+        //             steps {
+        //                 runGinkgoRandomize('verify-infra/restapi')
+        //             }
+        //         }
+        //         stage('verify-infra oam') {
+        //             steps {
+        //                 runGinkgoRandomize('verify-infra/oam')
+        //             }
+        //         }
+        //         stage('verify-infra vmi') {
+        //             steps {
+        //                 runGinkgoRandomize('verify-infra/vmi')
+        //             }
+        //         }
+        //     }
+        //     post {
+        //         always {
+        //             archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+        //             junit testResults: '**/*test-result.xml', allowEmptyResults: true
+        //         }
+        //     }
+        // }
 
         stage('Acceptance Tests') {
             stages {
@@ -1571,6 +1601,7 @@ def emitJobMetrics() {
     env.TIME_WAITING = startTimeInMillis-timeInMillis
     runGinkgoRandomizeAdmin('jobmetrics')
 <<<<<<< HEAD
+<<<<<<< HEAD
 }
 
 def verifyUpgrade() {
@@ -1589,3 +1620,6 @@ def verifyUpgrade() {
 =======
 }
 >>>>>>> Added AT for OCI public zone
+=======
+}
+>>>>>>> Updated Jenkinsfile
