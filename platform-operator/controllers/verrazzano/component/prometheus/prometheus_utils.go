@@ -1,11 +1,23 @@
 package prometheus
 
 import (
-	"github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
+	vmoconst "github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	v8oconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
+
+var VerrazzanoMonitoringNamespace = corev1.Namespace{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: constants.VerrazzanoMonitoringNamespace,
+		Labels: map[string]string{
+			v8oconst.LabelIstioInjection: "enabled",
+		},
+	},
+}
 
 // appendIstioAnnotations appends Istio annotations necessary for Prometheus in Istio
 func AppendIstioOverrides(annotationsKey, volumeMountKey, volumeKey string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
@@ -23,7 +35,7 @@ func AppendIstioOverrides(annotationsKey, volumeMountKey, volumeKey string, kvs 
 	volumeMountData, err := yaml.Marshal([]corev1.VolumeMount{
 		{
 			Name:      "istio-certs-dir",
-			MountPath: constants.IstioCertsMountPath,
+			MountPath: vmoconst.IstioCertsMountPath,
 		},
 	})
 	if err != nil {
@@ -34,7 +46,7 @@ func AppendIstioOverrides(annotationsKey, volumeMountKey, volumeKey string, kvs 
 	volumeData, err := yaml.Marshal([]corev1.VolumeMount{
 		{
 			Name:      "istio-certs-dir",
-			MountPath: constants.IstioCertsMountPath,
+			MountPath: vmoconst.IstioCertsMountPath,
 		},
 	})
 	if err != nil {
