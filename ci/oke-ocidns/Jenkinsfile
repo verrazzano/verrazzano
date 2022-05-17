@@ -328,6 +328,9 @@ pipeline {
                      }
                     // VCN_VIEW_ID is used inside oci_dns_ops.sh to associate private zones to view
                     // this is only used when zone is PRIVATE
+                    sh """
+                    echo $OCI_CLI_TENANCY -- $OCI_CLI_USER -- $OCI_CLI_FINGERPRINT -- $OCI_CLI_KEY_FILE -- $OCI_CLI_REGION
+                    """
                     dns_zone_ocid = sh(script: "${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId} -k ${params.DNS_SCOPE}", returnStdout: true)
                 }
             }
