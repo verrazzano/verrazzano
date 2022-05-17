@@ -51,7 +51,7 @@ func preInstall(ctx spi.ComponentContext) error {
 
 	// Create the verrazzano-monitoring namespace
 	ctx.Log().Debugf("Creating namespace %s for the Prometheus Operator", ComponentNamespace)
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &prometheus.VerrazzanoMonitoringNamespace, func() error {
+	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), prometheus.GetVerrazzanoMonitoringNamespace(), func() error {
 		return nil
 	}); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to create or update the %s namespace: %v", ComponentNamespace, err)
@@ -190,17 +190,18 @@ func appendIstioOverrides(ctx spi.ComponentContext, annotationsKey, volumeMountK
 		outboundIP = "0.0.0.0/0"
 	}
 
-	// Istio annotations for certs
+	// Istio annotations that will copy the volume mount for the Istio certs to the envoy sidecar
+	// The last annotation allows envoy to intercept only requests from the Keycloak Service IP
 	annotations := map[string]string{
-		`proxy\.istio\.io/config`:                             `{"proxyMetadata":{ "OUTPUT_CERTS": "/etc/istio-output-certs"}}`,
-		`sidecar\.istio\.io/userVolumeMount`:                  `[{"name": "istio-certs-dir", "mountPath": "/etc/istio-output-certs"}]`,
+		`proxy\.istio\.io/config`:                             fmt.Sprintf(`{"proxyMetadata":{ "OUTPUT_CERTS": "%s"}}`, vmoconst.IstioCertsMountPath),
+		`sidecar\.istio\.io/userVolumeMount`:                  fmt.Sprintf(`[{"name": "istio-certs-dir", "mountPath": "%s"}]`, vmoconst.IstioCertsMountPath),
 		`traffic\.sidecar\.istio\.io/includeOutboundIPRanges`: outboundIP,
 	}
 	for key, value := range annotations {
 		kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s.%s", annotationsKey, key), Value: value})
 	}
 
-	// Volume mount annotation for certs
+	// Volume mount on the Prometheus container to mount the Istio-generated certificates
 	vm := corev1.VolumeMount{
 		Name:      istioVolumeName,
 		MountPath: vmoconst.IstioCertsMountPath,

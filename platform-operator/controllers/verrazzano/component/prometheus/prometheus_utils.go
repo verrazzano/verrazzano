@@ -10,12 +10,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var VerrazzanoMonitoringNamespace = corev1.Namespace{
-	ObjectMeta: metav1.ObjectMeta{
-		Name: vpoconst.VerrazzanoMonitoringNamespace,
-		Labels: map[string]string{
-			v8oconst.LabelIstioInjection:      "enabled",
-			v8oconst.LabelVerrazzanoNamespace: vpoconst.VerrazzanoMonitoringNamespace,
+// GetVerrazzanoMonitoringNamespace provides the namespace for the Monitoring subcomponents in one location
+func GetVerrazzanoMonitoringNamespace() *corev1.Namespace {
+	return &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: vpoconst.VerrazzanoMonitoringNamespace,
+			Labels: map[string]string{
+				v8oconst.LabelIstioInjection:      "enabled",
+				v8oconst.LabelVerrazzanoNamespace: vpoconst.VerrazzanoMonitoringNamespace,
+			},
 		},
-	},
+	}
 }
