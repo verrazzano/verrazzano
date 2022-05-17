@@ -89,7 +89,7 @@ func isRancherReady(ctx spi.ComponentContext) bool {
 	c := ctx.Client()
 
 	// Temporary work around for Rancher issue 36914
-	err := checkRancherLogs(c, log)
+	err := checkRancherUpgradeFailure(c, log)
 	if err != nil {
 		log.ErrorfThrottled("Error checking Rancher pod logs: %s", err.Error())
 		return false
@@ -122,13 +122,15 @@ func isRancherReady(ctx spi.ComponentContext) bool {
 	return status.DeploymentsAreReady(log, c, deployments, 1, prefix)
 }
 
-// checkRancherLogs - temporary work around for Rancher issue 36914. During an upgrade, the Rancher pods
+// checkRancherUpgradeFailure - temporary work around for Rancher issue 36914. During an upgrade, the Rancher pods
 // are recycled.  When the leader pod is restarted, it is possible that a Rancher 2.5.9 pod could
 // acquire leader and recreate the downloaded the helm charts it's requires.
 //
 // If one of the Rancher pods is failing to find the rancher-webhook, recycle that pod.
-func checkRancherLogs(c client.Client, log vzlog.VerrazzanoLogger) error {
+func checkRancherUpgradeFailure(c client.Client, log vzlog.VerrazzanoLogger) error {
 	ctx := context.TODO()
+
+	// Get the Rancher pods
 	podList := &corev1.PodList{}
 	err := c.List(ctx, podList, client.InNamespace(ComponentNamespace), client.MatchingLabels{"app": "rancher"})
 	if err != nil {
@@ -148,17 +150,14 @@ func checkRancherLogs(c client.Client, log vzlog.VerrazzanoLogger) error {
 		return err
 	}
 
-	// Check the log of each pod
+	// Check the logs of each pod
 	for i, pod := range podList.Items {
-		// Skip if the container logs are not available yet.
-		for _, containerStatus := range pod.Status.ContainerStatuses {
-			if !containerStatus.Ready {
-				break
-			}
+		if !isPodReady(pod) {
+			break
 		}
 
 		// Get the log stream
-		logStream, err := clientSet.CoreV1().Pods(ComponentNamespace).GetLogs(pod.Name, &corev1.PodLogOptions{}).Stream(ctx)
+		logStream, err := clientSet.CoreV1().Pods(ComponentNamespace).GetLogs(pod.Name, &corev1.PodLogOptions{Container: "rancher"}).Stream(ctx)
 		if err != nil {
 			return err
 		}
@@ -202,7 +201,7 @@ func checkRancherLogs(c client.Client, log vzlog.VerrazzanoLogger) error {
 	return nil
 }
 
-// deleteClusterRepos - temporary work around for Rancher issue 36914. On upgrade or Rancher
+// deleteClusterRepos - temporary work around for Rancher issue 36914. On upgrade of Rancher
 // the setting of useBundledSystemChart does not appear to be honored, and the downloaded
 // helm charts for the previous release of Rancher are used (instead of the charts on the Rancher
 // container image).
