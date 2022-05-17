@@ -204,11 +204,11 @@ func TestAppendIstioOverrides(t *testing.T) {
 				},
 				{
 					Key:   fmt.Sprintf(`%s.proxy\.istio\.io/config`, annotationKey),
-					Value: `{"proxyMetadata":{ "OUTPUT_CERTS": "/etc/istio-certs"}}`,
+					Value: `{"proxyMetadata":{ "OUTPUT_CERTS": "/etc/istio-output-certs"}}`,
 				},
 				{
 					Key:   fmt.Sprintf(`%s.sidecar\.istio\.io/userVolumeMount`, annotationKey),
-					Value: `[{"name": "istio-certs-dir", "mountPath": "/etc/istio-certs"}]`,
+					Value: `[{"name": "istio-certs-dir", "mountPath": "/etc/istio-output-certs"}]`,
 				},
 				{
 					Key:   fmt.Sprintf("%s[0].name", volumeMountKey),
