@@ -600,7 +600,6 @@ spec:
             podSelector:
               matchLabels:
                 app.kubernetes.io/name: prometheus
-
     - ports:
         - port: 15017
           protocol: TCP
