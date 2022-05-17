@@ -152,11 +152,12 @@ func checkRancherUpgradeFailure(c client.Client, log vzlog.VerrazzanoLogger) err
 
 	// Check the logs of each pod
 	for i, pod := range podList.Items {
+		// Skip pods that are not ready, they will get checked again in another call to isReady.
 		if !isPodReady(pod) {
 			break
 		}
 
-		// Get the log stream
+		// Get the pod log stream
 		logStream, err := clientSet.CoreV1().Pods(ComponentNamespace).GetLogs(pod.Name, &corev1.PodLogOptions{Container: "rancher"}).Stream(ctx)
 		if err != nil {
 			return err
@@ -181,9 +182,8 @@ func checkRancherUpgradeFailure(c client.Client, log vzlog.VerrazzanoLogger) err
 		}
 
 		// If the pod is failing to find the system chart for rancher-webhook, the wrong helm charts are
-		// being used by the Rancher pods. Delete the Rancher custom resources that cache the helm charts
-		// and restart the pod.  This will cause another Rancher pod to become the leader, and it will recreate
-		// the custom resources related to the helm charts.
+		// being used by the Rancher pod. Restart the pod. This will cause another Rancher pod to become the leader,
+		// and, if needed, will recreate the custom resources related to the helm charts.
 		if restartPod {
 			// Delete custom resources containing helm charts to use
 			err := deleteClusterRepos(log)
@@ -243,6 +243,7 @@ func deleteClusterRepos(log vzlog.VerrazzanoLogger) error {
 		return err
 	}
 
+	// Only need to delete the custom resources if the default branch is still release-2.5
 	log.Infof("Rancher Pre-Upgrade: The default release branch is currently set to %s", defaultBranch)
 	if defaultBranch != "release-v2.5" {
 		return nil
