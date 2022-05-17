@@ -220,6 +220,9 @@ pipeline {
                             when { expression { return params.OCI_DNS_TYPE == 'public' } } 
                             steps {
                                 script {
+                                    sh """
+                                    echo $OCI_CLI_TENANCY -- $OCI_CLI_USER -- $OCI_CLI_FINGERPRINT -- $OCI_CLI_KEY_FILE -- $OCI_CLI_REGION
+                                    """
                                     dns_zone_ocid = sh(script: "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId} -k GLOBAL", returnStdout: true)
                                 }
                             }
@@ -228,6 +231,7 @@ pipeline {
                             when { expression { return params.OCI_DNS_TYPE == 'private' } } 
                             steps {
                                 script {
+                                    // TODO: Supply the private view ID
                                     dns_zone_ocid = sh(script: "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId} -k PRIVATE", returnStdout: true)
                                 }
                             }
