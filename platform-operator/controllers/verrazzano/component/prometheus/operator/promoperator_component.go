@@ -42,7 +42,7 @@ func NewComponent() spi.Component {
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-values.yaml"),
 			Dependencies:            []string{},
 			AppendOverridesFunc:     AppendOverrides,
-			GetHelmValueOverrides:   GetHelmOverrides,
+			GetHelmOverridesFunc:    GetOverrides,
 		},
 	}
 }
@@ -63,6 +63,18 @@ func (c prometheusComponent) IsReady(ctx spi.ComponentContext) bool {
 		return isPrometheusOperatorReady(ctx)
 	}
 	return false
+}
+
+// MonitorOverrides checks whether monitoring is enabled for helm overrides sources
+func (c prometheusComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	comp := ctx.EffectiveCR().Spec.Components.PrometheusOperator
+	if comp == nil {
+		return false
+	}
+	if ctx.EffectiveCR().Spec.Components.PrometheusOperator.MonitorChanges != nil {
+		return *ctx.EffectiveCR().Spec.Components.PrometheusOperator.MonitorChanges
+	}
+	return true
 }
 
 // PreInstall updates resources necessary for the Prometheus Operator Component installation
