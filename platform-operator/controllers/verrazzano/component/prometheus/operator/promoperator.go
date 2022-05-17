@@ -165,7 +165,7 @@ func (c prometheusComponent) validatePrometheusOperator(effectiveCR *vzapi.Verra
 
 	// Validate Helm value overrides
 	if effectiveCR.Spec.Components.PrometheusOperator != nil {
-		if err := vzapi.ValidateHelmValueOverrides(effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides); err != nil {
+		if err := vzapi.ValidateInstallOverrides(effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides); err != nil {
 			return err
 		}
 	}
