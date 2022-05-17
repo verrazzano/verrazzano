@@ -28,7 +28,7 @@ import (
 // One part of the controller is for the verrazzano-tls secret. The controller
 // ensures that a copy of the ca.crt secret (admin CA bundle) is copied to a secret
 // in the verrazzano-mc namespace, so that managed clusters can fetch it.
-// This controller also manages Helm override sources from the Verrazzano CR
+// This controller also manages install override sources from the Verrazzano CR
 type VerrazzanoSecretsReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
@@ -67,7 +67,7 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 	if vzList != nil && len(vzList.Items) > 0 {
 		vz := &vzList.Items[0]
-		res, err := r.reconcileHelmOverrideSecret(ctx, req, vz)
+		res, err := r.reconcileInstallOverrideSecret(ctx, req, vz)
 		if err != nil {
 			zap.S().Errorf("Failed to reconcile Secret: %v", err)
 			return newRequeueWithDelay(), err

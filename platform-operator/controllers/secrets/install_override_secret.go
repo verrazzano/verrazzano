@@ -19,9 +19,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-// reconcileHelmOverrideSecret looks through the Verrazzano CR for the Secret
+// reconcileInstallOverrideSecret looks through the Verrazzano CR for the Secret
 // if the request is from the same namespace as the CR
-func (r *VerrazzanoSecretsReconciler) reconcileHelmOverrideSecret(ctx context.Context, req ctrl.Request, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
+func (r *VerrazzanoSecretsReconciler) reconcileInstallOverrideSecret(ctx context.Context, req ctrl.Request, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 
 	secret := &corev1.Secret{}
 	if vz.Namespace == req.Namespace {
@@ -75,7 +75,7 @@ func (r *VerrazzanoSecretsReconciler) reconcileHelmOverrideSecret(ctx context.Co
 				}
 			}
 
-			err := controllers.UpdateVerrazzanoForHelmOverrides(r.Client, componentCtx, componentName)
+			err := controllers.UpdateVerrazzanoForInstallOverrides(r.Client, componentCtx, componentName)
 			if err != nil {
 				r.log.ErrorfThrottled("Failed to reconcile Secret: %v", err)
 				return newRequeueWithDelay(), err
