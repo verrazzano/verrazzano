@@ -56,11 +56,11 @@ var _ = t.Describe("Verify users exist in Keycloak", Label("f:platform-lcm.insta
 })
 
 func verifyUserExistsMaster() bool {
-	return verifyUserExists("master", pkg.TestKeycloakMasterUserIdKey)
+	return verifyUserExists("master", pkg.TestKeycloakMasterUserIDKey)
 }
 
 func verifyUserExistsVerrazzano() bool {
-	return verifyUserExists("verrazzano-system", pkg.TestKeycloakVerrazzanoUserIdKey)
+	return verifyUserExists("verrazzano-system", pkg.TestKeycloakVerrazzanoUserIDKey)
 }
 
 func verifyUserExists(realm, userIDEnvVar string) bool {

@@ -34,8 +34,8 @@ const (
 	keycloakAPIClientID   = "verrazzano-pg"
 	keycloakAdminClientID = "admin-cli"
 
-	TestKeycloakMasterUserIdKey     = "TEST_KEYCLOAK_MASTER_USERID_ENV_VAR"
-	TestKeycloakVerrazzanoUserIdKey = "TEST_KEYCLOAK_VZ_USERID_ENV_VAR"
+	TestKeycloakMasterUserIDKey     = "TEST_KEYCLOAK_MASTER_USERID"
+	TestKeycloakVerrazzanoUserIDKey = "TEST_KEYCLOAK_VZ_USERID"
 
 	TestKeycloakNamespace = "keycloak-test-ns"
 	TestKeycloakConfigMap = "keycloak-test-cm"

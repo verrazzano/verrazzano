@@ -21,8 +21,8 @@ var waitTimeout = 1 * time.Minute
 var pollingInterval = 30 * time.Second
 
 var kubeConfig = os.Getenv("KUBECONFIG")
-var testKeycloakMasterUserIdValue = ""
-var testKeycloakVerrazzanoUserIdValue = ""
+var testKeycloakMasterUserID = ""
+var testKeycloakVerrazzanoUserID = ""
 
 var t = framework.NewTestFramework("verify")
 
@@ -31,8 +31,13 @@ var _ = t.BeforeSuite(func() {
 	beforeSuitePassed = true
 	metrics.Emit(t.Metrics.With("before_suite_elapsed_time", time.Since(start).Milliseconds()))
 
-	cmd := exec.Command("kubectl", fmt.Sprintf("--kubeconfig=%s", kubeConfig), "create", "ns", pkg.TestKeycloakNamespace)
-	_, err := cmd.Output()
+	kubeConfigOption := fmt.Sprintf("--kubeconfig=%s", kubeConfig)
+	cmd := exec.Command("kubectl", kubeConfigOption, "create", "ns", pkg.TestKeycloakNamespace)
+	t.Logs.Info(fmt.Sprintf("kubectl command to create namespace %s: %s", pkg.TestKeycloakNamespace, cmd.String()))
+	out, err := cmd.Output()
+	if len(string(out)) != 0 {
+		t.Logs.Info(fmt.Printf("Output while creating namespace %s: %s", pkg.TestKeycloakNamespace, string(out)))
+	}
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Error creating namespace %s: %s\n", pkg.TestKeycloakNamespace, err))
 	}
@@ -48,11 +53,13 @@ var _ = t.AfterEach(func() {
 var _ = t.AfterSuite(func() {
 	start := time.Now()
 
-	// Creating a configmap storing the newly created keycloak user ids to be verified in the post-upgrade later
-	cmd := exec.Command("kubectl", fmt.Sprintf("--kubeconfig=%s", kubeConfig), "-n", pkg.TestKeycloakNamespace,
-		"create", "configmap", pkg.TestKeycloakConfigMap,
-		fmt.Sprintf("--from-literal=%s=%s", pkg.TestKeycloakMasterUserIdKey, testKeycloakMasterUserIdValue),
-		fmt.Sprintf("--from-literal=%s=%s", pkg.TestKeycloakVerrazzanoUserIdKey, testKeycloakVerrazzanoUserIdValue))
+	// Creating a configmap to store the newly created keycloak user ids to be verified in the keycloak post-upgrade later
+	kubeConfigOption := fmt.Sprintf("--kubeconfig=%s", kubeConfig)
+	keyValue1 := fmt.Sprintf("--from-literal=%s=%s", pkg.TestKeycloakMasterUserIDKey, testKeycloakMasterUserID)
+	keyValue2 := fmt.Sprintf("--from-literal=%s=%s", pkg.TestKeycloakVerrazzanoUserIDKey, testKeycloakVerrazzanoUserID)
+	cmd := exec.Command("kubectl", kubeConfigOption, "-n", pkg.TestKeycloakNamespace,
+		"create", "configmap", pkg.TestKeycloakConfigMap, keyValue1, keyValue2)
+	t.Logs.Info(fmt.Sprintf("kubectl command to create configmap %s: %s", pkg.TestKeycloakConfigMap, cmd.String()))
 	_, err := cmd.Output()
 	if err != nil {
 		t.Fail(fmt.Sprintf("Error creating configmap %s: %s\n", pkg.TestKeycloakConfigMap, err))
@@ -67,27 +74,33 @@ var _ = t.Describe("Create users in Keycloak", Label("f:platform-lcm.install"), 
 	isManagedClusterProfile := pkg.IsManagedClusterProfile()
 	t.It("Creating user in master realm", func() {
 		if !isManagedClusterProfile {
-			Eventually(func() (bool, string) {
-				created, testKeycloakMasterUserIdValue := verifyCreateUser("master")
-				return created, testKeycloakMasterUserIdValue
-			}, waitTimeout, pollingInterval).Should(BeTrue(), Not(BeEmpty()))
+			Eventually(verifyCreateUserMaster, waitTimeout, pollingInterval).Should(Not(BeNil()))
 		}
 	})
 	t.It("Creating user in verrazzano-system realm", func() {
 		if !isManagedClusterProfile {
-			Eventually(func() (bool, string) {
-				created, testKeycloakVerrazzanoUserIdValue := verifyCreateUser("verrazzano-system")
-				return created, testKeycloakVerrazzanoUserIdValue
-			}, waitTimeout, pollingInterval).Should(BeTrue(), Not(BeEmpty()))
+			Eventually(verifyCreateUserVz, waitTimeout, pollingInterval).Should(Not(BeNil()))
 		}
 	})
 })
 
-func verifyCreateUser(realm string) (bool, string) {
+func verifyCreateUserMaster() (string, error) {
+	userID, err := verifyCreateUser("master")
+	testKeycloakMasterUserID = userID
+	return userID, err
+}
+
+func verifyCreateUserVz() (string, error) {
+	userID, err := verifyCreateUser("verrazzano-system")
+	testKeycloakVerrazzanoUserID = userID
+	return userID, err
+}
+
+func verifyCreateUser(realm string) (string, error) {
 	kc, err := pkg.NewKeycloakAdminRESTClient()
 	if err != nil {
 		t.Logs.Error(fmt.Printf("Failed to create Keycloak REST client: %v\n", err))
-		return false, ""
+		return "", err
 	}
 
 	salt := time.Now().Format("20060102150405.000000000")
@@ -98,8 +111,8 @@ func verifyCreateUser(realm string) (bool, string) {
 	userURL, err := kc.CreateUser(realm, userName, firstName, lastName, validPassword)
 	if err != nil {
 		t.Logs.Error(fmt.Printf("Failed to create user %s/%s: %v\n", realm, userName, err))
-		return false, ""
+		return "", err
 	}
-	userId := path.Base(userURL)
-	return true, userId
+	userID := path.Base(userURL)
+	return userID, err
 }
