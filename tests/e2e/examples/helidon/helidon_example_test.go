@@ -204,7 +204,7 @@ func appEndpointAccessible(url string, hostname string) bool {
 		return false
 	}
 	req.Host = hostname
-	req.Close = true
+	//req.Close = true
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		t.Logs.Errorf("Unexpected error=%v", err)
