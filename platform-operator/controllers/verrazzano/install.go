@@ -51,7 +51,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 			compLog.Debugf("Did not find status details in map for component %s", comp.Name())
 			continue
 		}
-		if r.checkConfigUpdated(spiCtx, componentStatus, compName) && comp.IsEnabled(compContext.EffectiveCR()) {
+		if checkConfigUpdated(spiCtx, componentStatus, compName) && comp.IsEnabled(compContext.EffectiveCR()) {
 			oldState := componentStatus.State
 			oldGen := componentStatus.ReconcilingGeneration
 			componentStatus.ReconcilingGeneration = 0
@@ -76,7 +76,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 				continue
 			}
 			// If the component config is updated, or the component is watched, it should be reconciled
-			if !r.checkConfigUpdated(spiCtx, componentStatus, compName) && !r.IsWatchedComponent(comp.GetJSONName()) {
+			if !checkConfigUpdated(spiCtx, componentStatus, compName) && !r.IsWatchedComponent(comp.GetJSONName()) {
 				continue
 			}
 
@@ -160,7 +160,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 
 // checkConfigUpdated checks if the component confg in the VZ CR has been updated and the component needs to
 // reset the state back to pre-install to re-enter install flow
-func (r *Reconciler) checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.ComponentStatusDetails, name string) bool {
+func checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.ComponentStatusDetails, name string) bool {
 	vzState := ctx.ActualCR().Status.State
 	// Do not interrupt upgrade flow
 	if vzState == vzapi.VzStateUpgrading || vzState == vzapi.VzStatePaused {
