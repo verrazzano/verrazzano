@@ -193,8 +193,8 @@ func appendIstioOverrides(ctx spi.ComponentContext, annotationsKey, volumeMountK
 	// Istio annotations that will copy the volume mount for the Istio certs to the envoy sidecar
 	// The last annotation allows envoy to intercept only requests from the Keycloak Service IP
 	annotations := map[string]string{
-		`proxy\.istio\.io/config`:                             fmt.Sprintf(`{"proxyMetadata":{ "OUTPUT_CERTS": "%s"}}`, vmoconst.IstioCertsMountPath),
-		`sidecar\.istio\.io/userVolumeMount`:                  fmt.Sprintf(`[{"name": "istio-certs-dir", "mountPath": "%s"}]`, vmoconst.IstioCertsMountPath),
+		`proxy\.istio\.io/config`:                             `{"proxyMetadata":{ "OUTPUT_CERTS": "/etc/istio-output-certs"}}`,
+		`sidecar\.istio\.io/userVolumeMount`:                  `[{"name": "istio-certs-dir", "mountPath": "/etc/istio-output-certs"}]`,
 		`traffic\.sidecar\.istio\.io/includeOutboundIPRanges`: outboundIP,
 	}
 	for key, value := range annotations {
