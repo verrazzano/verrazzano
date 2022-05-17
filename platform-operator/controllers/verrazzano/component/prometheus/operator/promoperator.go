@@ -226,6 +226,7 @@ func appendIstioOverrides(ctx spi.ComponentContext, annotationsKey, volumeMountK
 	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[0].emptyDir.medium", volumeKey), Value: string(vol.VolumeSource.EmptyDir.Medium)})
 
 	return kvs, nil
+}
 
 // GetOverrides appends Helm value overrides for the Prometheus Operator Helm chart
 func GetOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
