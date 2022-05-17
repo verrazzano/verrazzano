@@ -487,27 +487,6 @@ pipeline {
             }
         }
 
-        // Run Verify Registry
-        stage('Verify Registry') {
-            parallel {
-                stage('verify-registry-url') {
-                    steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            script {
-                               runMulticlusterVerifyRegistry()
-                             }
-                        }
-                    }
-                }
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-            }
-        }
-
         stage ('Verify Infra') {
             // NOTE: The stages are executed in parallel, however the tests themselves are executed against
             //       each cluster in sequence. If possible, we should parallelize that as well.
@@ -1499,17 +1478,6 @@ def runMulticlusterVerifyApi() {
           export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
           cd ${GO_REPO_PATH}/verrazzano/tests/e2e
           ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-api/...
-        """
-    }
-}
-
-def runMulticlusterVerifyRegistry() {
-    int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-    for(int count=1; count<=clusterCount; count++) {
-        sh """
-          export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-          cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-          ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" registry/...
         """
     }
 }

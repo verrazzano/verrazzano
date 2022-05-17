@@ -5,6 +5,7 @@ package main
 
 import (
 	"flag"
+	"sync"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
@@ -163,9 +164,11 @@ func main() {
 
 	// Setup the reconciler
 	reconciler := vzcontroller.Reconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		DryRun: config.DryRun,
+		Client:            mgr.GetClient(),
+		Scheme:            mgr.GetScheme(),
+		DryRun:            config.DryRun,
+		WatchedComponents: map[string]bool{},
+		WatchMutex:        &sync.RWMutex{},
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		log.Error(err, "Failed to setup controller", vzlog.FieldController, "Verrazzano")
