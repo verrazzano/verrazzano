@@ -199,15 +199,15 @@ func TestAppendIstioOverrides(t *testing.T) {
 			name: "test expect annotations",
 			expectAnnotations: []bom.KeyValue{
 				{
-					Key:   fmt.Sprintf("%s[traffic.sidecar.istio.io/includeOutboundIPRanges]", annotationKey),
+					Key:   fmt.Sprintf(`%s.traffic\.sidecar\.istio\.io/includeOutboundIPRanges`, annotationKey),
 					Value: "0.0.0.0/32",
 				},
 				{
-					Key:   fmt.Sprintf("%s[proxy.istio.io/config]", annotationKey),
+					Key:   fmt.Sprintf(`%s.proxy\.istio\.io/config`, annotationKey),
 					Value: `{"proxyMetadata":{ "OUTPUT_CERTS": "/etc/istio-output-certs"}}`,
 				},
 				{
-					Key:   fmt.Sprintf("%s[sidecar.istio.io/userVolumeMount]", annotationKey),
+					Key:   fmt.Sprintf(`%s.sidecar\.istio\.io/userVolumeMount`, annotationKey),
 					Value: `[{"name": "istio-certs-dir", "mountPath": "/etc/istio-output-certs"}]`,
 				},
 				{

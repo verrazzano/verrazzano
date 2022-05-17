@@ -205,9 +205,9 @@ func appendIstioOverrides(ctx spi.ComponentContext, annotationsKey, volumeMountK
 
 	// Istio annotations for certs
 	annotations := map[string]string{
-		`proxy\.istio\.io/config`:                            `{"proxyMetadata":{ "OUTPUT_CERTS": "/etc/istio-output-certs"}}`,
-		`sidecar\.istio\.io/userVolumeMount`:                 `[{"name": "istio-certs-dir", "mountPath": "/etc/istio-output-certs"}]`,
-		`traffic\.sidecar\.istio.io/includeOutboundIPRanges`: outboundIP,
+		`proxy\.istio\.io/config`:                             `{"proxyMetadata":{ "OUTPUT_CERTS": "/etc/istio-output-certs"}}`,
+		`sidecar\.istio\.io/userVolumeMount`:                  `[{"name": "istio-certs-dir", "mountPath": "/etc/istio-output-certs"}]`,
+		`traffic\.sidecar\.istio\.io/includeOutboundIPRanges`: outboundIP,
 	}
 	for key, value := range annotations {
 		kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s.%s", annotationsKey, key), Value: value})
