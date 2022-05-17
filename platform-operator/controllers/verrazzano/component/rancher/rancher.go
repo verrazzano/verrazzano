@@ -145,6 +145,13 @@ func checkRancherLogs(c client.Client, log vzlog.VerrazzanoLogger) error {
 
 	// Check the log of each pod
 	for i, pod := range podList.Items {
+		// Skip if the container logs are not available yet.
+		for _, containerStatus := range pod.Status.ContainerStatuses {
+			if !containerStatus.Ready {
+				break
+			}
+		}
+
 		// Get the log stream
 		logStream, err := clientSet.CoreV1().Pods(ComponentNamespace).GetLogs(pod.Name, &corev1.PodLogOptions{}).Stream(ctx)
 		if err != nil {
