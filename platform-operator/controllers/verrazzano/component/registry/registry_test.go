@@ -488,6 +488,14 @@ func (f fakeComponent) GetJSONName() string {
 	return f.name
 }
 
+func (f fakeComponent) GetOverrides(_ spi.ComponentContext) []v1alpha1.Overrides {
+	return []v1alpha1.Overrides{}
+}
+
+func (f fakeComponent) MonitorOverrides(_ spi.ComponentContext) bool {
+	return true
+}
+
 func (f fakeComponent) GetDependencies() []string {
 	return f.dependencies
 }

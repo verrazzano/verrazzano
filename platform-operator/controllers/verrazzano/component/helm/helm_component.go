@@ -64,8 +64,8 @@ type HelmComponent struct {
 	// AppendOverridesFunc is an optional function get additional override values
 	AppendOverridesFunc appendOverridesSig
 
-	// GetHelmValueOverrides is an optional function that returns the helm override values
-	GetHelmValueOverrides getHelmValueOverridesSig
+	// GetHelmOverrides is an optional function get Helm override sources
+	GetHelmOverridesFunc getHelmOverridesSig
 
 	// ResolveNamespaceFunc is an optional function to process the namespace name
 	ResolveNamespaceFunc resolveNamespaceSig
@@ -111,8 +111,8 @@ type preUpgradeFuncSig func(log vzlog.VerrazzanoLogger, client clipkg.Client, re
 // appendOverridesSig is an optional function called to generate additional overrides.
 type appendOverridesSig func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error)
 
-// getHelmValueOverridesSig is the signature for providing the list of Helm value overrides.
-type getHelmValueOverridesSig func(context spi.ComponentContext) []vzapi.Overrides
+// getHelmOverridesSig is an optional function called to generate additional overrides.
+type getHelmOverridesSig func(context spi.ComponentContext) []vzapi.Overrides
 
 // resolveNamespaceSig is an optional function called for special namespace processing
 type resolveNamespaceSig func(ns string) string
@@ -142,6 +142,14 @@ func (h HelmComponent) Name() string {
 // GetJsonName returns the josn name of the verrazzano component in CRD
 func (h HelmComponent) GetJSONName() string {
 	return h.JSONName
+}
+
+// GetHelmOverrides returns the list of Helm value overrides for a component
+func (h HelmComponent) GetOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
+	if h.GetHelmOverridesFunc != nil {
+		return h.GetHelmOverridesFunc(ctx)
+	}
+	return []vzapi.Overrides{}
 }
 
 // GetDependencies returns the Dependencies of this component
@@ -218,6 +226,10 @@ func (h HelmComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (h HelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	return nil
+}
+
+func (h HelmComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	return true
 }
 
 // Install installs the component using Helm
@@ -368,11 +380,9 @@ func (h HelmComponent) buildCustomHelmOverrides(context spi.ComponentContext, na
 
 	// Sort the kvs list by priority (0th term has the highest priority)
 	// Getting user defined Helm overrides as the highest priority
-	if h.GetHelmValueOverrides != nil {
-		kvs, err = h.retrieveHelmOverrideResources(context, h.GetHelmValueOverrides(context))
-		if err != nil {
-			return overrides, err
-		}
+	kvs, err = h.retrieveHelmOverrideResources(context, h.GetOverrides(context))
+	if err != nil {
+		return overrides, err
 	}
 
 	// Create files from the Verrazzano Helm values
