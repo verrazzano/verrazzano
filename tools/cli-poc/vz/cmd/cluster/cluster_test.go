@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package cluster
@@ -6,6 +6,8 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	projectclientset "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
 	clustersclientset "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
@@ -13,13 +15,12 @@ import (
 	verrazzanoclientset "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
 	v80fake "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned/fake"
 	"github.com/verrazzano/verrazzano/tools/cli-poc/vz/pkg/helpers"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
-	"testing"
 )
 
 // 1) Different permutation of arguments

@@ -1,14 +1,15 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package project
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned/fake"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"testing"
 )
 
 // testdata is defined in add_test.go
