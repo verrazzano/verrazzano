@@ -128,7 +128,6 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 			compLog.Oncef("Component %s has successfully upgraded", compName)
 			upgradeContext.state = compStateEnd
 		}
-		r.ClearWatch(comp.GetJSONName())
 	}
 	// Component has been upgraded
 	return ctrl.Result{}, nil
