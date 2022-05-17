@@ -539,7 +539,7 @@ This can be changed as follows:
 contextPath: mycontext
 
 startupScripts:
-  # cli script that reconfigures WildFly
+  # cli-poc script that reconfigures WildFly
   contextPath.cli: |
     embed-server --server-config=standalone-ha.xml --std-out=echo
     batch

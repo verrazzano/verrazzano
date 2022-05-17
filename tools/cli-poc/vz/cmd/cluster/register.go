@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
+	"github.com/verrazzano/verrazzano/tools/cli-poc/vz/pkg/helpers"
 	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

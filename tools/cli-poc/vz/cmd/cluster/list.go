@@ -6,9 +6,10 @@ package cluster
 import (
 	"context"
 	"fmt"
+
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
+	"github.com/verrazzano/verrazzano/tools/cli-poc/vz/pkg/helpers"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/cli-runtime/pkg/genericclioptions"

@@ -5,7 +5,7 @@ package app
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd/app/helidon"
+	"github.com/verrazzano/verrazzano/tools/cli-poc/vz/cmd/app/helidon"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 

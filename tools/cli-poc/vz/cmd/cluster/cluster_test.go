@@ -12,7 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned/fake"
 	verrazzanoclientset "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
 	v80fake "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned/fake"
-	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
+	"github.com/verrazzano/verrazzano/tools/cli-poc/vz/pkg/helpers"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"

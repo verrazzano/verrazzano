@@ -4,10 +4,11 @@
 package main
 
 import (
-	"github.com/spf13/pflag"
-	"github.com/verrazzano/verrazzano/tools/cli/vz/cmd"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"os"
+
+	"github.com/spf13/pflag"
+	"github.com/verrazzano/verrazzano/tools/cli-poc/vz/cmd"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 func main() {

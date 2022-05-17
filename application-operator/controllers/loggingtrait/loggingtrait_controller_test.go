@@ -6,11 +6,12 @@ package loggingtrait
 import (
 	"context"
 	"encoding/json"
+	"testing"
+	"time"
+
 	"github.com/go-logr/logr"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"testing"
-	"time"
 
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"go.uber.org/zap"
@@ -266,7 +267,7 @@ func appendAsUnstructured(list *unstructured.UnstructuredList, object interface{
 }
 
 // newLoggingTraitReconciler creates a new reconciler for testing
-// cli - The Kerberos client to inject into the reconciler
+// cli-poc - The Kerberos client to inject into the reconciler
 func newLoggingTraitReconciler(cli client.Client, t *testing.T) LoggingTraitReconciler {
 	scheme := runtime.NewScheme()
 	vzapi.AddToScheme(scheme)

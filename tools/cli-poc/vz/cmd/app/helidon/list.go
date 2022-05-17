@@ -13,7 +13,7 @@ import (
 	clustersclient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned/typed/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/clients/oam/clientset/versioned/typed/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
+	"github.com/verrazzano/verrazzano/tools/cli-poc/vz/pkg/helpers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )

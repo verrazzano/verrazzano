@@ -5,7 +5,7 @@ package cluster
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/verrazzano/verrazzano/tools/cli/vz/pkg/helpers"
+	"github.com/verrazzano/verrazzano/tools/cli-poc/vz/pkg/helpers"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
