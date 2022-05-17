@@ -34,10 +34,38 @@ func CreateGrafanaDashboard(body string) (*HTTPResponse, error) {
 	return resp, err
 }
 
-
 // GetGrafanaDashboard returns the dashboard metadata for the given uid.
 func GetGrafanaDashboard(uid string) (*HTTPResponse, error) {
 	path := fmt.Sprintf("/api/dashboards/uid/%s", uid)
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf(kubeconfigErrorFormat, err))
+		return nil, err
+	}
+	url := fmt.Sprintf("%s/%s", GetSystemGrafanaIngressURL(kubeconfigPath), path)
+	configPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf(kubeconfigErrorFormat, err))
+		return nil, err
+	}
+	password, err := GetVerrazzanoPasswordInCluster(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	Log(Debug, fmt.Sprintf("REST API path: %s", url))
+	resp, err := getGrafanaWithBasicAuth(url, "", "verrazzano", password, configPath)
+	return resp, err
+}
+
+// SearchGrafanaDashboard returns the dashboard metadata for the given uid.
+func SearchGrafanaDashboard(searchParams map[string]string) (*HTTPResponse, error) {
+	queryParams := ""
+	for key, value := range searchParams {
+		queryParams += fmt.Sprintf("%s=%s", key, value)
+		queryParams += "&"
+	}
+	queryParams = strings.TrimSuffix(queryParams, "&")
+	path := fmt.Sprintf("/api/search?%s", queryParams)
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Log(Error, fmt.Sprintf(kubeconfigErrorFormat, err))
