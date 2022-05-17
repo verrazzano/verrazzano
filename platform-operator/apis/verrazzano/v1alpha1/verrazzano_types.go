@@ -443,8 +443,8 @@ type PrometheusNodeExporterComponent struct {
 // PrometheusOperatorComponent specifies the Prometheus Operator configuration
 type PrometheusOperatorComponent struct {
 	// +optional
-	Enabled          *bool `json:"enabled,omitempty"`
-	InstallOverrides `json:",inline"`
+	Enabled            *bool `json:"enabled,omitempty"`
+	HelmValueOverrides `json:",inline"`
 }
 
 // PrometheusPushgatewayComponent specifies the Prometheus Pushgateway configuration.
@@ -770,7 +770,7 @@ type OciLoggingConfiguration struct {
 	APISecret       string `json:"apiSecret,omitempty"`
 }
 
-type InstallOverrides struct {
+type HelmValueOverrides struct {
 	MonitorChanges *bool       `json:"monitorChanges,omitempty"`
 	ValueOverrides []Overrides `json:"overrides,omitempty"`
 }

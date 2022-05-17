@@ -634,7 +634,7 @@ func TestOrganizeHelmValues(t *testing.T) {
 
 //  TestFilesFromVerrazzanoHelm tests filesFromVerrazzanoHelm
 //  GIVEN an override list
-//  WHEN I call retrieveInstallOverrideResources
+//  WHEN I call retrieveHelmOverrideResources
 //  THEN I get a list of key value pairs of files from the override sources
 func TestFilesFromVerrazzanoHelm(t *testing.T) {
 
@@ -757,11 +757,11 @@ func TestFilesFromVerrazzanoHelm(t *testing.T) {
 	}
 }
 
-// TestRetrieveInstallOverrideResources tests retrieveInstallOverrideResources
+// TestRetrieveHelmOverrideResources tests retrieveHelmOverrideResources
 // GIVEN an override list
-//  WHEN I call retrieveInstallOverrideResources
+//  WHEN I call retrieveHelmOverrideResources
 //  THEN I get a list of key value pairs of files from the override sources
-func TestRetrieveInstallOverrideResources(t *testing.T) {
+func TestRetrieveHelmOverrideResources(t *testing.T) {
 	trueval := true
 	dataKey := "testKey"
 	wrongKey := "wrongKey"
@@ -920,7 +920,7 @@ func TestRetrieveInstallOverrideResources(t *testing.T) {
 			ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)
 
 			comp := HelmComponent{}
-			kvs, err := comp.retrieveInstallOverrideResources(ctx, tt.overrides)
+			kvs, err := comp.retrieveHelmOverrideResources(ctx, tt.overrides)
 			if tt.expectError {
 				a.Error(err)
 			} else {
