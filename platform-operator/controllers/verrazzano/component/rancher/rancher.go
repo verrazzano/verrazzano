@@ -129,6 +129,9 @@ func checkRancherLogs(c client.Client, log vzlog.VerrazzanoLogger) error {
 	if err != nil {
 		return err
 	}
+	if len(podList.Items) == 0 {
+		return nil
+	}
 
 	config, err := ctrl.GetConfig()
 	if err != nil {
