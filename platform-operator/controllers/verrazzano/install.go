@@ -75,7 +75,8 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 			if !isInstalled(cr.Status) {
 				continue
 			}
-			if !r.checkConfigUpdated(spiCtx, componentStatus, compName) {
+			// If the component config is updated, or the component is watched, it should be reconciled
+			if !r.checkConfigUpdated(spiCtx, componentStatus, compName) && !r.IsWatchedComponent(comp.GetJSONName()) {
 				continue
 			}
 
@@ -168,10 +169,6 @@ func (r *Reconciler) checkConfigUpdated(ctx spi.ComponentContext, componentStatu
 	// Current VerrazzanoSpec or CRD does not define VerrazzanoSpec.components.mysql. MySQL Config update is not allowed yet.
 	if name == mysql.ComponentName {
 		return false
-	}
-	// The component should be reconciled if it is watched
-	if r.IsWatchedComponent(name) {
-		return true
 	}
 	// The component is being reconciled/installed with ReconcilingGeneration of the CR
 	// if CR.Generation > ReconcilingGeneration then re-enter install flow
