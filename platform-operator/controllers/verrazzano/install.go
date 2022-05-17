@@ -75,7 +75,8 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 			if !isInstalled(cr.Status) {
 				continue
 			}
-			if !checkConfigUpdated(spiCtx, componentStatus, compName) {
+			// If the component config is updated, or the component is watched, it should be reconciled
+			if !checkConfigUpdated(spiCtx, componentStatus, compName) && !r.IsWatchedComponent(comp.GetJSONName()) {
 				continue
 			}
 
@@ -149,6 +150,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 			compLog.Progressf("Component %s waiting to finish installing", compName)
 			requeue = true
 		}
+		r.ClearWatch(comp.GetJSONName())
 	}
 	if requeue {
 		return newRequeueWithDelay(), nil
