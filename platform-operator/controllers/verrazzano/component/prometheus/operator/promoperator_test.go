@@ -258,3 +258,77 @@ func TestAppendIstioOverrides(t *testing.T) {
 		})
 	}
 }
+
+// TestValidatePrometheusOperator tests the validation of the Prometheus Operator installation and the Verrazzano CR
+func TestValidatePrometheusOperator(t *testing.T) {
+	tests := []struct {
+		name        string
+		vz          vzapi.Verrazzano
+		expectError bool
+	}{
+		{
+			name:        "test nothing enabled",
+			vz:          vzapi.Verrazzano{},
+			expectError: false,
+		},
+		{
+			name: "test only Prometheus enabled",
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Prometheus:         &vzapi.PrometheusComponent{Enabled: &trueValue},
+						PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &falseValue},
+					},
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "test only Prometheus Operator enabled",
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Prometheus:         &vzapi.PrometheusComponent{Enabled: &falseValue},
+						PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &trueValue},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "test all enabled",
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Prometheus:         &vzapi.PrometheusComponent{Enabled: &trueValue},
+						PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &trueValue},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "test all disabled",
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Prometheus:         &vzapi.PrometheusComponent{Enabled: &falseValue},
+						PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &falseValue},
+					},
+				},
+			},
+			expectError: false,
+		},
+	}
+	c := prometheusComponent{}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := c.validatePrometheusOperator(&tt.vz)
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
