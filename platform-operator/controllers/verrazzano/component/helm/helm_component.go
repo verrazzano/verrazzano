@@ -64,7 +64,7 @@ type HelmComponent struct {
 	// AppendOverridesFunc is an optional function get additional override values
 	AppendOverridesFunc appendOverridesSig
 
-	// GetHelmOverrides is an optional function get Helm override sources
+	// GetInstallOverridesFunc is an optional function get install override sources
 	GetInstallOverridesFunc getInstallOverridesSig
 
 	// ResolveNamespaceFunc is an optional function to process the namespace name
@@ -73,7 +73,7 @@ type HelmComponent struct {
 	// SupportsOperatorInstall Indicates whether or not the component supports install via the operator
 	SupportsOperatorInstall bool
 
-	// WaitForInstall Indicates if the operator should wait for helm operationst o complete (synchronous behavior)
+	// WaitForInstall Indicates if the operator should wait for helm operations to complete (synchronous behavior)
 	WaitForInstall bool
 
 	// ImagePullSecretKeyname is the Helm Value Key for the image pull secret for a chart
