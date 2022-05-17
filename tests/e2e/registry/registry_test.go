@@ -42,6 +42,7 @@ var listOfNamespaces = []string{
 	"verrazzano-install",
 	"verrazzano-mc",
 	"verrazzano-system",
+	"verrazzano-monitoring",
 }
 
 var t = framework.NewTestFramework("registry")
