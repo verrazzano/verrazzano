@@ -142,7 +142,7 @@ var _ = t.Describe("OpenSearch Cluster Topology", func() {
 		eventuallyUpdateVMI(t, func(vmi *vmov1.VerrazzanoMonitoringInstance) {
 			vmi.Spec.Elasticsearch.MasterNode.Replicas = 2
 		})
-		eventuallyPodsReady(3, 3, 3)
+		eventuallyPodsReady(3, 5, 5)
 	})
 })
 
