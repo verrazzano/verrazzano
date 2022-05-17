@@ -69,9 +69,9 @@ func TestVzContainsResourceMonitoringDisabled(t *testing.T) {
 	asserts.Empty(res0)
 }
 
-// TestUpdateVerrazzanoForHelmOverrides tests that the call to update Verrazzano Status
+// TestUpdateVerrazzanoForInstallOverrides tests that the call to update Verrazzano Status
 // is made and doesn't return an error
-func TestUpdateVerrazzanoForHelmOverrides(t *testing.T) {
+func TestUpdateVerrazzanoForInstallOverrides(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -89,14 +89,14 @@ func TestUpdateVerrazzanoForHelmOverrides(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, vz *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			return nil
 		})
-	err := UpdateVerrazzanoForHelmOverrides(mock, compContext, "prometheus-operator")
+	err := UpdateVerrazzanoForInstallOverrides(mock, compContext, "prometheus-operator")
 	mocker.Finish()
 	asserts.Nil(err)
 }
 
-// TestUpdateVerrazzanoForHelmOverrides tests that if Verrazzano hasn't initialized component status
+// TestUpdateVerrazzanoForInstallOverrides tests that if Verrazzano hasn't initialized component status
 // an error will be returned by the function
-func TestUpdateVerrazzanoForHelmOverridesError(t *testing.T) {
+func TestUpdateVerrazzanoForInstallOverridesError(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -113,7 +113,7 @@ func TestUpdateVerrazzanoForHelmOverridesError(t *testing.T) {
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).MaxTimes(0)
-	err := UpdateVerrazzanoForHelmOverrides(mock, compContext, "prometheus-operator")
+	err := UpdateVerrazzanoForInstallOverrides(mock, compContext, "prometheus-operator")
 	mocker.Finish()
 	asserts.NotNil(err)
 }
@@ -150,7 +150,7 @@ var testVZ = vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		Components: vzapi.ComponentSpec{PrometheusOperator: &vzapi.PrometheusOperatorComponent{
 			Enabled: True(),
-			HelmValueOverrides: vzapi.HelmValueOverrides{
+			InstallOverrides: vzapi.InstallOverrides{
 				MonitorChanges: True(),
 				ValueOverrides: []vzapi.Overrides{
 					{

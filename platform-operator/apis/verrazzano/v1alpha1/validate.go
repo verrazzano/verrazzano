@@ -443,8 +443,8 @@ func ValidateVersionHigherOrEqual(currentVersion string, requestedVersion string
 
 }
 
-// ValidateHelmValueOverrides checks that the overrides slice has only one override type per slice item
-func ValidateHelmValueOverrides(Overrides []Overrides) error {
+// ValidateInstallOverrides checks that the overrides slice has only one override type per slice item
+func ValidateInstallOverrides(Overrides []Overrides) error {
 	overridePerItem := 0
 	for _, override := range Overrides {
 		if override.ConfigMapRef != nil {
@@ -454,10 +454,10 @@ func ValidateHelmValueOverrides(Overrides []Overrides) error {
 			overridePerItem++
 		}
 		if overridePerItem > 1 {
-			return fmt.Errorf("Invalid Helm overrides. Cannot specify more than one override type in the same list element")
+			return fmt.Errorf("Invalid install overrides. Cannot specify more than one override type in the same list element")
 		}
 		if overridePerItem == 0 {
-			return fmt.Errorf("Invalid Helm overrides. No override specified")
+			return fmt.Errorf("Invalid install overrides. No override specified")
 		}
 		overridePerItem = 0
 	}
