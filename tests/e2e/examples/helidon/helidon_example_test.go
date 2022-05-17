@@ -5,11 +5,12 @@ package helidon
 
 import (
 	"fmt"
-	"github.com/hashicorp/go-retryablehttp"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/go-retryablehttp"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
@@ -27,7 +28,7 @@ const (
 	shortWaitTimeout         = 5 * time.Minute
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
-	skipVerifications	     = "Skip Verifications"
+	skipVerifications        = "Skip Verifications"
 )
 
 var (
@@ -203,9 +204,13 @@ func appEndpointAccessible(url string, hostname string) bool {
 		return false
 	}
 	req.Host = hostname
+	req.Close = true
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		t.Logs.Errorf("Unexpected error=%v", err)
+		bodyRaw, _ := ioutil.ReadAll(resp.Body)
+		t.Logs.Errorf("Response=%v", string(bodyRaw))
+		resp.Body.Close()
 		return false
 	}
 	bodyRaw, err := ioutil.ReadAll(resp.Body)
