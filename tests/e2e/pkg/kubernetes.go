@@ -1415,3 +1415,13 @@ func WaitForVZCondition(conditionType v1alpha1.ConditionType, pollingInterval, t
 		return false
 	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(gomega.BeTrue())
 }
+
+// DeleteConfigMap to delete the ConfigMap with the given name and namespace
+func DeleteConfigMap(namespace string, name string) error {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil
+	}
+	return clientset.CoreV1().ConfigMaps(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	return nil
+}
