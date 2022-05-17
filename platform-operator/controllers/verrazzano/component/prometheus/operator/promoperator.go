@@ -92,13 +92,9 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	if err != nil {
 		return kvs, err
 	}
-	if ctx.EffectiveCR().Spec.Profile == vzapi.Prod || resourceRequest != nil {
-		storage := "50Gi"
-		memory := "128Mi"
-		if resourceRequest != nil {
-			storage = resourceRequest.Storage
-			memory = resourceRequest.Memory
-		}
+	if resourceRequest != nil {
+		storage := resourceRequest.Storage
+		memory := resourceRequest.Memory
 		kvs = append(kvs, []bom.KeyValue{
 			{
 				Key:   "prometheusOperator.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName.resources.requests.storage",
@@ -178,7 +174,8 @@ func (c prometheusComponent) validatePrometheusOperator(effectiveCR *vzapi.Verra
 	return nil
 }
 
-// appendIstioAnnotations appends Istio annotations necessary for Prometheus in Istio
+// appendIstioOverrides appends Istio annotations necessary for Prometheus in Istio
+// Istio is required on the Prometheus for mTLS between it and Verrazzano applications
 func appendIstioOverrides(ctx spi.ComponentContext, annotationsKey, volumeMountKey, volumeKey string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Set the Istio annotation on Prometheus to exclude Keycloak HTTP Service IP address.
 	// The includeOutboundIPRanges implies all others are excluded.
@@ -213,7 +210,7 @@ func appendIstioOverrides(ctx spi.ComponentContext, annotationsKey, volumeMountK
 	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[0].name", volumeMountKey), Value: vm.Name})
 	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[0].mountPath", volumeMountKey), Value: vm.MountPath})
 
-	// Volume annotation for certs
+	// Volume annotation to enable an in-memory location for Istio to place and serve certificates
 	vol := corev1.Volume{
 		Name: istioVolumeName,
 		VolumeSource: corev1.VolumeSource{

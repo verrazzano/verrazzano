@@ -186,18 +186,18 @@ func TestPreInstall(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestAppendIstioCerts tests that the istio cert annotations get applied
+// TestAppendIstioOverrides tests that the Istio overrides get applied
 func TestAppendIstioOverrides(t *testing.T) {
 	annotationKey := "annKey"
 	volumeMountKey := "vmKey"
 	volumeKey := "volKey"
 	tests := []struct {
-		name              string
-		expectAnnotations []bom.KeyValue
+		name            string
+		expectOverrides []bom.KeyValue
 	}{
 		{
-			name: "test expect annotations",
-			expectAnnotations: []bom.KeyValue{
+			name: "test expect overrides",
+			expectOverrides: []bom.KeyValue{
 				{
 					Key:   fmt.Sprintf(`%s.traffic\.sidecar\.istio\.io/includeOutboundIPRanges`, annotationKey),
 					Value: "0.0.0.0/32",
@@ -242,11 +242,11 @@ func TestAppendIstioOverrides(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			kvs, err := appendIstioOverrides(ctx, annotationKey, volumeMountKey, volumeKey, []bom.KeyValue{})
 
-			assert.Equal(t, len(tt.expectAnnotations), len(kvs))
+			assert.Equal(t, len(tt.expectOverrides), len(kvs))
 
 			for _, kvsVal := range kvs {
 				found := false
-				for _, expVal := range tt.expectAnnotations {
+				for _, expVal := range tt.expectOverrides {
 					if expVal == kvsVal {
 						found = true
 						break
