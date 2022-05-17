@@ -155,12 +155,9 @@ func checkRancherLogs(c client.Client, log vzlog.VerrazzanoLogger) error {
 		// Search the stream for the expected text
 		restartPod := false
 		for {
-			buf := make([]byte, 1024)
+			buf := make([]byte, 2048)
 			numBytes, err := logStream.Read(buf)
-			if numBytes == 0 {
-				continue
-			}
-			if err == io.EOF {
+			if err == io.EOF || numBytes == 0 {
 				break
 			}
 			if err != nil {
@@ -172,10 +169,18 @@ func checkRancherLogs(c client.Client, log vzlog.VerrazzanoLogger) error {
 			}
 		}
 
-		// Recycle the pod?
+		// If the pod is failing to find the system chart for rancher-webhook, the wrong helm charts are
+		// being used by the Rancher pods. Delete the Rancher custom resources that cache the helm charts
+		// and restart the pod.  This will cause another Rancher pod to become the leader, and it will recreate
+		// the custom resources related to the helm charts.
 		if restartPod {
+			// Delete custom resources containing helm charts to use
+			err := deleteClusterRepos(log)
+			if err != nil {
+				return err
+			}
 			log.Infof("Rancher IsReady: Restarting pod %s", pod.Name)
-			err := c.Delete(ctx, &podList.Items[i])
+			err = c.Delete(ctx, &podList.Items[i])
 			if err != nil {
 				return err
 			}
