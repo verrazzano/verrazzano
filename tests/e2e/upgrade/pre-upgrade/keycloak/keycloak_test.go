@@ -5,6 +5,7 @@ package keycloak
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"path"
 	"time"
@@ -19,6 +20,7 @@ import (
 var waitTimeout = 1 * time.Minute
 var pollingInterval = 30 * time.Second
 
+var kubeConfig = os.Getenv("KUBECONFIG")
 var testKeycloakMasterUserIdValue = ""
 var testKeycloakVerrazzanoUserIdValue = ""
 
@@ -29,7 +31,7 @@ var _ = t.BeforeSuite(func() {
 	beforeSuitePassed = true
 	metrics.Emit(t.Metrics.With("before_suite_elapsed_time", time.Since(start).Milliseconds()))
 
-	cmd := exec.Command("kubectl", "create", "ns", pkg.TestKeycloakNamespace)
+	cmd := exec.Command("kubectl", fmt.Sprintf("--kubeconfig=%s", kubeConfig), "create", "ns", pkg.TestKeycloakNamespace)
 	_, err := cmd.Output()
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Error creating namespace %s: %s\n", pkg.TestKeycloakNamespace, err))
@@ -47,7 +49,8 @@ var _ = t.AfterSuite(func() {
 	start := time.Now()
 
 	// Creating a configmap storing the newly created keycloak user ids to be verified in the post-upgrade later
-	cmd := exec.Command("kubectl", "-n", pkg.TestKeycloakNamespace, "create", "configmap", pkg.TestKeycloakConfigMap,
+	cmd := exec.Command("kubectl", fmt.Sprintf("--kubeconfig=%s", kubeConfig), "-n", pkg.TestKeycloakNamespace,
+		"create", "configmap", pkg.TestKeycloakConfigMap,
 		fmt.Sprintf("--from-literal=%s=%s", pkg.TestKeycloakMasterUserIdKey, testKeycloakMasterUserIdValue),
 		fmt.Sprintf("--from-literal=%s=%s", pkg.TestKeycloakVerrazzanoUserIdKey, testKeycloakVerrazzanoUserIdValue))
 	_, err := cmd.Output()
