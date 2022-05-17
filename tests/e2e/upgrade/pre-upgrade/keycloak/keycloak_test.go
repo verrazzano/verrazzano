@@ -15,10 +15,11 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	v1 "k8s.io/api/core/v1"
 )
 
-var waitTimeout = 1 * time.Minute
-var pollingInterval = 30 * time.Second
+var waitTimeout = 3 * time.Minute
+var pollingInterval = 10 * time.Second
 
 var kubeConfig = os.Getenv("KUBECONFIG")
 var testKeycloakMasterUserID = ""
@@ -29,18 +30,27 @@ var t = framework.NewTestFramework("verify")
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
 	beforeSuitePassed = true
-	metrics.Emit(t.Metrics.With("before_suite_elapsed_time", time.Since(start).Milliseconds()))
 
-	kubeConfigOption := fmt.Sprintf("--kubeconfig=%s", kubeConfig)
-	cmd := exec.Command("kubectl", kubeConfigOption, "create", "ns", pkg.TestKeycloakNamespace)
-	t.Logs.Info(fmt.Sprintf("kubectl command to create namespace %s: %s", pkg.TestKeycloakNamespace, cmd.String()))
-	out, err := cmd.Output()
-	if len(string(out)) != 0 {
-		t.Logs.Info(fmt.Printf("Output while creating namespace %s: %s", pkg.TestKeycloakNamespace, string(out)))
+	isManagedClusterProfile := pkg.IsManagedClusterProfile()
+	if isManagedClusterProfile {
+		Skip("Skipping test suite since this is a managed cluster profile")
 	}
+	exists, err := pkg.DoesNamespaceExist(pkg.TestKeycloakNamespace)
 	if err != nil {
-		AbortSuite(fmt.Sprintf("Error creating namespace %s: %s\n", pkg.TestKeycloakNamespace, err))
+		Fail(err.Error())
 	}
+	if exists {
+		// Delete namespace, if already exists, so that test can be executed cleanly
+		Eventually(func() error {
+			return pkg.DeleteNamespace(pkg.TestKeycloakNamespace)
+		}, waitTimeout, pollingInterval).Should(BeNil())
+	}
+
+	Eventually(func() (*v1.Namespace, error) {
+		return pkg.CreateNamespace(pkg.TestKeycloakNamespace, nil)
+	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
+	metrics.Emit(t.Metrics.With("before_suite_elapsed_time", time.Since(start).Milliseconds()))
 })
 
 var failed = false
@@ -52,8 +62,24 @@ var _ = t.AfterEach(func() {
 
 var _ = t.AfterSuite(func() {
 	start := time.Now()
+	if failed || !beforeSuitePassed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
+	createConfigMap()
+	metrics.Emit(t.Metrics.With("after_suite_elapsed_time", time.Since(start).Milliseconds()))
+})
 
-	// Creating a configmap to store the newly created keycloak user ids to be verified in the keycloak post-upgrade later
+var _ = t.Describe("Create users in Keycloak", Label("f:platform-lcm.install"), func() {
+	t.It("Creating user in master realm", func() {
+		Eventually(verifyCreateUserMaster, waitTimeout, pollingInterval).Should(Not(BeNil()))
+	})
+	t.It("Creating user in verrazzano-system realm", func() {
+		Eventually(verifyCreateUserVz, waitTimeout, pollingInterval).Should(Not(BeNil()))
+	})
+})
+
+// Creating a configmap to store the newly created keycloak user ids to be verified in the keycloak post-upgrade later
+func createConfigMap() {
 	kubeConfigOption := fmt.Sprintf("--kubeconfig=%s", kubeConfig)
 	keyValue1 := fmt.Sprintf("--from-literal=%s=%s", pkg.TestKeycloakMasterUserIDKey, testKeycloakMasterUserID)
 	keyValue2 := fmt.Sprintf("--from-literal=%s=%s", pkg.TestKeycloakVerrazzanoUserIDKey, testKeycloakVerrazzanoUserID)
@@ -64,25 +90,7 @@ var _ = t.AfterSuite(func() {
 	if err != nil {
 		t.Fail(fmt.Sprintf("Error creating configmap %s: %s\n", pkg.TestKeycloakConfigMap, err))
 	}
-	if failed || !beforeSuitePassed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
-	}
-	metrics.Emit(t.Metrics.With("after_suite_elapsed_time", time.Since(start).Milliseconds()))
-})
-
-var _ = t.Describe("Create users in Keycloak", Label("f:platform-lcm.install"), func() {
-	isManagedClusterProfile := pkg.IsManagedClusterProfile()
-	t.It("Creating user in master realm", func() {
-		if !isManagedClusterProfile {
-			Eventually(verifyCreateUserMaster, waitTimeout, pollingInterval).Should(Not(BeNil()))
-		}
-	})
-	t.It("Creating user in verrazzano-system realm", func() {
-		if !isManagedClusterProfile {
-			Eventually(verifyCreateUserVz, waitTimeout, pollingInterval).Should(Not(BeNil()))
-		}
-	})
-})
+}
 
 func verifyCreateUserMaster() (string, error) {
 	userID, err := verifyCreateUser("master")

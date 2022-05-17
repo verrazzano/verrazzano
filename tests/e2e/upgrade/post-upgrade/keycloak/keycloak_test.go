@@ -5,8 +5,9 @@ package keycloak
 
 import (
 	"fmt"
-	"os"
 	"time"
+
+	"gopkg.in/yaml.v2"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -20,9 +21,40 @@ var pollingInterval = 30 * time.Second
 
 var t = framework.NewTestFramework("verify")
 
+var userIDConfig map[string]string
+
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
 	beforeSuitePassed = true
+
+	isManagedClusterProfile := pkg.IsManagedClusterProfile()
+	if isManagedClusterProfile {
+		Skip("Skipping test suite since this is a managed cluster profile")
+	}
+
+	exists, err := pkg.DoesNamespaceExist(pkg.TestKeycloakNamespace)
+	if err != nil {
+		Fail(err.Error())
+	}
+	if !exists {
+		AbortSuite(fmt.Sprintf("Skipping test suite since the namespace %s does not exist", pkg.TestKeycloakNamespace))
+	}
+
+	configMap, err := pkg.GetConfigMap(pkg.TestKeycloakConfigMap, pkg.TestKeycloakNamespace)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed getting configmap: %v", err))
+	}
+
+	if configMap == nil {
+		AbortSuite(fmt.Sprintf("Skipping test suite since the configmap %s does not exist", pkg.TestKeycloakConfigMap))
+	}
+
+	userIDConfigData := configMap.Data["data"]
+	err = yaml.Unmarshal([]byte(userIDConfigData), &userIDConfig)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("Failed getting configmap data: %v", err))
+	}
+
 	metrics.Emit(t.Metrics.With("before_suite_elapsed_time", time.Since(start).Milliseconds()))
 })
 
@@ -42,32 +74,23 @@ var _ = t.AfterSuite(func() {
 })
 
 var _ = t.Describe("Verify users exist in Keycloak", Label("f:platform-lcm.install"), func() {
-	isManagedClusterProfile := pkg.IsManagedClusterProfile()
 	t.It("Verifying user in master realm", func() {
-		if !isManagedClusterProfile {
-			Eventually(verifyUserExistsMaster, waitTimeout, pollingInterval).Should(BeTrue())
-		}
+		Eventually(verifyUserExistsMaster, waitTimeout, pollingInterval).Should(BeTrue())
 	})
 	t.It("Verifying user in verrazzano-system realm", func() {
-		if !isManagedClusterProfile {
-			Eventually(verifyUserExistsVerrazzano, waitTimeout, pollingInterval).Should(BeTrue())
-		}
+		Eventually(verifyUserExistsVerrazzano, waitTimeout, pollingInterval).Should(BeTrue())
 	})
 })
 
 func verifyUserExistsMaster() bool {
-	return verifyUserExists("master", pkg.TestKeycloakMasterUserIDKey)
+	return verifyUserExists("master", userIDConfig[pkg.TestKeycloakMasterUserIDKey])
 }
 
 func verifyUserExistsVerrazzano() bool {
-	return verifyUserExists("verrazzano-system", pkg.TestKeycloakVerrazzanoUserIDKey)
+	return verifyUserExists("verrazzano-system", userIDConfig[pkg.TestKeycloakVerrazzanoUserIDKey])
 }
 
-func verifyUserExists(realm, userIDEnvVar string) bool {
-	if _, exists := os.LookupEnv(userIDEnvVar); !exists {
-		t.Fail(fmt.Sprintf("Environment variable %s must exist.", userIDEnvVar))
-	}
-	userID := os.Getenv(userIDEnvVar)
+func verifyUserExists(realm, userID string) bool {
 	kc, err := pkg.NewKeycloakAdminRESTClient()
 	if err != nil {
 		t.Logs.Error(fmt.Printf("Failed to create Keycloak REST client: %v\n", err))

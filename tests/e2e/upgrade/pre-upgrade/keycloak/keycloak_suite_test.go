@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestOpenSearchPreUpgrade(t *testing.T) {
+func TestKeycloakPreUpgrade(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "Pre Upgrade Keycloak Suite")
 }
