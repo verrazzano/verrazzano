@@ -202,7 +202,7 @@ var _ = t.Describe("ToDo List test", Label("f:app-lcm.oam",
 				}
 
 				if healths[0] != weblogic.Healthy {
-					t.Logs.Errorf("server not healthyv")
+					t.Logs.Errorf("server not healthy")
 					return false
 				}
 				return true
