@@ -34,8 +34,11 @@ const (
 	keycloakAPIClientID   = "verrazzano-pg"
 	keycloakAdminClientID = "admin-cli"
 
-	TestKeycloakMasterUserIdEnvVar     = "TEST_KEYCLOAK_MASTER_USERID_ENV_VAR"
-	TestKeycloakVerrazzanoUserIdEnvVar = "TEST_KEYCLOAK_VZ_USERID_ENV_VAR"
+	TestKeycloakMasterUserIdKey     = "TEST_KEYCLOAK_MASTER_USERID_ENV_VAR"
+	TestKeycloakVerrazzanoUserIdKey = "TEST_KEYCLOAK_VZ_USERID_ENV_VAR"
+
+	TestKeycloakNamespace = "keycloak-test-ns"
+	TestKeycloakConfigMap = "keycloak-test-cm"
 )
 
 // NewKeycloakRESTClient creates a new Keycloak REST client.
