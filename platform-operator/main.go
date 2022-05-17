@@ -5,7 +5,6 @@ package main
 
 import (
 	"flag"
-	"sync"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
@@ -18,6 +17,7 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	clusterscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
+	configmapcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps"
 	secretscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
 	vzcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano"
 	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -163,11 +163,9 @@ func main() {
 
 	// Setup the reconciler
 	reconciler := vzcontroller.Reconciler{
-		Client:            mgr.GetClient(),
-		Scheme:            mgr.GetScheme(),
-		DryRun:            config.DryRun,
-		WatchedComponents: map[string]bool{},
-		WatchMutex:        &sync.RWMutex{},
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+		DryRun: config.DryRun,
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		log.Error(err, "Failed to setup controller", vzlog.FieldController, "Verrazzano")
@@ -209,6 +207,15 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoSecrets")
+		os.Exit(1)
+	}
+
+	// Setup configMaps reconciler
+	if err = (&configmapcontroller.VerrazzanoConfigMapsReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoConfigMaps")
 		os.Exit(1)
 	}
 

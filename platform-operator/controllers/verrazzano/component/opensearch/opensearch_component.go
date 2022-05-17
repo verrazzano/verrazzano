@@ -45,6 +45,16 @@ func (o opensearchComponent) GetJSONName() string {
 	return ComponentJSONName
 }
 
+// GetHelmOverrides returns the Helm override sources for a component
+func (o opensearchComponent) GetOverrides(_ spi.ComponentContext) []vzapi.Overrides {
+	return []vzapi.Overrides{}
+}
+
+// MonitorOverrides indicates whether monitoring of Helm override sources is enabled for a component
+func (o opensearchComponent) MonitorOverrides(_ spi.ComponentContext) bool {
+	return true
+}
+
 func (o opensearchComponent) IsOperatorInstallSupported() bool {
 	return true
 }
