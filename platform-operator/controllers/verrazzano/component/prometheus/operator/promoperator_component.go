@@ -42,7 +42,7 @@ func NewComponent() spi.Component {
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-values.yaml"),
 			Dependencies:            []string{},
 			AppendOverridesFunc:     AppendOverrides,
-			GetHelmValueOverrides:   GetHelmOverrides,
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
@@ -65,6 +65,18 @@ func (c prometheusComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
+// MonitorOverrides checks whether monitoring is enabled for install overrides sources
+func (c prometheusComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	comp := ctx.EffectiveCR().Spec.Components.PrometheusOperator
+	if comp == nil {
+		return false
+	}
+	if ctx.EffectiveCR().Spec.Components.PrometheusOperator.MonitorChanges != nil {
+		return *ctx.EffectiveCR().Spec.Components.PrometheusOperator.MonitorChanges
+	}
+	return true
+}
+
 // PreInstall updates resources necessary for the Prometheus Operator Component installation
 func (c prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preInstall(ctx)
@@ -73,7 +85,7 @@ func (c prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
 // ValidateInstall verifies the installation of the Verrazzano object
 func (c prometheusComponent) ValidateInstall(effectiveCR *vzapi.Verrazzano) error {
 	if effectiveCR.Spec.Components.PrometheusOperator != nil {
-		return vzapi.ValidateHelmValueOverrides(effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides)
+		return vzapi.ValidateInstallOverrides(effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides)
 	}
 	return nil
 }
@@ -81,7 +93,7 @@ func (c prometheusComponent) ValidateInstall(effectiveCR *vzapi.Verrazzano) erro
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
 func (c prometheusComponent) ValidateUpgrade(effectiveCR *vzapi.Verrazzano) error {
 	if effectiveCR.Spec.Components.PrometheusOperator != nil {
-		return vzapi.ValidateHelmValueOverrides(effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides)
+		return vzapi.ValidateInstallOverrides(effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides)
 	}
 	return nil
 }

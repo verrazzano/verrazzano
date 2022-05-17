@@ -1625,7 +1625,7 @@ func Test_cleanTempFiles(t *testing.T) {
 	}
 }
 
-func TestValidateHelmValueOverrides(t *testing.T) {
+func TestValidateInstallOverrides(t *testing.T) {
 	assert := assert.New(t)
 
 	testNoOverride := []Overrides{{}}
@@ -1655,9 +1655,9 @@ func TestValidateHelmValueOverrides(t *testing.T) {
 		},
 	}
 
-	err1 := ValidateHelmValueOverrides(testBadOverride)
-	err2 := ValidateHelmValueOverrides(testNoOverride)
-	err3 := ValidateHelmValueOverrides(testGoodOverride)
+	err1 := ValidateInstallOverrides(testBadOverride)
+	err2 := ValidateInstallOverrides(testNoOverride)
+	err3 := ValidateInstallOverrides(testGoodOverride)
 
 	assert.Error(err1)
 	assert.Error(err2)
