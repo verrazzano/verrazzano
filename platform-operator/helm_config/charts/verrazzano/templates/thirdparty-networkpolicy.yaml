@@ -597,9 +597,9 @@ spec:
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: verrazzano-monitoring
-            podSelector:
-              matchLabels:
-                app.kubernetes.io/name: prometheus
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
     - ports:
         - port: 15017
           protocol: TCP
