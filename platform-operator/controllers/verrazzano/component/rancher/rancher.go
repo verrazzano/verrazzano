@@ -4,9 +4,9 @@
 package rancher
 
 import (
+	"bufio"
 	"context"
 	"fmt"
-	"io"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -166,16 +166,9 @@ func checkRancherUpgradeFailure(c client.Client, log vzlog.VerrazzanoLogger) err
 
 		// Search the stream for the expected text
 		restartPod := false
-		for {
-			buf := make([]byte, 2048)
-			numBytes, err := logStream.Read(buf)
-			if err == io.EOF || numBytes == 0 {
-				break
-			}
-			if err != nil {
-				return err
-			}
-			if strings.Contains(string(buf[:numBytes]), "Failed to find system chart rancher-webhook will try again in 5 seconds") {
+		scanner := bufio.NewScanner(logStream)
+		for scanner.Scan() {
+			if strings.Contains(scanner.Text(), "Failed to find system chart rancher-webhook will try again in 5 seconds") {
 				restartPod = true
 				break
 			}
