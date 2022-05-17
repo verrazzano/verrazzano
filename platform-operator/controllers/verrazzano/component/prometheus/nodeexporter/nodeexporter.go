@@ -6,8 +6,8 @@ package nodeexporter
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"k8s.io/apimachinery/pkg/types"
