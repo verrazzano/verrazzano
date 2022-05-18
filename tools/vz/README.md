@@ -4,7 +4,7 @@ The Verrazzano Command Line Interface (CLI) is a tool which can be used to inter
 
 ## Building the CLI
 
-The binary will be located in `/bin`.
+The binary will be located in `$GOPATH/bin`.
 
 Run `make cli`
 

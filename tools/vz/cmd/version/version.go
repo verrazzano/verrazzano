@@ -9,9 +9,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const CommandName = "version"
+
 func NewCmdVersion() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "version",
+		Use:   CommandName,
 		Short: "Verrazzano version information",
 		Long:  "Verrazzano version information",
 		Run:   runCmdVersion,

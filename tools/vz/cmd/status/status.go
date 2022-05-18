@@ -9,9 +9,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const CommandName = "status"
+
 func NewCmdStatus() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "status",
+		Use:   CommandName,
 		Short: "Status of the Verrazzano install and access endpoints",
 		Long:  "Status of the Verrazzano install and access endpoints",
 		Run:   runCmdStatus,

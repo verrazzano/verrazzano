@@ -12,6 +12,11 @@ import (
 var kubeconfig string
 var context string
 
+const (
+	GlobalFlagKubeconfig = "kubeconfig"
+	GlobalFlagContext    = "context"
+)
+
 func NewRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "vz",
@@ -20,9 +25,10 @@ func NewRootCmd() *cobra.Command {
 	}
 
 	// Add global flags
-	cmd.PersistentFlags().StringVarP(&kubeconfig, "kubeconfig", "c", "", "Kubernetes configuration file")
-	cmd.PersistentFlags().StringVar(&context, "context", "", "The name of the kubeconfig context to use")
+	cmd.PersistentFlags().StringVarP(&kubeconfig, GlobalFlagKubeconfig, "c", "", "Kubernetes configuration file")
+	cmd.PersistentFlags().StringVar(&context, GlobalFlagContext, "", "The name of the kubeconfig context to use")
 
+	// Add commands
 	cmd.AddCommand(status.NewCmdStatus())
 	cmd.AddCommand(version.NewCmdVersion())
 
