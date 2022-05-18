@@ -96,15 +96,17 @@ var _ = t.Describe("Create users in Keycloak", Label("f:platform-lcm.install"), 
 
 // Creating a configmap to store the newly created keycloak user ids to be verified in the keycloak post-upgrade later
 func createConfigMap() {
-	kubeConfigOption := fmt.Sprintf("--kubeconfig=%s", kubeConfig)
-	keyValue1 := fmt.Sprintf("--from-literal=%s=%s", pkg.TestKeycloakMasterUserIDKey, testKeycloakMasterUserID)
-	keyValue2 := fmt.Sprintf("--from-literal=%s=%s", pkg.TestKeycloakVerrazzanoUserIDKey, testKeycloakVerrazzanoUserID)
-	cmd := exec.Command("kubectl", kubeConfigOption, "-n", pkg.TestKeycloakNamespace,
-		"create", "configmap", pkg.TestKeycloakConfigMap, keyValue1, keyValue2)
-	t.Logs.Info(fmt.Sprintf("kubectl command to create configmap %s: %s", pkg.TestKeycloakConfigMap, cmd.String()))
-	_, err := cmd.Output()
-	if err != nil {
-		t.Fail(fmt.Sprintf("Error creating configmap %s: %s\n", pkg.TestKeycloakConfigMap, err))
+	if testKeycloakMasterUserID != "" && testKeycloakVerrazzanoUserID != "" {
+		kubeConfigOption := fmt.Sprintf("--kubeconfig=%s", kubeConfig)
+		keyValue1 := fmt.Sprintf("--from-literal=%s=%s", pkg.TestKeycloakMasterUserIDKey, testKeycloakMasterUserID)
+		keyValue2 := fmt.Sprintf("--from-literal=%s=%s", pkg.TestKeycloakVerrazzanoUserIDKey, testKeycloakVerrazzanoUserID)
+		cmd := exec.Command("kubectl", kubeConfigOption, "-n", pkg.TestKeycloakNamespace,
+			"create", "configmap", pkg.TestKeycloakConfigMap, keyValue1, keyValue2)
+		t.Logs.Info(fmt.Sprintf("kubectl command to create configmap %s: %s", pkg.TestKeycloakConfigMap, cmd.String()))
+		_, err := cmd.Output()
+		if err != nil {
+			t.Fail(fmt.Sprintf("Error creating configmap %s: %s\n", pkg.TestKeycloakConfigMap, err))
+		}
 	}
 }
 
