@@ -23,5 +23,4 @@ func NewCmdVersion() *cobra.Command {
 
 func runCmdVersion(cmd *cobra.Command, args []string) {
 	fmt.Println("Not implemented yet")
-	return
 }

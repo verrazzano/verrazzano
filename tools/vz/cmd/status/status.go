@@ -23,5 +23,4 @@ func NewCmdStatus() *cobra.Command {
 
 func runCmdStatus(cmd *cobra.Command, args []string) {
 	fmt.Println("Not implemented yet")
-	return
 }
