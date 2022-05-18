@@ -522,6 +522,25 @@ pipeline {
 
         stage('Post-upgrade Acceptance Tests') {
             stages {
+                stage("Validate BOM") {
+                    when {
+                        allOf {
+                            expression{params.RUN_BOM_VALIDATOR == true}
+                        }
+                    }
+                    environment {
+                        OCI_CLI_AUTH="instance_principal"
+                        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                        OCI_OS_BUCKET="verrazzano-builds"
+                    }
+                    steps {
+                        sh """
+                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
+                            chmod +x ${WORKSPACE}/bom-validator
+                            ${WORKSPACE}/bom-validator
+                        """
+                    }
+                }
                 stage ('Console') {
                     when { expression { isMultiCluster() } }
                     steps {
