@@ -102,7 +102,9 @@ var _ = t.Describe("Post Install Overrides Test", func() {
 				}
 				for _, pod := range pods {
 					if strings.Contains(pod.Name, deploymentName) {
-						if pod.Labels == nil && pod.Annotations == nil {
+						_, foundLabel := pod.Labels[overrideKey]
+						_, foundAnnotation := pod.Annotations[overrideKey]
+						if !foundLabel && !foundAnnotation {
 							return true
 						}
 					}
