@@ -32,3 +32,13 @@ spec:
       egress:
         kubernetes:
           replicas: 2
+    prometheusOperator:
+      prometheusSpec:
+        storageSpec:
+          volumeClaimTemplate:
+            spec:
+              storageClassName:
+                resources:
+                  requests:
+                    storage: "50Gi"
+                    memory: "128Mi"
