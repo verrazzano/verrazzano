@@ -39,7 +39,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall: true,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0].name",
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-values.yaml"),
+			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-operator-values.yaml"),
 			Dependencies:            []string{},
 			AppendOverridesFunc:     AppendOverrides,
 			GetInstallOverridesFunc: GetOverrides,
@@ -52,7 +52,7 @@ func NewComponent() spi.Component {
 func (c prometheusComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	comp := effectiveCR.Spec.Components.PrometheusOperator
 	if comp == nil || comp.Enabled == nil {
-		return false
+		return true
 	}
 	return *comp.Enabled
 }
@@ -84,16 +84,10 @@ func (c prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
 
 // ValidateInstall verifies the installation of the Verrazzano object
 func (c prometheusComponent) ValidateInstall(effectiveCR *vzapi.Verrazzano) error {
-	if effectiveCR.Spec.Components.PrometheusOperator != nil {
-		return vzapi.ValidateInstallOverrides(effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides)
-	}
-	return nil
+	return c.validatePrometheusOperator(effectiveCR)
 }
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
 func (c prometheusComponent) ValidateUpgrade(effectiveCR *vzapi.Verrazzano) error {
-	if effectiveCR.Spec.Components.PrometheusOperator != nil {
-		return vzapi.ValidateInstallOverrides(effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides)
-	}
-	return nil
+	return c.validatePrometheusOperator(effectiveCR)
 }
