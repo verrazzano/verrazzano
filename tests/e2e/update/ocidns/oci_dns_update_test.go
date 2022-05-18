@@ -37,6 +37,8 @@ func (u OCIPublicDNSModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.DNS.OCI == nil {
 		cr.Spec.Components.DNS.OCI = &vzapi.OCI{}
 	}
+	cr.Spec.Components.DNS.Wildcard = nil
+	cr.Spec.Components.DNS.External = nil
 	cr.Spec.Components.DNS.OCI.DNSZoneName = u.DNSZoneName
 	cr.Spec.Components.DNS.OCI.DNSZoneOCID = u.DNSZoneOCID
 	cr.Spec.Components.DNS.OCI.DNSZoneCompartmentOCID = u.DNSZoneCompartmentOCID
@@ -66,7 +68,10 @@ var _ = t.Describe("Test DNS updates", func() {
 
 	t.It("Update and verify dns domain", func() {
 		m := OCIPublicDNSModifier{testDNSZoneName, testDNSZoneOCID, testDNSZoneCompartmentOCID, testOCIConfigSecret, testDNSScope}
-		update.UpdateCR(m)
+		err := update.UpdateCR(m)
+		if err != nil {
+			log.Fatalf("Error in updating DNS domain - %s", err)
+		}
 		validateIngressList(currentEnvironmentName, testDNSZoneName)
 		validateVirtualServiceList(testDNSZoneName)
 	})
