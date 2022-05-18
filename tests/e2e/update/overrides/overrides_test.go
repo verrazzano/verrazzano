@@ -5,19 +5,21 @@ package overrides
 
 import (
 	"fmt"
+	"log"
+	"os/exec"
+	"strings"
+	"time"
+
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"log"
-	"os/exec"
-	"time"
 )
 
 const (
@@ -26,46 +28,45 @@ const (
 	overrideConfigMapSecretName   string = "test-overrides"
 	verrazzanoMonitoringNamespace string = "verrazzano-monitoring"
 	overrideKey                   string = "override"
-	overrideValue                 string = "false"
+	overrideOldValue              string = "true"
+	overrideNewValue              string = "false"
 	deploymentName                string = "prometheus-operator-kube-p-operator"
 )
 
 var (
-	labelMatch = map[string]string{overrideKey: overrideValue}
-	t          = framework.NewTestFramework("overrides")
+	t = framework.NewTestFramework("overrides")
 )
 
 var _ = t.Describe("Post Install Overrides Test", func() {
-	t.Context("Test overrides update", func() {
-		t.It("Update overrides ConfigMap", func() {
-			updateOverrides()
+	t.Context("Test overrides creation", func() {
+		t.It("Create overrides resources", func() {
+			createOrUpdateOverrides("Create")
 		})
 
-		t.It("Check new pod label and annotation", func() {
+		t.It("Check override values", func() {
 			gomega.Eventually(func() bool {
-				_, err := pkg.GetConfigMap(overrideConfigMapSecretName, constants.DefaultNamespace)
-				if err == nil {
-					pods, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{
-						MatchLabels: labelMatch,
-					}, verrazzanoMonitoringNamespace)
-					if err != nil {
-						ginkgo.AbortSuite(fmt.Sprintf("Label override not found for the Prometheus Operator pod in namespace %s: %v", verrazzanoMonitoringNamespace, err))
-					}
-					foundAnnotation := false
-					for _, pod := range pods {
-						if val, ok := pod.Annotations[overrideKey]; ok && val == overrideValue {
-							foundAnnotation = true
-						}
-					}
-					return len(pods) == 1 && foundAnnotation
-				} else if !k8serrors.IsNotFound(err) {
-					ginkgo.AbortSuite(fmt.Sprintf("Error retrieving the override ConfigMap: %v", err))
-				}
-				return true
+				return checkValues(overrideOldValue)
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 
-		t.It("Check Verrazzano in ready state", func() {
+		t.It("Check Verrazzano gets into ready state", func() {
+			gomega.Eventually(func() error {
+				return vzReady()
+			}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
+		})
+	})
+	t.Context("Test overrides update", func() {
+		t.It("Update overrides ConfigMap", func() {
+			createOrUpdateOverrides("Update")
+		})
+
+		t.It("Check override values", func() {
+			gomega.Eventually(func() bool {
+				return checkValues(overrideNewValue)
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		})
+
+		t.It("Check Verrazzano gets into ready state", func() {
 			gomega.Eventually(func() error {
 				return vzReady()
 			}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
@@ -76,7 +77,7 @@ var _ = t.Describe("Post Install Overrides Test", func() {
 			deleteOverrides()
 		})
 
-		t.It("Check deleted label and annotation have been removed", func() {
+		t.It("Check deleted values are removed", func() {
 			gomega.Eventually(func() bool {
 				pods, err := pkg.GetPodsFromSelector(nil, constants.VerrazzanoMonitoringNamespace)
 				if err != nil {
@@ -103,8 +104,8 @@ var _ = t.Describe("Post Install Overrides Test", func() {
 	})
 })
 
-func updateOverrides() {
-	output, err := exec.Command("/bin/sh", "update_overrides.sh").Output()
+func createOrUpdateOverrides(op string) {
+	output, err := exec.Command("/bin/sh", "update_overrides.sh", op).Output()
 	if err != nil {
 		log.Fatalf("Error in updating ConfigMap")
 	}
@@ -133,4 +134,27 @@ func vzReady() error {
 		return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
 	}
 	return nil
+}
+
+func checkValues(overrideValue string) bool {
+	labelMatch := map[string]string{overrideKey: overrideValue}
+	_, err := pkg.GetConfigMap(overrideConfigMapSecretName, constants.DefaultNamespace)
+	if err == nil {
+		pods, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{
+			MatchLabels: labelMatch,
+		}, verrazzanoMonitoringNamespace)
+		if err != nil {
+			ginkgo.AbortSuite(fmt.Sprintf("Label override not found for the Prometheus Operator pod in namespace %s: %v", verrazzanoMonitoringNamespace, err))
+		}
+		foundAnnotation := false
+		for _, pod := range pods {
+			if val, ok := pod.Annotations[overrideKey]; ok && val == overrideValue {
+				foundAnnotation = true
+			}
+		}
+		return len(pods) == 1 && foundAnnotation
+	} else if !k8serrors.IsNotFound(err) {
+		ginkgo.AbortSuite(fmt.Sprintf("Error retrieving the override ConfigMap: %v", err))
+	}
+	return true
 }
