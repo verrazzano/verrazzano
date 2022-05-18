@@ -26,7 +26,7 @@ var kubeConfig = os.Getenv("KUBECONFIG")
 var testKeycloakMasterUserID = ""
 var testKeycloakVerrazzanoUserID = ""
 
-var t = framework.NewTestFramework("verify")
+var t = framework.NewTestFramework("keycloak")
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
