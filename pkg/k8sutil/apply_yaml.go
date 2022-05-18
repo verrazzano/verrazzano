@@ -9,16 +9,15 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
-	"path"
-	"strings"
-	"text/template"
-
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"os"
+	"path"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	crtpkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
+	"strings"
+	"text/template"
 )
 
 const (
@@ -62,26 +61,6 @@ func (y *YAMLApplier) ApplyD(directory string) error {
 	for _, file := range filteredFiles {
 		filePath := path.Join(directory, file.Name())
 		if err = y.ApplyF(filePath); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-//ApplyDT applies a directory of file templates to Kubernetes
-func (y *YAMLApplier) ApplyDT(directory string, args map[string]interface{}) error {
-	files, err := os.ReadDir(directory)
-	if err != nil {
-		return err
-	}
-	filteredFiles := filterYamlExt(files)
-	if len(filteredFiles) < 1 {
-		return fmt.Errorf("no files passed to apply: %s", directory)
-	}
-	for _, file := range filteredFiles {
-		filePath := path.Join(directory, file.Name())
-		if err = y.ApplyFT(filePath, args); err != nil {
 			return err
 		}
 	}
