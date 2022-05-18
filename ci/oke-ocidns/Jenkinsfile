@@ -56,7 +56,7 @@ pipeline {
         choice (description: 'Specifies  DNS scope. Values: GLOBAL, PRIVATE. Default: GLOBAL',name: 'DNS_SCOPE',
             // 1st choice is the default value
             choices: [ "GLOBAL","PRIVATE" ])
-        // TODO: Change default to 'no' for running DNS update tests
+        // Choose whether to run OCI DNS update test. Default option is yes.
         choice (description: 'Run DNS update tests - Wildcard DNS to OCI DNS', name: 'RUN_DNS_UPDATE_TESTS',
             choices: ["yes", "no"])
         choice (description: 'Kubernetes Version for OKE Cluster', name: 'OKE_CLUSTER_VERSION',
