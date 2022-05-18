@@ -1219,13 +1219,27 @@ def createOKEClusters(clusterPrefix) {
 def dumpK8sCluster(dumpDirectory) {
     script {
         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+            // Create a dictionary of Verrazzano dump k8s cluster steps to be executed in parallel
+            // - the first one will always be the Admin cluster
+            // - clusters 2-max are managed clusters
+            def verrazzanoDumpK8sClusterStages = [:]
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
             for (int count = 1; count <= clusterCount; count++) {
-                sh """
+                verrazzanoDumpK8sClusterStages["${count}"] = dumpK8sSpecificCluster(count, dumpDirectory)
+            }
+            parallel verrazzanoDumpK8sClusterStages
+        }
+    }
+}
+
+def dumpK8sSpecificCluster(count, dumpDirectory) {
+    // For parallel execution, wrap this in a Groovy enclosure {}
+    return {
+        script {
+            sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}-${count} -r ${dumpDirectory}-${count}/cluster-dump/analysis.report
             """
-            }
         }
     }
 }
