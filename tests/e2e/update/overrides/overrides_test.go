@@ -37,16 +37,18 @@ var _ = t.Describe("Update overrides", func() {
 	t.It("Update overrides ConfigMap", func() {
 		updateOverrides()
 	})
-	t.It("Check Verrazzano in ready state", gomega.Eventually(func() error {
-		cr, err := pkg.GetVerrazzano()
-		if err != nil {
-			return err
-		}
-		if cr.Status.State != vzapi.VzStateReady {
-			return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
-		}
-		return nil
-	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state"))
+	t.It("Check Verrazzano in ready state", func() {
+		gomega.Eventually(func() error {
+			cr, err := pkg.GetVerrazzano()
+			if err != nil {
+				return err
+			}
+			if cr.Status.State != vzapi.VzStateReady {
+				return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
+			}
+			return nil
+		}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
+	})
 
 	t.It("Check new pod label and annotation", func() {
 		gomega.Eventually(func() bool {
@@ -77,16 +79,18 @@ var _ = t.Describe("Delete Overrides", func() {
 	t.It("Delete ConfigMap", func() {
 		deleteOverrides()
 	})
-	t.It("Check Verrazzano in ready state", gomega.Eventually(func() error {
-		cr, err := pkg.GetVerrazzano()
-		if err != nil {
-			return err
-		}
-		if cr.Status.State != vzapi.VzStateReady {
-			return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
-		}
-		return nil
-	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state"))
+	t.It("Check Verrazzano in ready state", func() {
+		gomega.Eventually(func() error {
+			cr, err := pkg.GetVerrazzano()
+			if err != nil {
+				return err
+			}
+			if cr.Status.State != vzapi.VzStateReady {
+				return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
+			}
+			return nil
+		}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
+	})
 
 	t.It("Check deleted label and annotation have been removed", func() {
 		gomega.Eventually(func() bool {
