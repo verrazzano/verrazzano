@@ -140,6 +140,7 @@ func TestApplyFT(t *testing.T) {
 	}
 }
 
+// TestApplyDT tests the ApplyDT function.
 func TestApplyDT(t *testing.T) {
 	var tests = []struct {
 		name    string
@@ -148,6 +149,9 @@ func TestApplyDT(t *testing.T) {
 		count   int
 		isError bool
 	}{
+		// GIVEN a directory of template YAML files
+		// WHEN the ApplyDT function is called with substitution key/value pairs
+		// THEN the call succeeds and the resources are applied to the cluster
 		{
 			"should apply all template files in directory",
 			testdata,
@@ -155,6 +159,9 @@ func TestApplyDT(t *testing.T) {
 			3,
 			false,
 		},
+		// GIVEN a directory of template YAML files
+		// WHEN the ApplyDT function is called with no substitution key/value pairs
+		// THEN the call fails
 		{
 			"should fail to apply when one or more templates are incomplete",
 			testdata,
