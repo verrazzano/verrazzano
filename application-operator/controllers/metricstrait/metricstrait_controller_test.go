@@ -2552,7 +2552,7 @@ func TestUseHTTPSForScrapeTargetTrueCondition(t *testing.T) {
 }
 
 // newMetricsTraitReconciler creates a new reconciler for testing
-// cli-poc - The Kerberos client to inject into the reconciler
+// cli - The Kerberos client to inject into the reconciler
 func newMetricsTraitReconciler(cli client.Client) Reconciler {
 	scheme := runtime.NewScheme()
 	vzapi.AddToScheme(scheme)

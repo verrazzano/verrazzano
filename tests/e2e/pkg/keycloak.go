@@ -32,7 +32,7 @@ const (
 	keycloakAdminUserName           = "keycloakadmin"
 
 	keycloakAPIClientID   = "verrazzano-pg"
-	keycloakAdminClientID = "admin-cli-poc"
+	keycloakAdminClientID = "admin-cli"
 )
 
 // NewKeycloakRESTClient creates a new Keycloak REST client.
