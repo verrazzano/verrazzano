@@ -12,4 +12,7 @@ curl -L -o "cert-manager.crds.yaml" \
     "https://github.com/jetstack/cert-manager/releases/download/v${CERT_MANAGER_RELEASE}/cert-manager.crds.yaml"
 ```
 
+## Prometheus Operator
 
+The `prometheus-operator` folder contains template Prometheus ServiceMonitor and PodMonitor resources that are applied during install and upgrade. The monitors
+will cause Prometheus to collect metrics from Verrazzano system components.
