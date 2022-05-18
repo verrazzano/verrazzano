@@ -202,12 +202,12 @@ func deleteClusterRepos(log vzlog.VerrazzanoLogger) error {
 
 	config, err := ctrl.GetConfig()
 	if err != nil {
-		log.Debugf("Rancher Pre-Upgrade: Failed getting config: %v", err)
+		log.Debugf("Rancher IsReady: Failed getting config: %v", err)
 		return err
 	}
 	dynamicClient, err := dynamic.NewForConfig(config)
 	if err != nil {
-		log.Debugf("Rancher Pre-Upgrade: Failed creating dynamic client: %v", err)
+		log.Debugf("Rancher IsReady: Failed creating dynamic client: %v", err)
 		return err
 	}
 
@@ -237,7 +237,7 @@ func deleteClusterRepos(log vzlog.VerrazzanoLogger) error {
 	}
 
 	// Only need to delete the custom resources if the default branch is still release-2.5
-	log.Infof("Rancher Pre-Upgrade: The default release branch is currently set to %s", defaultBranch)
+	log.Infof("Rancher IsReady: The default release branch is currently set to %s", defaultBranch)
 	if defaultBranch != "release-v2.5" {
 		return nil
 	}
@@ -245,10 +245,10 @@ func deleteClusterRepos(log vzlog.VerrazzanoLogger) error {
 	// Delete settings.management.cattle.io chart-default-branch
 	err = dynamicClient.Resource(gvr).Delete(context.TODO(), name, metav1.DeleteOptions{})
 	if err != nil && !errors.IsNotFound(err) {
-		log.Debugf("Rancher Pre-Upgrade: Failed deleting settings.management.cattle.io %s: %v", name, err)
+		log.Debugf("Rancher IsReady: Failed deleting settings.management.cattle.io %s: %v", name, err)
 		return err
 	}
-	log.Infof("Rancher Pre-Upgrade: Deleted settings.management.cattle.io %s", name)
+	log.Infof("Rancher IsReady: Deleted settings.management.cattle.io %s", name)
 
 	// Reconfigure the GVR
 	gvr = schema.GroupVersionResource{
@@ -262,10 +262,10 @@ func deleteClusterRepos(log vzlog.VerrazzanoLogger) error {
 	for _, name := range names {
 		err = dynamicClient.Resource(gvr).Delete(context.TODO(), name, metav1.DeleteOptions{})
 		if err != nil && !errors.IsNotFound(err) {
-			log.Debugf("Rancher Pre-Upgrade: Failed deleting clusterrepos.catalog.cattle.io %s: %v", name, err)
+			log.Debugf("Rancher IsReady: Failed deleting clusterrepos.catalog.cattle.io %s: %v", name, err)
 			return err
 		}
-		log.Infof("Rancher Pre-Upgrade: Deleted clusterrepos.catalog.cattle.io %s", name)
+		log.Infof("Rancher IsReady: Deleted clusterrepos.catalog.cattle.io %s", name)
 	}
 
 	return nil
