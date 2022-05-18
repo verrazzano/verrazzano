@@ -94,10 +94,6 @@ var _ = t.Describe("Delete Overrides", func() {
 
 	t.It("Check deleted label and annotation have been removed", func() {
 		gomega.Eventually(func() bool {
-			_, err := pkg.GetConfigMap(overrideConfigMapSecretName, constants.DefaultNamespace)
-			if !k8serrors.IsNotFound(err) {
-				ginkgo.AbortSuite("Failed to delete overrides")
-			}
 			pods, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{
 				MatchLabels: labelMatch,
 			}, verrazzanoMonitoringNamespace)
