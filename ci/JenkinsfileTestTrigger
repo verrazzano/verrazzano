@@ -251,7 +251,7 @@ pipeline {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-no-injection-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
