@@ -41,11 +41,7 @@ var _ = t.Describe("Post Install Overrides Test", func() {
 			updateOverrides()
 		})
 
-		t.It("Wait for Verrazzano to go into re-install flow", func() {
-			gomega.Eventually(vzReInstall(), waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected Verrazzano to go into Installing stage")
-		})
-
-		t.It("Check Verrazzano in ready state", func() {
+		t.It("Check Verrazzano reaches ready state", func() {
 			gomega.Eventually(vzReady(), waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
 		})
 
@@ -78,11 +74,7 @@ var _ = t.Describe("Post Install Overrides Test", func() {
 			deleteOverrides()
 		})
 
-		t.It("Wait for Verrazzano to go into re-install flow", func() {
-			gomega.Eventually(vzReInstall(), waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected Verrazzano to go into Installing stage")
-		})
-
-		t.It("Check Verrazzano in ready state", func() {
+		t.It("Check Verrazzano reaches ready state", func() {
 			gomega.Eventually(vzReady(), waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
 		})
 
@@ -128,23 +120,12 @@ func deleteOverrides() {
 
 }
 
-func vzReInstall() error {
-	cr, err := pkg.GetVerrazzano()
-	if err != nil {
-		return err
-	}
-	if cr.Status.State == vzapi.VzStateInstalling {
-		return nil
-	}
-	return fmt.Errorf("CR in state %s", cr.Status.State)
-}
-
 func vzReady() error {
 	cr, err := pkg.GetVerrazzano()
 	if err != nil {
 		return err
 	}
-	if cr.Status.State != vzapi.VzStateReady {
+	if cr != nil && cr.Status.State != vzapi.VzStateReady {
 		return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
 	}
 	return nil
