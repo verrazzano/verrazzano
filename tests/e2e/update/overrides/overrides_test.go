@@ -130,7 +130,7 @@ var _ = t.Describe("Post Install Overrides Test", func() {
 func createOrUpdateOverrides(op string) {
 	output, err := exec.Command("/bin/sh", "update_overrides.sh", op).Output()
 	if err != nil {
-		log.Fatalf("Error in updating ConfigMap")
+		log.Printf("Error in updating ConfigMap: %v", err)
 	}
 	log.Printf(string(output))
 }
