@@ -315,7 +315,7 @@ pipeline {
             when { expression { return params.TEST_ENV == 'ocidns_oke' || params.RUN_DNS_UPDATE_TESTS == 'yes' } }
             environment {
                 TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
-                }
+            }
             steps {
                 script {
                      println("DNS_SCOPE =  ${params.DNS_SCOPE}")
