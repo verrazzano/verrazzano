@@ -56,6 +56,8 @@ pipeline {
         choice (description: 'Specifies  DNS scope. Values: GLOBAL, PRIVATE. Default: GLOBAL',name: 'DNS_SCOPE',
             // 1st choice is the default value
             choices: [ "GLOBAL","PRIVATE" ])
+        choice (description: 'Run DNS update tests - Wildcard DNS to OCI DNS', name: 'RUN_DNS_UPDATE_TESTS',
+            choices: ["yes", "no"])
         choice (description: 'Kubernetes Version for OKE Cluster', name: 'OKE_CLUSTER_VERSION',
                 // 1st choice is the default value
                 choices: [ "v1.22.5", "v1.21.5", "v1.20.8" ])
@@ -446,6 +448,22 @@ pipeline {
                         cd ${WORKSPACE}/tests/e2e
                         ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/...
                     """
+                }
+            }
+        }
+
+        stage("Run DNS update tests - Wildcard to OCI Public DNS") {
+            when { expression { return params.TEST_ENV != 'ocidns_oke' && params.RUN_DNS_UPDATE_TESTS == 'yes' } }
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/ocidns-update"
+            }
+            steps {
+                runGinkgo('update/ocidns')
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
             }
         }
