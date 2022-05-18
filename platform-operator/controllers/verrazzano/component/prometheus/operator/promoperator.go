@@ -6,10 +6,12 @@ package operator
 import (
 	"context"
 	"fmt"
+	"path"
 	"strconv"
 
 	vmoconst "github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -280,4 +282,20 @@ func appendAdditionalVolumeOverrides(ctx spi.ComponentContext, volumeMountKey, v
 	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[1].secret.optional", volumeKey), Value: "true"})
 
 	return kvs, nil
+}
+
+// applySystemMonitors applies templatized PodMonitor and ServiceMonitor custom resources for Verrazzano system
+// components to the cluster
+func applySystemMonitors(ctx spi.ComponentContext) error {
+	// create template key/value map
+	args := make(map[string]interface{})
+	args["systemNamespace"] = constants.VerrazzanoSystemNamespace
+	args["monitoringNamespace"] = constants.VerrazzanoMonitoringNamespace
+	args["nginxNamespace"] = constants.IngressNginxNamespace
+	args["istioNamespace"] = constants.IstioSystemNamespace
+
+	// substitute template values to all files in the directory and apply the resulting YAML
+	dir := path.Join(config.GetThirdPartyManifestsDir(), "prometheus-operator")
+	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
+	return yamlApplier.ApplyDT(dir, args)
 }
