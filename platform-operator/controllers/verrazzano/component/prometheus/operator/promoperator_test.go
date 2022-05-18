@@ -181,3 +181,50 @@ func TestPreInstall(t *testing.T) {
 	err = client.Get(context.TODO(), types.NamespacedName{Name: ComponentNamespace}, &ns)
 	assert.NoError(t, err)
 }
+
+// TestGetHelmOverridesPromNotConfigured tests the preInstall function.
+// GIVEN a call to GetHelmOverrides
+// WHEN the PrometheusOperator component is nil (not configured)
+// THEN an empty override set is returned
+func TestGetHelmOverridesPromNotConfigured(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+
+	// Nil CR
+	overrides := GetHelmOverrides(spi.NewFakeContext(client, nil, false))
+	assert.Equal(t, []vzapi.Overrides{}, overrides)
+
+	// Nil Prom Operator component
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	overrides = GetHelmOverrides(ctx)
+	assert.Equal(t, []vzapi.Overrides{}, overrides)
+}
+
+// TestGetHelmOverrides tests the preInstall function.
+// GIVEN a call to GetHelmOverrides
+// WHEN the PrometheusOperator component has overrides configured
+// THEN the correct override set is returned
+func TestGetHelmOverrides(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	expectedOverrides := []vzapi.Overrides{
+		{ConfigMapRef: &v1.ConfigMapKeySelector{
+			Key: "foo",
+		}},
+	}
+	ctx := spi.NewFakeContext(client,
+		&vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					PrometheusOperator: &vzapi.PrometheusOperatorComponent{
+						InstallOverrides: vzapi.InstallOverrides{
+							ValueOverrides: expectedOverrides,
+						},
+					},
+				},
+			},
+		},
+		false,
+	)
+
+	overrides := GetHelmOverrides(ctx)
+	assert.Equal(t, expectedOverrides, overrides)
+}

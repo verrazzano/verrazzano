@@ -86,6 +86,9 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 
 // GetHelmOverrides appends Helm value overrides for the Prometheus Operator Helm chart
 func GetHelmOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
+	if ctx.EffectiveCR() == nil || ctx.EffectiveCR().Spec.Components.PrometheusOperator == nil {
+		return []vzapi.Overrides{}
+	}
 	return ctx.EffectiveCR().Spec.Components.PrometheusOperator.ValueOverrides
 }
 
