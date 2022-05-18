@@ -451,7 +451,7 @@ pipeline {
             }
         }
 
-        stage("run-DNS-update-tests" {
+        stage("run-DNS-update-tests") {
             // This stage will be run if initially Wildcard DNS is selected, i.e. TEST_ENV is either 'kind' or 'magicdns_oke'
             when { expression { return (params.TEST_ENV == 'kind' || params.TEST_ENV == 'magicdns_oke') && params.RUN_DNS_UPDATE_TESTS == 'yes' } }
             environment {
