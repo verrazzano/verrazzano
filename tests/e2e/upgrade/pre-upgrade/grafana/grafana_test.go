@@ -26,11 +26,11 @@ const (
 var t = framework.NewTestFramework("grafana")
 
 type DashboardMetadata struct {
-	Id      int    `json:"id"`
+	ID      int    `json:"id"`
 	Slug    string `json:"slug"`
 	Status  string `json:"status"`
-	Uid     string `json:"uid"`
-	Url     string `json:"url"`
+	UID     string `json:"uid"`
+	URL     string `json:"url"`
 	Version int    `json:"version"`
 }
 
@@ -71,7 +71,7 @@ var _ = t.Describe("Pre Upgrade Grafana Dashboard", Label("f:observability.loggi
 	It("Grafana Get Dasbhoard details", func() {
 		Eventually(func() bool {
 			// UID of testDashboard, which is created by the previous test.
-			uid := testDashboard.Uid
+			uid := testDashboard.UID
 			if uid == "" {
 				return false
 			}
@@ -86,11 +86,7 @@ var _ = t.Describe("Pre Upgrade Grafana Dashboard", Label("f:observability.loggi
 			}
 			body := make(map[string]map[string]string)
 			json.Unmarshal(resp.Body, &body)
-			if strings.Contains(body["dashboard"]["title"], "E2ETestDashboard") {
-				return true
-			}
-			return false
-
+			return strings.Contains(body["dashboard"]["title"], "E2ETestDashboard")
 		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue())
 	})
 
@@ -135,11 +131,7 @@ var _ = t.Describe("Pre Upgrade Grafana Dashboard", Label("f:observability.loggi
 			}
 			body := make(map[string]map[string]string)
 			json.Unmarshal(resp.Body, &body)
-			if strings.Contains(body["dashboard"]["title"], "Host Metrics") {
-				return true
-			}
-			return false
-
+			return strings.Contains(body["dashboard"]["title"], "Host Metrics")
 		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue())
 	})
 })

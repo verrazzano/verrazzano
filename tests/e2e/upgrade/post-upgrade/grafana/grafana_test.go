@@ -68,11 +68,7 @@ var _ = t.Describe("Post Upgrade Grafana Dashboard", Label("f:observability.logg
 			}
 			body := make(map[string]map[string]string)
 			json.Unmarshal(resp.Body, &body)
-			if strings.Contains(body["dashboard"]["title"], "Host Metrics") {
-				return true
-			}
-			return false
-
+			return strings.Contains(body["dashboard"]["title"], "Host Metrics")
 		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue())
 	})
 })
