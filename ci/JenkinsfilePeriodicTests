@@ -136,14 +136,16 @@ pipeline {
             parallel {
                 stage('Kind Acceptance Tests on 1.19 Non-Calico') {
                     steps {
-                        script {
-                            // Do not use Calico
-                            build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
-                                parameters: [
-                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
-                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: false)
-                                ], wait: true
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                // Do not use Calico
+                                build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
+                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                        booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: false)
+                                    ], wait: true
+                            }
                         }
                     }
                     post {
@@ -156,14 +158,16 @@ pipeline {
                 }
                 stage('Kind Acceptance Tests on 1.19 sslip.io') {
                     steps {
-                        script {
-                            // test with sslip.io
-                            build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
-                                parameters: [
-                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
-                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: 'sslip.io')
-                                ], wait: true
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                // test with sslip.io
+                                build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
+                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                        string(name: 'WILDCARD_DNS_DOMAIN', value: 'sslip.io')
+                                    ], wait: true
+                            }
                         }
                     }
                     post {
@@ -176,16 +180,18 @@ pipeline {
                 }
                 stage('OCI DNS/ACME-Staging Tests') {
                     steps {
-                        script {
-                            def builtOCIDNS = build job: "verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
-                                parameters: [
-                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'CERT_ISSUER', value: "acme"),
-                                    string(name: 'ACME_ENVIRONMENT', value: "staging"),
-                                    booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: false)
-                                ], wait: true
-                            // The OCI DNS job is the one from which we get the verrazzano images file
-                            verrazzanoImagesBuildNumber = builtOCIDNS.number
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                def builtOCIDNS = build job: "verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                        string(name: 'CERT_ISSUER', value: "acme"),
+                                        string(name: 'ACME_ENVIRONMENT', value: "staging"),
+                                        booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: false)
+                                    ], wait: true
+                                // The OCI DNS job is the one from which we get the verrazzano images file
+                                verrazzanoImagesBuildNumber = builtOCIDNS.number
+                            }
                         }
                     }
                     post {
@@ -224,12 +230,14 @@ pipeline {
                         }
                     }
                     steps {
-                        script {
-                            build job: "verrazzano-private-registry/${CLEAN_BRANCH_NAME}",
-                                parameters: [
-                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'ZIPFILE_LOCATION', value: storeLocation)
-                                ], wait: true
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "verrazzano-private-registry/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                        string(name: 'ZIPFILE_LOCATION', value: storeLocation)
+                                    ], wait: true
+                            }
                         }
                     }
                 }
