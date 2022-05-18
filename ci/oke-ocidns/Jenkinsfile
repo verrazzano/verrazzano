@@ -56,6 +56,7 @@ pipeline {
         choice (description: 'Specifies  DNS scope. Values: GLOBAL, PRIVATE. Default: GLOBAL',name: 'DNS_SCOPE',
             // 1st choice is the default value
             choices: [ "GLOBAL","PRIVATE" ])
+        // TODO: Change default to 'no' for running DNS update tests
         choice (description: 'Run DNS update tests - Wildcard DNS to OCI DNS', name: 'RUN_DNS_UPDATE_TESTS',
             choices: ["yes", "no"])
         choice (description: 'Kubernetes Version for OKE Cluster', name: 'OKE_CLUSTER_VERSION',
@@ -453,7 +454,8 @@ pipeline {
         }
 
         stage("Run DNS update tests - Wildcard to OCI Public DNS") {
-            when { expression { return params.TEST_ENV != 'ocidns_oke' && params.RUN_DNS_UPDATE_TESTS == 'yes' } }
+            // This stage will be run if initially Wildcard DNS is selected, i.e. TEST_ENV is either 'kind' or 'magicdns_oke'
+            when { expression { return (params.TEST_ENV != 'kind' || params.TEST_ENV == 'magicdns_oke') && params.RUN_DNS_UPDATE_TESTS == 'yes' } }
             environment {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/ocidns-update"
             }
