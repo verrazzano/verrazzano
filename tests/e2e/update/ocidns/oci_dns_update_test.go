@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	waitTimeout     = 5 * time.Minute
+	waitTimeout     = 15 * time.Minute
 	pollingInterval = 10 * time.Second
 )
 
@@ -55,7 +55,7 @@ var (
 	currentDNSDomain       string
 )
 
-var _ = t.Describe("Test updates to environment name, dns domain and cert-manager CA certificates", func() {
+var _ = t.Describe("Test DNS updates", func() {
 	t.It("Verify the current environment name and dns domain", func() {
 		cr := update.GetCR()
 		currentEnvironmentName = cr.Spec.EnvironmentName
