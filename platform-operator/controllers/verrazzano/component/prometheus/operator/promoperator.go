@@ -59,7 +59,7 @@ func preInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// AppendOverrides appends Helm value overrides for the Prometheus Operator Helm chart
+// AppendOverrides appends install overrides for the Prometheus Operator Helm chart
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Append custom images from the subcomponents in the bom
 	ctx.Log().Debug("Appending the image overrides for the Prometheus Operator components")
@@ -224,12 +224,8 @@ func appendIstioOverrides(ctx spi.ComponentContext, annotationsKey, volumeMountK
 	return kvs, nil
 }
 
-// GetOverrides appends Helm value overrides for the Prometheus Operator Helm chart
+// GetOverrides appends install overrides for the Prometheus Operator Helm chart
 func GetOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
-	comp := ctx.EffectiveCR().Spec.Components.PrometheusOperator
-	if comp == nil {
-		return []vzapi.Overrides{}
-	}
 	if ctx.EffectiveCR().Spec.Components.PrometheusOperator != nil {
 		return ctx.EffectiveCR().Spec.Components.PrometheusOperator.ValueOverrides
 	}
