@@ -54,6 +54,9 @@ type OpensearchDataNodeArgsModifier struct {
 type OpensearchCleanUpModifier struct {
 }
 
+type OpensearchAllNodeRolesModifier struct {
+}
+
 func (u OpensearchMasterNodeArgsModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
@@ -206,6 +209,20 @@ func (u OpensearchDuplicateNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		)
 }
 
+func (u OpensearchAllNodeRolesModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
+	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{}
+	cr.Spec.Components.Elasticsearch.Nodes =
+		append(cr.Spec.Components.Elasticsearch.Nodes,
+			vzapi.OpenSearchNode{
+				Name:      string(vmov1.DataRole),
+				Replicas:  1,
+				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole, vmov1.IngestRole},
+				Storage:   newNodeStorage("2Gi"),
+				Resources: newResources("512Mi"),
+			},
+		)
+}
 func newNodeStorage(size string) *vzapi.OpenSearchNodeStorage {
 	storage := new(vzapi.OpenSearchNodeStorage)
 	storage.Size = size
@@ -228,6 +245,6 @@ func newResources(requestMemory string) *corev1.ResourceRequirements {
 var t = framework.NewTestFramework("update opensearch")
 
 var _ = t.AfterSuite(func() {
-	m := OpensearchCleanUpModifier{}
+	m := OpensearchAllNodeRolesModifier{}
 	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 })
