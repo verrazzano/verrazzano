@@ -18,7 +18,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-var waitTimeout = 3 * time.Minute
+var waitTimeout = 5 * time.Minute
 var pollingInterval = 10 * time.Second
 
 var kubeConfig = os.Getenv("KUBECONFIG")
@@ -35,16 +35,11 @@ var _ = t.BeforeSuite(func() {
 	if isManagedClusterProfile {
 		Skip("Skipping test suite since this is a managed cluster profile")
 	}
-	exists, err := pkg.DoesNamespaceExist(pkg.TestKeycloakNamespace)
-	if err != nil {
-		Fail(err.Error())
-	}
-	if exists {
-		// Delete namespace, if already exists, so that test can be executed cleanly
-		Eventually(func() error {
-			return pkg.DeleteNamespace(pkg.TestKeycloakNamespace)
-		}, waitTimeout, pollingInterval).Should(BeNil())
-	}
+
+	// Delete namespace, if already exists, so that test can be executed cleanly
+	Eventually(func() error {
+		return pkg.DeleteNamespace(pkg.TestKeycloakNamespace)
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() (*v1.Namespace, error) {
 		return pkg.CreateNamespace(pkg.TestKeycloakNamespace, nil)
