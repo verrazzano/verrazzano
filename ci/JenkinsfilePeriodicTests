@@ -181,6 +181,7 @@ pipeline {
                                     ], wait: true
                                 // The OCI DNS job is the one from which we get the verrazzano images file
                                 verrazzanoImagesBuildNumber = builtOCIDNS.number
+                            }
                         }
                     }
                 }
