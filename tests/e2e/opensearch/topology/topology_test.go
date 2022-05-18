@@ -104,7 +104,7 @@ var _ = t.Describe("OpenSearch Cluster Topology", func() {
 		})
 		eventuallyPodsReady(3, 3, 3)
 
-		t.Logs.Info("Adding 3 data/ingest nodes and 3 master nodes")
+		t.Logs.Info("Adding 3 data/ingest nodes and 1 master node")
 		eventuallyUpdateVMI(t, func(vmi *vmov1.VerrazzanoMonitoringInstance) {
 			vmi.Spec.Elasticsearch.Nodes = []vmov1.ElasticsearchNode{
 				{
@@ -123,7 +123,7 @@ var _ = t.Describe("OpenSearch Cluster Topology", func() {
 				},
 				{
 					Name:     "master",
-					Replicas: 4,
+					Replicas: 1,
 					Roles: []vmov1.NodeRole{
 						vmov1.MasterRole,
 					},
@@ -136,13 +136,13 @@ var _ = t.Describe("OpenSearch Cluster Topology", func() {
 				},
 			}
 		})
-		eventuallyPodsReady(7, 6, 6)
+		eventuallyPodsReady(4, 6, 6)
 
-		t.Logs.Info("Removing 3 master/data/ingest nodes")
+		t.Logs.Info("Removing 1 master/data/ingest nodes")
 		eventuallyUpdateVMI(t, func(vmi *vmov1.VerrazzanoMonitoringInstance) {
-			vmi.Spec.Elasticsearch.MasterNode.Replicas = 0
+			vmi.Spec.Elasticsearch.MasterNode.Replicas = 2
 		})
-		eventuallyPodsReady(4, 3, 3)
+		eventuallyPodsReady(3, 5, 5)
 	})
 })
 
