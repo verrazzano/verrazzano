@@ -64,8 +64,8 @@ type HelmComponent struct {
 	// AppendOverridesFunc is an optional function get additional override values
 	AppendOverridesFunc appendOverridesSig
 
-	// GetHelmValueOverrides is an optional function that returns the helm override values
-	GetHelmValueOverrides getHelmValueOverridesSig
+	// GetInstallOverridesFunc is an optional function get install override sources
+	GetInstallOverridesFunc getInstallOverridesSig
 
 	// ResolveNamespaceFunc is an optional function to process the namespace name
 	ResolveNamespaceFunc resolveNamespaceSig
@@ -73,7 +73,7 @@ type HelmComponent struct {
 	// SupportsOperatorInstall Indicates whether or not the component supports install via the operator
 	SupportsOperatorInstall bool
 
-	// WaitForInstall Indicates if the operator should wait for helm operationsto complete (synchronous behavior)
+	// WaitForInstall Indicates if the operator should wait for helm operations to complete (synchronous behavior)
 	WaitForInstall bool
 
 	// ImagePullSecretKeyname is the Helm Value Key for the image pull secret for a chart
@@ -111,8 +111,8 @@ type preUpgradeFuncSig func(log vzlog.VerrazzanoLogger, client clipkg.Client, re
 // appendOverridesSig is an optional function called to generate additional overrides.
 type appendOverridesSig func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error)
 
-// getHelmValueOverridesSig is the signature for providing the list of Helm value overrides.
-type getHelmValueOverridesSig func(context spi.ComponentContext) []vzapi.Overrides
+// getInstallOverridesSig is an optional function called to generate additional overrides.
+type getInstallOverridesSig func(context spi.ComponentContext) []vzapi.Overrides
 
 // resolveNamespaceSig is an optional function called for special namespace processing
 type resolveNamespaceSig func(ns string) string
@@ -142,6 +142,14 @@ func (h HelmComponent) Name() string {
 // GetJsonName returns the josn name of the verrazzano component in CRD
 func (h HelmComponent) GetJSONName() string {
 	return h.JSONName
+}
+
+// GetOverrides returns the list of install overrides for a component
+func (h HelmComponent) GetOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
+	if h.GetInstallOverridesFunc != nil {
+		return h.GetInstallOverridesFunc(ctx)
+	}
+	return []vzapi.Overrides{}
 }
 
 // GetDependencies returns the Dependencies of this component
@@ -218,6 +226,10 @@ func (h HelmComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (h HelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	return nil
+}
+
+func (h HelmComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	return true
 }
 
 // Install installs the component using Helm
@@ -367,12 +379,10 @@ func (h HelmComponent) buildCustomHelmOverrides(context spi.ComponentContext, na
 	var overrides []helm.HelmOverrides
 
 	// Sort the kvs list by priority (0th term has the highest priority)
-	// Getting user defined Helm overrides as the highest priority
-	if h.GetHelmValueOverrides != nil {
-		kvs, err = h.retrieveHelmOverrideResources(context, h.GetHelmValueOverrides(context))
-		if err != nil {
-			return overrides, err
-		}
+	// Getting user defined install overrides as the highest priority
+	kvs, err = h.retrieveInstallOverrideResources(context, h.GetOverrides(context))
+	if err != nil {
+		return overrides, err
 	}
 
 	// Create files from the Verrazzano Helm values
@@ -480,8 +490,8 @@ func (h HelmComponent) organizeHelmOverrides(kvs []bom.KeyValue) []helm.HelmOver
 	return overrides
 }
 
-// retrieveHelmOverrideResources takes the list of Overrides and returns a list of key value pairs
-func (h HelmComponent) retrieveHelmOverrideResources(ctx spi.ComponentContext, overrides []vzapi.Overrides) ([]bom.KeyValue, error) {
+// retrieveInstallOverrideResources takes the list of Overrides and returns a list of key value pairs
+func (h HelmComponent) retrieveInstallOverrideResources(ctx spi.ComponentContext, overrides []vzapi.Overrides) ([]bom.KeyValue, error) {
 	var kvs []bom.KeyValue
 	for _, override := range overrides {
 		// Check if ConfigMapRef is populated and gather helm file
@@ -501,7 +511,7 @@ func (h HelmComponent) retrieveHelmOverrideResources(ctx spi.ComponentContext, o
 				continue
 			}
 
-			tmpFile, err := createHelmOverrideFile(ctx, nsn, configMap.Data, selector.Key, selector.Optional)
+			tmpFile, err := createInstallOverrideFile(ctx, nsn, configMap.Data, selector.Key, selector.Optional)
 			if err != nil {
 				return kvs, err
 			}
@@ -530,7 +540,7 @@ func (h HelmComponent) retrieveHelmOverrideResources(ctx spi.ComponentContext, o
 			for key, val := range sec.Data {
 				dataStrings[key] = string(val)
 			}
-			tmpFile, err := createHelmOverrideFile(ctx, nsn, dataStrings, selector.Key, selector.Optional)
+			tmpFile, err := createInstallOverrideFile(ctx, nsn, dataStrings, selector.Key, selector.Optional)
 			if err != nil {
 				return kvs, err
 			}
@@ -542,8 +552,8 @@ func (h HelmComponent) retrieveHelmOverrideResources(ctx spi.ComponentContext, o
 	return kvs, nil
 }
 
-// createHelmOverrideFile takes in the data from a kubernetes resource and creates a temporary file for helm install
-func createHelmOverrideFile(ctx spi.ComponentContext, nsn types.NamespacedName, data map[string]string, dataKey string, optional *bool) (*os.File, error) {
+// createInstallOverrideFile takes in the data from a kubernetes resource and creates a temporary file for helm install
+func createInstallOverrideFile(ctx spi.ComponentContext, nsn types.NamespacedName, data map[string]string, dataKey string, optional *bool) (*os.File, error) {
 	var file *os.File
 
 	// Get resource data

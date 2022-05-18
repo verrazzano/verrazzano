@@ -52,6 +52,10 @@ type ComponentInfo interface {
 	GetCertificateNames(context ComponentContext) []types.NamespacedName
 	// GetJsonName returns the josn name of the verrazzano component in CRD
 	GetJSONName() string
+	// GetHelmOverrides returns the list of overrides for a component
+	GetOverrides(context ComponentContext) []vzapi.Overrides
+	// MonitorOverrides indicates whether the override sources for a component need to be monitored
+	MonitorOverrides(context ComponentContext) bool
 }
 
 // ComponentInstaller interface defines installs operations for components that support it

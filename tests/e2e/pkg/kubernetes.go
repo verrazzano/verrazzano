@@ -1369,36 +1369,33 @@ func UpdateConfigMap(configMap *corev1.ConfigMap) error {
 	return nil
 }
 
-// ContainerHasExpectedEnv returns true if each of the envs matches a substring of one of the env found in the deployment
-func ContainerHasExpectedEnv(namespace string, deploymentName string, containerName string, envMap map[string]string) (bool, error) {
+// GetContainerEnv returns an array of environment variables in the specified container for the specified deployment
+func GetContainerEnv(namespace string, deploymentName string, containerName string) ([]corev1.EnvVar, error) {
 	deployment, err := GetDeployment(namespace, deploymentName)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Deployment %v is not found in the namespace: %v, error: %v", deploymentName, namespace, err))
-		return false, nil
+		return nil, fmt.Errorf("deployment %s not found in the namespace: %s, error: %v", deploymentName, namespace, err)
 	}
 	for _, container := range deployment.Spec.Template.Spec.Containers {
 		if container.Name == containerName {
-			for env, val := range envMap {
-				found := false
-				for _, containerEnv := range container.Env {
-					if containerEnv.Name == env {
-						if containerEnv.Value != val {
-							Log(Error, fmt.Sprintf("The value %v of the env %v for the container %v is not set as expected: %v",
-								containerEnv.Value, containerEnv.Name, containerName, val))
-							return false, nil
-						}
-						found = true
-					}
-				}
-				if !found {
-					Log(Error, fmt.Sprintf("The env %v not set for the container %v", env, containerName))
-					return false, nil
-				}
-			}
-			return true, nil
+			return container.Env, nil
 		}
 	}
-	return false, nil
+	return nil, fmt.Errorf("container %s not found in the namespace: %s", containerName, namespace)
+}
+
+// GetContainerImage returns the image used by the specified container for the specified deployment
+func GetContainerImage(namespace string, deploymentName string, containerName string) (string, error) {
+	deployment, err := GetDeployment(namespace, deploymentName)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Deployment %v not found in the namespace: %v, error: %v", deploymentName, namespace, err))
+		return "", nil
+	}
+	for _, container := range deployment.Spec.Template.Spec.Containers {
+		if container.Name == containerName {
+			return container.Image, nil
+		}
+	}
+	return "", fmt.Errorf("container %v not found in the namespace: %v", containerName, namespace)
 }
 
 // WaitForVZCondition waits till the VZ CR reaches the given condition
