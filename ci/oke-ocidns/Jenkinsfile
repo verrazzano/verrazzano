@@ -144,7 +144,7 @@ pipeline {
         INSTALL_CONFIG_FILE_NODEPORT = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nodeport.yaml"
 
         //OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
-        OCI_DNS_ZONE_NAME="${params.DNS_SCOPE == 'PRIVATE' ? "z${zoneId}-private.v8o.io" : "z${zoneId}.v8o.io"}"
+        OCI_DNS_ZONE_OCID="${params.DNS_SCOPE == 'PRIVATE' ? "z${zoneId}-private.v8o.io" : "z${zoneId}.v8o.io"}"
         CERT_ISSUER="${params.CERT_ISSUER}"
         ACME_ENVIRONMENT="${params.ACME_ENVIRONMENT}"
 
@@ -455,6 +455,11 @@ pipeline {
             // This stage will be run if initially Wildcard DNS is selected, i.e. TEST_ENV is either 'kind' or 'magicdns_oke'
             when { expression { return (params.TEST_ENV == 'kind' || params.TEST_ENV == 'magicdns_oke') && params.RUN_DNS_UPDATE_TESTS == 'yes' } }
             environment {
+                OCI_DNS_COMPARTMENT_OCID = credentials('oci-dns-compartment')
+                OCI_DNS_ZONE_NAME = "${OCI_DNS_ZONE_NAME}"
+                OCI_DNS_ZONE_OCID = "${dns_zone_ocid}"
+                OCI_CONFIG_SECRET = "oci"
+                OCI_DNS_SCOPE = params.DNS_SCOPE
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/ocidns-update"
             }
             steps {
