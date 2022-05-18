@@ -1123,6 +1123,11 @@ def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript
         String allArgs = ""
         extraArgs.each { allArgs += it + " " }
 
+        // Create a dictionary of Verrazzano upgrade steps to be executed in parallel
+        // - the first one will always be the Admin cluster
+        // - clusters 2-max are managed clusters
+        def verrazzanoInstallerStages = [:]
+
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
             def destinationPath = "${env.KUBECONFIG_DIR}/${count}/${installerFileName}"
@@ -1136,6 +1141,18 @@ def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript
                 installProfile = ADMIN_CLUSTER_PROFILE
                 envName = "admin"
             }
+            verrazzanoInstallerStages["${envName}"] = configureVerrazzanoInstallerOnCluster(count,
+                    installResourceTemplate, destinationPath, envName, installProfile, configProcessorScript, allArgs)
+        }
+        parallel verrazzanoInstallerStages
+    }
+}
+
+def configureVerrazzanoInstallerOnCluster(count, installResourceTemplate, destinationPath, envName, installProfile,
+                                          configProcessorScript, allArgs) {
+    // For parallel execution, wrap this in a Groovy enclosure {}
+    return {
+        script {
             sh """
                 mkdir -p "${KUBECONFIG_DIR}/${count}"
                 export PATH=${HOME}/go/bin:${PATH}
