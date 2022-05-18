@@ -8,27 +8,7 @@ import (
 )
 
 var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
-
-	// GIVEN a VZ custom resource in dev or prod profile,
-	// WHEN no modification is done to the CR,
-	// THEN default number of master/ingest/date nodes are in running state
-	//t.Describe("verrazzano-opensearch verify", Label("f:platform-lcm.opensearch-verify"), func() {
-	//	t.It("opensearch default replicas", func() {
-	//		cr := update.GetCR()
-	//		expectedMasterRunning := uint32(1)
-	//		expectedIngestRunning := uint32(0)
-	//		expectedDataRunning := uint32(0)
-	//		if cr.Spec.Profile == "prod" || cr.Spec.Profile == "" {
-	//			expectedMasterRunning = 3
-	//			expectedIngestRunning = 1
-	//			expectedDataRunning = 3
-	//			update.ValidatePods(ingestNodeName, AppLabel, constants.VerrazzanoSystemNamespace, expectedIngestRunning, false)
-	//			update.ValidatePods(dataNodeName, AppLabel, constants.VerrazzanoSystemNamespace, expectedDataRunning, false)
-	//		}
-	//		update.ValidatePods(masterNodeName, AppLabel, constants.VerrazzanoSystemNamespace, expectedMasterRunning, false)
-	//	})
-	//})
-
+	
 	// GIVEN a VZ custom resource in dev profile,
 	// WHEN install args section for opensearch component is updated for adding master nodes
 	// THEN master pods gets created.

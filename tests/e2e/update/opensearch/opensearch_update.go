@@ -51,7 +51,7 @@ type OpensearchDataNodeArgsModifier struct {
 	NodeMemory   string
 }
 
-type OpensearchCleanUpArgsModifier struct {
+type OpensearchCleanUpModifier struct {
 }
 
 func (u OpensearchMasterNodeArgsModifier) ModifyCR(cr *vzapi.Verrazzano) {
@@ -105,10 +105,8 @@ func (u OpensearchDataNodeArgsModifier) ModifyCR(cr *vzapi.Verrazzano) {
 			vzapi.InstallArgs{Name: "node.ingest.replicas", Value: defaultIngestNodeCount})
 }
 
-func (u OpensearchCleanUpArgsModifier) ModifyCR(cr *vzapi.Verrazzano) {
-	if cr.Spec.Components.Elasticsearch == nil {
-		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
-	}
+func (u OpensearchCleanUpModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 }
 
 type OpensearchMasterNodeGroupModifier struct {
@@ -230,6 +228,6 @@ func newResources(requestMemory string) *corev1.ResourceRequirements {
 var t = framework.NewTestFramework("update opensearch")
 
 var _ = t.AfterSuite(func() {
-	m := OpensearchCleanUpArgsModifier{}
-	_ = update.UpdateCRExpectError(m)
+	m := OpensearchCleanUpModifier{}
+	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 })
