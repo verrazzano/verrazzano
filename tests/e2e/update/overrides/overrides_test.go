@@ -35,7 +35,7 @@ var (
 	t          = framework.NewTestFramework("overrides")
 )
 
-var _ = t.Describe("Post Install Overrides Test",
+var _ = t.Describe("Post Install Overrides Test", func() {
 	t.Context("Update overrides", func() {
 		t.It("Update overrides ConfigMap", func() {
 			updateOverrides()
@@ -76,8 +76,7 @@ var _ = t.Describe("Post Install Overrides Test",
 				return true
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
-	}),
-
+	})
 	t.Context("Delete Overrides", func() {
 		t.It("Delete ConfigMap", func() {
 			deleteOverrides()
@@ -111,7 +110,8 @@ var _ = t.Describe("Post Install Overrides Test",
 				return false
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
-	}))
+	})
+})
 
 func updateOverrides() {
 	output, err := exec.Command("/bin/sh", "update_overrides.sh").Output()
