@@ -336,7 +336,7 @@ pipeline {
         }
 
         stage("setup-oci-dns-config") {
-            when { expression { return params.TEST_ENV == 'ocidns_oke' ||  params.RUN_DNS_UPDATE_TESTS = 'yes' } }
+            when { expression { return params.TEST_ENV == 'ocidns_oke' ||  params.RUN_DNS_UPDATE_TESTS == 'yes' } }
             environment {
                 OCI_DNS_COMPARTMENT_OCID = credentials('oci-dns-compartment')
                 OCI_PRIVATE_KEY_FILE = credentials('oci-api-key')
@@ -352,7 +352,7 @@ pipeline {
         }
 
         stage("create-oci-config-secret") {
-            when { expression { return params.TEST_ENV == 'ocidns_oke' || params.RUN_DNS_UPDATE_TESTS = 'yes' } }
+            when { expression { return params.TEST_ENV == 'ocidns_oke' || params.RUN_DNS_UPDATE_TESTS == 'yes' } }
             steps {
                 script {
                     if (params.OCI_DNS_AUTH == "instance_principal") {
@@ -585,7 +585,7 @@ pipeline {
             }
 
             sh """
-                if [ "${TEST_ENV}" == "ocidns_oke" || "${RUN_DNS_UPDATE_TESTS}" == "yes" ]; then
+                if [[ "${TEST_ENV}" == "ocidns_oke" || "${RUN_DNS_UPDATE_TESTS}" == "yes" ]]; then
                   ${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} -k ${params.DNS_SCOPE} || echo "Failed to delete DNS zone z${zoneId}"
                 fi
                 if [ "${TEST_ENV}" == "kind" ]; then
