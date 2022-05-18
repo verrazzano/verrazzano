@@ -8,7 +8,7 @@ import (
 )
 
 var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
-	
+
 	// GIVEN a VZ custom resource in dev profile,
 	// WHEN install args section for opensearch component is updated for adding master nodes
 	// THEN master pods gets created.
