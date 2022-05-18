@@ -18,8 +18,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-var waitTimeout = 5 * time.Minute
-var pollingInterval = 10 * time.Second
+var waitTimeout = 10 * time.Minute
+var pollingInterval = 20 * time.Second
 
 var kubeConfig = os.Getenv("KUBECONFIG")
 var testKeycloakMasterUserID = ""
@@ -39,10 +39,11 @@ var _ = t.BeforeSuite(func() {
 	// Delete namespace, if already exists, so that test can be executed cleanly
 	Eventually(func() error {
 		return pkg.DeleteNamespace(pkg.TestKeycloakNamespace)
-	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, pollingInterval).Should(BeNil())
 
 	Eventually(func() (*v1.Namespace, error) {
-		return pkg.CreateNamespace(pkg.TestKeycloakNamespace, nil)
+		nsLabels := map[string]string{}
+		return pkg.CreateNamespace(pkg.TestKeycloakNamespace, nsLabels)
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 	metrics.Emit(t.Metrics.With("before_suite_elapsed_time", time.Since(start).Milliseconds()))
