@@ -245,6 +245,6 @@ func newResources(requestMemory string) *corev1.ResourceRequirements {
 var t = framework.NewTestFramework("update opensearch")
 
 var _ = t.AfterSuite(func() {
-	m := OpensearchAllNodeRolesModifier{}
+	m := OpensearchCleanUpModifier{}
 	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 })
