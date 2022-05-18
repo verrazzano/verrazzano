@@ -203,7 +203,7 @@ func TestConfigMapRequeue(t *testing.T) {
 	asserts.Equal(true, res0.Requeue)
 }
 
-// TestConfigMapCall tests the reconcileHelmOverrideConfigMap for the following use case
+// TestConfigMapCall tests the reconcileInstallOverrideConfigMap for the following use case
 // GIVEN a request to reconcile a ConfigMap
 // WHEN the request namespace matches the Verrazzano CR namespace
 // THEN expect a call to get the ConfigMap
@@ -221,14 +221,14 @@ func TestConfigMapCall(t *testing.T) {
 
 	request := newRequest(testNS, testCMName)
 	reconciler := newConfigMapReconciler(mock)
-	result, err := reconciler.reconcileHelmOverrideConfigMap(context.TODO(), request, &testVZ)
+	result, err := reconciler.reconcileInstallOverrideConfigMap(context.TODO(), request, &testVZ)
 	asserts.NoError(err)
 	mocker.Finish()
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
 
-// TestOtherNS tests the reconcileHelmOverrideConfigMap for the following use case
+// TestOtherNS tests the reconcileInstallOverrideConfigMap for the following use case
 // GIVEN a request to reconcile a ConfigMap
 // WHEN the request namespace does not match with the CR namespace
 // THEN the request is ignored
@@ -245,7 +245,7 @@ func TestOtherNS(t *testing.T) {
 
 	request := newRequest("test0", "test1")
 	reconciler := newConfigMapReconciler(mock)
-	result, err := reconciler.reconcileHelmOverrideConfigMap(context.TODO(), request, &testVZ)
+	result, err := reconciler.reconcileInstallOverrideConfigMap(context.TODO(), request, &testVZ)
 	asserts.NoError(err)
 	mocker.Finish()
 	asserts.Equal(false, result.Requeue)

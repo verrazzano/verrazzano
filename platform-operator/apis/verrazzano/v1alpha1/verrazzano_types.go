@@ -443,8 +443,8 @@ type PrometheusNodeExporterComponent struct {
 // PrometheusOperatorComponent specifies the Prometheus Operator configuration
 type PrometheusOperatorComponent struct {
 	// +optional
-	Enabled            *bool `json:"enabled,omitempty"`
-	HelmValueOverrides `json:",inline"`
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // PrometheusPushgatewayComponent specifies the Prometheus Pushgateway configuration.
@@ -770,11 +770,13 @@ type OciLoggingConfiguration struct {
 	APISecret       string `json:"apiSecret,omitempty"`
 }
 
-type HelmValueOverrides struct {
+// InstallOverrides are used to pass install overrides to components
+type InstallOverrides struct {
 	MonitorChanges *bool       `json:"monitorChanges,omitempty"`
 	ValueOverrides []Overrides `json:"overrides,omitempty"`
 }
 
+// Overrides stores the specified InstallOverrides
 type Overrides struct {
 	ConfigMapRef *corev1.ConfigMapKeySelector `json:"configMapRef,omitempty"`
 	SecretRef    *corev1.SecretKeySelector    `json:"secretRef,omitempty"`
