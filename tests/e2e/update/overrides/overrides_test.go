@@ -161,23 +161,17 @@ func vzReady() error {
 
 func checkValues(overrideValue string) bool {
 	labelMatch := map[string]string{overrideKey: overrideValue}
-	_, err := pkg.GetConfigMap(overrideConfigMapSecretName, constants.DefaultNamespace)
-	if err == nil {
-		pods, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{
-			MatchLabels: labelMatch,
-		}, verrazzanoMonitoringNamespace)
-		if err != nil {
-			ginkgo.AbortSuite(fmt.Sprintf("Label override not found for the Prometheus Operator pod in namespace %s: %v", verrazzanoMonitoringNamespace, err))
-		}
-		foundAnnotation := false
-		for _, pod := range pods {
-			if val, ok := pod.Annotations[overrideKey]; ok && val == overrideValue {
-				foundAnnotation = true
-			}
-		}
-		return len(pods) == 1 && foundAnnotation
-	} else if !k8serrors.IsNotFound(err) {
-		ginkgo.AbortSuite(fmt.Sprintf("Error retrieving the override ConfigMap: %v", err))
+	pods, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{
+		MatchLabels: labelMatch,
+	}, verrazzanoMonitoringNamespace)
+	if err != nil {
+		ginkgo.AbortSuite(fmt.Sprintf("Label override not found for the Prometheus Operator pod in namespace %s: %v", verrazzanoMonitoringNamespace, err))
 	}
-	return true
+	foundAnnotation := false
+	for _, pod := range pods {
+		if val, ok := pod.Annotations[overrideKey]; ok && val == overrideValue {
+			foundAnnotation = true
+		}
+	}
+	return len(pods) == 1 && foundAnnotation
 }
