@@ -28,14 +28,14 @@ elif [[ "$1" == "Create" ]]; then
   echo "Create overrides ConfigMap"
    kubectl create cm test-overrides --from-file=$CREATE_OVERRIDE_CONFIGMAP_FILE
   if [ $? -ne 0 ]; then
-    echo "Could not update ConfigMap"
+    echo "Could not create ConfigMap"
     exit 1
   fi
 
-  echo "Update overrides Secret"
+  echo "Create overrides Secret"
   kubectl create secret generic test-overrides --from-file=$CREATE_OVERRIDE_SECRET_FILE
   if [ $? -ne 0 ]; then
-    echo "Could not update Secret"
+    echo "Could not create Secret"
     exit 1
   fi
 fi

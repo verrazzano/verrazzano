@@ -27,7 +27,7 @@ const (
 	shortWaitTimeout         = 5 * time.Minute
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
-	skipVerifications	     = "Skip Verifications"
+	skipVerifications        = "Skip Verifications"
 )
 
 var (

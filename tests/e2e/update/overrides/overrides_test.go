@@ -37,8 +37,22 @@ var (
 	t = framework.NewTestFramework("overrides")
 )
 
+var failed = false
+var _ = t.AfterEach(func() {
+	failed = failed || ginkgo.CurrentSpecReport().Failed()
+})
+
+var _ = t.AfterSuite(func() {
+	if failed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
+})
+
 var _ = t.Describe("Post Install Overrides Test", func() {
+
 	t.Context("Test overrides creation", func() {
+		// Create the overrides resources listed in Verrazzano and verify
+		// that the values have been applied to promtheus-operator
 		t.It("Create overrides resources", func() {
 			createOrUpdateOverrides("Create")
 		})
@@ -49,13 +63,17 @@ var _ = t.Describe("Post Install Overrides Test", func() {
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 
+		// Verify that re-install succeeds
 		t.It("Check Verrazzano gets into ready state", func() {
 			gomega.Eventually(func() error {
 				return vzReady()
 			}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
 		})
 	})
+
 	t.Context("Test overrides update", func() {
+		// Update the overrides resources listed in Verrazzano and verify
+		// that the new values have been applied to promtheus-operator
 		t.It("Update overrides ConfigMap", func() {
 			createOrUpdateOverrides("Update")
 		})
@@ -66,13 +84,17 @@ var _ = t.Describe("Post Install Overrides Test", func() {
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 
+		// Verify that re-install succeeds
 		t.It("Check Verrazzano gets into ready state", func() {
 			gomega.Eventually(func() error {
 				return vzReady()
 			}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
 		})
 	})
+
 	t.Context("Test overrides deletion", func() {
+		// Delete the resources and verify that the deleted
+		// values are now unapplied
 		t.It("Delete Resources", func() {
 			deleteOverrides()
 		})
@@ -96,6 +118,7 @@ var _ = t.Describe("Post Install Overrides Test", func() {
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 
+		// Verify that re-install succeeds
 		t.It("Check Verrazzano in ready state", func() {
 			gomega.Eventually(func() error {
 				return vzReady()

@@ -17,7 +17,6 @@ var namespace string
 var skipVerify bool
 var istioInjection string
 
-
 func init() {
 	flag.BoolVar(&skipDeploy, "skipDeploy", false, "skipDeploy skips the call to install the application")
 	flag.BoolVar(&skipUndeploy, "skipUndeploy", false, "skipUndeploy skips the call to install the application")
