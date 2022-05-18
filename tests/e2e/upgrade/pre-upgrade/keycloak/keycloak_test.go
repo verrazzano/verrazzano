@@ -48,18 +48,18 @@ var _ = t.BeforeSuite(func() {
 		Eventually(func() error {
 			return pkg.DeleteNamespace(pkg.TestKeycloakNamespace)
 		}, waitTimeout, pollingInterval).Should(BeNil())
+
+		t.Logs.Info("Wait for namespace finalizer to be removed")
+		Eventually(func() bool {
+			return pkg.CheckNamespaceFinalizerRemoved(pkg.TestKeycloakNamespace)
+		}, waitTimeout, pollingInterval).Should(BeTrue())
+
+		t.Logs.Info("Wait for namespace deletion")
+		Eventually(func() bool {
+			_, err := pkg.GetNamespace(pkg.TestKeycloakNamespace)
+			return err != nil && errors.IsNotFound(err)
+		}, waitTimeout, pollingInterval).Should(BeTrue())
 	}
-
-	t.Logs.Info("Wait for namespace finalizer to be removed")
-	Eventually(func() bool {
-		return pkg.CheckNamespaceFinalizerRemoved(pkg.TestKeycloakNamespace)
-	}, waitTimeout, pollingInterval).Should(BeTrue())
-
-	t.Logs.Info("Wait for namespace deletion")
-	Eventually(func() bool {
-		_, err := pkg.GetNamespace(pkg.TestKeycloakNamespace)
-		return err != nil && errors.IsNotFound(err)
-	}, waitTimeout, pollingInterval).Should(BeTrue())
 
 	Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{}
