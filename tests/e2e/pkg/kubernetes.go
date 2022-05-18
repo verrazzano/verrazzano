@@ -1423,5 +1423,4 @@ func DeleteConfigMap(namespace string, name string) error {
 		return nil
 	}
 	return clientset.CoreV1().ConfigMaps(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
-	return nil
 }
