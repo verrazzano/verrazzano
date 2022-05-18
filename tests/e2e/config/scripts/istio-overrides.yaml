@@ -6,5 +6,5 @@ kind: IstioOperator
 spec:
   values:
     gateways:
-      istio-egressgateway:
+      istio-ingressgateway:
         replicaCount: 3
