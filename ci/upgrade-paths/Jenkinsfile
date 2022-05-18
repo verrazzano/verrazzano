@@ -514,13 +514,7 @@ pipeline {
                         OCI_OS_BUCKET="verrazzano-builds"
                     }
                     steps {
-                        // Execute bom-validator against admin cluster
-                        sh """
-                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
-                            chmod +x ${WORKSPACE}/bom-validator
-                            export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
-                            ${WORKSPACE}/bom-validator
-                        """
+                        executeBOMValidatorAdmin()
                     }
                 }
                 stage ('Console') {
@@ -1216,6 +1210,18 @@ def createOKEClusters(clusterPrefix) {
             echo "Create OKE cluster"
             cd ${TEST_SCRIPTS_DIR}
             TF_VAR_label_prefix=${clusterPrefix} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./create_oke_multi_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}" ${params.CREATE_CLUSTER_USE_CALICO}
+        """
+    }
+}
+
+// Execute bom-validator against admin cluster
+def executeBOMValidatorAdmin() {
+    script {
+        sh """
+            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
+            chmod +x ${WORKSPACE}/bom-validator
+            export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+            ${WORKSPACE}/bom-validator
         """
     }
 }
