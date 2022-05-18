@@ -969,17 +969,31 @@ def upgradeVerrazzanoOnCluster(count, verrazzanoDevVersion) {
 def registerManagedClusters() {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         script {
+            // Create a dictionary of Verrazzano Register Managed Cluster steps to be executed in parallel
+            // - the first one will always be the Admin cluster
+            // - clusters 2-max are managed clusters
+            def verrazzanoRegisterManagedClusterStages = [:]
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
             for(int count=2; count<=clusterCount; count++) {
-                sh """
-                    export MANAGED_CLUSTER_DIR="${KUBECONFIG_DIR}/${count}"
-                    export MANAGED_CLUSTER_NAME="managed${count-1}"
-                    export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                    export MANAGED_CLUSTER_ENV="mgd${count-1}"
-                    cd ${GO_REPO_PATH}/verrazzano
-                    ./tests/e2e/config/scripts/register_managed_cluster.sh
-                """
+                verrazzanoRegisterManagedClusterStages["${count}"] = registerManagedCluster(count)
             }
+            parallel verrazzanoRegisterManagedClusterStages
+        }
+    }
+}
+
+def registerManagedCluster(count) {
+    // For parallel execution, wrap this in a Groovy enclosure {}
+    return {
+        script {
+            sh """
+                export MANAGED_CLUSTER_DIR="${KUBECONFIG_DIR}/${count}"
+                export MANAGED_CLUSTER_NAME="managed${count-1}"
+                export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                export MANAGED_CLUSTER_ENV="mgd${count-1}"
+                cd ${GO_REPO_PATH}/verrazzano
+                ./tests/e2e/config/scripts/register_managed_cluster.sh
+            """
         }
     }
 }
@@ -1019,17 +1033,31 @@ def verifyRegisterManagedCluster(count, minimalVerification) {
 def verifyDeregisterManagedClusters() {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         script {
+            // Create a dictionary of Verrazzano Deregister Managed Cluster steps to be executed in parallel
+            // - the first one will always be the Admin cluster
+            // - clusters 2-max are managed clusters
+            def verrazzanoDeregisterManagedClusterStages = [:]
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
             for(int count=2; count<=clusterCount; count++) {
-                sh """
-                    export MANAGED_CLUSTER_NAME="managed${count-1}"
-                    export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                    export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                    kubectl -n verrazzano-system delete secret verrazzano-cluster-registration
-                    cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-deregister/...
-                """
+                verrazzanoDeregisterManagedClusterStages["${count}"] = verifyDeregisterManagedCluster(count)
             }
+            parallel verrazzanoDeregisterManagedClusterStages
+        }
+    }
+}
+
+def verifyDeregisterManagedCluster(count) {
+    // For parallel execution, wrap this in a Groovy enclosure {}
+    return {
+        script {
+            sh """
+                export MANAGED_CLUSTER_NAME="managed${count-1}"
+                export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                kubectl -n verrazzano-system delete secret verrazzano-cluster-registration
+                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-deregister/...
+            """
         }
     }
 }
@@ -1038,16 +1066,30 @@ def verifyDeregisterManagedClusters() {
 def verifyManagedClusterPermissions() {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         script {
+            // Create a dictionary of Verrazzano Managed Cluster Permissions steps to be executed in parallel
+            // - the first one will always be the Admin cluster
+            // - clusters 2-max are managed clusters
+            def verrazzanoManagedClusterPermissionsStages = [:]
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
             for(int count=2; count<=clusterCount; count++) {
-                sh """
-                    export MANAGED_CLUSTER_NAME="managed${count-1}"
-                    export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                    export MANAGED_ACCESS_KUBECONFIG="${KUBECONFIG_DIR}/${count}/managed_kube_config"
-                    cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    ginkgo -v -stream --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-permissions/...
-                """
+                verrazzanoManagedClusterPermissionsStages["${count}"] = verifyManagedClusterPermissions(count)
             }
+            parallel verrazzanoManagedClusterPermissionsStages
+        }
+    }
+}
+
+def verifyManagedClusterPermissions(count) {
+    // For parallel execution, wrap this in a Groovy enclosure {}
+    return {
+        script {
+            sh """
+                export MANAGED_CLUSTER_NAME="managed${count-1}"
+                export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                export MANAGED_ACCESS_KUBECONFIG="${KUBECONFIG_DIR}/${count}/managed_kube_config"
+                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                ginkgo -v -stream --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-permissions/...
+            """
         }
     }
 }
