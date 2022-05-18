@@ -373,7 +373,7 @@ pipeline {
                         }
                         stage('pre-upgrade verify keycloak') {
                             steps {
-                                runGinkgoRandomizeAdmin('upgrade/pre-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
+                                runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
                             }
                         }
                         stage ('Deploy Helidon example application - single cluster') {
@@ -515,7 +515,7 @@ pipeline {
                 }
                 stage('post-upgrade verify keycloak') {
                     steps {
-                        runGinkgoRandomizeAdmin('upgrade/post-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
+                        runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
                     }
                 }
                 stage ('Verify & Uninstall Example Apps') {
@@ -1085,6 +1085,20 @@ def runGinkgoRandomizeAdmin(testSuitePath, clusterDumpDirectory) {
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+        """
+    }
+}
+
+// Run a test suite serially against just the admin cluster
+def runGinkgoRandomizeSerialAdmin(testSuitePath, clusterDumpDirectory) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+            export CLUSTER_NAME="admin"
+            export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+            export DUMP_DIRECTORY="${clusterDumpDirectory}"
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
