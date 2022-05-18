@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"os"
 	"os/exec"
 	"testing"
@@ -920,13 +921,12 @@ func TestRetrieveInstallOverrideResources(t *testing.T) {
 			ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)
 
 			comp := HelmComponent{}
-			kvs, err := comp.retrieveInstallOverrideResources(ctx, tt.overrides)
+			kvs, err := common.RetrieveInstallOverrideResources(ctx, tt.overrides, comp.Name())
 			if tt.expectError {
 				a.Error(err)
 			} else {
 				for _, kv := range kvs {
-					a.NotEqual(kv.Value, "")
-					a.True(kv.IsFile)
+					a.NotEqual(kv, "")
 				}
 				a.NoError(err)
 			}
