@@ -62,15 +62,14 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 		currentDNSDomain = cr.Spec.Components.DNS.Wildcard.Domain
 		validateIngressList(currentEnvironmentName, currentDNSDomain)
 		validateVirtualServiceList(currentDNSDomain)
-		log.Println(testDNSZoneName, testDNSZoneOCID, testDNSZoneCompartmentOCID, testOCIConfigSecret, testDNSScope)
 	})
 
-	// t.It("Update and verify dns domain", func() {
-	// 	m := OCIPublicDNSModifier{testDNSZoneName, testDNSZoneOCID, testDNSZoneCompartmentOCID, testOCIConfigSecret, testDNSScope}
-	// 	update.UpdateCR(m)
-	// 	validateIngressList(currentEnvironmentName, testDNSZoneName)
-	// 	validateVirtualServiceList(testDNSZoneName)
-	// })
+	t.It("Update and verify dns domain", func() {
+		m := OCIPublicDNSModifier{testDNSZoneName, testDNSZoneOCID, testDNSZoneCompartmentOCID, testOCIConfigSecret, testDNSScope}
+		update.UpdateCR(m)
+		validateIngressList(currentEnvironmentName, testDNSZoneName)
+		validateVirtualServiceList(testDNSZoneName)
+	})
 })
 
 func validateIngressList(environmentName string, domain string) {
