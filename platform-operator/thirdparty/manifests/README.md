@@ -16,3 +16,5 @@ curl -L -o "cert-manager.crds.yaml" \
 
 The `prometheus-operator` folder contains template Prometheus ServiceMonitor and PodMonitor resources that are applied during install and upgrade. The monitors
 will cause Prometheus to collect metrics from Verrazzano system components.
+
+The `prometheus-operator` folder and all of the files contained in the folder were created by the Verrazzano development team.
