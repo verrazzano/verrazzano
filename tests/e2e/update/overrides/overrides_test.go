@@ -67,14 +67,7 @@ var _ = t.Describe("Post Install Overrides Test", func() {
 
 		t.It("Check Verrazzano in ready state", func() {
 			gomega.Eventually(func() error {
-				cr, err := pkg.GetVerrazzano()
-				if err != nil {
-					return err
-				}
-				if cr.Status.State != vzapi.VzStateReady {
-					return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
-				}
-				return nil
+				return vzReady()
 			}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
 		})
 	})
@@ -104,14 +97,7 @@ var _ = t.Describe("Post Install Overrides Test", func() {
 
 		t.It("Check Verrazzano in ready state", func() {
 			gomega.Eventually(func() error {
-				cr, err := pkg.GetVerrazzano()
-				if err != nil {
-					return err
-				}
-				if cr.Status.State != vzapi.VzStateReady {
-					return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
-				}
-				return nil
+				return vzReady()
 			}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
 		})
 	})
@@ -136,4 +122,15 @@ func deleteOverrides() {
 		ginkgo.AbortSuite("Failed to delete Secret")
 	}
 
+}
+
+func vzReady() error {
+	cr, err := pkg.GetVerrazzano()
+	if err != nil {
+		return err
+	}
+	if cr.Status.State != vzapi.VzStateReady {
+		return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
+	}
+	return nil
 }
