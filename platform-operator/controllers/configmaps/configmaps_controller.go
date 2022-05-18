@@ -26,7 +26,7 @@ import (
 )
 
 // VerrazzanoConfigMapsReconciler reconciles ConfigMaps.
-// This controller manages Helm override sources from the Verrazzano CR
+// This controller manages install override sources from the Verrazzano CR
 type VerrazzanoConfigMapsReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
@@ -60,7 +60,7 @@ func (r *VerrazzanoConfigMapsReconciler) Reconcile(ctx context.Context, req ctrl
 
 	if vzList != nil && len(vzList.Items) > 0 {
 		vz := &vzList.Items[0]
-		res, err := r.reconcileHelmOverrideConfigMap(ctx, req, vz)
+		res, err := r.reconcileInstallOverrideConfigMap(ctx, req, vz)
 		if err != nil {
 			zap.S().Errorf("Failed to reconcile ConfigMap: %v", err)
 			return newRequeueWithDelay(), err
@@ -70,9 +70,9 @@ func (r *VerrazzanoConfigMapsReconciler) Reconcile(ctx context.Context, req ctrl
 	return ctrl.Result{}, nil
 }
 
-// reconcileHelmOverrideConfigMap looks through the Verrazzano CR for the ConfigMap
+// reconcileInstallOverrideConfigMap looks through the Verrazzano CR for the ConfigMap
 // if the request is from the same namespace as the CR
-func (r *VerrazzanoConfigMapsReconciler) reconcileHelmOverrideConfigMap(ctx context.Context, req ctrl.Request, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
+func (r *VerrazzanoConfigMapsReconciler) reconcileInstallOverrideConfigMap(ctx context.Context, req ctrl.Request, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 
 	// Get the ConfigMap present in the Verrazzano CR namespace
 	configMap := &corev1.ConfigMap{}
@@ -127,7 +127,7 @@ func (r *VerrazzanoConfigMapsReconciler) reconcileHelmOverrideConfigMap(ctx cont
 				}
 			}
 
-			err := controllers.UpdateVerrazzanoForHelmOverrides(r.Client, componentCtx, componentName)
+			err := controllers.UpdateVerrazzanoForInstallOverrides(r.Client, componentCtx, componentName)
 			if err != nil {
 				r.log.ErrorfThrottled("Failed to reconcile ConfigMap: %v", err)
 				return newRequeueWithDelay(), err

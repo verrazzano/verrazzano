@@ -6,8 +6,11 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
@@ -46,9 +49,11 @@ import (
 // Reconciler reconciles a Verrazzano object
 type Reconciler struct {
 	client.Client
-	Scheme     *runtime.Scheme
-	Controller controller.Controller
-	DryRun     bool
+	Scheme            *runtime.Scheme
+	Controller        controller.Controller
+	DryRun            bool
+	WatchedComponents map[string]bool
+	WatchMutex        *sync.RWMutex
 }
 
 // Name of finalizer
@@ -1211,6 +1216,7 @@ func (r *Reconciler) watchPods(namespace string, name string, log vzlog.Verrazza
 				return false
 			}
 			log.Debugf("Pod %s in namespace %s created", pod.Name, pod.Namespace)
+			r.AddWatch(keycloak.ComponentJSONName)
 			return true
 		}))
 }
@@ -1226,6 +1232,7 @@ func (r *Reconciler) watchJaegerService(namespace string, name string, log vzlog
 			service := e.Object.(*corev1.Service)
 			if service.Labels[vzconst.KubernetesAppLabel] == vzconst.JaegerCollectorService {
 				log.Debugf("Jaeger service %s/%s created", service.Namespace, service.Name)
+				r.AddWatch(istio.ComponentJSONName)
 				return true
 			}
 			return false
@@ -1333,4 +1340,24 @@ func (r *Reconciler) updateVerrazzanoStatus(log vzlog.VerrazzanoLogger, vz *inst
 	}
 	// Return error so that reconcile gets called again
 	return err
+}
+
+//AddWatch adds a component to the watched set
+func (r *Reconciler) AddWatch(name string) {
+	r.WatchMutex.Lock()
+	defer r.WatchMutex.Unlock()
+	r.WatchedComponents[name] = true
+}
+
+func (r *Reconciler) ClearWatch(name string) {
+	r.WatchMutex.Lock()
+	defer r.WatchMutex.Unlock()
+	delete(r.WatchedComponents, name)
+}
+
+//IsWatchedComponent checks if a component is watched or not
+func (r *Reconciler) IsWatchedComponent(compName string) bool {
+	r.WatchMutex.RLock()
+	defer r.WatchMutex.RUnlock()
+	return r.WatchedComponents[compName]
 }
