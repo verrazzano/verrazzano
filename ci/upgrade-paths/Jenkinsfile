@@ -1123,7 +1123,7 @@ def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript
         String allArgs = ""
         extraArgs.each { allArgs += it + " " }
 
-        // Create a dictionary of Verrazzano upgrade steps to be executed in parallel
+        // Create a dictionary of Verrazzano installer steps to be executed in parallel
         // - the first one will always be the Admin cluster
         // - clusters 2-max are managed clusters
         def verrazzanoInstallerStages = [:]
@@ -1357,6 +1357,11 @@ def dumpVerrazzanoApiLogs() {
 
 def dumpInstallLogs() {
     script {
+        // Create a dictionary of Verrazzano dump install log steps to be executed in parallel
+        // - the first one will always be the Admin cluster
+        // - clusters 2-max are managed clusters
+        def verrazzanoDumpInstallLogStages = [:]
+
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
             LOG_DIR="${VERRAZZANO_INSTALL_LOGS_DIR}/cluster-$count"
@@ -1366,12 +1371,22 @@ def dumpInstallLogs() {
             if (params.VERSION_FOR_INSTALL.startsWith("v1.0.0") || params.VERSION_FOR_INSTALL.startsWith("v1.0.1")) {
                 namespace = "default"
             }
+            verrazzanoDumpInstallLogStages["${count}"] = dumpInstallLogsOnCluster(count, LOG_DIR, namespace)
+        }
+        parallel verrazzanoDumpInstallLogStages
+    }
+}
+
+def dumpInstallLogsOnCluster(count, logDir, namespace) {
+    // For parallel execution, wrap this in a Groovy enclosure {}
+    return {
+        script {
             sh """
                 ## dump Verrazzano install logs
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
-                mkdir -p ${LOG_DIR}
-                kubectl -n ${namespace} logs --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/${VERRAZZANO_INSTALL_LOG} --tail -1
-                kubectl -n ${namespace} describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/verrazzano-install-job-pod.out
+                mkdir -p $logDir
+                kubectl -n $namespace logs --selector=job-name=verrazzano-install-my-verrazzano > $logDir/${VERRAZZANO_INSTALL_LOG} --tail -1
+                kubectl -n $namespace describe pod --selector=job-name=verrazzano-install-my-verrazzano > $logDir/verrazzano-install-job-pod.out
                 echo "------------------------------------------"
             """
         }
