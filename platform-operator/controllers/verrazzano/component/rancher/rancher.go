@@ -124,7 +124,7 @@ func isRancherReady(ctx spi.ComponentContext) bool {
 
 // checkRancherUpgradeFailure - temporary work around for Rancher issue 36914. During an upgrade, the Rancher pods
 // are recycled.  When the leader pod is restarted, it is possible that a Rancher 2.5.9 pod could
-// acquire leader and recreate the downloaded the helm charts it's requires.
+// acquire leader and recreate the downloaded helm charts it requires.
 //
 // If one of the Rancher pods is failing to find the rancher-webhook, recycle that pod.
 func checkRancherUpgradeFailure(c client.Client, log vzlog.VerrazzanoLogger) error {
