@@ -200,10 +200,6 @@ pipeline {
         SAMPLE_APP_PROJECT="hello-helidon-sample-proj"
         SAMPLE_APP_COMPONENT="hello-helidon-component"
 
-        // used by ToDoList example test
-        WEBLOGIC_PSW = credentials('weblogic-example-domain-password')
-        DATABASE_PSW = credentials('todo-mysql-password')
-
         // used to generate Ginkgo test reports
         TEST_REPORT = "test-report.xml"
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
