@@ -73,8 +73,8 @@ func (u OpensearchIngestNodeArgsModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
 	cr.Spec.Components.Elasticsearch.ESInstallArgs = []vzapi.InstallArgs{}
-	defaultMasterNodeCount := "1"
-	defaultDataNodeCount := "0"
+	defaultMasterNodeCount := "3"
+	defaultDataNodeCount := "3"
 	if cr.Spec.Profile == vzapi.Prod {
 		defaultMasterNodeCount = "3"
 		defaultDataNodeCount = "3"
@@ -93,8 +93,8 @@ func (u OpensearchDataNodeArgsModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
 	cr.Spec.Components.Elasticsearch.ESInstallArgs = []vzapi.InstallArgs{}
-	defaultMasterNodeCount := "1"
-	defaultIngestNodeCount := "0"
+	defaultMasterNodeCount := "3"
+	defaultIngestNodeCount := "3"
 	if cr.Spec.Profile == vzapi.Prod {
 		defaultMasterNodeCount = "3"
 		defaultIngestNodeCount = "1"
@@ -216,7 +216,7 @@ func (u OpensearchAllNodeRolesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
 				Name:      string(vmov1.DataRole),
-				Replicas:  1,
+				Replicas:  3,
 				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole, vmov1.IngestRole},
 				Storage:   newNodeStorage("2Gi"),
 				Resources: newResources("512Mi"),

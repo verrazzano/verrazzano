@@ -26,9 +26,9 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 	// THEN ingress pods gets created.
 	//t.Describe("opensearch update ingest node replicas and memory", Label("f:platform-lcm.opensearch-update-replicas"), func() {
 	//	t.It("opensearch explicit ingest replicas and memory", func() {
-	//		m := OpensearchIngestNodeArgsModifier{NodeReplicas: 1, NodeMemory: "512Mi"}
+	//		m := OpensearchIngestNodeArgsModifier{NodeReplicas: 3, NodeMemory: "512Mi"}
 	//		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-	//		update.ValidatePods(ingestNodeName, AppLabel, constants.VerrazzanoSystemNamespace, 1, false)
+	//		update.ValidatePods(ingestNodeName, AppLabel, constants.VerrazzanoSystemNamespace, 3, false)
 	//		update.ValidatePodMemoryRequest(map[string]string{"app": ingestNodeName}, constants.VerrazzanoSystemNamespace, "es-", "512Mi" )
 	//	})
 	//})
@@ -38,9 +38,9 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 	// THEN data pods gets created.
 	//t.Describe("opensearch update data node replicas", Label("f:platform-lcm.opensearch-update-replicas"), func() {
 	//	t.It("opensearch explicit data replicas", func() {
-	//		m := OpensearchDataNodeArgsModifier{NodeReplicas: 1, NodeMemory: "256Mi"}
+	//		m := OpensearchDataNodeArgsModifier{NodeReplicas: 3, NodeMemory: "256Mi"}
 	//		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-	//		update.ValidatePods(dataNodeName, AppLabel, constants.VerrazzanoSystemNamespace, 1, false)
+	//		update.ValidatePods(dataNodeName, AppLabel, constants.VerrazzanoSystemNamespace, 3, false)
 	//		update.ValidatePodMemoryRequest(map[string]string{"app": dataNodeName}, constants.VerrazzanoSystemNamespace, "es-", "256Mi")
 	//	})
 	//})
