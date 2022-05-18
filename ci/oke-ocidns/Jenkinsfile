@@ -270,6 +270,8 @@ pipeline {
         stage('install-kind') {
             when { expression { return params.TEST_ENV == 'kind' } }
             steps {
+                // TODO: Error in installing kind cluster - 
+                // File not found at ${WORKSPACE}/verrazzano-acceptance-test-suite/scripts/install_kind.sh
                 sh """
                     cd ${WORKSPACE}/verrazzano-acceptance-test-suite
                     ${WORKSPACE}/verrazzano-acceptance-test-suite/scripts/install_kind.sh
@@ -449,7 +451,7 @@ pipeline {
             }
         }
 
-        stage("Run DNS update tests - Wildcard to OCI Public DNS") {
+        stage("run-DNS-update-tests" {
             // This stage will be run if initially Wildcard DNS is selected, i.e. TEST_ENV is either 'kind' or 'magicdns_oke'
             when { expression { return (params.TEST_ENV == 'kind' || params.TEST_ENV == 'magicdns_oke') && params.RUN_DNS_UPDATE_TESTS == 'yes' } }
             environment {

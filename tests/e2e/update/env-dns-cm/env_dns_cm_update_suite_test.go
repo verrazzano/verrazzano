@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestEnvDnsCert(t *testing.T) {
+func TestEnvDnsCertUpdate(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Update env-dns-cert Suite")
 }

@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func OCIDNS(t *testing.T) {
+func TestOCIDNSUpdate(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Update OCI DNS Suite")
 }
