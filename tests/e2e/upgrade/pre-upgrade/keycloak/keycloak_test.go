@@ -5,6 +5,7 @@ package keycloak
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"os/exec"
 	"path"
@@ -36,10 +37,29 @@ var _ = t.BeforeSuite(func() {
 		Skip("Skipping test suite since this is a managed cluster profile")
 	}
 
-	// Delete namespace, if already exists, so that test can be executed cleanly
-	Eventually(func() error {
-		return pkg.DeleteNamespace(pkg.TestKeycloakNamespace)
-	}, waitTimeout, pollingInterval).Should(BeNil())
+	exists, err := pkg.DoesNamespaceExist(pkg.TestKeycloakNamespace)
+	if err != nil {
+		Fail(err.Error())
+	}
+
+	if exists {
+		t.Logs.Info("Delete namespace")
+		// Delete namespace, if already exists, so that test can be executed cleanly
+		Eventually(func() error {
+			return pkg.DeleteNamespace(pkg.TestKeycloakNamespace)
+		}, waitTimeout, pollingInterval).Should(BeNil())
+	}
+
+	t.Logs.Info("Wait for namespace finalizer to be removed")
+	Eventually(func() bool {
+		return pkg.CheckNamespaceFinalizerRemoved(pkg.TestKeycloakNamespace)
+	}, waitTimeout, pollingInterval).Should(BeTrue())
+
+	t.Logs.Info("Wait for namespace deletion")
+	Eventually(func() bool {
+		_, err := pkg.GetNamespace(pkg.TestKeycloakNamespace)
+		return err != nil && errors.IsNotFound(err)
+	}, waitTimeout, pollingInterval).Should(BeTrue())
 
 	Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{}
