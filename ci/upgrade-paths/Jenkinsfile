@@ -514,9 +514,11 @@ pipeline {
                         OCI_OS_BUCKET="verrazzano-builds"
                     }
                     steps {
+                        // Execute bom-validator against admin cluster
                         sh """
                             oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
                             chmod +x ${WORKSPACE}/bom-validator
+                            export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
                             ${WORKSPACE}/bom-validator
                         """
                     }
