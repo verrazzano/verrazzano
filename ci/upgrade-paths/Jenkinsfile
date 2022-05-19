@@ -378,25 +378,27 @@ pipeline {
                             }
                         }
                         stage ('Deploy Helidon example application - single cluster') {
+                            when { expression { isMinimumCompatibleOperatorVersion("v1.2.0") } }
                             steps {
-                                runGinkgoVerify('examples/helidon', "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true", "hello-helidon", "v1.2.0")
+                                runGinkgoVerify('examples/helidon', "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true", "hello-helidon")
                             }
                         }
                         stage ('Deploy Helidon example application - multi cluster') {
-                            when { expression { isMultiCluster() } }
+                            when { expression { isMultiCluster() && isMinimumCompatibleOperatorVersion("v1.2.0") } }
                             steps {
-                                runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/mchelidon-workload", "false", "true", "true", "v1.2.0")
+                                runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/mchelidon-workload", "false", "true", "true")
                             }
                         }
                         stage ('Deploy Coherence example application - single cluster') {
+                            when { expression { isMinimumCompatibleOperatorVersion("v1.2.0") } }
                             steps {
-                                runGinkgoVerify('workloads/coherence', "${TEST_DUMP_ROOT}/coherence-workload", "false", "false", "true", "hello-coherence", "v1.2.0")
+                                runGinkgoVerify('workloads/coherence', "${TEST_DUMP_ROOT}/coherence-workload", "false", "false", "true", "hello-coherence")
                             }
                         }
                         stage ('Deploy Coherence example application - multi cluster') {
-                            when { expression { isMultiCluster() } }
+                            when { expression { isMultiCluster() && isMinimumCompatibleOperatorVersion("v1.2.0") } }
                             steps {
-                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", "false", "false", "false", "v1.2.0")
+                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", "false", "false", "false")
                             }
                         }
                     }
@@ -823,6 +825,8 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
                 # wait for Verrazzano install to complete
                 ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
             """
+            RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/${count}/kube_config' && kubectl --kubeconfig ${MANAGED_KUBECONFIG} get vz -o jsonpath='{.items[0].status.version}'").trim()
+            echo "Verrazzano Version INSTALl : ${RUNNING_OPERATOR_VERSION}"
         }
     }
 }
@@ -973,6 +977,8 @@ def upgradeVerrazzanoOnCluster(count, verrazzanoDevVersion) {
                 echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
                 helm --kubeconfig=${kubeClusterConfig} list -A
             """
+            RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/${count}/kube_config' && kubectl --kubeconfig ${MANAGED_KUBECONFIG} get vz -o jsonpath='{.items[0].status.version}'").trim()
+            echo "Verrazzano Version Upgrade : ${RUNNING_OPERATOR_VERSION}"
         }
     }
 }
@@ -1051,15 +1057,10 @@ def verifyManagedClusterPermissions() {
 }
 
 // Run ginkgo test suites
-def runGinkgoVerifyManaged(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, String supportedVersion="latest") {
+def runGinkgoVerifyManaged(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify) {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-        def MANAGED_KUBECONFIG = "${KUBECONFIG_DIR}/2/kube_config"
-        RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export MANAGED_KUBECONFIG='${KUBECONFIG_DIR}/2/kube_config' && kubectl --kubeconfig ${MANAGED_KUBECONFIG} get vz -o jsonpath='{.items[0].status.version}'").trim()
-        echo "RUNNING_OPERATOR_VERSION: ${RUNNING_OPERATOR_VERSION}"
-        def vzVersion = getVZVersion(RUNNING_OPERATOR_VERSION)
-        if(supportedVersion == vzVersion){
-            sh """
+        sh """
             export MANAGED_CLUSTER_NAME="managed1"
             export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
             export CLUSTER_COUNT=$clusterCount
@@ -1067,23 +1068,12 @@ def runGinkgoVerifyManaged(testSuitePath, clusterDumpDirectory, skipDeploy, skip
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
             ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify}
-            """
-        }else if(supportedVersion == "latest"){
-            sh """
-            export MANAGED_CLUSTER_NAME="managed1"
-            export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-            export CLUSTER_COUNT=$clusterCount
-            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-            export DUMP_DIRECTORY="${clusterDumpDirectory}"
-            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify}
-            """
-        }
+        """
     }
 }
 
 // Run a test suite against all clusters
-def runGinkgoRandomize(testSuitePath, String supportedVersion="latest") {
+def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         script {
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
@@ -1096,124 +1086,56 @@ def runGinkgoRandomize(testSuitePath, String supportedVersion="latest") {
                 } else {
                     clusterName="managed${count-1}"
                 }
-               RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/${count}/kube_config' && kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
-                echo "RUNNING_OPERATOR_VERSION: ${RUNNING_OPERATOR_VERSION}"
-                //def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
-                def vzVersion = getVZVersion(RUNNING_OPERATOR_VERSION)
-                if(supportedVersion == vzVersion){
-                  sh """
+                sh """
                     export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     export CLUSTER_NAME="${clusterName}"
                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                     ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
-                  """
-                }else if(supportedVersion == "latest"){
-                  sh """
-                    export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                    export CLUSTER_NAME="${clusterName}"
-                    cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
-                  """
-                }
+                """
             }
         }
     }
 }
 
 // Run a test suite against just the admin cluster
-def runGinkgoRandomizeAdmin(testSuitePath, clusterDumpDirectory, String supportedVersion="latest") {
+def runGinkgoRandomizeAdmin(testSuitePath, clusterDumpDirectory) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/1/kube_config' && kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
-        echo "RUNNING_OPERATOR_VERSION: ${RUNNING_OPERATOR_VERSION}"
-        //def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
-        def vzVersion = getVZVersion(RUNNING_OPERATOR_VERSION)
-        if(supportedVersion == vzVersion){
-            sh """
-                export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
-                export CLUSTER_NAME="admin"
-                export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
-                export DUMP_DIRECTORY="${clusterDumpDirectory}"
-                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
-            """
-        }else if(supportedVersion == "latest"){
-            sh """
-                export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
-                export CLUSTER_NAME="admin"
-                export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
-                export DUMP_DIRECTORY="${clusterDumpDirectory}"
-                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
-            """
-        }
+        sh """
+            export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+            export CLUSTER_NAME="admin"
+            export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+            export DUMP_DIRECTORY="${clusterDumpDirectory}"
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+        """
     }
 }
 
 // Run a test suite serially against just the admin cluster
-def runGinkgoRandomizeSerialAdmin(testSuitePath, clusterDumpDirectory, String supportedVersion="latest") {
+def runGinkgoRandomizeSerialAdmin(testSuitePath, clusterDumpDirectory) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/1/kube_config' && kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
-        echo "RUNNING_OPERATOR_VERSION: ${RUNNING_OPERATOR_VERSION}"
-       // def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
-        def vzVersion = getVZVersion(RUNNING_OPERATOR_VERSION)
-        if(supportedVersion == vzVersion){
-            sh """
-                export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
-                export CLUSTER_NAME="admin"
-                export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
-                export DUMP_DIRECTORY="${clusterDumpDirectory}"
-                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                ginkgo --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
-            """
-        }else if(supportedVersion == "latest"){
-            sh """
-                export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
-                export CLUSTER_NAME="admin"
-                export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
-                export DUMP_DIRECTORY="${clusterDumpDirectory}"
-                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                ginkgo --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
-            """
-        }
+        sh """
+            export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+            export CLUSTER_NAME="admin"
+            export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+            export DUMP_DIRECTORY="${clusterDumpDirectory}"
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+        """
     }
 }
 
-def runGinkgoVerify(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace, String supportedVersion="latest") {
+def runGinkgoVerify(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/1/kube_config' && kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
-        echo "RUNNING_OPERATOR_VERSION: ${RUNNING_OPERATOR_VERSION}"
-        //def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
-        def vzVersion = getVZVersion(RUNNING_OPERATOR_VERSION)
-        //Executes the tests only if the vz version matches the stage version parameter.
-        if(supportedVersion == vzVersion){
-            sh """
-                export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
-                export CLUSTER_NAME="admin"
-                export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
-                export DUMP_DIRECTORY="${clusterDumpDirectory}"
-                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify} --namespace=${namespace}
-            """
-        //By default executes all the test stages.
-        }else if(supportedVersion == "latest"){
-            sh """
-                export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
-                export CLUSTER_NAME="admin"
-                export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
-                export DUMP_DIRECTORY="${clusterDumpDirectory}"
-                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify} --namespace=${namespace}
-            """
-        }
-
+        sh """
+            export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+            export CLUSTER_NAME="admin"
+            export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+            export DUMP_DIRECTORY="${clusterDumpDirectory}"
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify} --namespace=${namespace}
+        """
     }
-}
-
-def getVZVersion(vzRawVersion){
-        def rawVersionSplit  = vzRawVersion.split('\\.')
-        vzVersion = rawVersionSplit[0] + '.' + rawVersionSplit[1] + '.' + rawVersionSplit[2].charAt(0)
-        echo "Verrazzano Version is: ${vzVersion}"
-        return vzVersion
 }
 
 // Configure the Admin and Managed cluster installer custom resources
@@ -1635,6 +1557,26 @@ def setVZConfigForInstallation(){
 def isMultiCluster() {
     return params.TOTAL_CLUSTERS.toInteger() >= 2
 }
+
+def isMinimumCompatibleOperatorVersion(testMinimumOperatorVersion){
+
+    vzOperatorVersion = RUNNING_OPERATOR_VERSION
+    def vzOperatorVersionSplit  = vzOperatorVersion.split('\\.')
+    runningVZVersion = vzOperatorVersionSplit[0] + '.' + vzOperatorVersionSplit[1] + '.' + vzOperatorVersionSplit[2].charAt(0)
+    echo "Verrazzano Version is: ${vzVersion}"
+    //Splitting the user input testMinimumOperatorVersion to compare
+    testMinimumVersionSplit = testMinimumOperatorVersion.split('\\.')
+    // Return true when both running Verrazzano operator minor version and user input minor are equal and if running operator patch version is greater/equal to user input testMinimumOperatorVersion
+    if(vzOperatorVersionSplit[0].charAt(1) == testMinimumVersionSplit[0].charAt(1) && testMinimumVersionSplit[1] == vzOperatorVersionSplit[1] && vzOperatorVersionSplit[2].charAt(0) >= testMinimumVersionSplit[2].charAt(0)){
+        return true
+    //Return true if running Verrazzano minor version is greater/equal to the user input testMinimumOperatorVersion
+    }else if(vzOperatorVersionSplit[0].charAt(1) >= testMinimumVersionSplit[0].charAt(1) && testMinimumVersionSplit[1] < vzOperatorVersionSplit[1]){
+        return true
+    }
+    return false
+
+}
+
 
 def setInitValues() {
     script {
