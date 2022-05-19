@@ -5,7 +5,9 @@ package status
 
 import (
 	"bytes"
+	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -37,14 +39,17 @@ func TestStatusCmd(t *testing.T) {
 			},
 		}).Build()
 
+	// Send the command output to a byte buffer
 	buf := new(bytes.Buffer)
 	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: os.Stderr})
 	rc.SetClient(c)
 	statusCmd := NewCmdStatus(rc)
 	assert.NotNil(t, statusCmd)
 
-	// Add the command line parameters
-	statusCmd.SetArgs([]string{"--name", name, "--namespace", namespace})
+	// Run the status command, expect the Verrazzano resource to be found
+	statusCmd.SetArgs([]string{fmt.Sprintf("--%s", nameFlag), name, fmt.Sprintf("--%s", namespaceFlag), namespace})
 	err := statusCmd.Execute()
 	assert.NoError(t, err)
+	result := buf.String()
+	assert.True(t, strings.Contains(result, "Version 1.2.3"))
 }
