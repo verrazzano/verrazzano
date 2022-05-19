@@ -29,6 +29,8 @@ done
 # retry 3 times, 30 seconds apart
 tries=0
 MAX_TRIES=3
+export TF_LOG=DEBUG
+export OCI_GO_SDK_DEBUG=v
 while true; do
    tries=$((tries+1))
    echo "terraform apply iteration ${tries}"

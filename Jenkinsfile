@@ -10,7 +10,11 @@ def VERRAZZANO_DEV_VERSION = ""
 def tarfilePrefix=""
 def storeLocation=""
 
-def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+// On master, we will use PHX for other branches we shuffle from the list of available regions
+// The region selected will be used for the Jenkins agent as well as for OKE clusters.
+// This region is propagated to all other jobs explicitly. Though there may be special case tests which will ignore this
+def availableRegions = env.JOB_NAME.contains('master') ? [ "us-phoenix-1" ] : [  "us-phoenix-1", "us-ashburn-1", "eu-frankfurt-1", "uk-london-1" ]
+Collections.shuffle(availableRegions)
 
 pipeline {
     options {
@@ -25,11 +29,12 @@ pipeline {
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "${agentLabel}"
+            label params.LOCK_REGION
         }
     }
 
     parameters {
+        choice (description: 'OCI region to run Jenkins agent and OKE clusters in', name: 'LOCK_REGION', choices: availableRegions)
         booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
         booleanParam (description: 'Whether to include the slow tests in the acceptance tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
@@ -434,6 +439,7 @@ pipeline {
                     metricTimerStart("${VZ_TEST_METRIC}")
                     build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                         parameters: [
+                            string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                             string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
                             string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                             string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
@@ -476,6 +482,7 @@ pipeline {
                 script {
                     build job: "verrazzano-push-triggered-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                         parameters: [
+                            string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                             string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                             string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                             booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
@@ -518,6 +525,7 @@ pipeline {
                             echo "Starting private registry test for ${storeLocation}, file prefix ${tarfilePrefix}"
                             build job: "verrazzano-private-registry/${BRANCH_NAME.replace("/", "%2F")}",
                                 parameters: [
+                                    string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                                     string(name: 'ZIPFILE_LOCATION', value: storeLocation)
