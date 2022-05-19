@@ -348,8 +348,7 @@ func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, trait *vzapi.Me
 		log.Debugf("Adding finalizer from trait %s", traitName)
 		trait.Finalizers = append(trait.Finalizers, finalizerName)
 		if err := r.Update(ctx, trait); err != nil {
-			log.Errorf("Failed to add finalizer to trait %s: %v", traitName, err)
-			return err
+			return log.ErrorfNewErr("Failed to add finalizer to trait %s: %v", traitName, err)
 		}
 	}
 	return nil

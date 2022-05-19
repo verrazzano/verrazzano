@@ -8,7 +8,7 @@ import (
 	"fmt"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	k8score "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (r *Reconciler) updatePodMonitor(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, log vzlog2.VerrazzanoLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
+func (r *Reconciler) updatePodMonitor(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, log vzlog.VerrazzanoLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
 	rel := vzapi.QualifiedResourceRelation{}
 
 	// If the metricsTrait is being disabled then return nil for the config
@@ -27,7 +27,7 @@ func (r *Reconciler) updatePodMonitor(ctx context.Context, trait *vzapi.MetricsT
 	// Fetch the secret by name if it is provided in either the trait or the trait defaults.
 	secret, err := r.fetchSourceCredentialsSecretIfRequired(ctx, trait, traitDefaults, workload)
 	if err != nil {
-		return rel, controllerutil.OperationResultNone, err
+		return rel, controllerutil.OperationResultNone, log.ErrorfNewErr("Failed to fetch metrics source credentials: %v", err)
 	}
 	if secret.Name == "" {
 		return rel, controllerutil.OperationResultNone, err
@@ -35,7 +35,7 @@ func (r *Reconciler) updatePodMonitor(ctx context.Context, trait *vzapi.MetricsT
 
 	podMonitor := promoperapi.PodMonitor{}
 	result, err := controllerutil.CreateOrUpdate(ctx, r.Client, &podMonitor, func() error {
-		return r.mutatePodMonitorFromTrait(ctx, &podMonitor, trait, workload, traitDefaults)
+		return r.mutatePodMonitorFromTrait(ctx, &podMonitor, trait, workload, traitDefaults, log)
 	})
 	if err != nil {
 		return rel, result, err
@@ -45,7 +45,7 @@ func (r *Reconciler) updatePodMonitor(ctx context.Context, trait *vzapi.MetricsT
 
 // mutatePodMonitorFromTrait mutates the Pod Monitor to prepare for a create or update
 // the Pod Monitor reflects the specifications of the trait and the trait defaults
-func (r *Reconciler) mutatePodMonitorFromTrait(ctx context.Context, podMonitor *promoperapi.PodMonitor, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec) error {
+func (r *Reconciler) mutatePodMonitorFromTrait(ctx context.Context, podMonitor *promoperapi.PodMonitor, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, log vzlog.VerrazzanoLogger) error {
 	// Create the Pod monitor name from the trait if the label exists
 	// Create the Pod Monitor selector from the trait label i fit exists
 	if podMonitor.ObjectMeta.Labels == nil {
@@ -69,7 +69,7 @@ func (r *Reconciler) mutatePodMonitorFromTrait(ctx context.Context, podMonitor *
 	for i := range ports {
 		err := r.createPodMetricsEndpoint(ctx, podMonitor, trait, workload, traitDefaults, i)
 		if err != nil {
-			return err
+			return log.ErrorfNewErr("Failed to create the pod metrics endpoint for the pod monitor: %v", err)
 		}
 	}
 
