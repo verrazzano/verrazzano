@@ -55,7 +55,7 @@ var _ = t.Describe("Verify upgrade required when new version is available", Labe
 	// WHEN an edit is made without specifying an upgrade, but an upgrade to a newer version is available
 	// THEN the edit is rejected by the webhook
 	t.Context("Verify upgrade-required checks", func() {
-		t.It("Verify that any edit without an upgrade when one is available is rejected", func() {
+		t.It("Upgrade-required validator test", func() {
 
 			// Check the supported
 			isSupportedVersion, err := minSupportedVersion()
@@ -99,6 +99,7 @@ var _ = t.Describe("Verify upgrade required when new version is available", Labe
 
 			// This should fail with a webhook validation error
 			_, err = vzclient.VerrazzanoV1alpha1().Verrazzanos(vz.Namespace).Update(context.TODO(), vz, v1.UpdateOptions{})
+			t.Logs.Infof("Returned error: %s", err.Error())
 			Expect(err).Should(Not(BeNil()))
 		})
 	})
