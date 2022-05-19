@@ -504,7 +504,7 @@ func ContainerImagePullWaitInCluster(namespace string, namePrefixes []string, ku
 // in case of unrecoverable failures.
 func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes []string) bool {
 
-	allContainers := make(map[string][]*v1.Container)
+	allContainers := make(map[string][]v1.Container)
 	allImages := make(map[string]map[string]bool)
 	imagesYetToBePulled := 0
 	scheduledPods := make(map[string]bool)
@@ -517,12 +517,12 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 					allImages[pod.Name] = make(map[string]bool)
 				}
 				for _, initContainer := range pod.Spec.InitContainers {
-					allContainers[pod.Name] = append(allContainers[pod.Name], &initContainer)
+					allContainers[pod.Name] = append(allContainers[pod.Name], initContainer)
 					allImages[pod.Name][initContainer.Image] = true
 					imagesYetToBePulled++
 				}
 				for _, container := range pod.Spec.Containers {
-					allContainers[pod.Name] = append(allContainers[pod.Name], &container)
+					allContainers[pod.Name] = append(allContainers[pod.Name], container)
 					allImages[pod.Name][container.Image] = true
 					imagesYetToBePulled++
 				}
