@@ -521,7 +521,8 @@ pipeline {
                             cp ${WORKSPACE}/vz-update2.yaml ${WORKSPACE}/vz-update3.yaml
                             yq -i eval '.spec.components.prometheusOperator.enabled = true' ${WORKSPACE}/vz-update3.yaml
                             yq -i eval '.spec.components.prometheusOperator.monitorChanges = true' ${WORKSPACE}/vz-update3.yaml
-                            yq -i eval '.spec.components.prometheusOperator.overrides = [{"configMapRef":{"name":"test-overrides-1","key":"test-overrides-configmap.yaml","optional":true}},{"secretRef":{"name":"test-overrides-1","key":"test-overrides-secret.yaml","optional":true}}]' ${WORKSPACE}/vz-update3.yaml
+                            yq -i eval '.spec.components.prometheusOperator.overrides = [{"configMapRef":{"name":"test-overrides-1","key":"test-overrides-configmap.yaml","optional":true}}]' ${WORKSPACE}/vz-update3.yaml
+                            yq -i eval '.spec.components.prometheusOperator.overrides += [{"secretRef":{"name":"test-overrides-1","key":"test-overrides-secret.yaml","optional":true}}]' ${WORKSPACE}/vz-update3.yaml
                             kubectl apply -f ${WORKSPACE}/vz-update3.yaml
                             ${TEST_SCRIPTS_DIR}/wait-for-component-ready.sh
                         """
