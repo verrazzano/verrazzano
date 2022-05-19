@@ -1059,7 +1059,6 @@ def runGinkgoVerifyManaged(testSuitePath, clusterDumpDirectory, skipDeploy, skip
         echo "RUNNING_OPERATOR_VERSION: ${RUNNING_OPERATOR_VERSION}"
         def vzVersion = getVZVersion(RUNNING_OPERATOR_VERSION)
         if(supportedVersion == vzVersion){
-            echo "Inside supportedVersion: ${supportedVersion}"
             sh """
             export MANAGED_CLUSTER_NAME="managed1"
             export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
@@ -1070,7 +1069,6 @@ def runGinkgoVerifyManaged(testSuitePath, clusterDumpDirectory, skipDeploy, skip
             ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify}
             """
         }else if(supportedVersion == "latest"){
-            echo "Inside Latest Version: ${supportedVersion}"
             sh """
             export MANAGED_CLUSTER_NAME="managed1"
             export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
@@ -1103,7 +1101,6 @@ def runGinkgoRandomize(testSuitePath, String supportedVersion="latest") {
                 //def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
                 def vzVersion = getVZVersion(RUNNING_OPERATOR_VERSION)
                 if(supportedVersion == vzVersion){
-                  echo "Inside supportedVersion: ${supportedVersion}"
                   sh """
                     export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     export CLUSTER_NAME="${clusterName}"
@@ -1111,7 +1108,6 @@ def runGinkgoRandomize(testSuitePath, String supportedVersion="latest") {
                     ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
                   """
                 }else if(supportedVersion == "latest"){
-                  echo "Inside Latest Version: ${supportedVersion}"
                   sh """
                     export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     export CLUSTER_NAME="${clusterName}"
@@ -1132,7 +1128,6 @@ def runGinkgoRandomizeAdmin(testSuitePath, clusterDumpDirectory, String supporte
         //def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
         def vzVersion = getVZVersion(RUNNING_OPERATOR_VERSION)
         if(supportedVersion == vzVersion){
-            echo "Inside supportedVersion: ${supportedVersion}"
             sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
                 export CLUSTER_NAME="admin"
@@ -1142,7 +1137,6 @@ def runGinkgoRandomizeAdmin(testSuitePath, clusterDumpDirectory, String supporte
                 ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
             """
         }else if(supportedVersion == "latest"){
-            echo "Inside Latest Version: ${supportedVersion}"
             sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
                 export CLUSTER_NAME="admin"
@@ -1163,7 +1157,6 @@ def runGinkgoRandomizeSerialAdmin(testSuitePath, clusterDumpDirectory, String su
        // def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
         def vzVersion = getVZVersion(RUNNING_OPERATOR_VERSION)
         if(supportedVersion == vzVersion){
-            echo "Inside supportedVersion: ${supportedVersion}"
             sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
                 export CLUSTER_NAME="admin"
@@ -1173,7 +1166,6 @@ def runGinkgoRandomizeSerialAdmin(testSuitePath, clusterDumpDirectory, String su
                 ginkgo --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
             """
         }else if(supportedVersion == "latest"){
-            echo "Inside Latest Version: ${supportedVersion}"
             sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
                 export CLUSTER_NAME="admin"
@@ -1194,7 +1186,6 @@ def runGinkgoVerify(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeplo
         def vzVersion = getVZVersion(RUNNING_OPERATOR_VERSION)
         //Executes the tests only if the vz version matches the stage version parameter.
         if(supportedVersion == vzVersion){
-            echo "Inside supportedVersion: ${supportedVersion}"
             sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
                 export CLUSTER_NAME="admin"
@@ -1205,7 +1196,6 @@ def runGinkgoVerify(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeplo
             """
         //By default executes all the test stages.
         }else if(supportedVersion == "latest"){
-            echo "Inside Latest Version: ${supportedVersion}"
             sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
                 export CLUSTER_NAME="admin"
