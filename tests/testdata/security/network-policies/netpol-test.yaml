@@ -10,4 +10,4 @@ metadata:
 spec:
   containers:
     - name: test
-      image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:1.0.0-1-20211215184123-0a1b633"
+      image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:1.0.0-1-20220513221156-7da0d32"

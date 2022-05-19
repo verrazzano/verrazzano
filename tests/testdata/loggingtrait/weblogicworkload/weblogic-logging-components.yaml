@@ -158,7 +158,7 @@ spec:
                       key: password
                 - name: MYSQL_DATABASE
                   value: tododb
-              image: ghcr.io/verrazzano/mysql:8.0.20
+              image: ghcr.io/verrazzano/mysql:8.0.28
               imagePullPolicy: IfNotPresent
               name: mysql
               ports:
