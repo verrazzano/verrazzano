@@ -107,6 +107,16 @@ spec:
       enabled: true
     prometheus:
       enabled: true
+    prometheusOperator:
+      prometheusSpec:
+        storageSpec:
+          volumeClaimTemplate:
+            spec:
+              storageClassName:
+                resources:
+                  requests:
+                    storage: "50Gi"
+                    memory: "128Mi"
     rancher:
       enabled: true
     verrazzano:

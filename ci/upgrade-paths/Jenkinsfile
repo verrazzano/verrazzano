@@ -222,32 +222,7 @@ pipeline {
                     echo "${NODE_LABELS}"
                 """
 
-                script {
-                    EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
-                    if (params.GIT_COMMIT_TO_USE == "NONE") {
-                        echo "Specific GIT commit was not specified, use current head"
-                        def scmInfo = checkout scm
-                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
-                    } else {
-                        echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
-                        def scmInfo = checkout([
-                                $class: 'GitSCM',
-                                branches: [[name: params.GIT_COMMIT_TO_USE]],
-                                doGenerateSubmoduleConfigurations: false,
-                                extensions: [],
-                                submoduleCfg: [],
-                                userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
-                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
-                        // If the commit we were handed is not what the SCM says we are using, fail
-                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
-                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
-                            exit 1
-                        }
-                    }
-                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
-                }
+                performSourceCodeCheckout()
 
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
@@ -396,6 +371,11 @@ pipeline {
                                 verifyRegisterManagedClusters(true)
                             }
                         }
+                        stage('pre-upgrade verify keycloak') {
+                            steps {
+                                runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
+                            }
+                        }
                         stage ('Deploy Helidon example application - single cluster') {
                             steps {
                                 runGinkgoVerify('examples/helidon', "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true", "hello-helidon")
@@ -522,6 +502,21 @@ pipeline {
 
         stage('Post-upgrade Acceptance Tests') {
             stages {
+                stage("Validate BOM") {
+                    when {
+                        allOf {
+                            expression{params.RUN_BOM_VALIDATOR == true}
+                        }
+                    }
+                    environment {
+                        OCI_CLI_AUTH="instance_principal"
+                        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                        OCI_OS_BUCKET="verrazzano-builds"
+                    }
+                    steps {
+                        executeBOMValidatorAdmin()
+                    }
+                }
                 stage ('Console') {
                     when { expression { isMultiCluster() } }
                     steps {
@@ -531,6 +526,11 @@ pipeline {
                         always {
                             sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_screenshots.sh"
                         }
+                    }
+                }
+                stage('post-upgrade verify keycloak') {
+                    steps {
+                        runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
                     }
                 }
                 stage ('Verify & Uninstall Example Apps') {
@@ -550,7 +550,7 @@ pipeline {
                 }
                 stage ("Verify install scripts") {
                     steps {
-                        runGinkgoRandomizeAdmin("scripts/install")
+                        runGinkgoRandomizeAdmin("scripts/install", "${TEST_DUMP_ROOT}/install-scripts")
                     }
                 }
                 stage ('Multi-cluster Verify Api') {
@@ -959,7 +959,7 @@ def upgradeVerrazzanoOnCluster(count, verrazzanoDevVersion) {
                 cat ${v8oUpgradeFile}
                 kubectl --kubeconfig=${kubeClusterConfig} apply -f ${v8oUpgradeFile}
                 # wait for the upgrade to complete
-                kubectl --kubeconfig=${kubeClusterConfig} wait --timeout=25m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                kubectl --kubeconfig=${kubeClusterConfig} wait --timeout=30m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
                 # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
                 kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-post-upgrade-job.out
@@ -1091,13 +1091,31 @@ def runGinkgoRandomize(testSuitePath) {
 }
 
 // Run a test suite against just the admin cluster
-def runGinkgoRandomizeAdmin(testSuitePath) {
-    sh """
-        export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
-        export CLUSTER_NAME="admin"
-        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-        ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
-    """
+def runGinkgoRandomizeAdmin(testSuitePath, clusterDumpDirectory) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+            export CLUSTER_NAME="admin"
+            export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+            export DUMP_DIRECTORY="${clusterDumpDirectory}"
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+        """
+    }
+}
+
+// Run a test suite serially against just the admin cluster
+def runGinkgoRandomizeSerialAdmin(testSuitePath, clusterDumpDirectory) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+            export CLUSTER_NAME="admin"
+            export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+            export DUMP_DIRECTORY="${clusterDumpDirectory}"
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+        """
+    }
 }
 
 def runGinkgoVerify(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace) {
@@ -1192,6 +1210,18 @@ def createOKEClusters(clusterPrefix) {
             echo "Create OKE cluster"
             cd ${TEST_SCRIPTS_DIR}
             TF_VAR_label_prefix=${clusterPrefix} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./create_oke_multi_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}" ${params.CREATE_CLUSTER_USE_CALICO}
+        """
+    }
+}
+
+// Execute bom-validator against admin cluster
+def executeBOMValidatorAdmin() {
+    script {
+        sh """
+            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
+            chmod +x ${WORKSPACE}/bom-validator
+            export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+            ${WORKSPACE}/bom-validator
         """
     }
 }
@@ -1505,7 +1535,7 @@ def emitJobMetrics() {
     long timeInMillis = "${currentBuild.timeInMillis}" as long;
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
     env.TIME_WAITING = startTimeInMillis-timeInMillis
-    runGinkgoRandomizeAdmin('jobmetrics')
+    runGinkgoRandomizeAdmin('jobmetrics', "${TEST_DUMP_ROOT}/jobmetrics")
 }
 
 def setVZConfigForInstallation(){
@@ -1557,5 +1587,34 @@ def performDockerLogin() {
                 """
             }
         }
+    }
+}
+
+def performSourceCodeCheckout() {
+    script {
+        EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
+        if (params.GIT_COMMIT_TO_USE == "NONE") {
+            echo "Specific GIT commit was not specified, use current head"
+            def scmInfo = checkout scm
+            env.GIT_COMMIT = scmInfo.GIT_COMMIT
+            env.GIT_BRANCH = scmInfo.GIT_BRANCH
+        } else {
+            echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
+            def scmInfo = checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: params.GIT_COMMIT_TO_USE]],
+                    doGenerateSubmoduleConfigurations: false,
+                    extensions: [],
+                    submoduleCfg: [],
+                    userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+            env.GIT_COMMIT = scmInfo.GIT_COMMIT
+            env.GIT_BRANCH = scmInfo.GIT_BRANCH
+            // If the commit we were handed is not what the SCM says we are using, fail
+            if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
+                echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
+                exit 1
+            }
+        }
+        echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
     }
 }
