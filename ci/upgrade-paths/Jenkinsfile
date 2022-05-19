@@ -1195,7 +1195,7 @@ def runGinkgoVerify(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeplo
 }
 
 def getVZVersion(vzRawVersion){
-        def rawVersionSplit  = vzRawVersion.split('.')
+        def rawVersionSplit  = vzRawVersion.split('\\.')
         vzVersion = rawVersionSplit[0] + '.' + rawVersionSplit[1] + '.' + rawVersionSplit[2].charAt(0)
         echo "Verrazzano Version is: ${vzVersion}"
         return vzVersion
