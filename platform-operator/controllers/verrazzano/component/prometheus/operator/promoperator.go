@@ -6,21 +6,30 @@ package operator
 import (
 	"context"
 	"fmt"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"path"
 	"strconv"
 
+	vmoconst "github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
-const deploymentName = "prometheus-operator-kube-p-operator"
+const (
+	deploymentName  = "prometheus-operator-kube-p-operator"
+	istioVolumeName = "istio-certs-dir"
+)
 
 // isPrometheusOperatorReady checks if the Prometheus operator deployment is ready
 func isPrometheusOperatorReady(ctx spi.ComponentContext) bool {
@@ -44,8 +53,7 @@ func preInstall(ctx spi.ComponentContext) error {
 
 	// Create the verrazzano-monitoring namespace
 	ctx.Log().Debugf("Creating namespace %s for the Prometheus Operator", ComponentNamespace)
-	namespace := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ComponentNamespace}}
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &namespace, func() error {
+	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), prometheus.GetVerrazzanoMonitoringNamespace(), func() error {
 		return nil
 	}); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to create or update the %s namespace: %v", ComponentNamespace, err)
@@ -81,6 +89,35 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		Value: strconv.FormatBool(vzconfig.IsCertManagerEnabled(ctx.EffectiveCR())),
 	})
 
+	// If we specify a storage or the prod is used, create a PVC for Prometheus
+	resourceRequest, err := common.FindStorageOverride(ctx.EffectiveCR())
+	if err != nil {
+		return kvs, err
+	}
+	if resourceRequest != nil {
+		storage := resourceRequest.Storage
+		memory := resourceRequest.Memory
+		kvs = append(kvs, []bom.KeyValue{
+			{
+				Key:   "prometheusOperator.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName.resources.requests.storage",
+				Value: storage,
+			},
+			{
+				Key:   "prometheusOperator.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName.resources.requests.memory",
+				Value: memory,
+			},
+		}...)
+	}
+
+	// Append the Istio Annotations for Prometheus
+	kvs, err = appendIstioOverrides(ctx,
+		"prometheus.prometheusSpec.podMetadata.annotations",
+		"prometheus.prometheusSpec.volumeMounts",
+		"prometheus.prometheusSpec.volumes",
+		kvs)
+	if err != nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed applying the Istio Overrides for Prometheus")
+	}
 	return kvs, nil
 }
 
@@ -121,6 +158,74 @@ func appendDefaultImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, s
 	return kvs, nil
 }
 
+// validatePrometheusOperator checks scenarios in which the Verrazzano CR violates install verification due to Prometheus Operator specifications
+func (c prometheusComponent) validatePrometheusOperator(effectiveCR *vzapi.Verrazzano) error {
+	// Validate if Prometheus is enabled, Prometheus Operator should be enabled
+	if !c.IsEnabled(effectiveCR) && vzconfig.IsPrometheusEnabled(effectiveCR) {
+		return fmt.Errorf("Prometheus cannot be enabled if the Prometheus Operator is disabled")
+	}
+
+	// Validate Helm value overrides
+	if effectiveCR.Spec.Components.PrometheusOperator != nil {
+		if err := vzapi.ValidateInstallOverrides(effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// appendIstioOverrides appends Istio annotations necessary for Prometheus in Istio
+// Istio is required on the Prometheus for mTLS between it and Verrazzano applications
+func appendIstioOverrides(ctx spi.ComponentContext, annotationsKey, volumeMountKey, volumeKey string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	// Set the Istio annotation on Prometheus to exclude Keycloak HTTP Service IP address.
+	// The includeOutboundIPRanges implies all others are excluded.
+	// This is done by adding the traffic.sidecar.istio.io/includeOutboundIPRanges=<Keycloak IP>/32 annotation.
+	svc := corev1.Service{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: "keycloak-http", Namespace: constants.KeycloakNamespace}, &svc)
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return kvs, ctx.Log().ErrorfNewErr("Failed to get keycloak-http service: %v", err)
+		}
+	}
+	outboundIP := fmt.Sprintf("%s/32", svc.Spec.ClusterIP)
+	if svc.Spec.ClusterIP == "" {
+		outboundIP = "0.0.0.0/0"
+	}
+
+	// Istio annotations that will copy the volume mount for the Istio certs to the envoy sidecar
+	// The last annotation allows envoy to intercept only requests from the Keycloak Service IP
+	annotations := map[string]string{
+		`proxy\.istio\.io/config`:                             `{"proxyMetadata":{ "OUTPUT_CERTS": "/etc/istio-output-certs"}}`,
+		`sidecar\.istio\.io/userVolumeMount`:                  `[{"name": "istio-certs-dir", "mountPath": "/etc/istio-output-certs"}]`,
+		`traffic\.sidecar\.istio\.io/includeOutboundIPRanges`: outboundIP,
+	}
+	for key, value := range annotations {
+		kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s.%s", annotationsKey, key), Value: value})
+	}
+
+	// Volume mount on the Prometheus container to mount the Istio-generated certificates
+	vm := corev1.VolumeMount{
+		Name:      istioVolumeName,
+		MountPath: vmoconst.IstioCertsMountPath,
+	}
+	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[0].name", volumeMountKey), Value: vm.Name})
+	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[0].mountPath", volumeMountKey), Value: vm.MountPath})
+
+	// Volume annotation to enable an in-memory location for Istio to place and serve certificates
+	vol := corev1.Volume{
+		Name: istioVolumeName,
+		VolumeSource: corev1.VolumeSource{
+			EmptyDir: &corev1.EmptyDirVolumeSource{
+				Medium: corev1.StorageMediumMemory,
+			},
+		},
+	}
+	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[0].name", volumeKey), Value: vol.Name})
+	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[0].emptyDir.medium", volumeKey), Value: string(vol.VolumeSource.EmptyDir.Medium)})
+
+	return kvs, nil
+}
+
 // GetOverrides appends Helm value overrides for the Prometheus Operator Helm chart
 func GetOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
 	comp := ctx.EffectiveCR().Spec.Components.PrometheusOperator
@@ -131,4 +236,20 @@ func GetOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
 		return ctx.EffectiveCR().Spec.Components.PrometheusOperator.ValueOverrides
 	}
 	return []vzapi.Overrides{}
+}
+
+// applySystemMonitors applies templatized PodMonitor and ServiceMonitor custom resources for Verrazzano system
+// components to the cluster
+func applySystemMonitors(ctx spi.ComponentContext) error {
+	// create template key/value map
+	args := make(map[string]interface{})
+	args["systemNamespace"] = constants.VerrazzanoSystemNamespace
+	args["monitoringNamespace"] = constants.VerrazzanoMonitoringNamespace
+	args["nginxNamespace"] = constants.IngressNginxNamespace
+	args["istioNamespace"] = constants.IstioSystemNamespace
+
+	// substitute template values to all files in the directory and apply the resulting YAML
+	dir := path.Join(config.GetThirdPartyManifestsDir(), "prometheus-operator")
+	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
+	return yamlApplier.ApplyDT(dir, args)
 }

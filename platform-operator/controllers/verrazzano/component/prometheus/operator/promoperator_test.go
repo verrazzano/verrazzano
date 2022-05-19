@@ -5,10 +5,14 @@ package operator
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	vmoconst "github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
+	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -16,7 +20,9 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -129,7 +135,7 @@ func TestAppendOverrides(t *testing.T) {
 	var err error
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 7)
+	assert.Len(t, kvs, 14)
 
 	assert.Equal(t, "ghcr.io/verrazzano/prometheus-config-reloader", bom.FindKV(kvs, "prometheusOperator.prometheusConfigReloader.image.repository"))
 	assert.NotEmpty(t, bom.FindKV(kvs, "prometheusOperator.prometheusConfigReloader.image.tag"))
@@ -161,7 +167,7 @@ func TestAppendOverrides(t *testing.T) {
 
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 7)
+	assert.Len(t, kvs, 14)
 
 	assert.Equal(t, "false", bom.FindKV(kvs, "prometheusOperator.admissionWebhooks.certManager.enabled"))
 }
@@ -180,4 +186,184 @@ func TestPreInstall(t *testing.T) {
 	ns := v1.Namespace{}
 	err = client.Get(context.TODO(), types.NamespacedName{Name: ComponentNamespace}, &ns)
 	assert.NoError(t, err)
+}
+
+// TestAppendIstioOverrides tests that the Istio overrides get applied
+func TestAppendIstioOverrides(t *testing.T) {
+	annotationKey := "annKey"
+	volumeMountKey := "vmKey"
+	volumeKey := "volKey"
+	tests := []struct {
+		name            string
+		expectOverrides []bom.KeyValue
+	}{
+		{
+			name: "test expect overrides",
+			expectOverrides: []bom.KeyValue{
+				{
+					Key:   fmt.Sprintf(`%s.traffic\.sidecar\.istio\.io/includeOutboundIPRanges`, annotationKey),
+					Value: "0.0.0.0/32",
+				},
+				{
+					Key:   fmt.Sprintf(`%s.proxy\.istio\.io/config`, annotationKey),
+					Value: `{"proxyMetadata":{ "OUTPUT_CERTS": "/etc/istio-output-certs"}}`,
+				},
+				{
+					Key:   fmt.Sprintf(`%s.sidecar\.istio\.io/userVolumeMount`, annotationKey),
+					Value: `[{"name": "istio-certs-dir", "mountPath": "/etc/istio-output-certs"}]`,
+				},
+				{
+					Key:   fmt.Sprintf("%s[0].name", volumeMountKey),
+					Value: istioVolumeName,
+				},
+				{
+					Key:   fmt.Sprintf("%s[0].mountPath", volumeMountKey),
+					Value: vmoconst.IstioCertsMountPath,
+				},
+				{
+					Key:   fmt.Sprintf("%s[0].name", volumeKey),
+					Value: istioVolumeName,
+				},
+				{
+					Key:   fmt.Sprintf("%s[0].emptyDir.medium", volumeKey),
+					Value: string(v1.StorageMediumMemory),
+				},
+			},
+		},
+	}
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).DoAndReturn(
+		func(ctx context.Context, name types.NamespacedName, service *v1.Service) error {
+			service.Spec.ClusterIP = "0.0.0.0"
+			return nil
+		})
+	vz := vzapi.Verrazzano{}
+	ctx := spi.NewFakeContext(mock, &vz, false)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			kvs, err := appendIstioOverrides(ctx, annotationKey, volumeMountKey, volumeKey, []bom.KeyValue{})
+
+			assert.Equal(t, len(tt.expectOverrides), len(kvs))
+
+			for _, kvsVal := range kvs {
+				found := false
+				for _, expVal := range tt.expectOverrides {
+					if expVal == kvsVal {
+						found = true
+						break
+					}
+				}
+				assert.True(t, found, fmt.Sprintf("Could not find key %s, value %s in expected key value pairs", kvsVal.Key, kvsVal.Value))
+			}
+			assert.NoError(t, err)
+		})
+	}
+}
+
+// TestValidatePrometheusOperator tests the validation of the Prometheus Operator installation and the Verrazzano CR
+func TestValidatePrometheusOperator(t *testing.T) {
+	tests := []struct {
+		name        string
+		vz          vzapi.Verrazzano
+		expectError bool
+	}{
+		{
+			name:        "test nothing enabled",
+			vz:          vzapi.Verrazzano{},
+			expectError: false,
+		},
+		{
+			name: "test only Prometheus enabled",
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Prometheus:         &vzapi.PrometheusComponent{Enabled: &trueValue},
+						PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &falseValue},
+					},
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "test only Prometheus Operator enabled",
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Prometheus:         &vzapi.PrometheusComponent{Enabled: &falseValue},
+						PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &trueValue},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "test all enabled",
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Prometheus:         &vzapi.PrometheusComponent{Enabled: &trueValue},
+						PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &trueValue},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "test all disabled",
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Prometheus:         &vzapi.PrometheusComponent{Enabled: &falseValue},
+						PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &falseValue},
+					},
+				},
+			},
+			expectError: false,
+		},
+	}
+	c := prometheusComponent{}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := c.validatePrometheusOperator(&tt.vz)
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestApplySystemMonitors tests the applySystemMonitors function
+func TestApplySystemMonitors(t *testing.T) {
+	// GIVEN the Prometheus Operator is being installed or upgraded
+	// WHEN we call the applySystemMonitors function
+	// THEN ServiceMonitor and PodMonitor resources are applied so that
+	// Verrazzano system components will have their metrics collected
+	oldConfig := config.Get()
+	defer config.Set(oldConfig)
+	config.Set(config.OperatorConfig{
+		VerrazzanoRootDir: "../../../../../..",
+	})
+
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+
+	err := applySystemMonitors(ctx)
+	assert.NoError(t, err)
+
+	// expect that 3 PodMonitors are created
+	monitors := &unstructured.UnstructuredList{}
+	monitors.SetGroupVersionKind(schema.GroupVersionKind{Group: "monitoring.coreos.com", Version: "v1", Kind: "PodMonitor"})
+	err = client.List(context.TODO(), monitors)
+	assert.NoError(t, err)
+	assert.Len(t, monitors.Items, 3)
+
+	// expect that 1 ServiceMonitor is created
+	monitors = &unstructured.UnstructuredList{}
+	monitors.SetGroupVersionKind(schema.GroupVersionKind{Group: "monitoring.coreos.com", Version: "v1", Kind: "ServiceMonitor"})
+	err = client.List(context.TODO(), monitors)
+	assert.NoError(t, err)
+	assert.Len(t, monitors.Items, 1)
 }
