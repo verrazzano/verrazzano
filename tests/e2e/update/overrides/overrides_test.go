@@ -57,14 +57,14 @@ var _ = t.Describe("Post Install Overrides Test", func() {
 			createOrUpdateOverrides("Create")
 		})
 
-		t.It("Check override values", func() {
+		t.It("Verify override values are applied", func() {
 			gomega.Eventually(func() bool {
 				return checkValues(overrideOldValue)
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 
 		// Verify that re-install succeeds
-		t.It("Check Verrazzano gets into ready state", func() {
+		t.It("Verify Verrazzano re-install is successful", func() {
 			gomega.Eventually(func() error {
 				return vzReady()
 			}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
@@ -78,14 +78,14 @@ var _ = t.Describe("Post Install Overrides Test", func() {
 			createOrUpdateOverrides("Update")
 		})
 
-		t.It("Check override values", func() {
+		t.It("Verify override values are applied", func() {
 			gomega.Eventually(func() bool {
 				return checkValues(overrideNewValue)
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 
 		// Verify that re-install succeeds
-		t.It("Check Verrazzano gets into ready state", func() {
+		t.It("Verify Verrazzano re-install is successful", func() {
 			gomega.Eventually(func() error {
 				return vzReady()
 			}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
@@ -99,7 +99,7 @@ var _ = t.Describe("Post Install Overrides Test", func() {
 			deleteOverrides()
 		})
 
-		t.It("Check deleted values are removed", func() {
+		t.It("Verify deleted values are removed", func() {
 			gomega.Eventually(func() bool {
 				pods, err := pkg.GetPodsFromSelector(nil, constants.VerrazzanoMonitoringNamespace)
 				if err != nil {
@@ -119,7 +119,7 @@ var _ = t.Describe("Post Install Overrides Test", func() {
 		})
 
 		// Verify that re-install succeeds
-		t.It("Check Verrazzano in ready state", func() {
+		t.It("Verify Verrazzano re-install is successful", func() {
 			gomega.Eventually(func() error {
 				return vzReady()
 			}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")

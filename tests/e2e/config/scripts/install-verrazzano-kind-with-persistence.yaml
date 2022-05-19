@@ -17,15 +17,15 @@ spec:
           persistentVolumeClaim:
             claimName: mysql  # set storage for keycloak's MySql instance
     prometheusOperator:
-      enabled: true
+      enabled: false
       monitorChanges: true
       overrides:
         - secretRef:
-            name: test-overrides
+            name: test-overrides-1
             key: test-overrides-secret.yaml
             optional: true
         - configMapRef:
-            name: test-overrides
+            name: test-overrides-1
             key: test-overrides-configmap.yaml
             optional: true
   volumeClaimSpecTemplates:

@@ -21,14 +21,14 @@ elif [[ "$1" == "Update" ]]; then
 fi
 
 echo "Create/Update overrides ConfigMap"
-kubectl create cm test-overrides --from-file=$CM_FILE -o yaml --dry-run=client | kubectl apply -f -
+kubectl create cm test-overrides-1 --from-file=$CM_FILE -o yaml --dry-run=client | kubectl apply -f -
 if [ $? -ne 0 ]; then
   echo "Could not update ConfigMap"
   exit 1
 fi
 
 echo "Create/Update overrides Secret"
-kubectl create secret generic test-overrides --from-file=$SECRET_FILE -o yaml --dry-run=client | kubectl apply -f -
+kubectl create secret generic test-overrides-1 --from-file=$SECRET_FILE -o yaml --dry-run=client | kubectl apply -f -
 if [ $? -ne 0 ]; then
   echo "Could not update Secret"
   exit 1
