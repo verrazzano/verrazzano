@@ -1061,7 +1061,7 @@ def runGinkgoVerifyManaged(testSuitePath, clusterDumpDirectory, skipDeploy, skip
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
-            vzRawVersion=`${kubectl get vz -o jsonpath='{.items[0].status.version}'}`
+            vzRawVersion=$(kubectl get vz -o jsonpath="{.items[0].status.version}")
         """
         //def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
         def vzVersion = getVZVersion(vzRawVersion)
@@ -1096,7 +1096,7 @@ def runGinkgoRandomize(testSuitePath, String supportedVersion="latest") {
                     export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     export CLUSTER_NAME="${clusterName}"
                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    vzRawVersion=`${kubectl get vz -o jsonpath='{.items[0].status.version}'}`
+                    vzRawVersion=$(kubectl get vz -o jsonpath="{.items[0].status.version}")
                 """
                 //def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
                 def vzVersion = getVZVersion(vzRawVersion)
@@ -1124,7 +1124,7 @@ def runGinkgoRandomizeAdmin(testSuitePath, clusterDumpDirectory, String supporte
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            vzRawVersion=`${kubectl get vz -o jsonpath='{.items[0].status.version}'}`
+            vzRawVersion=$(kubectl get vz -o jsonpath="{.items[0].status.version}")
         """
         //def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
         def vzVersion = getVZVersion(vzRawVersion)
@@ -1150,7 +1150,7 @@ def runGinkgoRandomizeSerialAdmin(testSuitePath, clusterDumpDirectory, String su
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            vzRawVersion=`${kubectl get vz -o jsonpath='{.items[0].status.version}'}`
+            vzRawVersion=$(kubectl get vz -o jsonpath="{.items[0].status.version}")
 
         """
        // def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
@@ -1176,7 +1176,7 @@ def runGinkgoVerify(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeplo
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            vzRawVersion=`${kubectl get vz -o jsonpath='{.items[0].status.version}'}`
+            vzRawVersion=$(kubectl get vz -o jsonpath="{.items[0].status.version}")
         """
         //def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
         def vzVersion = getVZVersion(vzRawVersion)
