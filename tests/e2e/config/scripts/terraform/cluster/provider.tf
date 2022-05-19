@@ -8,6 +8,7 @@ variable "api_fingerprint" {}
 variable "api_private_key_path" {}
 
 provider "oci" {
+  version              = "4.75.0"
   tenancy_ocid         = var.tenancy_id
   user_ocid            = var.user_id
   fingerprint          = var.api_fingerprint
