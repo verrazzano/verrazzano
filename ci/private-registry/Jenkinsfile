@@ -2,6 +2,9 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
+
+// TBD: For now we are ignoring the params.LOCK_REGION for this test, we can revisit later, but it still defines the parameter
+
 // Pin to PHX for now for testing; tarball is located only in PHX at present, and takes 15+ mins to download to LHR at runtime
 // - at some point, we can either enable bucket replication or have the pipeline push it to more regions
 //def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
@@ -11,6 +14,8 @@ def ocirRegistry = "${ocirRegion}.ocir.io"
 def imageRepoSubPath=""
 def baseImageRepo=""
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
+def availableRegions = env.JOB_NAME.contains('master') ? [ "us-phoenix-1" ] : [  "us-phoenix-1", "us-ashburn-1", "eu-frankfurt-1", "uk-london-1" ]
+Collections.shuffle(availableRegions)
 
 pipeline {
     options {
@@ -28,6 +33,7 @@ pipeline {
     }
 
     parameters {
+        choice (description: 'OCI region to run Jenkins agent and OKE clusters in. Currently ignored in this test', name: 'LOCK_REGION', choices: availableRegions)
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
