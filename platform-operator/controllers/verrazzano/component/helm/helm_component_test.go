@@ -926,10 +926,10 @@ func TestGetInstallOverridesYAML(t *testing.T) {
 			} else {
 				for _, d := range data {
 					if tt.expectCMGet {
-						a.Equal(d, tt.expectCMData[dataKey])
+						a.Equal(tt.expectCMData[dataKey], d)
 					}
 					if tt.expectSecGet {
-						a.Equal(d, tt.expectSecData[dataKey])
+						a.Equal(tt.expectSecData[dataKey], []byte(d))
 					}
 				}
 				a.NoError(err)
