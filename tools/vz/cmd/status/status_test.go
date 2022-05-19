@@ -28,20 +28,23 @@ func TestStatusCmd(t *testing.T) {
 				Namespace: namespace,
 				Name:      name,
 			},
-			Spec: vzapi.VerrazzanoSpec{
-				Version: "1.2.3",
+			Status: vzapi.VerrazzanoStatus{
+				Version:            "1.2.3",
+				VerrazzanoInstance: nil,
+				Conditions:         nil,
+				State:              "",
+				Components:         nil,
 			},
 		}).Build()
 
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
+	buf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: os.Stderr})
 	rc.SetClient(c)
 	statusCmd := NewCmdStatus(rc)
 	assert.NotNil(t, statusCmd)
 
 	// Add the command line parameters
 	statusCmd.SetArgs([]string{"--name", name, "--namespace", namespace})
-	buf := new(bytes.Buffer)
-	statusCmd.SetOutput(buf)
 	err := statusCmd.Execute()
 	assert.NoError(t, err)
 }
