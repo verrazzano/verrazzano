@@ -5,7 +5,6 @@ package istio
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -232,12 +231,6 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 		// append Operator YAML
 		if userFileCR != nil {
 			files = append(files, userFileCR.Name())
-		}
-
-		//create install overrides
-		overrideFiles, err := common.RetrieveInstallOverrideResources(compContext, i.GetOverrides(compContext), i.Name())
-		for _, overrideFile := range overrideFiles {
-			files = append(files, overrideFile)
 		}
 	}
 

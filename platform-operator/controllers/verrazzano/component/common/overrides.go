@@ -2,19 +2,15 @@ package common
 
 import (
 	"context"
-	"fmt"
-	os2 "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
 )
 
-// RetrieveInstallOverrideResources takes the list of Overrides and returns a list of key value pairs
-func RetrieveInstallOverrideResources(ctx spi.ComponentContext, overrides []v1alpha1.Overrides, name string) ([]string, error) {
-	var files []string
-	var file *os.File
+// GetInstallOverridesYAML takes the list of Overrides and returns a list of key value pairs
+func GetInstallOverridesYAML(ctx spi.ComponentContext, overrides []v1alpha1.Overrides) ([]string, error) {
+	var overrideStrings []string
 	for _, override := range overrides {
 		// Check if ConfigMapRef is populated and gather helm file
 		if override.ConfigMapRef != nil {
@@ -27,7 +23,7 @@ func RetrieveInstallOverrideResources(ctx spi.ComponentContext, overrides []v1al
 			if err != nil {
 				if optional == nil || !*optional {
 					err := ctx.Log().ErrorfNewErr("Could not get Configmap %s from namespace %s: %v", nsn.Name, nsn.Namespace, err)
-					return files, err
+					return overrideStrings, err
 				}
 				ctx.Log().Debugf("Optional Configmap %s from namespace %s not found", nsn.Name, nsn.Namespace)
 				continue
@@ -38,17 +34,12 @@ func RetrieveInstallOverrideResources(ctx spi.ComponentContext, overrides []v1al
 			if !ok {
 				if optional == nil || !*optional {
 					err := ctx.Log().ErrorfNewErr("Could not get Data field %s from Resource %s from namespace %s", selector.Key, nsn.Name, nsn.Namespace)
-					return files, err
+					return overrideStrings, err
 				}
 				ctx.Log().Debugf("Optional Resource %s from namespace %s missing Data key %s", nsn.Name, nsn.Namespace, selector.Key)
 			}
 
-			// Create the temp file for the data
-			file, err = os2.CreateTempFile(ctx.Log(), fmt.Sprintf("install-overrides-%s-*.yaml", name), []byte(fieldData))
-			if err != nil {
-				return files, err
-			}
-			files = append(files, file.Name())
+			overrideStrings = append(overrideStrings, fieldData)
 		}
 		// Check if SecretRef is populated and gather helm file
 		if override.SecretRef != nil {
@@ -61,7 +52,7 @@ func RetrieveInstallOverrideResources(ctx spi.ComponentContext, overrides []v1al
 			if err != nil {
 				if optional == nil || !*optional {
 					err := ctx.Log().ErrorfNewErr("Could not get Secret %s from namespace %s: %v", nsn.Name, nsn.Namespace, err)
-					return files, err
+					return overrideStrings, err
 				}
 				ctx.Log().Debugf("Optional Secret %s from namespace %s not found", nsn.Name, nsn.Namespace)
 				continue
@@ -77,18 +68,13 @@ func RetrieveInstallOverrideResources(ctx spi.ComponentContext, overrides []v1al
 			if !ok {
 				if optional == nil || !*optional {
 					err := ctx.Log().ErrorfNewErr("Could not get Data field %s from Resource %s from namespace %s", selector.Key, nsn.Name, nsn.Namespace)
-					return files, err
+					return overrideStrings, err
 				}
 				ctx.Log().Debugf("Optional Resource %s from namespace %s missing Data key %s", nsn.Name, nsn.Namespace, selector.Key)
 			}
 
-			// Create the temp file for the data
-			file, err = os2.CreateTempFile(ctx.Log(), "install-overrides-%s-*.yaml", []byte(fieldData))
-			if err != nil {
-				return files, err
-			}
-			files = append(files, file.Name())
+			overrideStrings = append(overrideStrings, fieldData)
 		}
 	}
-	return files, nil
+	return overrideStrings, nil
 }

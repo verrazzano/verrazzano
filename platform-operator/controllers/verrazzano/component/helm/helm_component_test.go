@@ -920,8 +920,7 @@ func TestRetrieveInstallOverrideResources(t *testing.T) {
 
 			ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)
 
-			comp := HelmComponent{}
-			kvs, err := common.RetrieveInstallOverrideResources(ctx, tt.overrides, comp.Name())
+			kvs, err := common.GetInstallOverridesYAML(ctx, tt.overrides)
 			if tt.expectError {
 				a.Error(err)
 			} else {

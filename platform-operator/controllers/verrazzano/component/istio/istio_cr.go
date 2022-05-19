@@ -6,6 +6,7 @@ package istio
 import (
 	"bytes"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"strings"
 	"text/template"
@@ -142,6 +143,13 @@ func BuildIstioOperatorYaml(ctx spi.ComponentContext, comp *vzapi.IstioComponent
 		return "", err
 	}
 	expandedYamls = append(expandedYamls, gatewayYaml)
+
+	overrideYAML, err := common.GetInstallOverridesYAML(ctx, comp.ValueOverrides)
+	if err != nil {
+		return "", err
+	}
+	expandedYamls = append(expandedYamls, overrideYAML...)
+
 	// Merge all of the expanded YAMLs into a single YAML,
 	// second has precedence over first, third over second, and so forth.
 	merged, err := vzyaml.ReplacementMerge(expandedYamls...)

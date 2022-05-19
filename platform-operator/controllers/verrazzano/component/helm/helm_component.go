@@ -380,12 +380,16 @@ func (h HelmComponent) buildCustomHelmOverrides(context spi.ComponentContext, na
 	// Sort the kvs list by priority (0th term has the highest priority)
 
 	// Getting user defined Helm overrides as the highest priority
-	overrideFiles, err := common.RetrieveInstallOverrideResources(context, h.GetOverrides(context), h.Name())
+	overrideStrings, err := common.GetInstallOverridesYAML(context, h.GetOverrides(context))
 	if err != nil {
 		return overrides, err
 	}
-	for _, overrideFile := range overrideFiles {
-		kvs = append(kvs, bom.KeyValue{Value: overrideFile, IsFile: true})
+	for _, overrideString := range overrideStrings {
+		file, err := vzos.CreateTempFile(context.Log(), fmt.Sprintf("install-overrides-%s-*.yaml", h.Name()), []byte(overrideString))
+		if err != nil {
+			return overrides, err
+		}
+		kvs = append(kvs, bom.KeyValue{Value: file.Name(), IsFile: true})
 	}
 
 	// Create files from the Verrazzano Helm values
