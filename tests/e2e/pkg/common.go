@@ -7,7 +7,6 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	v12 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"io/ioutil"
 	"net/http"
 	neturl "net/url"
@@ -18,6 +17,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	v12 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 
 	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -503,7 +504,8 @@ func ContainerImagePullWaitInCluster(namespace string, namePrefixes []string, ku
 // in case of unrecoverable failures.
 func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes []string) bool {
 
-	allContainers := make(map[string][]interface{})
+	allContainers := make(map[string][]*v1.Container)
+	allImages := make(map[string]map[string]bool)
 	imagesYetToBePulled := 0
 	scheduledPods := make(map[string]bool)
 
@@ -511,12 +513,17 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 	for _, pod := range pods.Items {
 		for _, namePrefix := range namePrefixes {
 			if strings.HasPrefix(pod.Name, namePrefix) {
+				if _, ok := allImages[pod.Name]; !ok {
+					allImages[pod.Name] = make(map[string]bool)
+				}
 				for _, initContainer := range pod.Spec.InitContainers {
-					allContainers[pod.Name] = append(allContainers[pod.Name], initContainer.Name)
+					allContainers[pod.Name] = append(allContainers[pod.Name], &initContainer)
+					allImages[pod.Name][initContainer.Image] = true
 					imagesYetToBePulled++
 				}
 				for _, container := range pod.Spec.Containers {
-					allContainers[pod.Name] = append(allContainers[pod.Name], container.Name)
+					allContainers[pod.Name] = append(allContainers[pod.Name], &container)
+					allImages[pod.Name][container.Image] = true
 					imagesYetToBePulled++
 				}
 				scheduledPods[namePrefix] = true
@@ -540,20 +547,28 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 			for i := len(events.Items) - 1; i >= 0; i-- {
 				event := events.Items[i]
 				// used to match exact container name in event data
-				containerRegex := "{" + container.(string) + "}"
+				containerRegex := "{" + container.Name + "}"
 
 				if event.InvolvedObject.Kind == "Pod" && event.InvolvedObject.Name == podName && len(event.InvolvedObject.FieldPath) > 0 && strings.Contains(event.InvolvedObject.FieldPath, containerRegex) {
 
 					// Stop waiting in case of ImagePullBackoff and CrashLoopBackOff
 					if event.Reason == "Failed" {
-						Log(Info, fmt.Sprintf("Pod: %v container: %v status: %v ", podName, container, event.Reason))
+						Log(Info, fmt.Sprintf("Pod: %v container: %v image: %v status: %v ", podName, container.Name, container.Image, event.Reason))
 						if strings.Contains(event.Message, ImagePullBackOff) || strings.Contains(event.Message, CrashLoopBackOff) {
 							return true
 						}
 					}
 					if event.Reason == "Pulled" {
 						imagesYetToBePulled--
-						Log(Info, fmt.Sprintf("Pod: %v container: %v status: %v ", podName, container, event.Reason))
+						Log(Info, fmt.Sprintf("Pod: %v container: %v image: %v status: %v ", podName, container.Name, container.Image, event.Reason))
+						if imagesYetToBePulledForPod, ok := allImages[podName]; ok {
+							if _, ok := imagesYetToBePulledForPod[container.Image]; ok {
+								delete(imagesYetToBePulledForPod, container.Image)
+								if len(imagesYetToBePulledForPod) == 0 {
+									delete(allImages, podName)
+								}
+							}
+						}
 						break
 					}
 
@@ -562,10 +577,10 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 		}
 	}
 
-	if imagesYetToBePulled != 0 {
+	if imagesYetToBePulled != 0 && len(allImages) != 0 {
 		Log(Info, fmt.Sprintf("%d images yet to be pulled", imagesYetToBePulled))
 	}
-	return imagesYetToBePulled == 0
+	return imagesYetToBePulled == 0 || len(allImages) == 0
 }
 
 // CheckNamespaceFinalizerRemoved checks whether namespace finalizers are removed
