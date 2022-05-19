@@ -1061,7 +1061,8 @@ def runGinkgoVerifyManaged(testSuitePath, clusterDumpDirectory, skipDeploy, skip
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
         """
-        def vzVersion = getVZVersion()
+        def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
+        def vzVersion = getVZVersion(vzRawVersion)
         if(supportedVersion == vzVersion){
             sh """
             ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify}
@@ -1093,7 +1094,8 @@ def runGinkgoRandomize(testSuitePath, String supportedVersion="latest") {
                     export CLUSTER_NAME="${clusterName}"
                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                 """
-                def vzVersion = getVZVersion()
+                def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
+                def vzVersion = getVZVersion(vzRawVersion)
                 if(supportedVersion == vzVersion){
                   sh """
                     ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
@@ -1111,7 +1113,6 @@ def runGinkgoRandomize(testSuitePath, String supportedVersion="latest") {
 // Run a test suite against just the admin cluster
 def runGinkgoRandomizeAdmin(testSuitePath, clusterDumpDirectory, String supportedVersion="latest") {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        def vzVersion = getVZVersion()
         sh """
             export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export CLUSTER_NAME="admin"
@@ -1119,6 +1120,8 @@ def runGinkgoRandomizeAdmin(testSuitePath, clusterDumpDirectory, String supporte
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
         """
+        def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
+        def vzVersion = getVZVersion(vzRawVersion)
         if(supportedVersion == vzVersion){
             sh """
                 ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
@@ -1134,7 +1137,6 @@ def runGinkgoRandomizeAdmin(testSuitePath, clusterDumpDirectory, String supporte
 // Run a test suite serially against just the admin cluster
 def runGinkgoRandomizeSerialAdmin(testSuitePath, clusterDumpDirectory, String supportedVersion="latest") {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        def vzVersion = getVZVersion()
         sh """
             export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export CLUSTER_NAME="admin"
@@ -1142,6 +1144,8 @@ def runGinkgoRandomizeSerialAdmin(testSuitePath, clusterDumpDirectory, String su
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
         """
+        def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
+        def vzVersion = getVZVersion(vzRawVersion)
         if(supportedVersion == vzVersion){
             sh """
                 ginkgo --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
@@ -1156,7 +1160,6 @@ def runGinkgoRandomizeSerialAdmin(testSuitePath, clusterDumpDirectory, String su
 
 def runGinkgoVerify(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace, String supportedVersion="latest") {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        def vzVersion = getVZVersion()
         sh """
             export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export CLUSTER_NAME="admin"
@@ -1164,6 +1167,8 @@ def runGinkgoVerify(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeplo
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
         """
+        def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
+        def vzVersion = getVZVersion(vzRawVersion)
         //Executes the tests only if the vz version matches the stage version parameter.
         if(supportedVersion == vzVersion){
             sh """
@@ -1179,14 +1184,11 @@ def runGinkgoVerify(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeplo
     }
 }
 
-def getVZVersion(){
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
+def getVZVersion(vzRawVersion){
         def rawVersionSplit  = vzRawVersion.split('.')
         vzVersion = rawVersionSplit[0] + '.' + rawVersionSplit[1] + '.' + rawVersionSplit[2].charAt(0)
         echo "Verrazzano Version is: ${vzVersion}"
         return vzVersion
-    }
 }
 
 // Configure the Admin and Managed cluster installer custom resources
