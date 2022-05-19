@@ -1060,13 +1060,22 @@ def runGinkgoVerifyManaged(testSuitePath, clusterDumpDirectory, skipDeploy, skip
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
-            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify}
         """
+        def vzVersion = getVZVersion()
+        if(supportedVersion == vzVersion){
+            sh """
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify}
+            """
+        }else if(supportedVersion == "latest"){
+            sh """
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify}
+            """
+        }
     }
 }
 
 // Run a test suite against all clusters
-def runGinkgoRandomize(testSuitePath) {
+def runGinkgoRandomize(testSuitePath, String supportedVersion="latest") {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         script {
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
@@ -1083,51 +1092,100 @@ def runGinkgoRandomize(testSuitePath) {
                     export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     export CLUSTER_NAME="${clusterName}"
                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
                 """
+                def vzVersion = getVZVersion()
+                if(supportedVersion == vzVersion){
+                  sh """
+                    ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+                  """
+                }else if(supportedVersion == "latest"){
+                  sh """
+                    ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+                  """
+                }
             }
         }
     }
 }
 
 // Run a test suite against just the admin cluster
-def runGinkgoRandomizeAdmin(testSuitePath, clusterDumpDirectory) {
+def runGinkgoRandomizeAdmin(testSuitePath, clusterDumpDirectory, String supportedVersion="latest") {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        def vzVersion = getVZVersion()
         sh """
             export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export CLUSTER_NAME="admin"
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
+        if(supportedVersion == vzVersion){
+            sh """
+                ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+            """
+        }else if(supportedVersion == "latest"){
+            sh """
+                ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+            """
+        }
     }
 }
 
 // Run a test suite serially against just the admin cluster
-def runGinkgoRandomizeSerialAdmin(testSuitePath, clusterDumpDirectory) {
+def runGinkgoRandomizeSerialAdmin(testSuitePath, clusterDumpDirectory, String supportedVersion="latest") {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        def vzVersion = getVZVersion()
         sh """
             export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export CLUSTER_NAME="admin"
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
+        if(supportedVersion == vzVersion){
+            sh """
+                ginkgo --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+            """
+        }else if(supportedVersion == "latest"){
+            sh """
+                ginkgo --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+            """
+        }
     }
 }
 
-def runGinkgoVerify(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace) {
+def runGinkgoVerify(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace, String supportedVersion="latest") {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        def vzVersion = getVZVersion()
         sh """
             export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export CLUSTER_NAME="admin"
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify} --namespace=${namespace}
         """
+        //Executes the tests only if the vz version matches the stage version parameter.
+        if(supportedVersion == vzVersion){
+            sh """
+                ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify} --namespace=${namespace}
+            """
+        //By default executes all the test stages.
+        }else if(supportedVersion == "latest"){
+            sh """
+                ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify} --namespace=${namespace}
+            """
+        }
+
+    }
+}
+
+def getVZVersion(){
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
+        def rawVersionSplit  = vzRawVersion.split('.')
+        vzVersion = rawVersionSplit[0] + '.' + rawVersionSplit[1] + '.' + rawVersionSplit[2].charAt(0)
+        echo "Verrazzano Version is: ${vzVersion}"
+        return vzVersion
     }
 }
 
