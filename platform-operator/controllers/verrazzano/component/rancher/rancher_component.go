@@ -258,15 +258,3 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	}
 	return r.HelmComponent.PostInstall(ctx)
 }
-
-// PreUpgrade - pre-upgrade actions for Rancher
-func (r rancherComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	log := ctx.Log()
-
-	err := deleteClusterRepos(log)
-	if err != nil {
-		return log.ErrorfThrottledNewErr("Error deleting Rancher ClusterRepos: %s", err.Error())
-	}
-
-	return r.HelmComponent.PreUpgrade(ctx)
-}
