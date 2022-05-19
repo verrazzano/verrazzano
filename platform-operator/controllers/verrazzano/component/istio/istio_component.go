@@ -80,6 +80,16 @@ func (i istioComponent) GetJSONName() string {
 	return ComponentJSONName
 }
 
+// GetHelmOverrides returns the Helm override sources for a component
+func (i istioComponent) GetOverrides(_ spi.ComponentContext) []vzapi.Overrides {
+	return []vzapi.Overrides{}
+}
+
+// MonitorOverrides indicates whether monitoring of override sources is enabled for a component
+func (i istioComponent) MonitorOverrides(_ spi.ComponentContext) bool {
+	return true
+}
+
 type upgradeFuncSig func(log vzlog.VerrazzanoLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
 
 // upgradeFunc is the default upgrade function
@@ -208,6 +218,7 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 }
 
 func (i istioComponent) IsReady(context spi.ComponentContext) bool {
+	prefix := fmt.Sprintf("Component %s", context.GetComponent())
 	deployments := []types.NamespacedName{
 		{
 			Name:      IstiodDeployment,
@@ -222,8 +233,19 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 			Namespace: IstioNamespace,
 		},
 	}
-	prefix := fmt.Sprintf("Component %s", context.GetComponent())
-	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
+	ready := status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
+	if !ready {
+		return false
+	}
+
+	// Make sure istioctl successfully completed.  We have seen cases during install where the Istio
+	// deployments are ready but istioctl fails.
+	if context.ActualCR().Status.State == vzapi.VzStateInstalling && !i.monitor.isIstioctlSuccess() {
+		context.Log().Infof("%s is waiting for istioctl install to successfully complete", prefix)
+		return false
+	}
+
+	return true
 }
 
 // GetDependencies returns the dependencies of this component

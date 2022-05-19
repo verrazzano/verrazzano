@@ -6,13 +6,14 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/helm"
+	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/rbac"
@@ -277,7 +278,7 @@ func TestCreateLocalRegistrationSecret(t *testing.T) {
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
 			secret.Data = map[string][]byte{
-				clusters.ManagedClusterNameKey: []byte("cluster1"),
+				constants2.ManagedClusterNameKey: []byte("cluster1"),
 			}
 			return nil
 		})
@@ -1330,8 +1331,8 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 // newScheme creates a new scheme that includes this package's object to use for testing
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	//_ = clientgoscheme.AddToScheme(scheme)
-	//_ = core.AddToScheme(scheme)
+	// _ = clientgoscheme.AddToScheme(scheme)
+	// _ = core.AddToScheme(scheme)
 	_ = vzapi.AddToScheme(scheme)
 	return scheme
 }
@@ -1351,8 +1352,11 @@ func newRequest(namespace string, name string) ctrl.Request {
 func newVerrazzanoReconciler(c client.Client) Reconciler {
 	scheme := newScheme()
 	reconciler := Reconciler{
-		Client: c,
-		Scheme: scheme}
+		Client:            c,
+		Scheme:            scheme,
+		WatchedComponents: map[string]bool{},
+		WatchMutex:        &sync.RWMutex{},
+	}
 	return reconciler
 }
 

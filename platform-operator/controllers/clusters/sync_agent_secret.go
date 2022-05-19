@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
+	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	clusterapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzk8s "github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 
@@ -83,7 +84,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncAgentSecret(vmc *clusterapi.Ver
 	}
 
 	// Load the kubeconfig struct
-	token := secret.Data[TokenKey]
+	token := secret.Data[mcconstants.TokenKey]
 	b64Cert, err := getB64CAData(config)
 	if err != nil {
 		return err
@@ -134,8 +135,8 @@ func (r *VerrazzanoManagedClusterReconciler) createOrUpdateAgentSecret(vmc *clus
 func (r *VerrazzanoManagedClusterReconciler) mutateAgentSecret(secret *corev1.Secret, kubeconfig string, manageClusterName string) error {
 	secret.Type = corev1.SecretTypeOpaque
 	secret.Data = map[string][]byte{
-		KubeconfigKey:         []byte(kubeconfig),
-		ManagedClusterNameKey: []byte(manageClusterName),
+		mcconstants.KubeconfigKey:         []byte(kubeconfig),
+		mcconstants.ManagedClusterNameKey: []byte(manageClusterName),
 	}
 	return nil
 }

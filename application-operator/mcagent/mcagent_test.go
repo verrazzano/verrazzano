@@ -422,12 +422,20 @@ func expectAdminVMCStatusUpdateSuccess(adminMock *mocks.MockClient, vmcName type
 func expectCASyncSuccess(localMock, adminMock *mocks.MockClient, assert *asserts.Assertions, testClusterName string) {
 	localRegistrationSecret := types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCRegistrationSecret}
 	adminCASecret := types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: constants.VerrazzanoLocalCABundleSecret}
+	adminRegSecret := types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: getRegistrationSecretName(testClusterName)}
 	localIngressTLSSecret := types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VerrazzanoIngressTLSSecret}
 	adminMock.EXPECT().
 		Get(gomock.Any(), adminCASecret, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Name = adminCASecret.Name
 			secret.Namespace = adminCASecret.Namespace
+			return nil
+		})
+	adminMock.EXPECT().
+		Get(gomock.Any(), adminRegSecret, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Name = adminRegSecret.Name
+			secret.Namespace = adminRegSecret.Namespace
 			return nil
 		})
 	localMock.EXPECT().
@@ -550,6 +558,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 		dsClusterName  string
 		dsEsURL        string
 		dsSecretName   string
+		forceDSRestart bool
 		expectUpdateDS bool
 	}
 	const externalEsURL = "externalEsURL"
@@ -567,6 +576,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 				dsClusterName:  "",
 				dsEsURL:        "",
 				dsSecretName:   "",
+				forceDSRestart: false,
 				expectUpdateDS: true,
 			},
 		},
@@ -577,6 +587,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 				dsClusterName:  regSecretClusterName,
 				dsEsURL:        regSecretEsURL,
 				dsSecretName:   constants.MCRegistrationSecret,
+				forceDSRestart: false,
 				expectUpdateDS: true,
 			},
 		},
@@ -587,6 +598,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 				dsClusterName:  "differentClusterName",
 				dsEsURL:        regSecretEsURL,
 				dsSecretName:   constants.MCRegistrationSecret,
+				forceDSRestart: false,
 				expectUpdateDS: true,
 			},
 		},
@@ -597,6 +609,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 				dsClusterName:  regSecretClusterName,
 				dsEsURL:        "differentEsURL",
 				dsSecretName:   constants.MCRegistrationSecret,
+				forceDSRestart: false,
 				expectUpdateDS: true,
 			},
 		},
@@ -607,6 +620,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 				dsClusterName:  regSecretClusterName,
 				dsEsURL:        regSecretEsURL,
 				dsSecretName:   "differentSecret",
+				forceDSRestart: false,
 				expectUpdateDS: true,
 			},
 		},
@@ -617,6 +631,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 				dsClusterName:  defaultClusterName,
 				dsEsURL:        vzconstants.DefaultOpensearchURL,
 				dsSecretName:   defaultSecretName,
+				forceDSRestart: false,
 				expectUpdateDS: false,
 			},
 		},
@@ -627,7 +642,19 @@ func TestSyncer_configureLogging(t *testing.T) {
 				dsClusterName:  regSecretClusterName,
 				dsEsURL:        regSecretEsURL,
 				dsSecretName:   constants.MCRegistrationSecret,
+				forceDSRestart: false,
 				expectUpdateDS: false,
+			},
+		},
+		{
+			name: "same registration force DS restart",
+			fields: fields{
+				secretExists:   true,
+				dsClusterName:  regSecretClusterName,
+				dsEsURL:        regSecretEsURL,
+				dsSecretName:   constants.MCRegistrationSecret,
+				forceDSRestart: true,
+				expectUpdateDS: true,
 			},
 		},
 		{
@@ -638,6 +665,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 				dsClusterName:  "",
 				dsEsURL:        "",
 				dsSecretName:   "",
+				forceDSRestart: false,
 				expectUpdateDS: true,
 			},
 		},
@@ -649,6 +677,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 				dsClusterName:  defaultClusterName,
 				dsEsURL:        externalEsURL,
 				dsSecretName:   externalEsSecret,
+				forceDSRestart: false,
 				expectUpdateDS: false,
 			},
 		},
@@ -660,6 +689,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 				dsClusterName:  regSecretClusterName,
 				dsEsURL:        regSecretEsURL,
 				dsSecretName:   constants.MCRegistrationSecret,
+				forceDSRestart: false,
 				expectUpdateDS: false,
 			},
 		},
@@ -740,7 +770,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 				Log:         zap.S().With("test"),
 				Context:     context.TODO(),
 			}
-			s.configureLogging()
+			s.configureLogging(tt.fields.forceDSRestart)
 
 			// Validate the results
 			mcMocker.Finish()

@@ -59,9 +59,10 @@ func setBashFunc(f bashFuncSig) {
 }
 
 type installMonitorType struct {
-	running  bool
-	resultCh chan bool
-	inputCh  chan installRoutineParams
+	running         bool
+	resultCh        chan bool
+	inputCh         chan installRoutineParams
+	istioctlSuccess bool
 }
 
 //installRoutineParams - Used to pass args to the install goroutine
@@ -79,10 +80,12 @@ type installMonitor interface {
 	checkResult() (bool, error)
 	// reset - Resets the monitor and closes any open channels
 	reset()
-	//isRunning - returns true of the monitor/goroutine are active
+	// isRunning - returns true of the monitor/goroutine are active
 	isRunning() bool
-	//run - Run the install with the specified args
+	// run - Run the install with the specified args
 	run(args installRoutineParams)
+	// isIstioctlSuccess - returns boolean to indicate whether istioctl completed successfully
+	isIstioctlSuccess() bool
 }
 
 //checkResult - checks for a result from the goroutine
@@ -90,8 +93,10 @@ type installMonitor interface {
 func (m *installMonitorType) checkResult() (bool, error) {
 	select {
 	case result := <-m.resultCh:
+		m.istioctlSuccess = result
 		return result, nil
 	default:
+		m.istioctlSuccess = false
 		return false, ctrlerrors.RetryableError{Source: ComponentName}
 	}
 }
@@ -122,24 +127,30 @@ func (m *installMonitorType) run(args installRoutineParams) {
 		log := args.log
 
 		result := true
+		m.istioctlSuccess = false
 		log.Oncef("Component Istio is running istioctl")
 		stdout, stderr, err := installFunc(log, args.overrides, args.fileOverrides...)
 		log.Debugf("istioctl stdout: %s", string(stdout))
 		if err != nil {
 			result = false
 			err = log.ErrorfNewErr("Failed calling istioctl install: %v stderr: %s", err.Error(), string(stderr))
+		} else {
+			log.Infof("Component Istio successfully ran istioctl install")
 		}
 
 		// Clean up the temp files
 		removeTempFiles(log)
 
 		// Write result
-		log.Oncef("Component Istio successfully ran istioctl install, result: %s", result)
 		outputCh <- result
 	}(m.inputCh, m.resultCh)
 
 	// Pass in the args to get started
 	m.inputCh <- args
+}
+
+func (m *installMonitorType) isIstioctlSuccess() bool {
+	return m.istioctlSuccess
 }
 
 func (i istioComponent) IsOperatorInstallSupported() bool {

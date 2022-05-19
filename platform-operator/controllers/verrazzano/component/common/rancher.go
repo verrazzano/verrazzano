@@ -24,14 +24,13 @@ const (
 	// RancherName is the name of the component
 	RancherName = "rancher"
 	// CattleSystem is the namespace of the component
-	CattleSystem           = "cattle-system"
-	RancherIngressCAName   = "tls-rancher-ingress"
-	RancherAdminSecret     = "rancher-admin-secret"
-	RancherCACert          = "ca.crt"
-	RancherCAAdditionalPem = "ca-additional.pem"
-	contentTypeHeader      = "Content-Type"
-	authorizationHeader    = "Authorization"
-	applicationJSON        = "application/json"
+	CattleSystem         = "cattle-system"
+	RancherIngressCAName = "tls-rancher-ingress"
+	RancherAdminSecret   = "rancher-admin-secret"
+	RancherCACert        = "ca.crt"
+	contentTypeHeader    = "Content-Type"
+	authorizationHeader  = "Authorization"
+	applicationJSON      = "application/json"
 	// Path to get a login token
 	loginActionPath = "/v3-public/localProviders/local?action=login"
 	// Template body to POST for a login token
@@ -88,7 +87,7 @@ func NewClient(c client.Reader, hostname, password string) (*RESTClient, error) 
 	}, nil
 }
 
-//GetAdminSecret fetches the Rancher admin secret
+// GetAdminSecret fetches the Rancher admin secret
 func GetAdminSecret(c client.Reader) (string, error) {
 	secret := &corev1.Secret{}
 	nsName := types.NamespacedName{
@@ -127,7 +126,7 @@ func GetAdditionalCA(c client.Reader) []byte {
 		return []byte{}
 	}
 
-	return secret.Data[RancherCAAdditionalPem]
+	return secret.Data[constants.AdditionalTLSCAKey]
 }
 
 func CertPool(certs ...[]byte) *x509.CertPool {

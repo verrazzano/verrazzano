@@ -321,7 +321,7 @@ func (r fakeRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error)
 
 // TestIsReady tests the IsReady function
 // GIVEN a call to IsReady
-//  WHEN the deployment object has enough replicas available
+//  WHEN the deployment object has enough replicas available and istioctl ran successfully
 //  THEN true is returned
 func TestIsReady(t *testing.T) {
 
@@ -364,7 +364,10 @@ func TestIsReady(t *testing.T) {
 		},
 	).Build()
 	var iComp istioComponent
-	compContext := spi.NewFakeContext(fakeClient, nil, false)
+	iComp.monitor = &fakeMonitor{
+		istioctlSuccess: true,
+	}
+	compContext := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)
 	assert.True(t, iComp.IsReady(compContext))
 }
 

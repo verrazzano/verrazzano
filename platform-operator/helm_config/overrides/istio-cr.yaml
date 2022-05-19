@@ -15,7 +15,7 @@ spec:
   values:
     global:
       hub: ghcr.io/verrazzano
-      tag: 1.10.4
+      tag: 1.13.2
       arch:
         amd64: 2
         s390x: 2
@@ -53,8 +53,8 @@ spec:
       rewriteAppHTTPProbe: true
       neverInjectSelector:
         - matchExpressions:
-            - { key: app, operator: In, values: [ verrazzano-application-operator ] }
+            - { key: app, operator: In, values: [ verrazzano-application-operator, kube-prometheus-stack-operator ] }
         - matchExpressions:
             - { key: control-plane, operator: In, values: [ coherence ] }
         - matchExpressions:
-            - { key: app.kubernetes.io/name, operator: In, values: [ oam-kubernetes-runtime ] }
+            - { key: app.kubernetes.io/name, operator: In, values: [ oam-kubernetes-runtime, prometheus-adapter ] }
