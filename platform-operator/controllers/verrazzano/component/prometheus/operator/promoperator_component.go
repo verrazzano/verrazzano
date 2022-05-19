@@ -82,22 +82,6 @@ func (c prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preInstall(ctx)
 }
 
-// PostInstall applies monitor resources for Verrazzano system components
-func (c prometheusComponent) PostInstall(ctx spi.ComponentContext) error {
-	if err := applySystemMonitors(ctx); err != nil {
-		return err
-	}
-	return c.HelmComponent.PostInstall(ctx)
-}
-
-// PostUpgrade applies monitor resources for Verrazzano system components
-func (c prometheusComponent) PostUpgrade(ctx spi.ComponentContext) error {
-	if err := applySystemMonitors(ctx); err != nil {
-		return err
-	}
-	return c.HelmComponent.PostUpgrade(ctx)
-}
-
 // ValidateInstall verifies the installation of the Verrazzano object
 func (c prometheusComponent) ValidateInstall(effectiveCR *vzapi.Verrazzano) error {
 	return c.validatePrometheusOperator(effectiveCR)
