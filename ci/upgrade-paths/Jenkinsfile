@@ -398,6 +398,21 @@ pipeline {
                                 runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", "false", "false", "false")
                             }
                         }
+                        stage("Validate BOM Managed") {
+                            when {
+                                allOf {
+                                    expression{params.RUN_BOM_VALIDATOR == true}
+                                }
+                            }
+                            environment {
+                                OCI_CLI_AUTH="instance_principal"
+                                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                                OCI_OS_BUCKET="verrazzano-builds"
+                            }
+                            steps {
+                                executeBOMValidatorManaged()
+                            }
+                        }
                     }
                 }
                 stage("upgrade-platform-operator") {
@@ -502,7 +517,7 @@ pipeline {
 
         stage('Post-upgrade Acceptance Tests') {
             stages {
-                stage("Validate BOM") {
+                stage("Validate BOM Admin") {
                     when {
                         allOf {
                             expression{params.RUN_BOM_VALIDATOR == true}
@@ -1220,7 +1235,18 @@ def executeBOMValidatorAdmin() {
         sh """
             oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
             chmod +x ${WORKSPACE}/bom-validator
-            export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+            export KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+            ${WORKSPACE}/bom-validator
+        """
+    }
+}
+// Execute bom-validator against managed cluster
+def executeBOMValidatorManaged() {
+    script {
+        sh """
+            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
+            chmod +x ${WORKSPACE}/bom-validator
+            export KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
             ${WORKSPACE}/bom-validator
         """
     }
