@@ -433,7 +433,7 @@ pipeline {
                 }
                 stage ('Verify Metrics') {
                     steps {
-                        runGinkgoRandomize('metrics/syscomponents')
+                        runGinkgoRandomizeParallel('metrics/syscomponents')
                     }
                 }
             }
@@ -457,7 +457,7 @@ pipeline {
                 stage ('multicluster/verify-install') {
                     when { expression { isMultiCluster() } }
                     steps {
-                        runGinkgoRandomize('multicluster/verify-install')
+                        runGinkgoRandomizeParallel('multicluster/verify-install')
                     }
                 }
             }
@@ -469,22 +469,22 @@ pipeline {
             parallel {
                 stage('verify-scripts') {
                     steps {
-                        runGinkgoRandomize('scripts')
+                        runGinkgoRandomizeParallel('scripts')
                     }
                 }
                 stage('verify-infra restapi') {
                     steps {
-                        runGinkgoRandomize('verify-infra/restapi')
+                        runGinkgoRandomizeParallel('verify-infra/restapi')
                     }
                 }
                 stage('verify-infra oam') {
                     steps {
-                        runGinkgoRandomize('verify-infra/oam')
+                        runGinkgoRandomizeParallel('verify-infra/oam')
                     }
                 }
                 stage('verify-infra vmi') {
                     steps {
-                        runGinkgoRandomize('verify-infra/vmi')
+                        runGinkgoRandomizeParallel('verify-infra/vmi')
                     }
                 }
             }
@@ -1147,7 +1147,7 @@ def runGinkgoRandomizeSerial(testSuitePath) {
 }
 
 // Run a test suite against all clusters in parallel
-def runGinkgoRandomize(testSuitePath) {
+def runGinkgoRandomizeParallel(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         script {
             // Create a dictionary of Run Ginkgo Randomize steps to be executed in parallel
