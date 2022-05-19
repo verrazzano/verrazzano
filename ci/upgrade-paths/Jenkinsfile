@@ -1054,7 +1054,7 @@ def runGinkgoVerifyManaged(testSuitePath, clusterDumpDirectory, skipDeploy, skip
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         def vzRawVersion
-        sh """
+        sh '''
             export MANAGED_CLUSTER_NAME="managed1"
             export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
             export CLUSTER_COUNT=$clusterCount
@@ -1062,7 +1062,7 @@ def runGinkgoVerifyManaged(testSuitePath, clusterDumpDirectory, skipDeploy, skip
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
             vzRawVersion=$(kubectl get vz -o jsonpath='{.items[0].status.version}')
-        """
+        '''
         //def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
         def vzVersion = getVZVersion(vzRawVersion)
         if(supportedVersion == vzVersion){
@@ -1092,12 +1092,12 @@ def runGinkgoRandomize(testSuitePath, String supportedVersion="latest") {
                     clusterName="managed${count-1}"
                 }
                 def vzRawVersion
-                sh """
+                sh '''
                     export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     export CLUSTER_NAME="${clusterName}"
                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                     vzRawVersion=$(kubectl get vz -o jsonpath='{.items[0].status.version}')
-                """
+                '''
                 //def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
                 def vzVersion = getVZVersion(vzRawVersion)
                 if(supportedVersion == vzVersion){
@@ -1118,14 +1118,14 @@ def runGinkgoRandomize(testSuitePath, String supportedVersion="latest") {
 def runGinkgoRandomizeAdmin(testSuitePath, clusterDumpDirectory, String supportedVersion="latest") {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         def vzRawVersion
-        sh """
+        sh '''
             export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export CLUSTER_NAME="admin"
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             vzRawVersion=$(kubectl get vz -o jsonpath='{.items[0].status.version}')
-        """
+        '''
         //def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
         def vzVersion = getVZVersion(vzRawVersion)
         if(supportedVersion == vzVersion){
@@ -1144,7 +1144,7 @@ def runGinkgoRandomizeAdmin(testSuitePath, clusterDumpDirectory, String supporte
 def runGinkgoRandomizeSerialAdmin(testSuitePath, clusterDumpDirectory, String supportedVersion="latest") {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         def vzRawVersion
-        sh """
+        sh '''
             export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export CLUSTER_NAME="admin"
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
@@ -1152,7 +1152,7 @@ def runGinkgoRandomizeSerialAdmin(testSuitePath, clusterDumpDirectory, String su
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             vzRawVersion=$(kubectl get vz -o jsonpath='{.items[0].status.version}')
 
-        """
+        '''
        // def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
         def vzVersion = getVZVersion(vzRawVersion)
         if(supportedVersion == vzVersion){
@@ -1170,14 +1170,14 @@ def runGinkgoRandomizeSerialAdmin(testSuitePath, clusterDumpDirectory, String su
 def runGinkgoVerify(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace, String supportedVersion="latest") {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
     def vzRawVersion
-        sh """
+        sh '''
             export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export CLUSTER_NAME="admin"
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             vzRawVersion=$(kubectl get vz -o jsonpath='{.items[0].status.version}')
-        """
+        '''
         //def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
         def vzVersion = getVZVersion(vzRawVersion)
         //Executes the tests only if the vz version matches the stage version parameter.
