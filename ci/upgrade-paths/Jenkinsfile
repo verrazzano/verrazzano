@@ -693,6 +693,17 @@ pipeline {
     }
 }
 
+// Utility method to create a map that will be used later to perform parallel operations against multiple clusters
+Map createClusterExecutionsMap() {
+    script {
+        // Create a dictionary of steps to be executed in parallel
+        // - the first one will always be the Admin cluster
+        // - clusters 2-max are managed clusters
+        def clusterExecutionsMap = [:]
+        return clusterExecutionsMap
+    }
+}
+
 // Create a KinD cluster instance
 // - count - the cluster index into $KUBECONFIG_DIR
 // - metallbAddressRange - the address range to provide the Metallb install within the KinD Docker bridge network address range
@@ -765,10 +776,7 @@ def getVerrazzanoOperatorYaml() {
 // Install Verrazzano on each of the clusters
 def installVerrazzano() {
     script {
-        // Create a dictionary of Verrazzano install steps to be executed in parallel
-        // - the first one will always be the Admin cluster
-        // - clusters 2-max are managed clusters
-        def verrazzanoInstallStages = [:]
+        def verrazzanoInstallStages = createClusterExecutionsMap()
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
             def installerPath="${KUBECONFIG_DIR}/${count}/${installerFileName}"
@@ -862,10 +870,7 @@ def upgradePlatformOperator() {
         echo "Downloading target upgrade operator yaml"
         getPlatformOperatorForRelease()
 
-        // Create a dictionary of Verrazzano Platform Operator upgrade steps to be executed in parallel
-        // - the first one will always be the Admin cluster
-        // - clusters 2-max are managed clusters
-        def verrazzanoPlatformOperatorUpgradeStages= [:]
+        def verrazzanoPlatformOperatorUpgradeStages= createClusterExecutionsMap()
 
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count = 1; count <= clusterCount; count++) {
@@ -915,10 +920,7 @@ def upgradeVerrazzano() {
             VERRAZZANO_DEV_VERSION = VERSION_FOR_UPGRADE
         }
 
-        // Create a dictionary of Verrazzano upgrade steps to be executed in parallel
-        // - the first one will always be the Admin cluster
-        // - clusters 2-max are managed clusters
-        def verrazzanoUpgradeStages = [:]
+        def verrazzanoUpgradeStages = createClusterExecutionsMap()
 
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
@@ -980,10 +982,7 @@ def upgradeVerrazzanoOnCluster(count, verrazzanoDevVersion) {
 def registerManagedClusters() {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         script {
-            // Create a dictionary of Verrazzano Register Managed Cluster steps to be executed in parallel
-            // - the first one will always be the Admin cluster
-            // - clusters 2-max are managed clusters
-            def verrazzanoRegisterManagedClusterStages = [:]
+            def verrazzanoRegisterManagedClusterStages = createClusterExecutionsMap()
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
             for(int count=2; count<=clusterCount; count++) {
                 verrazzanoRegisterManagedClusterStages["${count}"] = registerManagedCluster(count)
@@ -1013,10 +1012,7 @@ def registerManagedCluster(count) {
 def verifyRegisterManagedClusters(minimalVerification) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         script {
-            // Create a dictionary of Verrazzano Register Managed Cluster steps to be executed in parallel
-            // - the first one will always be the Admin cluster
-            // - clusters 2-max are managed clusters
-            def verrazzanoRegisterManagedClusterStages = [:]
+            def verrazzanoRegisterManagedClusterStages = createClusterExecutionsMap()
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
             for(int count=2; count<=clusterCount; count++) {
                 verrazzanoRegisterManagedClusterStages["${count}"] = verifyRegisterManagedCluster(count, minimalVerification)
@@ -1044,10 +1040,7 @@ def verifyRegisterManagedCluster(count, minimalVerification) {
 def verifyDeregisterManagedClusters() {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         script {
-            // Create a dictionary of Verrazzano Deregister Managed Cluster steps to be executed in parallel
-            // - the first one will always be the Admin cluster
-            // - clusters 2-max are managed clusters
-            def verrazzanoDeregisterManagedClusterStages = [:]
+            def verrazzanoDeregisterManagedClusterStages = createClusterExecutionsMap()
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
             for(int count=2; count<=clusterCount; count++) {
                 verrazzanoDeregisterManagedClusterStages["${count}"] = verifyDeregisterManagedCluster(count)
@@ -1077,10 +1070,7 @@ def verifyDeregisterManagedCluster(count) {
 def verifyManagedClusterPermissions() {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         script {
-            // Create a dictionary of Verrazzano Managed Cluster Permissions steps to be executed in parallel
-            // - the first one will always be the Admin cluster
-            // - clusters 2-max are managed clusters
-            def verrazzanoManagedClusterPermissionsStages = [:]
+            def verrazzanoManagedClusterPermissionsStages = createClusterExecutionsMap()
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
             for(int count=2; count<=clusterCount; count++) {
                 verrazzanoManagedClusterPermissionsStages["${count}"] = verifyManagedClusterPermissions(count)
@@ -1150,11 +1140,7 @@ def runGinkgoRandomizeSerial(testSuitePath) {
 def runGinkgoRandomizeParallel(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         script {
-            // Create a dictionary of Run Ginkgo Randomize steps to be executed in parallel
-            // - the first one will always be the Admin cluster
-            // - clusters 2-max are managed clusters
-            def runGinkgoRandomizeStages = [:]
-
+            def runGinkgoRandomizeStages = createClusterExecutionsMap()
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
             def clusterName = ""
             for(int count=1; count<=clusterCount; count++) {
@@ -1234,10 +1220,7 @@ def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript
         String allArgs = ""
         extraArgs.each { allArgs += it + " " }
 
-        // Create a dictionary of Verrazzano installer steps to be executed in parallel
-        // - the first one will always be the Admin cluster
-        // - clusters 2-max are managed clusters
-        def verrazzanoInstallerStages = [:]
+        def verrazzanoInstallerStages = createClusterExecutionsMap()
 
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
@@ -1342,10 +1325,7 @@ def executeBOMValidatorAdmin() {
 def dumpK8sCluster(dumpDirectory) {
     script {
         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-            // Create a dictionary of Verrazzano dump k8s cluster steps to be executed in parallel
-            // - the first one will always be the Admin cluster
-            // - clusters 2-max are managed clusters
-            def verrazzanoDumpK8sClusterStages = [:]
+            def verrazzanoDumpK8sClusterStages = createClusterExecutionsMap()
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
             for (int count = 1; count <= clusterCount; count++) {
                 verrazzanoDumpK8sClusterStages["${count}"] = dumpK8sSpecificCluster(count, dumpDirectory)
@@ -1494,10 +1474,7 @@ def dumpVerrazzanoApiLogs() {
 
 def dumpInstallLogs() {
     script {
-        // Create a dictionary of Verrazzano dump install log steps to be executed in parallel
-        // - the first one will always be the Admin cluster
-        // - clusters 2-max are managed clusters
-        def verrazzanoDumpInstallLogStages = [:]
+        def verrazzanoDumpInstallLogStages = createClusterExecutionsMap()
 
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
@@ -1643,11 +1620,7 @@ def modifyHelloHelidonApp(newNamespace, newProjName) {
 }
 
 def runMulticlusterVerifyApi() {
-    // Create a dictionary of Multicluster Verify Api steps to be executed in parallel
-    // - the first one will always be the Admin cluster
-    // - clusters 2-max are managed clusters
-
-    def verrazzanoMulticlusterVerifyApiStages = [:]
+    def verrazzanoMulticlusterVerifyApiStages = createClusterExecutionsMap()
     int clusterCount = params.TOTAL_CLUSTERS.toInteger()
     for(int count=2; count<=clusterCount; count++) {
         verrazzanoMulticlusterVerifyApiStages["${count}"] = runMulticlusterVerifyApi(count)
