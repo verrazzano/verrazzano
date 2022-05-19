@@ -1054,7 +1054,7 @@ def verifyManagedClusterPermissions() {
 def runGinkgoVerifyManaged(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, String supportedVersion="latest") {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-        RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export MANAGED_KUBECONFIG='${KUBECONFIG_DIR}/2/kube_config' && kubectl --context managed1 get vz -o jsonpath='{.items[0].status.version}'").trim()
+        RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export MANAGED_KUBECONFIG='${KUBECONFIG_DIR}/2/kube_config' && kubectl --kubeconfig ${MANAGED_KUBECONFIG} get vz -o jsonpath='{.items[0].status.version}'").trim()
         echo "RUNNING_OPERATOR_VERSION: ${RUNNING_OPERATOR_VERSION}"
         def vzVersion = getVZVersion(RUNNING_OPERATOR_VERSION)
         if(supportedVersion == vzVersion){
