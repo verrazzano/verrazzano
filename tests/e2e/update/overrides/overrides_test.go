@@ -25,7 +25,7 @@ import (
 const (
 	waitTimeout                          = 5 * time.Minute
 	pollingInterval                      = 5 * time.Second
-	overrideConfigMapSecretName   string = "test-overrides"
+	overrideConfigMapSecretName   string = "test-overrides-1"
 	verrazzanoMonitoringNamespace string = "verrazzano-monitoring"
 	overrideKey                   string = "override"
 	overrideOldValue              string = "true"
