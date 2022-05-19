@@ -8,11 +8,10 @@ import (
 	"errors"
 	"fmt"
 
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"k8s.io/apimachinery/pkg/types"
-
 	"github.com/spf13/cobra"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
