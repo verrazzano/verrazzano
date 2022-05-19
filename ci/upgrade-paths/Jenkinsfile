@@ -416,179 +416,183 @@ pipeline {
             }
         }
 
-        stage('Verify Upgrade') {
-            // Rerun some stages to verify the upgrade
+        stage {
             parallel {
-                stage ('Verify Register') {
-                    when { expression { isMultiCluster() } }
-                    steps {
-                        verifyRegisterManagedClusters(false)
-                    }
-                }
-                stage ('Verify Managed Cluster Permissions') {
-                    when { expression { isMultiCluster() } }
-                    steps {
-                        verifyManagedClusterPermissions()
-                    }
-                }
-                stage ('Verify Metrics') {
-                    steps {
-                        runGinkgoRandomize('metrics/syscomponents')
-                    }
-                }
-            }
-            post {
-                failure {
-                    script {
-                        dumpK8sCluster("${WORKSPACE}/multicluster-verify-upgrade-cluster-dump")
-                    }
-                }
-            }
-        }
-
-        stage ('Verify Install') {
-            stages {
-                stage('verify-install') {
-                    steps {
-                        runGinkgoRandomizeSerial('verify-install')
-                    }
-                }
-
-                stage ('multicluster/verify-install') {
-                    when { expression { isMultiCluster() } }
-                    steps {
-                        runGinkgoRandomize('multicluster/verify-install')
-                    }
-                }
-            }
-        }
-
-        stage ('Verify Infra') {
-            // NOTE: The stages are executed in parallel, however the tests themselves are executed against
-            //       each cluster in sequence. If possible, we should parallelize that as well.
-            parallel {
-                stage('verify-scripts') {
-                    steps {
-                        runGinkgoRandomize('scripts')
-                    }
-                }
-                stage('verify-infra restapi') {
-                    steps {
-                        runGinkgoRandomize('verify-infra/restapi')
-                    }
-                }
-                stage('verify-infra oam') {
-                    steps {
-                        runGinkgoRandomize('verify-infra/oam')
-                    }
-                }
-                stage('verify-infra vmi') {
-                    steps {
-                        runGinkgoRandomize('verify-infra/vmi')
-                    }
-                }
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-            }
-        }
-
-        stage('Post-upgrade Acceptance Tests') {
-            stages {
-                stage('Post-upgrade Acceptance Tests parallel') {
+                stage('Verify Upgrade') {
+                    // Rerun some stages to verify the upgrade
                     parallel {
-                        stage("Validate BOM") {
-                            when {
-                                allOf {
-                                    expression{params.RUN_BOM_VALIDATOR == true}
-                                }
-                            }
-                            environment {
-                                OCI_CLI_AUTH="instance_principal"
-                                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                                OCI_OS_BUCKET="verrazzano-builds"
-                            }
-                            steps {
-                                executeBOMValidatorAdmin()
-                            }
-                        }
-                        stage ('Console') {
+                        stage ('Verify Register') {
                             when { expression { isMultiCluster() } }
                             steps {
-                                runConsoleTests()
-                            }
-                            post {
-                                always {
-                                    sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_screenshots.sh"
-                                }
+                                verifyRegisterManagedClusters(false)
                             }
                         }
-                        stage('post-upgrade verify keycloak') {
-                            steps {
-                                runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
-                            }
-                        }
-                        stage ("Verify install scripts") {
-                            steps {
-                                runGinkgoRandomizeAdmin("scripts/install", "${TEST_DUMP_ROOT}/install-scripts")
-                            }
-                        }
-                        stage ('Multi-cluster Verify Api') {
+                        stage ('Verify Managed Cluster Permissions') {
                             when { expression { isMultiCluster() } }
                             steps {
-                                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                                    script {
-                                        runMulticlusterVerifyApi()
+                                verifyManagedClusterPermissions()
+                            }
+                        }
+                        stage ('Verify Metrics') {
+                            steps {
+                                runGinkgoRandomize('metrics/syscomponents')
+                            }
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                dumpK8sCluster("${WORKSPACE}/multicluster-verify-upgrade-cluster-dump")
+                            }
+                        }
+                    }
+                }
+
+                stage ('Verify Install') {
+                    stages {
+                        stage('verify-install') {
+                            steps {
+                                runGinkgoRandomizeSerial('verify-install')
+                            }
+                        }
+
+                        stage ('multicluster/verify-install') {
+                            when { expression { isMultiCluster() } }
+                            steps {
+                                runGinkgoRandomize('multicluster/verify-install')
+                            }
+                        }
+                    }
+                }
+
+                stage ('Verify Infra') {
+                    // NOTE: The stages are executed in parallel, however the tests themselves are executed against
+                    //       each cluster in sequence. If possible, we should parallelize that as well.
+                    parallel {
+                        stage('verify-scripts') {
+                            steps {
+                                runGinkgoRandomize('scripts')
+                            }
+                        }
+                        stage('verify-infra restapi') {
+                            steps {
+                                runGinkgoRandomize('verify-infra/restapi')
+                            }
+                        }
+                        stage('verify-infra oam') {
+                            steps {
+                                runGinkgoRandomize('verify-infra/oam')
+                            }
+                        }
+                        stage('verify-infra vmi') {
+                            steps {
+                                runGinkgoRandomize('verify-infra/vmi')
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
+                stage('Post-upgrade Acceptance Tests') {
+                    stages {
+                        stage('Post-upgrade Acceptance Tests parallel') {
+                            parallel {
+                                stage("Validate BOM") {
+                                    when {
+                                        allOf {
+                                            expression{params.RUN_BOM_VALIDATOR == true}
+                                        }
+                                    }
+                                    environment {
+                                        OCI_CLI_AUTH="instance_principal"
+                                        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                                        OCI_OS_BUCKET="verrazzano-builds"
+                                    }
+                                    steps {
+                                        executeBOMValidatorAdmin()
+                                    }
+                                }
+                                stage ('Console') {
+                                    when { expression { isMultiCluster() } }
+                                    steps {
+                                        runConsoleTests()
+                                    }
+                                    post {
+                                        always {
+                                            sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_screenshots.sh"
+                                        }
+                                    }
+                                }
+                                stage('post-upgrade verify keycloak') {
+                                    steps {
+                                        runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
+                                    }
+                                }
+                                stage ("Verify install scripts") {
+                                    steps {
+                                        runGinkgoRandomizeAdmin("scripts/install", "${TEST_DUMP_ROOT}/install-scripts")
+                                    }
+                                }
+                                stage ('Multi-cluster Verify Api') {
+                                    when { expression { isMultiCluster() } }
+                                    steps {
+                                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                                            script {
+                                                runMulticlusterVerifyApi()
+                                            }
+                                        }
+                                    }
+                                    post {
+                                        failure {
+                                            script {
+                                                dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-dump-pre-uninstall")
+                                            }
+                                        }
                                     }
                                 }
                             }
-                            post {
-                                failure {
-                                    script {
-                                        dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-dump-pre-uninstall")
+                        }
+                        stage ('Verify & Uninstall Example Apps') {
+                            when { expression { isMultiCluster() } }
+                            parallel {
+                                stage ('Examples Helidon') {
+                                    steps {
+                                        runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/mchelidon-workload", "true", "false", "false")
+                                    }
+                                }
+                                stage ('Verify/Uninstall Example Coherence') {
+                                    steps {
+                                        runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", "false", "false", "false")
                                     }
                                 }
                             }
                         }
                     }
-                }
-                stage ('Verify & Uninstall Example Apps') {
-                    when { expression { isMultiCluster() } }
-                    parallel {
-                        stage ('Examples Helidon') {
-                            steps {
-                                runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/mchelidon-workload", "true", "false", "false")
+                    post {
+                        failure {
+                            script {
+                                METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
+                                dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-dump")
                             }
                         }
-                        stage ('Verify/Uninstall Example Coherence') {
-                            steps {
-                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", "false", "false", "false")
+                        aborted {
+                            script {
+                                METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
+                                dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-dump")
                             }
                         }
-                    }
-                }
-            }
-            post {
-                failure {
-                    script {
-                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
-                        dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-dump")
-                    }
-                }
-                aborted {
-                    script {
-                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
-                        dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-dump")
-                    }
-                }
-                success {
-                    script {
-                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
-                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                            dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-dump")
+                        success {
+                            script {
+                                METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
+                                if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                                    dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-dump")
+                                }
+                            }
                         }
                     }
                 }
