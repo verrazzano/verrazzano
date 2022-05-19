@@ -19,7 +19,7 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 	// THEN master pods gets created.
 	t.It("opensearch update master node group", func() {
 		m := OpensearchMasterNodeGroupModifier{NodeReplicas: 3, NodeMemory: "512Mi", NodeStorage: "2Gi"}
-		update.UpdateCR(m)
+		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 		update.ValidatePods(string(vmov1.MasterRole), NodeGroupLabel, constants.VerrazzanoSystemNamespace, 3, false)
 		update.ValidatePodMemoryRequest(map[string]string{NodeGroupLabel: string(vmov1.MasterRole)},
 			constants.VerrazzanoSystemNamespace, "es-master", "512Mi")
@@ -30,7 +30,7 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 	// THEN ingest pods gets created.
 	t.It("opensearch update ingest node group", func() {
 		m := OpensearchIngestNodeGroupModifier{NodeReplicas: 3, NodeMemory: "512Mi", NodeStorage: "2Gi"}
-		update.UpdateCR(m)
+		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 		update.ValidatePods(string(vmov1.IngestRole), NodeGroupLabel, constants.VerrazzanoSystemNamespace, 3, false)
 		update.ValidatePodMemoryRequest(map[string]string{NodeGroupLabel: string(vmov1.IngestRole)},
 			constants.VerrazzanoSystemNamespace, "es-", "512Mi")
@@ -41,7 +41,7 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 	// THEN data pods gets created.
 	t.It("opensearch update data node group", func() {
 		m := OpensearchDataNodeGroupModifier{NodeReplicas: 3, NodeMemory: "512Mi", NodeStorage: "2Gi"}
-		update.UpdateCR(m)
+		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 		update.ValidatePods(string(vmov1.DataRole), NodeGroupLabel, constants.VerrazzanoSystemNamespace, 3, false)
 		update.ValidatePodMemoryRequest(map[string]string{NodeGroupLabel: string(vmov1.DataRole)},
 			constants.VerrazzanoSystemNamespace, "es-", "512Mi")

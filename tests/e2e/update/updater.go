@@ -167,6 +167,8 @@ func IsCRReadyAfterUpdate(cr *vzapi.Verrazzano, updatedTime time.Time) bool {
 		return false
 	}
 	for _, condition := range cr.Status.Conditions {
+		pkg.Log(pkg.Info, fmt.Sprintf("Checking if condition of type '%s', transitioned at '%s' is for the expected update",
+			condition.Type, condition.LastTransitionTime))
 		if condition.Type == vzapi.CondInstallComplete && condition.Status == corev1.ConditionTrue {
 			// check if the transistion time is post the time of update
 			transitionTime, err := time.Parse(time.RFC3339, condition.LastTransitionTime)
@@ -179,6 +181,8 @@ func IsCRReadyAfterUpdate(cr *vzapi.Verrazzano, updatedTime time.Time) bool {
 				return true
 			}
 		}
+		pkg.Log(pkg.Error, fmt.Sprintf("Could not find condition of type '%s', transitioned after '%s'",
+			vzapi.CondInstallComplete, updatedTime.String()))
 	}
 	// Return true if the state is ready and there are no conditions updated in the status.
 	return len(cr.Status.Conditions) == 0
