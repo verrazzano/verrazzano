@@ -1121,6 +1121,11 @@ def runGinkgoVerifyManaged(testSuitePath, clusterDumpDirectory, skipDeploy, skip
 def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         script {
+            // Create a dictionary of Run Ginkgo Randomize steps to be executed in parallel
+            // - the first one will always be the Admin cluster
+            // - clusters 2-max are managed clusters
+            def runGinkgoRandomizeStages = [:]
+
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
             def clusterName = ""
             for(int count=1; count<=clusterCount; count++) {
@@ -1131,13 +1136,23 @@ def runGinkgoRandomize(testSuitePath) {
                 } else {
                     clusterName="managed${count-1}"
                 }
-                sh """
-                    export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                    export CLUSTER_NAME="${clusterName}"
-                    cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
-                """
+                runGinkgoRandomizeStages["${count}"] = runGinkgoRandomize(count, clusterName, testSuitePath)
             }
+            parallel runGinkgoRandomizeStages
+        }
+    }
+}
+
+def runGinkgoRandomize(count, clusterName, testSuitePath) {
+    // For parallel execution, wrap this in a Groovy enclosure {}
+    return {
+        script {
+            sh """
+                export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                export CLUSTER_NAME="${clusterName}"
+                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+            """
         }
     }
 }
