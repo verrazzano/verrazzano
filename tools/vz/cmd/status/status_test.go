@@ -4,6 +4,7 @@
 package status
 
 import (
+	"bytes"
 	"os"
 	"testing"
 
@@ -17,6 +18,8 @@ import (
 )
 
 func TestStatusCmd(t *testing.T) {
+	name := "verrazzano"
+	namespace := "test"
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
@@ -34,4 +37,11 @@ func TestStatusCmd(t *testing.T) {
 	rc.SetClient(c)
 	statusCmd := NewCmdStatus(rc)
 	assert.NotNil(t, statusCmd)
+
+	// Add the command line parameters
+	statusCmd.SetArgs([]string{"--name", name, "--namespace", namespace})
+	buf := new(bytes.Buffer)
+	statusCmd.SetOutput(buf)
+	err := statusCmd.Execute()
+	assert.NoError(t, err)
 }
