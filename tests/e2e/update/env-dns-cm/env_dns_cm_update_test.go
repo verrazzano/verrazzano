@@ -223,6 +223,8 @@ func validateCertManagerResourcesCleanup() {
 		if err == nil {
 			log.Printf("Secret %s should NOT exist in the namespace %s\n", currentCertSecretName, currentCertSecretNamespace)
 			return false
+		} else {
+			log.Printf("It is expected that the secret should not exist.")
 		}
 		return true
 	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected that the default CA resources should be cleaned up")
