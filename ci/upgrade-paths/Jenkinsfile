@@ -1054,6 +1054,7 @@ def verifyManagedClusterPermissions() {
 def runGinkgoVerifyManaged(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, String supportedVersion="latest") {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export MANAGED_CLUSTER_NAME='managed1' && kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
         sh '''
             export MANAGED_CLUSTER_NAME="managed1"
             export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
@@ -1061,9 +1062,7 @@ def runGinkgoVerifyManaged(testSuitePath, clusterDumpDirectory, skipDeploy, skip
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
-            RUNNING_OPERATOR_VERSION=$(kubectl get vz -o jsonpath='{.items[0].status.version}')
         '''
-        //def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
         def vzVersion = getVZVersion(RUNNING_OPERATOR_VERSION)
         if(supportedVersion == vzVersion){
             sh """
@@ -1091,11 +1090,11 @@ def runGinkgoRandomize(testSuitePath, String supportedVersion="latest") {
                 } else {
                     clusterName="managed${count-1}"
                 }
+               RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/${count}/kube_config' && kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
                 sh '''
                     export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     export CLUSTER_NAME="${clusterName}"
                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    RUNNING_OPERATOR_VERSION=$(kubectl get vz -o jsonpath='{.items[0].status.version}')
                 '''
                 //def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
                 def vzVersion = getVZVersion(RUNNING_OPERATOR_VERSION)
@@ -1116,13 +1115,13 @@ def runGinkgoRandomize(testSuitePath, String supportedVersion="latest") {
 // Run a test suite against just the admin cluster
 def runGinkgoRandomizeAdmin(testSuitePath, clusterDumpDirectory, String supportedVersion="latest") {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/1/kube_config' && kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
         sh '''
             export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export CLUSTER_NAME="admin"
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            RUNNING_OPERATOR_VERSION=$(kubectl get vz -o jsonpath='{.items[0].status.version}')
         '''
         //def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
         def vzVersion = getVZVersion(RUNNING_OPERATOR_VERSION)
@@ -1141,14 +1140,13 @@ def runGinkgoRandomizeAdmin(testSuitePath, clusterDumpDirectory, String supporte
 // Run a test suite serially against just the admin cluster
 def runGinkgoRandomizeSerialAdmin(testSuitePath, clusterDumpDirectory, String supportedVersion="latest") {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/1/kube_config' && kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
         sh '''
             export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export CLUSTER_NAME="admin"
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            RUNNING_OPERATOR_VERSION=$(kubectl get vz -o jsonpath='{.items[0].status.version}')
-
         '''
        // def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
         def vzVersion = getVZVersion(RUNNING_OPERATOR_VERSION)
@@ -1166,13 +1164,13 @@ def runGinkgoRandomizeSerialAdmin(testSuitePath, clusterDumpDirectory, String su
 
 def runGinkgoVerify(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace, String supportedVersion="latest") {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/1/kube_config' && kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
         sh '''
             export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export CLUSTER_NAME="admin"
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            RUNNING_OPERATOR_VERSION=$(kubectl get vz -o jsonpath='{.items[0].status.version}')
         '''
         //def vzRawVersion = sh(returnStdout: true, script: "kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
         def vzVersion = getVZVersion(RUNNING_OPERATOR_VERSION)
