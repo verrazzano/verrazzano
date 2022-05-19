@@ -9,6 +9,7 @@ Collections.shuffle(availableRegions)
 pipeline {
     options {
         skipDefaultCheckout true
+        copyArtifactPermission('*');
         timestamps ()
     }
 
