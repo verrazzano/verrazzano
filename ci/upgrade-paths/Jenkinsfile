@@ -1055,6 +1055,7 @@ def runGinkgoVerifyManaged(testSuitePath, clusterDumpDirectory, skipDeploy, skip
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export MANAGED_CLUSTER_NAME='managed1' && kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
+        echo "RUNNING_OPERATOR_VERSION: ${RUNNING_OPERATOR_VERSION}"
         sh '''
             export MANAGED_CLUSTER_NAME="managed1"
             export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
@@ -1091,6 +1092,7 @@ def runGinkgoRandomize(testSuitePath, String supportedVersion="latest") {
                     clusterName="managed${count-1}"
                 }
                RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/${count}/kube_config' && kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
+                echo "RUNNING_OPERATOR_VERSION: ${RUNNING_OPERATOR_VERSION}"
                 sh '''
                     export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     export CLUSTER_NAME="${clusterName}"
@@ -1116,6 +1118,7 @@ def runGinkgoRandomize(testSuitePath, String supportedVersion="latest") {
 def runGinkgoRandomizeAdmin(testSuitePath, clusterDumpDirectory, String supportedVersion="latest") {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/1/kube_config' && kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
+        echo "RUNNING_OPERATOR_VERSION: ${RUNNING_OPERATOR_VERSION}"
         sh '''
             export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export CLUSTER_NAME="admin"
@@ -1141,6 +1144,7 @@ def runGinkgoRandomizeAdmin(testSuitePath, clusterDumpDirectory, String supporte
 def runGinkgoRandomizeSerialAdmin(testSuitePath, clusterDumpDirectory, String supportedVersion="latest") {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/1/kube_config' && kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
+        echo "RUNNING_OPERATOR_VERSION: ${RUNNING_OPERATOR_VERSION}"
         sh '''
             export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export CLUSTER_NAME="admin"
@@ -1165,6 +1169,7 @@ def runGinkgoRandomizeSerialAdmin(testSuitePath, clusterDumpDirectory, String su
 def runGinkgoVerify(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace, String supportedVersion="latest") {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/1/kube_config' && kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
+        echo "RUNNING_OPERATOR_VERSION: ${RUNNING_OPERATOR_VERSION}"
         sh '''
             export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export CLUSTER_NAME="admin"
