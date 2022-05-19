@@ -48,7 +48,7 @@ var _ = t.AfterSuite(func() {
 	}
 })
 
-var _ = t.Describe("Post Install Overrides Test", func() {
+var _ = t.Describe("Post Install Overrides", func() {
 
 	t.Context("Test overrides creation", func() {
 		// Create the overrides resources listed in Verrazzano and verify
