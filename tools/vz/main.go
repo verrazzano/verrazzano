@@ -6,6 +6,8 @@ package main
 import (
 	"os"
 
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+
 	"github.com/spf13/pflag"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd"
 )
@@ -14,7 +16,7 @@ func main() {
 	flags := pflag.NewFlagSet("vz", pflag.ExitOnError)
 	pflag.CommandLine = flags
 
-	rootCmd := cmd.NewRootCmd()
+	rootCmd := cmd.NewRootCmd(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}

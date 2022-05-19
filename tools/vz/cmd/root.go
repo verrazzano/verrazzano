@@ -4,11 +4,21 @@
 package cmd
 
 import (
+	"io"
+
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+
+	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/spf13/cobra"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	v8oclientset "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
+	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/status"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var kubeconfig string
@@ -19,24 +29,39 @@ const (
 	GlobalFlagContext    = "context"
 )
 
-type RootContext struct {
+type RootCmdContext struct {
+	genericclioptions.IOStreams
 }
 
-func (rc *RootContext) NewVerrazzanoClientSet() (v8oclientset.Interface, error) {
-	var client v8oclientset.Interface
-	kubeConfig, err := k8sutil.GetKubeConfig()
+// GetOutputStream - return the output stream
+func (rc *RootCmdContext) GetOutputStream() io.Writer {
+	return rc.IOStreams.Out
+}
+
+// GetClient - return a kubernetes client that supports the schemes used by the CLI
+func (rc *RootCmdContext) GetClient() (client.Client, error) {
+	config, err := k8sutil.GetKubeConfig()
 	if err != nil {
-		return client, err
+		return nil, err
 	}
-	client, err = v8oclientset.NewForConfig(kubeConfig)
-	return client, err
+
+	scheme := runtime.NewScheme()
+	_ = vzapi.AddToScheme(scheme)
+	_ = clustersv1alpha1.AddToScheme(scheme)
+	_ = platformopclusters.AddToScheme(scheme)
+	_ = oamv1alpha2.SchemeBuilder.AddToScheme(scheme)
+	_ = corev1.SchemeBuilder.AddToScheme(scheme)
+
+	return client.New(config, client.Options{Scheme: scheme})
 }
 
-func NewRootContext() *RootContext {
-	return &RootContext{}
+func newRootCmdContext(streams genericclioptions.IOStreams) *RootCmdContext {
+	return &RootCmdContext{
+		IOStreams: streams,
+	}
 }
 
-func NewRootCmd() *cobra.Command {
+func NewRootCmd(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "vz",
 		Short: "Verrazzano CLI",
@@ -48,7 +73,7 @@ func NewRootCmd() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&context, GlobalFlagContext, "", "The name of the kubeconfig context to use")
 
 	// Add commands
-	rc := NewRootContext()
+	rc := newRootCmdContext(streams)
 	cmd.AddCommand(status.NewCmdStatus(rc))
 	cmd.AddCommand(version.NewCmdVersion())
 

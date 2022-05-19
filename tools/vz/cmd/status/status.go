@@ -5,11 +5,14 @@ package status
 
 import (
 	"context"
+	"errors"
 	"fmt"
+
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -21,37 +24,41 @@ const (
 var namespace string
 var name string
 
-func NewCmdStatus(k8s helpers.Kubernetes) *cobra.Command {
+func NewCmdStatus(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   CommandName,
 		Short: "Status of the Verrazzano install and access endpoints",
 		Long:  "Status of the Verrazzano install and access endpoints",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runCmdStatus(cmd, args, k8s)
+			return runCmdStatus(cmd, args, vzHelper)
 		},
 	}
 
-	// Add command specific flags
-	cmd.LocalFlags().StringVarP(&namespace, namespaceFlag, "n", "default", "The namespace of the Verrazzano resource")
-	cmd.LocalFlags().StringVar(&name, nameFlag, "", "The name of the Verrazzano resource")
+	// Add flags specific to this command and its sub-commands
+	cmd.PersistentFlags().StringVarP(&namespace, namespaceFlag, "n", "default", "The namespace of the Verrazzano resource")
+	cmd.PersistentFlags().StringVar(&name, nameFlag, "", "The name of the Verrazzano resource")
 
 	return cmd
 }
 
-func runCmdStatus(cmd *cobra.Command, args []string, k8s helpers.Kubernetes) error {
-	fmt.Println(fmt.Sprintf("The name is %s in namespace %s", name, namespace))
+// runCmdStatus - run the "vz status" command
+func runCmdStatus(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
+	fmt.Fprintln(vzHelper.GetOutputStream(), fmt.Sprintf("The name is %s in namespace %s", name, namespace))
 
-	clientSet, err := k8s.NewVerrazzanoClientSet()
+	client, err := vzHelper.GetClient()
 	if err != nil {
 		return err
 	}
 
 	// Get the VZ resource
-	verrazzano, err := clientSet.VerrazzanoV1alpha1().Verrazzanos("foo").Get(context.TODO(), "foo", metav1.GetOptions{})
+	vz := vzapi.Verrazzano{}
+	err = client.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &vz)
 	if err != nil {
-		return err
+		return errors.New(fmt.Sprintf("Failed to find Verrazzano with name %s in namespace %s: %v", name, namespace, err.Error()))
 	}
-	fmt.Sprintf("The name is %s in namespace %s", verrazzano.Name, verrazzano.Namespace)
+
+	// Report the status information
+	fmt.Fprintln(vzHelper.GetOutputStream(), fmt.Sprintf("Version %s is installed", vz.Status.Version))
 
 	return nil
 }
