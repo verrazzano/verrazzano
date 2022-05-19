@@ -168,7 +168,7 @@ func checkRancherUpgradeFailure(c client.Client, log vzlog.VerrazzanoLogger) err
 		restartPod := false
 		scanner := bufio.NewScanner(logStream)
 		for scanner.Scan() {
-			if strings.Contains(scanner.Text(), "Failed to find system chart rancher-webhook will try again in 5 seconds") {
+			if strings.Contains(scanner.Text(), "Failed to find system chart") {
 				restartPod = true
 				break
 			}
