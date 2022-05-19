@@ -218,24 +218,16 @@ pipeline {
     stages {
         stage('Clean workspace and checkout') {
             steps {
-                sh """
-                    echo "${NODE_LABELS}"
-                """
+                printNodeLabels()
 
                 performSourceCodeCheckout()
 
-                sh """
-                    cp -f "${NETRC_FILE}" $HOME/.netrc
-                    chmod 600 $HOME/.netrc
-                """
+                performNetRCOperations()
 
                 performDockerLogin()
 
-                sh """
-                    rm -rf ${GO_REPO_PATH}/verrazzano
-                    mkdir -p ${GO_REPO_PATH}/verrazzano
-                    tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
-                """
+                performVerrazzanoDirectoryOperations()
+
                 setInitValues()
             }
         }
@@ -711,6 +703,33 @@ pipeline {
             emitJobMetrics()
             deleteDir()
         }
+    }
+}
+
+def printNodeLabels() {
+    script {
+        sh """
+            echo "${NODE_LABELS}"
+        """
+    }
+}
+
+def performNetRCOperations() {
+    script {
+        sh """
+            cp -f "${NETRC_FILE}" $HOME/.netrc
+            chmod 600 $HOME/.netrc
+        """
+    }
+}
+
+def performVerrazzanoDirectoryOperations() {
+    script {
+        sh """
+            rm -rf ${GO_REPO_PATH}/verrazzano
+            mkdir -p ${GO_REPO_PATH}/verrazzano
+            tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
+        """
     }
 }
 
