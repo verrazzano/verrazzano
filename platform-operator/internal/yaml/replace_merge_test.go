@@ -70,6 +70,35 @@ spec:
     egressGateways:
       - name: istio-egressgateway
         enabled: true
+    ingressGateways:
+    - enabled: true
+      k8s:
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                    - istio-ingressgateway
+                topologyKey: kubernetes.io/hostname
+              weight: 100
+        replicaCount: 2
+        service:
+          type: NodePort
+          ports:
+          - name: port1
+            protocol: TCP
+            port: 8000
+            nodePort: 32443
+            targetPort: 2000
+          externalIPs:
+          - 1.2.3.4
+          - 5.6.7.8
+          - 9.10.11.12
+      name: istio-ingressgateway
 
   # Global values passed through to helm global.yaml.
   # Please keep this in sync with manifests/charts/global.yaml
@@ -88,13 +117,33 @@ kind: IstioOperator
 spec:
   components:
     ingressGateways:
-      - name: istio-ingressgateway
-        enabled: true
-        k8s:
-          service:
-            type: ClusterIP
-            externalIPs:
-            - 1.2.3.4
+    - enabled: true
+      k8s:
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                  - key: app
+                    operator: Out
+                    values:
+                    - istio-ingressgateway-1
+                topologyKey: kubernetes.io/hostname
+              weight: 100
+        replicaCount: 3
+        service:
+          type: NodePort
+          ports:
+          - name: port1
+            protocol: TCP
+            port: 8000
+            nodePort: 32443
+            targetPort: 2000
+          externalIPs:
+          - 1.2.3.4
+          - 13.14.15.16
+      name: istio-ingressgateway-1
 `
 
 // istioMerged is the result of a merge of IstioOperator YAMLs
@@ -107,13 +156,34 @@ spec:
       - name: istio-egressgateway
         enabled: true
     ingressGateways:
-      - name: istio-ingressgateway
-        enabled: true
-        k8s:
-          service:
-            type: ClusterIP
-            externalIPs:
-            - 1.2.3.4
+    - enabled: true
+      k8s:
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                  - key: app
+                    operator: Out
+                    values:
+                    - istio-ingressgateway-1
+                topologyKey: kubernetes.io/hostname
+              weight: 100
+        replicaCount: 3
+        service:
+          type: NodePort
+          ports:
+          - name: port1
+            protocol: TCP
+            port: 8000
+            nodePort: 32443
+            targetPort: 2000
+          externalIPs:
+          - 1.2.3.4
+          - 13.14.15.16
+          - 9.10.11.12
+      name: istio-ingressgateway-1
 
   # Global values passed through to helm global.yaml.
   # Please keep this in sync with manifests/charts/global.yaml

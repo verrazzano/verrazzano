@@ -29,9 +29,7 @@ func ReplacementMerge(yamls ...string) (string, error) {
 		if err := yaml.Unmarshal([]byte(yam), &mOverlay.yMap); err != nil {
 			return "", err
 		}
-		if err := MergeMaps(mBase.yMap, mOverlay.yMap); err != nil {
-			return "", err
-		}
+		MergeMaps(mBase.yMap, mOverlay.yMap)
 	}
 	b, err := yaml.Marshal(&mBase.yMap)
 	if err != nil {
@@ -41,26 +39,66 @@ func ReplacementMerge(yamls ...string) (string, error) {
 }
 
 // mergeMaps 2 maps where mOverlay overrides mBase
-func MergeMaps(mBase map[string]interface{}, mOverlay map[string]interface{}) error {
+func MergeMaps(mBase map[string]interface{}, mOverlay map[string]interface{}) {
 	for k, vOverlay := range mOverlay {
 		vBase, ok := mBase[k]
 		recursed := false
 		if ok {
-			// Both mBase and mOverlay have this key. If these are nested maps merge them
+			// Both mBase and mOverlay have this key
 			switch tBase := vBase.(type) {
+			// If these are nested maps merge them
 			case map[string]interface{}:
 				switch tOverlay := vOverlay.(type) {
 				case map[string]interface{}:
 					MergeMaps(tBase, tOverlay)
 					recursed = true
 				}
+			// If these are arrays
+			case []interface{}:
+				switch tOverlay := vOverlay.(type) {
+				case []interface{}:
+					mergeArrays(tBase, tOverlay)
+					recursed = true
+				}
 			}
 		}
-		// Both values were not maps, put overlay entry into the base map
+		// Both values were not maps or arrays, put overlay entry into the base map
 		// This might be a new base entry or replaced by the mOverlay value
 		if !recursed {
 			mBase[k] = vOverlay
 		}
 	}
-	return nil
+}
+
+// Merge 2 arrays element-wise where aOverlay overrides aBase. Arrays do not have to be of the same length
+func mergeArrays(aBase []interface{}, aOverlay []interface{}) {
+	for k, vOverlay := range aOverlay {
+		if k < len(aBase) {
+			vBase := aBase[k]
+			recursed := false
+			switch tBase := vBase.(type) {
+			// If these are nested maps merge them
+			case map[string]interface{}:
+				switch tOverlay := vOverlay.(type) {
+				case map[string]interface{}:
+					MergeMaps(tBase, tOverlay)
+					recursed = true
+				}
+			// If these are arrays
+			case []interface{}:
+				switch tOverlay := vOverlay.(type) {
+				case []interface{}:
+					mergeArrays(tBase, tOverlay)
+					recursed = true
+				}
+			}
+			// Both values were not maps or arrays, put overlay entry into the base map
+			// This might be a new base entry or replaced by the aOverlay value
+			if !recursed {
+				aBase[k] = vOverlay
+			}
+		} else {
+			aBase = append(aBase, vOverlay)
+		}
+	}
 }
