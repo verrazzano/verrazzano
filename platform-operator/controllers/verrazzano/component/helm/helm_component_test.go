@@ -758,11 +758,11 @@ func TestFilesFromVerrazzanoHelm(t *testing.T) {
 	}
 }
 
-// TestRetrieveInstallOverrideResources tests retrieveInstallOverrideResources
+// TestGetInstallOverridesYAML tests GetInstallOverridesYAML
 // GIVEN an override list
-//  WHEN I call retrieveInstallOverrideResources
+//  WHEN I call GetInstallOverridesYAML
 //  THEN I get a list of key value pairs of files from the override sources
-func TestRetrieveInstallOverrideResources(t *testing.T) {
+func TestGetInstallOverridesYAML(t *testing.T) {
 	trueval := true
 	dataKey := "testKey"
 	wrongKey := "wrongKey"
@@ -920,12 +920,12 @@ func TestRetrieveInstallOverrideResources(t *testing.T) {
 
 			ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)
 
-			kvs, err := common.GetInstallOverridesYAML(ctx, tt.overrides)
+			data, err := common.GetInstallOverridesYAML(ctx, tt.overrides)
 			if tt.expectError {
 				a.Error(err)
 			} else {
-				for _, kv := range kvs {
-					a.NotEqual(kv, "")
+				for _, d := range data {
+					a.NotEqual(d, "")
 				}
 				a.NoError(err)
 			}
