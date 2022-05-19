@@ -1081,16 +1081,18 @@ func TestUnsupportedWorkloadType(t *testing.T) {
 			assert.Equal("metricstrait.finalizers.verrazzano.io", trait.Finalizers[0])
 			return nil
 		})
-	// Expect a call to get the ConfigMap workload resource
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-workload-name"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *unstructured.Unstructured) error {
-			workload.SetGroupVersionKind(schema.GroupVersionKind{Group: "", Version: "v1", Kind: "ConfigMap"})
-			workload.SetNamespace(name.Namespace)
-			workload.SetName(name.Name)
-			workload.SetUID("test-workload-uid")
-			return nil
-		})
+	// Expect a call to get the ConfigMap workload resource twice
+	for i := 0; i < 2; i++ {
+		mock.EXPECT().
+			Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-workload-name"}, gomock.Not(gomock.Nil())).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *unstructured.Unstructured) error {
+				workload.SetGroupVersionKind(schema.GroupVersionKind{Group: "", Version: "v1", Kind: "ConfigMap"})
+				workload.SetNamespace(name.Namespace)
+				workload.SetName(name.Name)
+				workload.SetUID("test-workload-uid")
+				return nil
+			})
+	}
 	// Expect a call to delete the trait resource.
 	mock.EXPECT().
 		Delete(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).

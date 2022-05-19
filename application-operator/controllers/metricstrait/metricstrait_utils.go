@@ -4,6 +4,11 @@
 package metricstrait
 
 import (
+	"context"
+	"fmt"
+	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	k8score "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	"regexp"
@@ -128,4 +133,69 @@ func GetSupportedWorkloadType(apiVerKind string) string {
 	}
 
 	return ""
+}
+
+// createPodMonitorName creates a Prometheus scrape configmap job name from a trait.
+// Format is {oam_app}_{cluster}_{namespace}_{oam_comp}
+func createPodMonitorName(trait *vzapi.MetricsTrait, portNum int) (string, error) {
+	cluster := getClusterNameFromObjectMetaOrDefault(trait.ObjectMeta)
+	namespace := getNamespaceFromObjectMetaOrDefault(trait.ObjectMeta)
+	app, found := trait.Labels[appObjectMetaLabel]
+	if !found {
+		return "", fmt.Errorf("metrics trait missing application name label")
+	}
+	comp, found := trait.Labels[compObjectMetaLabel]
+	if !found {
+		return "", fmt.Errorf("metrics trait missing component name label")
+	}
+	portStr := ""
+	if portNum > 0 {
+		portStr = fmt.Sprintf("_%d", portNum)
+	}
+	return fmt.Sprintf("%s_%s_%s_%s%s", app, cluster, namespace, comp, portStr), nil
+}
+
+// getPortSpecs returns a complete set of port specs from the trait and the trait defaults
+func getPortSpecs(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec) []vzapi.PortSpec {
+	ports := trait.Spec.Ports
+	if len(ports) == 0 {
+		// create a port spec from the existing port
+		ports = []vzapi.PortSpec{{Port: trait.Spec.Port, Path: trait.Spec.Path}}
+	} else {
+		// if there are existing ports and a port/path setting, add the latter to the ports
+		if trait.Spec.Port != nil {
+			// add the port to the ports
+			path := trait.Spec.Path
+			if path == nil {
+				path = traitDefaults.Path
+			}
+			portSpec := vzapi.PortSpec{
+				Port: trait.Spec.Port,
+				Path: path,
+			}
+			ports = append(ports, portSpec)
+		}
+	}
+	return ports
+}
+
+func isEnabled(trait *vzapi.MetricsTrait) bool {
+	return trait.Spec.Enabled == nil || *trait.Spec.Enabled
+}
+
+// useHTTPSForScrapeTarget returns true if https with Istio certs should be used for scrape target. Otherwise return false, use http
+func useHTTPSForScrapeTarget(ctx context.Context, c client.Client, trait *vzapi.MetricsTrait) (bool, error) {
+	if trait.Spec.WorkloadReference.Kind == "VerrazzanoCoherenceWorkload" || trait.Spec.WorkloadReference.Kind == "Coherence" {
+		return false, nil
+	}
+	// Get the namespace resource that the MetricsTrait is deployed to
+	namespace := &k8score.Namespace{}
+	if err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: trait.Namespace}, namespace); err != nil {
+		return false, err
+	}
+	value, ok := namespace.Labels["istio-injection"]
+	if ok && value == "enabled" {
+		return true, nil
+	}
+	return false, nil
 }
