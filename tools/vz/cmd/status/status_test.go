@@ -55,8 +55,18 @@ func TestStatusCmd(t *testing.T) {
 	assert.True(t, strings.Contains(result, "Version 1.2.3"))
 
 	// Run the status command with the incorrect namespace, expect that the Verrazzano resource is not found
+	errBuf.Reset()
+	buf.Reset()
 	statusCmd.SetArgs([]string{fmt.Sprintf("--%s", nameFlag), name, fmt.Sprintf("--%s", namespaceFlag), "default"})
 	err = statusCmd.Execute()
 	assert.Error(t, err)
 	assert.True(t, strings.Contains(errBuf.String(), "Failed to find Verrazzano with name verrazzano in namespace default"))
+
+	// Run the status command with the incorrect name, expect that the Verrazzano resource is not found
+	errBuf.Reset()
+	buf.Reset()
+	statusCmd.SetArgs([]string{fmt.Sprintf("--%s", nameFlag), "bad", fmt.Sprintf("--%s", namespaceFlag), namespace})
+	err = statusCmd.Execute()
+	assert.Error(t, err)
+	assert.True(t, strings.Contains(errBuf.String(), "Failed to find Verrazzano with name bad in namespace test"))
 }

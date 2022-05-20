@@ -17,6 +17,7 @@ const (
 	CommandName          = "vz"
 	GlobalFlagKubeconfig = "kubeconfig"
 	GlobalFlagContext    = "context"
+	GlobalFlagHelp       = "help"
 )
 
 func NewRootCmd(vzHelper helpers.VZHelper) *cobra.Command {

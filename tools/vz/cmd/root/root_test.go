@@ -4,7 +4,10 @@
 package root
 
 import (
+	"bytes"
+	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,7 +19,9 @@ import (
 
 func TestNewRootCmd(t *testing.T) {
 
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rootCmd := NewRootCmd(rc)
 	assert.NotNil(t, rootCmd)
 
@@ -36,4 +41,12 @@ func TestNewRootCmd(t *testing.T) {
 	// Verify the expected global flags are defined
 	assert.NotNil(t, rootCmd.PersistentFlags().Lookup(GlobalFlagKubeconfig))
 	assert.NotNil(t, rootCmd.PersistentFlags().Lookup(GlobalFlagContext))
+
+	// Verify help has the expected elements
+	rootCmd.SetArgs([]string{fmt.Sprintf("--%s", GlobalFlagHelp)})
+	err := rootCmd.Execute()
+	assert.NoError(t, err)
+	assert.True(t, strings.Contains(buf.String(), "Usage:"))
+	assert.True(t, strings.Contains(buf.String(), "Available Commands:"))
+	assert.True(t, strings.Contains(buf.String(), "Flags:"))
 }
