@@ -13,14 +13,8 @@ import (
 const CommandName = "version"
 
 func NewCmdVersion(vzHelper helpers.VZHelper) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   CommandName,
-		Short: "Verrazzano version information",
-		Long:  "Verrazzano version information",
-		Run:   runCmdVersion,
-	}
-	cmd.SetOut(vzHelper.GetOutputStream())
-	cmd.SetErr(vzHelper.GetErrorStream())
+	cmd := helpers.NewCommand(vzHelper, CommandName, "Verrazzano version information", "Verrazzano version information")
+	cmd.Run = runCmdVersion
 
 	return cmd
 }

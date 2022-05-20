@@ -24,16 +24,10 @@ var namespace string
 var name string
 
 func NewCmdStatus(vzHelper helpers.VZHelper) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   CommandName,
-		Short: "Status of the Verrazzano install and access endpoints",
-		Long:  "Status of the Verrazzano install and access endpoints",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return runCmdStatus(cmd, args, vzHelper)
-		},
+	cmd := helpers.NewCommand(vzHelper, CommandName, "Status of the Verrazzano install and access endpoints", "Status of the Verrazzano install and access endpoints")
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		return runCmdStatus(cmd, args, vzHelper)
 	}
-	cmd.SetOut(vzHelper.GetOutputStream())
-	cmd.SetErr(vzHelper.GetErrorStream())
 
 	// Add flags specific to this command and its sub-commands
 	cmd.PersistentFlags().StringVarP(&namespace, namespaceFlag, "n", "default", "The namespace of the Verrazzano resource")

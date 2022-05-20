@@ -1,0 +1,18 @@
+// Copyright (c) 2022, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+package helpers
+
+import "github.com/spf13/cobra"
+
+// NewCommand - utility method to create cobra commands
+func NewCommand(vzHelper VZHelper, use string, short string, long string) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   use,
+		Short: short,
+		Long:  long,
+	}
+	cmd.SetOut(vzHelper.GetOutputStream())
+	cmd.SetErr(vzHelper.GetErrorStream())
+	return cmd
+}
