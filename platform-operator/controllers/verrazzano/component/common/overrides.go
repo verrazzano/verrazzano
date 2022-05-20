@@ -31,7 +31,7 @@ func GetInstallOverridesYAML(ctx spi.ComponentContext, overrides []v1alpha1.Over
 		// Check if SecretRef is populated and gather data
 		if override.SecretRef != nil {
 			// Get the Secret data
-			yaml, err := getSecretOverrides(ctx, override.ConfigMapRef)
+			yaml, err := getSecretOverrides(ctx, override.SecretRef)
 			if err != nil {
 				return overrideStrings, err
 			}
@@ -73,7 +73,7 @@ func getConfigMapOverrides(ctx spi.ComponentContext, selector *v1.ConfigMapKeySe
 }
 
 // getSecretOverrides takes a Secret selector and returns the YAML data and handles k8s api errors appropriately
-func getSecretOverrides(ctx spi.ComponentContext, selector *v1.ConfigMapKeySelector) (string, error) {
+func getSecretOverrides(ctx spi.ComponentContext, selector *v1.SecretKeySelector) (string, error) {
 	sec := &v1.Secret{}
 	nsn := types.NamespacedName{Name: selector.Name, Namespace: ctx.EffectiveCR().Namespace}
 	optional := selector.Optional
