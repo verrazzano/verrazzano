@@ -77,9 +77,10 @@ var (
 	/* #nosec G101 -- This is a false positive */
 	currentCertSecretName string = "verrazzano-ca-certificate-secret"
 
-	certsToSkip map[string]bool = map[string]bool{
-		"prometheus-operator-kube-p-admission": true,
-		"prometheus-operator-kube-p-root-cert": true,
+	// Map of [certificate_name: certificate_namespace] to skip
+	certsToSkip map[string]string = map[string]string{
+		"prometheus-operator-kube-p-admission": "verrazzano-monitoring",
+		"prometheus-operator-kube-p-root-cert": "verrazzano-monitoring",
 	}
 )
 
@@ -89,27 +90,27 @@ var _ = t.AfterSuite(func() {
 })
 
 var _ = t.Describe("Test updates to environment name, dns domain and cert-manager CA certificates", func() {
-	// t.It("Verify the current environment name", func() {
-	// 	cr := update.GetCR()
-	// 	currentEnvironmentName = cr.Spec.EnvironmentName
-	// 	currentDNSDomain = cr.Spec.Components.DNS.Wildcard.Domain
-	// 	validateIngressList(currentEnvironmentName, currentDNSDomain)
-	// 	validateVirtualServiceList(currentDNSDomain)
-	// })
+	t.It("Verify the current environment name", func() {
+		cr := update.GetCR()
+		currentEnvironmentName = cr.Spec.EnvironmentName
+		currentDNSDomain = cr.Spec.Components.DNS.Wildcard.Domain
+		validateIngressList(currentEnvironmentName, currentDNSDomain)
+		validateVirtualServiceList(currentDNSDomain)
+	})
 
-	// t.It("Update and verify environment name", func() {
-	// 	m := EnvironmentNameModifier{testEnvironmentName}
-	// 	update.UpdateCR(m)
-	// 	validateIngressList(testEnvironmentName, currentDNSDomain)
-	// 	validateVirtualServiceList(currentDNSDomain)
-	// })
+	t.It("Update and verify environment name", func() {
+		m := EnvironmentNameModifier{testEnvironmentName}
+		update.UpdateCR(m)
+		validateIngressList(testEnvironmentName, currentDNSDomain)
+		validateVirtualServiceList(currentDNSDomain)
+	})
 
-	// t.It("Update and verify dns domain", func() {
-	// 	m := WildcardDNSModifier{testDNSDomain}
-	// 	update.UpdateCR(m)
-	// 	validateIngressList(testEnvironmentName, testDNSDomain)
-	// 	validateVirtualServiceList(testDNSDomain)
-	// })
+	t.It("Update and verify dns domain", func() {
+		m := WildcardDNSModifier{testDNSDomain}
+		update.UpdateCR(m)
+		validateIngressList(testEnvironmentName, testDNSDomain)
+		validateVirtualServiceList(testDNSDomain)
+	})
 
 	t.It("Update and verify CA certificate", func() {
 		createCustomCACertificate(testCertName, testCertSecretNamespace, testCertSecretName)
@@ -181,7 +182,8 @@ func validateCACertificateIssuer(certIssuer string) {
 		// Verify that the certificate is issued by the right cluster issuer
 		for _, certificate := range certificateList.Items {
 			// Skip the specified certificates
-			if _, ok := certsToSkip[certificate.Name]; ok {
+			if certNamespace, ok := certsToSkip[certificate.Name]; ok && certNamespace == certificate.Namespace {
+				log.Printf("Skipped the certificate %s in the namespace %s", certificate.Name, certificate.Namespace)
 				continue
 			}
 			currIssuer := certificate.Spec.IssuerRef.Name
@@ -202,10 +204,6 @@ func validateCertManagerResourcesCleanup() {
 			log.Fatalf("Error while fetching CertificateList\n%s", err)
 		}
 		for _, certificate := range certificateList.Items {
-			// Skip the specified certificates
-			if _, ok := certsToSkip[certificate.Name]; ok {
-				continue
-			}
 			if certificate.Name == currentCertName {
 				log.Printf("Certificate %s should NOT exist in the namespace %s\n", currentCertName, currentCertNamespace)
 				return false
@@ -224,7 +222,9 @@ func validateCertManagerResourcesCleanup() {
 		}
 		// Verify that the secret used for the default certificate has been removed
 		_, err = pkg.GetSecret(currentCertSecretNamespace, currentCertSecretName)
-		if err == nil {
+		if err != nil {
+			log.Printf("Expected that the secret %s should NOT exist in the namespace %s", currentCertSecretName, currentCertSecretNamespace)
+		} else {
 			log.Printf("Secret %s should NOT exist in the namespace %s\n", currentCertSecretName, currentCertSecretNamespace)
 			return false
 		}
