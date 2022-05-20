@@ -1575,7 +1575,7 @@ def isVZOperatorMinimumCompatibleVersion(minimumOperatorVersion){
     }else if(vzOperatorVersionSplit[0] == minimumOperatorVersionSplit[0] && minimumOperatorVersionSplit[1] < vzOperatorVersionSplit[1]){
               echo "${vzOperatorVersionSplit[0]} >= ${minimumOperatorVersionSplit[0]} && ${minimumOperatorVersionSplit[1]} < ${vzOperatorVersionSplit[1]}"
              return true
-    // Returns true ->  when vzOperatorVersion and minimumOperatorVersion has equal minor versions and vzOperatorVersion patch is greater/equal to the user specified minimumOperatorVersion
+    // Returns true ->  when vzOperatorVersion and minimumOperatorVersion has equal minor versions but vzOperatorVersion patch is greater/equal to the user specified minimumOperatorVersion
     }else if(vzOperatorVersionSplit[0] == minimumOperatorVersionSplit[0] && minimumOperatorVersionSplit[1] == vzOperatorVersionSplit[1] && vzOperatorVersionSplit[2].charAt(0) >= minimumOperatorVersionSplit[2].charAt(0)){
         echo "${vzOperatorVersionSplit[0]} == ${minimumOperatorVersionSplit[0]} && ${minimumOperatorVersionSplit[1]} == ${vzOperatorVersionSplit[1]} && ${vzOperatorVersionSplit[2]} >= ${minimumOperatorVersionSplit[2]}"
         return true
