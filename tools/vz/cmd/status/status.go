@@ -28,6 +28,7 @@ var name string
 const statusOutputTemplate = `
 Status of Verrazzano {{.verrazzano_name}}
   Version Installed: {{.verrazzano_version}}
+  State: {{.verrazzano_state}}
   Access Endpoints:
 {{- if .console_url}}
     Console URL: {{.console_url}}
@@ -53,6 +54,7 @@ Status of Verrazzano {{.verrazzano_name}}
 {{- if .rancher_url}}
     Rancher URL: {{.rancher_url}}
 {{- end}}
+
 `
 
 func NewCmdStatus(vzHelper helpers.VZHelper) *cobra.Command {
@@ -86,6 +88,7 @@ func runCmdStatus(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) 
 	templateValues := map[string]string{
 		"verrazzano_name":    vz.Name,
 		"verrazzano_version": vz.Status.Version,
+		"verrazzano_state":   string(vz.Status.State),
 	}
 	addAccessEndpoints(vz.Status.VerrazzanoInstance, templateValues)
 	result, err := templates.ApplyTemplate(statusOutputTemplate, templateValues)

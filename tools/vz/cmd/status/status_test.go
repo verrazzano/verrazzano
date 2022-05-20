@@ -52,7 +52,7 @@ func TestStatusCmd(t *testing.T) {
 				KialiURL:      &kialiURL,
 			},
 			Conditions: nil,
-			State:      "",
+			State:      vzapi.VzStateInstalling,
 			Components: nil,
 		},
 	}
@@ -61,6 +61,7 @@ func TestStatusCmd(t *testing.T) {
 	templateMap := map[string]string{
 		"verrazzano_name":    name,
 		"verrazzano_version": version,
+		"verrazzano_state":   string(vzapi.VzStateInstalling),
 		"console_url":        consoleURL,
 		"keycloak_url":       keycloakURL,
 		"rancher_url":        rancherURL,
