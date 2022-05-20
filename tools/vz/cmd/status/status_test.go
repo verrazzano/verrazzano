@@ -52,7 +52,7 @@ func TestStatusCmd(t *testing.T) {
 	err := statusCmd.Execute()
 	assert.NoError(t, err)
 	result := buf.String()
-	assert.True(t, strings.Contains(result, "Version 1.2.3"))
+	assert.True(t, strings.Contains(result, "Version Installed: 1.2.3"))
 
 	// Run the status command with the incorrect namespace, expect that the Verrazzano resource is not found
 	errBuf.Reset()
