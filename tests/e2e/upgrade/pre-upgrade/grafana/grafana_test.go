@@ -19,9 +19,10 @@ import (
 )
 
 const (
-	threeMinutes    = 3 * time.Minute
-	pollingInterval = 10 * time.Second
-	documentFile    = "testdata/upgrade/grafana/dashboard.json"
+	threeMinutes     = 3 * time.Minute
+	pollingInterval  = 10 * time.Second
+	documentFile     = "testdata/upgrade/grafana/dashboard.json"
+	grafanaErrMsgFmt = "Failed to GET Grafana testDashboard: status=%d: body=%s"
 )
 
 var t = framework.NewTestFramework("grafana")
@@ -99,7 +100,7 @@ var _ = t.Describe("Pre Upgrade Grafana Dashboard", Label("f:observability.loggi
 				return false
 			}
 			if resp.StatusCode != http.StatusOK {
-				pkg.Log(pkg.Error, fmt.Sprintf("Failed to GET Grafana testDashboard: status=%d: body=%s", resp.StatusCode, string(resp.Body)))
+				pkg.Log(pkg.Error, fmt.Sprintf(grafanaErrMsgFmt, resp.StatusCode, string(resp.Body)))
 				return false
 			}
 			body := make(map[string]map[string]string)
@@ -116,7 +117,7 @@ var _ = t.Describe("Pre Upgrade Grafana Dashboard", Label("f:observability.loggi
 				return false
 			}
 			if resp.StatusCode != http.StatusOK {
-				pkg.Log(pkg.Error, fmt.Sprintf("Failed to GET Grafana testDashboard: status=%d: body=%s", resp.StatusCode, string(resp.Body)))
+				pkg.Log(pkg.Error, fmt.Sprintf(grafanaErrMsgFmt, resp.StatusCode, string(resp.Body)))
 				return false
 			}
 			var body []map[string]string
@@ -144,7 +145,7 @@ var _ = t.Describe("Pre Upgrade Grafana Dashboard", Label("f:observability.loggi
 				return false
 			}
 			if resp.StatusCode != http.StatusOK {
-				pkg.Log(pkg.Error, fmt.Sprintf("Failed to GET Grafana testDashboard: status=%d: body=%s", resp.StatusCode, string(resp.Body)))
+				pkg.Log(pkg.Error, fmt.Sprintf(grafanaErrMsgFmt, resp.StatusCode, string(resp.Body)))
 				return false
 			}
 			body := make(map[string]map[string]string)
