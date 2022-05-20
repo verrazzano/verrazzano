@@ -1698,13 +1698,24 @@ def runMulticlusterVerifyApi(count) {
 }
 
 def runMulticlusterVerifyRegistry() {
+    def verifyRegistryStages = createClusterExecutionsMap()
     int clusterCount = params.TOTAL_CLUSTERS.toInteger()
     for(int count=1; count<=clusterCount; count++) {
-        sh """
-          export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-          cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-          ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" registry/...
-        """
+        verifyRegistryStages["${count} - verify registry"] = verifyRegistry(count)
+    }
+    parallel verifyRegistryStages
+}
+
+def verifyRegistry(count) {
+    // For parallel execution, wrap this in a Groovy enclosure {}
+    return {
+        script {
+            sh """
+              export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+              cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+              ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" registry/...
+            """
+        }
     }
 }
 
