@@ -505,7 +505,7 @@ func ContainerImagePullWaitInCluster(namespace string, namePrefixes []string, ku
 func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes []string) bool {
 
 	allContainers := make(map[string][]v1.Container)
-	allImages := make(map[string]map[string]bool)
+	allImages := make(map[string]map[string][]string)
 	imagesYetToBePulled := 0
 	scheduledPods := make(map[string]bool)
 
@@ -514,16 +514,16 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 		for _, namePrefix := range namePrefixes {
 			if strings.HasPrefix(pod.Name, namePrefix) {
 				if _, ok := allImages[pod.Name]; !ok {
-					allImages[pod.Name] = make(map[string]bool)
+					allImages[pod.Name] = make(map[string][]string)
 				}
 				for _, initContainer := range pod.Spec.InitContainers {
 					allContainers[pod.Name] = append(allContainers[pod.Name], initContainer)
-					allImages[pod.Name][initContainer.Image] = true
+					allImages[pod.Name][initContainer.Image] = append(allImages[pod.Name][initContainer.Image], initContainer.Name)
 					imagesYetToBePulled++
 				}
 				for _, container := range pod.Spec.Containers {
 					allContainers[pod.Name] = append(allContainers[pod.Name], container)
-					allImages[pod.Name][container.Image] = true
+					allImages[pod.Name][container.Image] = append(allImages[pod.Name][container.Image], container.Name)
 					imagesYetToBePulled++
 				}
 				scheduledPods[namePrefix] = true
@@ -560,7 +560,6 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 					}
 					if event.Reason == "Pulled" {
 						imagesYetToBePulled--
-						Log(Info, fmt.Sprintf("Pod: %v container: %v image: %v status: %v ", podName, container.Name, container.Image, event.Reason))
 						if imagesYetToBePulledForPod, ok := allImages[podName]; ok {
 							if _, ok := imagesYetToBePulledForPod[container.Image]; ok {
 								delete(imagesYetToBePulledForPod, container.Image)
@@ -579,7 +578,13 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 
 	if imagesYetToBePulled != 0 && len(allImages) != 0 {
 		Log(Info, fmt.Sprintf("%d images yet to be pulled", imagesYetToBePulled))
+		for podName, images := range allImages {
+			for imageName, containers := range images {
+				Log(Info, fmt.Sprintf("Pending containers: %v with image: %v for Pod: %v ", containers, imageName, podName))
+			}
+		}
 	}
+
 	return imagesYetToBePulled == 0 || len(allImages) == 0
 }
 
