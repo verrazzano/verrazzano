@@ -198,9 +198,8 @@ func validateCACertificateIssuer(certIssuer string) {
 	Eventually(func() bool {
 		// Verify that the certificate is issued by the right cluster issuer
 		for _, certificate := range certificatesToTest {
-			currIssuer := certificate.Spec.IssuerRef.Name
-			if currIssuer != certIssuer {
-				log.Printf("Issuer for the certificate %s in namespace %s is %s; expected is %s\n", certificate.Name, certificate.Namespace, currIssuer, certIssuer)
+			if certificate.Spec.IssuerRef.Name != certIssuer {
+				log.Printf("Issuer for the certificate %s in namespace %s is %s; expected is %s\n", certificate.Name, certificate.Namespace, certificate.Spec.IssuerRef.Name, certIssuer)
 				return false
 			}
 		}
