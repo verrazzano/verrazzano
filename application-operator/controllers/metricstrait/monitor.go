@@ -34,6 +34,12 @@ func (r *Reconciler) updatePodMonitor(ctx context.Context, trait *vzapi.MetricsT
 	}
 
 	podMonitor := promoperapi.PodMonitor{}
+	pmName, err := createPodMonitorName(trait, 0)
+	if err != nil {
+		return rel, controllerutil.OperationResultNone, log.ErrorfNewErr("Failed to create Pod Monitor name: %v", err)
+	}
+	podMonitor.SetName(pmName)
+	podMonitor.SetNamespace(workload.GetNamespace())
 	result, err := controllerutil.CreateOrUpdate(ctx, r.Client, &podMonitor, func() error {
 		return r.mutatePodMonitorFromTrait(ctx, &podMonitor, trait, workload, traitDefaults, log)
 	})
@@ -51,18 +57,8 @@ func (r *Reconciler) mutatePodMonitorFromTrait(ctx context.Context, podMonitor *
 	if podMonitor.ObjectMeta.Labels == nil {
 		podMonitor.ObjectMeta.Labels = map[string]string{}
 	}
-	if name, ok := trait.Labels[appObjectMetaLabel]; ok {
-		podMonitor.Name = name
-		podMonitor.ObjectMeta.Labels["name"] = name
-		podMonitor.Spec.Selector = metav1.LabelSelector{MatchLabels: map[string]string{appObjectMetaLabel: name}}
-	} else {
-		pmName, err := createPodMonitorName(trait, 0)
-		if err != nil {
-			return err
-		}
-		podMonitor.Name = pmName
-		podMonitor.ObjectMeta.Labels["name"] = pmName
-	}
+	podMonitor.ObjectMeta.Labels["name"] = podMonitor.GetName()
+	podMonitor.Spec.Selector = metav1.LabelSelector{MatchLabels: map[string]string{appObjectMetaLabel: podMonitor.GetName()}}
 
 	// Loop through ports in the trait and create scrape targets for each
 	ports := getPortSpecs(trait, traitDefaults)
