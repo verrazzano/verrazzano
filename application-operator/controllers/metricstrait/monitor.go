@@ -62,7 +62,8 @@ func (r *Reconciler) mutatePodMonitorFromTrait(ctx context.Context, podMonitor *
 	if podMonitor.ObjectMeta.Labels == nil {
 		podMonitor.ObjectMeta.Labels = map[string]string{}
 	}
-	podMonitor.ObjectMeta.Labels["name"] = podMonitor.GetName()
+	podMonitor.Labels["name"] = podMonitor.GetName()
+	podMonitor.Labels["release"] = "prometheus-operator"
 	podMonitor.Spec.Selector = metav1.LabelSelector{MatchLabels: map[string]string{appObjectMetaLabel: trait.Labels[appObjectMetaLabel]}}
 
 	// Clear the existing endpoints to avoid duplications
