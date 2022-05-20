@@ -370,12 +370,12 @@ pipeline {
                         }
                         stage('opensearch pre-upgrade') {
                             steps {
-                                runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/opensearch')
+                                runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/opensearch', "${TEST_DUMP_ROOT}/opensearch")
                             }
                         }
                         stage('opensearch-dashboards pre-upgrade') {
                             steps {
-                                runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/opensearch-dashboards')
+                                runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/opensearch-dashboards', "${TEST_DUMP_ROOT}/opensearch-dashboards")
                             }
                         }
                         stage ('Deploy Helidon example application - single cluster') {
@@ -558,7 +558,7 @@ pipeline {
                 }
                 stage('opensearch post-upgrade') {
                     steps {
-                        runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/opensearch')
+                        runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/opensearch', "${TEST_DUMP_ROOT}/opensearch")
                     }
                 }
                 stage ('Verify & Uninstall Example Apps') {
