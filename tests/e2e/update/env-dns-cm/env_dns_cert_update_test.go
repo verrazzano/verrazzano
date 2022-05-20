@@ -77,9 +77,6 @@ var (
 	currentCertSecretNamespace string = "cert-manager"
 	/* #nosec G101 -- This is a false positive */
 	currentCertSecretName string = "verrazzano-ca-certificate-secret"
-
-	// List of certificates that match the currentCertIssuerName
-	certificatesToTest []certmanagerv1.Certificate
 )
 
 var _ = t.AfterSuite(func() {
@@ -123,9 +120,8 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 		if err != nil {
 			log.Fatalf("Error in updating CA certificate\n%s", err)
 		}
-		fetchCACertificatesFromIssuer(currentCertIssuerName)
-		validateCACertificateIssuer(testCertIssuerName)
 		validateCertManagerResourcesCleanup()
+		validateCACertificateIssuer()
 	})
 })
 
@@ -180,7 +176,9 @@ func createCustomCACertificate(certName string, secretNamespace string, secretNa
 	log.Println(string(output))
 }
 
-func fetchCACertificatesFromIssuer(certIssuer string) {
+func fetchCACertificatesFromIssuer(certIssuer string) []certmanagerv1.Certificate {
+	// Reintialize the certificate list
+	var certificates []certmanagerv1.Certificate
 	// Fetch the certificates for the deployed applications
 	certificateList, err := pkg.GetCertificateList("")
 	if err != nil {
@@ -189,17 +187,20 @@ func fetchCACertificatesFromIssuer(certIssuer string) {
 	// Filter out the certificates that are issued by the given issuer
 	for _, certificate := range certificateList.Items {
 		if certificate.Spec.IssuerRef.Name == certIssuer {
-			certificatesToTest = append(certificatesToTest, certificate)
+			certificates = append(certificates, certificate)
 		}
 	}
+	return certificates
 }
 
-func validateCACertificateIssuer(certIssuer string) {
+func validateCACertificateIssuer() {
 	Eventually(func() bool {
+		// Fetch the certificates
+		var certificates []certmanagerv1.Certificate = fetchCACertificatesFromIssuer(testCertIssuerName)
 		// Verify that the certificate is issued by the right cluster issuer
-		for _, certificate := range certificatesToTest {
-			if certificate.Spec.IssuerRef.Name != certIssuer {
-				log.Printf("Issuer for the certificate %s in namespace %s is %s; expected is %s\n", certificate.Name, certificate.Namespace, certificate.Spec.IssuerRef.Name, certIssuer)
+		for _, certificate := range certificates {
+			if certificate.Spec.IssuerRef.Name != testCertIssuerName {
+				log.Printf("Issuer for the certificate %s in namespace %s is %s; expected is %s\n", certificate.Name, certificate.Namespace, certificate.Spec.IssuerRef.Name, testCertIssuerName)
 				return false
 			}
 		}
@@ -209,12 +210,9 @@ func validateCACertificateIssuer(certIssuer string) {
 
 func validateCertManagerResourcesCleanup() {
 	Eventually(func() bool {
-		// Verify that the existing certificate has been removed
-		certificateList, err := pkg.GetCertificateList(currentCertNamespace)
-		if err != nil {
-			log.Fatalf("Error while fetching CertificateList\n%s", err)
-		}
-		for _, certificate := range certificateList.Items {
+		// Fetch the certificates
+		var certificates []certmanagerv1.Certificate = fetchCACertificatesFromIssuer(currentCertIssuerName)
+		for _, certificate := range certificates {
 			if certificate.Name == currentCertName {
 				log.Printf("Certificate %s should NOT exist in the namespace %s\n", currentCertName, currentCertNamespace)
 				return false
