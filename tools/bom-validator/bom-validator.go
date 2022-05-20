@@ -249,7 +249,7 @@ func ignoreSubComponent(name string) bool {
 // Report out the findings
 // ImagesNotFound is informational
 // imageTagErrors is a failure condition
-func reportResults(imagesNotFound map[string]string, imageTagErrors map[string]imageError, warnings map[string]string, errorsFound bool) {
+func reportResults(imagesNotFound map[string]string, imageTagErrors map[string]imageError, warnings map[string]string, passedValidation bool) {
 	// Dump Images Not Found to Console, Informational
 	const textDivider = "----------------------------------------"
 
@@ -269,7 +269,7 @@ func reportResults(imagesNotFound map[string]string, imageTagErrors map[string]i
 	}
 	fmt.Println()
 	// Dump Images that don't match BOM, Failure
-	if !errorsFound {
+	if !passedValidation {
 		fmt.Println("Image Errors: BOM Images that don't match Cluster Images")
 		fmt.Println(textDivider)
 		for name, tags := range imageTagErrors {
