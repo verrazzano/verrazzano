@@ -470,14 +470,10 @@ pipeline {
 
         // Run Verify Registry
         stage('Verify Registry') {
-            parallel {
-                stage('verify-registry-url') {
-                    steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            script {
-                               runMulticlusterVerifyRegistry()
-                             }
-                        }
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    script {
+                        runMulticlusterVerifyRegistry()
                     }
                 }
             }
@@ -1711,9 +1707,10 @@ def verifyRegistry(count) {
     return {
         script {
             sh """
-              export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-              cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-              ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" registry/...
+                export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" registry/...
+                ../../build/copy-junit-output.sh ${WORKSPACE}
             """
         }
     }
