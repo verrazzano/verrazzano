@@ -88,6 +88,10 @@ func TestStatusCmd(t *testing.T) {
 		"comp_verrazzanoapplicationoperator_state": string(vzapi.CompStateReady),
 		"comp_weblogicoperator_state":              string(vzapi.CompStateReady),
 		"comp_jaegeroperator_state":                string(vzapi.CompStateReady),
+		"comp_kialiserver_state":                   string(vzapi.CompStateReady),
+		"comp_prometheuspushgateway_state":         string(vzapi.CompStateReady),
+		"comp_prometheusoperator_state":            string(vzapi.CompStateReady),
+		"comp_prometheusnodeexporter_state":        string(vzapi.CompStateReady),
 	}
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)

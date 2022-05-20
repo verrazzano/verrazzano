@@ -73,6 +73,9 @@ Status of Verrazzano {{.verrazzano_name}}
 {{- if .comp_keycloak_state}}
     Keycloak: {{.comp_keycloak_state}}
 {{- end}}
+{{- if .comp_kialiserver_state}}
+    Kiali Server: {{.comp_kialiserver_state}}
+{{- end}}
 {{- if .comp_mysql_state}}
     MySQL: {{.comp_mysql_state}}
 {{- end}}
@@ -84,6 +87,15 @@ Status of Verrazzano {{.verrazzano_name}}
 {{- end}}
 {{- if .comp_prometheusadapter_state}}
     Prometheus Adapter: {{.comp_prometheusadapter_state}}
+{{- end}}
+{{- if .comp_prometheusnodeexporter_state}}
+    Prometheus Node Exporter: {{.comp_prometheusnodeexporter_state}}
+{{- end}}
+{{- if .comp_prometheusoperator_state}}
+    Prometheus Operator: {{.comp_prometheusoperator_state}}
+{{- end}}
+{{- if .comp_prometheuspushgateway_state}}
+    Prometheus Pushgateway: {{.comp_prometheuspushgateway_state}}
 {{- end}}
 {{- if .comp_rancher_state}}
     Rancher: {{.comp_rancher_state}}
