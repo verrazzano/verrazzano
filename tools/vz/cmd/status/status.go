@@ -29,6 +29,7 @@ const statusOutputTemplate = `
 Status of Verrazzano {{.verrazzano_name}}
   Version: {{.verrazzano_version}}
   State: {{.verrazzano_state}}
+  Profile: {{.install_profile}}
   Access Endpoints:
 {{- if .console_url}}
     Console URL: {{.console_url}}
@@ -161,6 +162,7 @@ func runCmdStatus(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) 
 		"verrazzano_name":    vz.Name,
 		"verrazzano_version": vz.Status.Version,
 		"verrazzano_state":   string(vz.Status.State),
+		"install_profile":    string(vz.Spec.Profile),
 	}
 	addAccessEndpoints(vz.Status.VerrazzanoInstance, templateValues)
 	addComponents(vz.Status.Components, templateValues)

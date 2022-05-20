@@ -42,6 +42,9 @@ func TestStatusCmd(t *testing.T) {
 			Namespace: namespace,
 			Name:      name,
 		},
+		Spec: vzapi.VerrazzanoSpec{
+			Profile: vzapi.Dev,
+		},
 		Status: vzapi.VerrazzanoStatus{
 			Version: version,
 			VerrazzanoInstance: &vzapi.InstanceInfo{
@@ -97,6 +100,7 @@ func TestStatusCmd(t *testing.T) {
 		"comp_externaldns_state":                   string(vzapi.CompStateReady),
 		"comp_ingresscontroller_state":             string(vzapi.CompStateReady),
 		"comp_kubestatemetrics_state":              string(vzapi.CompStateReady),
+		"install_profile":                          string(vzapi.Dev),
 	}
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
