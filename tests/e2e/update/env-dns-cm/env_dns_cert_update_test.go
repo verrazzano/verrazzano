@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package envdnscert
+package envdnscm
 
 import (
 	"log"
@@ -59,7 +59,7 @@ func (u CustomCACertificateModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 var (
-	t                              = framework.NewTestFramework("update dns")
+	t                              = framework.NewTestFramework("update env-dns-cm")
 	testEnvironmentName     string = "test-env"
 	testDNSDomain           string = "sslip.io"
 	testCertName            string = "test-ca"
@@ -100,14 +100,20 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 
 	t.It("Update and verify environment name", func() {
 		m := EnvironmentNameModifier{testEnvironmentName}
-		update.UpdateCR(m)
+		err := update.UpdateCR(m)
+		if err != nil {
+			log.Fatalf("Error in updating environment name\n%s", err)
+		}
 		validateIngressList(testEnvironmentName, currentDNSDomain)
 		validateVirtualServiceList(currentDNSDomain)
 	})
 
 	t.It("Update and verify dns domain", func() {
 		m := WildcardDNSModifier{testDNSDomain}
-		update.UpdateCR(m)
+		err := update.UpdateCR(m)
+		if err != nil {
+			log.Fatalf("Error in updating DNS domain\n%s", err)
+		}
 		validateIngressList(testEnvironmentName, testDNSDomain)
 		validateVirtualServiceList(testDNSDomain)
 	})
@@ -115,7 +121,10 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 	t.It("Update and verify CA certificate", func() {
 		createCustomCACertificate(testCertName, testCertSecretNamespace, testCertSecretName)
 		m := CustomCACertificateModifier{testCertSecretNamespace, testCertSecretName}
-		update.UpdateCR(m)
+		err := update.UpdateCR(m)
+		if err != nil {
+			log.Fatalf("Error in updating CA certificate\n%s", err)
+		}
 		validateCertManagerResourcesCleanup()
 		validateCACertificateIssuer(testCertIssuerName)
 	})
