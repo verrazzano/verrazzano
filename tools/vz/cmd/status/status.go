@@ -5,7 +5,6 @@ package status
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -38,7 +37,7 @@ func NewCmdStatus(vzHelper helpers.VZHelper) *cobra.Command {
 
 // runCmdStatus - run the "vz status" command
 func runCmdStatus(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-	fmt.Fprintln(vzHelper.GetOutputStream(), fmt.Sprintf("The name is %s in namespace %s", name, namespace))
+	fmt.Fprintf(vzHelper.GetOutputStream(), "The name is %s in namespace %s\n", name, namespace)
 
 	client, err := vzHelper.GetClient()
 	if err != nil {
@@ -49,11 +48,11 @@ func runCmdStatus(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) 
 	vz := vzapi.Verrazzano{}
 	err = client.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &vz)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Failed to find Verrazzano with name %s in namespace %s: %v", name, namespace, err.Error()))
+		return fmt.Errorf("Failed to find Verrazzano with name %s in namespace %s: %v", name, namespace, err.Error())
 	}
 
 	// Report the status information
-	fmt.Fprintln(vzHelper.GetOutputStream(), fmt.Sprintf("Version %s is installed", vz.Status.Version))
+	fmt.Fprintf(vzHelper.GetOutputStream(), "Version %s is installed\n", vz.Status.Version)
 
 	return nil
 }
