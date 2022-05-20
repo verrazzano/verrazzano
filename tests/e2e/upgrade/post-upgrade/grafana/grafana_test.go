@@ -1,11 +1,12 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package opensearch
+package grafana
 
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"net/http"
 	"strings"
 	"time"
@@ -24,10 +25,27 @@ const (
 var t = framework.NewTestFramework("grafana")
 
 var _ = t.Describe("Post Upgrade Grafana Dashboard", Label("f:observability.logging.es"), func() {
+	// It Wrapper to only run spec if component is supported on the current Verrazzano installation
+	GrafanaSupportedIt := func(description string, f func()) {
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			t.It(description, func() {
+				Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+			})
+		}
+		supported := pkg.IsGrafanaEnabled(kubeconfigPath)
+		// Only run tests if Verrazzano is at least version 1.3.0
+		if supported {
+			t.It(description, f)
+		} else {
+			pkg.Log(pkg.Info, fmt.Sprintf("Skipping check '%v', Verrazzano is not at version 1.3.0", description))
+		}
+	}
+
 	// GIVEN a running Grafana instance
 	// WHEN a search is made for the dashboard
 	// THEN the dashboard metadata is returned
-	It("Grafana search Dasbhoard details", func() {
+	GrafanaSupportedIt("Grafana search Dasbhoard details", func() {
 		Eventually(func() bool {
 			resp, err := pkg.SearchGrafanaDashboard(map[string]string{"query": "E2ETestDashboard"})
 			if err != nil {
@@ -53,7 +71,7 @@ var _ = t.Describe("Post Upgrade Grafana Dashboard", Label("f:observability.logg
 	// GIVEN a running grafana instance
 	// WHEN a GET call is made  to Grafana with the specific UID
 	// THEN the dashboard metadata of the corresponding testDashboard is returned.
-	It("Grafana System Dasbhoard details", func() {
+	GrafanaSupportedIt("Grafana System Dasbhoard details", func() {
 		// UID of system testDashboard, which is created by the VMO on startup.
 		uid := "H0xWYyyik"
 		Eventually(func() bool {

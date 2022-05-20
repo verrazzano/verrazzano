@@ -714,6 +714,19 @@ func IsJaegerOperatorEnabled(kubeconfigPath string) bool {
 	return *vz.Spec.Components.JaegerOperator.Enabled
 }
 
+// IsGrafanaEnabled returns false if the Grafana component is not set, or the value of its Enabled field otherwise
+func IsGrafanaEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.Grafana == nil || vz.Spec.Components.Grafana.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.Grafana.Enabled
+}
+
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
 func APIExtensionsClientSet() (*apiextv1.ApiextensionsV1Client, error) {
 	config, err := k8sutil.GetKubeConfig()

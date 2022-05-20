@@ -418,6 +418,11 @@ pipeline {
                                 runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", "false", "false", "false")
                             }
                         }
+                        stage ('Grafana Pre Upgrade - single cluster') {
+                            steps {
+                                runGinkgoRandomize('upgrade/pre-upgrade/grafana')
+                            }
+                        }
                     }
                 }
                 stage("upgrade-platform-operator") {
@@ -531,6 +536,11 @@ pipeline {
                         always {
                             sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_screenshots.sh"
                         }
+                    }
+                }
+                stage ('Grafana post upgrade - single cluster') {
+                    steps {
+                        runGinkgoRandomize('upgrade/post-upgrade/grafana')
                     }
                 }
                 stage ('Verify & Uninstall Example Apps') {
