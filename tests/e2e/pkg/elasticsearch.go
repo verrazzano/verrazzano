@@ -199,9 +199,7 @@ type ElasticSearchISMPolicyAddModifier struct{}
 type ElasticSearchISMPolicyRemoveModifier struct{}
 
 func (u ElasticSearchISMPolicyAddModifier) ModifyCR(cr *vzapi.Verrazzano) {
-	if cr.Spec.Components.Elasticsearch == nil {
-		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
-	}
+	cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	if cr.Spec.Components.Elasticsearch.Policies == nil {
 		cr.Spec.Components.Elasticsearch.Policies = []vmov1.IndexManagementPolicy{
 			{
