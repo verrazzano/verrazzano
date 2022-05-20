@@ -695,15 +695,7 @@ pipeline {
                         """
                     }
                 } else {
-                    sh """
-                        mkdir -p ${KUBECONFIG_DIR}
-                        if [ "${TEST_ENV}" == "ocidns_oke" ]; then
-                          cd ${GO_REPO_PATH}/verrazzano
-                          ./tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
-                        fi
-                        cd ${TEST_SCRIPTS_DIR}
-                        TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./delete_oke_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}" || true
-                    """
+                    deleteOkeCluster()
                 }
                 sh """
                     if [ -f ${POST_DUMP_FAILED_FILE} ]; then
@@ -791,6 +783,20 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
                 echo "Deploy external es and create its secret on the admin cluster if EXTERNAL_ELASTICSEARCH is true"
                 CLUSTER_NUMBER=${count}  ${CREATE_EXTERNAL_OPENSEARCH}
             """
+    }
+}
+
+def deleteOkeCluster() {
+    script {
+        sh """
+            mkdir -p ${KUBECONFIG_DIR}
+            if [ "${TEST_ENV}" == "ocidns_oke" ]; then
+                 cd ${GO_REPO_PATH}/verrazzano
+                 ./tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
+             fi
+            cd ${TEST_SCRIPTS_DIR}
+            TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./delete_oke_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}" || true
+        """
     }
 }
 
