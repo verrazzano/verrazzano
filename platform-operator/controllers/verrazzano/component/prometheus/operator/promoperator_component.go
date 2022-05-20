@@ -4,6 +4,7 @@
 package operator
 
 import (
+	"fmt"
 	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -82,11 +83,14 @@ func (c prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
 }
 
 // ValidateInstall verifies the installation of the Verrazzano object
-func (c prometheusComponent) ValidateInstall(effectiveCR *vzapi.Verrazzano) error {
-	return c.validatePrometheusOperator(effectiveCR)
+func (c prometheusComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return c.validatePrometheusOperator(vz)
 }
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
-func (c prometheusComponent) ValidateUpgrade(effectiveCR *vzapi.Verrazzano) error {
-	return c.validatePrometheusOperator(effectiveCR)
+func (c prometheusComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	return c.validatePrometheusOperator(new)
 }
