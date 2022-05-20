@@ -65,6 +65,9 @@ func (r *Reconciler) mutatePodMonitorFromTrait(ctx context.Context, podMonitor *
 	podMonitor.ObjectMeta.Labels["name"] = podMonitor.GetName()
 	podMonitor.Spec.Selector = metav1.LabelSelector{MatchLabels: map[string]string{appObjectMetaLabel: trait.Labels[appObjectMetaLabel]}}
 
+	// Clear the existing endpoints to avoid duplications
+	podMonitor.Spec.PodMetricsEndpoints = nil
+
 	// Loop through ports in the trait and create scrape targets for each
 	ports := getPortSpecs(trait, traitDefaults)
 	for i := range ports {
