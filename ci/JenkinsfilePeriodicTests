@@ -4,9 +4,7 @@
 def GIT_COMMIT_TO_USE
 def VERRAZZANO_DEV_VERSION
 
-def availableRegions = env.JOB_NAME.contains('master') ? [ "us-phoenix-1" ] : [  "us-phoenix-1", "us-ashburn-1", "eu-frankfurt-1", "uk-london-1" ]
-Collections.shuffle(availableRegions)
-
+def agentLabel = env.JOB_NAME.contains('master') ? "phxsmall" : "VM.Standard2.2"
 def TESTS_FAILED = false
 def tarfilePrefix="verrazzano_periodic"
 def storeLocation=""
@@ -31,7 +29,7 @@ pipeline {
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "${params.LOCK_REGION}-small"
+            label "${agentLabel}"
         }
     }
 
@@ -40,7 +38,6 @@ pipeline {
     }
 
     parameters {
-        choice (description: 'OCI region to run Jenkins agent and OKE clusters in', name: 'LOCK_REGION', choices: availableRegions)
         booleanParam (description: 'Skip tests to private registry stage, useful for testing out private registry testing, support and push to OCIR', name: 'SKIP_TO_PRIVATE_REGISTRY', defaultValue: false)
         string (name: 'TAGGED_TESTS',
                 defaultValue: '',
@@ -146,7 +143,6 @@ pipeline {
                             script {
                                 build job: "/verrazzano-multi-cluster-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
@@ -162,7 +158,6 @@ pipeline {
                             script {
                                 build job: "/verrazzano-uninstall-test/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
@@ -178,7 +173,6 @@ pipeline {
                             script {
                                 build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -195,7 +189,6 @@ pipeline {
                             script {
                                 build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                                         string(name: 'OCI_DNS_AUTH', value: 'instance_principal'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -215,7 +208,6 @@ pipeline {
                             script {
                                 build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                                         string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -232,7 +224,6 @@ pipeline {
                             script {
                                 build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                                         string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.21'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -249,7 +240,6 @@ pipeline {
                             script {
                                 build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                         parameters: [
-                                                string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                                                 string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
                                                 string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                                 string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -266,7 +256,6 @@ pipeline {
                             script {
                                 build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                         parameters: [
-                                                string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                                                 string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.23'),
                                                 string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                                 string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -283,7 +272,6 @@ pipeline {
                             script {
                                 build job: "/verrazzano-upgrade-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                                         string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
@@ -300,7 +288,6 @@ pipeline {
                             script {
                                 build job: "/verrazzano-upgrade-resiliency-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                                         string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
@@ -318,7 +305,6 @@ pipeline {
                                 // Do not use Calico
                                 build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                                         string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: false),
@@ -344,7 +330,6 @@ pipeline {
                                 // test with sslip.io
                                 build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                                         string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: 'sslip.io'),
@@ -369,7 +354,6 @@ pipeline {
                             script {
                                 build job: "verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                                         string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -393,7 +377,6 @@ pipeline {
                             script {
                                 build job: "verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'CERT_ISSUER', value: "acme"),
                                         string(name: 'ACME_ENVIRONMENT', value: "staging"),
@@ -419,7 +402,6 @@ pipeline {
                             script {
                                 build job: "/verrazzano-oci-integration-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
@@ -442,7 +424,6 @@ pipeline {
                             script {
                                 def builtExamples = build job: "/verrazzano-examples/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                                         string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -494,7 +475,6 @@ pipeline {
                             script {
                                 build job: "verrazzano-private-registry/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'LOCK_REGION', value: params.LOCK_REGION),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'ZIPFILE_LOCATION', value: storeLocation)
                                     ], wait: true
