@@ -61,8 +61,14 @@ Status of Verrazzano {{.verrazzano_name}}
 {{- if .comp_coherenceoperator_state}}
     Coherence Operator: {{.comp_coherenceoperator_state}}
 {{- end}}
+{{- if .comp_grafana_state}}
+    Grafana: {{.comp_grafana_state}}
+{{- end}}
 {{- if .comp_istio_state}}
     Istio: {{.comp_istio_state}}
+{{- end}}
+{{- if .comp_jaegeroperator_state}}
+    Jaeger Operator: {{.comp_jaegeroperator_state}}
 {{- end}}
 {{- if .comp_keycloak_state}}
     Keycloak: {{.comp_keycloak_state}}
@@ -81,6 +87,18 @@ Status of Verrazzano {{.verrazzano_name}}
 {{- end}}
 {{- if .comp_rancher_state}}
     Rancher: {{.comp_rancher_state}}
+{{- end}}
+{{- if .comp_verrazzanoapplicationoperator_state}}
+    Verrazzano Application Operator: {{.comp_verrazzanoapplicationoperator_state}}
+{{- end}}
+{{- if .comp_verrazzanoauthproxy_state}}
+    Verrazzano AuthProxy: {{.comp_verrazzanoauthproxy_state}}
+{{- end}}
+{{- if .comp_verrazzanomonitoringoperator_state}}
+    Verrazzano Monitoring Operator: {{.comp_verrazzanomonitoringoperator_state}}
+{{- end}}
+{{- if .comp_weblogicoperator_state}}
+    WebLogic Operator: {{.comp_weblogicoperator_state}}
 {{- end}}
 `
 
