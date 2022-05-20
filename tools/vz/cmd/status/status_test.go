@@ -41,10 +41,12 @@ func TestStatusCmd(t *testing.T) {
 
 	// Send the command output to a byte buffer
 	buf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: os.Stderr})
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	statusCmd := NewCmdStatus(rc)
 	assert.NotNil(t, statusCmd)
+	statusCmd.SetErr(errBuf)
 
 	// Run the status command, expect the Verrazzano resource to be found
 	statusCmd.SetArgs([]string{fmt.Sprintf("--%s", nameFlag), name, fmt.Sprintf("--%s", namespaceFlag), namespace})
@@ -52,4 +54,10 @@ func TestStatusCmd(t *testing.T) {
 	assert.NoError(t, err)
 	result := buf.String()
 	assert.True(t, strings.Contains(result, "Version 1.2.3"))
+
+	// Run the status command with the incorrect namespace, expect that the Verrazzano resource is not found
+	statusCmd.SetArgs([]string{fmt.Sprintf("--%s", nameFlag), name, fmt.Sprintf("--%s", namespaceFlag), "default"})
+	err = statusCmd.Execute()
+	assert.Error(t, err)
+	assert.True(t, strings.Contains(errBuf.String(), "Failed to find Verrazzano with name verrazzano in namespace default"))
 }
