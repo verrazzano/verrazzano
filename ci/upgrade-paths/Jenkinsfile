@@ -368,6 +368,16 @@ pipeline {
                                 runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
                             }
                         }
+                        stage('opensearch pre-upgrade') {
+                            steps {
+                                runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/opensearch')
+                            }
+                        }
+                        stage('opensearch-dashboards pre-upgrade') {
+                            steps {
+                                runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/opensearch-dashboards')
+                            }
+                        }
                         stage ('Deploy Helidon example application - single cluster') {
                             steps {
                                 runGinkgoVerify('examples/helidon', "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true", "hello-helidon")
@@ -544,6 +554,11 @@ pipeline {
                 stage('post-upgrade verify keycloak') {
                     steps {
                         runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
+                    }
+                }
+                stage('opensearch post-upgrade') {
+                    steps {
+                        runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/opensearch')
                     }
                 }
                 stage ('Verify & Uninstall Example Apps') {
