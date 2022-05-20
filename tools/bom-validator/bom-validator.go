@@ -57,13 +57,17 @@ type knownIssues struct {
 	message       string
 }
 
+const (
+	rancherWarningMessage = "See VZ-5937, Rancher upgrade issue, all VZ versions"
+)
+
 // Mainly a workaround for Rancher additional images; Rancher does not always update to the latest version
-// in the BOM file, if their minimum-version requirements are met by what's deployed at upgrade time
+// in the BOM file, possible Rancher bug that we are pursuing with the Rancher team
 var knownImageIssues = map[string]knownIssues{
-	"rancher-webhook": {alternateTags: []string{"v0.1.1", "v0.1.2", "v0.1.4"}, message: "VZ-5937"},
-	"fleet-agent":     {alternateTags: []string{"v0.3.5"}, message: "See VZ-5937"},
-	"fleet":           {alternateTags: []string{"v0.3.5"}, message: "See VZ-5937"},
-	"gitjob":          {alternateTags: []string{"v0.1.15"}, message: "See VZ-5937"},
+	"rancher-webhook": {alternateTags: []string{"v0.1.1", "v0.1.2", "v0.1.4"}, message: rancherWarningMessage},
+	"fleet-agent":     {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
+	"fleet":           {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
+	"gitjob":          {alternateTags: []string{"v0.1.15"}, message: rancherWarningMessage},
 }
 
 func main() {
