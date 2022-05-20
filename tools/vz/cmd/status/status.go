@@ -61,8 +61,14 @@ Status of Verrazzano {{.verrazzano_name}}
 {{- if .comp_coherenceoperator_state}}
     Coherence Operator: {{.comp_coherenceoperator_state}}
 {{- end}}
+{{- if .comp_externaldns_state}}
+    External DNS: {{.comp_externaldns_state}}
+{{- end}}
 {{- if .comp_grafana_state}}
     Grafana: {{.comp_grafana_state}}
+{{- end}}
+{{- if .comp_ingresscontroller_state}}
+    Ingress Controller: {{.comp_ingresscontroller_state}}
 {{- end}}
 {{- if .comp_istio_state}}
     Istio: {{.comp_istio_state}}
@@ -76,6 +82,9 @@ Status of Verrazzano {{.verrazzano_name}}
 {{- if .comp_kialiserver_state}}
     Kiali Server: {{.comp_kialiserver_state}}
 {{- end}}
+{{- if .comp_kubestatemetrics_state}}
+    Kube State Metrics: {{.comp_kubestatemetrics_state}}
+{{- end}}
 {{- if .comp_mysql_state}}
     MySQL: {{.comp_mysql_state}}
 {{- end}}
@@ -84,6 +93,9 @@ Status of Verrazzano {{.verrazzano_name}}
 {{- end}}
 {{- if .comp_opensearch_state}}
     OpenSearch: {{.comp_opensearch_state}}
+{{- end}}
+{{- if .comp_opensearchdashboards_state}}
+    OpenSearch Dashboards: {{.comp_opensearchdashboards_state}}
 {{- end}}
 {{- if .comp_prometheusadapter_state}}
     Prometheus Adapter: {{.comp_prometheusadapter_state}}
@@ -99,6 +111,9 @@ Status of Verrazzano {{.verrazzano_name}}
 {{- end}}
 {{- if .comp_rancher_state}}
     Rancher: {{.comp_rancher_state}}
+{{- end}}
+{{- if .comp_verrazzano_state}}
+    Verrazzano: {{.comp_verrazzano_state}}
 {{- end}}
 {{- if .comp_verrazzanoapplicationoperator_state}}
     Verrazzano Application Operator: {{.comp_verrazzanoapplicationoperator_state}}
