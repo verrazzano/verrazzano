@@ -10,6 +10,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/templates"
 
 	"github.com/stretchr/testify/assert"
@@ -53,23 +56,27 @@ func TestStatusCmd(t *testing.T) {
 			},
 			Conditions: nil,
 			State:      vzapi.VzStateInstalling,
-			Components: nil,
+			Components: makeVerrazzanoComponentStatusMap(),
 		},
 	}
 
 	// Template map for status command output
 	templateMap := map[string]string{
-		"verrazzano_name":    name,
-		"verrazzano_version": version,
-		"verrazzano_state":   string(vzapi.VzStateInstalling),
-		"console_url":        consoleURL,
-		"keycloak_url":       keycloakURL,
-		"rancher_url":        rancherURL,
-		"os_url":             osURL,
-		"kibana_url":         kibanaURL,
-		"grafana_url":        grafanaURL,
-		"prometheus_url":     prometheusURL,
-		"kiali_url":          kialiURL,
+		"verrazzano_name":                 name,
+		"verrazzano_version":              version,
+		"verrazzano_state":                string(vzapi.VzStateInstalling),
+		"console_url":                     consoleURL,
+		"keycloak_url":                    keycloakURL,
+		"rancher_url":                     rancherURL,
+		"os_url":                          osURL,
+		"kibana_url":                      kibanaURL,
+		"grafana_url":                     grafanaURL,
+		"prometheus_url":                  prometheusURL,
+		"kiali_url":                       kialiURL,
+		"comp_certmanager_state":          string(vzapi.CompStateReady),
+		"comp_prometheusadapter_state":    string(vzapi.CompStateReady),
+		"comp_oamkubernetesruntime_state": string(vzapi.CompStateReady),
+		"comp_coherenceoperator_state":    string(vzapi.CompStateReady),
 	}
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
@@ -107,4 +114,23 @@ func TestStatusCmd(t *testing.T) {
 	err = statusCmd.Execute()
 	assert.Error(t, err)
 	assert.True(t, strings.Contains(errBuf.String(), "Failed to find Verrazzano with name bad in namespace test"))
+}
+
+func makeVerrazzanoComponentStatusMap() vzapi.ComponentStatusMap {
+	statusMap := make(vzapi.ComponentStatusMap)
+	for _, comp := range registry.GetComponents() {
+		if comp.IsOperatorInstallSupported() {
+			statusMap[comp.Name()] = &vzapi.ComponentStatusDetails{
+				Name: comp.Name(),
+				Conditions: []vzapi.Condition{
+					{
+						Type:   vzapi.CondInstallComplete,
+						Status: corev1.ConditionTrue,
+					},
+				},
+				State: vzapi.CompStateReady,
+			}
+		}
+	}
+	return statusMap
 }

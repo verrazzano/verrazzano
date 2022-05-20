@@ -6,12 +6,12 @@ package status
 import (
 	"context"
 	"fmt"
-
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/templates"
+	"strings"
 
 	"github.com/spf13/cobra"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/templates"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -27,7 +27,7 @@ var name string
 // statusOutputTemplate - template for output of status command
 const statusOutputTemplate = `
 Status of Verrazzano {{.verrazzano_name}}
-  Version Installed: {{.verrazzano_version}}
+  Version: {{.verrazzano_version}}
   State: {{.verrazzano_state}}
   Access Endpoints:
 {{- if .console_url}}
@@ -54,7 +54,19 @@ Status of Verrazzano {{.verrazzano_name}}
 {{- if .rancher_url}}
     Rancher URL: {{.rancher_url}}
 {{- end}}
-
+  Components:
+{{- if .comp_certmanager_state}}
+    Cert Manager: {{.comp_certmanager_state}}
+{{- end}}
+{{- if .comp_coherenceoperator_state}}
+    Coherence Operator: {{.comp_coherenceoperator_state}}
+{{- end}}
+{{- if .comp_oamkubernetesruntime_state}}
+    OAM Kubernetes Runtime: {{.comp_oamkubernetesruntime_state}}
+{{- end}}
+{{- if .comp_prometheusadapter_state}}
+    Prometheus Adapter: {{.comp_prometheusadapter_state}}
+{{- end}}
 `
 
 func NewCmdStatus(vzHelper helpers.VZHelper) *cobra.Command {
@@ -91,6 +103,7 @@ func runCmdStatus(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) 
 		"verrazzano_state":   string(vz.Status.State),
 	}
 	addAccessEndpoints(vz.Status.VerrazzanoInstance, templateValues)
+	addComponents(vz.Status.Components, templateValues)
 	result, err := templates.ApplyTemplate(statusOutputTemplate, templateValues)
 	if err != nil {
 		return err
@@ -127,5 +140,13 @@ func addAccessEndpoints(instance *vzapi.InstanceInfo, values map[string]string) 
 		if instance.KialiURL != nil {
 			values["kiali_url"] = *instance.KialiURL
 		}
+	}
+}
+
+func addComponents(components vzapi.ComponentStatusMap, values map[string]string) {
+	for _, component := range components {
+		// Generate key/value for output template - remove dashes from component name, not a valid template character
+		stateKey := fmt.Sprintf("comp_%s_state", component.Name)
+		values[strings.ReplaceAll(stateKey, "-", "")] = string(component.State)
 	}
 }
