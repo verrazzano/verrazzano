@@ -44,10 +44,21 @@ var _ = t.AfterEach(func() {
 	failed = failed || ginkgo.CurrentSpecReport().Failed()
 })
 
-type PrometheusOperatorModifier struct {
+type PrometheusOperatorOverridesModifier struct {
 }
 
-func (p PrometheusOperatorModifier) ModifyCR(cr *vzapi.Verrazzano) {
+type PrometheusOperatorDefaultModifier struct {
+}
+
+func (d PrometheusOperatorDefaultModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	if cr.Spec.Components.PrometheusOperator != nil {
+		if cr.Spec.Components.PrometheusOperator.ValueOverrides != nil {
+			cr.Spec.Components.PrometheusOperator.ValueOverrides = nil
+		}
+	}
+}
+
+func (o PrometheusOperatorOverridesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.PrometheusOperator == nil {
 		cr.Spec.Components.PrometheusOperator = &vzapi.PrometheusOperatorComponent{}
 	}
@@ -78,12 +89,15 @@ func (p PrometheusOperatorModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 var _ = t.BeforeSuite(func() {
-	m := PrometheusOperatorModifier{}
+	m := PrometheusOperatorOverridesModifier{}
 	update.UpdateCR(m)
 	_ = update.GetCR()
 })
 
 var _ = t.AfterSuite(func() {
+	m := PrometheusOperatorDefaultModifier{}
+	update.UpdateCR(m)
+	_ = update.GetCR()
 	if failed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
