@@ -11,101 +11,20 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/update"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"strconv"
 	"time"
 )
 
 const (
-	//masterNodeName  = "system-es-master"
-	//ingestNodeName  = "system-es-ingest"
-	//dataNodeName    = "system-es-data"
-
 	waitTimeout     = 20 * time.Minute
 	pollingInterval = 10 * time.Second
 
-	//updatedReplicaCount = 5
-	//updatedNodeMemory   = "512Mi"
-	//updatedNodeStorage  = "2Gi"
-	//defaultProdMasterCount = 3
-	//defaultProdIngestCount = 1
-	//defaultProdDataCount   = 3
-	//defaultDevMasterCount  = 1
-
-	//AppLabel       = "app"
 	NodeGroupLabel = "node-group"
 )
-
-type OpensearchMasterNodeArgsModifier struct {
-	NodeReplicas uint64
-	NodeMemory   string
-}
-
-type OpensearchIngestNodeArgsModifier struct {
-	NodeReplicas uint64
-	NodeMemory   string
-}
-
-type OpensearchDataNodeArgsModifier struct {
-	NodeReplicas uint64
-	NodeStorage  string
-	NodeMemory   string
-}
 
 type OpensearchCleanUpModifier struct {
 }
 
 type OpensearchAllNodeRolesModifier struct {
-}
-
-func (u OpensearchMasterNodeArgsModifier) ModifyCR(cr *vzapi.Verrazzano) {
-	if cr.Spec.Components.Elasticsearch == nil {
-		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
-	}
-	cr.Spec.Components.Elasticsearch.ESInstallArgs = []vzapi.InstallArgs{}
-	cr.Spec.Components.Elasticsearch.ESInstallArgs =
-		append(cr.Spec.Components.Elasticsearch.ESInstallArgs,
-			vzapi.InstallArgs{Name: "nodes.master.replicas", Value: strconv.FormatUint(u.NodeReplicas, 10)},
-			vzapi.InstallArgs{Name: "nodes.master.requests.memory", Value: u.NodeMemory})
-}
-
-func (u OpensearchIngestNodeArgsModifier) ModifyCR(cr *vzapi.Verrazzano) {
-	if cr.Spec.Components.Elasticsearch == nil {
-		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
-	}
-	cr.Spec.Components.Elasticsearch.ESInstallArgs = []vzapi.InstallArgs{}
-	defaultMasterNodeCount := "3"
-	defaultDataNodeCount := "3"
-	if cr.Spec.Profile == vzapi.Prod {
-		defaultMasterNodeCount = "3"
-		defaultDataNodeCount = "3"
-	}
-	cr.Spec.Components.Elasticsearch.ESInstallArgs =
-		append(cr.Spec.Components.Elasticsearch.ESInstallArgs,
-			vzapi.InstallArgs{Name: "nodes.ingest.replicas", Value: strconv.FormatUint(u.NodeReplicas, 10)},
-			vzapi.InstallArgs{Name: "nodes.ingest.requests.memory", Value: u.NodeMemory},
-			vzapi.InstallArgs{Name: "node.master.replicas", Value: defaultMasterNodeCount},
-			vzapi.InstallArgs{Name: "node.data.replicas", Value: defaultDataNodeCount},
-		)
-}
-
-func (u OpensearchDataNodeArgsModifier) ModifyCR(cr *vzapi.Verrazzano) {
-	if cr.Spec.Components.Elasticsearch == nil {
-		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
-	}
-	cr.Spec.Components.Elasticsearch.ESInstallArgs = []vzapi.InstallArgs{}
-	defaultMasterNodeCount := "3"
-	defaultIngestNodeCount := "3"
-	if cr.Spec.Profile == vzapi.Prod {
-		defaultMasterNodeCount = "3"
-		defaultIngestNodeCount = "1"
-	}
-	cr.Spec.Components.Elasticsearch.ESInstallArgs =
-		append(cr.Spec.Components.Elasticsearch.ESInstallArgs,
-			vzapi.InstallArgs{Name: "nodes.data.replicas", Value: strconv.FormatUint(u.NodeReplicas, 10)},
-			vzapi.InstallArgs{Name: "nodes.data.requests.memory", Value: u.NodeMemory},
-			vzapi.InstallArgs{Name: "nodes.data.requests.storage", Value: u.NodeStorage},
-			vzapi.InstallArgs{Name: "nodes.master.replicas", Value: defaultMasterNodeCount},
-			vzapi.InstallArgs{Name: "node.ingest.replicas", Value: defaultIngestNodeCount})
 }
 
 func (u OpensearchCleanUpModifier) ModifyCR(cr *vzapi.Verrazzano) {
