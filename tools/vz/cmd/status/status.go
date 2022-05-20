@@ -32,6 +32,8 @@ func NewCmdStatus(vzHelper helpers.VZHelper) *cobra.Command {
 			return runCmdStatus(cmd, args, vzHelper)
 		},
 	}
+	cmd.SetOut(vzHelper.GetOutputStream())
+	cmd.SetErr(vzHelper.GetErrorStream())
 
 	// Add flags specific to this command and its sub-commands
 	cmd.PersistentFlags().StringVarP(&namespace, namespaceFlag, "n", "default", "The namespace of the Verrazzano resource")

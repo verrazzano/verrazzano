@@ -11,5 +11,6 @@ import (
 
 type VZHelper interface {
 	GetOutputStream() io.Writer
+	GetErrorStream() io.Writer
 	GetClient() (client.Client, error)
 }

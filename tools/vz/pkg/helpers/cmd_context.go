@@ -26,6 +26,11 @@ func (rc *RootCmdContext) GetOutputStream() io.Writer {
 	return rc.IOStreams.Out
 }
 
+// GetErrorStream - return the error stream
+func (rc *RootCmdContext) GetErrorStream() io.Writer {
+	return rc.IOStreams.ErrOut
+}
+
 // GetClient - return a kubernetes client that supports the schemes used by the CLI
 func (rc *RootCmdContext) GetClient() (client.Client, error) {
 	config, err := k8sutil.GetKubeConfig()

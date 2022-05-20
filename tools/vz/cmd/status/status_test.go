@@ -46,7 +46,6 @@ func TestStatusCmd(t *testing.T) {
 	rc.SetClient(c)
 	statusCmd := NewCmdStatus(rc)
 	assert.NotNil(t, statusCmd)
-	statusCmd.SetErr(errBuf)
 
 	// Run the status command, expect the Verrazzano resource to be found
 	statusCmd.SetArgs([]string{fmt.Sprintf("--%s", nameFlag), name, fmt.Sprintf("--%s", namespaceFlag), namespace})

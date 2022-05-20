@@ -20,6 +20,11 @@ func (rc *FakeRootCmdContext) GetOutputStream() io.Writer {
 	return rc.IOStreams.Out
 }
 
+// GetErrorStream - return the error stream
+func (rc *FakeRootCmdContext) GetErrorStream() io.Writer {
+	return rc.IOStreams.ErrOut
+}
+
 // GetClient - return a kubernetes client that supports the schemes used by the CLI
 func (rc *FakeRootCmdContext) GetClient() (client.Client, error) {
 	return rc.client, nil

@@ -7,17 +7,21 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 )
 
 const CommandName = "version"
 
-func NewCmdVersion() *cobra.Command {
+func NewCmdVersion(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   CommandName,
 		Short: "Verrazzano version information",
 		Long:  "Verrazzano version information",
 		Run:   runCmdVersion,
 	}
+	cmd.SetOut(vzHelper.GetOutputStream())
+	cmd.SetErr(vzHelper.GetErrorStream())
+
 	return cmd
 }
 

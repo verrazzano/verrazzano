@@ -25,6 +25,8 @@ func NewRootCmd(vzHelper helpers.VZHelper) *cobra.Command {
 		Short: "Verrazzano CLI",
 		Long:  "Verrazzano CLI",
 	}
+	cmd.SetOut(vzHelper.GetOutputStream())
+	cmd.SetErr(vzHelper.GetErrorStream())
 
 	// Add global flags
 	cmd.PersistentFlags().StringVarP(&kubeconfig, GlobalFlagKubeconfig, "c", "", "Kubernetes configuration file")
@@ -32,7 +34,7 @@ func NewRootCmd(vzHelper helpers.VZHelper) *cobra.Command {
 
 	// Add commands
 	cmd.AddCommand(status.NewCmdStatus(vzHelper))
-	cmd.AddCommand(version.NewCmdVersion())
+	cmd.AddCommand(version.NewCmdVersion(vzHelper))
 
 	return cmd
 }
