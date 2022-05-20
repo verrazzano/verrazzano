@@ -93,13 +93,13 @@ func main() {
 	populateMapWithInitContainerImages(imagesInstalled)
 
 	//  Loop through BOM and check against cluster images
-	errorsFound := validateBOM(&vBom, imagesInstalled, imagesNotFound, imageTagErrors, imageWarnings)
+	passedValidation := validateBOM(&vBom, imagesInstalled, imagesNotFound, imageTagErrors, imageWarnings)
 
 	// Write to stdout
-	reportResults(imagesNotFound, imageTagErrors, imageWarnings, errorsFound)
+	reportResults(imagesNotFound, imageTagErrors, imageWarnings, passedValidation)
 
 	// Failure
-	if !errorsFound {
+	if !passedValidation {
 		os.Exit(1)
 	}
 }
