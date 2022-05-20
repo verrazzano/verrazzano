@@ -61,11 +61,26 @@ Status of Verrazzano {{.verrazzano_name}}
 {{- if .comp_coherenceoperator_state}}
     Coherence Operator: {{.comp_coherenceoperator_state}}
 {{- end}}
+{{- if .comp_istio_state}}
+    Istio: {{.comp_istio_state}}
+{{- end}}
+{{- if .comp_keycloak_state}}
+    Keycloak: {{.comp_keycloak_state}}
+{{- end}}
+{{- if .comp_mysql_state}}
+    MySQL: {{.comp_mysql_state}}
+{{- end}}
 {{- if .comp_oamkubernetesruntime_state}}
     OAM Kubernetes Runtime: {{.comp_oamkubernetesruntime_state}}
 {{- end}}
+{{- if .comp_opensearch_state}}
+    OpenSearch: {{.comp_opensearch_state}}
+{{- end}}
 {{- if .comp_prometheusadapter_state}}
     Prometheus Adapter: {{.comp_prometheusadapter_state}}
+{{- end}}
+{{- if .comp_rancher_state}}
+    Rancher: {{.comp_rancher_state}}
 {{- end}}
 `
 

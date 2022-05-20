@@ -77,6 +77,11 @@ func TestStatusCmd(t *testing.T) {
 		"comp_prometheusadapter_state":    string(vzapi.CompStateReady),
 		"comp_oamkubernetesruntime_state": string(vzapi.CompStateReady),
 		"comp_coherenceoperator_state":    string(vzapi.CompStateReady),
+		"comp_opensearch_state":           string(vzapi.CompStateReady),
+		"comp_istio_state":                string(vzapi.CompStateReady),
+		"comp_mysql_state":                string(vzapi.CompStateReady),
+		"comp_rancher_state":              string(vzapi.CompStateReady),
+		"comp_keycloak_state":             string(vzapi.CompStateReady),
 	}
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
