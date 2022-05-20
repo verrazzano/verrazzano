@@ -16,10 +16,12 @@ def testEnvironments = env.JOB_NAME.contains('oci-dns-acceptance')
                        : ["kind", "magicdns_oke", "ocidns_oke"]
 def acmeEnvironments = [ "staging", "production" ]
 def certIssuers = [ "self-signed", "acme" ]
+def agentLabel = env.JOB_NAME.contains('-dns-') ? "" : env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 
-def availableRegions = env.JOB_NAME.contains('master') ? [ "us-phoenix-1" ] : [  "us-phoenix-1", "us-ashburn-1", "eu-frankfurt-1", "uk-london-1" ]
+// pulling "ap-*" from the test regions given discovery of image pull issues
+def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
+                          "sa-saopaulo-1", "uk-london-1" ]
 Collections.shuffle(availableRegions)
-
 def keepOKEClusterOnFailure = "false"
 def OKE_CLUSTER_PREFIX = ""
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
@@ -36,12 +38,15 @@ pipeline {
             image "${RUNNER_DOCKER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS} --cap-add=NET_ADMIN"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
-            label params.LOCK_REGION
+            label "${agentLabel}"
         }
     }
 
     parameters {
-        choice (description: 'OCI region to run Jenkins agent and OKE clusters in', name: 'LOCK_REGION', choices: availableRegions)
+        // OKE_CLUSTER_REGION parameter will be ignored for private DNS tests. They get overwritten with runner region
+        choice (description: 'OCI region to launch OKE clusters in. This parameter will be ignored for private DNS tests', name: 'OKE_CLUSTER_REGION',
+            // 1st choice is the default value
+            choices: availableRegions )
         choice (description: 'OKE node pool configuration', name: 'OKE_NODE_POOL',
             // 1st choice is the default value
             choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.2" ])
@@ -202,7 +207,8 @@ pipeline {
                     cp -f "${NETRC_FILE}" $HOME/.netrc
                     chmod 600 $HOME/.netrc
                 """
-                println("${params.LOCK_REGION}")
+                println("${params.OKE_CLUSTER_REGION}")
+                println("agentlabel: ${agentLabel}")
                 sh """
                     echo "${NODE_LABELS}"
                 """
@@ -211,7 +217,7 @@ pipeline {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     // update the description with some meaningful info
                     setDisplayName()
-                    currentBuild.description = SHORT_COMMIT_HASH + " : " + params.LOCK_REGION + " : " + params.OKE_CLUSTER_VERSION
+                    currentBuild.description = SHORT_COMMIT_HASH + " : " + params.OKE_CLUSTER_REGION + " : " + params.OKE_CLUSTER_VERSION
 
                     if (params.TEST_ENV != "kind") {
                         // derive the prefix for the OKE cluster
@@ -232,8 +238,8 @@ pipeline {
                 script {
                     withCredentials([sshUserPrivateKey(credentialsId: '5fcc03de-31ce-4566-b11f-9de38e5d98fd', keyFileVariable: 'OPC_USER_KEY_FILE', passphraseVariable: 'OPC_USER_PASSPHRASE', usernameVariable: 'OPC_USERNAME')]) {
                     def RUNNER_REGION = sh(returnStdout: true, script: "curl -s -H \"Authorization: Bearer Oracle\" http://169.254.169.254/opc/v2/instance/canonicalRegionName").trim()
-                    env.TF_VAR_region = "${params.LOCK_REGION}"
-                    env.OCI_CLI_REGION = "${params.LOCK_REGION}"
+                    env.TF_VAR_region = "${params.DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OKE_CLUSTER_REGION}"
+                    env.OCI_CLI_REGION = "${params.DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OKE_CLUSTER_REGION}"
                     println("runner region is ${RUNNER_REGION}, tf var region is ${env.TF_VAR_REGION}")
                         sh """
                             # get the ssh public key
