@@ -29,7 +29,7 @@ func (r *Reconciler) updatePodMonitor(ctx context.Context, trait *vzapi.MetricsT
 	if err != nil {
 		return rel, controllerutil.OperationResultNone, log.ErrorfNewErr("Failed to fetch metrics source credentials: %v", err)
 	}
-	if secret.Name == "" {
+	if secret != nil && secret.Name == "" {
 		return rel, controllerutil.OperationResultNone, err
 	}
 
@@ -82,10 +82,10 @@ func (r *Reconciler) createPodMetricsEndpoint(ctx context.Context, podMonitor *p
 		return err
 	}
 
-	podMonitor.Spec.PodMetricsEndpoints[portIncrement] = promoperapi.PodMetricsEndpoint{
+	podMonitor.Spec.PodMetricsEndpoints = append(podMonitor.Spec.PodMetricsEndpoints, promoperapi.PodMetricsEndpoint{
 		Port: "__meta_kubernetes_pod_annotation_verrazzano_io_metricsPort",
 		Path: job,
-	}
+	})
 	return nil
 }
 

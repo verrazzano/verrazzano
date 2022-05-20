@@ -42,6 +42,7 @@ const (
 	// Kubernetes resource Kinds
 	configMapKind   = "ConfigMap"
 	deploymentKind  = "Deployment"
+	serviceKind     = "Service"
 	statefulSetKind = "StatefulSet"
 	podKind         = "Pod"
 	controllerName  = "metricstrait"
@@ -243,18 +244,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	log.Oncef("Reconciling metrics trait resource %v, generation %v", req.NamespacedName, trait.Generation)
 
-	res, err := r.doReconcile(ctx, trait, log)
-	if clusters.ShouldRequeue(res) {
-		return res, nil
-	}
+	res1, err := r.doReconcile(ctx, trait, log)
 	if err != nil {
 		return clusters.NewRequeueWithDelay(), err
 	}
 
 	// Do reconcile for the Prometheus Operator controller Prometheus instance
-	res, err = r.doOperatorReconcile(ctx, trait, log)
-	if clusters.ShouldRequeue(res) {
-		return res, nil
+	res2, err := r.doOperatorReconcile(ctx, trait, log)
+	if clusters.ShouldRequeue(res1) {
+		return res1, nil
+	}
+	if clusters.ShouldRequeue(res2) {
+		return res2, nil
 	}
 	if err != nil {
 		return clusters.NewRequeueWithDelay(), err

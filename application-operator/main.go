@@ -5,6 +5,7 @@ package main
 
 import (
 	"flag"
+	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"os"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
@@ -68,6 +69,7 @@ func init() {
 
 	_ = clustersv1alpha1.AddToScheme(scheme)
 	_ = certapiv1.AddToScheme(scheme)
+	_ = promoperapi.AddToScheme(scheme)
 }
 
 const defaultScraperName = "verrazzano-system/vmi-system-prometheus-0"
