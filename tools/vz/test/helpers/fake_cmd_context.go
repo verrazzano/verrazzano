@@ -6,6 +6,8 @@ package helpers
 import (
 	"io"
 
+	"github.com/spf13/cobra"
+
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -26,7 +28,7 @@ func (rc *FakeRootCmdContext) GetErrorStream() io.Writer {
 }
 
 // GetClient - return a kubernetes client that supports the schemes used by the CLI
-func (rc *FakeRootCmdContext) GetClient() (client.Client, error) {
+func (rc *FakeRootCmdContext) GetClient(cmd *cobra.Command) (client.Client, error) {
 	return rc.client, nil
 }
 

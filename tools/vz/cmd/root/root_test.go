@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/status"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
@@ -39,11 +40,11 @@ func TestNewRootCmd(t *testing.T) {
 	assert.Equal(t, 2, foundCount)
 
 	// Verify the expected global flags are defined
-	assert.NotNil(t, rootCmd.PersistentFlags().Lookup(GlobalFlagKubeconfig))
-	assert.NotNil(t, rootCmd.PersistentFlags().Lookup(GlobalFlagContext))
+	assert.NotNil(t, rootCmd.PersistentFlags().Lookup(constants.GlobalFlagKubeConfig))
+	assert.NotNil(t, rootCmd.PersistentFlags().Lookup(constants.GlobalFlagContext))
 
 	// Verify help has the expected elements
-	rootCmd.SetArgs([]string{fmt.Sprintf("--%s", GlobalFlagHelp)})
+	rootCmd.SetArgs([]string{fmt.Sprintf("--%s", constants.GlobalFlagHelp)})
 	err := rootCmd.Execute()
 	assert.NoError(t, err)
 	assert.True(t, strings.Contains(buf.String(), "Usage:"))

@@ -6,11 +6,12 @@ package helpers
 import (
 	"io"
 
+	"github.com/spf13/cobra"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type VZHelper interface {
 	GetOutputStream() io.Writer
 	GetErrorStream() io.Writer
-	GetClient() (client.Client, error)
+	GetClient(cmd *cobra.Command) (client.Client, error)
 }

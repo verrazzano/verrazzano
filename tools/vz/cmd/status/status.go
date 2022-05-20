@@ -39,7 +39,7 @@ func NewCmdStatus(vzHelper helpers.VZHelper) *cobra.Command {
 func runCmdStatus(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
 	fmt.Fprintf(vzHelper.GetOutputStream(), "The name is %s in namespace %s\n", name, namespace)
 
-	client, err := vzHelper.GetClient()
+	client, err := vzHelper.GetClient(cmd)
 	if err != nil {
 		return err
 	}
