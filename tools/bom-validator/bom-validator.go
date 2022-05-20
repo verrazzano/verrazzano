@@ -53,17 +53,17 @@ var ignoreSubComponents = []string{}
 
 // Hack to work around an issue with the 1.2 upgrade; Rancher does not always update the webhook image
 type knownIssues struct {
-	alternateTags  []string
-	warningMessage string
+	alternateTags []string
+	message       string
 }
 
 // Mainly a workaround for Rancher additional images; Rancher does not always update to the latest version
 // in the BOM file, if their minimum-version requirements are met by what's deployed at upgrade time
 var knownImageIssues = map[string]knownIssues{
-	"rancher-webhook": {alternateTags: []string{"v0.1.1", "v0.1.2", "v0.1.4"}, warningMessage: "VZ-5937 - Known issue, Rancher image rancher-webhook not at expected version"},
-	"fleet-agent":     {alternateTags: []string{"v0.3.5"}, warningMessage: "VZ-5937 - Known issue, Rancher image fleet-agent not at expected version"},
-	"fleet":           {alternateTags: []string{"v0.3.5"}, warningMessage: "VZ-5937 - Known issue, Rancher image fleet not at expected version"},
-	"gitjob":          {alternateTags: []string{"v0.1.15"}, warningMessage: "VZ-5937 - Known issue, Rancher image gitjob not at expected version"},
+	"rancher-webhook": {alternateTags: []string{"v0.1.1", "v0.1.2", "v0.1.4"}, message: "VZ-5937"},
+	"fleet-agent":     {alternateTags: []string{"v0.3.5"}, message: "See VZ-5937"},
+	"fleet":           {alternateTags: []string{"v0.3.5"}, message: "See VZ-5937"},
+	"gitjob":          {alternateTags: []string{"v0.1.15"}, message: "See VZ-5937"},
 }
 
 func main() {
@@ -216,8 +216,8 @@ func checkImageTags(clusterImageMap map[string][10]string, image imageDetails, i
 			// Check if the image/tag in the cluster is known to have issues
 			imageWarning, hasKnownIssues := knownImageIssues[image.Image]
 			if hasKnownIssues && vzstring.SliceContainsString(imageWarning.alternateTags, tag) {
-				imageWarnings[image.Image] = fmt.Sprintf("Known issue for image %s, tag: %s, message: %s",
-					image.Image, tag, imageWarning.warningMessage)
+				imageWarnings[image.Image] = fmt.Sprintf("Known issue for image %s, found tag %s, expected tag %s message: %s",
+					image.Image, tag, image.Tag, imageWarning.message)
 				tagFound = true
 				break
 			}
