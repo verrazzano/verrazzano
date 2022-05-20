@@ -215,7 +215,7 @@ func (u OpensearchAllNodeRolesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Elasticsearch.Nodes =
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
-				Name:      string(vmov1.DataRole),
+				Name:      string(vmov1.MasterRole),
 				Replicas:  3,
 				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole, vmov1.IngestRole},
 				Storage:   newNodeStorage("2Gi"),
@@ -245,6 +245,6 @@ func newResources(requestMemory string) *corev1.ResourceRequirements {
 var t = framework.NewTestFramework("update opensearch")
 
 var _ = t.AfterSuite(func() {
-	m := OpensearchCleanUpModifier{}
+	m := OpensearchAllNodeRolesModifier{}
 	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 })
