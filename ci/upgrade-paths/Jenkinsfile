@@ -1570,7 +1570,7 @@ def isMinimumCompatibleOperatorVersion(testMinimumOperatorVersion){
     if(vzOperatorVersionSplit[0] == testMinimumVersionSplit[0] && testMinimumVersionSplit[1] == vzOperatorVersionSplit[1] && vzOperatorVersionSplit[2].charAt(0) >= testMinimumVersionSplit[2].charAt(0)){
         return true
     //Return true if running Verrazzano minor version is greater/equal to the user input testMinimumOperatorVersion
-    }else if(vzOperatorVersionSplit[0].charAt(1) >= testMinimumVersionSplit[0].charAt(1) && testMinimumVersionSplit[1] < vzOperatorVersionSplit[1]){
+    }else if(vzOperatorVersionSplit[0] >= testMinimumVersionSplit[0] && testMinimumVersionSplit[1] < vzOperatorVersionSplit[1]){
         return true
     }
     return false
