@@ -34,13 +34,17 @@ func (r *Reconciler) updatePodMonitor(ctx context.Context, trait *vzapi.MetricsT
 		return rel, controllerutil.OperationResultNone, err
 	}
 
+	// Creating a pod monitor with name and namespace
+	// Replacing underscores with dashes in name to appease Kubernetes requirements
 	podMonitor := promoperapi.PodMonitor{}
 	pmName, err := createPodMonitorName(trait, 0)
 	if err != nil {
 		return rel, controllerutil.OperationResultNone, log.ErrorfNewErr("Failed to create Pod Monitor name: %v", err)
 	}
-	podMonitor.SetName(strings.Replace("_", "-", pmName, -1))
+	podMonitor.SetName(strings.Replace(pmName, "_", "-", -1))
 	podMonitor.SetNamespace(workload.GetNamespace())
+
+	// Create or Update pod monitor with valid scrape config for the target workload
 	result, err := controllerutil.CreateOrUpdate(ctx, r.Client, &podMonitor, func() error {
 		return r.mutatePodMonitorFromTrait(ctx, &podMonitor, trait, workload, traitDefaults, log)
 	})
