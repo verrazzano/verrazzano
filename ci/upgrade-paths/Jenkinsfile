@@ -486,8 +486,6 @@ pipeline {
         }
 
         stage ('Verify Infra') {
-            // NOTE: The stages are executed in parallel, however the tests themselves are executed against
-            //       each cluster in sequence. If possible, we should parallelize that as well.
             parallel {
                 stage('verify-scripts') {
                     steps {
