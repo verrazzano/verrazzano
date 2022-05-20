@@ -1,7 +1,7 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package registry
+package opensearch
 
 import (
 	"testing"
@@ -10,7 +10,7 @@ import (
 	"github.com/onsi/gomega"
 )
 
-func TestKubernetes(t *testing.T) {
+func TestOpenSearchPostInstallUpdate(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Registry Suite")
+	ginkgo.RunSpecs(t, "Post Install Update Opensearch Suite")
 }

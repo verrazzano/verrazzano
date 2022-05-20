@@ -1,16 +1,15 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package registry
+package keycloak
 
 import (
-	"testing"
-
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	"testing"
 )
 
-func TestKubernetes(t *testing.T) {
+func TestKeycloakPreUpgrade(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Registry Suite")
+	ginkgo.RunSpecs(t, "Pre Upgrade Keycloak Suite")
 }

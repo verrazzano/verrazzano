@@ -463,6 +463,22 @@ pipeline {
                     }
                 }
 
+                stage('Opensearch Update Tests') {
+                    environment {
+                        TEST_ENV = "KIND"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-update"
+                    }
+                    steps {
+                        runGinkgo('update/opensearch')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
                 stage('Post-update2 Verify Tests') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update2-verify-install"
@@ -554,7 +570,7 @@ pipeline {
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                 find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
             """
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/Screenshot*.png,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
@@ -815,14 +831,7 @@ def acceptanceTestsConsole(dumpRoot) {
 }
 
 def saveConsoleScreenShots() {
-    sh """
-        cd ${GO_REPO_PATH}/console
-
-        # Copy artifacts to workspace, ignore if copy fails
-        mkdir -p ${WORKSPACE}/console/screenshots
-        ls Screenshot*.png || true
-        cp Screenshot*.png ${WORKSPACE}/console/screenshots || true
-    """
+    sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
 }
 
 def deleteCluster() {
