@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"strings"
 )
 
 func (r *Reconciler) updatePodMonitor(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, log vzlog.VerrazzanoLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
@@ -38,7 +39,7 @@ func (r *Reconciler) updatePodMonitor(ctx context.Context, trait *vzapi.MetricsT
 	if err != nil {
 		return rel, controllerutil.OperationResultNone, log.ErrorfNewErr("Failed to create Pod Monitor name: %v", err)
 	}
-	podMonitor.SetName(pmName)
+	podMonitor.SetName(strings.Replace("_", "-", pmName, -1))
 	podMonitor.SetNamespace(workload.GetNamespace())
 	result, err := controllerutil.CreateOrUpdate(ctx, r.Client, &podMonitor, func() error {
 		return r.mutatePodMonitorFromTrait(ctx, &podMonitor, trait, workload, traitDefaults, log)
