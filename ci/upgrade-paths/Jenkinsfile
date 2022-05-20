@@ -452,7 +452,7 @@ pipeline {
         }
 
         stage ('Verify Install') {
-            stages {
+            parallel {
                 stage('verify-install') {
                     steps {
                         runGinkgoRandomizeSerial('verify-install')
