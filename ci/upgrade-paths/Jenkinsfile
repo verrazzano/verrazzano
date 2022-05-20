@@ -379,7 +379,7 @@ pipeline {
                         }
                         stage ('Deploy Helidon example application - single cluster') {
                             steps {
-                                runGinkgoVerify('examples/helidon', "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true", "hello-helidon")
+                                runGinkgoVerify('examples/helidon', "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true", "hello-helidon-sc")
                             }
                         }
                         stage('Deploy Helidon example application - multi cluster') {
@@ -390,7 +390,7 @@ pipeline {
                         }
                         stage('Deploy Coherence example application - single cluster') {
                             steps {
-                                runGinkgoVerify('workloads/coherence', "${TEST_DUMP_ROOT}/coherence-workload", "false", "false", "true", "hello-coherence")
+                                runGinkgoVerify('workloads/coherence', "${TEST_DUMP_ROOT}/coherence-workload", "false", "false", "true", "hello-coherence-sc")
                             }
                         }
                         stage('Deploy Coherence example application - multi cluster') {
