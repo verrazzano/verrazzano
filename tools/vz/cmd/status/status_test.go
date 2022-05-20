@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/templates"
+
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
@@ -22,22 +24,30 @@ import (
 func TestStatusCmd(t *testing.T) {
 	name := "verrazzano"
 	namespace := "test"
+	version := "1.2.3"
+
+	vz := vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+		Status: vzapi.VerrazzanoStatus{
+			Version:            version,
+			VerrazzanoInstance: nil,
+			Conditions:         nil,
+			State:              "",
+			Components:         nil,
+		},
+	}
+
+	// Template map for status command output
+	templateMap := map[string]string{
+		"verrazzano_name":    name,
+		"verrazzano_version": version,
+	}
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: namespace,
-				Name:      name,
-			},
-			Status: vzapi.VerrazzanoStatus{
-				Version:            "1.2.3",
-				VerrazzanoInstance: nil,
-				Conditions:         nil,
-				State:              "",
-				Components:         nil,
-			},
-		}).Build()
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&vz).Build()
 
 	// Send the command output to a byte buffer
 	buf := new(bytes.Buffer)
@@ -47,12 +57,14 @@ func TestStatusCmd(t *testing.T) {
 	statusCmd := NewCmdStatus(rc)
 	assert.NotNil(t, statusCmd)
 
-	// Run the status command, expect the Verrazzano resource to be found
+	// Run the status command, check for the expected status results to be displayed
 	statusCmd.SetArgs([]string{fmt.Sprintf("--%s", nameFlag), name, fmt.Sprintf("--%s", namespaceFlag), namespace})
 	err := statusCmd.Execute()
 	assert.NoError(t, err)
 	result := buf.String()
-	assert.True(t, strings.Contains(result, "Version Installed: 1.2.3"))
+	expectedResult, err := templates.ApplyTemplate(statusOutputTemplate, templateMap)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedResult, result)
 
 	// Run the status command with the incorrect namespace, expect that the Verrazzano resource is not found
 	errBuf.Reset()
