@@ -1567,17 +1567,22 @@ def isVZOperatorMinimumCompatibleVersion(minimumOperatorVersion){
     echo "Verrazzano Version is: ${runningVZVersion}"
     //Splitting the string minimumOperatorVersion to compare minor and patch versions.
     minimumOperatorVersionSplit = minimumOperatorVersion.split('\\.')
-    // Returns true ->  when vzOperatorVersion and minimumOperatorVersion has equal minor versions and vzOperatorVersion patch is greater/equal to the user specified minimumOperatorVersion
-    if(vzOperatorVersionSplit[0] == minimumOperatorVersionSplit[0] && minimumOperatorVersionSplit[1] == vzOperatorVersionSplit[1] && vzOperatorVersionSplit[2].charAt(0) >= minimumOperatorVersionSplit[2].charAt(0)){
-        echo "${vzOperatorVersionSplit[0]} == ${minimumOperatorVersionSplit[0]} && ${minimumOperatorVersionSplit[1]} == ${vzOperatorVersionSplit[1]} && ${vzOperatorVersionSplit[2]} >= ${minimumOperatorVersionSplit[2]}"
+
+    //Returns true -> when the vzOperatorVersion minor version is greater than the minor version of user defined minimumOperatorVersion
+    if(vzOperatorVersionSplit[0] > minimumOperatorVersionSplit[0]){
         return true
     //Returns true -> vzOperatorVersion minor version is greater/equal than the user defined minimumOperatorVersion
-    }else if(vzOperatorVersionSplit[0] >= minimumOperatorVersionSplit[0] && minimumOperatorVersionSplit[1] < vzOperatorVersionSplit[1]){
-         echo "${vzOperatorVersionSplit[0]} >= ${minimumOperatorVersionSplit[0]} && ${minimumOperatorVersionSplit[1]} < ${vzOperatorVersionSplit[1]}"
+    }else if(vzOperatorVersionSplit[0] == minimumOperatorVersionSplit[0] && minimumOperatorVersionSplit[1] < vzOperatorVersionSplit[1]){
+              echo "${vzOperatorVersionSplit[0]} >= ${minimumOperatorVersionSplit[0]} && ${minimumOperatorVersionSplit[1]} < ${vzOperatorVersionSplit[1]}"
+             return true
+    // Returns true ->  when vzOperatorVersion and minimumOperatorVersion has equal minor versions and vzOperatorVersion patch is greater/equal to the user specified minimumOperatorVersion
+    }else if(vzOperatorVersionSplit[0] == minimumOperatorVersionSplit[0] && minimumOperatorVersionSplit[1] == vzOperatorVersionSplit[1] && vzOperatorVersionSplit[2].charAt(0) >= minimumOperatorVersionSplit[2].charAt(0)){
+        echo "${vzOperatorVersionSplit[0]} == ${minimumOperatorVersionSplit[0]} && ${minimumOperatorVersionSplit[1]} == ${vzOperatorVersionSplit[1]} && ${vzOperatorVersionSplit[2]} >= ${minimumOperatorVersionSplit[2]}"
         return true
     }
-    echo "${vzOperatorVersionSplit[0]} == ${minimumOperatorVersionSplit[0]} && ${minimumOperatorVersionSplit[1]} == ${vzOperatorVersionSplit[1]} && ${vzOperatorVersionSplit[2]} >= ${minimumOperatorVersionSplit[2]}"
+    echo "${vzOperatorVersionSplit[0]} > ${minimumOperatorVersionSplit[0]}"
     echo "${vzOperatorVersionSplit[0]} >= ${minimumOperatorVersionSplit[0]} && ${minimumOperatorVersionSplit[1]} < ${vzOperatorVersionSplit[1]}"
+    echo "${vzOperatorVersionSplit[0]} == ${minimumOperatorVersionSplit[0]} && ${minimumOperatorVersionSplit[1]} == ${vzOperatorVersionSplit[1]} && ${vzOperatorVersionSplit[2]} >= ${minimumOperatorVersionSplit[2]}"
     echo "Returning False..:("
     return false
 }
