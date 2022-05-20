@@ -60,7 +60,10 @@ type knownIssues struct {
 // Mainly a workaround for Rancher additional images; Rancher does not always update to the latest version
 // in the BOM file, if their minimum-version requirements are met by what's deployed at upgrade time
 var knownImageIssues = map[string]knownIssues{
-	"rancher-webhook": {alternateTags: []string{"v0.1.1", "v0.1.2", "v0.1.4"}, warningMessage: "VZ-5937 - Known issue, Rancher webhook not at expected version"},
+	"rancher-webhook": {alternateTags: []string{"v0.1.1", "v0.1.2", "v0.1.4"}, warningMessage: "VZ-5937 - Known issue, Rancher image rancher-webhook not at expected version"},
+	"fleet-agent":     {alternateTags: []string{"v0.3.5"}, warningMessage: "VZ-5937 - Known issue, Rancher image fleet-agent not at expected version"},
+	"fleet":           {alternateTags: []string{"v0.3.5"}, warningMessage: "VZ-5937 - Known issue, Rancher image fleet not at expected version"},
+	"gitjob":          {alternateTags: []string{"v0.1.15"}, warningMessage: "VZ-5937 - Known issue, Rancher image gitjob not at expected version"},
 }
 
 func main() {
@@ -86,13 +89,13 @@ func main() {
 	populateMapWithInitContainerImages(imagesInstalled)
 
 	//  Loop through BOM and check against cluster images
-	isBOMValid := validateBOM(&vBom, imagesInstalled, imagesNotFound, imageTagErrors, imageWarnings)
+	errorsFound := validateBOM(&vBom, imagesInstalled, imagesNotFound, imageTagErrors, imageWarnings)
 
 	// Write to stdout
-	reportResults(imagesNotFound, imageTagErrors, imageWarnings, isBOMValid)
+	reportResults(imagesNotFound, imageTagErrors, imageWarnings, errorsFound)
 
 	// Failure
-	if !isBOMValid {
+	if !errorsFound {
 		os.Exit(1)
 	}
 }
@@ -242,7 +245,7 @@ func ignoreSubComponent(name string) bool {
 // Report out the findings
 // ImagesNotFound is informational
 // imageTagErrors is a failure condition
-func reportResults(imagesNotFound map[string]string, imageTagErrors map[string]imageError, warnings map[string]string, isBOMValid bool) {
+func reportResults(imagesNotFound map[string]string, imageTagErrors map[string]imageError, warnings map[string]string, errorsFound bool) {
 	// Dump Images Not Found to Console, Informational
 	const textDivider = "----------------------------------------"
 
@@ -253,14 +256,16 @@ func reportResults(imagesNotFound map[string]string, imageTagErrors map[string]i
 		fmt.Printf("Image not installed: %s:%s\n", name, tag)
 	}
 	fmt.Println()
-	fmt.Println("Image Warnings - Tags not at expected BOM level due to known issues")
-	fmt.Println(textDivider)
-	for name, msg := range warnings {
-		fmt.Printf("Warning: Image Name = %s: %s\n", name, msg)
+	if len(warnings) > 0 {
+		fmt.Println("Image Warnings - Tags not at expected BOM level due to known issues")
+		fmt.Println(textDivider)
+		for name, msg := range warnings {
+			fmt.Printf("Warning: Image Name = %s: %s\n", name, msg)
+		}
 	}
 	fmt.Println()
 	// Dump Images that don't match BOM, Failure
-	if !isBOMValid {
+	if !errorsFound {
 		fmt.Println("Image Errors: BOM Images that don't match Cluster Images")
 		fmt.Println(textDivider)
 		for name, tags := range imageTagErrors {
