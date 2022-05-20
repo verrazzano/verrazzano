@@ -554,7 +554,7 @@ pipeline {
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                 find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
             """
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/Screenshot*.png,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
@@ -815,14 +815,7 @@ def acceptanceTestsConsole(dumpRoot) {
 }
 
 def saveConsoleScreenShots() {
-    sh """
-        cd ${GO_REPO_PATH}/console
-
-        # Copy artifacts to workspace, ignore if copy fails
-        mkdir -p ${WORKSPACE}/console/screenshots
-        ls Screenshot*.png || true
-        cp Screenshot*.png ${WORKSPACE}/console/screenshots || true
-    """
+    sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
 }
 
 def deleteCluster() {

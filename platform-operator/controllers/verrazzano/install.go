@@ -75,7 +75,8 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 			if !isInstalled(cr.Status) {
 				continue
 			}
-			if !checkConfigUpdated(spiCtx, componentStatus, compName) {
+			// If the component config is updated, or the component is watched, it should be reconciled
+			if !checkConfigUpdated(spiCtx, componentStatus, compName) && !r.IsWatchedComponent(comp.GetJSONName()) {
 				continue
 			}
 
@@ -149,6 +150,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 			compLog.Progressf("Component %s waiting to finish installing", compName)
 			requeue = true
 		}
+		r.ClearWatch(comp.GetJSONName())
 	}
 	if requeue {
 		return newRequeueWithDelay(), nil
@@ -156,7 +158,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 	return ctrl.Result{}, nil
 }
 
-// checkConfigUpdated checks if the component confg in the VZ CR has been updated and the component needs to
+// checkConfigUpdated checks if the component config in the VZ CR has been updated and the component needs to
 // reset the state back to pre-install to re-enter install flow
 func checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.ComponentStatusDetails, name string) bool {
 	vzState := ctx.ActualCR().Status.State
