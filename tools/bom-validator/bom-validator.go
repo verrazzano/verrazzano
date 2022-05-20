@@ -15,8 +15,12 @@ import (
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 )
 
-const tagLen = 10                                                          // The number of unique tags for a specific image
-const platformOperatorPodNameSearchString = "verrazzano-platform-operator" // Pod Substring for finding the platform operator pod
+const (
+	tagLen                              = 10                             // The number of unique tags for a specific image
+	platformOperatorPodNameSearchString = "verrazzano-platform-operator" // Pod Substring for finding the platform operator pod
+
+	rancherWarningMessage = "See VZ-5937, Rancher upgrade issue, all VZ versions" // For known Rancher issues with VZ upgrade
+)
 
 // Verrazzano BOM types
 
@@ -56,10 +60,6 @@ type knownIssues struct {
 	alternateTags []string
 	message       string
 }
-
-const (
-	rancherWarningMessage = "See VZ-5937, Rancher upgrade issue, all VZ versions"
-)
 
 // Mainly a workaround for Rancher additional images; Rancher does not always update to the latest version
 // in the BOM file, possible Rancher bug that we are pursuing with the Rancher team
