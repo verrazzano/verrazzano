@@ -25,6 +25,14 @@ func TestStatusCmd(t *testing.T) {
 	name := "verrazzano"
 	namespace := "test"
 	version := "1.2.3"
+	consoleURL := "https://verrazzano.default.10.107.141.8.nip.io"
+	keycloakURL := "https://keycloak.default.10.107.141.8.nip.io"
+	rancherURL := "https://rancher.default.10.107.141.8.nip.io"
+	osURL := "https://elasticsearch.vmi.system.10.107.141.8.nip.io"
+	kibanaURL := "https://kibana.vmi.system.10.107.141.8.nip.io"
+	grafanaURL := "https://grafana.vmi.system.10.107.141.8.nip.io"
+	prometheusURL := "https://prometheus.vmi.system.10.107.141.8.nip.io"
+	kialiURL := "https://kiali.vmi.system.10.107.141.8.nip.io"
 
 	vz := vzapi.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{
@@ -32,11 +40,20 @@ func TestStatusCmd(t *testing.T) {
 			Name:      name,
 		},
 		Status: vzapi.VerrazzanoStatus{
-			Version:            version,
-			VerrazzanoInstance: nil,
-			Conditions:         nil,
-			State:              "",
-			Components:         nil,
+			Version: version,
+			VerrazzanoInstance: &vzapi.InstanceInfo{
+				ConsoleURL:    &consoleURL,
+				KeyCloakURL:   &keycloakURL,
+				RancherURL:    &rancherURL,
+				ElasticURL:    &osURL,
+				KibanaURL:     &kibanaURL,
+				GrafanaURL:    &grafanaURL,
+				PrometheusURL: &prometheusURL,
+				KialiURL:      &kialiURL,
+			},
+			Conditions: nil,
+			State:      "",
+			Components: nil,
 		},
 	}
 
@@ -44,6 +61,14 @@ func TestStatusCmd(t *testing.T) {
 	templateMap := map[string]string{
 		"verrazzano_name":    name,
 		"verrazzano_version": version,
+		"console_url":        consoleURL,
+		"keycloak_url":       keycloakURL,
+		"rancher_url":        rancherURL,
+		"os_url":             osURL,
+		"kibana_url":         kibanaURL,
+		"grafana_url":        grafanaURL,
+		"prometheus_url":     prometheusURL,
+		"kiali_url":          kialiURL,
 	}
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
