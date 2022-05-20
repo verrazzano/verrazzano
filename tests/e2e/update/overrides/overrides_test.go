@@ -5,6 +5,8 @@ package overrides
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/tests/e2e/update"
+	corev1 "k8s.io/api/core/v1"
 	"log"
 	"os/exec"
 	"strings"
@@ -40,6 +42,45 @@ var (
 var failed = false
 var _ = t.AfterEach(func() {
 	failed = failed || ginkgo.CurrentSpecReport().Failed()
+})
+
+type PrometheusOperatorModifier struct {
+}
+
+func (p PrometheusOperatorModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	if cr.Spec.Components.PrometheusOperator == nil {
+		cr.Spec.Components.PrometheusOperator = &vzapi.PrometheusOperatorComponent{}
+	}
+	var trueVal = true
+	overrides := []vzapi.Overrides{
+		{
+			ConfigMapRef: &corev1.ConfigMapKeySelector{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: "test-overrides-1",
+				},
+				Key:      "test-overrides-configmap.yaml",
+				Optional: &trueVal,
+			},
+		},
+		{
+			SecretRef: &corev1.SecretKeySelector{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: "test-overrides-1",
+				},
+				Key:      "test-overrides-secret.yaml",
+				Optional: &trueVal,
+			},
+		},
+	}
+	cr.Spec.Components.PrometheusOperator.Enabled = &trueVal
+	cr.Spec.Components.PrometheusOperator.MonitorChanges = &trueVal
+	cr.Spec.Components.PrometheusOperator.ValueOverrides = overrides
+}
+
+var _ = t.BeforeSuite(func() {
+	m := PrometheusOperatorModifier{}
+	update.UpdateCR(m)
+	_ = update.GetCR()
 })
 
 var _ = t.AfterSuite(func() {
