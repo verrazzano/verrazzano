@@ -5,9 +5,10 @@ def DOCKER_IMAGE_TAG
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 
 // pulling "ap-*" from the test regions given discovery of image pull issues
-def availableRegions = env.JOB_NAME.contains('master') ? [ "us-phoenix-1" ] : [  "us-phoenix-1", "us-ashburn-1", "eu-frankfurt-1", "uk-london-1" ]
-Collections.shuffle(availableRegions)
+def availableRegions = [ "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
+                          "sa-saopaulo-1", "uk-london-1" ]
 def OKE_CLUSTER_PREFIX = ""
+Collections.shuffle(availableRegions)
 
 pipeline {
     options {
@@ -20,12 +21,10 @@ pipeline {
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label params.LOCK_REGION
         }
     }
 
     parameters {
-        choice (description: 'OCI region to run Jenkins agent and OKE clusters in', name: 'LOCK_REGION', choices: availableRegions)
         string (name: 'VERRAZZANO_BRANCH',
                 defaultValue: 'master',
                 description: 'Branch to clone and checkout the Verrazzano repo',
@@ -34,6 +33,9 @@ pipeline {
                 description: 'OKE node pool configuration',
                 // 1st choice is the default value
                 choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.4" ])
+        choice (description: 'OCI region to launch OKE clusters in', name: 'OKE_CLUSTER_REGION',
+            // 1st choice is the default value
+            choices: availableRegions )
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
@@ -80,7 +82,7 @@ pipeline {
         TF_VAR_tenancy_id = credentials('oci-tenancy')
         TF_VAR_tenancy_name = credentials('oci-tenancy-name')
         TF_VAR_user_id = credentials('oci-user-ocid')
-        TF_VAR_region = "${params.LOCK_REGION}"
+        TF_VAR_region = "${params.OKE_CLUSTER_REGION}"
         TF_VAR_kubernetes_version = "${params.OKE_CLUSTER_VERSION}"
         TF_VAR_nodepool_config = "${params.OKE_NODE_POOL}"
         TF_VAR_api_fingerprint = credentials('oci-api-key-fingerprint')
@@ -94,7 +96,7 @@ pipeline {
         OCI_CLI_USER = credentials('oci-user-ocid')
         OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
-        OCI_CLI_REGION = "${params.LOCK_REGION}"
+        OCI_CLI_REGION = "${params.OKE_CLUSTER_REGION}"
         DISABLE_SPINNER=1
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -21,8 +21,6 @@ set -o pipefail
 # retry 3 times, 30 seconds apart
 tries=0
 MAX_TRIES=3
-export TF_LOG=DEBUG
-export OCI_GO_SDK_DEBUG=v
 while true; do
    tries=$((tries+1))
    echo "terraform apply iteration ${tries}"

@@ -4,9 +4,11 @@
 def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
-def availableRegions = env.JOB_NAME.contains('master') ? [ "us-phoenix-1" ] : [  "us-phoenix-1", "us-ashburn-1", "eu-frankfurt-1", "uk-london-1" ]
-Collections.shuffle(availableRegions)
+def availableRegions = [ "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-mumbai-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
+                         "ap-tokyo-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
+                         "sa-saopaulo-1", "uk-london-1" ]
 def acmeEnvironments = [ "staging", "production" ]
+Collections.shuffle(availableRegions)
 def zoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
 def dns_zone_ocid = 'dummy'
 def OKE_CLUSTER_PREFIX = ""
@@ -31,7 +33,6 @@ pipeline {
     }
 
     parameters {
-        choice (description: 'OCI region to run Jenkins agent and OKE clusters in', name: 'LOCK_REGION', choices: availableRegions)
         booleanParam (description: 'Whether to use External Elasticsearch', name: 'EXTERNAL_ELASTICSEARCH', defaultValue: false)
         choice (description: 'Number of Cluster', name: 'TOTAL_CLUSTERS', choices: ["2", "1", "3"])
         choice (description: 'Predefined config permutations for Verrazzano installation. Prod profile is the default profile for NONE', name: 'VZ_INSTALL_CONFIG',
@@ -40,6 +41,9 @@ pipeline {
                 choices: ["KIND", "magicdns_oke", "ocidns_oke"])
         choice (description: 'ACME Certificate Environment (Staging or Production)', name: 'ACME_ENVIRONMENT',
                 choices: acmeEnvironments)
+        choice (description: 'OCI region to launch OKE clusters', name: 'OKE_CLUSTER_REGION',
+                // 1st choice is the default value
+                choices: availableRegions )
         choice (description: 'OKE node pool configuration', name: 'OKE_NODE_POOL',
                 // 1st choice is the default value
                 choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2" ])
@@ -137,7 +141,7 @@ pipeline {
         TF_VAR_tenancy_id = credentials('oci-tenancy')
         TF_VAR_tenancy_name = credentials('oci-tenancy-name')
         TF_VAR_user_id = credentials('oci-user-ocid')
-        TF_VAR_region = "${params.LOCK_REGION}"
+        TF_VAR_region = "${params.OKE_CLUSTER_REGION}"
         TF_VAR_kubernetes_version = "${params.OKE_CLUSTER_VERSION}"
         TF_VAR_nodepool_config = "${params.OKE_NODE_POOL}"
         TF_VAR_api_fingerprint = credentials('oci-api-key-fingerprint')
@@ -150,7 +154,7 @@ pipeline {
         OCI_CLI_USER = credentials('oci-user-ocid')
         OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
-        OCI_CLI_REGION = "${params.LOCK_REGION}"
+        OCI_CLI_REGION = "${params.OKE_CLUSTER_REGION}"
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
 
         INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-vz-prod-kind-upgrade.yaml"
