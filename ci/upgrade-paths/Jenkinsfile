@@ -345,20 +345,23 @@ pipeline {
                         }
                     }
                 }
-                stage ('Pre-upgrade Acceptance Tests') {
+                stage('Multicluster Registration') {
+                    when { expression { isMultiCluster() } }
                     stages {
                         stage('Register managed clusters') {
-                            when { expression { isMultiCluster() } }
                             steps {
                                 registerManagedClusters()
                             }
                         }
                         stage('Verify Register') {
-                            when { expression { isMultiCluster() } }
                             steps {
                                 verifyRegisterManagedClusters(true)
                             }
                         }
+                    }
+                }
+                stage ('Pre-upgrade Acceptance Tests') {
+                    stages {
                         stage('pre-upgrade verify keycloak') {
                             steps {
                                 runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
