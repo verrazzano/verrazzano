@@ -1563,7 +1563,7 @@ def isMinimumCompatibleOperatorVersion(testMinimumOperatorVersion){
     vzOperatorVersion = RUNNING_OPERATOR_VERSION
     def vzOperatorVersionSplit  = vzOperatorVersion.split('\\.')
     runningVZVersion = vzOperatorVersionSplit[0] + '.' + vzOperatorVersionSplit[1] + '.' + vzOperatorVersionSplit[2].charAt(0)
-    echo "Verrazzano Version is: ${vzVersion}"
+    echo "Verrazzano Version is: ${runningVZVersion}"
     //Splitting the user input testMinimumOperatorVersion to compare
     testMinimumVersionSplit = testMinimumOperatorVersion.split('\\.')
     // Return true when both running Verrazzano operator minor version and user input minor are equal and if running operator patch version is greater/equal to user input testMinimumOperatorVersion
