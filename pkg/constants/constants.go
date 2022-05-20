@@ -83,6 +83,9 @@ const VerrazzanoPromInternal = "verrazzano-prom-internal"
 // AdditionalTLS is an optional tls secret that contains additional CA
 const AdditionalTLS = "tls-ca-additional"
 
+// AdditionalTLSCAKey is the key containing the CA in the secret specified by the AdditionalTLS constant
+const AdditionalTLSCAKey = "ca-additional.pem"
+
 // VMCAgentPollingTimeInterval - The time interval at which mcagent polls Verrazzano Managed CLuster resource on the admin cluster.
 const VMCAgentPollingTimeInterval = 60 * time.Second
 
@@ -95,8 +98,8 @@ const FluentdDaemonSetName = "fluentd"
 // KubeSystem - The name of the kube-system namespace
 const KubeSystem = "kube-system"
 
-//DefaultVerrazzanoCASecretName Default self-signed CA secret name
-//#nosec
+// DefaultVerrazzanoCASecretName Default self-signed CA secret name
+// #nosec
 const DefaultVerrazzanoCASecretName = "verrazzano-ca-certificate-secret"
 
 // VmiPromConfigName - The name of the prometheus config map

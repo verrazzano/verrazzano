@@ -349,8 +349,8 @@ pipeline {
                     }
                     steps {
                         script {
-                            // Run all but the WLS tests
-                            parallel generateNonWLSAcceptanceTestStages("${TEST_DUMP_ROOT}/post-update1-acceptance-tests")
+                            // Run all but the WLS tests, and skip the undeploy step to leave the apps running
+                            parallel generateNonWLSAcceptanceTestStages("${TEST_DUMP_ROOT}/post-update1-acceptance-tests", 'false', 'true')
                         }
                     }
                     post {
@@ -381,28 +381,14 @@ pipeline {
                     }
                 }
 
-                stage('Post-update2 Verify Tests') {
+                stage('WLS/COH Post-Update2 Acceptance Tests') {
                     environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update2-verify-install"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-update"
                     }
                     steps {
-                        runGinkgoRandomize('verify-install')
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                    }
-                }
-
-                stage('Post-Update2 Infra Tests') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update2-infra-tests"
-                    }
-                    steps {
+                        // Run initial WLS/COH acceptance tests, and leave the apps running
                         script {
-                            parallel generateVerifyInfraStages("${TEST_DUMP_ROOT}/post-update2-infra-tests")
+                            parallel generate_wls_tests("${TEST_DUMP_ROOT}/wls-coh-update2-tests", 'false', 'true')
                         }
                     }
                     post {
@@ -420,6 +406,22 @@ pipeline {
                     }
                     steps {
                         runGinkgo('update/authproxy')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
+                stage('Env-DNS-Cert Update Tests') {
+                    environment {
+                        TEST_ENV = "KIND"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/env-dns-cert-update"
+                    }
+                    steps {
+                        runGinkgo('update/env-dns-cert')
                     }
                     post {
                         always {
@@ -461,14 +463,62 @@ pipeline {
                     }
                 }
 
+                stage('Opensearch Update Tests') {
+                    environment {
+                        TEST_ENV = "KIND"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-update"
+                    }
+                    steps {
+                        runGinkgo('update/opensearch')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
+                stage('Post-update2 Verify Tests') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update2-verify-install"
+                    }
+                    steps {
+                        runGinkgoRandomize('verify-install')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
+                stage('Post-Update2 Infra Tests') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update2-infra-tests"
+                    }
+                    steps {
+                        script {
+                            parallel generateVerifyInfraStages("${TEST_DUMP_ROOT}/post-update2-infra-tests")
+                        }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
                 stage('Post-update2 Acceptance Tests') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-update"
                     }
                     steps {
-                        // Run all acceptance tests
+                        // Run all acceptance tests after the sequence of updates including CM and DNS; undeploy apps after
                         script {
-                            parallel generateAllAcceptanceTestStages("${TEST_DUMP_ROOT}/post-update2-acceptance-tests")
+                            parallel generateAllAcceptanceTestStages("${TEST_DUMP_ROOT}/post-cm-dns-acceptance-tests", 'true', 'false')
                         }
                     }
                     post {
@@ -520,7 +570,7 @@ pipeline {
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                 find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
             """
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/Screenshot*.png,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
@@ -557,6 +607,16 @@ pipeline {
     }
 }
 
+def generateNonWLSAcceptanceTestStages(dumpRoot, skipDeploy = 'false', skipUndeploy = 'false') {
+    return generate_security_tests(dumpRoot) + generate_nonwls_tests(dumpRoot, skipDeploy, skipUndeploy)
+}
+
+def generateAllAcceptanceTestStages(dumpRoot, skipDeploy = 'false', skipUndeploy = 'false') {
+    return generate_security_tests(dumpRoot) +
+        generate_nonwls_tests(dumpRoot, skipDeploy, skipUndeploy) +
+        generate_wls_tests(dumpRoot, skipDeploy, skipUndeploy)
+}
+
 def generateVerifyInfraStages(dumpRoot) {
     return [
         "verify-scripts": {
@@ -577,14 +637,6 @@ def generateVerifyInfraStages(dumpRoot) {
     ]
 }
 
-def generateNonWLSAcceptanceTestStages(dumpRoot) {
-    return generate_security_tests(dumpRoot) + generate_nonwls_tests(dumpRoot)
-}
-
-def generateAllAcceptanceTestStages(dumpRoot) {
-    return generate_security_tests(dumpRoot) + generate_nonwls_tests(dumpRoot) + generate_wls_tests(dumpRoot)
-}
-
 def generate_security_tests(dumpRoot) {
     return [
         "istio authorization policy": {
@@ -603,7 +655,7 @@ def generate_security_tests(dumpRoot) {
     ]
 }
 
-def generate_nonwls_tests(dumpRoot) {
+def generate_nonwls_tests(dumpRoot, skipDeploy = 'false', skipUndeploy = 'false') {
     return [
         "k8s deployment workload metrics": {
             runGinkgo('metrics/deploymetrics', "${dumpRoot}/k8sdeploy-workload-metrics")
@@ -612,27 +664,28 @@ def generate_nonwls_tests(dumpRoot) {
             runGinkgo('logging/helidon', "${dumpRoot}/examples-logging-helidon")
         },
         "examples spring": {
-            runGinkgo('examples/springboot', "${dumpRoot}/examples-spring")
+            runGinkgoAppTest('examples/springboot', "springboot", "${dumpRoot}/examples-spring", skipDeploy, skipUndeploy)
         },
         "examples helidon": {
-            runGinkgo('examples/helidon', "${dumpRoot}/examples-helidon")
+            runGinkgoAppTest('examples/helidon', "hello-helidon", "${dumpRoot}/examples-helidon", skipDeploy, skipUndeploy)
         },
         "examples helidon-config": {
-            runGinkgo('examples/helidonconfig', "${dumpRoot}/examples-helidon-config")
+            runGinkgoAppTest('examples/helidonconfig', "helidon-config", "${dumpRoot}/examples-helidon-config", skipDeploy, skipUndeploy)
         },
     ]
 }
 
-def generate_wls_tests(dumpRoot) {
+def generate_wls_tests(dumpRoot, skipDeploy = 'false', skipUndeploy = 'false') {
     return [
         "weblogic workload": {
-            runGinkgo('workloads/weblogic', "${dumpRoot}/weblogic-workload")
+            runGinkgoAppTest('workloads/weblogic', "hello-wls", "${dumpRoot}/weblogic-workload", skipDeploy, skipUndeploy)
         },
         "coherence workload": {
-            runGinkgo('workloads/coherence', "${dumpRoot}/coherence-workload")
+            runGinkgoAppTest('workloads/coherence', "hello-coherence", "${dumpRoot}/coherence-workload", skipDeploy, skipUndeploy)
         },
         "console ingress": {
-            runGinkgo('ingress/console', "${dumpRoot}/console-ingress")
+            // doesn't work with the deployement hooks
+            runGinkgo('ingress/console', "wls-console", "${dumpRoot}/console-ingress")
         },
     ]
 }
@@ -649,7 +702,7 @@ def runGinkgoRandomize(testSuitePath, dumpDir = '') {
     }
 }
 
-def runGinkgo(testSuitePath, dumpDir = '', kubeConfig = '') {
+def runGinkgo(testSuitePath, dumpDir = '', kubeconfig = '') {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             if [ ! -z "${dumpDir}" ]; then
@@ -660,6 +713,18 @@ def runGinkgo(testSuitePath, dumpDir = '', kubeConfig = '') {
             fi
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+        """
+    }
+}
+
+def runGinkgoAppTest(testSuitePath, namespace, dumpDir = '', skipDeploy = 'false', skipUndeploy = 'false') {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            if [ ! -z "${dumpDir}" ]; then
+                export DUMP_DIRECTORY=${dumpDir}
+            fi
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --namespace=${namespace}
         """
     }
 }
@@ -766,14 +831,7 @@ def acceptanceTestsConsole(dumpRoot) {
 }
 
 def saveConsoleScreenShots() {
-    sh """
-        cd ${GO_REPO_PATH}/console
-
-        # Copy artifacts to workspace, ignore if copy fails
-        mkdir -p ${WORKSPACE}/console/screenshots
-        ls Screenshot*.png || true
-        cp Screenshot*.png ${WORKSPACE}/console/screenshots || true
-    """
+    sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
 }
 
 def deleteCluster() {
