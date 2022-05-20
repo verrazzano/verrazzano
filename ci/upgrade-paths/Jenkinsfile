@@ -643,16 +643,7 @@ pipeline {
     }
     post {
         failure {
-            sh """
-                curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
-            """
-            archiveArtifacts artifacts: '**/build-console-output.log,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
-            // Ignore failures in any of the following actions so that the "always" post step that cleans up clusters is executed
-            sh """
-                curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip || true
-                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip || true
-                rm archive.zip || true
-            """
+            pipelinePostFailure()
         }
         always {
             script {
@@ -1688,5 +1679,20 @@ def performSourceCodeCheckout() {
             }
         }
         echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+    }
+}
+
+def pipelinePostFailure() {
+    script {
+        sh """
+            curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
+        """
+        archiveArtifacts artifacts: '**/build-console-output.log,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
+        // Ignore failures in any of the following actions so that the "always" post step that cleans up clusters is executed
+        sh """
+            curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip || true
+            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip || true
+            rm archive.zip || true
+        """
     }
 }
