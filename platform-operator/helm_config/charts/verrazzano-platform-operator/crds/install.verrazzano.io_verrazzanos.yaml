@@ -1,12 +1,11 @@
 # Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.4.1
+    controller-gen.kubebuilder.io/version: v0.8.0
   creationTimestamp: null
   name: verrazzanos.install.verrazzano.io
 spec:
@@ -4152,20 +4151,19 @@ spec:
                                   when the pod is removed. \n Use this if: a) the
                                   volume is only needed while the pod runs, b) features
                                   of normal volumes like restoring from snapshot or
-                                  capacity    tracking are needed, c) the storage
-                                  driver is specified through a storage class, and
-                                  d) the storage driver supports dynamic volume provisioning
-                                  through    a PersistentVolumeClaim (see EphemeralVolumeSource
-                                  for more    information on the connection between
-                                  this volume type    and PersistentVolumeClaim).
-                                  \n Use PersistentVolumeClaim or one of the vendor-specific
-                                  APIs for volumes that persist for longer than the
-                                  lifecycle of an individual pod. \n Use CSI for light-weight
-                                  local ephemeral volumes if the CSI driver is meant
-                                  to be used that way - see the documentation of the
-                                  driver for more information. \n A pod can use both
-                                  types of ephemeral volumes and persistent volumes
-                                  at the same time."
+                                  capacity tracking are needed, c) the storage driver
+                                  is specified through a storage class, and d) the
+                                  storage driver supports dynamic volume provisioning
+                                  through a PersistentVolumeClaim (see EphemeralVolumeSource
+                                  for more information on the connection between this
+                                  volume type and PersistentVolumeClaim). \n Use PersistentVolumeClaim
+                                  or one of the vendor-specific APIs for volumes that
+                                  persist for longer than the lifecycle of an individual
+                                  pod. \n Use CSI for light-weight local ephemeral
+                                  volumes if the CSI driver is meant to be used that
+                                  way - see the documentation of the driver for more
+                                  information. \n A pod can use both types of ephemeral
+                                  volumes and persistent volumes at the same time."
                                 properties:
                                   volumeClaimTemplate:
                                     description: "Will be used to create a stand-alone
@@ -4267,14 +4265,15 @@ spec:
                                               is non-empty. There are two important
                                               differences between DataSource and DataSourceRef:
                                               * While DataSource only allows two specific
-                                              types of objects, DataSourceRef   allows
+                                              types of objects, DataSourceRef allows
                                               any non-core object, as well as PersistentVolumeClaim
                                               objects. * While DataSource ignores
-                                              disallowed values (dropping them), DataSourceRef   preserves
-                                              all values, and generates an error if
-                                              a disallowed value is   specified. (Alpha)
-                                              Using this field requires the AnyVolumeDataSource
-                                              feature gate to be enabled.'
+                                              disallowed values (dropping them), DataSourceRef
+                                              preserves all values, and generates
+                                              an error if a disallowed value is specified.
+                                              (Alpha) Using this field requires the
+                                              AnyVolumeDataSource feature gate to
+                                              be enabled.'
                                             properties:
                                               apiGroup:
                                                 description: APIGroup is the group
@@ -5880,18 +5879,18 @@ spec:
                       the pod that defines it - it will be created before the pod
                       starts, and deleted when the pod is removed. \n Use this if:
                       a) the volume is only needed while the pod runs, b) features
-                      of normal volumes like restoring from snapshot or capacity    tracking
+                      of normal volumes like restoring from snapshot or capacity tracking
                       are needed, c) the storage driver is specified through a storage
                       class, and d) the storage driver supports dynamic volume provisioning
-                      through    a PersistentVolumeClaim (see EphemeralVolumeSource
-                      for more    information on the connection between this volume
-                      type    and PersistentVolumeClaim). \n Use PersistentVolumeClaim
-                      or one of the vendor-specific APIs for volumes that persist
-                      for longer than the lifecycle of an individual pod. \n Use CSI
-                      for light-weight local ephemeral volumes if the CSI driver is
-                      meant to be used that way - see the documentation of the driver
-                      for more information. \n A pod can use both types of ephemeral
-                      volumes and persistent volumes at the same time."
+                      through a PersistentVolumeClaim (see EphemeralVolumeSource for
+                      more information on the connection between this volume type
+                      and PersistentVolumeClaim). \n Use PersistentVolumeClaim or
+                      one of the vendor-specific APIs for volumes that persist for
+                      longer than the lifecycle of an individual pod. \n Use CSI for
+                      light-weight local ephemeral volumes if the CSI driver is meant
+                      to be used that way - see the documentation of the driver for
+                      more information. \n A pod can use both types of ephemeral volumes
+                      and persistent volumes at the same time."
                     properties:
                       volumeClaimTemplate:
                         description: "Will be used to create a stand-alone PVC to
@@ -5976,13 +5975,13 @@ spec:
                                   automatically if one of them is empty and the other
                                   is non-empty. There are two important differences
                                   between DataSource and DataSourceRef: * While DataSource
-                                  only allows two specific types of objects, DataSourceRef   allows
-                                  any non-core object, as well as PersistentVolumeClaim
+                                  only allows two specific types of objects, DataSourceRef
+                                  allows any non-core object, as well as PersistentVolumeClaim
                                   objects. * While DataSource ignores disallowed values
-                                  (dropping them), DataSourceRef   preserves all values,
-                                  and generates an error if a disallowed value is   specified.
-                                  (Alpha) Using this field requires the AnyVolumeDataSource
-                                  feature gate to be enabled.'
+                                  (dropping them), DataSourceRef preserves all values,
+                                  and generates an error if a disallowed value is
+                                  specified. (Alpha) Using this field requires the
+                                  AnyVolumeDataSource feature gate to be enabled.'
                                 properties:
                                   apiGroup:
                                     description: APIGroup is the group for the resource
@@ -7083,12 +7082,12 @@ spec:
                             if one of them is empty and the other is non-empty. There
                             are two important differences between DataSource and DataSourceRef:
                             * While DataSource only allows two specific types of objects,
-                            DataSourceRef   allows any non-core object, as well as
-                            PersistentVolumeClaim objects. * While DataSource ignores
-                            disallowed values (dropping them), DataSourceRef   preserves
-                            all values, and generates an error if a disallowed value
-                            is   specified. (Alpha) Using this field requires the
-                            AnyVolumeDataSource feature gate to be enabled.'
+                            DataSourceRef allows any non-core object, as well as PersistentVolumeClaim
+                            objects. * While DataSource ignores disallowed values
+                            (dropping them), DataSourceRef preserves all values, and
+                            generates an error if a disallowed value is specified.
+                            (Alpha) Using this field requires the AnyVolumeDataSource
+                            feature gate to be enabled.'
                           properties:
                             apiGroup:
                               description: APIGroup is the group for the resource

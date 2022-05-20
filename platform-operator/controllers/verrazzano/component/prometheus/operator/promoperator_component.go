@@ -67,8 +67,7 @@ func (c prometheusComponent) IsReady(ctx spi.ComponentContext) bool {
 
 // MonitorOverrides checks whether monitoring is enabled for install overrides sources
 func (c prometheusComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
-	comp := ctx.EffectiveCR().Spec.Components.PrometheusOperator
-	if comp == nil {
+	if ctx.EffectiveCR().Spec.Components.PrometheusOperator == nil {
 		return false
 	}
 	if ctx.EffectiveCR().Spec.Components.PrometheusOperator.MonitorChanges != nil {

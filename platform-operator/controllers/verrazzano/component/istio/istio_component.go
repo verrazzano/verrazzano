@@ -89,7 +89,13 @@ func (i istioComponent) GetOverrides(ctx spi.ComponentContext) []vzapi.Overrides
 }
 
 // MonitorOverrides indicates whether monitoring of override sources is enabled for a component
-func (i istioComponent) MonitorOverrides(_ spi.ComponentContext) bool {
+func (i istioComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.PrometheusOperator == nil {
+		return false
+	}
+	if ctx.EffectiveCR().Spec.Components.PrometheusOperator.MonitorChanges != nil {
+		return *ctx.EffectiveCR().Spec.Components.PrometheusOperator.MonitorChanges
+	}
 	return true
 }
 
