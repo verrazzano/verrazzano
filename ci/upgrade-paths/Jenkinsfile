@@ -368,6 +368,16 @@ pipeline {
                                 runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
                             }
                         }
+                        stage('opensearch pre-upgrade') {
+                            steps {
+                                runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/opensearch', "${TEST_DUMP_ROOT}/opensearch")
+                            }
+                        }
+                        stage('opensearch-dashboards pre-upgrade') {
+                            steps {
+                                runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/opensearch-dashboards', "${TEST_DUMP_ROOT}/opensearch-dashboards")
+                            }
+                        }
                         stage ('Deploy Helidon example application - single cluster') {
                             steps {
                                 runGinkgoVerify('examples/helidon', "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true", "hello-helidon")
@@ -546,6 +556,11 @@ pipeline {
                         runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
                     }
                 }
+                stage('opensearch post-upgrade') {
+                    steps {
+                        runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/opensearch', "${TEST_DUMP_ROOT}/opensearch")
+                    }
+                }
                 stage ('Verify & Uninstall Example Apps') {
                     when { expression { isMultiCluster() } }
                     parallel {
@@ -628,16 +643,7 @@ pipeline {
     }
     post {
         failure {
-            sh """
-                curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
-            """
-            archiveArtifacts artifacts: '**/build-console-output.log,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
-            // Ignore failures in any of the following actions so that the "always" post step that cleans up clusters is executed
-            sh """
-                curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip || true
-                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip || true
-                rm archive.zip || true
-            """
+            pipelinePostFailure()
         }
         always {
             script {
@@ -680,15 +686,7 @@ pipeline {
                         """
                     }
                 } else {
-                    sh """
-                        mkdir -p ${KUBECONFIG_DIR}
-                        if [ "${TEST_ENV}" == "ocidns_oke" ]; then
-                          cd ${GO_REPO_PATH}/verrazzano
-                          ./tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
-                        fi
-                        cd ${TEST_SCRIPTS_DIR}
-                        TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./delete_oke_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}" || true
-                    """
+                    deleteOkeCluster()
                 }
                 sh """
                     if [ -f ${POST_DUMP_FAILED_FILE} ]; then
@@ -776,6 +774,20 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
                 echo "Deploy external es and create its secret on the admin cluster if EXTERNAL_ELASTICSEARCH is true"
                 CLUSTER_NUMBER=${count}  ${CREATE_EXTERNAL_OPENSEARCH}
             """
+    }
+}
+
+def deleteOkeCluster() {
+    script {
+        sh """
+            mkdir -p ${KUBECONFIG_DIR}
+            if [ "${TEST_ENV}" == "ocidns_oke" ]; then
+                 cd ${GO_REPO_PATH}/verrazzano
+                 ./tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
+             fi
+            cd ${TEST_SCRIPTS_DIR}
+            TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./delete_oke_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}" || true
+        """
     }
 }
 
@@ -1667,5 +1679,20 @@ def performSourceCodeCheckout() {
             }
         }
         echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+    }
+}
+
+def pipelinePostFailure() {
+    script {
+        sh """
+            curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
+        """
+        archiveArtifacts artifacts: '**/build-console-output.log,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
+        // Ignore failures in any of the following actions so that the "always" post step that cleans up clusters is executed
+        sh """
+            curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip || true
+            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip || true
+            rm archive.zip || true
+        """
     }
 }
