@@ -825,7 +825,7 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
                 # wait for Verrazzano install to complete
                 ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
             """
-            RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/${count}/kube_config' && kubectl --kubeconfig ${MANAGED_KUBECONFIG} get vz -o jsonpath='{.items[0].status.version}'").trim()
+            RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/${count}/kube_config' && kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
             echo "Verrazzano Version INSTALl : ${RUNNING_OPERATOR_VERSION}"
         }
     }
@@ -977,7 +977,7 @@ def upgradeVerrazzanoOnCluster(count, verrazzanoDevVersion) {
                 echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
                 helm --kubeconfig=${kubeClusterConfig} list -A
             """
-            RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/${count}/kube_config' && kubectl --kubeconfig ${MANAGED_KUBECONFIG} get vz -o jsonpath='{.items[0].status.version}'").trim()
+            RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/${count}/kube_config' && kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
             echo "Verrazzano Version Upgrade : ${RUNNING_OPERATOR_VERSION}"
         }
     }
