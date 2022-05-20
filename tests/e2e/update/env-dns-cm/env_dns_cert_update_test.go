@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	certmanagerv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	. "github.com/onsi/gomega"
@@ -77,11 +78,8 @@ var (
 	/* #nosec G101 -- This is a false positive */
 	currentCertSecretName string = "verrazzano-ca-certificate-secret"
 
-	// Map of [certificate_name: certificate_namespace] to skip
-	certsToSkip map[string]string = map[string]string{
-		"prometheus-operator-kube-p-admission": "verrazzano-monitoring",
-		"prometheus-operator-kube-p-root-cert": "verrazzano-monitoring",
-	}
+	// List of certificates that match the currentCertIssuerName
+	certificatesToTest []certmanagerv1.Certificate
 )
 
 var _ = t.AfterSuite(func() {
@@ -125,8 +123,9 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 		if err != nil {
 			log.Fatalf("Error in updating CA certificate\n%s", err)
 		}
-		validateCertManagerResourcesCleanup()
+		fetchCACertificatesFromIssuer(currentCertIssuerName)
 		validateCACertificateIssuer(testCertIssuerName)
+		validateCertManagerResourcesCleanup()
 	})
 })
 
@@ -181,20 +180,24 @@ func createCustomCACertificate(certName string, secretNamespace string, secretNa
 	log.Println(string(output))
 }
 
+func fetchCACertificatesFromIssuer(certIssuer string) {
+	// Fetch the certificates for the deployed applications
+	certificateList, err := pkg.GetCertificateList("")
+	if err != nil {
+		log.Fatalf("Error while fetching CertificateList\n%s", err)
+	}
+	// Filter out the certificates that are issued by the given issuer
+	for _, certificate := range certificateList.Items {
+		if certificate.Spec.IssuerRef.Name == certIssuer {
+			certificatesToTest = append(certificatesToTest, certificate)
+		}
+	}
+}
+
 func validateCACertificateIssuer(certIssuer string) {
 	Eventually(func() bool {
-		// Fetch the certificates for the deployed applications
-		certificateList, err := pkg.GetCertificateList("")
-		if err != nil {
-			log.Fatalf("Error while fetching CertificateList\n%s", err)
-		}
 		// Verify that the certificate is issued by the right cluster issuer
-		for _, certificate := range certificateList.Items {
-			// Skip the specified certificates
-			if certNamespace, ok := certsToSkip[certificate.Name]; ok && certNamespace == certificate.Namespace {
-				log.Printf("Skipped the certificate %s in the namespace %s", certificate.Name, certificate.Namespace)
-				continue
-			}
+		for _, certificate := range certificatesToTest {
 			currIssuer := certificate.Spec.IssuerRef.Name
 			if currIssuer != certIssuer {
 				log.Printf("Issuer for the certificate %s in namespace %s is %s; expected is %s\n", certificate.Name, certificate.Namespace, currIssuer, certIssuer)
