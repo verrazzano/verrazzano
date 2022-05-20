@@ -126,6 +126,7 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 })
 
 func validateIngressList(environmentName string, domain string) {
+	log.Printf("Validating the ingresses")
 	Eventually(func() bool {
 		// Fetch the ingresses for the Verrazzano components
 		ingressList, err := pkg.GetIngressList("")
@@ -149,11 +150,12 @@ func validateIngressList(environmentName string, domain string) {
 }
 
 func validateVirtualServiceList(domain string) {
+	log.Printf("Validating the virtual services")
 	Eventually(func() bool {
 		// Fetch the virtual services for the deployed applications
 		virtualServiceList, err := pkg.GetVirtualServiceList("")
 		if err != nil {
-			log.Fatalf("Error while fetching GatewayList\n%s", err)
+			log.Fatalf("Error while fetching VirtualServiceList\n%s", err)
 		}
 		// Verify that the virtual services contain the expected environment name and domain nameƒ
 		for _, virtualService := range virtualServiceList.Items {
@@ -168,6 +170,7 @@ func validateVirtualServiceList(domain string) {
 }
 
 func createCustomCACertificate(certName string, secretNamespace string, secretName string) {
+	log.Printf("Creating custom CA certificate")
 	output, err := exec.Command("/bin/sh", "create-custom-ca.sh", "-k", "-c", certName, "-s", secretName, "-n", secretNamespace).Output()
 	if err != nil {
 		log.Println("Error in creating custom CA secret using the script create-custom-ca.sh")
@@ -194,6 +197,7 @@ func fetchCACertificatesFromIssuer(certIssuer string) []certmanagerv1.Certificat
 }
 
 func validateCACertificateIssuer() {
+	log.Printf("Validating the CA certificates")
 	Eventually(func() bool {
 		// Fetch the certificates
 		var certificates []certmanagerv1.Certificate = fetchCACertificatesFromIssuer(testCertIssuerName)
@@ -209,6 +213,7 @@ func validateCACertificateIssuer() {
 }
 
 func validateCertManagerResourcesCleanup() {
+	log.Printf("Validating CA certificate resource cleanup")
 	Eventually(func() bool {
 		// Fetch the certificates
 		var certificates []certmanagerv1.Certificate = fetchCACertificatesFromIssuer(currentCertIssuerName)
@@ -242,6 +247,7 @@ func validateCertManagerResourcesCleanup() {
 }
 
 func cleanupTemporaryFiles(files []string) error {
+	log.Printf("Cleaning up temporary files")
 	var err error
 	for _, file := range files {
 		_, err = os.Stat(file)
