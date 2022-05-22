@@ -405,7 +405,7 @@ pipeline {
                 }
                 stage("Verify Upgrade Required") {
                     steps {
-                        runGinkgoRandomize('upgrade/pre-upgrade/verify-upgrade-required')
+                        runGinkgoRandomizeSerial('upgrade/pre-upgrade/verify-upgrade-required')
                     }
                 }
                 stage("upgrade-verrazzano") {
