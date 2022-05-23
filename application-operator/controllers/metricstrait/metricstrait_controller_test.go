@@ -331,7 +331,11 @@ func TestDeploymentUpdateError(t *testing.T) {
 				Kind:       vzapi.MetricsTraitKind}
 			trait.ObjectMeta = k8smeta.ObjectMeta{
 				Namespace: name.Namespace,
-				Name:      name.Name}
+				Name:      name.Name,
+				Labels: map[string]string{
+					appObjectMetaLabel:  "test-app",
+					compObjectMetaLabel: "test-comp",
+				}}
 			trait.Spec.WorkloadReference = oamrt.TypedReference{
 				APIVersion: oamcore.SchemeGroupVersion.Identifier(),
 				Kind:       oamcore.ContainerizedWorkloadKind,
@@ -401,11 +405,11 @@ func TestDeploymentUpdateError(t *testing.T) {
 			return nil
 		}).Times(2)
 	// Expect a call to update the child with annotations but return an error.
-	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("test-error")).Times(2)
-	// Expect a call to get the Pod Monitor
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("test-error")).Times(3)
+	// Expect a call to get the Service Monitor
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, podMonitor *promoperapi.PodMonitor) error {
+		Get(gomock.Any(), types.NamespacedName{Name: "test-app-default-test-namespace-test-comp", Namespace: "test-namespace"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, serviceMonitor *promoperapi.ServiceMonitor) error {
 			return nil
 		})
 	// Expect a call to get the status writer and return a mock.
@@ -419,6 +423,12 @@ func TestDeploymentUpdateError(t *testing.T) {
 			assert.Equal(oamrt.ReasonReconcileError, trait.Status.Conditions[0].Reason)
 			return nil
 		}).Times(2)
+	// Expect a call to get the Namespace to check if Istio is enabled
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: "test-namespace"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, ns *k8score.Namespace) error {
+			return nil
+		})
 
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
@@ -930,6 +940,11 @@ func containerizedWorkloadClient(deleting, deploymentDeleted, traitDisabled bool
 				},
 			},
 		},
+		&k8score.Namespace{
+			ObjectMeta: k8smeta.ObjectMeta{
+				Name: "test-namespace",
+			},
+		},
 	}
 
 	if !deploymentDeleted {
@@ -1027,6 +1042,11 @@ func deploymentWorkloadClient(deleting bool) client.WithWatch {
 				ChildResourceKinds: []oamcore.ChildResourceKind{
 					{APIVersion: "v1", Kind: "Service", Selector: nil},
 				},
+			},
+		},
+		&k8score.Namespace{
+			ObjectMeta: k8smeta.ObjectMeta{
+				Name: "test-namespace",
 			},
 		},
 	).Build()
@@ -1136,6 +1156,11 @@ func wlsWorkloadClient(deleting bool) client.WithWatch {
 					Name:       testWorkloadName,
 					UID:        testWorkloadUID},
 				},
+			},
+		},
+		&k8score.Namespace{
+			ObjectMeta: k8smeta.ObjectMeta{
+				Name: "test-namespace",
 			},
 		},
 		&domain,

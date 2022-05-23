@@ -17,7 +17,7 @@ import (
 	"strings"
 )
 
-func (r *Reconciler) updatePodMonitor(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, log vzlog.VerrazzanoLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
+func (r *Reconciler) updateServiceMonitor(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, log vzlog.VerrazzanoLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
 	rel := vzapi.QualifiedResourceRelation{}
 
 	// If the metricsTrait is being disabled then return nil for the config
@@ -36,17 +36,17 @@ func (r *Reconciler) updatePodMonitor(ctx context.Context, trait *vzapi.MetricsT
 
 	// Creating a pod monitor with name and namespace
 	// Replacing underscores with dashes in name to appease Kubernetes requirements
-	podMonitor := promoperapi.PodMonitor{}
+	serviceMonitor := promoperapi.ServiceMonitor{}
 	pmName, err := createPodMonitorName(trait, 0)
 	if err != nil {
 		return rel, controllerutil.OperationResultNone, log.ErrorfNewErr("Failed to create Pod Monitor name: %v", err)
 	}
-	podMonitor.SetName(strings.Replace(pmName, "_", "-", -1))
-	podMonitor.SetNamespace(workload.GetNamespace())
+	serviceMonitor.SetName(strings.Replace(pmName, "_", "-", -1))
+	serviceMonitor.SetNamespace(workload.GetNamespace())
 
 	// Create or Update pod monitor with valid scrape config for the target workload
-	result, err := controllerutil.CreateOrUpdate(ctx, r.Client, &podMonitor, func() error {
-		return r.mutatePodMonitorFromTrait(ctx, &podMonitor, trait, workload, traitDefaults, log)
+	result, err := controllerutil.CreateOrUpdate(ctx, r.Client, &serviceMonitor, func() error {
+		return r.mutatePodMonitorFromTrait(ctx, &serviceMonitor, trait, workload, traitDefaults, log)
 	})
 	if err != nil {
 		return rel, result, err
@@ -56,7 +56,7 @@ func (r *Reconciler) updatePodMonitor(ctx context.Context, trait *vzapi.MetricsT
 
 // mutatePodMonitorFromTrait mutates the Pod Monitor to prepare for a create or update
 // the Pod Monitor reflects the specifications of the trait and the trait defaults
-func (r *Reconciler) mutatePodMonitorFromTrait(ctx context.Context, podMonitor *promoperapi.PodMonitor, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, log vzlog.VerrazzanoLogger) error {
+func (r *Reconciler) mutatePodMonitorFromTrait(ctx context.Context, podMonitor *promoperapi.ServiceMonitor, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, log vzlog.VerrazzanoLogger) error {
 	// Create the Pod monitor name from the trait if the label exists
 	// Create the Pod Monitor selector from the trait label if it exists
 	if podMonitor.ObjectMeta.Labels == nil {
@@ -66,7 +66,7 @@ func (r *Reconciler) mutatePodMonitorFromTrait(ctx context.Context, podMonitor *
 	podMonitor.Spec.Selector = metav1.LabelSelector{MatchLabels: map[string]string{appObjectMetaLabel: trait.Labels[appObjectMetaLabel]}}
 
 	// Clear the existing endpoints to avoid duplications
-	podMonitor.Spec.PodMetricsEndpoints = nil
+	podMonitor.Spec.Endpoints = nil
 
 	// Loop through ports in the trait and create scrape targets for each
 	ports := getPortSpecs(trait, traitDefaults)
@@ -75,14 +75,14 @@ func (r *Reconciler) mutatePodMonitorFromTrait(ctx context.Context, podMonitor *
 		if err != nil {
 			return log.ErrorfNewErr("Failed to create the pod metrics endpoint for the pod monitor: %v", err)
 		}
-		podMonitor.Spec.PodMetricsEndpoints = append(podMonitor.Spec.PodMetricsEndpoints, endpoint)
+		podMonitor.Spec.Endpoints = append(podMonitor.Spec.Endpoints, endpoint)
 	}
 
 	return nil
 }
 
-func (r *Reconciler) createPodMetricsEndpoint(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, portIncrement int) (promoperapi.PodMetricsEndpoint, error) {
-	var endpoint promoperapi.PodMetricsEndpoint
+func (r *Reconciler) createPodMetricsEndpoint(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, portIncrement int) (promoperapi.Endpoint, error) {
+	var endpoint promoperapi.Endpoint
 
 	endpoint.Scheme = "http"
 	endpoint.Path = "/metrics"
@@ -102,34 +102,12 @@ func (r *Reconciler) createPodMetricsEndpoint(ctx context.Context, trait *vzapi.
 		return endpoint, err
 	}
 	if useHTTPS {
-		certSecName := "istio-certs"
+		certPath := "/etc/istio-certs"
 		endpoint.Scheme = "https"
-		endpoint.TLSConfig = &promoperapi.PodMetricsEndpointTLSConfig{
-			SafeTLSConfig: promoperapi.SafeTLSConfig{
-				CA: promoperapi.SecretOrConfigMap{
-					Secret: &k8score.SecretKeySelector{
-						LocalObjectReference: k8score.LocalObjectReference{
-							Name: certSecName,
-						},
-						Key: "root-cert.pem",
-					},
-				},
-				Cert: promoperapi.SecretOrConfigMap{
-					Secret: &k8score.SecretKeySelector{
-						LocalObjectReference: k8score.LocalObjectReference{
-							Name: certSecName,
-						},
-						Key: "cert-chain.pem",
-					},
-				},
-				KeySecret: &k8score.SecretKeySelector{
-					LocalObjectReference: k8score.LocalObjectReference{
-						Name: certSecName,
-					},
-					Key: "key.pem",
-				},
-				InsecureSkipVerify: true,
-			},
+		endpoint.TLSConfig = &promoperapi.TLSConfig{
+			CAFile:   fmt.Sprintf("%s/root-cert.pem", certPath),
+			CertFile: fmt.Sprintf("%s/cert-chain.pem", certPath),
+			KeyFile:  fmt.Sprintf("%s/key.pem", certPath),
 		}
 	}
 
