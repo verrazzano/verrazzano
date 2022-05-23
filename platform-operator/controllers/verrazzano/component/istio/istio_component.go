@@ -204,6 +204,8 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 		return err
 	}
 
+	defer removeTempFiles(context.Log())
+
 	// build image override strings
 	overrideStrings, err := getOverridesString(context)
 	if err != nil {
