@@ -5,6 +5,7 @@ package istio
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -201,42 +202,19 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 		compContext.Log().Debug("Error during istio install, retrying")
 	}
 
-	var userFileCR *os.File
-	var err error
-	cr := compContext.EffectiveCR()
-	log := compContext.Log()
-
-	// Only create override file if the CR has an Istio component
-	if cr.Spec.Components.Istio != nil {
-		istioOperatorYaml, err := BuildIstioOperatorYaml(compContext, cr.Spec.Components.Istio)
-		if err != nil {
-			return log.ErrorfNewErr("Failed to Build IstioOperator YAML: %v", err)
-		}
-
-		// Write the overrides to a tmp file
-		userFileCR, err = ioutil.TempFile(os.TempDir(), istioTmpFileCreatePattern)
-		if err != nil {
-			return log.ErrorfNewErr("Failed to create temporary file for Istio install: %v", err)
-		}
-		if _, err = userFileCR.Write([]byte(istioOperatorYaml)); err != nil {
-			return log.ErrorfNewErr("Failed to write to temporary file: %v", err)
-		}
-		if err := userFileCR.Close(); err != nil {
-			return log.ErrorfNewErr("Failed to close temporary file: %v", err)
-		}
-		log.Debugf("Created values file from Istio install args: %s", userFileCR.Name())
+	// build list of temp files
+	istioTempFiles, err := i.createIstioTempFiles(compContext)
+	if err != nil {
+		return err
 	}
 
+	// build image override strings
 	overrideStrings, err := getOverridesString(compContext)
 	if err != nil {
 		return err
 	}
 
-	files := []string{i.ValuesFile}
-	if userFileCR != nil {
-		files = append(files, userFileCR.Name())
-	}
-	return forkInstallFunc(compContext, i.monitor, overrideStrings, files)
+	return forkInstallFunc(compContext, i.monitor, overrideStrings, istioTempFiles)
 }
 
 //forkInstall - istioctl install blocks, fork it into the background
@@ -279,6 +257,44 @@ func (i istioComponent) PostInstall(compContext spi.ComponentContext) error {
 		return err
 	}
 	return nil
+}
+
+// createIstioTempFiles creates and returns the temp files needed for installing and upgrading istio
+func (i istioComponent) createIstioTempFiles(compContext spi.ComponentContext) ([]string, error) {
+	cr := compContext.EffectiveCR()
+	log := compContext.Log()
+
+	files := []string{i.ValuesFile}
+
+	// Only create override file if the CR has an Istio component
+	if cr.Spec.Components.Istio != nil {
+		// create operator YAML
+		istioOperatorYaml, err := BuildIstioOperatorYaml(compContext, cr.Spec.Components.Istio)
+		if err != nil {
+			return files, log.ErrorfNewErr("Failed to Build IstioOperator YAML: %v", err)
+		}
+
+		// Write the overrides to a tmp file and append it to files
+		userFileCR, err := createTempFile(log, istioOperatorYaml)
+		if err != nil {
+			return files, err
+		}
+		files = append(files, userFileCR)
+
+		// get the install overrides from the VZ CR, write it to a temp file and append it
+		overrideYAMLs, err := common.GetInstallOverridesYAML(compContext, cr.Spec.Components.Istio.ValueOverrides)
+		if err != nil {
+			return files, err
+		}
+		for _, overrideYAML := range overrideYAMLs {
+			overrideFile, err := createTempFile(log, overrideYAML)
+			if err != nil {
+				return files, err
+			}
+			files = append(files, overrideFile)
+		}
+	}
+	return files, nil
 }
 
 func createCertSecret(compContext spi.ComponentContext) error {
@@ -338,6 +354,23 @@ func createPeerAuthentication(compContext spi.ComponentContext) error {
 	return err
 }
 
+// createTempFile creates an Istio temp file and returns the name
+func createTempFile(log vzlog.VerrazzanoLogger, data string) (string, error) {
+	file, err := ioutil.TempFile(os.TempDir(), istioTmpFileCreatePattern)
+	if err != nil {
+		return "", log.ErrorfNewErr("Failed to create temporary file for Istio install: %v", err)
+	}
+	if _, err = file.Write([]byte(data)); err != nil {
+		return "", log.ErrorfNewErr("Failed to write to temporary file: %v", err)
+	}
+	if err := file.Close(); err != nil {
+		return "", log.ErrorfNewErr("Failed to close temporary file: %v", err)
+	}
+	log.Debugf("Created values file from Istio install args: %s", file.Name())
+	return file.Name(), nil
+}
+
+// removeTempFiles removes Istio temp files
 func removeTempFiles(log vzlog.VerrazzanoLogger) {
 	if err := os2.RemoveTempFiles(log.GetZapLogger(), istioTmpFileCleanPattern); err != nil {
 		log.Errorf("Unexpected error removing temp files: %v", err.Error())
