@@ -152,7 +152,16 @@ func createPodMonitorName(trait *vzapi.MetricsTrait, portNum int) (string, error
 	if portNum > 0 {
 		portStr = fmt.Sprintf("_%d", portNum)
 	}
-	return fmt.Sprintf("%s_%s_%s_%s%s", app, cluster, namespace, comp, portStr), nil
+
+	finalName := fmt.Sprintf("%s_%s_%s_%s%s", app, cluster, namespace, comp, portStr)
+	// Check for Kubernetes name length requirement
+	if len(finalName) > 63 {
+		finalName = fmt.Sprintf("%s_%s%s", app, namespace, portStr)
+		if len(finalName) > 63 {
+			return finalName[:63], nil
+		}
+	}
+	return finalName, nil
 }
 
 // getPortSpecs returns a complete set of port specs from the trait and the trait defaults

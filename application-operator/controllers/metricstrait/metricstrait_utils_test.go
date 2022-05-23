@@ -293,6 +293,22 @@ func TestCreatePodMonitorName(t *testing.T) {
 			expectedName: "test-app_default_test-namespace_test-comp",
 			expectError:  false,
 		},
+		{
+			name: "test name too long",
+			trait: &vzapi.MetricsTrait{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-name",
+					Namespace: "test-namespace",
+					Labels: map[string]string{
+						appObjectMetaLabel:  "test-app-long-label",
+						compObjectMetaLabel: "test-comp-extra-long-label",
+					},
+				},
+			},
+			portNum:      1,
+			expectedName: "test-app-long-label_test-namespace_1",
+			expectError:  false,
+		},
 	}
 	assert := asserts.New(t)
 	for _, tt := range tests {
