@@ -66,18 +66,18 @@ func (o PrometheusOperatorOverridesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		{
 			ConfigMapRef: &corev1.ConfigMapKeySelector{
 				LocalObjectReference: corev1.LocalObjectReference{
-					Name: "test-overrides-1",
+					Name: overrideConfigMapSecretName,
 				},
-				Key:      "test-overrides-configmap.yaml",
+				Key:      dataKey,
 				Optional: &trueVal,
 			},
 		},
 		{
 			SecretRef: &corev1.SecretKeySelector{
 				LocalObjectReference: corev1.LocalObjectReference{
-					Name: "test-overrides-1",
+					Name: overrideConfigMapSecretName,
 				},
-				Key:      "test-overrides-secret.yaml",
+				Key:      dataKey,
 				Optional: &trueVal,
 			},
 		},
