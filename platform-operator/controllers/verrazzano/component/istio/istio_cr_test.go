@@ -586,111 +586,6 @@ spec:
       enableTracing: true
 `
 
-// Prod Profile defaults for replicas and affinity
-// Extra Install Args
-var cr5 = vzapi.IstioComponent{
-	IstioInstallArgs: []vzapi.InstallArgs{
-		{
-			Name:  ComponentInstallArgShape,
-			Value: "10Mbps",
-		},
-		{
-			Name:  "global.defaultPodDisruptionBudget.enabled",
-			Value: "false",
-		},
-		{
-			Name:  "pilot.resources.requests.memory",
-			Value: "128Mi",
-		},
-		{
-			Name:  ExternalIPArg,
-			Value: "1.2.3.4",
-		},
-	},
-	InstallOverrides: vzapi.InstallOverrides{
-		ValueOverrides: []vzapi.Overrides{
-			{
-				ConfigMapRef: &corev1.ConfigMapKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "istio-overrides",
-					},
-					Key:      "istio-overrides.yaml",
-					Optional: nil,
-				},
-			},
-		},
-	},
-	Enabled: &enabled,
-	Ingress: prodIstioIngress,
-	Egress:  prodIstioEgress,
-}
-
-// Resulting YAML after the merge
-const cr5Yaml = `
-apiVersion: install.istio.io/v1alpha1
-kind: IstioOperator
-spec:
-  components:
-    egressGateways:
-    - enabled: true
-      k8s:
-        affinity:
-          podAntiAffinity:
-            preferredDuringSchedulingIgnoredDuringExecution:
-            - podAffinityTerm:
-                labelSelector:
-                  matchExpressions:
-                  - key: app
-                    operator: In
-                    values:
-                    - istio-egressgateway
-                topologyKey: kubernetes.io/hostname
-              weight: 100
-        replicaCount: 2
-      name: istio-egressgateway
-    ingressGateways:
-    - enabled: true
-      k8s:
-        affinity:
-          podAntiAffinity:
-            preferredDuringSchedulingIgnoredDuringExecution:
-            - podAffinityTerm:
-                labelSelector:
-                  matchExpressions:
-                  - key: app
-                    operator: In
-                    values:
-                    - istio-ingressgateway
-                topologyKey: kubernetes.io/hostname
-              weight: 100
-        replicaCount: 3
-        service:
-          type: NodePort
-          ports:
-          - name: port1
-            protocol: TCP
-            port: 8000
-            nodePort: 32443
-            targetPort: 2000
-          externalIPs:
-          - 1.2.3.4
-      name: istio-ingressgateway
-  values:
-    gateways:
-      istio-ingressgateway:
-        serviceAnnotations:
-          service.beta.kubernetes.io/oci-load-balancer-shape: 10Mbps
-    global:
-      defaultPodDisruptionBudget:
-        enabled: false
-    meshConfig:
-        enableTracing: false
-    pilot:
-      resources:
-        requests:
-          memory: 128Mi
-`
-
 // TestBuildIstioOperatorYaml tests the BuildIstioOperatorYaml function
 // GIVEN an Verrazzano CR Istio component
 // WHEN BuildIstioOperatorYaml is called
@@ -707,14 +602,6 @@ func TestBuildIstioOperatorYaml(t *testing.T) {
 				Name:      "jaeger-collector-headless",
 				Labels:    collectorLabels,
 			},
-		},
-			&testZipkinService).Build()
-	clientForOverrides := fake.NewClientBuilder().WithScheme(testScheme).
-		WithObjects(&corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "istio-overrides",
-			},
-			Data: map[string]string{"istio-overrides.yaml": "apiVersion: install.istio.io/v1alpha1\nkind: IstioOperator\nspec:\n  components:\n    ingressGateways:\n    - k8s:\n        replicaCount: 3"},
 		},
 			&testZipkinService).Build()
 	tests := []struct {
@@ -746,18 +633,6 @@ func TestBuildIstioOperatorYaml(t *testing.T) {
 			value:    cr4,
 			expected: cr4Yaml,
 			ctx:      spi.NewFakeContext(clientForJaeger, jaegerEnabledCR, false),
-		},
-		{
-			testName: "Default Prod Install with install overrides",
-			value:    &cr5,
-			expected: cr5Yaml,
-			ctx: spi.NewFakeContext(clientForOverrides, &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Istio: &cr5,
-					},
-				},
-			}, false),
 		},
 	}
 	for _, test := range tests {

@@ -6,8 +6,6 @@ package istio
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -200,38 +198,18 @@ func (i istioComponent) validateForExternalIPSWithNodePort(vz *vzapi.VerrazzanoS
 func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 	log := context.Log()
 
-	// temp file to contain override values from istio install args
-	var tmpFile *os.File
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "values-*.yaml")
+	// build list of temp files
+	istioTempFiles, err := i.createIstioTempFiles(context)
 	if err != nil {
-		return log.ErrorfNewErr("Failed to create temporary file: %v", err)
+		return err
 	}
 
-	vz := context.EffectiveCR()
-	defer os.Remove(tmpFile.Name())
-	if vz.Spec.Components.Istio != nil {
-		istioOperatorYaml, err := BuildIstioOperatorYaml(context, vz.Spec.Components.Istio)
-		if err != nil {
-			return log.ErrorfNewErr("Failed to Build IstioOperator YAML: %v", err)
-		}
-
-		if _, err = tmpFile.Write([]byte(istioOperatorYaml)); err != nil {
-			return log.ErrorfNewErr("Failed to write to temporary file: %v", err)
-		}
-
-		// Close the file
-		if err := tmpFile.Close(); err != nil {
-			return log.ErrorfNewErr("Failed to close temporary file: %v", err)
-		}
-
-		log.Debugf("Created values file from Istio install args: %s", tmpFile.Name())
-	}
-
+	// build image override strings
 	overrideStrings, err := getOverridesString(context)
 	if err != nil {
 		return err
 	}
-	_, _, err = upgradeFunc(log, overrideStrings, i.ValuesFile, tmpFile.Name())
+	_, _, err = upgradeFunc(log, overrideStrings, istioTempFiles...)
 	if err != nil {
 		return err
 	}
