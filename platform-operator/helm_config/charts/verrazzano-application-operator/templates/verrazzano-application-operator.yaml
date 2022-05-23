@@ -277,6 +277,7 @@ rules:
       - monitoring.coreos.com
     resources:
       - podmonitors
+      - servicemonitors
     verbs:
       - create
       - delete
