@@ -110,18 +110,16 @@ var _ = t.Describe("Post Install Overrides", func() {
 		t.Context("Create Overrides", func() {
 			t.It("Create ConfigMap", func() {
 				testConfigMap.Data[dataKey] = oldCMData
-				err := pkg.CreateConfigMap(&testConfigMap)
-				if err != nil {
-					ginkgo.AbortSuite(fmt.Sprintf("Failed to create ConfigMap: %v", err))
-				}
+				gomega.Eventually(func() error {
+					return pkg.CreateConfigMap(&testConfigMap)
+				}, waitTimeout, pollingInterval).Should(gomega.BeNil())
 			})
 
 			t.It("Create Secret", func() {
 				testSecret.StringData[dataKey] = oldSecretData
-				err := pkg.CreateSecret(&testSecret)
-				if err != nil {
-					ginkgo.AbortSuite(fmt.Sprintf("Failed to create Secret: %v", err))
-				}
+				gomega.Eventually(func() error {
+					return pkg.CreateSecret(&testSecret)
+				}, waitTimeout, pollingInterval).Should(gomega.BeNil())
 			})
 		})
 
@@ -145,18 +143,16 @@ var _ = t.Describe("Post Install Overrides", func() {
 		t.Context("Update Overrides", func() {
 			t.It("Update ConfigMap", func() {
 				testConfigMap.Data[dataKey] = newCMData
-				err := pkg.UpdateConfigMap(&testConfigMap)
-				if err != nil {
-					ginkgo.AbortSuite(fmt.Sprintf("Failed to create ConfigMap: %v", err))
-				}
+				gomega.Eventually(func() error {
+					return pkg.UpdateConfigMap(&testConfigMap)
+				}, waitTimeout, pollingInterval).Should(gomega.BeNil())
 			})
 
 			t.It("Update Secret", func() {
 				testSecret.StringData[dataKey] = newSecretData
-				err := pkg.UpdateSecret(&testSecret)
-				if err != nil {
-					ginkgo.AbortSuite(fmt.Sprintf("Failed to create Secret: %v", err))
-				}
+				gomega.Eventually(func() error {
+					return pkg.UpdateSecret(&testSecret)
+				}, waitTimeout, pollingInterval).Should(gomega.BeNil())
 			})
 		})
 
