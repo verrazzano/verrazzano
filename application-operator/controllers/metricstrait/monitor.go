@@ -160,7 +160,7 @@ func (r *Reconciler) createPodMetricsEndpoint(ctx context.Context, trait *vzapi.
 			"__address__",
 			promoperapi.LabelName(fmt.Sprintf("__meta_kubernetes_pod_annotation_verrazzano_io_metricsPort%s", portString)),
 		},
-		TargetLabel: "__metrics_path__",
+		TargetLabel: "__address__",
 	})
 
 	// Relabel the namespace label
