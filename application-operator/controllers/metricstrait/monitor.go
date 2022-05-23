@@ -10,7 +10,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	k8score "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -63,7 +62,9 @@ func (r *Reconciler) mutatePodMonitorFromTrait(ctx context.Context, podMonitor *
 		podMonitor.ObjectMeta.Labels = map[string]string{}
 	}
 	podMonitor.Labels["release"] = "prometheus-operator"
-	podMonitor.Spec.Selector = metav1.LabelSelector{MatchLabels: map[string]string{appObjectMetaLabel: trait.Labels[appObjectMetaLabel]}}
+	podMonitor.Spec.NamespaceSelector = promoperapi.NamespaceSelector{
+		MatchNames: []string{workload.GetNamespace()},
+	}
 
 	// Clear the existing endpoints to avoid duplications
 	podMonitor.Spec.Endpoints = nil
