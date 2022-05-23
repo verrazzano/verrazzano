@@ -110,6 +110,7 @@ func (r *Reconciler) createPodMetricsEndpoint(ctx context.Context, trait *vzapi.
 			CertFile: fmt.Sprintf("%s/cert-chain.pem", certPath),
 			KeyFile:  fmt.Sprintf("%s/key.pem", certPath),
 		}
+		endpoint.TLSConfig.InsecureSkipVerify = true
 	}
 
 	// Relabel the cluster name
