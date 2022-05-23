@@ -154,12 +154,12 @@ func checkRancherUpgradeFailure(c client.Client, log vzlog.VerrazzanoLogger) err
 	for i, pod := range podList.Items {
 		// Skip pods that are already being deleted
 		if pod.DeletionTimestamp != nil {
-			break
+			continue
 		}
 
 		// Skip pods that are not ready, they will get checked again in another call to isReady.
 		if !isPodReady(pod) {
-			break
+			continue
 		}
 
 		// Get the pod log stream
