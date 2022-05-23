@@ -249,3 +249,21 @@ func getWildcardDNS(vz *vzapi.VerrazzanoSpec) (bool, string) {
 	}
 	return false, ""
 }
+
+// GetOverrides gets the install overrides
+func GetOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
+	if ctx.EffectiveCR().Spec.Components.AuthProxy != nil {
+		return ctx.EffectiveCR().Spec.Components.AuthProxy.ValueOverrides
+	}
+	return []vzapi.Overrides{}
+}
+
+// validateOverridesConfig validates overrides config
+func validateOverridesConfig(vz *vzapi.Verrazzano) error {
+	if vz.Spec.Components.AuthProxy != nil {
+		if err := vzapi.ValidateInstallOverrides(vz.Spec.Components.AuthProxy.ValueOverrides); err != nil {
+			return err
+		}
+	}
+	return nil
+}

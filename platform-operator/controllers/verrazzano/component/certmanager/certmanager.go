@@ -842,3 +842,21 @@ func deleteObject(client crtclient.Client, name string, namespace string, object
 	}
 	return nil
 }
+
+// GetOverrides gets the install overrides
+func GetOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
+	if ctx.EffectiveCR().Spec.Components.CertManager != nil {
+		return ctx.EffectiveCR().Spec.Components.CertManager.ValueOverrides
+	}
+	return []vzapi.Overrides{}
+}
+
+// validateOverridesConfig validates overrides config
+func validateOverridesConfig(vz *vzapi.Verrazzano) error {
+	if vz.Spec.Components.CertManager != nil {
+		if err := vzapi.ValidateInstallOverrides(vz.Spec.Components.CertManager.ValueOverrides); err != nil {
+			return err
+		}
+	}
+	return nil
+}

@@ -5,6 +5,7 @@ package coherence
 
 import (
 	"fmt"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
@@ -21,4 +22,22 @@ func isCoherenceOperatorReady(ctx spi.ComponentContext) bool {
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+}
+
+// GetOverrides gets the install overrides
+func GetOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
+	if ctx.EffectiveCR().Spec.Components.CoherenceOperator != nil {
+		return ctx.EffectiveCR().Spec.Components.CoherenceOperator.ValueOverrides
+	}
+	return []vzapi.Overrides{}
+}
+
+// validateOverridesConfig validates overrides config
+func validateOverridesConfig(vz *vzapi.Verrazzano) error {
+	if vz.Spec.Components.CoherenceOperator != nil {
+		if err := vzapi.ValidateInstallOverrides(vz.Spec.Components.CoherenceOperator.ValueOverrides); err != nil {
+			return err
+		}
+	}
+	return nil
 }

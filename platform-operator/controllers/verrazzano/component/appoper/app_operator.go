@@ -6,6 +6,7 @@ package appoper
 import (
 	"context"
 	"fmt"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"os"
 
 	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -186,6 +187,24 @@ func labelAnnotateWorkloadDefinitions(c client.Client) error {
 
 		err = c.Update(context.TODO(), &workload)
 		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// GetOverrides gets the install overrides
+func GetOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
+	if ctx.EffectiveCR().Spec.Components.ApplicationOperator != nil {
+		return ctx.EffectiveCR().Spec.Components.ApplicationOperator.ValueOverrides
+	}
+	return []vzapi.Overrides{}
+}
+
+// validateOverridesConfig validates overrides config
+func validateOverridesConfig(vz *vzapi.Verrazzano) error {
+	if vz.Spec.Components.ApplicationOperator != nil {
+		if err := vzapi.ValidateInstallOverrides(vz.Spec.Components.ApplicationOperator.ValueOverrides); err != nil {
 			return err
 		}
 	}

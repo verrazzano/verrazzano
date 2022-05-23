@@ -53,6 +53,7 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:     AppendOverrides,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_0_0,
 			Dependencies:            []string{},
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
@@ -79,6 +80,9 @@ func (c certManagerComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.V
 	if _, err := validateConfiguration(new); err != nil {
 		return err
 	}
+	if err := validateOverridesConfig(new); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -87,6 +91,9 @@ func (c certManagerComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(vz) {
 		_, err := validateConfiguration(vz)
+		return err
+	}
+	if err := validateOverridesConfig(vz); err != nil {
 		return err
 	}
 	return nil
@@ -184,4 +191,15 @@ func (c certManagerComponent) createOrUpdateClusterIssuer(compContext spi.Compon
 		return err
 	}
 	return nil
+}
+
+// MonitorOverrides checks whether monitoring of install overrides is enabled or not
+func (c certManagerComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.CertManager != nil {
+		if ctx.EffectiveCR().Spec.Components.CertManager.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.CertManager.MonitorChanges
+		}
+		return true
+	}
+	return false
 }

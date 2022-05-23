@@ -6,6 +6,7 @@ package kiali
 import (
 	"context"
 	"fmt"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -186,4 +187,22 @@ func getKialiHostName(context spi.ComponentContext) (string, error) {
 
 func buildKialiHostnameForDomain(dnsDomain string) string {
 	return fmt.Sprintf("%s.%s", kialiHostName, dnsDomain)
+}
+
+// GetOverrides gets the install overrides
+func GetOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
+	if ctx.EffectiveCR().Spec.Components.Kiali != nil {
+		return ctx.EffectiveCR().Spec.Components.Kiali.ValueOverrides
+	}
+	return []vzapi.Overrides{}
+}
+
+// validateOverridesConfig validates overrides config
+func validateOverridesConfig(vz *vzapi.Verrazzano) error {
+	if vz.Spec.Components.Kiali != nil {
+		if err := vzapi.ValidateInstallOverrides(vz.Spec.Components.Kiali.ValueOverrides); err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -67,6 +67,7 @@ func NewComponent() spi.Component {
 					Name:      constants.KialiIngress,
 				},
 			},
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
@@ -160,11 +161,33 @@ func (c kialiComponent) createOrUpdateKialiResources(ctx spi.ComponentContext) e
 	return nil
 }
 
+// ValidateInstall checks if the specified config is valid for installation
+func (c kialiComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	if err := validateOverridesConfig(vz); err != nil {
+		return err
+	}
+	return nil
+}
+
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c kialiComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
+	if err := validateOverridesConfig(new); err != nil {
+		return err
+	}
 	return nil
+}
+
+// MonitorOverrides checks whether monitoring of install overrides is enabled or not
+func (c kialiComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.Kiali != nil {
+		if ctx.EffectiveCR().Spec.Components.Kiali.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.Kiali.MonitorChanges
+		}
+		return true
+	}
+	return false
 }
