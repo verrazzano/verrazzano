@@ -53,9 +53,9 @@ type imageError struct {
 	clusterImageTags [tagLen]string
 }
 
-var ignoreSubComponents = []string{
-	"additional-rancher",
-}
+var (
+	ignoreSubComponents []string
+)
 
 // Hack to work around an issue with the 1.2 upgrade; Rancher does not always update the webhook image
 type knownIssues struct {
