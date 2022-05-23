@@ -32,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
 )
 
 // TestReconcilerSetupWithManager test the creation of the metrics trait reconciler.
@@ -766,26 +765,6 @@ func readTemplate(template string, params ...map[string]string) (string, error) 
 		}
 	}
 	return content, nil
-}
-
-// updateUnstructuredFromYAMLTemplate updates an unstructured from a populated YAML template file.
-// uns - The unstructured to update
-// template - The template file
-// params - The param maps to merge into the template
-func updateUnstructuredFromYAMLTemplate(uns *unstructured.Unstructured, template string, params ...map[string]string) error {
-	str, err := readTemplate(template, params...)
-	if err != nil {
-		return err
-	}
-	bytes, err := yaml.YAMLToJSON([]byte(str))
-	if err != nil {
-		return err
-	}
-	_, _, err = unstructured.UnstructuredJSONScheme.Decode(bytes, nil, uns)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 // TestReconcileKubeSystem tests to make sure we do not reconcile

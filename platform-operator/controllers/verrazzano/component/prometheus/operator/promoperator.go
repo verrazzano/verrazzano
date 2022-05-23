@@ -121,7 +121,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	kvs = append(kvs, []bom.KeyValue{
 		{Key: "prometheus.prometheusSpec.containers[0].name", Value: "prometheus"},
 		{Key: "prometheus.prometheusSpec.containers[0].env[0].name", Value: "PROMETHEUS_COMMON_DISABLE_HTTP2"},
-		{Key: "prometheus.prometheusSpec.containers[0].env[0].value", Value: "1"},
+		{Key: "prometheus.prometheusSpec.containers[0].env[0].value", Value: `"1"`},
 	}...)
 	return kvs, nil
 }
