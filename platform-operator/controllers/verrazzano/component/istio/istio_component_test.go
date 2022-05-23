@@ -241,7 +241,7 @@ func fakeUpgrade(log vzlog.VerrazzanoLogger, imageOverridesString string, overri
 	if overridesFiles[0] != "test-values-file.yaml" {
 		return []byte("error"), []byte(""), fmt.Errorf("invalid values file")
 	}
-	if !strings.Contains(overridesFiles[1], "values-") || !strings.Contains(overridesFiles[1], ".yaml") {
+	if !strings.Contains(overridesFiles[1], "istio-") || !strings.Contains(overridesFiles[1], ".yaml") {
 		return []byte("error"), []byte(""), fmt.Errorf("incorrect install args overrides file")
 	}
 	installArgsFromFile, err := ioutil.ReadFile(overridesFiles[1])
