@@ -415,13 +415,13 @@ pipeline {
                     }
                 }
 
-                stage('Env-DNS-Cert Update Tests') {
+                stage('EnvironmentName/DNS/CertManager Update Tests') {
                     environment {
                         TEST_ENV = "KIND"
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/env-dns-cert-update"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/env-dns-cm-update"
                     }
                     steps {
-                        runGinkgo('update/env-dns-cert')
+                        runGinkgo('update/env-dns-cm')
                     }
                     post {
                         always {
@@ -454,6 +454,23 @@ pipeline {
                     }
                     steps {
                         runGinkgo('update/fluentd')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
+
+                stage('Opensearch Update Tests') {
+                    environment {
+                        TEST_ENV = "KIND"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-update"
+                    }
+                    steps {
+                        runGinkgo('update/opensearch')
                     }
                     post {
                         always {
