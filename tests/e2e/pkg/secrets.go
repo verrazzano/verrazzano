@@ -246,3 +246,23 @@ func secretExists(secrets []corev1.Secret, namePrefix string) bool {
 	}
 	return false
 }
+
+// CreateSecret creates the given secret
+func CreateSecret(secret *corev1.Secret) error {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return err
+	}
+	_, err = clientset.CoreV1().Secrets(secret.Namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
+	return err
+}
+
+// UpdateSecret updates the given secret
+func UpdateSecret(secret *corev1.Secret) error {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return err
+	}
+	_, err = clientset.CoreV1().Secrets(secret.Namespace).Update(context.TODO(), secret, metav1.UpdateOptions{})
+	return err
+}

@@ -1433,7 +1433,20 @@ func WaitForVZCondition(conditionType v1alpha1.ConditionType, pollingInterval, t
 func DeleteConfigMap(namespace string, name string) error {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
-		return nil
+		return err
 	}
 	return clientset.CoreV1().ConfigMaps(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+}
+
+// CreateConfigMap creates the ConfigMap
+func CreateConfigMap(configMap *corev1.ConfigMap) error {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return err
+	}
+	_, err = clientset.CoreV1().ConfigMaps(configMap.Namespace).Create(context.TODO(), configMap, metav1.CreateOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
 }
