@@ -152,6 +152,11 @@ func checkRancherUpgradeFailure(c client.Client, log vzlog.VerrazzanoLogger) err
 
 	// Check the logs of each pod
 	for i, pod := range podList.Items {
+		// Skip pods that are already being deleted
+		if pod.DeletionTimestamp != nil {
+			break
+		}
+
 		// Skip pods that are not ready, they will get checked again in another call to isReady.
 		if !isPodReady(pod) {
 			break
@@ -168,7 +173,9 @@ func checkRancherUpgradeFailure(c client.Client, log vzlog.VerrazzanoLogger) err
 		restartPod := false
 		scanner := bufio.NewScanner(logStream)
 		for scanner.Scan() {
-			if strings.Contains(scanner.Text(), "Failed to find system chart") {
+			token := scanner.Text()
+			if strings.Contains(token, "Failed to find system chart") {
+				log.Infof("Rancher IsReady: Failed to find system chart for pod %s: %s", pod.Name, token)
 				restartPod = true
 				break
 			}
