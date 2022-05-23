@@ -1790,7 +1790,6 @@ def verifyRegistry(count) {
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                 ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" registry/...
-                ../../build/copy-junit-output.sh ${WORKSPACE}
             """
         }
     }
