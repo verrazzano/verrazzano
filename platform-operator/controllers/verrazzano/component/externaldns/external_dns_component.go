@@ -64,28 +64,17 @@ func (e externalDNSComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	return false
 }
 
-// ValidateInstall checks if the specified config is valid for installation
-func (c externalDNSComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	if err := validateOverridesConfig(vz); err != nil {
-		return err
-	}
-	return nil
-}
-
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (e externalDNSComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
 	if e.IsEnabled(old) && !e.IsEnabled(new) {
 		return fmt.Errorf("Disabling an existing OCI DNS configuration is not allowed")
 	}
-	if err := validateOverridesConfig(new); err != nil {
-		return err
-	}
-	return nil
+	return e.HelmComponent.ValidateUpdate(old, new)
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not
-func (c externalDNSComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+func (e externalDNSComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	if ctx.EffectiveCR().Spec.Components.DNS != nil {
 		if ctx.EffectiveCR().Spec.Components.DNS.MonitorChanges != nil {
 			return *ctx.EffectiveCR().Spec.Components.DNS.MonitorChanges

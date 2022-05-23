@@ -71,6 +71,7 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:  vzImagePullSecretKeyName,
 			SupportsOperatorInstall: true,
 			Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName, authproxy.ComponentName},
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
@@ -195,7 +196,7 @@ func (c verrazzanoComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 	if err := validateFluentd(new); err != nil {
 		return err
 	}
-	return nil
+	return c.HelmComponent.ValidateUpdate(old, new)
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
@@ -203,7 +204,7 @@ func (c verrazzanoComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	if err := validateFluentd(vz); err != nil {
 		return err
 	}
-	return nil
+	return c.HelmComponent.ValidateInstall(vz)
 }
 
 // existing Fluentd mount paths can be found at platform-operator/helm_config/charts/verrazzano/templates/verrazzano-logging.yaml
@@ -352,4 +353,15 @@ func validateEntryExist(secret *corev1.Secret, entry string) error {
 		return fmt.Errorf("invalid Fluentd configuration, missing %s entry in secret \"%s\"", entry, secretName)
 	}
 	return nil
+}
+
+// MonitorOverrides checks whether monitoring of install overrides is enabled or not
+func (c verrazzanoComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.Verrazzano != nil {
+		if ctx.EffectiveCR().Spec.Components.Verrazzano.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.Verrazzano.MonitorChanges
+		}
+		return true
+	}
+	return false
 }

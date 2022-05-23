@@ -190,19 +190,9 @@ func buildKialiHostnameForDomain(dnsDomain string) string {
 }
 
 // GetOverrides gets the install overrides
-func GetOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
-	if ctx.EffectiveCR().Spec.Components.Kiali != nil {
-		return ctx.EffectiveCR().Spec.Components.Kiali.ValueOverrides
+func GetOverrides(vz *vzapi.Verrazzano) []vzapi.Overrides {
+	if vz.Spec.Components.Kiali != nil {
+		return vz.Spec.Components.Kiali.ValueOverrides
 	}
 	return []vzapi.Overrides{}
-}
-
-// validateOverridesConfig validates overrides config
-func validateOverridesConfig(vz *vzapi.Verrazzano) error {
-	if vz.Spec.Components.Kiali != nil {
-		if err := vzapi.ValidateInstallOverrides(vz.Spec.Components.Kiali.ValueOverrides); err != nil {
-			return err
-		}
-	}
-	return nil
 }

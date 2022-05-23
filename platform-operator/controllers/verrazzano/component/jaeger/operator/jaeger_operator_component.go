@@ -102,7 +102,7 @@ func (c jaegerOperatorComponent) GetJSONName() string {
 }
 
 // GetHelmOverrides returns the Helm override sources for a component
-func (c jaegerOperatorComponent) GetOverrides(_ spi.ComponentContext) []vzapi.Overrides {
+func (c jaegerOperatorComponent) GetOverrides(_ *vzapi.Verrazzano) []vzapi.Overrides {
 	return []vzapi.Overrides{}
 }
 

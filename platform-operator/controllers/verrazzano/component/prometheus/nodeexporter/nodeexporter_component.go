@@ -47,6 +47,7 @@ func NewComponent() spi.Component {
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), valuesFile),
 			Dependencies:            []string{},
 			AppendOverridesFunc:     AppendOverrides,
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
@@ -84,4 +85,15 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		})
 	}
 	return kvs, nil
+}
+
+// MonitorOverrides checks whether monitoring of install overrides is enabled or not
+func (c prometheusNodeExporterComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.PrometheusNodeExporter != nil {
+		if ctx.EffectiveCR().Spec.Components.PrometheusNodeExporter.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.PrometheusNodeExporter.MonitorChanges
+		}
+		return true
+	}
+	return false
 }

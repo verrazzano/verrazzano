@@ -80,10 +80,7 @@ func (c certManagerComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.V
 	if _, err := validateConfiguration(new); err != nil {
 		return err
 	}
-	if err := validateOverridesConfig(new); err != nil {
-		return err
-	}
-	return nil
+	return c.HelmComponent.ValidateUpdate(old, new)
 }
 
 // ValidateInstall checks if the specified new Verrazzano CR is valid for this component to be installed
@@ -93,10 +90,7 @@ func (c certManagerComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 		_, err := validateConfiguration(vz)
 		return err
 	}
-	if err := validateOverridesConfig(vz); err != nil {
-		return err
-	}
-	return nil
+	return c.HelmComponent.ValidateInstall(vz)
 }
 
 // PreInstall runs before cert-manager components are installed

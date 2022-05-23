@@ -6,6 +6,7 @@ package nodeexporter
 import (
 	"context"
 	"fmt"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -44,4 +45,12 @@ func preInstall(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed to create or update the %s namespace: %v", ComponentNamespace, err)
 	}
 	return nil
+}
+
+// GetOverrides returns install overrides for a component
+func GetOverrides(vz *vzapi.Verrazzano) []vzapi.Overrides {
+	if vz.Spec.Components.PrometheusNodeExporter != nil {
+		return vz.Spec.Components.PrometheusNodeExporter.ValueOverrides
+	}
+	return []vzapi.Overrides{}
 }

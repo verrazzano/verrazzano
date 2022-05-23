@@ -25,19 +25,9 @@ func isCoherenceOperatorReady(ctx spi.ComponentContext) bool {
 }
 
 // GetOverrides gets the install overrides
-func GetOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
-	if ctx.EffectiveCR().Spec.Components.CoherenceOperator != nil {
-		return ctx.EffectiveCR().Spec.Components.CoherenceOperator.ValueOverrides
+func GetOverrides(vz *vzapi.Verrazzano) []vzapi.Overrides {
+	if vz.Spec.Components.CoherenceOperator != nil {
+		return vz.Spec.Components.CoherenceOperator.ValueOverrides
 	}
 	return []vzapi.Overrides{}
-}
-
-// validateOverridesConfig validates overrides config
-func validateOverridesConfig(vz *vzapi.Verrazzano) error {
-	if vz.Spec.Components.CoherenceOperator != nil {
-		if err := vzapi.ValidateInstallOverrides(vz.Spec.Components.CoherenceOperator.ValueOverrides); err != nil {
-			return err
-		}
-	}
-	return nil
 }

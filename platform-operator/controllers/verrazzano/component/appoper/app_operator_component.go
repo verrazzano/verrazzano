@@ -117,24 +117,13 @@ func (c applicationOperatorComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) b
 	return *comp.Enabled
 }
 
-// ValidateInstall checks if the specified config is valid for installation
-func (c applicationOperatorComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	if err := validateOverridesConfig(vz); err != nil {
-		return err
-	}
-	return nil
-}
-
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c applicationOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	if err := validateOverridesConfig(new); err != nil {
-		return err
-	}
-	return nil
+	return c.HelmComponent.ValidateUpdate(old, new)
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not

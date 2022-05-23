@@ -225,13 +225,9 @@ func appendIstioOverrides(ctx spi.ComponentContext, annotationsKey, volumeMountK
 }
 
 // GetOverrides appends Helm value overrides for the Prometheus Operator Helm chart
-func GetOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
-	comp := ctx.EffectiveCR().Spec.Components.PrometheusOperator
-	if comp == nil {
-		return []vzapi.Overrides{}
-	}
-	if ctx.EffectiveCR().Spec.Components.PrometheusOperator != nil {
-		return ctx.EffectiveCR().Spec.Components.PrometheusOperator.ValueOverrides
+func GetOverrides(vz *vzapi.Verrazzano) []vzapi.Overrides {
+	if vz.Spec.Components.PrometheusOperator != nil {
+		return vz.Spec.Components.PrometheusOperator.ValueOverrides
 	}
 	return []vzapi.Overrides{}
 }

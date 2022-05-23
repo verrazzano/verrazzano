@@ -129,19 +129,9 @@ func getInstallArgs(cr *vzapi.Verrazzano) []vzapi.InstallArgs {
 }
 
 // GetOverrides gets the install overrides
-func GetOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
-	if ctx.EffectiveCR().Spec.Components.Ingress != nil {
-		return ctx.EffectiveCR().Spec.Components.Ingress.ValueOverrides
+func GetOverrides(vz *vzapi.Verrazzano) []vzapi.Overrides {
+	if vz.Spec.Components.Ingress != nil {
+		return vz.Spec.Components.Ingress.ValueOverrides
 	}
 	return []vzapi.Overrides{}
-}
-
-// validateOverridesConfig validates overrides config
-func validateOverridesConfig(vz *vzapi.Verrazzano) error {
-	if vz.Spec.Components.Ingress != nil {
-		if err := vzapi.ValidateInstallOverrides(vz.Spec.Components.Ingress.ValueOverrides); err != nil {
-			return err
-		}
-	}
-	return nil
 }
