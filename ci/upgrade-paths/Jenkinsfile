@@ -353,7 +353,7 @@ pipeline {
                                 registerManagedClusters()
                             }
                         }
-                        stage('Verify Register') {
+                        stage('Verify register managed clusters') {
                             steps {
                                 verifyRegisterManagedClusters(true)
                             }
@@ -1039,7 +1039,7 @@ def registerManagedClusters() {
             def verrazzanoRegisterManagedClusterStages = createClusterExecutionsMap()
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
             for(int count=2; count<=clusterCount; count++) {
-                verrazzanoRegisterManagedClusterStages["${count}"] = registerManagedCluster(count)
+                verrazzanoRegisterManagedClusterStages["${count} - Register Managed Cluster"] = registerManagedCluster(count)
             }
             parallel verrazzanoRegisterManagedClusterStages
         }
@@ -1069,7 +1069,7 @@ def verifyRegisterManagedClusters(minimalVerification) {
             def verrazzanoRegisterManagedClusterStages = createClusterExecutionsMap()
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
             for(int count=2; count<=clusterCount; count++) {
-                verrazzanoRegisterManagedClusterStages["${count}"] = verifyRegisterManagedCluster(count, minimalVerification)
+                verrazzanoRegisterManagedClusterStages["${count} - Verify Register Managed Cluster"] = verifyRegisterManagedCluster(count, minimalVerification)
             }
             parallel verrazzanoRegisterManagedClusterStages
         }
@@ -1097,7 +1097,7 @@ def verifyDeregisterManagedClusters() {
             def verrazzanoDeregisterManagedClusterStages = createClusterExecutionsMap()
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
             for(int count=2; count<=clusterCount; count++) {
-                verrazzanoDeregisterManagedClusterStages["${count}"] = verifyDeregisterManagedCluster(count)
+                verrazzanoDeregisterManagedClusterStages["${count} - Verify Deregister Managed Cluster"] = verifyDeregisterManagedCluster(count)
             }
             parallel verrazzanoDeregisterManagedClusterStages
         }
@@ -1127,7 +1127,7 @@ def verifyManagedClusterPermissions() {
             def verrazzanoManagedClusterPermissionsStages = createClusterExecutionsMap()
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
             for(int count=2; count<=clusterCount; count++) {
-                verrazzanoManagedClusterPermissionsStages["${count}"] = verifyManagedClusterPermissions(count)
+                verrazzanoManagedClusterPermissionsStages["${count} - Verify Managed Cluster Permissions"] = verifyManagedClusterPermissions(count)
             }
             parallel verrazzanoManagedClusterPermissionsStages
         }
@@ -1205,7 +1205,7 @@ def runGinkgoRandomizeParallel(testSuitePath) {
                 } else {
                     clusterName="managed${count-1}"
                 }
-                runGinkgoRandomizeStages["${count}"] = runGinkgoRandomize(count, clusterName, testSuitePath)
+                runGinkgoRandomizeStages["${count} - Executing ginkgo test suite ${testSuitePath}"] = runGinkgoRandomize(count, clusterName, testSuitePath)
             }
             parallel runGinkgoRandomizeStages
         }
@@ -1382,7 +1382,7 @@ def dumpK8sCluster(dumpDirectory) {
             def verrazzanoDumpK8sClusterStages = createClusterExecutionsMap()
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
             for (int count = 1; count <= clusterCount; count++) {
-                verrazzanoDumpK8sClusterStages["${count}"] = dumpK8sSpecificCluster(count, dumpDirectory)
+                verrazzanoDumpK8sClusterStages["${count} - Dump K8s Cluster"] = dumpK8sSpecificCluster(count, dumpDirectory)
             }
             parallel verrazzanoDumpK8sClusterStages
         }
@@ -1616,7 +1616,7 @@ def dumpInstallLogs() {
             if (params.VERSION_FOR_INSTALL.startsWith("v1.0.0") || params.VERSION_FOR_INSTALL.startsWith("v1.0.1")) {
                 namespace = "default"
             }
-            verrazzanoDumpInstallLogStages["${count}"] = dumpInstallLogsOnCluster(count, LOG_DIR, namespace)
+            verrazzanoDumpInstallLogStages["${count} - Dump Install Logs"] = dumpInstallLogsOnCluster(count, LOG_DIR, namespace)
         }
         parallel verrazzanoDumpInstallLogStages
     }
@@ -1754,7 +1754,7 @@ def runMulticlusterVerifyApi() {
     def verrazzanoMulticlusterVerifyApiStages = createClusterExecutionsMap()
     int clusterCount = params.TOTAL_CLUSTERS.toInteger()
     for(int count=2; count<=clusterCount; count++) {
-        verrazzanoMulticlusterVerifyApiStages["${count}"] = runMulticlusterVerifyApi(count)
+        verrazzanoMulticlusterVerifyApiStages["${count} - Verify Api"] = runMulticlusterVerifyApi(count)
     }
     parallel verrazzanoMulticlusterVerifyApiStages
 }
@@ -1777,7 +1777,7 @@ def runMulticlusterVerifyRegistry() {
     def verifyRegistryStages = createClusterExecutionsMap()
     int clusterCount = params.TOTAL_CLUSTERS.toInteger()
     for(int count=1; count<=clusterCount; count++) {
-        verifyRegistryStages["${count} - verify registry"] = verifyRegistry(count)
+        verifyRegistryStages["${count} - Verify registry"] = verifyRegistry(count)
     }
     parallel verifyRegistryStages
 }
