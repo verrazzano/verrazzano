@@ -55,7 +55,7 @@ type imageError struct {
 
 var ignoreSubComponents = []string{}
 
-// Hack to work around an issue with the 1.2 upgrade; Rancher does not always update the webhook image
+// Type for tracking images with known issues during upgrade, etc
 type knownIssues struct {
 	alternateTags []string
 	message       string
