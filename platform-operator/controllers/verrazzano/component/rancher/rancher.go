@@ -243,11 +243,7 @@ func deleteClusterRepos(log vzlog.VerrazzanoLogger) error {
 		return err
 	}
 
-	// Only need to delete the custom resources if the default branch is still release-2.5
 	log.Infof("Rancher IsReady: The default release branch is currently set to %s", defaultBranch)
-	if defaultBranch != "release-v2.5" {
-		return nil
-	}
 
 	// Delete settings.management.cattle.io chart-default-branch
 	err = dynamicClient.Resource(gvr).Delete(context.TODO(), name, metav1.DeleteOptions{})
