@@ -22,9 +22,6 @@ const (
 	// Put external IPs into the IstioOperator YAML, which does support it
 	ExternalIPArg = "gateways.istio-ingressgateway.externalIPs"
 
-	//meshConfigEnableTracingValue is a boolean flag to enable/disable tracing in the istio mesh
-	meshConfigEnableTracingValue = "meshConfig.enableTracing"
-
 	//meshConfigTracingAddress is the Jaeger collector address
 	meshConfigTracingAddress = "meshConfig.defaultConfig.tracing.zipkin.address"
 
