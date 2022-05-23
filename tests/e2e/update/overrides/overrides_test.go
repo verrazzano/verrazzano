@@ -109,19 +109,19 @@ var _ = t.Describe("Post Install Overrides", func() {
 		// that the values have been applied to promtheus-operator
 		t.Context("Create Overrides", func() {
 			t.It("Create ConfigMap", func() {
-				gomega.Eventually(func() error {
-					testConfigMap.Data[dataKey] = oldCMData
-					err := pkg.CreateConfigMap(&testConfigMap)
-					return err
-				}, waitTimeout, pollingInterval).Should(gomega.BeNil())
+				testConfigMap.Data[dataKey] = oldCMData
+				err := pkg.CreateConfigMap(&testConfigMap)
+				if err != nil {
+					ginkgo.AbortSuite(fmt.Sprintf("Failed to create ConfigMap: %v", err))
+				}
 			})
 
 			t.It("Create Secret", func() {
-				gomega.Eventually(func() error {
-					testSecret.StringData[dataKey] = oldSecretData
-					err := pkg.CreateSecret(&testSecret)
-					return err
-				}, waitTimeout, pollingInterval).Should(gomega.BeNil())
+				testSecret.StringData[dataKey] = oldSecretData
+				err := pkg.CreateSecret(&testSecret)
+				if err != nil {
+					ginkgo.AbortSuite(fmt.Sprintf("Failed to create Secret: %v", err))
+				}
 			})
 		})
 
@@ -144,19 +144,19 @@ var _ = t.Describe("Post Install Overrides", func() {
 		// that the new values have been applied to promtheus-operator
 		t.Context("Update Overrides", func() {
 			t.It("Update ConfigMap", func() {
-				gomega.Eventually(func() error {
-					testConfigMap.Data[dataKey] = newCMData
-					err := pkg.UpdateConfigMap(&testConfigMap)
-					return err
-				}, waitTimeout, pollingInterval).Should(gomega.BeNil())
+				testConfigMap.Data[dataKey] = newCMData
+				err := pkg.UpdateConfigMap(&testConfigMap)
+				if err != nil {
+					ginkgo.AbortSuite(fmt.Sprintf("Failed to create ConfigMap: %v", err))
+				}
 			})
 
 			t.It("Update Secret", func() {
-				gomega.Eventually(func() error {
-					testSecret.StringData[dataKey] = newSecretData
-					err := pkg.UpdateSecret(&testSecret)
-					return err
-				}, waitTimeout, pollingInterval).Should(gomega.BeNil())
+				testSecret.StringData[dataKey] = newSecretData
+				err := pkg.UpdateSecret(&testSecret)
+				if err != nil {
+					ginkgo.AbortSuite(fmt.Sprintf("Failed to create Secret: %v", err))
+				}
 			})
 		})
 
