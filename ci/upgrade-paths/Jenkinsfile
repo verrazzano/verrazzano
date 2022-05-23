@@ -564,6 +564,11 @@ pipeline {
                                 runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/opensearch', "${TEST_DUMP_ROOT}/opensearch")
                             }
                         }
+                        stage ('Grafana post upgrade - single cluster') {
+                            steps {
+                                runGinkgoRandomize('upgrade/post-upgrade/grafana')
+                            }
+                        }
                         stage ("Verify install scripts") {
                             steps {
                                 runGinkgoRandomizeAdmin("scripts/install", "${TEST_DUMP_ROOT}/install-scripts")
@@ -586,21 +591,6 @@ pipeline {
                                 }
                             }
                         }
-                    }
-                }
-                stage ('Grafana post upgrade - single cluster') {
-                    steps {
-                        runGinkgoRandomize('upgrade/post-upgrade/grafana')
-                    }      
-                }
-                stage('post-upgrade verify keycloak') {
-                    steps {
-                        runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
-                    }
-                }
-                stage('opensearch post-upgrade') {
-                    steps {
-                        runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/opensearch', "${TEST_DUMP_ROOT}/opensearch")
                     }
                 }
                 stage ('Verify & Uninstall Example Apps') {
