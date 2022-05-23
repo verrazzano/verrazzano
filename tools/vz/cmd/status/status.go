@@ -24,6 +24,10 @@ const (
 var namespace string
 var name string
 
+// The component output is disabled pending the resolution some issues with
+// the content of the Verrazzano status block
+var componentOutputEnabled = false
+
 // statusOutputTemplate - template for output of status command
 const statusOutputTemplate = `
 Status of Verrazzano {{.verrazzano_name}}
@@ -205,10 +209,13 @@ func addAccessEndpoints(instance *vzapi.InstanceInfo, values map[string]string) 
 	}
 }
 
+// addComponents - add the component status information
 func addComponents(components vzapi.ComponentStatusMap, values map[string]string) {
-	for _, component := range components {
-		// Generate key/value for output template - remove dashes from component name, not a valid template character
-		stateKey := fmt.Sprintf("comp_%s_state", component.Name)
-		values[strings.ReplaceAll(stateKey, "-", "")] = string(component.State)
+	if componentOutputEnabled {
+		for _, component := range components {
+			// Generate key/value for output template - remove dashes from component name, not a valid template character
+			stateKey := fmt.Sprintf("comp_%s_state", component.Name)
+			values[strings.ReplaceAll(stateKey, "-", "")] = string(component.State)
+		}
 	}
 }
