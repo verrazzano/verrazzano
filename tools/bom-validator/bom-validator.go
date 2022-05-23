@@ -41,6 +41,14 @@ type imageError struct {
 }
 
 var ignoreSubComponents = []string{}
+var isAdminCluster bool
+var kubeconfig string
+
+func init() {
+	flag.StringVar(&kubeconfig, "kubeconfig", "", "KubeConfig for cluster being validated")
+	flag.BoolVar(&isAdminCluster, "isAdminCluster", true, "defines cluster type is admin or managed")
+	flag.Parse()
+}
 
 func main() {
 	var vBom verrazzanoBom                                // BOM from platform operator in struct form
@@ -77,15 +85,8 @@ func main() {
 
 // Validate that KubeConfig is valued. This will point to the cluster being validated
 func validateKubeConfig() bool {
-	var kubeconfig string
-	// Get the options
-	kubeconfigPtr := flag.String("kubeconfig", "", "KubeConfig for cluster being validated")
-	flag.Parse()
-	if *kubeconfigPtr == "" {
-		// Try the Env
+	if kubeconfig == "" {
 		kubeconfig = os.Getenv("KUBECONFIG")
-	} else {
-		kubeconfig = *kubeconfigPtr
 	}
 	if kubeconfig != "" {
 		fmt.Println("USING KUBECONFIG: ", kubeconfig)
@@ -177,7 +178,7 @@ func validateBOM(vBom *verrazzanoBom, clusterImageMap map[string][tagLen]string,
 							break
 						}
 					}
-					if !tagFound {
+					if !tagFound && isAdminCluster {
 						imageTagErrors[image.Image] = imageError{image.Tag, tags} // TODO  Fix up message
 						errorsFound = true
 					}
