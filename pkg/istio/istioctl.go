@@ -47,7 +47,7 @@ func Upgrade(log vzlog.VerrazzanoLogger, imageOverrideString string, overridesFi
 	return stdout, stderr, nil
 }
 
-// Install does and Istio installation using or or more IstioOperator YAML files
+// Install does an Istio installation using one or more IstioOperator YAML files
 func Install(log vzlog.VerrazzanoLogger, overrideStrings string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 	args := []string{"install", "-y"}
 
@@ -107,7 +107,7 @@ func VerifyInstall(log vzlog.VerrazzanoLogger) (stdout []byte, stderr []byte, er
 // The operationName field is just used for visibility of operation in logging at the moment
 func runIstioctl(log vzlog.VerrazzanoLogger, cmdArgs []string, operationName string) (stdout []byte, stderr []byte, err error) {
 	cmd := exec.Command("istioctl", cmdArgs...)
-	log.Info("Running istioctl command")
+	log.Infof("Running istioctl command: %s", cmd.String())
 
 	stdout, stderr, err = runner.Run(cmd)
 	if err != nil {

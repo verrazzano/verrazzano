@@ -80,6 +80,10 @@ function delete_oam_operator {
       error "Failed to uninstall the OAM Kubernetes operator."
     fi
   fi
+
+  # Delete the additional cluster roles we created during install
+  log "Deleting additional OAM cluster roles"
+  kubectl delete clusterrole oam-kubernetes-runtime-pvc --ignore-not-found
 }
 
 function delete_application_operator {

@@ -124,10 +124,10 @@ check-eventually-test: ## run tests for Gomega Eventually checker
 	(cd tools/eventually-checker; go test .)
 
 #
-# CLI
+# CLI-POC
 #
 
-##@ CLI
+##@ CLI-POC
 
-cli: ## build the CLI
-	(cd tools/cli/vz; go install)
+cli-poc: ## build the CLI POC
+	(cd tools/cli-poc/vz; go install)

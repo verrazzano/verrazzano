@@ -274,7 +274,7 @@ pipeline {
                         OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${GO_REPO_PATH}/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
                     }
                     // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
-                    env.K8S_VERSION_LABEL = "${params.TEST_ENV == 'KIND' ? params.KIND_CLUSTER_VERSION : sh(returnStdout: true, script: '${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}').trim()}"
+                    env.K8S_VERSION_LABEL = "${params.TEST_ENV == 'KIND' ? params.KIND_CLUSTER_VERSION : sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}").trim()}"
                 }
             }
         }
@@ -396,6 +396,12 @@ pipeline {
                         }
                     }
                 }
+                stage("Update external OpenSearch") {
+                    when { expression { return params.EXTERNAL_ELASTICSEARCH == true } }
+                    steps {
+                        runGinkgoAdmin('update/fluentdextes')
+                    }
+                }
                 stage ('Register managed clusters') {
                     steps {
                         registerManagedClusters()
@@ -438,21 +444,9 @@ pipeline {
 
         stage('Verify Upgrade') {
             // Rerun some stages to verify the upgrade
-            parallel {
-                stage ('Verify Register') {
-                    steps {
-                        verifyRegisterManagedClusters()
-                    }
-                }
-                stage ('Verify Managed Cluster Permissions') {
-                    steps {
-                        verifyManagedClusterPermissions()
-                    }
-                }
-                stage ('Verify Metrics') {
-                    steps {
-                        runGinkgoRandomize('metrics/syscomponents')
-                    }
+            steps {
+                script {
+                    parallel verifyUpgrade()
                 }
             }
             post {
@@ -552,7 +546,7 @@ pipeline {
                     }
                     post {
                         always {
-                            sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_screenshots.sh"
+                            sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
                         }
                     }
                 }
@@ -624,7 +618,7 @@ pipeline {
             sh """
                 curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
             """
-            archiveArtifacts artifacts: '**/build-console-output.log,**/Screenshot*.png', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/build-console-output.log,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
             // Ignore failures in any of the following actions so that the "always" post step that cleans up clusters is executed
             sh """
                 curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip || true
@@ -917,7 +911,7 @@ def upgradeVerrazzano() {
                 cat ${v8oUpgradeFile}
                 kubectl apply -f ${v8oUpgradeFile}
                 # wait for the upgrade to complete
-                kubectl wait --timeout=40m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                kubectl wait --timeout=25m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
                 # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
                 kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
@@ -1086,6 +1080,16 @@ def runGinkgoRandomizeAdmin(testSuitePath) {
         export CLUSTER_NAME="admin"
         cd ${GO_REPO_PATH}/verrazzano/tests/e2e
         ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+    """
+}
+
+// Run a test suite against just the admin cluster
+def runGinkgoAdmin(testSuitePath) {
+    sh """
+        export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+        export CLUSTER_NAME="admin"
+        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+        ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
     """
 }
 
@@ -1532,4 +1536,18 @@ def emitJobMetrics() {
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
     env.TIME_WAITING = startTimeInMillis-timeInMillis
     runGinkgoRandomizeAdmin('jobmetrics')
+}
+
+def verifyUpgrade() {
+    return [
+        "Verify Register": {
+            verifyRegisterManagedClusters()
+        },
+        "Verify Managed Cluster Permissions": {
+            verifyManagedClusterPermissions()
+        },
+        "Verify Metrics": {
+            runGinkgoRandomize('metrics/syscomponents')
+        },
+    ]
 }

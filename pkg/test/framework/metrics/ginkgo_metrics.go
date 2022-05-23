@@ -5,16 +5,14 @@ package metrics
 
 import (
 	"fmt"
-	neturl "net/url"
-	"os"
-	"strings"
-	"time"
-
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	neturl "net/url"
+	"os"
+	"strings"
 )
 
 const (
@@ -63,7 +61,7 @@ func internalLogger() *zap.SugaredLogger {
 }
 
 //NewLogger generates a new logger, and tees ginkgo output to the search db
-func NewLogger(pkg string, ind string) (*zap.SugaredLogger, error) {
+func NewLogger(pkg string, ind string, paths ...string) (*zap.SugaredLogger, error) {
 	var messageKey = zapcore.OmitKey
 	if ind == TestLogIndex {
 		messageKey = "msg"
@@ -90,7 +88,7 @@ func NewLogger(pkg string, ind string) (*zap.SugaredLogger, error) {
 		logger.Errorf("failed to configure outputs: %v", err)
 		return nil, err
 	}
-	cfg.OutputPaths = outputPaths
+	cfg.OutputPaths = append(outputPaths, paths...)
 	log, err := cfg.Build()
 	if err != nil {
 		logger.Errorf("error creating %s logger %v", pkg, err)
@@ -141,10 +139,6 @@ func configureLoggerWithJenkinsEnv(log *zap.SugaredLogger) *zap.SugaredLogger {
 	}
 
 	return log
-}
-
-func Millis() int64 {
-	return time.Now().UnixNano() / int64(time.Millisecond)
 }
 
 //configureOutputs configures the search output path if it is available

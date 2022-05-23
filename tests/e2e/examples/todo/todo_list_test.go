@@ -5,10 +5,11 @@ package todo
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"net/http"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -191,10 +192,17 @@ var _ = t.Describe("ToDo List test", Label("f:app-lcm.oam",
 			Eventually(func() bool {
 				domain, err := weblogic.GetDomain(namespace, "todo-domain")
 				if err != nil {
+					t.Logs.Errorf("Error attempting to get domain: %v", err)
 					return false
 				}
 				healths, err := weblogic.GetHealthOfServers(domain)
-				if err != nil || healths[0] != weblogic.Healthy {
+				if err != nil {
+					t.Logs.Errorf("Error attempting to get health of servers: %v", err)
+					return false
+				}
+
+				if healths[0] != weblogic.Healthy {
+					t.Logs.Errorf("server not healthy")
 					return false
 				}
 				return true

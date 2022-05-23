@@ -28,7 +28,7 @@ func TestIsEnabled(t *testing.T) {
 			// THEN the call returns true
 			name:       "Test IsEnabled when using default Verrazzano CR",
 			actualCR:   vzapi.Verrazzano{},
-			expectTrue: false,
+			expectTrue: true,
 		},
 		{
 			// GIVEN a Verrazzano custom resource with the Prometheus Operator enabled

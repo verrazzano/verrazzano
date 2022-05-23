@@ -763,9 +763,6 @@ data:
       @id kubernetes_record_transformer
       enable_ruby true
       <record>
-        target_index verrazzano-namespace-${record["kubernetes"]["namespace_name"]}
-      </record>
-      <record>
         kubernetes_namespace_container_name ${record["kubernetes"]["namespace_name"]}.${record["kubernetes"]["container_name"]}
       </record>
     </filter>
@@ -864,7 +861,7 @@ data:
 
   es-output.conf: |
     # Matches anything that Verrazzano installs
-    <match kubernetes.**kube-** kubernetes.**verrazzano-system** kubernetes.**verrazzano-install** kubernetes.**cattle-** kubernetes.**rancher-** kubernetes.**fleet-** kubernetes.**ingress-nginx** kubernetes.**istio-system** kubernetes.**keycloak** kubernetes.**cert-manager**  kubernetes.**_monitoring_** kubernetes.**_metallb-** kubernetes.**_local-path-storage_** systemd.** fluentd.monitor.metrics>
+    <match kubernetes.**_kube-** kubernetes.**_verrazzano-** kubernetes.**cattle-** kubernetes.**rancher-** kubernetes.**fleet-** kubernetes.**ingress-nginx** kubernetes.**istio-system** kubernetes.**keycloak** kubernetes.**cert-manager**  kubernetes.**_monitoring_** kubernetes.**_metallb-** kubernetes.**_local-path-storage_** kubernetes.**_local_** systemd.** fluentd.monitor.metrics>
       @type opensearch_data_stream
       @id out_systemd
       @log_level info

@@ -5,6 +5,7 @@ package jaegeroperator
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -19,6 +20,7 @@ const (
 	waitTimeout                   = 3 * time.Minute
 	pollingInterval               = 10 * time.Second
 	jaegerOperatorName            = "jaeger-operator"
+	operatorImage                 = "ghcr.io/verrazzano/jaeger-operator"
 )
 
 var (
@@ -99,11 +101,43 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 		// WHEN we check to make sure the default Jaeger images are from Verrazzano
 		// THEN we see that the env is correctly populated
 		WhenJaegerOperatorInstalledIt("should have the correct default Jaeger images", func() {
-			verifyImages := func() (bool, error) {
+			verifyImages := func() bool {
 				if isJaegerOperatorEnabled() {
-					return pkg.ContainerHasExpectedEnv(verrazzanoMonitoringNamespace, jaegerOperatorName, jaegerOperatorName, expectedJaegerImages)
+					// Check if Jaeger operator is running with the expected Verrazzano Jaeger Operator image
+					image, err := pkg.GetContainerImage(verrazzanoMonitoringNamespace, jaegerOperatorName, jaegerOperatorName)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Container %s is not running in the namespace: %s, error: %v", jaegerOperatorName, verrazzanoMonitoringNamespace, err))
+						return false
+					}
+					if !strings.HasPrefix(image, operatorImage) {
+						pkg.Log(pkg.Error, fmt.Sprintf("Container %s image %s is not running with the expected image %s in the namespace: %s", jaegerOperatorName, image, operatorImage, verrazzanoMonitoringNamespace))
+						return false
+					}
+					// Check if Jaeger operator env has been set to use Verrazzano Jaeger images
+					containerEnv, err := pkg.GetContainerEnv(verrazzanoMonitoringNamespace, jaegerOperatorName, jaegerOperatorName)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Not able to get the environment variables in the container %s, error: %v", jaegerOperatorName, err))
+						return false
+					}
+					for name, val := range expectedJaegerImages {
+						found := false
+						for _, actualEnv := range containerEnv {
+							if actualEnv.Name == name {
+								if !strings.HasPrefix(actualEnv.Value, val) {
+									pkg.Log(pkg.Error, fmt.Sprintf("The value %s of the env %s for the container %s does not have the image %s as expected",
+										actualEnv.Value, actualEnv.Name, jaegerOperatorName, val))
+									return false
+								}
+								found = true
+							}
+						}
+						if !found {
+							pkg.Log(pkg.Error, fmt.Sprintf("The env %s not set for the container %s", name, jaegerOperatorName))
+							return false
+						}
+					}
 				}
-				return true, nil
+				return true
 			}
 			Eventually(verifyImages, waitTimeout, pollingInterval).Should(BeTrue())
 		})

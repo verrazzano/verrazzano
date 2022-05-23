@@ -697,12 +697,16 @@ data:
         end
         if not res then
             me.info("Failed requesting token from Keycloak: response is nil")
-            me.unauthorized("Error requesting token: response was nil")
+            me.unauthorized("Error requesting token: response is nil")
+        end
+        if not (res.status == 200) then
+            me.info("Failed requesting token from Keycloak: response status code is "..res.status.." and response body is "..res.body)
+            me.unauthorized("Error requesting token: response status code is "..res.status.." and response body is "..res.body)
         end
         local tokenRes = cjson.decode(res.body)
         if tokenRes.error or tokenRes.error_description then
             me.info("Failed requesting token from Keycloak: "..tokenRes.error_description)
-            me.unauthorized(tokenRes.error_description)
+            me.unauthorized("Error requesting token: "..tokenRes.error_description)
         end
         return tokenRes
     end

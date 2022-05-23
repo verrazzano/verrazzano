@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	clusterapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -20,9 +21,7 @@ import (
 )
 
 const vmiIngest = "vmi-system-es-ingest"
-const defaultElasticURL = "http://verrazzano-authproxy-elasticsearch:8775"
 const defaultSecretName = "verrazzano"
-const rancherCAAdditionalPem = "ca-additional.pem"
 
 // Create a registration secret with the managed cluster information.  This secret will
 // be used on the managed cluster to get information about itself, like the cluster name
@@ -79,7 +78,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	// If the fluentd ELASTICSEARCH_URL is the default "http://verrazzano-authproxy-elasticsearch:8775", use VMI ES ingress URL.
 	// If the fluentd ELASTICSEARCH_URL is not the default, meaning it is a custom ES, use the external ES URL.
 	esURL := fluentdESURL
-	if esURL == defaultElasticURL {
+	if esURL == constants.DefaultOpensearchURL {
 		esURL, err = r.getVmiESURL()
 		if err != nil {
 			return err
@@ -103,17 +102,17 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 		if err != nil {
 			return err
 		}
-		esCaBundle = esSecret.Data[FluentdESCaBundleKey]
-		esUsername = esSecret.Data[VerrazzanoUsernameKey]
-		esPassword = esSecret.Data[VerrazzanoPasswordKey]
+		esCaBundle = esSecret.Data[mcconstants.FluentdESCaBundleKey]
+		esUsername = esSecret.Data[mcconstants.VerrazzanoUsernameKey]
+		esPassword = esSecret.Data[mcconstants.VerrazzanoPasswordKey]
 	} else {
 		esSecret, err := r.getSecret(constants.VerrazzanoSystemNamespace, constants.VerrazzanoESInternal, true)
 		if err != nil {
 			return err
 		}
 		esCaBundle = adminCaBundle
-		esUsername = esSecret.Data[VerrazzanoUsernameKey]
-		esPassword = esSecret.Data[VerrazzanoPasswordKey]
+		esUsername = esSecret.Data[mcconstants.VerrazzanoUsernameKey]
+		esPassword = esSecret.Data[mcconstants.VerrazzanoPasswordKey]
 	}
 
 	// Get the keycloak URL
@@ -124,13 +123,13 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 
 	// Build the secret data
 	secret.Data = map[string][]byte{
-		ManagedClusterNameKey:   []byte(manageClusterName),
-		ESURLKey:                []byte(esURL),
-		ESCaBundleKey:           esCaBundle,
-		RegistrationUsernameKey: esUsername,
-		RegistrationPasswordKey: esPassword,
-		KeycloakURLKey:          []byte(keycloakURL),
-		AdminCaBundleKey:        adminCaBundle,
+		mcconstants.ManagedClusterNameKey:   []byte(manageClusterName),
+		mcconstants.ESURLKey:                []byte(esURL),
+		mcconstants.ESCaBundleKey:           esCaBundle,
+		mcconstants.RegistrationUsernameKey: esUsername,
+		mcconstants.RegistrationPasswordKey: esPassword,
+		mcconstants.KeycloakURLKey:          []byte(keycloakURL),
+		mcconstants.AdminCaBundleKey:        adminCaBundle,
 	}
 	return nil
 }
@@ -143,7 +142,7 @@ func GetRegistrationSecretName(vmcName string) string {
 
 // getVzESURLSecret returns the elasticsearchURL and elasticsearchSecret from Verrazzano CR
 func (r *VerrazzanoManagedClusterReconciler) getVzESURLSecret(vzList *vzapi.VerrazzanoList) (string, string, error) {
-	url := defaultElasticURL
+	url := constants.DefaultOpensearchURL
 	secret := defaultSecretName
 	// what to do when there is more than one Verrazzano CR
 	for _, vz := range vzList.Items {
@@ -203,7 +202,7 @@ func (r *VerrazzanoManagedClusterReconciler) getAdminCaBundle() ([]byte, error) 
 	if err != nil {
 		return nil, err
 	}
-	caBundle = secret.Data[CaCrtKey]
+	caBundle = secret.Data[mcconstants.CaCrtKey]
 
 	// Append CA from additional-ca secret if it exists
 	optSecret, err := r.getSecret(constants.RancherSystemNamespace, constants.AdditionalTLS, false)
@@ -212,9 +211,9 @@ func (r *VerrazzanoManagedClusterReconciler) getAdminCaBundle() ([]byte, error) 
 	}
 	if err == nil {
 		// Combine the two CA bundles
-		caBundle = make([]byte, len(secret.Data[CaCrtKey]))
-		copy(caBundle, secret.Data[CaCrtKey])
-		caBundle = append(caBundle, optSecret.Data[rancherCAAdditionalPem]...)
+		caBundle = make([]byte, len(secret.Data[mcconstants.CaCrtKey]))
+		copy(caBundle, secret.Data[mcconstants.CaCrtKey])
+		caBundle = append(caBundle, optSecret.Data[constants.AdditionalTLSCAKey]...)
 	}
 
 	return caBundle, nil

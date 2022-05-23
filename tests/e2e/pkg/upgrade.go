@@ -33,7 +33,7 @@ func CheckPodsForEnvoySidecar(namespace string, imageName string) bool {
 		if v == "false" {
 			continue
 		}
-		_, ok := pod.Labels["istio.io/rev"]
+		_, ok := pod.Labels["security.istio.io/tlsMode"]
 		if ok {
 			containers := pod.Spec.Containers
 			found := false
@@ -44,7 +44,7 @@ func CheckPodsForEnvoySidecar(namespace string, imageName string) bool {
 				}
 			}
 			if !found {
-				Log(Error, fmt.Sprintf("No istio proxy image found in pod %s", pod.Name))
+				Log(Error, fmt.Sprintf("Expected istio proxy image not found in pod %s", pod.Name))
 				return false
 			}
 		}

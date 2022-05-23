@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package verrazzano
@@ -6,8 +6,9 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+
+	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -66,7 +67,7 @@ func (r *Reconciler) createOrUpdateLocalRegistrationSecret(name string, namespac
 func (r *Reconciler) mutateLocalRegistrationSecret(secret *corev1.Secret) error {
 	secret.Type = corev1.SecretTypeOpaque
 	secret.Data = map[string][]byte{
-		clusters.ManagedClusterNameKey: []byte(constants.MCLocalCluster),
+		constants2.ManagedClusterNameKey: []byte(constants.MCLocalCluster),
 	}
 	return nil
 }

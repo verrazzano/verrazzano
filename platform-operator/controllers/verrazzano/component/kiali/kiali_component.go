@@ -18,6 +18,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -147,8 +149,10 @@ func (c kialiComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 
 // createOrUpdateKialiResources create or update related Kiali resources
 func (c kialiComponent) createOrUpdateKialiResources(ctx spi.ComponentContext) error {
-	if err := createOrUpdateKialiIngress(ctx, c.ChartNamespace); err != nil {
-		return err
+	if vzconfig.IsNGINXEnabled(ctx.EffectiveCR()) {
+		if err := createOrUpdateKialiIngress(ctx, c.ChartNamespace); err != nil {
+			return err
+		}
 	}
 	if err := createOrUpdateAuthPolicy(ctx); err != nil {
 		return err

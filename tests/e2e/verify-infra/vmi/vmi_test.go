@@ -106,7 +106,7 @@ var _ = t.BeforeSuite(func() {
 	}, waitTimeout, pollingInterval).ShouldNot(BeEmpty())
 
 	Eventually(func() (map[string]*corev1.PersistentVolumeClaim, error) {
-		volumeClaims, err = pkg.GetPersistentVolumes(verrazzanoNamespace)
+		volumeClaims, err = pkg.GetPersistentVolumeClaims(verrazzanoNamespace)
 		return volumeClaims, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 

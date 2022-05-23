@@ -6,7 +6,15 @@ package nginxistio
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"strconv"
+	"time"
+
+	"github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
@@ -22,7 +30,32 @@ const (
 	istioAppLabelKey       = "app"
 	istioIngressLabelValue = "istio-ingressgateway"
 	istioEgressLabelValue  = "istio-egressgateway"
+	waitTimeout            = 5 * time.Minute
+	pollingInterval        = 5 * time.Second
 )
+
+var testNginxIngressPorts = []corev1.ServicePort{
+	{
+		Name:     "https",
+		Protocol: "TCP",
+		Port:     443,
+		NodePort: 31443,
+		TargetPort: intstr.IntOrString{
+			Type:   intstr.String,
+			StrVal: "https",
+		},
+	},
+}
+
+var testIstioIngressPorts = []corev1.ServicePort{
+	{
+		Name:       "https",
+		Protocol:   "TCP",
+		Port:       443,
+		NodePort:   32443,
+		TargetPort: intstr.FromInt(8443),
+	},
+}
 
 type NginxAutoscalingIstioRelicasAffintyModifier struct {
 	nginxReplicas        uint32
@@ -31,6 +64,9 @@ type NginxAutoscalingIstioRelicasAffintyModifier struct {
 }
 
 type NginxIstioDefaultModifier struct {
+}
+
+type NginxIstioServicePortsModifier struct {
 }
 
 func (m NginxAutoscalingIstioRelicasAffintyModifier) ModifyCR(cr *vzapi.Verrazzano) {
@@ -123,6 +159,20 @@ func (u NginxIstioDefaultModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Istio = &vzapi.IstioComponent{}
 }
 
+func (u NginxIstioServicePortsModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	if cr.Spec.Components.Ingress == nil {
+		cr.Spec.Components.Ingress = &vzapi.IngressNginxComponent{}
+	}
+	cr.Spec.Components.Ingress.Ports = testNginxIngressPorts
+	if cr.Spec.Components.Istio == nil {
+		cr.Spec.Components.Istio = &vzapi.IstioComponent{}
+	}
+	if cr.Spec.Components.Istio.Ingress == nil {
+		cr.Spec.Components.Istio.Ingress = &vzapi.IstioIngressSection{}
+	}
+	cr.Spec.Components.Istio.Ingress.Ports = testIstioIngressPorts
+}
+
 var t = framework.NewTestFramework("update nginx-istio")
 
 var nodeCount uint32 = 1
@@ -166,8 +216,8 @@ var _ = t.Describe("Update nginx-istio", Label("f:platform-lcm.update"), func() 
 		})
 	})
 
-	t.Describe("verrazzano-nginx-istio update", Label("f:platform-lcm.nginx-istio-update"), func() {
-		t.It("nginx-istio update", func() {
+	t.Describe("verrazzano-nginx-istio update replicas", Label("f:platform-lcm.nginx-istio-update-replicas"), func() {
+		t.It("nginx-istio update replicas", func() {
 			istioCount := nodeCount - 1
 			if nodeCount == 1 {
 				istioCount = nodeCount
@@ -180,4 +230,34 @@ var _ = t.Describe("Update nginx-istio", Label("f:platform-lcm.update"), func() 
 			update.ValidatePods(istioEgressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, istioCount, false)
 		})
 	})
+
+	t.Describe("verrazzano-nginx-istio update service ports", Label("f:platform-lcm.nginx-istio-update-ports"), func() {
+		t.It("nginx-istio update service ports", func() {
+			m := NginxIstioServicePortsModifier{}
+			update.UpdateCR(m)
+
+			validateServicePorts()
+		})
+	})
 })
+
+func validateServicePorts() {
+	gomega.Eventually(func() error {
+		var err error
+		nginxIngress, err := pkg.GetService(constants.IngressNamespace, "ingress-controller-ingress-nginx-controller")
+		if err != nil {
+			return err
+		}
+		if !reflect.DeepEqual(testNginxIngressPorts, nginxIngress.Spec.Ports) {
+			return fmt.Errorf("expect nginx with ports %v, but got %v", testNginxIngressPorts, nginxIngress.Spec.Ports)
+		}
+		istioIngress, err := pkg.GetService(constants.IstioSystemNamespace, "istio-ingressgateway")
+		if err != nil {
+			return err
+		}
+		if !reflect.DeepEqual(testIstioIngressPorts, istioIngress.Spec.Ports) {
+			return fmt.Errorf("expect nginx with ports %v, but got %v", testNginxIngressPorts, istioIngress.Spec.Ports)
+		}
+		return nil
+	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "expect to get correct ports setting from nginx and istio services")
+}

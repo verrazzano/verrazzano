@@ -26,8 +26,6 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"go.uber.org/zap"
-	istionet "istio.io/api/networking/v1alpha3"
-	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -1424,125 +1422,6 @@ func TestCopyLabelsFailure(t *testing.T) {
 	mocker.Finish()
 	assert.Nil(err)
 	assert.Equal(true, result.Requeue)
-}
-
-// TestCreateDestinationRuleCreate tests creation of a destination rule
-// GIVEN the destination rule does not exist
-// WHEN the controller createDestinationRule function is called
-// THEN expect no error to be returned and destination rule is created
-func TestCreateDestinationRuleCreate(t *testing.T) {
-	assert := asserts.New(t)
-
-	var mocker = gomock.NewController(t)
-	var cli = mocks.NewMockClient(mocker)
-
-	// Expect a call to get a destination rule and return that it is not found.
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-app"}, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(k8sschema.GroupResource{Group: "test-space", Resource: "DestinationRule"}, "test-space-myapp-dr"))
-
-	// Expect a call to get the appconfig resource to set the owner reference
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-app"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, app *oamcore.ApplicationConfiguration) error {
-			app.TypeMeta = metav1.TypeMeta{
-				APIVersion: "core.oam.dev/v1alpha2",
-				Kind:       "ApplicationConfiguration",
-			}
-			return nil
-		})
-
-	// Expect a call to create the destinationRule and return success
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, dr *istioclient.DestinationRule, opts ...client.CreateOption) error {
-			assert.Equal(destinationRuleKind, dr.Kind)
-			assert.Equal(destinationRuleAPIVersion, dr.APIVersion)
-			assert.Equal("*.test-namespace.svc.cluster.local", dr.Spec.Host)
-			assert.Equal(istionet.ClientTLSSettings_ISTIO_MUTUAL, dr.Spec.TrafficPolicy.Tls.Mode)
-			assert.Equal(1, len(dr.OwnerReferences))
-			assert.Equal("ApplicationConfiguration", dr.OwnerReferences[0].Kind)
-			assert.Equal("core.oam.dev/v1alpha2", dr.OwnerReferences[0].APIVersion)
-			return nil
-		})
-
-	scheme := runtime.NewScheme()
-	_ = istioclient.AddToScheme(scheme)
-	_ = core.AddToScheme(scheme)
-	_ = vzapi.AddToScheme(scheme)
-	reconciler := Reconciler{Client: cli, Scheme: scheme}
-
-	namespaceLabels := make(map[string]string)
-	namespaceLabels["istio-injection"] = "enabled"
-	workloadLabels := make(map[string]string)
-	workloadLabels["app.oam.dev/name"] = "test-app"
-	err := reconciler.createDestinationRule(context.Background(), vzlog.DefaultLogger(), "test-namespace", namespaceLabels, workloadLabels)
-	mocker.Finish()
-	assert.NoError(err)
-}
-
-// TestCreateDestinationRuleNoCreate tests that a destination rule already exist
-// GIVEN the destination rule exist
-// WHEN the controller createDestinationRule function is called
-// THEN expect no error to be returned and destination rule is not created
-func TestCreateDestinationRuleNoCreate(t *testing.T) {
-	assert := asserts.New(t)
-
-	var mocker = gomock.NewController(t)
-	var cli = mocks.NewMockClient(mocker)
-
-	// Expect a call to get a destination rule and return that it was found.
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-app"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dr *istioclient.DestinationRule) error {
-			dr.TypeMeta = metav1.TypeMeta{
-				APIVersion: destinationRuleAPIVersion,
-				Kind:       destinationRuleKind}
-			return nil
-		})
-
-	scheme := runtime.NewScheme()
-	_ = istioclient.AddToScheme(scheme)
-	_ = core.AddToScheme(scheme)
-	_ = vzapi.AddToScheme(scheme)
-	reconciler := Reconciler{Client: cli, Scheme: scheme}
-
-	namespaceLabels := make(map[string]string)
-	namespaceLabels["istio-injection"] = "enabled"
-	workloadLabels := make(map[string]string)
-	workloadLabels["app.oam.dev/name"] = "test-app"
-	err := reconciler.createDestinationRule(context.Background(), vzlog.DefaultLogger(), "test-namespace", namespaceLabels, workloadLabels)
-	mocker.Finish()
-	assert.NoError(err)
-}
-
-// TestCreateDestinationRuleNoOamLabel tests creation of a destination rule with no oam label found
-// GIVEN no app.oam.dev/name label specified
-// WHEN the controller createDestinationRule function is called
-// THEN expect an error to be returned
-func TestCreateDestinationRuleNoOamLabel(t *testing.T) {
-	assert := asserts.New(t)
-
-	reconciler := Reconciler{}
-	namespaceLabels := make(map[string]string)
-	namespaceLabels["istio-injection"] = "enabled"
-	workloadLabels := make(map[string]string)
-	err := reconciler.createDestinationRule(context.Background(), vzlog.DefaultLogger(), "test-namespace", namespaceLabels, workloadLabels)
-	assert.Equal("OAM app name label missing from metadata, unable to generate destination rule name", err.Error())
-}
-
-// TestCreateDestinationRuleNoIstioLabel tests creation of a destination rule with no istio label found
-// GIVEN no istio-injection label specified
-// WHEN the controller createDestinationRule function is called
-// THEN expect an error to be returned
-func TestCreateDestinationRuleNoIstioLabel(t *testing.T) {
-	assert := asserts.New(t)
-
-	reconciler := Reconciler{}
-	namespaceLabels := make(map[string]string)
-	workloadLabels := make(map[string]string)
-	err := reconciler.createDestinationRule(context.Background(), vzlog.DefaultLogger(), "test-namespace", namespaceLabels, workloadLabels)
-	assert.NoError(err)
 }
 
 // TestCreateRuntimeEncryptionSecretCreate tests creation of a runtimeEncryptionSecret

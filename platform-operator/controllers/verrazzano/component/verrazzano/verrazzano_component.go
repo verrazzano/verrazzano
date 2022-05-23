@@ -4,9 +4,11 @@
 package verrazzano
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
@@ -18,8 +20,13 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-
+	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -34,11 +41,18 @@ const (
 
 	// Certificate names
 	verrazzanoCertificateName = "verrazzano-tls"
+
 	prometheusCertificateName = "system-tls-prometheus"
+
+	// ES secret keys
+	esUsernameKey = "username"
+	esPasswordKey = "password"
 )
 
 // ComponentJSONName is the josn name of the verrazzano component in CRD
 const ComponentJSONName = "verrazzano"
+
+var getControllerRuntimeClient = getClient
 
 type verrazzanoComponent struct {
 	helm.HelmComponent
@@ -199,18 +213,14 @@ var existingFluentdMountPaths = [7]string{
 
 func validateFluentd(vz *vzapi.Verrazzano) error {
 	fluentd := vz.Spec.Components.Fluentd
-	if fluentd != nil && len(fluentd.ExtraVolumeMounts) > 0 {
-		for _, vm := range fluentd.ExtraVolumeMounts {
-			mountPath := vm.Source
-			if vm.Destination != "" {
-				mountPath = vm.Destination
-			}
-			for _, existing := range existingFluentdMountPaths {
-				if mountPath == existing {
-					return fmt.Errorf("duplicate mount path found: %s; Fluentd by default has mount paths: %v", mountPath, existingFluentdMountPaths)
-				}
-			}
-		}
+	if fluentd == nil {
+		return nil
+	}
+	if err := validateExtraVolumeMounts(fluentd); err != nil {
+		return err
+	}
+	if err := validateLogCollector(fluentd); err != nil {
+		return err
 	}
 	return nil
 }
@@ -260,4 +270,86 @@ func (c verrazzanoComponent) GetCertificateNames(ctx spi.ComponentContext) []typ
 	}
 
 	return certificateNames
+}
+
+// getClient returns a controller runtime client for the Verrazzano resource
+func getClient() (client.Client, error) {
+	config, err := ctrl.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+	return client.New(config, client.Options{Scheme: newScheme()})
+}
+
+// newScheme creates a new scheme that includes this package's object for use by client
+func newScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	vzapi.AddToScheme(scheme)
+	clientgoscheme.AddToScheme(scheme)
+	return scheme
+}
+
+func getInstallSecret(client client.Client, secretName string, secret *corev1.Secret) error {
+	err := client.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: constants.VerrazzanoInstallNamespace}, secret)
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return fmt.Errorf("secret \"%s\" must be created in the \"%s\" namespace", secretName, constants.VerrazzanoInstallNamespace)
+		}
+		return err
+	}
+	return nil
+}
+
+func validateExtraVolumeMounts(fluentd *vzapi.FluentdComponent) error {
+	if len(fluentd.ExtraVolumeMounts) > 0 {
+		for _, vm := range fluentd.ExtraVolumeMounts {
+			mountPath := vm.Source
+			if vm.Destination != "" {
+				mountPath = vm.Destination
+			}
+			for _, existing := range existingFluentdMountPaths {
+				if mountPath == existing {
+					return fmt.Errorf("duplicate mount path found: %s; Fluentd by default has mount paths: %v", mountPath, existingFluentdMountPaths)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func validateLogCollector(fluentd *vzapi.FluentdComponent) error {
+	if fluentd.OCI != nil && fluentd.ElasticsearchURL != globalconst.DefaultOpensearchURL && fluentd.ElasticsearchURL != "" {
+		return fmt.Errorf("fluentd config does not allow both OCI %v and external Opensearch %v", fluentd.OCI, fluentd.ElasticsearchURL)
+	}
+	if err := validateLogCollectorSecret(fluentd); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateLogCollectorSecret(fluentd *vzapi.FluentdComponent) error {
+	if len(fluentd.ElasticsearchSecret) > 0 && fluentd.ElasticsearchSecret != globalconst.VerrazzanoESInternal {
+		cli, err := getControllerRuntimeClient()
+		if err != nil {
+			return err
+		}
+		secret := &corev1.Secret{}
+		if err := getInstallSecret(cli, fluentd.ElasticsearchSecret, secret); err != nil {
+			return err
+		}
+		if err := validateEntryExist(secret, esUsernameKey); err != nil {
+			return err
+		}
+		return validateEntryExist(secret, esPasswordKey)
+	}
+	return nil
+}
+
+func validateEntryExist(secret *corev1.Secret, entry string) error {
+	secretName := secret.Name
+	_, ok := secret.Data[entry]
+	if !ok {
+		return fmt.Errorf("invalid Fluentd configuration, missing %s entry in secret \"%s\"", entry, secretName)
+	}
+	return nil
 }
