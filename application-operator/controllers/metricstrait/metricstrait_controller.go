@@ -40,7 +40,6 @@ import (
 
 const (
 	// Kubernetes resource Kinds
-	configMapKind   = "ConfigMap"
 	deploymentKind  = "Deployment"
 	serviceKind     = "Service"
 	statefulSetKind = "StatefulSet"

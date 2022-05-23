@@ -4,7 +4,6 @@
 package metricstrait
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -769,21 +768,6 @@ func readTemplate(template string, params ...map[string]string) (string, error) 
 	return content, nil
 }
 
-// removeHeaderLines removes the top N lines from the text.
-func removeHeaderLines(text string, lines int) string {
-	line := 0
-	output := ""
-	scanner := bufio.NewScanner(strings.NewReader(text))
-	for scanner.Scan() {
-		if line >= lines {
-			output += scanner.Text()
-			output += "\n"
-		}
-		line++
-	}
-	return output
-}
-
 // updateUnstructuredFromYAMLTemplate updates an unstructured from a populated YAML template file.
 // uns - The unstructured to update
 // template - The template file
@@ -798,23 +782,6 @@ func updateUnstructuredFromYAMLTemplate(uns *unstructured.Unstructured, template
 		return err
 	}
 	_, _, err = unstructured.UnstructuredJSONScheme.Decode(bytes, nil, uns)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// updateObjectFromYAMLTemplate updates an object from a populated YAML template file.
-// uns - The unstructured to update
-// template - The template file
-// params - The param maps to merge into the template
-func updateObjectFromYAMLTemplate(obj interface{}, template string, params ...map[string]string) error {
-	uns := unstructured.Unstructured{}
-	err := updateUnstructuredFromYAMLTemplate(&uns, template, params...)
-	if err != nil {
-		return err
-	}
-	err = runtime.DefaultUnstructuredConverter.FromUnstructured(uns.Object, obj)
 	if err != nil {
 		return err
 	}
@@ -1212,8 +1179,8 @@ func cohWorkloadClient(deleting bool, portNum int, ports ...int) client.WithWatc
 	}
 	path := "/metrics"
 	if len(ports) > 0 {
-		for _, portListNum := range ports {
-			port := vzapi.PortSpec{Port: &portListNum, Path: &path}
+		for i := range ports {
+			port := vzapi.PortSpec{Port: &ports[i], Path: &path}
 			trait.Spec.Ports = append(trait.Spec.Ports, port)
 		}
 	}
