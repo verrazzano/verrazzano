@@ -19,10 +19,12 @@ import (
 )
 
 const (
-	threeMinutes     = 3 * time.Minute
-	pollingInterval  = 10 * time.Second
-	documentFile     = "testdata/upgrade/grafana/dashboard.json"
-	grafanaErrMsgFmt = "Failed to GET Grafana testDashboard: status=%d: body=%s"
+	threeMinutes         = 3 * time.Minute
+	pollingInterval      = 10 * time.Second
+	documentFile         = "testdata/upgrade/grafana/dashboard.json"
+	grafanaErrMsgFmt     = "Failed to GET Grafana testDashboard: status=%d: body=%s"
+	testDashboardTitle   = "E2ETestDashboard"
+	systemDashboardTitle = "Host Metrics"
 )
 
 var t = framework.NewTestFramework("grafana")
@@ -37,7 +39,7 @@ type DashboardMetadata struct {
 }
 
 var _ = t.Describe("Pre Upgrade Grafana Dashboard", Label("f:observability.logging.es"), func() {
-	// It Wrapper to only run spec if component is supported on the current Verrazzano installation
+	// It Wrapper to only run spec if Grafana component is supported on the current Verrazzano installation
 	GrafanaSupportedIt := func(description string, f func()) {
 		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 		if err != nil {
@@ -46,11 +48,11 @@ var _ = t.Describe("Pre Upgrade Grafana Dashboard", Label("f:observability.loggi
 			})
 		}
 		supported := pkg.IsGrafanaEnabled(kubeconfigPath)
-		// Only run tests if Verrazzano is at least version 1.3.0
+		// Only run tests if Grafana component is enabled in Verrazzano CR
 		if supported {
 			t.It(description, f)
 		} else {
-			pkg.Log(pkg.Info, fmt.Sprintf("Skipping check '%v', Verrazzano is not at version 1.3.0", description))
+			pkg.Log(pkg.Info, fmt.Sprintf("Skipping check '%v', Grafana component is not enabled in current Verrazzano Installation", description))
 		}
 	}
 
@@ -58,7 +60,7 @@ var _ = t.Describe("Pre Upgrade Grafana Dashboard", Label("f:observability.loggi
 	// GIVEN a running Grafana instance,
 	// WHEN a dashboard is created,
 	// THEN verify that the dashboard is created/saved successfully.
-	GrafanaSupportedIt("Grafana Create Dashboard", func() {
+	GrafanaSupportedIt("Create Grafana Dashboard", func() {
 		Eventually(func() bool {
 			file, err := pkg.FindTestDataFile(documentFile)
 			if err != nil {
@@ -87,7 +89,7 @@ var _ = t.Describe("Pre Upgrade Grafana Dashboard", Label("f:observability.loggi
 	// GIVEN a running grafana instance,
 	// WHEN a GET call is made  to Grafana with the UID of the newly created testDashboard,
 	// THEN the testDashboard metadata of the corresponding testDashboard is returned.
-	GrafanaSupportedIt("Grafana Get Dasbhoard details", func() {
+	GrafanaSupportedIt("Get details of the test Grafana Dashboard", func() {
 		Eventually(func() bool {
 			// UID of testDashboard, which is created by the previous test.
 			uid := testDashboard.UID
@@ -105,13 +107,16 @@ var _ = t.Describe("Pre Upgrade Grafana Dashboard", Label("f:observability.loggi
 			}
 			body := make(map[string]map[string]string)
 			json.Unmarshal(resp.Body, &body)
-			return strings.Contains(body["dashboard"]["title"], "E2ETestDashboard")
+			return strings.Contains(body["dashboard"]["title"], testDashboardTitle)
 		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue())
 	})
 
-	GrafanaSupportedIt("Grafana search Dasbhoard details", func() {
+	// GIVEN a running Grafana instance,
+	// WHEN a search is done based on the dashboard title,
+	// THEN the details of the dashboards matching the search query is returned.
+	GrafanaSupportedIt("Search the test Grafana Dashboard using its title", func() {
 		Eventually(func() bool {
-			resp, err := pkg.SearchGrafanaDashboard(map[string]string{"query": "E2ETestDashboard"})
+			resp, err := pkg.SearchGrafanaDashboard(map[string]string{"query": testDashboardTitle})
 			if err != nil {
 				pkg.Log(pkg.Error, err.Error())
 				return false
@@ -132,10 +137,10 @@ var _ = t.Describe("Pre Upgrade Grafana Dashboard", Label("f:observability.loggi
 		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue())
 	})
 
-	// GIVEN a running grafana instance
-	// WHEN a GET call is made  to Grafana with the specific UID
+	// GIVEN a running grafana instance,
+	// WHEN a GET call is made  to Grafana with the system dashboard UID,
 	// THEN the dashboard metadata of the corresponding testDashboard is returned.
-	GrafanaSupportedIt("Grafana System Dasbhoard details", func() {
+	GrafanaSupportedIt("Get details of the system Grafana Dashboard", func() {
 		// UID of system testDashboard, which is created by the VMO on startup.
 		uid := "H0xWYyyik"
 		Eventually(func() bool {
@@ -150,7 +155,7 @@ var _ = t.Describe("Pre Upgrade Grafana Dashboard", Label("f:observability.loggi
 			}
 			body := make(map[string]map[string]string)
 			json.Unmarshal(resp.Body, &body)
-			return strings.Contains(body["dashboard"]["title"], "Host Metrics")
+			return strings.Contains(body["dashboard"]["title"], systemDashboardTitle)
 		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue())
 	})
 })
