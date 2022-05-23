@@ -15,25 +15,36 @@ import (
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 )
 
-const tagLen = 10                                                          // The number of unique tags for a specific image
-const platformOperatorPodNameSearchString = "verrazzano-platform-operator" // Pod Substring for finding the platform operator pod
+const (
+	tagLen                              = 10                             // The number of unique tags for a specific image
+	platformOperatorPodNameSearchString = "verrazzano-platform-operator" // Pod Substring for finding the platform operator pod
 
-// Struct based on Verrazzano BOM JSON
+	rancherWarningMessage = "See VZ-5937, Rancher upgrade issue, all VZ versions" // For known Rancher issues with VZ upgrade
+)
+
+// Verrazzano BOM types
+
+type imageDetails struct {
+	Image            string `json:"image"`
+	Tag              string `json:"tag"`
+	HelmFullImageKey string `json:"helmFullImageKey"`
+}
+
+type subComponentType struct {
+	Repository string         `json:"repository"`
+	Name       string         `json:"name"`
+	Images     []imageDetails `json:"images"`
+}
+
+type componentType struct {
+	Name          string             `json:"name"`
+	Subcomponents []subComponentType `json:"subcomponents"`
+}
+
 type verrazzanoBom struct {
-	Registry   string `json:"registry"`
-	Version    string `json:"version"`
-	Components []struct {
-		Name          string `json:"name"`
-		Subcomponents []struct {
-			Repository string `json:"repository"`
-			Name       string `json:"name"`
-			Images     []struct {
-				Image            string `json:"image"`
-				Tag              string `json:"tag"`
-				HelmFullImageKey string `json:"helmFullImageKey"`
-			} `json:"images"`
-		} `json:"subcomponents"`
-	} `json:"components"`
+	Registry   string          `json:"registry"`
+	Version    string          `json:"version"`
+	Components []componentType `json:"components"`
 }
 
 // Capture Tags for artifact, 1 from BOM, All from images in cluster
@@ -46,14 +57,17 @@ var ignoreSubComponents = []string{}
 
 // Hack to work around an issue with the 1.2 upgrade; Rancher does not always update the webhook image
 type knownIssues struct {
-	alternateTags  []string
-	warningMessage string
+	alternateTags []string
+	message       string
 }
 
 // Mainly a workaround for Rancher additional images; Rancher does not always update to the latest version
-// in the BOM file, if their minimum-version requirements are met by what's deployed at upgrade time
+// in the BOM file, possible Rancher bug that we are pursuing with the Rancher team
 var knownImageIssues = map[string]knownIssues{
-	"rancher-webhook": {alternateTags: []string{"v0.1.1", "v0.1.2", "v0.1.4"}, warningMessage: "VZ-5937 - Known issue, Rancher webhook not at expected version"},
+	"rancher-webhook": {alternateTags: []string{"v0.1.1", "v0.1.2", "v0.1.4"}, message: rancherWarningMessage},
+	"fleet-agent":     {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
+	"fleet":           {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
+	"gitjob":          {alternateTags: []string{"v0.1.15"}, message: rancherWarningMessage},
 }
 
 func main() {
@@ -79,13 +93,13 @@ func main() {
 	populateMapWithInitContainerImages(imagesInstalled)
 
 	//  Loop through BOM and check against cluster images
-	isBOMValid := validateBOM(&vBom, imagesInstalled, imagesNotFound, imageTagErrors, imageWarnings)
+	passedValidation := validateBOM(&vBom, imagesInstalled, imagesNotFound, imageTagErrors, imageWarnings)
 
 	// Write to stdout
-	reportResults(imagesNotFound, imageTagErrors, imageWarnings, isBOMValid)
+	reportResults(imagesNotFound, imageTagErrors, imageWarnings, passedValidation)
 
-	//Failure
-	if !isBOMValid {
+	// Failure
+	if !passedValidation {
 		os.Exit(1)
 	}
 }
@@ -175,44 +189,54 @@ func populateMapWithInitContainerImages(clusterImageMap map[string][tagLen]strin
 //    Valid, Tags match
 //    Not Found, OK based on profile
 //    InValid, image tags between BOM and cluster image do not match
-func validateBOM(vBom *verrazzanoBom, clusterImageMap map[string][10]string, imagesNotFound map[string]string, imageTagErrors map[string]imageError, imageWarnings map[string]string) bool {
-	var errorsFound bool = false
+func validateBOM(vBom *verrazzanoBom, clusterImageMap map[string][10]string, imagesNotFound map[string]string,
+	imageTagErrors map[string]imageError, imageWarnings map[string]string) bool {
+	var errorsFound = false
 	for _, component := range vBom.Components {
 		for _, subcomponent := range component.Subcomponents {
 			if ignoreSubComponent(subcomponent.Name) {
-				fmt.Printf("Subcomponent %s of component %s on ignore list, skipping images %v\n", subcomponent.Name, component.Name, subcomponent.Images)
+				fmt.Printf("Subcomponent %s of component %s on ignore list, skipping images %v\n",
+					subcomponent.Name, component.Name, subcomponent.Images)
 				continue
 			}
 			for _, image := range subcomponent.Images {
-				if tags, ok := clusterImageMap[image.Image]; ok {
-					var tagFound = false
-					for _, tag := range tags {
-						if tag == image.Tag {
-							tagFound = true
-							break
-						}
-						imageWarning, hasKnownIssues := knownImageIssues[image.Image]
-						if hasKnownIssues && vzstring.SliceContainsString(imageWarning.alternateTags, tag) {
-							imageWarnings[image.Image] = fmt.Sprintf("Known issue for image %s, tag: %s, message: %s", image.Image, tag, imageWarning.warningMessage)
-							tagFound = true
-							break
-						}
-					}
-					if !tagFound {
-						imageTagErrors[image.Image] = imageError{image.Tag, tags} // TODO  Fix up message
-						errorsFound = true
-					}
-				} else {
-					imagesNotFound[image.Image] = image.Tag
-				}
-
+				errorsFound = checkImageTags(clusterImageMap, image, imageWarnings, imageTagErrors, errorsFound, imagesNotFound)
 			}
 		}
 	}
 	return !errorsFound
 }
 
-//ignoreSubComponent - checks to see if a particular subcomponent is to be ignored
+// checkImageTags - compares the image tags in the cluster with what's in the BOM, and against any known issues; returns true if any errors are found
+func checkImageTags(clusterImageMap map[string][10]string, image imageDetails, imageWarnings map[string]string,
+	imageTagErrors map[string]imageError, errorsFound bool, imagesNotFound map[string]string) bool {
+	if tags, ok := clusterImageMap[image.Image]; ok {
+		var tagFound = false
+		for _, tag := range tags {
+			if tag == image.Tag {
+				tagFound = true
+				break
+			}
+			// Check if the image/tag in the cluster is known to have issues
+			imageWarning, hasKnownIssues := knownImageIssues[image.Image]
+			if hasKnownIssues && vzstring.SliceContainsString(imageWarning.alternateTags, tag) {
+				imageWarnings[image.Image] = fmt.Sprintf("Known issue for image %s, found tag %s, expected tag %s message: %s",
+					image.Image, tag, image.Tag, imageWarning.message)
+				tagFound = true
+				break
+			}
+		}
+		if !tagFound {
+			imageTagErrors[image.Image] = imageError{image.Tag, tags}
+			errorsFound = true
+		}
+	} else {
+		imagesNotFound[image.Image] = image.Tag
+	}
+	return errorsFound
+}
+
+// ignoreSubComponent - checks to see if a particular subcomponent is to be ignored
 func ignoreSubComponent(name string) bool {
 	for _, subComp := range ignoreSubComponents {
 		if subComp == name {
@@ -225,26 +249,29 @@ func ignoreSubComponent(name string) bool {
 // Report out the findings
 // ImagesNotFound is informational
 // imageTagErrors is a failure condition
-func reportResults(imagesNotFound map[string]string, imageTagErrors map[string]imageError, warnings map[string]string, isBOMValid bool) {
+func reportResults(imagesNotFound map[string]string, imageTagErrors map[string]imageError, warnings map[string]string, passedValidation bool) {
 	// Dump Images Not Found to Console, Informational
+	const textDivider = "----------------------------------------"
 
 	fmt.Println()
 	fmt.Println("Images From BOM not installed in cluster")
-	fmt.Println("----------------------------------------")
+	fmt.Println(textDivider)
 	for name, tag := range imagesNotFound {
 		fmt.Printf("Image not installed: %s:%s\n", name, tag)
 	}
 	fmt.Println()
-	fmt.Println("Image Warnings - Tags not at expected BOM level due to known issues")
-	fmt.Println("----------------------------------------")
-	for name, msg := range warnings {
-		fmt.Printf("Warning: Image Name = %s: %s\n", name, msg)
+	if len(warnings) > 0 {
+		fmt.Println("Image Warnings - Tags not at expected BOM level due to known issues")
+		fmt.Println(textDivider)
+		for name, msg := range warnings {
+			fmt.Printf("Warning: Image Name = %s: %s\n", name, msg)
+		}
 	}
 	fmt.Println()
 	// Dump Images that don't match BOM, Failure
-	if !isBOMValid {
+	if !passedValidation {
 		fmt.Println("Image Errors: BOM Images that don't match Cluster Images")
-		fmt.Println("----------------------------------------")
+		fmt.Println(textDivider)
 		for name, tags := range imageTagErrors {
 			fmt.Printf("Check failed! Image Name = %s, Tag from BOM = %s  Tag from Cluster = %v\n", name, tags.bomImageTag, tags.clusterImageTags)
 		}
