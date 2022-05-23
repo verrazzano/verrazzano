@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package envdnscert
+package envdnscm
 
 import (
 	"log"
@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	certmanagerv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	. "github.com/onsi/gomega"
@@ -59,7 +60,7 @@ func (u CustomCACertificateModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 var (
-	t                              = framework.NewTestFramework("update dns")
+	t                              = framework.NewTestFramework("update env-dns-cm")
 	testEnvironmentName     string = "test-env"
 	testDNSDomain           string = "sslip.io"
 	testCertName            string = "test-ca"
@@ -94,14 +95,20 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 
 	t.It("Update and verify environment name", func() {
 		m := EnvironmentNameModifier{testEnvironmentName}
-		update.UpdateCR(m)
+		err := update.UpdateCR(m)
+		if err != nil {
+			log.Fatalf("Error in updating environment name\n%s", err)
+		}
 		validateIngressList(testEnvironmentName, currentDNSDomain)
 		validateVirtualServiceList(currentDNSDomain)
 	})
 
 	t.It("Update and verify dns domain", func() {
 		m := WildcardDNSModifier{testDNSDomain}
-		update.UpdateCR(m)
+		err := update.UpdateCR(m)
+		if err != nil {
+			log.Fatalf("Error in updating DNS domain\n%s", err)
+		}
 		validateIngressList(testEnvironmentName, testDNSDomain)
 		validateVirtualServiceList(testDNSDomain)
 	})
@@ -109,13 +116,17 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 	t.It("Update and verify CA certificate", func() {
 		createCustomCACertificate(testCertName, testCertSecretNamespace, testCertSecretName)
 		m := CustomCACertificateModifier{testCertSecretNamespace, testCertSecretName}
-		update.UpdateCR(m)
+		err := update.UpdateCR(m)
+		if err != nil {
+			log.Fatalf("Error in updating CA certificate\n%s", err)
+		}
 		validateCertManagerResourcesCleanup()
-		validateCACertificateIssuer(testCertIssuerName)
+		validateCACertificateIssuer()
 	})
 })
 
 func validateIngressList(environmentName string, domain string) {
+	log.Printf("Validating the ingresses")
 	Eventually(func() bool {
 		// Fetch the ingresses for the Verrazzano components
 		ingressList, err := pkg.GetIngressList("")
@@ -139,11 +150,12 @@ func validateIngressList(environmentName string, domain string) {
 }
 
 func validateVirtualServiceList(domain string) {
+	log.Printf("Validating the virtual services")
 	Eventually(func() bool {
 		// Fetch the virtual services for the deployed applications
 		virtualServiceList, err := pkg.GetVirtualServiceList("")
 		if err != nil {
-			log.Fatalf("Error while fetching GatewayList\n%s", err)
+			log.Fatalf("Error while fetching VirtualServiceList\n%s", err)
 		}
 		// Verify that the virtual services contain the expected environment name and domain nameƒ
 		for _, virtualService := range virtualServiceList.Items {
@@ -158,6 +170,7 @@ func validateVirtualServiceList(domain string) {
 }
 
 func createCustomCACertificate(certName string, secretNamespace string, secretName string) {
+	log.Printf("Creating custom CA certificate")
 	output, err := exec.Command("/bin/sh", "create-custom-ca.sh", "-k", "-c", certName, "-s", secretName, "-n", secretNamespace).Output()
 	if err != nil {
 		log.Println("Error in creating custom CA secret using the script create-custom-ca.sh")
@@ -166,18 +179,32 @@ func createCustomCACertificate(certName string, secretNamespace string, secretNa
 	log.Println(string(output))
 }
 
-func validateCACertificateIssuer(certIssuer string) {
-	Eventually(func() bool {
-		// Fetch the certificates for the deployed applications
-		certificateList, err := pkg.GetCertificateList("")
-		if err != nil {
-			log.Fatalf("Error while fetching CertificateList\n%s", err)
+func fetchCACertificatesFromIssuer(certIssuer string) []certmanagerv1.Certificate {
+	// Reintialize the certificate list
+	var certificates []certmanagerv1.Certificate
+	// Fetch the certificates for the deployed applications
+	certificateList, err := pkg.GetCertificateList("")
+	if err != nil {
+		log.Fatalf("Error while fetching CertificateList\n%s", err)
+	}
+	// Filter out the certificates that are issued by the given issuer
+	for _, certificate := range certificateList.Items {
+		if certificate.Spec.IssuerRef.Name == certIssuer {
+			certificates = append(certificates, certificate)
 		}
+	}
+	return certificates
+}
+
+func validateCACertificateIssuer() {
+	log.Printf("Validating the CA certificates")
+	Eventually(func() bool {
+		// Fetch the certificates
+		var certificates []certmanagerv1.Certificate = fetchCACertificatesFromIssuer(testCertIssuerName)
 		// Verify that the certificate is issued by the right cluster issuer
-		for _, certificate := range certificateList.Items {
-			currIssuer := certificate.Spec.IssuerRef.Name
-			if currIssuer != certIssuer {
-				log.Printf("Issuer for the certificate %s in namespace %s is %s; expected is %s\n", certificate.Name, certificate.Namespace, currIssuer, certIssuer)
+		for _, certificate := range certificates {
+			if certificate.Spec.IssuerRef.Name != testCertIssuerName {
+				log.Printf("Issuer for the certificate %s in namespace %s is %s; expected is %s\n", certificate.Name, certificate.Namespace, certificate.Spec.IssuerRef.Name, testCertIssuerName)
 				return false
 			}
 		}
@@ -186,13 +213,11 @@ func validateCACertificateIssuer(certIssuer string) {
 }
 
 func validateCertManagerResourcesCleanup() {
+	log.Printf("Validating CA certificate resource cleanup")
 	Eventually(func() bool {
-		// Verify that the existing certificate has been removed
-		certificateList, err := pkg.GetCertificateList(currentCertNamespace)
-		if err != nil {
-			log.Fatalf("Error while fetching CertificateList\n%s", err)
-		}
-		for _, certificate := range certificateList.Items {
+		// Fetch the certificates
+		var certificates []certmanagerv1.Certificate = fetchCACertificatesFromIssuer(currentCertIssuerName)
+		for _, certificate := range certificates {
 			if certificate.Name == currentCertName {
 				log.Printf("Certificate %s should NOT exist in the namespace %s\n", currentCertName, currentCertNamespace)
 				return false
@@ -211,7 +236,9 @@ func validateCertManagerResourcesCleanup() {
 		}
 		// Verify that the secret used for the default certificate has been removed
 		_, err = pkg.GetSecret(currentCertSecretNamespace, currentCertSecretName)
-		if err == nil {
+		if err != nil {
+			log.Printf("Expected that the secret %s should NOT exist in the namespace %s", currentCertSecretName, currentCertSecretNamespace)
+		} else {
 			log.Printf("Secret %s should NOT exist in the namespace %s\n", currentCertSecretName, currentCertSecretNamespace)
 			return false
 		}
@@ -220,6 +247,7 @@ func validateCertManagerResourcesCleanup() {
 }
 
 func cleanupTemporaryFiles(files []string) error {
+	log.Printf("Cleaning up temporary files")
 	var err error
 	for _, file := range files {
 		_, err = os.Stat(file)
