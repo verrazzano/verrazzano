@@ -541,60 +541,71 @@ func apply(data []byte, config *rest.Config) error {
 		if unsMap == nil {
 			return nil
 		}
-		if uns.GetNamespace() == "" {
-			_, err = client.Resource(unsMap.Resource).Create(context.TODO(), uns, metav1.CreateOptions{})
-		} else {
-			_, err = client.Resource(unsMap.Resource).Namespace(uns.GetNamespace()).Create(context.TODO(), uns, metav1.CreateOptions{})
-		}
-		if err != nil && errors.IsAlreadyExists(err) {
-			// Get, read the resource version, and then update the resource.
-			resource, err := client.Resource(unsMap.Resource).Namespace(uns.GetNamespace()).Get(context.TODO(), uns.GetName(), metav1.GetOptions{})
-			if err != nil {
-				return fmt.Errorf("failed to get resource for update: %w", err)
-			}
-			uns.SetResourceVersion(resource.GetResourceVersion())
-			_, err = client.Resource(unsMap.Resource).Namespace(uns.GetNamespace()).Update(context.TODO(), uns, metav1.UpdateOptions{})
-			if err != nil && uns.GetKind() == "Service" && uns.GetName() == "cattle-cluster-agent" {
-				_ = client.Resource(unsMap.Resource).Namespace(uns.GetNamespace()).Delete(context.TODO(), uns.GetName(), metav1.DeleteOptions{})
-				uns.SetResourceVersion("")
-				_, err = client.Resource(unsMap.Resource).Namespace(uns.GetNamespace()).Create(context.TODO(), uns, metav1.CreateOptions{})
-			}
-			if err != nil {
-				return fmt.Errorf("failed to update resource: %w", err)
-			}
-		} else if err != nil {
-			if uns.GetKind() == "ClusterRoleBinding" {
-				cli, _ := kubernetes.NewForConfig(config)
-				crb := toClusterRoleBinding(uns)
-				_, err = cli.RbacV1().ClusterRoleBindings().Get(context.TODO(), crb.Name, metav1.GetOptions{})
-				if err != nil && errors.IsNotFound(err) {
-					_, err = cli.RbacV1().ClusterRoleBindings().Create(context.TODO(), crb, metav1.CreateOptions{})
-				} else {
-					_, err = cli.RbacV1().ClusterRoleBindings().Update(context.TODO(), crb, metav1.UpdateOptions{})
-				}
-				if err != nil {
-					return fmt.Errorf("failed to create ClusterRoleBinding: %w", err)
-				}
-			} else {
-				msg := "failed to create resource: %v"
-				pkg.Log(pkg.Error, fmt.Sprintf(msg, err))
-				return fmt.Errorf(msg, err)
-			}
+		if err = upsert(client, config, uns, unsMap); err != nil {
+			return err
 		}
 	}
 }
 
-func toClusterRoleBinding(uns *unstructured.Unstructured) *rbac.ClusterRoleBinding {
-	toString := func(node interface{}, path ...string) string {
-		val := yq(node, path...)
-		if val == nil {
-			return ""
-		}
-		if s, ok := val.(string); ok {
-			return s
-		}
-		return fmt.Sprintf("%v", val)
+func upsert(client dynamic.Interface, config *rest.Config, uns *unstructured.Unstructured, unsMap *meta.RESTMapping) error {
+	var err error
+	if uns.GetNamespace() == "" {
+		_, err = client.Resource(unsMap.Resource).Create(context.TODO(), uns, metav1.CreateOptions{})
+	} else {
+		_, err = client.Resource(unsMap.Resource).Namespace(uns.GetNamespace()).Create(context.TODO(), uns, metav1.CreateOptions{})
 	}
+	if err != nil && errors.IsAlreadyExists(err) {
+		if err = update(client, uns, unsMap); err != nil {
+			return err
+		}
+	} else if err != nil {
+		if uns.GetKind() == "ClusterRoleBinding" {
+			if err = upsertCRB(config, uns); err != nil {
+				return err
+			}
+		} else {
+			msg := "failed to create resource: %v"
+			pkg.Log(pkg.Error, fmt.Sprintf(msg, err))
+			return fmt.Errorf(msg, err)
+		}
+	}
+	return nil
+}
+
+func update(client dynamic.Interface, uns *unstructured.Unstructured, unsMap *meta.RESTMapping) error {
+	resource, err := client.Resource(unsMap.Resource).Namespace(uns.GetNamespace()).Get(context.TODO(), uns.GetName(), metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get resource for update: %w", err)
+	}
+	uns.SetResourceVersion(resource.GetResourceVersion())
+	_, err = client.Resource(unsMap.Resource).Namespace(uns.GetNamespace()).Update(context.TODO(), uns, metav1.UpdateOptions{})
+	if err != nil && uns.GetKind() == "Service" && uns.GetName() == "cattle-cluster-agent" {
+		_ = client.Resource(unsMap.Resource).Namespace(uns.GetNamespace()).Delete(context.TODO(), uns.GetName(), metav1.DeleteOptions{})
+		uns.SetResourceVersion("")
+		_, err = client.Resource(unsMap.Resource).Namespace(uns.GetNamespace()).Create(context.TODO(), uns, metav1.CreateOptions{})
+	}
+	if err != nil {
+		return fmt.Errorf("failed to update resource: %w", err)
+	}
+	return nil
+}
+
+func upsertCRB(config *rest.Config, uns *unstructured.Unstructured) error {
+	cli, _ := kubernetes.NewForConfig(config)
+	crb := clusterRoleBinding(uns)
+	_, err := cli.RbacV1().ClusterRoleBindings().Get(context.TODO(), crb.Name, metav1.GetOptions{})
+	if err != nil && errors.IsNotFound(err) {
+		_, err = cli.RbacV1().ClusterRoleBindings().Create(context.TODO(), crb, metav1.CreateOptions{})
+	} else {
+		_, err = cli.RbacV1().ClusterRoleBindings().Update(context.TODO(), crb, metav1.UpdateOptions{})
+	}
+	if err != nil {
+		return fmt.Errorf("failed to create ClusterRoleBinding: %w", err)
+	}
+	return nil
+}
+
+func clusterRoleBinding(uns *unstructured.Unstructured) *rbac.ClusterRoleBinding {
 	rb := &rbac.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      uns.GetName(),
@@ -603,17 +614,21 @@ func toClusterRoleBinding(uns *unstructured.Unstructured) *rbac.ClusterRoleBindi
 		},
 		Subjects: []rbac.Subject{},
 		RoleRef: rbac.RoleRef{
-			Kind:     toString(uns.Object, "roleRef", "kind"),
-			Name:     toString(uns.Object, "roleRef", "name"),
-			APIGroup: toString(uns.Object, "roleRef", "apiGroup"),
+			Kind:     yqString(uns.Object, "roleRef", "kind"),
+			Name:     yqString(uns.Object, "roleRef", "name"),
+			APIGroup: yqString(uns.Object, "roleRef", "apiGroup"),
 		},
 	}
 	if rb.Name == "" {
-		rb.Name = toString(uns.Object, "metadata", "name")
+		rb.Name = yqString(uns.Object, "metadata", "name")
 	}
 	if rb.Namespace == "" {
-		rb.Namespace = toString(uns.Object, "metadata", "namespace")
+		rb.Namespace = yqString(uns.Object, "metadata", "namespace")
 	}
+	return crbSubjects(crbLables(rb, uns), uns)
+}
+
+func crbLables(rb *rbac.ClusterRoleBinding, uns *unstructured.Unstructured) *rbac.ClusterRoleBinding {
 	if len(rb.Labels) == 0 {
 		rb.Labels = map[string]string{}
 		labels := yq(uns.Object, "metadata", "labels")
@@ -623,14 +638,18 @@ func toClusterRoleBinding(uns *unstructured.Unstructured) *rbac.ClusterRoleBindi
 			}
 		}
 	}
+	return rb
+}
+
+func crbSubjects(rb *rbac.ClusterRoleBinding, uns *unstructured.Unstructured) *rbac.ClusterRoleBinding {
 	if sbj := yq(uns.Object, "subjects"); sbj != nil {
 		arr, ok := sbj.([]interface{})
 		if len(arr) > 0 && ok {
 			for _, i := range arr {
 				rb.Subjects = append(rb.Subjects, rbac.Subject{
-					Kind:      toString(i, "kind"),
-					Name:      toString(i, "name"),
-					Namespace: toString(i, "namespace"),
+					Kind:      yqString(i, "kind"),
+					Name:      yqString(i, "name"),
+					Namespace: yqString(i, "namespace"),
 				})
 			}
 		}
@@ -674,4 +693,15 @@ func yq(node interface{}, path ...string) interface{} {
 		}
 	}
 	return node
+}
+
+func yqString(node interface{}, path ...string) string {
+	val := yq(node, path...)
+	if val == nil {
+		return ""
+	}
+	if s, ok := val.(string); ok {
+		return s
+	}
+	return fmt.Sprintf("%v", val)
 }
