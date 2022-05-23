@@ -72,6 +72,7 @@ func TestIsEnabled(t *testing.T) {
 	}
 }
 
+// TestValidateUpdate tests the Prometheus Operator ValidateUpdate function
 func TestValidateUpdate(t *testing.T) {
 	oldVZ := vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{

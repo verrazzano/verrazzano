@@ -39,6 +39,11 @@ import (
 type fakeRunner struct {
 }
 
+var (
+	falseValue = false
+	trueValue  = true
+)
+
 const profilesRelativePath = "../../../../manifests/profiles"
 
 var testExternalIP = ip.RandomIP()
@@ -784,4 +789,27 @@ func Test_istioComponent_ValidateInstall(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestValidateUpdate tests the istio ValidateUpdate function
+func TestValidateUpdate(t *testing.T) {
+	oldVZ := vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Istio: &vzapi.IstioComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	newVZ := vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Istio: &vzapi.IstioComponent{
+					Enabled: &falseValue,
+				},
+			},
+		},
+	}
+	assert.Error(t, NewComponent().ValidateUpdate(&oldVZ, &newVZ))
 }
