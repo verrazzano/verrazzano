@@ -8,10 +8,8 @@ import (
 	"encoding/json"
 	"fmt"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	"io/ioutil"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"strings"
 	"testing"
 	"time"
 
@@ -742,29 +740,6 @@ func appendAsUnstructured(list *unstructured.UnstructuredList, object interface{
 	}
 	list.Items = append(list.Items, u)
 	return nil
-}
-
-// readTemplate reads a string template from a file and replaces values in the template from param maps
-// template - The filename of a template
-// params - a vararg of param maps
-func readTemplate(template string, params ...map[string]string) (string, error) {
-	bytes, err := ioutil.ReadFile("../../" + template)
-	if err != nil {
-		bytes, err = ioutil.ReadFile("../" + template)
-		if err != nil {
-			bytes, err = ioutil.ReadFile(template)
-			if err != nil {
-				return "", err
-			}
-		}
-	}
-	content := string(bytes)
-	for _, p := range params {
-		for k, v := range p {
-			content = strings.ReplaceAll(content, k, v)
-		}
-	}
-	return content, nil
 }
 
 // TestReconcileKubeSystem tests to make sure we do not reconcile
