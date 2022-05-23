@@ -263,9 +263,7 @@ pipeline {
                             stages {
                                 stage('Create OCI DNS zone') {
                                     steps {
-                                        script {
-                                            dns_zone_ocid = sh(script: "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId}", returnStdout: true)
-                                        }
+                                        createOCIDNSZone()
                                     }
                                 }
                                 stage('Configure OCI DNS Resources') {
@@ -275,16 +273,7 @@ pipeline {
                                         OCI_DNS_ZONE_OCID = "${dns_zone_ocid}"
                                     }
                                     steps {
-                                        script {
-                                            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                                            for(int count=1; count<=clusterCount; count++) {
-                                                sh """
-                                                    export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
-                                                    cd ${GO_REPO_PATH}/verrazzano
-                                                    ./tests/e2e/config/scripts/create-test-oci-config-secret.sh
-                                                """
-                                            }
-                                        }
+                                        createTestOCIConfigSecret()
                                     }
                                 }
                                 stage('Configure OCI DNS Installers') {
@@ -547,7 +536,7 @@ pipeline {
                             }
                             post {
                                 always {
-                                    sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
+                                    saveConsoleTestArtifacts()
                                 }
                             }
                         }
@@ -659,50 +648,99 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }
-            sh """
-                # Copy the generated test reports to WORKSPACE to archive them
-                mkdir -p ${TEST_REPORT_DIR}
-                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
-            """
+            copyGeneratedTestReports()
             archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump*/**,**/test-cluster-dumps/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
             script {
                 if (params.EMIT_METRICS) {
-                    withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
-                        sh """
-                            ${GO_REPO_PATH}/verrazzano/ci/scripts/dashboard/emit_metrics.sh "${GO_REPO_PATH}/verrazzano/tests/e2e" "${PROMETHEUS_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
-                        """
-                    }
+                    emitMetrics()
                 }
-
-                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                if (env.TEST_ENV == "KIND") {
-                    for(int count=1; count<=clusterCount; count++) {
-                        sh """
-                            if [ "${env.TEST_ENV}" == "KIND" ]
-                            then
-                                kind delete cluster --name ${CLUSTER_NAME_PREFIX}-$count
-                            fi
-                        """
-                    }
-                } else {
-                    deleteOkeCluster()
-                }
-                sh """
-                    if [ -f ${POST_DUMP_FAILED_FILE} ]; then
-                        echo "Failures seen during dumping of artifacts, treat post as failed"
-                        exit 1
-                    fi
-                """
+                failBuildIfFailuresDuringArtifactsDump()
             }
         }
         cleanup {
+            // Delete clusters as the very first thing in cleanup to reclaim cluster resources especially OKE resources
+            deleteClusters()
             metricBuildDuration()
             emitJobMetrics()
             deleteDir()
         }
+    }
+}
+
+def createOCIDNSZone() {
+    script {
+        dns_zone_ocid = sh(script: "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId}", returnStdout: true)
+    }
+}
+
+def saveConsoleTestArtifacts() {
+    script {
+        sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
+    }
+}
+
+def createTestOCIConfigSecret() {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for(int count=1; count<=clusterCount; count++) {
+            sh """
+                export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
+                cd ${GO_REPO_PATH}/verrazzano
+                ./tests/e2e/config/scripts/create-test-oci-config-secret.sh
+            """
+        }
+    }
+}
+
+def deleteClusters() {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        if (env.TEST_ENV == "KIND") {
+            for(int count=1; count<=clusterCount; count++) {
+                sh """
+                    if [ "${env.TEST_ENV}" == "KIND" ]
+                    then
+                        kind delete cluster --name ${CLUSTER_NAME_PREFIX}-$count
+                    fi
+                """
+            }
+        } else {
+            deleteOkeClusters()
+        }
+    }
+}
+
+def copyGeneratedTestReports() {
+    script {
+        sh """
+            # Copy the generated test reports to WORKSPACE to archive them
+            mkdir -p ${TEST_REPORT_DIR}
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
+        """
+    }
+}
+
+def emitMetrics() {
+    script {
+        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+            sh """
+                ${GO_REPO_PATH}/verrazzano/ci/scripts/dashboard/emit_metrics.sh "${GO_REPO_PATH}/verrazzano/tests/e2e" "${PROMETHEUS_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
+            """
+        }
+    }
+}
+
+def failBuildIfFailuresDuringArtifactsDump() {
+    script {
+        sh """
+            if [ -f ${POST_DUMP_FAILED_FILE} ]; then
+                echo "Failures seen during dumping of artifacts, treat post as failed"
+                exit 1
+            fi
+        """
     }
 }
 
@@ -790,7 +828,7 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
     }
 }
 
-def deleteOkeCluster() {
+def deleteOkeClusters() {
     script {
         sh """
             mkdir -p ${KUBECONFIG_DIR}
