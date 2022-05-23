@@ -108,17 +108,21 @@ var _ = t.Describe("Post Install Overrides", func() {
 		// Create the overrides resources listed in Verrazzano and verify
 		// that the values have been applied to promtheus-operator
 		t.Context("Create Overrides", func() {
-			t.It("Create ConfigMap", gomega.Eventually(func() error {
-				testConfigMap.Data[dataKey] = oldCMData
-				err := pkg.CreateConfigMap(&testConfigMap)
-				return err
-			}, waitTimeout, pollingInterval).Should(gomega.BeNil()))
+			t.It("Create ConfigMap", func() {
+				gomega.Eventually(func() error {
+					testConfigMap.Data[dataKey] = oldCMData
+					err := pkg.CreateConfigMap(&testConfigMap)
+					return err
+				}, waitTimeout, pollingInterval).Should(gomega.BeNil())
+			})
 
-			t.It("Create Secret", gomega.Eventually(func() error {
-				testSecret.StringData[dataKey] = oldSecretData
-				err := pkg.CreateSecret(&testSecret)
-				return err
-			}, waitTimeout, pollingInterval).Should(gomega.BeNil()))
+			t.It("Create Secret", func() {
+				gomega.Eventually(func() error {
+					testSecret.StringData[dataKey] = oldSecretData
+					err := pkg.CreateSecret(&testSecret)
+					return err
+				}, waitTimeout, pollingInterval).Should(gomega.BeNil())
+			})
 		})
 
 		t.It("Verify override values are applied", func() {
@@ -139,17 +143,21 @@ var _ = t.Describe("Post Install Overrides", func() {
 		// Update the overrides resources listed in Verrazzano and verify
 		// that the new values have been applied to promtheus-operator
 		t.Context("Update Overrides", func() {
-			t.It("Update ConfigMap", gomega.Eventually(func() error {
-				testConfigMap.Data[dataKey] = newCMData
-				err := pkg.UpdateConfigMap(&testConfigMap)
-				return err
-			}, waitTimeout, pollingInterval).Should(gomega.BeNil()))
+			t.It("Update ConfigMap", func() {
+				gomega.Eventually(func() error {
+					testConfigMap.Data[dataKey] = newCMData
+					err := pkg.UpdateConfigMap(&testConfigMap)
+					return err
+				}, waitTimeout, pollingInterval).Should(gomega.BeNil())
+			})
 
-			t.It("Update Secret", gomega.Eventually(func() error {
-				testSecret.StringData[dataKey] = newSecretData
-				err := pkg.UpdateSecret(&testSecret)
-				return err
-			}, waitTimeout, pollingInterval).Should(gomega.BeNil()))
+			t.It("Update Secret", func() {
+				gomega.Eventually(func() error {
+					testSecret.StringData[dataKey] = newSecretData
+					err := pkg.UpdateSecret(&testSecret)
+					return err
+				}, waitTimeout, pollingInterval).Should(gomega.BeNil())
+			})
 		})
 
 		t.It("Verify override values are applied", func() {
