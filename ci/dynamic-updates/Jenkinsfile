@@ -415,13 +415,13 @@ pipeline {
                     }
                 }
 
-                stage('Env-DNS-Cert Update Tests') {
+                stage('EnvironmentName/DNS/CertManager Update Tests') {
                     environment {
                         TEST_ENV = "KIND"
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/env-dns-cert-update"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/env-dns-cm-update"
                     }
                     steps {
-                        runGinkgo('update/env-dns-cert')
+                        runGinkgo('update/env-dns-cm')
                     }
                     post {
                         always {
