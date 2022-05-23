@@ -170,6 +170,11 @@ func validateBOM(vBom *verrazzanoBom, clusterImageMap map[string][tagLen]string,
 				continue
 			}
 			for _, image := range subcomponent.Images {
+				if !isAdminCluster && image.Image == "oraclelinux" && image.Tag == "7.9" {
+					// oraclelinux 7.9 is meant for open/elastic search
+					// skipping its image & tag validation against managed cluster
+					continue
+				}
 				if tags, ok := clusterImageMap[image.Image]; ok {
 					var tagFound bool = false
 					for _, tag := range tags {
@@ -178,7 +183,7 @@ func validateBOM(vBom *verrazzanoBom, clusterImageMap map[string][tagLen]string,
 							break
 						}
 					}
-					if !tagFound && isAdminCluster {
+					if !tagFound {
 						imageTagErrors[image.Image] = imageError{image.Tag, tags} // TODO  Fix up message
 						errorsFound = true
 					}
