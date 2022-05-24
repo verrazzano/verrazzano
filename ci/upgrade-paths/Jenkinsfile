@@ -399,11 +399,6 @@ pipeline {
                                 runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", "false", "false", "false")
                             }
                         }
-                        stage ('Grafana Pre Upgrade - single cluster') {
-                            steps {
-                                runGinkgoRandomize('upgrade/pre-upgrade/grafana')
-                            }
-                        }
                     }
                 }
                 stage("upgrade-platform-operator") {
@@ -564,11 +559,6 @@ pipeline {
                         stage('opensearch post-upgrade') {
                             steps {
                                 runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/opensearch', "${TEST_DUMP_ROOT}/opensearch")
-                            }
-                        }
-                        stage ('Grafana post upgrade - single cluster') {
-                            steps {
-                                runGinkgoRandomize('upgrade/post-upgrade/grafana')
                             }
                         }
                         stage ("Verify install scripts") {
