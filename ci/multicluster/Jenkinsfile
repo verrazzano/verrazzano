@@ -396,12 +396,6 @@ pipeline {
                         }
                     }
                 }
-                stage("Update external OpenSearch") {
-                    when { expression { return params.EXTERNAL_ELASTICSEARCH == true } }
-                    steps {
-                        runGinkgoAdmin('update/fluentdextes')
-                    }
-                }
                 stage ('Register managed clusters') {
                     steps {
                         registerManagedClusters()
@@ -460,12 +454,16 @@ pipeline {
 
         stage ('Verify Install') {
             stages {
+                stage("verify-fluentd-update") {
+                    steps {
+                        runGinkgoAdmin('update/fluentdextes')
+                    }
+                }
                 stage('verify-install') {
                     steps {
                         runGinkgoRandomize('verify-install')
                     }
                 }
-
                 stage ('multicluster/verify-install') {
                     steps {
                         runGinkgoRandomize('multicluster/verify-install')

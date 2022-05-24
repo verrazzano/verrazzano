@@ -4,7 +4,6 @@
 package helm
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -25,7 +24,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -751,183 +749,6 @@ func TestFilesFromVerrazzanoHelm(t *testing.T) {
 			if tt.expectError {
 				a.Error(err)
 			} else {
-				a.NoError(err)
-			}
-		})
-	}
-}
-
-// TestRetrieveInstallOverrideResources tests retrieveInstallOverrideResources
-// GIVEN an override list
-//  WHEN I call retrieveInstallOverrideResources
-//  THEN I get a list of key value pairs of files from the override sources
-func TestRetrieveInstallOverrideResources(t *testing.T) {
-	trueval := true
-	dataKey := "testKey"
-	wrongKey := "wrongKey"
-	testName := "testName"
-	dataVal := "dataVal"
-
-	tests := []struct {
-		name          string
-		overrides     []v1alpha1.Overrides
-		expectError   bool
-		expectCMGet   bool
-		expectSecGet  bool
-		expectCMData  map[string]string
-		expectSecData map[string][]byte
-	}{
-		{
-			name:        "test no overrides",
-			overrides:   []v1alpha1.Overrides{},
-			expectError: false,
-		},
-		{
-			name: "test nil refs",
-			overrides: []v1alpha1.Overrides{
-				{
-					ConfigMapRef: nil,
-					SecretRef:    nil,
-				},
-			},
-			expectError: false,
-		},
-		{
-			name: "test nil selectors",
-			overrides: []v1alpha1.Overrides{
-				{
-					ConfigMapRef: nil,
-					SecretRef:    nil,
-				},
-			},
-			expectError: false,
-		},
-		{
-			name: "test configMap selectors",
-			overrides: []v1alpha1.Overrides{
-				{
-					ConfigMapRef: &corev1.ConfigMapKeySelector{
-						Key: dataKey,
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testName,
-						},
-					},
-				},
-			},
-			expectError: false,
-			expectCMGet: true,
-			expectCMData: map[string]string{
-				dataKey: dataVal,
-			},
-		},
-		{
-			name: "test Secret selectors",
-			overrides: []v1alpha1.Overrides{
-				{
-					SecretRef: &corev1.SecretKeySelector{
-						Key: dataKey,
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testName,
-						},
-					},
-				},
-			},
-			expectError:  false,
-			expectSecGet: true,
-			expectSecData: map[string][]byte{
-				dataKey: []byte(dataVal),
-			},
-		},
-		{
-			name: "test invalid data selectors",
-			overrides: []v1alpha1.Overrides{
-				{
-					SecretRef: &corev1.SecretKeySelector{
-						Key: dataKey,
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testName,
-						},
-					},
-				},
-			},
-			expectError:  true,
-			expectSecGet: true,
-			expectSecData: map[string][]byte{
-				wrongKey: []byte(dataVal),
-			},
-		},
-		{
-			name: "test invalid data selectors optional",
-			overrides: []v1alpha1.Overrides{
-				{
-					ConfigMapRef: &corev1.ConfigMapKeySelector{
-						Key: dataKey,
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testName,
-						},
-						Optional: &trueval,
-					},
-				},
-			},
-			expectError: false,
-			expectCMGet: true,
-			expectSecData: map[string][]byte{
-				wrongKey: []byte(dataVal),
-			},
-		},
-		{
-			name: "test valid data selectors optional",
-			overrides: []v1alpha1.Overrides{
-				{
-					ConfigMapRef: &corev1.ConfigMapKeySelector{
-						Key: dataKey,
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testName,
-						},
-						Optional: &trueval,
-					},
-				},
-			},
-			expectError: false,
-			expectCMGet: true,
-			expectSecData: map[string][]byte{
-				dataKey: []byte(dataVal),
-			},
-		},
-	}
-
-	a := assert.New(t)
-	mock := gomock.NewController(t)
-	client := mocks.NewMockClient(mock)
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.expectCMGet {
-				client.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).DoAndReturn(
-					func(ctx context.Context, nsn types.NamespacedName, configmap *corev1.ConfigMap) error {
-						configmap.Data = tt.expectCMData
-						return nil
-					})
-			}
-			if tt.expectSecGet {
-				client.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).DoAndReturn(
-					func(ctx context.Context, nsn types.NamespacedName, sec *corev1.Secret) error {
-						sec.Data = tt.expectSecData
-						return nil
-					})
-			}
-
-			ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)
-
-			comp := HelmComponent{}
-			kvs, err := comp.retrieveInstallOverrideResources(ctx, tt.overrides)
-			if tt.expectError {
-				a.Error(err)
-			} else {
-				for _, kv := range kvs {
-					a.NotEqual(kv.Value, "")
-					a.True(kv.IsFile)
-				}
 				a.NoError(err)
 			}
 		})
