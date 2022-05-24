@@ -27,9 +27,12 @@ func (r *Reconciler) doOperatorReconcile(ctx context.Context, trait *vzapi.Metri
 func (r *Reconciler) reconcileOperatorTraitCreateOrUpdate(ctx context.Context, trait *vzapi.MetricsTrait, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
 	var err error
 	// Add finalizer if required.
-	if err := r.addFinalizerIfRequired(ctx, trait, log); err != nil {
-		return reconcile.Result{}, err
-	}
+	// Disabled for now so as not to add two finalizers
+	/*
+		if err := r.addFinalizerIfRequired(ctx, trait, log); err != nil {
+			return reconcile.Result{}, err
+		}
+	*/
 
 	// Fetch workload resource using information from the trait
 	var workload *unstructured.Unstructured

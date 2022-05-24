@@ -297,10 +297,9 @@ func (r *Reconciler) reconcileTraitCreateOrUpdate(ctx context.Context, trait *vz
 	var err error
 
 	// Add finalizer if required.
-	// this is disabled for the time being to only apply one finalizer
-	// if err = r.addFinalizerIfRequired(ctx, trait, log); err != nil {
-	// return reconcile.Result{}, true, err
-	// }
+	if err = r.addFinalizerIfRequired(ctx, trait, log); err != nil {
+		return reconcile.Result{}, true, err
+	}
 
 	// Fetch workload resource using information from the trait
 	var workload *unstructured.Unstructured
