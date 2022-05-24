@@ -698,6 +698,7 @@ func (in *IstioComponent) DeepCopyInto(out *IstioComponent) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	in.InstallOverrides.DeepCopyInto(&out.InstallOverrides)
 	if in.Enabled != nil {
 		in, out := &in.Enabled, &out.Enabled
 		*out = new(bool)
