@@ -18,8 +18,8 @@ fi
 INSTALL_CALICO=${1:-false}
 WILDCARD_DNS_DOMAIN=${2:-"x=nip.io"}
 KIND_NODE_COUNT=${KIND_NODE_COUNT:-1}
-TEST_OVERRIDE_CONFIGMAP_FILE="./tests/e2e/config/scripts/test-overrides-configmap.yaml"
-TEST_OVERRIDE_SECRET_FILE="./tests/e2e/config/scripts/test-overrides-secret.yaml"
+TEST_OVERRIDE_CONFIGMAP_FILE="./tests/e2e/config/scripts/pre-install-overrides/test-overrides-configmap.yaml"
+TEST_OVERRIDE_SECRET_FILE="./tests/e2e/config/scripts/pre-install-overrides/test-overrides-secret.yaml"
 
 cd ${GO_REPO_PATH}/verrazzano
 echo "tests will execute" > ${TESTS_EXECUTED_FILE}
