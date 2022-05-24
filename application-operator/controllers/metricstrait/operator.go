@@ -60,8 +60,8 @@ func (r *Reconciler) reconcileOperatorTraitCreateOrUpdate(ctx context.Context, t
 
 	status.RecordOutcome(r.updateServiceMonitor(ctx, trait, workload, traitDefaults, log))
 
-	// Update the status of the trait resource using the outcomes of the create or update.
-	return r.updateTraitStatus(ctx, trait, status, log)
+	// Don't update the trait status because it overrides the resource relation
+	// return r.updateTraitStatus(ctx, trait, status, log)
 }
 
 func (r *Reconciler) reconcileOperatorTraitDelete(ctx context.Context, trait *vzapi.MetricsTrait, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
