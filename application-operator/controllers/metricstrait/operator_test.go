@@ -5,12 +5,12 @@ package metricstrait
 
 import (
 	"context"
-	"github.com/golang/mock/gomock"
-	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
