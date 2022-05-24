@@ -59,7 +59,9 @@ Status of Verrazzano {{.verrazzano_name}}
 {{- if .rancher_url}}
     Rancher URL: {{.rancher_url}}
 {{- end}}
+{{- if .components_enabled}}
   Components:
+{{- end}}
 {{- if .comp_certmanager_state}}
     Cert Manager: {{.comp_certmanager_state}}
 {{- end}}
