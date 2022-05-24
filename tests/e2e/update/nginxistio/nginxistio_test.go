@@ -4,10 +4,12 @@
 package nginxistio
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"reflect"
 	"strconv"
+	"text/template"
 	"time"
 
 	"github.com/onsi/gomega"
@@ -57,13 +59,20 @@ var testIstioIngressPorts = []corev1.ServicePort{
 	},
 }
 
+type externalLBsTemplateData struct {
+	NginxIngressServiceServerList string
+	IstioIngressServiceServerList string
+}
+
 type NginxAutoscalingIstioRelicasAffintyModifier struct {
 	nginxReplicas        uint32
 	istioIngressReplicas uint32
 	istioEgressReplicas  uint32
 }
 
-type NginxIstioDefaultModifier struct {
+type NginxIstioNodePortModifier struct {
+	systemExternalLBIP      string
+	applicationExternalLBIP string
 }
 
 type NginxIstioServicePortsModifier struct {
@@ -154,9 +163,26 @@ func (m NginxAutoscalingIstioRelicasAffintyModifier) ModifyCR(cr *vzapi.Verrazza
 	//cr.Spec.Components.Istio.Egress.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution = requiredEgressAntiAffinity
 }
 
-func (u NginxIstioDefaultModifier) ModifyCR(cr *vzapi.Verrazzano) {
-	cr.Spec.Components.Ingress = &vzapi.IngressNginxComponent{}
-	cr.Spec.Components.Istio = &vzapi.IstioComponent{}
+func (u NginxIstioNodePortModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	if cr.Spec.Components.Ingress == nil {
+		cr.Spec.Components.Ingress = &vzapi.IngressNginxComponent{}
+	}
+	cr.Spec.Components.Ingress.Ports = testNginxIngressPorts
+	cr.Spec.Components.Ingress.Type = "NodePort"
+	nginxInstallArgs := cr.Spec.Components.Ingress.NGINXInstallArgs
+	nginxInstallArgs = append(nginxInstallArgs, vzapi.InstallArgs{Name: "controller.service.externalIPs", Value: u.systemExternalLBIP})
+	cr.Spec.Components.Ingress.NGINXInstallArgs = nginxInstallArgs
+	if cr.Spec.Components.Istio == nil {
+		cr.Spec.Components.Istio = &vzapi.IstioComponent{}
+	}
+	if cr.Spec.Components.Istio.Ingress == nil {
+		cr.Spec.Components.Istio.Ingress = &vzapi.IstioIngressSection{}
+	}
+	cr.Spec.Components.Istio.Ingress.Ports = testIstioIngressPorts
+	cr.Spec.Components.Istio.Ingress.Type = "NodePort"
+	istioInstallArgs := cr.Spec.Components.Istio.IstioInstallArgs
+	istioInstallArgs = append(istioInstallArgs, vzapi.InstallArgs{Name: "gateways.istio-ingressgateway.externalIPs", Value: u.applicationExternalLBIP})
+	cr.Spec.Components.Istio.IstioInstallArgs = istioInstallArgs
 }
 
 func (u NginxIstioServicePortsModifier) ModifyCR(cr *vzapi.Verrazzano) {
@@ -185,20 +211,6 @@ var _ = t.BeforeSuite(func() {
 			nodeCount = uint32(u)
 		}
 	}
-})
-
-var _ = t.AfterSuite(func() {
-	m := NginxIstioDefaultModifier{}
-	update.UpdateCR(m)
-	cr := update.GetCR()
-
-	expectedIstioRunning := uint32(1)
-	if cr.Spec.Profile == "prod" || cr.Spec.Profile == "" {
-		expectedIstioRunning = 2
-	}
-	update.ValidatePods(nginxLabelValue, nginxLabelKey, constants.IngressNamespace, uint32(1), false)
-	update.ValidatePods(istioIngressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, expectedIstioRunning, false)
-	update.ValidatePods(istioEgressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, expectedIstioRunning, false)
 })
 
 var _ = t.Describe("Update nginx-istio", Label("f:platform-lcm.update"), func() {
@@ -239,6 +251,70 @@ var _ = t.Describe("Update nginx-istio", Label("f:platform-lcm.update"), func() 
 			validateServicePorts()
 		})
 	})
+
+	t.Describe("verrazzano-nginx-istio update nodeport", Label("f:platform-lcm.nginx-istio-update-nodeport"), func() {
+		t.It("nginx-istio update ingress type", func() {
+			t.Logs.Info("Create external load balancers")
+			pkg.CreateNamespaceWithAnnotations("external-lb", map[string]string{}, map[string]string{})
+
+			nodes, err := pkg.ListNodes()
+			if err != nil {
+				Fail(err.Error())
+			}
+			if len(nodes.Items) < 1 {
+				Fail("can not find node in the cluster")
+			}
+			var nginxList, istioList string
+			for _, node := range nodes.Items {
+				if len(node.Status.Addresses) < 1 {
+					Fail("can not find address in the node")
+				}
+				nginxList = nginxList + fmt.Sprintf("           server %s:31443\n", node.Status.Addresses[0].Address)
+				istioList = istioList + fmt.Sprintf("           server %s:32443\n", node.Status.Addresses[0].Address)
+			}
+
+			templateData := externalLBsTemplateData{
+				NginxIngressServiceServerList: nginxList,
+				IstioIngressServiceServerList: istioList,
+			}
+
+			file, err := pkg.FindTestDataFile("testdata/external-lb/external-lbs.yaml")
+			if err != nil {
+				Fail(err.Error())
+			}
+			template, err := template.ParseFiles(file)
+			if err != nil {
+				Fail(err.Error())
+			}
+			var buff bytes.Buffer
+			err = template.Execute(&buff, &templateData)
+			if err != nil {
+				Fail(err.Error())
+			}
+
+			err = pkg.CreateOrUpdateResourceFromBytes(buff.Bytes())
+			if err != nil {
+				Fail(err.Error())
+			}
+
+			sysIP, err := getServiceLoadBalancerIP("external-lb", "system-external-lb-svc")
+			if err != nil {
+				Fail(err.Error())
+			}
+
+			appIP, err := getServiceLoadBalancerIP("external-lb", "application-external-lb-svc")
+			if err != nil {
+				Fail(err.Error())
+			}
+
+			t.Logs.Infof("Update nginx/istio ingresses to use NodePort with external load balancers: %s and %s", sysIP, appIP)
+			m := NginxIstioNodePortModifier{systemExternalLBIP: sysIP, applicationExternalLBIP: appIP}
+			update.UpdateCR(m)
+
+			t.Logs.Info("Validate nginx/istio ingresses for NodePort and externalIPs")
+			validateServiceTypeAndExternalIP(sysIP, appIP)
+		})
+	})
 })
 
 func validateServicePorts() {
@@ -249,15 +325,68 @@ func validateServicePorts() {
 			return err
 		}
 		if !reflect.DeepEqual(testNginxIngressPorts, nginxIngress.Spec.Ports) {
-			return fmt.Errorf("expect nginx with ports %v, but got %v", testNginxIngressPorts, nginxIngress.Spec.Ports)
+			return fmt.Errorf("expect nginx ingress with ports %v, but got %v", testNginxIngressPorts, nginxIngress.Spec.Ports)
 		}
 		istioIngress, err := pkg.GetService(constants.IstioSystemNamespace, "istio-ingressgateway")
 		if err != nil {
 			return err
 		}
 		if !reflect.DeepEqual(testIstioIngressPorts, istioIngress.Spec.Ports) {
-			return fmt.Errorf("expect nginx with ports %v, but got %v", testNginxIngressPorts, istioIngress.Spec.Ports)
+			return fmt.Errorf("expect istio ingress with ports %v, but got %v", testNginxIngressPorts, istioIngress.Spec.Ports)
 		}
 		return nil
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "expect to get correct ports setting from nginx and istio services")
+}
+
+func validateServiceTypeAndExternalIP(sysIP, appIP string) {
+	gomega.Eventually(func() error {
+		var err error
+		nginxIngress, err := pkg.GetService(constants.IngressNamespace, "ingress-controller-ingress-nginx-controller")
+		if err != nil {
+			return err
+		}
+		if "NodePort" == nginxIngress.Spec.Type {
+			return fmt.Errorf("expect nginx ingress with type NodePort, but got %v", nginxIngress.Spec.Type)
+		}
+		expectedSysIPs := [1]string{sysIP}
+		if !reflect.DeepEqual(expectedSysIPs, nginxIngress.Spec.ExternalIPs[0]) {
+			return fmt.Errorf("expect nginx ingress with externalIPs %v, but got %v", expectedSysIPs, nginxIngress.Spec.ExternalIPs)
+		}
+		istioIngress, err := pkg.GetService(constants.IstioSystemNamespace, "istio-ingressgateway")
+		if err != nil {
+			return err
+		}
+		if "NodePort" == istioIngress.Spec.Type {
+			return fmt.Errorf("expect istio ingress with type NodePort, but got %v", istioIngress.Spec.Type)
+		}
+		expectedAppIPs := [1]string{appIP}
+		if !reflect.DeepEqual(expectedAppIPs, istioIngress.Spec.ExternalIPs[0]) {
+			return fmt.Errorf("expect nginx ingress with externalIPs %v, but got %v", expectedAppIPs, istioIngress.Spec.ExternalIPs)
+		}
+		return nil
+	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "expect to get correct type and externalIPs from nginx and istio services")
+}
+
+func getServiceLoadBalancerIP(ns, svcName string) (string, error) {
+	gomega.Eventually(func() error {
+		svc, err := pkg.GetService(ns, svcName)
+		if err != nil {
+			return err
+		}
+		if len(svc.Status.LoadBalancer.Ingress) == 0 {
+			return fmt.Errorf("loadBalancer for service %s/%s is not ready yet", ns, svcName)
+		}
+		return nil
+	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get a loadBalancer for service")
+
+	// Get the CR
+	svc, err := pkg.GetService(ns, svcName)
+	if err != nil {
+		return "", err
+	}
+	if len(svc.Status.LoadBalancer.Ingress) > 0 {
+		return svc.Status.LoadBalancer.Ingress[0].IP, nil
+	}
+
+	return "", fmt.Errorf("no IP is found for service %s/%s", ns, svcName)
 }
