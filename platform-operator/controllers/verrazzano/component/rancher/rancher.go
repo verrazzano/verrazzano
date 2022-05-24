@@ -174,7 +174,7 @@ func checkRancherUpgradeFailure(c client.Client, log vzlog.VerrazzanoLogger) err
 		scanner := bufio.NewScanner(logStream)
 		for scanner.Scan() {
 			token := scanner.Text()
-			if strings.Contains(token, "Failed to find system chart") {
+			if strings.Contains(token, "[ERROR] available chart version") {
 				log.Infof("Rancher IsReady: Failed to find system chart for pod %s: %s", pod.Name, token)
 				restartPod = true
 				break
