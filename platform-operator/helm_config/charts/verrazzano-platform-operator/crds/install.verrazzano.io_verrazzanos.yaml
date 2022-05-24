@@ -3649,6 +3649,8 @@ spec:
                               required:
                               - key
                               type: object
+                            values:
+                              type: object
                           type: object
                         type: array
                     type: object
@@ -5442,6 +5444,8 @@ spec:
                                   type: boolean
                               required:
                               - key
+                              type: object
+                            values:
                               type: object
                           type: object
                         type: array
