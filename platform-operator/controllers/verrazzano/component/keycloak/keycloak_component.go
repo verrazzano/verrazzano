@@ -202,7 +202,7 @@ func (c KeycloakComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallA
 func (c KeycloakComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	if ctx.EffectiveCR().Spec.Components.Keycloak != nil {
 		if ctx.EffectiveCR().Spec.Components.Keycloak.MonitorChanges != nil {
-			return *ctx.EffectiveCR().Spec.Components.Kiali.MonitorChanges
+			return *ctx.EffectiveCR().Spec.Components.Keycloak.MonitorChanges
 		}
 		return true
 	}
