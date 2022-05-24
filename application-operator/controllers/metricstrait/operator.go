@@ -62,6 +62,7 @@ func (r *Reconciler) reconcileOperatorTraitCreateOrUpdate(ctx context.Context, t
 
 	// Don't update the trait status because it overrides the resource relation
 	// return r.updateTraitStatus(ctx, trait, status, log)
+	return reconcile.Result{Requeue: true}, nil
 }
 
 func (r *Reconciler) reconcileOperatorTraitDelete(ctx context.Context, trait *vzapi.MetricsTrait, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
