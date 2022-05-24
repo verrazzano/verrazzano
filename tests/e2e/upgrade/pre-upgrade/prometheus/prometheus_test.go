@@ -32,6 +32,7 @@ const (
 	nodeExporter        = "node-exporter"
 	controllerNamespace = "controller_namespace"
 	job                 = "job"
+	cadvisor            = "cadvisor"
 
 	// Constants for test metric
 	testNamespace        = "deploymetrics"
@@ -88,7 +89,7 @@ var _ = t.Describe("Pre upgrade Prometheus", Label("f:observability.logging.es")
 	// THEN verify that the metric could be retrieved.
 	t.It("Verify sample Container Advisor metrics can be queried from Prometheus", func() {
 		Eventually(func() bool {
-			return pkg.MetricsExist(containerStartTimeSeconds, "", "")
+			return pkg.MetricsExist(containerStartTimeSeconds, job, cadvisor)
 		}).WithPolling(pollingInterval).WithTimeout(longTimeout).Should(BeTrue())
 	})
 
@@ -140,7 +141,8 @@ func deployMetricsApplication() {
 	Eventually(func() bool {
 		result, err := pkg.PodsRunning(testNamespace, expectedPodsDeploymetricsApp)
 		if err != nil {
-			Fail(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+			pkg.Log(pkg.Error, fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+			return false
 		}
 		return result
 	}, threeMinutes, pollingInterval).Should(BeTrue())

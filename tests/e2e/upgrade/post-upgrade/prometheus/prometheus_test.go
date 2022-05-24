@@ -6,6 +6,7 @@ package prometheus
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -31,12 +32,17 @@ const (
 	nodeExporter        = "node-exporter"
 	controllerNamespace = "controller_namespace"
 	job                 = "job"
+	cadvisor            = "cadvisor"
 
 	// Constants for test metric
+	testNamespace        = "deploymetrics"
 	testMetricName       = "tomcat_sessions_created_sessions_total"
 	testMetricLabelKey   = "app_oam_dev_component"
 	testMetricLabelValue = "deploymetrics-deployment"
+	promConfigJobName    = "deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment"
 )
+
+var expectedPodsDeploymetricsApp = []string{"deploymetrics-workload"}
 
 var t = framework.NewTestFramework("prometheus")
 
@@ -50,6 +56,10 @@ var _ = t.BeforeSuite(func() {
 	if !supported {
 		Skip("Prometheus component is not enabled")
 	}
+})
+
+var _ = t.AfterSuite(func() {
+	undeployMetricsApplication()
 })
 
 var _ = t.Describe("Post upgrade Prometheus", Label("f:observability.logging.es"), func() {
@@ -68,7 +78,7 @@ var _ = t.Describe("Post upgrade Prometheus", Label("f:observability.logging.es"
 	// THEN verify that the metric could be retrieved.
 	t.It("Verify sample Container Advisor metrics can be queried from Prometheus", func() {
 		Eventually(func() bool {
-			return pkg.MetricsExist(containerStartTimeSeconds, "", "")
+			return pkg.MetricsExist(containerStartTimeSeconds, job, cadvisor)
 		}).WithPolling(pollingInterval).WithTimeout(longTimeout).Should(BeTrue())
 	})
 
@@ -92,3 +102,42 @@ var _ = t.Describe("Post upgrade Prometheus", Label("f:observability.logging.es"
 	})
 
 })
+
+func undeployMetricsApplication() {
+	t.Logs.Info("Undeploy DeployMetrics Application")
+
+	Eventually(func() error {
+		return pkg.DeleteResourceFromFile("testdata/deploymetrics/deploymetrics-app.yaml")
+	}, threeMinutes, pollingInterval).ShouldNot(HaveOccurred())
+
+	t.Logs.Info("Delete components")
+	Eventually(func() error {
+		return pkg.DeleteResourceFromFile("testdata/deploymetrics/deploymetrics-comp.yaml")
+	}, threeMinutes, pollingInterval).ShouldNot(HaveOccurred())
+
+	t.Logs.Info("Wait for pods to terminate")
+	Eventually(func() bool {
+		podsNotRunning, _ := pkg.PodsNotRunning(testNamespace, expectedPodsDeploymetricsApp)
+		return podsNotRunning
+	}, threeMinutes, pollingInterval).Should(BeTrue())
+
+	Eventually(func() bool {
+		return pkg.IsAppInPromConfig(promConfigJobName)
+	}, threeMinutes, pollingInterval).Should(BeFalse(), "Expected App to be removed from Prometheus Config")
+
+	t.Logs.Info("Delete namespace")
+	Eventually(func() error {
+		return pkg.DeleteNamespace(testNamespace)
+	}, threeMinutes, pollingInterval).ShouldNot(HaveOccurred())
+
+	t.Logs.Info("Wait for Finalizer to be removed")
+	Eventually(func() bool {
+		return pkg.CheckNamespaceFinalizerRemoved(testNamespace)
+	}, threeMinutes, pollingInterval).Should(BeTrue())
+
+	t.Logs.Info("Waiting for namespace deletion")
+	Eventually(func() bool {
+		_, err := pkg.GetNamespace(testNamespace)
+		return err != nil && errors.IsNotFound(err)
+	}, longTimeout, pollingInterval).Should(BeTrue())
+}
