@@ -1401,6 +1401,10 @@ def createOKEClusters(clusterPrefix) {
 // Execute bom-validator against admin and managed cluster conditionally
 def executeBOMValidator() {
     script {
+        sh """
+            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
+            chmod +x ${WORKSPACE}/bom-validator
+        """
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         def isAdminCluster = "true"
         for(int count=1; count<=clusterCount; count++) {
@@ -1408,8 +1412,6 @@ def executeBOMValidator() {
                 isAdminCluster = "false"
             }
             sh """
-                oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
-                chmod +x ${WORKSPACE}/bom-validator
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 ${WORKSPACE}/bom-validator --isAdminCluster=${isAdminCluster}
             """
