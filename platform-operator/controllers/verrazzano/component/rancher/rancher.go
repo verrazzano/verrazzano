@@ -151,6 +151,7 @@ func checkRancherUpgradeFailure(c client.Client, log vzlog.VerrazzanoLogger) err
 	}
 
 	// Check the logs of each pod
+	podsRestarted := false
 	for i, pod := range podList.Items {
 		// Skip pods that are already being deleted
 		if pod.DeletionTimestamp != nil {
@@ -195,7 +196,14 @@ func checkRancherUpgradeFailure(c client.Client, log vzlog.VerrazzanoLogger) err
 			if err != nil {
 				return err
 			}
+			podsRestarted = true
 		}
+	}
+
+	// If any pods were restarted, return an error so that the IsReady check will not continue
+	// any further.  Checks will resume again after the pod is ready again.
+	if podsRestarted {
+		return fmt.Errorf("Rancher IsReady: pods were restarted, waiting for them to be ready again")
 	}
 
 	return nil
