@@ -232,8 +232,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// Fetch the trait.
 	var err error
 	var trait *vzapi.MetricsTrait
-	if trait, err = vznav.FetchTrait(ctx, r, zap.S(), req.NamespacedName); err != nil || trait == nil {
+	trait, err = vznav.FetchTrait(ctx, r, zap.S(), req.NamespacedName)
+	if err != nil {
 		return clusters.IgnoreNotFoundWithLog(err, zap.S())
+	}
+	if trait == nil {
+		return reconcile.Result{}, nil
 	}
 
 	log, err := clusters.GetResourceLogger("metricstrait", req.NamespacedName, trait)

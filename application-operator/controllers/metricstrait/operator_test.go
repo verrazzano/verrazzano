@@ -32,7 +32,7 @@ func TestOperatorReconcile(t *testing.T) {
 	var r Reconciler
 	mock := getNewMock(t)
 	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil()))
-	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()))
+	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).Times(2)
 	r.Client = mock
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -155,6 +155,13 @@ func TestMetricsTraitCreatedForDeploymentWorkload(t *testing.T) {
 	assert.NoError(err)
 	assert.Equal(true, result.Requeue)
 	assert.Equal(time.Duration(0), result.RequeueAfter)
+	trait := vzapi.MetricsTrait{}
+	err = c.Get(context.TODO(), types.NamespacedName{Name: "test-trait-name", Namespace: "test-namespace"}, &trait)
+	assert.NoError(err)
+	assert.Equal("test-namespace", trait.Namespace)
+	assert.Equal("test-trait-name", trait.Name)
+	assert.Len(trait.Finalizers, 1)
+	assert.Equal("metricstrait.finalizers.verrazzano.io", trait.Finalizers[0])
 }
 
 // TestMetricsTraitDeletedForContainerizedWorkload tests deletion of a metrics trait related to a containerized workload.
@@ -178,6 +185,10 @@ func TestMetricsTraitDeletedForContainerizedWorkload(t *testing.T) {
 	assert.NoError(err)
 	assert.Equal(true, result.Requeue)
 	assert.GreaterOrEqual(result.RequeueAfter.Seconds(), 45.0)
+	trait := vzapi.MetricsTrait{}
+	err = c.Get(context.TODO(), types.NamespacedName{Name: "test-trait-name", Namespace: "test-namespace"}, &trait)
+	assert.NoError(err)
+	assert.Len(trait.Finalizers, 0)
 }
 
 // TestMetricsTraitDeletedForContainerizedWorkload tests deletion of a metrics trait related to a containerized workload.
@@ -202,6 +213,10 @@ func TestMetricsTraitDeletedForContainerizedWorkloadWhenDeploymentDeleted(t *tes
 	assert.NoError(err)
 	assert.Equal(true, result.Requeue)
 	assert.GreaterOrEqual(result.RequeueAfter.Seconds(), 45.0)
+	trait := vzapi.MetricsTrait{}
+	err = c.Get(context.TODO(), types.NamespacedName{Name: "test-trait-name", Namespace: "test-namespace"}, &trait)
+	assert.NoError(err)
+	assert.Len(trait.Finalizers, 0)
 }
 
 // TestMetricsTraitDeletedForContainerizedWorkload tests deletion of a metrics trait related to a containerized workload.
@@ -225,6 +240,10 @@ func TestMetricsTraitDeletedForDeploymentWorkload(t *testing.T) {
 	assert.NoError(err)
 	assert.Equal(true, result.Requeue)
 	assert.GreaterOrEqual(result.RequeueAfter.Seconds(), 45.0)
+	trait := vzapi.MetricsTrait{}
+	err = c.Get(context.TODO(), types.NamespacedName{Name: "test-trait-name", Namespace: "test-namespace"}, &trait)
+	assert.NoError(err)
+	assert.Len(trait.Finalizers, 0)
 }
 
 // TestFetchTraitError tests a failure to fetch the trait during reconcile.
@@ -248,7 +267,7 @@ func TestFetchTraitError(t *testing.T) {
 
 	// Validate the results
 	assert.Nil(err)
-	assert.Equal(true, result.Requeue)
+	assert.Equal(false, result.Requeue)
 }
 
 // TestWorkloadFetchError tests failing to fetch the workload during reconcile.
@@ -337,7 +356,7 @@ func TestDeploymentUpdateError(t *testing.T) {
 				Kind:       oamcore.ContainerizedWorkloadKind,
 				Name:       "test-workload-name"}
 			return nil
-		})
+		}).Times(2)
 	// Expect a call to update the trait resource with a finalizer.
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any(), gomock.Any()).
