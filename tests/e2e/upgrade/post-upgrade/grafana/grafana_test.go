@@ -26,28 +26,24 @@ const (
 
 var t = framework.NewTestFramework("grafana")
 
-var _ = t.Describe("Post Upgrade Grafana Dashboard", Label("f:observability.logging.es"), func() {
-	// It Wrapper to only run spec if Grafana component is supported on the current Verrazzano installation
-	GrafanaSupportedIt := func(description string, f func()) {
-		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-		if err != nil {
-			t.It(description, func() {
-				Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-			})
-		}
-		supported := pkg.IsGrafanaEnabled(kubeconfigPath)
-		// Only run tests if Grafana component is enabled in Verrazzano CR
-		if supported {
-			t.It(description, f)
-		} else {
-			pkg.Log(pkg.Info, fmt.Sprintf("Skipping check '%v', Grafana component is not enabled in current Verrazzano Installation", description))
-		}
+var _ = t.BeforeSuite(func() {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
+	supported := pkg.IsGrafanaEnabled(kubeconfigPath)
+	// Only run tests if Grafana component is enabled in Verrazzano CR
+	if !supported {
+		Skip("Grafana component is not enabled")
+	}
+})
+
+var _ = t.Describe("Post Upgrade Grafana Dashboard", Label("f:observability.logging.es"), func() {
 
 	// GIVEN a running Grafana instance,
 	// WHEN a search is made for the dashboard using its title,
 	// THEN the dashboard metadata is returned.
-	GrafanaSupportedIt("Search the test Grafana Dashboard using its title", func() {
+	It("Search the test Grafana Dashboard using its title", func() {
 		Eventually(func() bool {
 			resp, err := pkg.SearchGrafanaDashboard(map[string]string{"query": testDashboardTitle})
 			if err != nil {
@@ -73,7 +69,7 @@ var _ = t.Describe("Post Upgrade Grafana Dashboard", Label("f:observability.logg
 	// GIVEN a running grafana instance,
 	// WHEN a GET call is made  to Grafana with the UID of the system dashboard,
 	// THEN the dashboard metadata of the corresponding System dashboard is returned.
-	GrafanaSupportedIt("Get details of the system Grafana dashboard", func() {
+	It("Get details of the system Grafana dashboard", func() {
 		// UID of system testDashboard, which is created by the VMO on startup.
 		uid := "H0xWYyyik"
 		Eventually(func() bool {

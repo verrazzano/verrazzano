@@ -735,7 +735,8 @@ func IsGrafanaEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	if vz.Spec.Components.Grafana == nil || vz.Spec.Components.Grafana.Enabled == nil {
-		return false
+		// Grafana component is enabled by default
+		return true
 	}
 	return *vz.Spec.Components.Grafana.Enabled
 }
