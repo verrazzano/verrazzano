@@ -4,13 +4,13 @@
 package rancher
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
@@ -66,9 +66,10 @@ func NewComponent() spi.Component {
 
 //AppendOverrides set the Rancher overrides for Helm
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	log := ctx.Log()
 	rancherHostName, err := getRancherHostname(ctx.Client(), ctx.EffectiveCR())
 	if err != nil {
-		return kvs, err
+		return kvs, log.ErrorfThrottledNewErr("Error retrieving Rancher hostname: %s", err.Error())
 	}
 	kvs = append(kvs, bom.KeyValue{
 		Key:   "hostname",
@@ -80,7 +81,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		Value: useBundledSystemChartValue,
 	})
 	kvs = appendRegistryOverrides(kvs)
-	return appendCAOverrides(kvs, ctx)
+	return appendCAOverrides(log, kvs, ctx)
 }
 
 //appendRegistryOverrides appends overrides if a custom registry is being used
@@ -104,10 +105,10 @@ func appendRegistryOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 }
 
 //appendCAOverrides sets overrides for CA Issuers, ACME or CA.
-func appendCAOverrides(kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyValue, error) {
+func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyValue, error) {
 	cm := ctx.EffectiveCR().Spec.Components.CertManager
 	if cm == nil {
-		return kvs, errors.New("certManager component not found in effective cr")
+		return kvs, log.ErrorfThrottledNewErr("certManager component not found in effective cr")
 	}
 
 	// Configure CA Issuer KVs
@@ -176,9 +177,11 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 	c := ctx.Client()
 	log := ctx.Log()
 	if err := createCattleSystemNamespace(log, c); err != nil {
+		log.ErrorfThrottledNewErr("Error creating cattle-system namespace: %s", err.Error())
 		return err
 	}
 	if err := copyDefaultCACertificate(log, c, vz); err != nil {
+		log.ErrorfThrottledNewErr("Error copying default CA certificate: %s", err.Error())
 		return err
 	}
 	return nil
@@ -191,11 +194,10 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 - Patch Rancher ingress with NGINX/TLS annotations
 */
 func (r rancherComponent) Install(ctx spi.ComponentContext) error {
-	if err := r.HelmComponent.Install(ctx); err != nil {
-		return err
-	}
-
 	log := ctx.Log()
+	if err := r.HelmComponent.Install(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("Error retrieving Rancher install component: %s", err.Error())
+	}
 	c := ctx.Client()
 	// Set MKNOD Cap on Rancher deployment
 	if err := patchRancherDeployment(c); err != nil {
