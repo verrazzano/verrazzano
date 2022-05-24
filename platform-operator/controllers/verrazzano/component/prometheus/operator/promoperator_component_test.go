@@ -71,3 +71,26 @@ func TestIsEnabled(t *testing.T) {
 		})
 	}
 }
+
+// TestValidateUpdate tests the Prometheus Operator ValidateUpdate function
+func TestValidateUpdate(t *testing.T) {
+	oldVZ := vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				PrometheusOperator: &vzapi.PrometheusOperatorComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	newVZ := vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				PrometheusOperator: &vzapi.PrometheusOperatorComponent{
+					Enabled: &falseValue,
+				},
+			},
+		},
+	}
+	assert.Error(t, NewComponent().ValidateUpdate(&oldVZ, &newVZ))
+}
