@@ -28,8 +28,8 @@ const (
 	testNamespace        = "hello-helidon"
 	testProjectName      = "hello-helidon"
 	testApp              = "hello-helidon"
-	skipVerifications	 = "Skip Verifications"
-	skipDeletions	     = "Skip Deletions"
+	skipVerifications    = "Skip Verifications"
+	skipDeletions        = "Skip Deletions"
 )
 
 var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
