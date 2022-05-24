@@ -400,20 +400,6 @@ pipeline {
                         }
                     }
                 }
-                stage("Validate BOM") {
-                    parallel {
-                        stage("Validate BOM : Admin") {
-                            steps {
-                                executeBOMValidator("true")
-                            }
-                        }
-                        stage("Validate BOM : Managed") {
-                            steps {
-                                executeBOMValidator("false")
-                            }
-                        }
-                    }
-                }
                 stage("upgrade-platform-operator") {
                     steps {
                         upgradePlatformOperator()
@@ -519,6 +505,11 @@ pipeline {
                 stage('post-upgrade verify keycloak') {
                     steps {
                         runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
+                    }
+                }
+                stage("Validate BOM : Admin & Managed") {
+                    steps {
+                        executeBOMValidator()
                     }
                 }
                 stage ('Verify & Uninstall Example Apps') {
@@ -1204,12 +1195,13 @@ def createOKEClusters(clusterPrefix) {
 
 
 // Execute bom-validator against admin and managed cluster conditionally
-def executeBOMValidator(isAdminCluster) {
+def executeBOMValidator() {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        def isAdminCluster = "true"
         for(int count=1; count<=clusterCount; count++) {
-            if ($count==1 && $isAdminCluster=="false") {
-                continue
+            if (count>1) {
+                isAdminCluster = "false"
             }
             sh """
                 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
@@ -1217,9 +1209,6 @@ def executeBOMValidator(isAdminCluster) {
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 ${WORKSPACE}/bom-validator --isAdminCluster=${isAdminCluster}
             """
-            if ($isAdminCluster=="true") {
-                break
-            }
         }
     }
 }
