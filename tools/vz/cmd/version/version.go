@@ -10,10 +10,19 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 )
 
-const CommandName = "version"
+const (
+	CommandName = "version"
+	helpShort   = "Verrazzano version information"
+	helpLong    = `Command 'version' reports information about the version of the VZ image being run.
+
+For example:
+
+vz version
+`
+)
 
 func NewCmdVersion(vzHelper helpers.VZHelper) *cobra.Command {
-	cmd := helpers.NewCommand(vzHelper, CommandName, "Verrazzano version information", "Verrazzano version information")
+	cmd := helpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.Run = runCmdVersion
 
 	return cmd

@@ -19,6 +19,14 @@ const (
 	CommandName   = "status"
 	namespaceFlag = "namespace"
 	nameFlag      = "name"
+	helpShort     = "Status of the Verrazzano install and access endpoints"
+	helpLong      = `Command 'status' returns summary information about a Verrazzano installation.
+
+For example:
+
+vz status --name my-verrazzano
+vz status --name my-verrazzano --kubeconfig ~/.kube/config --context minikube
+`
 )
 
 var namespace string
@@ -137,7 +145,7 @@ Status of Verrazzano {{.verrazzano_name}}
 `
 
 func NewCmdStatus(vzHelper helpers.VZHelper) *cobra.Command {
-	cmd := helpers.NewCommand(vzHelper, CommandName, "Status of the Verrazzano install and access endpoints", "Status of the Verrazzano install and access endpoints")
+	cmd := helpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return runCmdStatus(cmd, args, vzHelper)
 	}
