@@ -152,9 +152,14 @@ func checkRancherUpgradeFailure(c client.Client, log vzlog.VerrazzanoLogger) err
 
 	// Check the logs of each pod
 	for i, pod := range podList.Items {
+		// Skip pods that are already being deleted
+		if pod.DeletionTimestamp != nil {
+			continue
+		}
+
 		// Skip pods that are not ready, they will get checked again in another call to isReady.
 		if !isPodReady(pod) {
-			break
+			continue
 		}
 
 		// Get the pod log stream
@@ -168,7 +173,9 @@ func checkRancherUpgradeFailure(c client.Client, log vzlog.VerrazzanoLogger) err
 		restartPod := false
 		scanner := bufio.NewScanner(logStream)
 		for scanner.Scan() {
-			if strings.Contains(scanner.Text(), "Failed to find system chart rancher-webhook will try again in 5 seconds") {
+			token := scanner.Text()
+			if strings.Contains(token, "Failed to find system chart") {
+				log.Infof("Rancher IsReady: Failed to find system chart for pod %s: %s", pod.Name, token)
 				restartPod = true
 				break
 			}
@@ -236,11 +243,7 @@ func deleteClusterRepos(log vzlog.VerrazzanoLogger) error {
 		return err
 	}
 
-	// Only need to delete the custom resources if the default branch is still release-2.5
 	log.Infof("Rancher IsReady: The default release branch is currently set to %s", defaultBranch)
-	if defaultBranch != "release-v2.5" {
-		return nil
-	}
 
 	// Delete settings.management.cattle.io chart-default-branch
 	err = dynamicClient.Resource(gvr).Delete(context.TODO(), name, metav1.DeleteOptions{})
