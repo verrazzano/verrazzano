@@ -6,6 +6,7 @@ package prometheus
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	v1 "k8s.io/api/core/v1"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -17,9 +18,29 @@ import (
 const (
 	threeMinutes    = 3 * time.Minute
 	pollingInterval = 10 * time.Second
-	documentFile    = "testdata/upgrade/opensearch/document1.json"
 	longTimeout     = 10 * time.Minute
+
+	// Constants for sample metrics of system components validated by the test
+	ingressControllerSuccess  = "nginx_ingress_controller_success"
+	containerStartTimeSeconds = "container_start_time_seconds"
+	cpuSecondsTotal           = "node_cpu_seconds_total"
+
+	// Namespaces used for validating envoy stats
+	ingressNginxNamespace = "ingress-nginx"
+
+	// Constants for various metric labels, used in the validation
+	nodeExporter        = "node-exporter"
+	controllerNamespace = "controller_namespace"
+	job                 = "job"
+
+	// Constants for test metric
+	testNamespace        = "deploymetrics"
+	testMetricName       = "tomcat_sessions_created_sessions_total"
+	testMetricLabelKey   = "app_oam_dev_component"
+	testMetricLabelValue = "deploymetrics-deployment"
 )
+
+var expectedPodsDeploymetricsApp = []string{"deploymetrics-workload"}
 
 var t = framework.NewTestFramework("prometheus")
 
@@ -33,6 +54,7 @@ var _ = t.BeforeSuite(func() {
 	if !supported {
 		Skip("Prometheus component is not enabled")
 	}
+	deployMetricsApplication()
 })
 
 var _ = t.Describe("Pre upgrade Prometheus", Label("f:observability.logging.es"), func() {
@@ -42,7 +64,7 @@ var _ = t.Describe("Pre upgrade Prometheus", Label("f:observability.logging.es")
 	// THEN verify that the scrape config is created correctly
 	It("Scrape targets can be listed and there is atleast 1 scrape target", func() {
 		Eventually(func() bool {
-			scrapeTargets, err  := pkg.ScrapeTargets()
+			scrapeTargets, err := pkg.ScrapeTargets()
 			if err != nil {
 				pkg.Log(pkg.Error, err.Error())
 				return false
@@ -53,45 +75,73 @@ var _ = t.Describe("Pre upgrade Prometheus", Label("f:observability.logging.es")
 	})
 
 	// GIVEN a running Prometheus instance,
-	// WHEN the data streams are retrieved
-	// THEN verify that they have data streams
-	It("Data streams are created", func() {
+	// WHEN a sample NGINX metric is queried,
+	// THEN verify that the metric could be retrieved.
+	t.It("Verify sample NGINX metrics can be queried from Prometheus", func() {
 		Eventually(func() bool {
-			return true
+			return pkg.MetricsExist(ingressControllerSuccess, controllerNamespace, ingressNginxNamespace)
+		}).WithPolling(pollingInterval).WithTimeout(longTimeout).Should(BeTrue())
+	})
+
+	// GIVEN a running Prometheus instance,
+	// WHEN a sample Container advisor metric is queried,
+	// THEN verify that the metric could be retrieved.
+	t.It("Verify sample Container Advisor metrics can be queried from Prometheus", func() {
+		Eventually(func() bool {
+			return pkg.MetricsExist(containerStartTimeSeconds, "", "")
+		}).WithPolling(pollingInterval).WithTimeout(longTimeout).Should(BeTrue())
+	})
+
+	// GIVEN a running Prometheus instance,
+	// WHEN a sample node exporter metric is queried,
+	// THEN verify that the metric could be retrieved.
+	t.It("Verify sample Node Exporter metrics can be queried from Prometheus", func() {
+		Eventually(func() bool {
+			return pkg.MetricsExist(cpuSecondsTotal, job, nodeExporter)
+		}).WithPolling(pollingInterval).WithTimeout(longTimeout).Should(BeTrue())
+	})
+
+	// GIVEN a running Prometheus instance,
+	// WHEN a metric is created,
+	// THEN verify that the metric is persisted in the prometheus time series DB.
+	It("Validate if the test metric created by the test OAM deployment exists", func() {
+		Eventually(func() bool {
+			return pkg.MetricsExist(testMetricName, testMetricLabelKey, testMetricLabelValue)
 		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(),
 			"Expected not to find any old indices")
 	})
 
-	// GIVEN a running Prometheus instance,
-	// WHEN
-	// THEN verify that the data can be retrieved successfully
-	It("OpenSearch get old data", func() {
-		Eventually(func() bool {
-			return true
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(),
-			"Expected to find the old data")
-	})
-
-	// GIVEN a running Prometheus instance,
-	// WHEN VZ custom resource is upgraded
-	// THEN only the system logs that are as old as the retention period
-	//      is migrated and older logs are purged
-	It("OpenSearch system logs older than retention period is not available post upgrade", func() {
-		Eventually(func() bool {
-			return true
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(),
-			"Expected to find the old data")
-	})
-
-	// GIVEN a running Prometheus instance,
-	// WHEN VZ custom resource is upgraded
-	// THEN only the application logs that are as old as the retention period
-	//      is migrated and older logs are purged
-	It("OpenSearch application logs older than retention period is not available post upgrade", func () {
-		Eventually(func() bool {
-			return true
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(),
-			"Expected to find the old data")
-	})
-
 })
+
+func deployMetricsApplication() {
+	t.Logs.Info("Deploy DeployMetrics Application")
+	Eventually(func() (*v1.Namespace, error) {
+		nsLabels := map[string]string{
+			"verrazzano-managed": "true",
+			"istio-injection":    "true"}
+		return pkg.CreateNamespace(testNamespace, nsLabels)
+	}, threeMinutes, pollingInterval).ShouldNot(BeNil())
+
+	t.Logs.Info("Create component resource")
+	Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("testdata/deploymetrics/deploymetrics-comp.yaml")
+	}, threeMinutes, pollingInterval).ShouldNot(HaveOccurred())
+
+	t.Logs.Info("Create application resource")
+	Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("testdata/deploymetrics/deploymetrics-app.yaml")
+	}, threeMinutes, pollingInterval).ShouldNot(HaveOccurred(), "Failed to create DeployMetrics application resource")
+
+	Eventually(func() bool {
+		return pkg.ContainerImagePullWait(testNamespace, expectedPodsDeploymetricsApp)
+	}, threeMinutes, pollingInterval).Should(BeTrue())
+
+	t.Logs.Info("Verify deploymetrics-workload pod is running")
+	Eventually(func() bool {
+		result, err := pkg.PodsRunning(testNamespace, expectedPodsDeploymetricsApp)
+		if err != nil {
+			Fail(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+		}
+		return result
+	}, threeMinutes, pollingInterval).Should(BeTrue())
+}
