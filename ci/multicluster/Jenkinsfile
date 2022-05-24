@@ -396,12 +396,6 @@ pipeline {
                         }
                     }
                 }
-                stage("Update external OpenSearch") {
-                    when { expression { return params.EXTERNAL_ELASTICSEARCH == true } }
-                    steps {
-                        runGinkgoAdmin('update/fluentdextes')
-                    }
-                }
                 stage ('Register managed clusters') {
                     steps {
                         registerManagedClusters()
@@ -460,12 +454,16 @@ pipeline {
 
         stage ('Verify Install') {
             stages {
+                stage("verify-fluentd-update") {
+                    steps {
+                        runGinkgoAdmin('update/fluentdextes')
+                    }
+                }
                 stage('verify-install') {
                     steps {
                         runGinkgoRandomize('verify-install')
                     }
                 }
-
                 stage ('multicluster/verify-install') {
                     steps {
                         runGinkgoRandomize('multicluster/verify-install')
@@ -546,7 +544,7 @@ pipeline {
                     }
                     post {
                         always {
-                            sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_screenshots.sh"
+                            sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
                         }
                     }
                 }
@@ -618,7 +616,7 @@ pipeline {
             sh """
                 curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
             """
-            archiveArtifacts artifacts: '**/build-console-output.log,**/Screenshot*.png', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/build-console-output.log,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
             // Ignore failures in any of the following actions so that the "always" post step that cleans up clusters is executed
             sh """
                 curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip || true
@@ -689,28 +687,6 @@ pipeline {
                         """
                     }
                 }
-
-                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                if (env.TEST_ENV == "KIND") {
-                    for(int count=1; count<=clusterCount; count++) {
-                        sh """
-                            if [ "${env.TEST_ENV}" == "KIND" ]
-                            then
-                                kind delete cluster --name ${CLUSTER_NAME_PREFIX}-$count
-                            fi
-                        """
-                    }
-                } else {
-                    sh """
-                        mkdir -p ${KUBECONFIG_DIR}
-                        if [ "${TEST_ENV}" == "ocidns_oke" ]; then
-                          cd ${GO_REPO_PATH}/verrazzano
-                          ./tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
-                        fi
-                        cd ${TEST_SCRIPTS_DIR}
-                        TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./delete_oke_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}" || true
-                    """
-                }
                 sh """
                     if [ -f ${POST_DUMP_FAILED_FILE} ]; then
                         echo "Failures seen during dumping of artifacts, treat post as failed"
@@ -720,9 +696,43 @@ pipeline {
             }
         }
         cleanup {
+            // Delete clusters as the very first thing in cleanup to reclaim cluster resources especially OKE resources
+            deleteClusters()
             metricBuildDuration()
             emitJobMetrics()
             deleteDir()
+        }
+    }
+}
+
+def deleteOkeClusters() {
+    script {
+        sh """
+            mkdir -p ${KUBECONFIG_DIR}
+            if [ "${TEST_ENV}" == "ocidns_oke" ]; then
+              cd ${GO_REPO_PATH}/verrazzano
+              ./tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
+            fi
+            cd ${TEST_SCRIPTS_DIR}
+            TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./delete_oke_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}" || true
+        """
+    }
+}
+
+def deleteClusters() {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        if (env.TEST_ENV == "KIND") {
+            for(int count=1; count<=clusterCount; count++) {
+                sh """
+                    if [ "${env.TEST_ENV}" == "KIND" ]
+                    then
+                        kind delete cluster --name ${CLUSTER_NAME_PREFIX}-$count
+                    fi
+                """
+            }
+        } else {
+            deleteOkeClusters()
         }
     }
 }

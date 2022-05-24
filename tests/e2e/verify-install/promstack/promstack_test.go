@@ -97,7 +97,7 @@ func areOverridesEnabled() bool {
 		AbortSuite(fmt.Sprintf("Failed to get vz resource in cluster: %s", err.Error()))
 		return false
 	}
-	return vz.Spec.Components.PrometheusOperator == nil || len(vz.Spec.Components.PrometheusOperator.ValueOverrides) > 0
+	return vz.Spec.Components.PrometheusOperator != nil && len(vz.Spec.Components.PrometheusOperator.ValueOverrides) > 0
 }
 
 // 'It' Wrapper to only run spec if the Prometheus Stack is supported on the current Verrazzano version
