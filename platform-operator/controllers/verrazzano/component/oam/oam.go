@@ -66,9 +66,9 @@ func ensureClusterRoles(ctx spi.ComponentContext) error {
 }
 
 // GetOverrides gets the install overrides
-func GetOverrides(vz *vzapi.Verrazzano) []vzapi.Overrides {
-	if vz.Spec.Components.OAM != nil {
-		return vz.Spec.Components.OAM.ValueOverrides
+func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+	if effectiveCR.Spec.Components.OAM != nil {
+		return effectiveCR.Spec.Components.OAM.ValueOverrides
 	}
 	return []vzapi.Overrides{}
 }

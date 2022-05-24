@@ -272,9 +272,9 @@ func deleteClusterRepos(log vzlog.VerrazzanoLogger) error {
 }
 
 // GetOverrides returns install overrides for a component
-func GetOverrides(vz *vzapi.Verrazzano) []vzapi.Overrides {
-	if vz.Spec.Components.Rancher != nil {
-		return vz.Spec.Components.Rancher.ValueOverrides
+func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+	if effectiveCR.Spec.Components.Rancher != nil {
+		return effectiveCR.Spec.Components.Rancher.ValueOverrides
 	}
 	return []vzapi.Overrides{}
 }

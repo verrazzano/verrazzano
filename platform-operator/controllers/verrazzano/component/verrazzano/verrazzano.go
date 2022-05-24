@@ -428,9 +428,9 @@ func HashSum(config interface{}) string {
 }
 
 // GetOverrides returns install overrides for a component
-func GetOverrides(vz *vzapi.Verrazzano) []vzapi.Overrides {
-	if vz.Spec.Components.Verrazzano != nil {
-		return vz.Spec.Components.Verrazzano.ValueOverrides
+func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+	if effectiveCR.Spec.Components.Verrazzano != nil {
+		return effectiveCR.Spec.Components.Verrazzano.ValueOverrides
 	}
 	return []vzapi.Overrides{}
 }

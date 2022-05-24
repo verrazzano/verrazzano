@@ -194,9 +194,9 @@ func labelAnnotateWorkloadDefinitions(c client.Client) error {
 }
 
 // GetOverrides gets the install overrides
-func GetOverrides(vz *vzapi.Verrazzano) []vzapi.Overrides {
-	if vz.Spec.Components.ApplicationOperator != nil {
-		return vz.Spec.Components.ApplicationOperator.ValueOverrides
+func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+	if effectiveCR.Spec.Components.ApplicationOperator != nil {
+		return effectiveCR.Spec.Components.ApplicationOperator.ValueOverrides
 	}
 	return []vzapi.Overrides{}
 }

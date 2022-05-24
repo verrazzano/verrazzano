@@ -1296,9 +1296,9 @@ func isPodReady(pod *v1.Pod) bool {
 }
 
 // GetOverrides gets the install overrides
-func GetOverrides(vz *vzapi.Verrazzano) []vzapi.Overrides {
-	if vz.Spec.Components.Kiali != nil {
-		return vz.Spec.Components.Kiali.ValueOverrides
+func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+	if effectiveCR.Spec.Components.Kiali != nil {
+		return effectiveCR.Spec.Components.Kiali.ValueOverrides
 	}
 	return []vzapi.Overrides{}
 }

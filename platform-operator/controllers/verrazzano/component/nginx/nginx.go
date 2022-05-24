@@ -129,9 +129,9 @@ func getInstallArgs(cr *vzapi.Verrazzano) []vzapi.InstallArgs {
 }
 
 // GetOverrides gets the install overrides
-func GetOverrides(vz *vzapi.Verrazzano) []vzapi.Overrides {
-	if vz.Spec.Components.Ingress != nil {
-		return vz.Spec.Components.Ingress.ValueOverrides
+func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+	if effectiveCR.Spec.Components.Ingress != nil {
+		return effectiveCR.Spec.Components.Ingress.ValueOverrides
 	}
 	return []vzapi.Overrides{}
 }

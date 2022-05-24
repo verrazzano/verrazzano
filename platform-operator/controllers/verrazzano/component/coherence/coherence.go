@@ -25,9 +25,9 @@ func isCoherenceOperatorReady(ctx spi.ComponentContext) bool {
 }
 
 // GetOverrides gets the install overrides
-func GetOverrides(vz *vzapi.Verrazzano) []vzapi.Overrides {
-	if vz.Spec.Components.CoherenceOperator != nil {
-		return vz.Spec.Components.CoherenceOperator.ValueOverrides
+func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+	if effectiveCR.Spec.Components.CoherenceOperator != nil {
+		return effectiveCR.Spec.Components.CoherenceOperator.ValueOverrides
 	}
 	return []vzapi.Overrides{}
 }

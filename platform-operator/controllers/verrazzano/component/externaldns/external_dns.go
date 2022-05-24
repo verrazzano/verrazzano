@@ -172,9 +172,9 @@ func buildOwnerString(uid types.UID) (string, error) {
 }
 
 // GetOverrides gets the install overrides
-func GetOverrides(vz *vzapi.Verrazzano) []vzapi.Overrides {
-	if vz.Spec.Components.DNS != nil {
-		return vz.Spec.Components.DNS.ValueOverrides
+func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+	if effectiveCR.Spec.Components.DNS != nil {
+		return effectiveCR.Spec.Components.DNS.ValueOverrides
 	}
 	return []vzapi.Overrides{}
 }

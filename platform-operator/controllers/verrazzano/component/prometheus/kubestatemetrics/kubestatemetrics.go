@@ -48,9 +48,9 @@ func preInstall(ctx spi.ComponentContext) error {
 }
 
 // GetOverrides returns install overrides for a component
-func GetOverrides(vz *vzapi.Verrazzano) []vzapi.Overrides {
-	if vz.Spec.Components.KubeStateMetrics != nil {
-		return vz.Spec.Components.KubeStateMetrics.ValueOverrides
+func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+	if effectiveCR.Spec.Components.KubeStateMetrics != nil {
+		return effectiveCR.Spec.Components.KubeStateMetrics.ValueOverrides
 	}
 	return []vzapi.Overrides{}
 }

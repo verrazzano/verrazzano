@@ -84,9 +84,9 @@ func isWeblogicOperatorReady(ctx spi.ComponentContext) bool {
 }
 
 // GetOverrides returns install overrides for a component
-func GetOverrides(vz *vzapi.Verrazzano) []vzapi.Overrides {
-	if vz.Spec.Components.WebLogicOperator != nil {
-		return vz.Spec.Components.WebLogicOperator.ValueOverrides
+func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+	if effectiveCR.Spec.Components.WebLogicOperator != nil {
+		return effectiveCR.Spec.Components.WebLogicOperator.ValueOverrides
 	}
 	return []vzapi.Overrides{}
 }

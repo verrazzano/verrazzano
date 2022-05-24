@@ -45,9 +45,9 @@ func preInstall(ctx spi.ComponentContext) error {
 }
 
 // GetOverrides gets the install overrides
-func GetOverrides(vz *vzapi.Verrazzano) []vzapi.Overrides {
-	if vz.Spec.Components.PrometheusAdapter != nil {
-		return vz.Spec.Components.PrometheusAdapter.ValueOverrides
+func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+	if effectiveCR.Spec.Components.PrometheusAdapter != nil {
+		return effectiveCR.Spec.Components.PrometheusAdapter.ValueOverrides
 	}
 	return []vzapi.Overrides{}
 }
