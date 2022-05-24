@@ -36,6 +36,7 @@ type DashboardMetadata struct {
 	Version int    `json:"version"`
 }
 
+var testDashboard DashboardMetadata
 var t = framework.NewTestFramework("grafana")
 
 var _ = t.BeforeSuite(func() {
@@ -48,39 +49,34 @@ var _ = t.BeforeSuite(func() {
 	if !supported {
 		Skip("Grafana component is not enabled")
 	}
+	// Create the test Grafana dashboard
+	file, err := pkg.FindTestDataFile(documentFile)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("failed to find test data file: %v", err))
+		Fail(err.Error())
+	}
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("failed to read test data file: %v", err))
+		Fail(err.Error())
+	}
+	Eventually(func() bool {
+		resp, err := pkg.CreateGrafanaDashboard(string(data))
+		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Failed to create Grafana testDashboard: %v", err))
+			return false
+		}
+		if resp.StatusCode != http.StatusOK {
+			pkg.Log(pkg.Error, fmt.Sprintf("Failed to create Grafana testDashboard: status=%d: body=%s", resp.StatusCode, string(resp.Body)))
+			return false
+		}
+		json.Unmarshal(resp.Body, &testDashboard)
+		return true
+	}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(),
+		"It should be possible to create a Grafana dashboard and persist it.")
 })
 
 var _ = t.Describe("Pre Upgrade Grafana Dashboard", Label("f:observability.logging.es"), func() {
-
-	var testDashboard DashboardMetadata
-	// GIVEN a running Grafana instance,
-	// WHEN a dashboard is created,
-	// THEN verify that the dashboard is created/saved successfully.
-	It("Create Grafana Dashboard", func() {
-		Eventually(func() bool {
-			file, err := pkg.FindTestDataFile(documentFile)
-			if err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf("failed to find test data file: %v", err))
-				return false
-			}
-			data, err := ioutil.ReadFile(file)
-			if err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf("failed to read test data file: %v", err))
-				return false
-			}
-			resp, err := pkg.CreateGrafanaDashboard(string(data))
-			if err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf("Failed to create Grafana testDashboard: %v", err))
-				return false
-			}
-			if resp.StatusCode != http.StatusOK {
-				pkg.Log(pkg.Error, fmt.Sprintf("Failed to create Grafana testDashboard: status=%d: body=%s", resp.StatusCode, string(resp.Body)))
-				return false
-			}
-			json.Unmarshal(resp.Body, &testDashboard)
-			return true
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(), "Expected not to fail while writing data to OpenSearch")
-	})
 
 	// GIVEN a running grafana instance,
 	// WHEN a GET call is made  to Grafana with the UID of the newly created testDashboard,
