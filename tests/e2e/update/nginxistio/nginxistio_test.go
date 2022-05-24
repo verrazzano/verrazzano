@@ -60,8 +60,7 @@ var testIstioIngressPorts = []corev1.ServicePort{
 }
 
 type externalLBsTemplateData struct {
-	NginxIngressServiceServerList string
-	IstioIngressServiceServerList string
+	ServerList string
 }
 
 type NginxAutoscalingIstioRelicasAffintyModifier struct {
@@ -269,33 +268,16 @@ var _ = t.Describe("Update nginx-istio", Label("f:platform-lcm.update"), func() 
 				if len(node.Status.Addresses) < 1 {
 					Fail("can not find address in the node")
 				}
-				nginxList = nginxList + fmt.Sprintf("           server %s:31443\n", node.Status.Addresses[0].Address)
-				istioList = istioList + fmt.Sprintf("           server %s:32443\n", node.Status.Addresses[0].Address)
+				nginxList = nginxList + fmt.Sprintf("           server %s:31443;\n", node.Status.Addresses[0].Address)
+				istioList = istioList + fmt.Sprintf("           server %s:32443;\n", node.Status.Addresses[0].Address)
 			}
 
-			templateData := externalLBsTemplateData{
-				NginxIngressServiceServerList: nginxList,
-				IstioIngressServiceServerList: istioList,
-			}
-
-			file, err := pkg.FindTestDataFile("testdata/external-lb/external-lbs.yaml")
-			if err != nil {
-				Fail(err.Error())
-			}
-			template, err := template.ParseFiles(file)
-			if err != nil {
-				Fail(err.Error())
-			}
-			var buff bytes.Buffer
-			err = template.Execute(&buff, &templateData)
-			if err != nil {
-				Fail(err.Error())
-			}
-
-			err = pkg.CreateOrUpdateResourceFromBytes(buff.Bytes())
-			if err != nil {
-				Fail(err.Error())
-			}
+			applyResource("testdata/external-lb/system-external-lb-cm.yaml", &externalLBsTemplateData{ServerList: nginxList})
+			applyResource("testdata/external-lb/system-external-lb.yaml", &externalLBsTemplateData{})
+			applyResource("testdata/external-lb/system-external-lb-svc.yaml", &externalLBsTemplateData{})
+			applyResource("testdata/external-lb/application-external-lb-cm.yaml", &externalLBsTemplateData{ServerList: istioList})
+			applyResource("testdata/external-lb/application-external-lb.yaml", &externalLBsTemplateData{})
+			applyResource("testdata/external-lb/application-external-lb-svc.yaml", &externalLBsTemplateData{})
 
 			sysIP, err := getServiceLoadBalancerIP("external-lb", "system-external-lb-svc")
 			if err != nil {
@@ -316,6 +298,27 @@ var _ = t.Describe("Update nginx-istio", Label("f:platform-lcm.update"), func() 
 		})
 	})
 })
+
+func applyResource(resourceFile string, templateData *externalLBsTemplateData) {
+	file, err := pkg.FindTestDataFile(resourceFile)
+	if err != nil {
+		Fail(err.Error())
+	}
+	template, err := template.ParseFiles(file)
+	if err != nil {
+		Fail(err.Error())
+	}
+	var buff bytes.Buffer
+	err = template.Execute(&buff, templateData)
+	if err != nil {
+		Fail(err.Error())
+	}
+
+	err = pkg.CreateOrUpdateResourceFromBytes(buff.Bytes())
+	if err != nil {
+		Fail(err.Error())
+	}
+}
 
 func validateServicePorts() {
 	gomega.Eventually(func() error {
