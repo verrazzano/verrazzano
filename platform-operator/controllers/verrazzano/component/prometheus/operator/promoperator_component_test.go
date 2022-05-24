@@ -28,7 +28,7 @@ func TestIsEnabled(t *testing.T) {
 			// THEN the call returns true
 			name:       "Test IsEnabled when using default Verrazzano CR",
 			actualCR:   vzapi.Verrazzano{},
-			expectTrue: false,
+			expectTrue: true,
 		},
 		{
 			// GIVEN a Verrazzano custom resource with the Prometheus Operator enabled
@@ -70,4 +70,27 @@ func TestIsEnabled(t *testing.T) {
 			assert.Equal(t, tt.expectTrue, NewComponent().IsEnabled(ctx.EffectiveCR()))
 		})
 	}
+}
+
+// TestValidateUpdate tests the Prometheus Operator ValidateUpdate function
+func TestValidateUpdate(t *testing.T) {
+	oldVZ := vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				PrometheusOperator: &vzapi.PrometheusOperatorComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	newVZ := vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				PrometheusOperator: &vzapi.PrometheusOperatorComponent{
+					Enabled: &falseValue,
+				},
+			},
+		},
+	}
+	assert.Error(t, NewComponent().ValidateUpdate(&oldVZ, &newVZ))
 }
