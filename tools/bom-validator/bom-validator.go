@@ -18,7 +18,7 @@ import (
 const (
 	tagLen                              = 10                             // The number of unique tags for a specific image
 	platformOperatorPodNameSearchString = "verrazzano-platform-operator" // Pod Substring for finding the platform operator pod
-
+	oracleLinuxWarningMessage = "See case-03/04 of VZ-5962, generalisations of bom validator"
 	rancherWarningMessage = "See VZ-5937, Rancher upgrade issue, all VZ versions" // For known Rancher issues with VZ upgrade
 )
 
@@ -77,6 +77,7 @@ var knownImageIssues = map[string]knownIssues{
 	"fleet-agent":     {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
 	"fleet":           {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
 	"gitjob":          {alternateTags: []string{"v0.1.15"}, message: rancherWarningMessage},
+	"oraclelinux":     {alternateTags: []string{"7-slim", "7.9"}, message: oracleLinuxWarningMessage},
 }
 
 func main() {
@@ -202,10 +203,6 @@ func validateBOM(vBom *verrazzanoBom, clusterImageMap map[string][10]string, ima
 				continue
 			}
 			for _, image := range subcomponent.Images {
-				if !isAdminCluster && image.Image == "oraclelinux" && image.Tag == "7.9" {
-					// oraclelinux 7.9 is meant for open/elastic search, skipping its image & tag validation against managed cluster
-					continue
-				}
 				errorsFound = checkImageTags(clusterImageMap, image, imageWarnings, imageTagErrors, errorsFound, imagesNotFound)
 			}
 		}
