@@ -32,29 +32,6 @@ affinity:
 config:
   envName:
   dnsSuffix:
-  log-format-escape-json: "true"
-  log-format-upstream: '
-    {
-      "@timestamp": "$time_iso8601",
-      "req_id": "$req_id",
-      "proxy_upstream_name": "$proxy_upstream_name",
-      "proxy_alternative_upstream_name": "$proxy_alternative_upstream_name",
-      "upstream_status": "$upstream_status",
-      "upstream_addr": "$upstream_addr",
-      "message": "$request_method $host$request_uri",
-      "http_request": {
-        "requestMethod": "$request_method",
-        "requestUrl": "$host$request_uri",
-        "status": $status,
-        "requestSize": "$request_length",
-        "responseSize": "$upstream_response_length",
-        "userAgent": "$http_user_agent",
-        "remoteIp": "$remote_addr",
-        "referer": "$http_referer",
-        "latency": "$upstream_response_time s",
-        "protocol":"$server_protocol"
-      }
-    }'
 
 dns:
   wildcard:
