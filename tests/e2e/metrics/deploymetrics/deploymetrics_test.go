@@ -19,7 +19,7 @@ import (
 
 const (
 	testNamespace     = "deploymetrics"
-	promConfigJobName = "deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment"
+	promConfigJobName = "deploymetrics-appconf_deploymetrics"
 )
 
 var expectedPodsDeploymetricsApp = []string{"deploymetrics-workload"}
@@ -125,7 +125,7 @@ func undeployMetricsApplication() {
 var _ = t.Describe("DeployMetrics Application test", Label("f:app-lcm.oam"), func() {
 
 	t.Context("for Prometheus Config.", Label("f:observability.monitoring.prom"), func() {
-		t.It("Verify that Prometheus Config Data contains deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment", func() {
+		t.It("Verify that Prometheus Config Data contains deploymetrics-appconf_deploymetrics", func() {
 			Eventually(func() bool {
 				return pkg.IsAppInPromConfig(promConfigJobName)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find App in Prometheus Config")
