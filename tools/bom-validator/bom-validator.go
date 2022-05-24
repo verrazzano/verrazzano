@@ -18,8 +18,8 @@ import (
 const (
 	tagLen                              = 10                             // The number of unique tags for a specific image
 	platformOperatorPodNameSearchString = "verrazzano-platform-operator" // Pod Substring for finding the platform operator pod
-	oracleLinuxWarningMessage = "See case-03/04 of VZ-5962, generalisations of bom validator"
-	rancherWarningMessage = "See VZ-5937, Rancher upgrade issue, all VZ versions" // For known Rancher issues with VZ upgrade
+	oracleLinuxWarningMessage           = "See case-03/04 of VZ-5962, generalisations of bom validator"
+	rancherWarningMessage               = "See VZ-5937, Rancher upgrade issue, all VZ versions" // For known Rancher issues with VZ upgrade
 )
 
 // Verrazzano BOM types
@@ -55,15 +55,14 @@ type imageError struct {
 
 var (
 	ignoreSubComponents []string
-	isAdminCluster bool
-	kubeconfig string
+	kubeconfig          string
 )
 
 func init() {
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "KubeConfig for cluster being validated")
-	flag.BoolVar(&isAdminCluster, "isAdminCluster", true, "defines cluster type is admin or managed")
 	flag.Parse()
 }
+
 // Hack to work around an issue with the 1.2 upgrade; Rancher does not always update the webhook image
 type knownIssues struct {
 	alternateTags []string
