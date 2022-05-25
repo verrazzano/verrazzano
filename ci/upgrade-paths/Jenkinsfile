@@ -209,6 +209,7 @@ pipeline {
         VERSION_FOR_INSTALL = "${params.VERSION_FOR_INSTALL}"
 
         TARGET_UPGRADE_OPERATOR_YAML = "${WORKSPACE}/target-upgrade-operator.yaml"
+        RUNNING_OPERATOR_VERSION = ""
     }
 
     stages {
@@ -366,24 +367,31 @@ pipeline {
                                 runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/opensearch-dashboards', "${TEST_DUMP_ROOT}/opensearch-dashboards")
                             }
                         }
+                        stage('Grafana pre-upgrade') {
+                            steps {
+                                runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/grafana', "${TEST_DUMP_ROOT}/grafana")
+                            }
+                        }
                         stage ('Deploy Helidon example application - single cluster') {
+                            when { expression { isVZOperatorMinimumCompatibleVersion("v1.1.0") } }
                             steps {
                                 runGinkgoVerify('examples/helidon', "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true", "hello-helidon-sc")
                             }
                         }
-                        stage('Deploy Helidon example application - multi cluster') {
-                            when { expression { isMultiCluster() } }
+                        stage ('Deploy Helidon example application - multi cluster') {
+                            when { expression { isMultiCluster() && isVZOperatorMinimumCompatibleVersion("v1.1.0") } }
                             steps {
                                 runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/mchelidon-workload", "false", "true", "true")
                             }
                         }
-                        stage('Deploy Coherence example application - single cluster') {
+                        stage ('Deploy Coherence example application - single cluster') {
+                            when { expression { isVZOperatorMinimumCompatibleVersion("v1.1.0") } }
                             steps {
                                 runGinkgoVerify('workloads/coherence', "${TEST_DUMP_ROOT}/coherence-workload", "false", "false", "true", "hello-coherence-sc")
                             }
                         }
-                        stage('Deploy Coherence example application - multi cluster') {
-                            when { expression { isMultiCluster() } }
+                        stage ('Deploy Coherence example application - multi cluster') {
+                            when { expression { isMultiCluster() && isVZOperatorMinimumCompatibleVersion("v1.1.0") } }
                             steps {
                                 runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", "false", "false", "false")
                             }
@@ -543,6 +551,11 @@ pipeline {
                         stage('opensearch post-upgrade') {
                             steps {
                                 runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/opensearch', "${TEST_DUMP_ROOT}/opensearch")
+                            }
+                        }
+                        stage('Grafana post-upgrade') {
+                            steps {
+                                runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/grafana', "${TEST_DUMP_ROOT}/grafana")
                             }
                         }
                         stage ("Verify install scripts") {
@@ -917,6 +930,8 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
                 # wait for Verrazzano install to complete
                 ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
             """
+            RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/${count}/kube_config' && kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
+            echo "Verrazzano Version INSTALl : ${RUNNING_OPERATOR_VERSION}"
         }
     }
 }
@@ -1061,6 +1076,8 @@ def upgradeVerrazzanoOnCluster(count, verrazzanoDevVersion) {
                 echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
                 helm --kubeconfig=${kubeClusterConfig} list -A
             """
+            RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/${count}/kube_config' && kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
+            echo "Verrazzano Version Upgrade : ${RUNNING_OPERATOR_VERSION}"
         }
     }
 }
@@ -1876,6 +1893,36 @@ def setVZConfigForInstallation(){
 def isMultiCluster() {
     return params.TOTAL_CLUSTERS.toInteger() >= 2
 }
+
+def isVZOperatorMinimumCompatibleVersion(minimumOperatorVersion){
+
+    vzOperatorVersion = RUNNING_OPERATOR_VERSION - 'v'
+    minimumOperatorVersion = minimumOperatorVersion - 'v'
+    def vzOperatorVersionSplit  = vzOperatorVersion.split('\\.')
+    runningVZVersion = vzOperatorVersionSplit[0] + '.' + vzOperatorVersionSplit[1] + '.' + vzOperatorVersionSplit[2].charAt(0)
+    echo "Verrazzano Version is: ${runningVZVersion}"
+    //Splitting the string minimumOperatorVersion to compare minor and patch versions.
+    minimumOperatorVersionSplit = minimumOperatorVersion.split('\\.')
+
+    //Returns true -> when the vzOperatorVersion minor version is greater than the minor version of user defined minimumOperatorVersion
+    if(vzOperatorVersionSplit[0] > minimumOperatorVersionSplit[0]){
+        return true
+    //Returns true -> vzOperatorVersion minor version is greater/equal than the user defined minimumOperatorVersion
+    }else if(vzOperatorVersionSplit[0] == minimumOperatorVersionSplit[0] && minimumOperatorVersionSplit[1] < vzOperatorVersionSplit[1]){
+              echo "${vzOperatorVersionSplit[0]} >= ${minimumOperatorVersionSplit[0]} && ${minimumOperatorVersionSplit[1]} < ${vzOperatorVersionSplit[1]}"
+             return true
+    // Returns true ->  when vzOperatorVersion and minimumOperatorVersion has equal minor versions but vzOperatorVersion patch is greater/equal to the user specified minimumOperatorVersion
+    }else if(vzOperatorVersionSplit[0] == minimumOperatorVersionSplit[0] && minimumOperatorVersionSplit[1] == vzOperatorVersionSplit[1] && vzOperatorVersionSplit[2].charAt(0) >= minimumOperatorVersionSplit[2].charAt(0)){
+        echo "${vzOperatorVersionSplit[0]} == ${minimumOperatorVersionSplit[0]} && ${minimumOperatorVersionSplit[1]} == ${vzOperatorVersionSplit[1]} && ${vzOperatorVersionSplit[2]} >= ${minimumOperatorVersionSplit[2]}"
+        return true
+    }
+    echo "${vzOperatorVersionSplit[0]} > ${minimumOperatorVersionSplit[0]}"
+    echo "${vzOperatorVersionSplit[0]} >= ${minimumOperatorVersionSplit[0]} && ${minimumOperatorVersionSplit[1]} < ${vzOperatorVersionSplit[1]}"
+    echo "${vzOperatorVersionSplit[0]} == ${minimumOperatorVersionSplit[0]} && ${minimumOperatorVersionSplit[1]} == ${vzOperatorVersionSplit[1]} && ${vzOperatorVersionSplit[2]} >= ${minimumOperatorVersionSplit[2]}"
+    echo "Returning False..:("
+    return false
+}
+
 
 def setInitValues() {
     script {

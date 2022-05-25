@@ -127,3 +127,11 @@ func getInstallArgs(cr *vzapi.Verrazzano) []vzapi.InstallArgs {
 
 	return cr.Spec.Components.Ingress.NGINXInstallArgs
 }
+
+// GetOverrides gets the install overrides
+func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+	if effectiveCR.Spec.Components.Ingress != nil {
+		return effectiveCR.Spec.Components.Ingress.ValueOverrides
+	}
+	return []vzapi.Overrides{}
+}

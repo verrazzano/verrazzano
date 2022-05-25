@@ -42,6 +42,7 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-pushgateway-values.yaml"),
 			Dependencies:            []string{},
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
@@ -67,4 +68,15 @@ func (c prometheusPushgatewayComponent) IsReady(ctx spi.ComponentContext) bool {
 // PreInstall updates resources necessary for the Prometheus PrometheusPushgateway Component installation
 func (c prometheusPushgatewayComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preInstall(ctx)
+}
+
+// MonitorOverrides checks whether monitoring of install overrides is enabled or not
+func (c prometheusPushgatewayComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.PrometheusPushgateway != nil {
+		if ctx.EffectiveCR().Spec.Components.PrometheusPushgateway.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.PrometheusPushgateway.MonitorChanges
+		}
+		return true
+	}
+	return false
 }
