@@ -463,22 +463,6 @@ pipeline {
                     }
                 }
 
-                stage('Opensearch Update Tests') {
-                    environment {
-                        TEST_ENV = "KIND"
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-update"
-                    }
-                    steps {
-                        runGinkgo('update/opensearch')
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                    }
-                }
-
                 stage('Post-install overrides Tests') {
                     environment {
                         TEST_ENV = "KIND"
