@@ -8,10 +8,9 @@ import (
 	"fmt"
 	"strings"
 
-	helpers2 "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
-
 	"github.com/spf13/cobra"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/templates"
 	"k8s.io/apimachinery/pkg/types"
@@ -22,11 +21,12 @@ const (
 	namespaceFlag = "namespace"
 	nameFlag      = "name"
 	helpShort     = "Status of the Verrazzano install and access endpoints"
-	helpLong      = `Command 'status' returns summary information about a Verrazzano installation.
+	helpLong      = `The command 'status' returns summary information about a Verrazzano installation.
 
 For example:
 
 vz status --name my-verrazzano
+vz status --name my-verrazzano --context minikube
 vz status --name my-verrazzano --kubeconfig ~/.kube/config --context minikube
 `
 )
@@ -147,7 +147,7 @@ Status of Verrazzano {{.verrazzano_name}}
 `
 
 func NewCmdStatus(vzHelper helpers.VZHelper) *cobra.Command {
-	cmd := helpers2.NewCommand(vzHelper, CommandName, helpShort, helpLong)
+	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return runCmdStatus(cmd, args, vzHelper)
 	}

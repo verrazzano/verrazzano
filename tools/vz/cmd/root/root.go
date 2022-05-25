@@ -5,7 +5,7 @@ package root
 
 import (
 	"github.com/spf13/cobra"
-	helpers2 "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
+	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/status"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
@@ -17,11 +17,13 @@ var context string
 
 const (
 	CommandName = "vz"
+	helpShort   = "The vz tool is a command line utility that allows Verrazzano operators to query and manage a Verrazzano environment."
+	helpLong    = "The vz tool is a command line utility that allows Verrazzano operators to query and manage a Verrazzano environment."
 )
 
 // NewRootCmd - create the root cobra command
 func NewRootCmd(vzHelper helpers.VZHelper) *cobra.Command {
-	cmd := helpers2.NewCommand(vzHelper, CommandName, "Verrazzano CLI", "Verrazzano CLI")
+	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 
 	// Add global flags
 	cmd.PersistentFlags().StringVarP(&kubeconfig, constants.GlobalFlagKubeConfig, "c", "", "Kubernetes configuration file")
