@@ -123,11 +123,7 @@ func appendDefaultImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, s
 
 // GetOverrides appends Helm value overrides for the Prometheus Operator Helm chart
 func GetOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
-	comp := ctx.EffectiveCR().Spec.Components.PrometheusOperator
-	if comp == nil {
-		return []vzapi.Overrides{}
-	}
-	if ctx.EffectiveCR().Spec.Components.PrometheusOperator != nil {
+	if ctx.EffectiveCR() != nil && ctx.EffectiveCR().Spec.Components.PrometheusOperator != nil {
 		return ctx.EffectiveCR().Spec.Components.PrometheusOperator.ValueOverrides
 	}
 	return []vzapi.Overrides{}
