@@ -81,7 +81,7 @@ func (g grafanaComponent) GetJSONName() string {
 }
 
 // GetOverrides returns the Helm overrides for a component
-func (g grafanaComponent) GetOverrides(_ spi.ComponentContext) []vzapi.Overrides {
+func (g grafanaComponent) GetOverrides(_ *vzapi.Verrazzano) []vzapi.Overrides {
 	return []vzapi.Overrides{}
 }
 

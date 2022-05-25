@@ -191,7 +191,7 @@ func TestGetHelmOverridesPromNotConfigured(t *testing.T) {
 
 	// Nil Prom Operator component
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
-	overrides := GetOverrides(ctx)
+	overrides := GetOverrides(ctx.EffectiveCR())
 	assert.Equal(t, []vzapi.Overrides{}, overrides)
 }
 
@@ -221,6 +221,6 @@ func TestGetHelmOverrides(t *testing.T) {
 		false,
 	)
 
-	overrides := GetOverrides(ctx)
+	overrides := GetOverrides(ctx.EffectiveCR())
 	assert.Equal(t, expectedOverrides, overrides)
 }

@@ -45,6 +45,7 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:     AppendOverrides,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
@@ -64,7 +65,7 @@ func (c authProxyComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ver
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	return nil
+	return c.HelmComponent.ValidateUpdate(old, new)
 }
 
 // IsReady component check
@@ -111,4 +112,15 @@ func (c authProxyComponent) PreInstall(ctx spi.ComponentContext) error {
 // PreUpgrade performs any required pre upgrade operations
 func (c authProxyComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return authproxyPreHelmOps(ctx)
+}
+
+// MonitorOverrides checks whether monitoring of install overrides is enabled or not
+func (c authProxyComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.AuthProxy != nil {
+		if ctx.EffectiveCR().Spec.Components.AuthProxy.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.AuthProxy.MonitorChanges
+		}
+		return true
+	}
+	return false
 }

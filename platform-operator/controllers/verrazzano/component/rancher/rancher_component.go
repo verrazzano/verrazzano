@@ -60,6 +60,7 @@ func NewComponent() spi.Component {
 					Name:      constants.RancherIngress,
 				},
 			},
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
@@ -161,7 +162,7 @@ func (r rancherComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 	if r.IsEnabled(old) && !r.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	return nil
+	return r.HelmComponent.ValidateUpdate(old, new)
 }
 
 // PreInstall
@@ -257,4 +258,15 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Error removing Rancher bootstrap secret: %s", err.Error())
 	}
 	return r.HelmComponent.PostInstall(ctx)
+}
+
+// MonitorOverrides checks whether monitoring of install overrides is enabled or not
+func (r rancherComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.Rancher != nil {
+		if ctx.EffectiveCR().Spec.Components.Rancher.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.Rancher.MonitorChanges
+		}
+		return true
+	}
+	return false
 }
