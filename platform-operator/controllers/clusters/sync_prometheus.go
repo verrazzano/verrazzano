@@ -342,7 +342,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx c
 func (r *VerrazzanoManagedClusterReconciler) mutateManagedClusterTLSSecret(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, cacrtSecret *v1.Secret) error {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      vpoconst.PromManagedClusterTlsCertsSecretName,
+			Name:      vpoconst.PromManagedClusterTLSCertsSecretName,
 			Namespace: vpoconst.VerrazzanoMonitoringNamespace,
 		},
 	}
