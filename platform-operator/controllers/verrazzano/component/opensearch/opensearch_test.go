@@ -532,9 +532,21 @@ func TestIsReady(t *testing.T) {
 				Name:      esMasterStatefulset,
 				Labels:    map[string]string{"app": "system-es-master"},
 			},
+			Spec: appsv1.StatefulSetSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": "system-es-master"},
+				},
+			},
 			Status: appsv1.StatefulSetStatus{
-				ReadyReplicas:   3,
-				UpdatedReplicas: 3,
+				ReadyReplicas:   1,
+				UpdatedReplicas: 1,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      esMasterStatefulset + "-0",
+				Labels:    map[string]string{"app": "system-es-master"},
 			},
 		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
@@ -547,7 +559,7 @@ func TestIsReady(t *testing.T) {
 			ESInstallArgs: []vzapi.InstallArgs{
 				{
 					Name:  "nodes.master.replicas",
-					Value: "3",
+					Value: "1",
 				},
 				{
 					Name:  "nodes.data.replicas",
