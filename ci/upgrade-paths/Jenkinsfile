@@ -529,7 +529,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                executeBOMValidator()
+                                executeBomValidator()
                             }
                         }
                         stage ('Console') {
@@ -1414,23 +1414,37 @@ def createOKEClusters(clusterPrefix) {
     }
 }
 
+// execute bom validation against admin and managed cluster
+def executeBomValidator() {
+    script {
+        getBomValidatorFile()
+        def validateBomStages = createClusterExecutionsMap()
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        validateBomStages["validate bom vz-admin"] = validateBom(1)
+        for(int count=2; count<=clusterCount; count++) {
+            validateBomStages["validate bom vz-mgd-${count-1}"] = validateBom(count)
+        }
+        parallel validateBomStages
+    }
+}
 
-// Execute bom-validator against admin and managed cluster conditionally
-def executeBOMValidator() {
+// download the bom validator executable file
+def getBomValidatorFile() {
     script {
         sh """
             oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
             chmod +x ${WORKSPACE}/bom-validator
         """
-        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-        def isAdminCluster = "true"
-        for(int count=1; count<=clusterCount; count++) {
-            if (count>1) {
-                isAdminCluster = "false"
-            }
+    }
+}
+
+// validate bom-validator against a cluster
+def validateBom(count) {
+    return {
+        script {
             sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                ${WORKSPACE}/bom-validator --isAdminCluster=${isAdminCluster}
+                ${WORKSPACE}/bom-validator
             """
         }
     }
