@@ -17,12 +17,14 @@ import (
 	"time"
 
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"github.com/google/uuid"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	mcapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	mcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	yv2 "gopkg.in/yaml.v2"
@@ -372,6 +374,14 @@ func (c *Cluster) GetSecretData(ns, name, key string) ([]byte, error) {
 	return data, nil
 }
 
+func (c *Cluster) GetSecretDataAsString(ns, name, key string) string {
+	bytes, _ := c.GetSecretData(ns, name, key)
+	if len(bytes) > 0 {
+		return string(bytes)
+	}
+	return ""
+}
+
 func (c *Cluster) getCacrt() ([]byte, error) {
 	//cattle-system get secret tls-ca-additional
 	data, err := c.GetSecretData(constants.RancherSystemNamespace, "tls-ca-additional", "ca-additional.pem")
@@ -469,7 +479,65 @@ func (c *Cluster) GetManifest(name string) ([]byte, error) {
 
 func (c *Cluster) GetRegistration(name string) (*corev1.Secret, error) {
 	reg := fmt.Sprintf("verrazzano-cluster-%s-registration", name)
-	return c.GetSecret(constants.VerrazzanoMultiClusterNamespace, reg)
+	r, err := c.GetSecret(constants.VerrazzanoMultiClusterNamespace, reg)
+	if err != nil && errors.IsNotFound(err) {
+		return nil, err
+	}
+	return r, err
+}
+
+// GetCR gets the CR.  If it is not "Ready", wait for up to 5 minutes for it to be "Ready".
+func (c *Cluster) GetCR(waitForReady bool) *vzapi.Verrazzano {
+	if waitForReady {
+		gomega.Eventually(func() error {
+			cr, err := pkg.GetVerrazzanoInstallResourceInCluster(c.KubeConfigPath)
+			if err != nil {
+				return err
+			}
+			if cr.Status.State != vzapi.VzStateReady {
+				return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
+			}
+			return nil
+		}, fiveMinutes, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
+	}
+	// Get the CR
+	cr, err := pkg.GetVerrazzanoInstallResourceInCluster(c.KubeConfigPath)
+	if err != nil {
+		ginkgo.Fail(err.Error())
+	}
+	if cr == nil {
+		ginkgo.Fail("CR is nil")
+	}
+	return cr
+}
+
+// generate a custom CA
+func (c *Cluster) GenerateCA() string {
+	caCertTemp := `
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: %s
+  namespace: cert-manager
+spec:
+  commonName: %s
+  isCA: true
+  issuerRef:
+    name: verrazzano-selfsigned-issuer
+  secretName: %s
+`
+	caname := fmt.Sprintf("gen-ca-%v", uuid.NewString()[:7])
+	cacert := fmt.Sprintf(caCertTemp, caname, caname, caname)
+	c.apply([]byte(cacert))
+	gomega.Eventually(func() bool {
+		casec, err := c.GetSecret(constants.CertManagerNamespace, caname)
+		if err != nil || errors.IsNotFound(err) || casec == nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Error getting %s: %v", caname, err))
+			return false
+		}
+		return true
+	}, fiveMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Failed creating CA %v", caname))
+	return caname
 }
 
 func newCluster(name, kubeCfgPath string) *Cluster {
@@ -542,6 +610,7 @@ func apply(data []byte, config *rest.Config) error {
 			return nil
 		}
 		if err = upsert(client, config, uns, unsMap); err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Error upsert %s: %v \n", uns.GetName(), err))
 			return err
 		}
 	}
