@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	platformOperatorPodNameSearchString = "verrazzano-platform-operator"                        // Pod Substring for finding the platform operator pod
-	rancherWarningMessage               = "See VZ-5937, Rancher upgrade issue, all VZ versions" // For known Rancher issues with VZ upgrade
+	platformOperatorPodNameSearchString = "verrazzano-platform-operator" // Pod Substring for finding the platform operator pod
+	//rancherWarningMessage               = "See VZ-5937, Rancher upgrade issue, all VZ versions" // For known Rancher issues with VZ upgrade
 )
 
 // Verrazzano BOM types
@@ -69,11 +69,11 @@ type knownIssues struct {
 // Mainly a workaround for Rancher additional images; Rancher does not always update to the latest version
 // in the BOM file, possible Rancher bug that we are pursuing with the Rancher team
 var knownImageIssues = map[string]knownIssues{
-	"rancher-webhook": {alternateTags: []string{"v0.1.1", "v0.1.2", "v0.1.4"}, message: rancherWarningMessage},
-	"fleet-agent":     {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
-	"fleet":           {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
-	"gitjob":          {alternateTags: []string{"v0.1.15"}, message: rancherWarningMessage},
-	"shell":           {alternateTags: []string{"v0.1.6"}, message: rancherWarningMessage},
+	//"rancher-webhook": {alternateTags: []string{"v0.1.1", "v0.1.2", "v0.1.4"}, message: rancherWarningMessage},
+	//"fleet-agent":     {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
+	//"fleet":           {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
+	//"gitjob":          {alternateTags: []string{"v0.1.15"}, message: rancherWarningMessage},
+	//"shell":           {alternateTags: []string{"v0.1.6"}, message: rancherWarningMessage},
 }
 
 // Bom validations validates the images of below allowed namespaces only
