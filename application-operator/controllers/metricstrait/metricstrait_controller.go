@@ -480,7 +480,7 @@ func (r *Reconciler) updatePrometheusScraperConfigMap(ctx context.Context, trait
 	rel := vzapi.QualifiedResourceRelation{APIVersion: deployment.APIVersion, Kind: deployment.Kind, Name: deployment.Name, Namespace: deployment.Namespace, Role: scraperRole}
 
 	// Fetch the secret by name if it is provided in either the trait or the trait defaults.
-	secret, err := r.fetchSourceCredentialsSecretIfRequired(ctx, trait, traitDefaults, workload)
+	secret, err := fetchSourceCredentialsSecretIfRequired(ctx, trait, traitDefaults, workload, r.Client)
 	if err != nil {
 		return rel, controllerutil.OperationResultNone, err
 	}

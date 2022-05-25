@@ -6,6 +6,7 @@ package metricstrait
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"regexp"
 	"strings"
 
@@ -206,4 +207,33 @@ func useHTTPSForScrapeTarget(ctx context.Context, c client.Client, trait *vzapi.
 		return true, nil
 	}
 	return false, nil
+}
+
+// fetchSourceCredentialsSecretIfRequired fetches the metrics endpoint authentication credentials if a secret is provided.
+func fetchSourceCredentialsSecretIfRequired(ctx context.Context, trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, workload *unstructured.Unstructured, cli client.Client) (*k8score.Secret, error) {
+	secretName := trait.Spec.Secret
+	// If no secret name explicitly provided use the default secret name.
+	if secretName == nil && traitDefaults != nil {
+		secretName = traitDefaults.Secret
+	}
+	// If neither an explicit or default secret name provided do not fetch a secret.
+	if secretName == nil {
+		return nil, nil
+	}
+	// Use the workload namespace for the secret to fetch.
+	secretNamespace, found, err := unstructured.NestedString(workload.Object, "metadata", "namespace")
+	if err != nil {
+		return nil, fmt.Errorf("failed to determine namespace for secret %s: %w", *secretName, err)
+	}
+	if !found {
+		return nil, fmt.Errorf("failed to find namespace for secret %s", *secretName)
+	}
+	// Fetch the secret.
+	secretKey := client.ObjectKey{Namespace: secretNamespace, Name: *secretName}
+	secretObj := k8score.Secret{}
+	err = cli.Get(ctx, secretKey, &secretObj)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch secret %v: %w", secretKey, err)
+	}
+	return &secretObj, nil
 }
