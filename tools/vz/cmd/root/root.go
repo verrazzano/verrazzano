@@ -26,7 +26,7 @@ func NewRootCmd(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 
 	// Add global flags
-	cmd.PersistentFlags().StringVarP(&kubeconfig, constants.GlobalFlagKubeConfig, "c", "", "Kubernetes configuration file")
+	cmd.PersistentFlags().StringVar(&kubeconfig, constants.GlobalFlagKubeConfig, "", "Path to the kubeconfig file to use")
 	cmd.PersistentFlags().StringVar(&context, constants.GlobalFlagContext, "", "The name of the kubeconfig context to use")
 
 	// Add commands
