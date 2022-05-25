@@ -37,7 +37,8 @@ function read_config() {
   local key
   [ $# -eq 3 ] && key=$3
 
- local lines=$(awk '/\[/{prefix=$0; next} $1{print prefix $0}' $ocifile)
+  # Read the lines from the OCI CLI configuration file, by ignoring the comments and prefix each line with the given section.
+ local lines=$(awk '!/^#/{gsub(/^[[:space:]]*#.*/,"",$0);print}' $ocifile | awk '/\[/{prefix=$0; next} $1{print prefix $0}')
   for line in $lines; do
     if [[ "$line" = \[$SECTION\]* ]]; then
       local keyval=$(echo $line | sed -e "s/^\[$SECTION\]//")
