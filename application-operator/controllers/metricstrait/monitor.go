@@ -103,19 +103,21 @@ func (r *Reconciler) createServiceMonitorEndpoint(ctx context.Context, trait *vz
 	// The secret has to exist in the workload and namespace
 	if secret != nil {
 		trueVal := true
-		endpoint.BasicAuth.Username = k8score.SecretKeySelector{
-			LocalObjectReference: k8score.LocalObjectReference{
-				Name: secret.Name,
+		endpoint.BasicAuth = &promoperapi.BasicAuth{
+			Username: k8score.SecretKeySelector{
+				LocalObjectReference: k8score.LocalObjectReference{
+					Name: secret.Name,
+				},
+				Key:      "username",
+				Optional: &trueVal,
 			},
-			Key:      "username",
-			Optional: &trueVal,
-		}
-		endpoint.BasicAuth.Password = k8score.SecretKeySelector{
-			LocalObjectReference: k8score.LocalObjectReference{
-				Name: secret.Name,
+			Password: k8score.SecretKeySelector{
+				LocalObjectReference: k8score.LocalObjectReference{
+					Name: secret.Name,
+				},
+				Key:      "password",
+				Optional: &trueVal,
 			},
-			Key:      "password",
-			Optional: &trueVal,
 		}
 	}
 
