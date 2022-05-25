@@ -16,7 +16,7 @@ import (
 )
 
 // doOperatorReconcile reconciles a metrics trait to work with the Prometheus Operator
-// At its core, this reconciler will create a PodMonitor for each metrics trait application to hook up metrics with Prometheus
+// This reconciler will create a ServiceMonitor for each metrics trait application to hook up metrics with Prometheus
 func (r *Reconciler) doOperatorReconcile(ctx context.Context, trait *vzapi.MetricsTrait, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
 	if trait.DeletionTimestamp.IsZero() {
 		return r.reconcileOperatorTraitCreateOrUpdate(ctx, trait, log)
