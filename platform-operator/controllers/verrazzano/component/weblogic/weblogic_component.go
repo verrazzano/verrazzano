@@ -44,6 +44,7 @@ func NewComponent() spi.Component {
 			PreInstallFunc:          WeblogicOperatorPreInstall,
 			AppendOverridesFunc:     AppendWeblogicOperatorOverrides,
 			Dependencies:            []string{istio.ComponentName},
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
@@ -63,13 +64,24 @@ func (c weblogicComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verr
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	return nil
+	return c.HelmComponent.ValidateUpdate(old, new)
 }
 
 // IsReady component check
 func (c weblogicComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
 		return isWeblogicOperatorReady(ctx)
+	}
+	return false
+}
+
+// MonitorOverrides checks whether monitoring of install overrides is enabled or not
+func (c weblogicComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.WebLogicOperator != nil {
+		if ctx.EffectiveCR().Spec.Components.WebLogicOperator.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.WebLogicOperator.MonitorChanges
+		}
+		return true
 	}
 	return false
 }

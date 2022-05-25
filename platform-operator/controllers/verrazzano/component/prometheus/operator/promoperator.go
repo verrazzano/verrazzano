@@ -59,7 +59,7 @@ func preInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// AppendOverrides appends Helm value overrides for the Prometheus Operator Helm chart
+// AppendOverrides appends install overrides for the Prometheus Operator Helm chart
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Append custom images from the subcomponents in the bom
 	ctx.Log().Debug("Appending the image overrides for the Prometheus Operator components")
@@ -157,15 +157,14 @@ func appendDefaultImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, s
 }
 
 // validatePrometheusOperator checks scenarios in which the Verrazzano CR violates install verification due to Prometheus Operator specifications
-func (c prometheusComponent) validatePrometheusOperator(effectiveCR *vzapi.Verrazzano) error {
+func (c prometheusComponent) validatePrometheusOperator(vz *vzapi.Verrazzano) error {
 	// Validate if Prometheus is enabled, Prometheus Operator should be enabled
-	if !c.IsEnabled(effectiveCR) && vzconfig.IsPrometheusEnabled(effectiveCR) {
+	if !c.IsEnabled(vz) && vzconfig.IsPrometheusEnabled(vz) {
 		return fmt.Errorf("Prometheus cannot be enabled if the Prometheus Operator is disabled")
 	}
-
-	// Validate Helm value overrides
-	if effectiveCR.Spec.Components.PrometheusOperator != nil {
-		if err := vzapi.ValidateInstallOverrides(effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides); err != nil {
+	// Validate install overrides
+	if vz.Spec.Components.PrometheusOperator != nil {
+		if err := vzapi.ValidateInstallOverrides(vz.Spec.Components.PrometheusOperator.ValueOverrides); err != nil {
 			return err
 		}
 	}
@@ -225,13 +224,9 @@ func appendIstioOverrides(ctx spi.ComponentContext, annotationsKey, volumeMountK
 }
 
 // GetOverrides appends Helm value overrides for the Prometheus Operator Helm chart
-func GetOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
-	comp := ctx.EffectiveCR().Spec.Components.PrometheusOperator
-	if comp == nil {
-		return []vzapi.Overrides{}
-	}
-	if ctx.EffectiveCR().Spec.Components.PrometheusOperator != nil {
-		return ctx.EffectiveCR().Spec.Components.PrometheusOperator.ValueOverrides
+func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+	if effectiveCR.Spec.Components.PrometheusOperator != nil {
+		return effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides
 	}
 	return []vzapi.Overrides{}
 }

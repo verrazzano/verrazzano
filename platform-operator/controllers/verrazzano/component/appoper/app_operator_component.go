@@ -47,6 +47,7 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:     AppendApplicationOperatorOverrides,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
 			Dependencies:            []string{oam.ComponentName, istio.ComponentName},
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
@@ -122,5 +123,16 @@ func (c applicationOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new 
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	return nil
+	return c.HelmComponent.ValidateUpdate(old, new)
+}
+
+// MonitorOverrides checks whether monitoring of install overrides is enabled or not
+func (c applicationOperatorComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.ApplicationOperator != nil {
+		if ctx.EffectiveCR().Spec.Components.ApplicationOperator.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.ApplicationOperator.MonitorChanges
+		}
+		return true
+	}
+	return false
 }

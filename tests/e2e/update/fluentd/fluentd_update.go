@@ -29,7 +29,7 @@ const (
 	fluentdName     = "fluentd"
 	cacerts         = "cacerts"
 	oneMinute       = 1 * time.Minute
-	fiveMinutes     = 5 * time.Minute
+	tenMinutes      = 10 * time.Minute
 	pollingInterval = 5 * time.Second
 )
 
@@ -58,6 +58,7 @@ func ValidateUpdate(m update.CRModifier, expectedError string) {
 }
 
 func ValidateDaemonset(osURL, osSec, apiSec string, extra ...vzapi.VolumeMount) {
+	start := time.Now()
 	gomega.Eventually(func() bool {
 		ds, err := pkg.GetDaemonSet(constants.VerrazzanoSystemNamespace, fluentdName)
 		if err != nil {
@@ -76,7 +77,8 @@ func ValidateDaemonset(osURL, osSec, apiSec string, extra ...vzapi.VolumeMount) 
 			return false
 		}
 		return ds.Status.NumberReady > 0
-	}, fiveMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready", osURL))
+	}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", osURL, time.Since(start)))
+	pkg.Log(pkg.Info, fmt.Sprintf("Fluentd took %v to update", time.Since(start)))
 }
 
 func checkExtraVolumes(ds *appsv1.DaemonSet, extra ...vzapi.VolumeMount) bool {
@@ -120,9 +122,10 @@ func checkExtraMounts(cntr corev1.Container, extra ...vzapi.VolumeMount) bool {
 }
 
 func validateEsURL(cntr corev1.Container, esURL string) bool {
+	esURL = strings.TrimSpace(esURL)
 	if esURL != "" {
 		env := findEnv(cntr, "ELASTICSEARCH_URL")
-		pkg.Log(pkg.Info, fmt.Sprintf("Found env: %v", env))
+		pkg.Log(pkg.Info, fmt.Sprintf("Expecting %v found env: %v", esURL, env))
 		if env == nil || env.Value != esURL {
 			return false
 		}

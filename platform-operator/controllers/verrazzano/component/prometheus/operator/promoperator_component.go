@@ -4,6 +4,7 @@
 package operator
 
 import (
+	"fmt"
 	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -67,8 +68,7 @@ func (c prometheusComponent) IsReady(ctx spi.ComponentContext) bool {
 
 // MonitorOverrides checks whether monitoring is enabled for install overrides sources
 func (c prometheusComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
-	comp := ctx.EffectiveCR().Spec.Components.PrometheusOperator
-	if comp == nil {
+	if ctx.EffectiveCR().Spec.Components.PrometheusOperator == nil {
 		return false
 	}
 	if ctx.EffectiveCR().Spec.Components.PrometheusOperator.MonitorChanges != nil {
@@ -83,11 +83,14 @@ func (c prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
 }
 
 // ValidateInstall verifies the installation of the Verrazzano object
-func (c prometheusComponent) ValidateInstall(effectiveCR *vzapi.Verrazzano) error {
-	return c.validatePrometheusOperator(effectiveCR)
+func (c prometheusComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return c.validatePrometheusOperator(vz)
 }
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
-func (c prometheusComponent) ValidateUpgrade(effectiveCR *vzapi.Verrazzano) error {
-	return c.validatePrometheusOperator(effectiveCR)
+func (c prometheusComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	return c.validatePrometheusOperator(new)
 }
