@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"strings"
 
+	helpers2 "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
+
 	"github.com/spf13/cobra"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -145,7 +147,7 @@ Status of Verrazzano {{.verrazzano_name}}
 `
 
 func NewCmdStatus(vzHelper helpers.VZHelper) *cobra.Command {
-	cmd := helpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
+	cmd := helpers2.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return runCmdStatus(cmd, args, vzHelper)
 	}

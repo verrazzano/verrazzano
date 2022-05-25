@@ -6,7 +6,7 @@ package main
 import (
 	"os"
 
-	"github.com/verrazzano/verrazzano/tools/vz/cmd"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/root"
 
@@ -18,7 +18,7 @@ func main() {
 	flags := pflag.NewFlagSet("vz", pflag.ExitOnError)
 	pflag.CommandLine = flags
 
-	rc := cmd.NewRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
+	rc := helpers.NewRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
 	rootCmd := root.NewRootCmd(rc)
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)

@@ -3,10 +3,13 @@
 
 package helpers
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+)
 
 // NewCommand - utility method to create cobra commands
-func NewCommand(vzHelper VZHelper, use string, short string, long string) *cobra.Command {
+func NewCommand(vzHelper helpers.VZHelper, use string, short string, long string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   use,
 		Short: short,

@@ -6,6 +6,8 @@ package version
 import (
 	"fmt"
 
+	helpers2 "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
+
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 )
@@ -22,7 +24,7 @@ vz version
 )
 
 func NewCmdVersion(vzHelper helpers.VZHelper) *cobra.Command {
-	cmd := helpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
+	cmd := helpers2.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.Run = runCmdVersion
 
 	return cmd
