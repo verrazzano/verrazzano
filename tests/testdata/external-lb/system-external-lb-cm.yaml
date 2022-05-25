@@ -20,7 +20,7 @@ data:
     stream {
         upstream nginx_ingress {
            least_conn;
-  {{.ServerList}}
+{{.ServerList}}
         }
 
         server {

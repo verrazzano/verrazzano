@@ -167,9 +167,9 @@ func (u NginxIstioNodePortModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		cr.Spec.Components.Ingress = &vzapi.IngressNginxComponent{}
 	}
 	cr.Spec.Components.Ingress.Ports = testNginxIngressPorts
-	cr.Spec.Components.Ingress.Type = "NodePort"
+	cr.Spec.Components.Ingress.Type = vzapi.NodePort
 	nginxInstallArgs := cr.Spec.Components.Ingress.NGINXInstallArgs
-	nginxInstallArgs = append(nginxInstallArgs, vzapi.InstallArgs{Name: "controller.service.externalIPs", Value: u.systemExternalLBIP})
+	nginxInstallArgs = append(nginxInstallArgs, vzapi.InstallArgs{Name: "controller.service.externalIPs", ValueList: []string{u.systemExternalLBIP}})
 	cr.Spec.Components.Ingress.NGINXInstallArgs = nginxInstallArgs
 	if cr.Spec.Components.Istio == nil {
 		cr.Spec.Components.Istio = &vzapi.IstioComponent{}
@@ -178,9 +178,9 @@ func (u NginxIstioNodePortModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		cr.Spec.Components.Istio.Ingress = &vzapi.IstioIngressSection{}
 	}
 	cr.Spec.Components.Istio.Ingress.Ports = testIstioIngressPorts
-	cr.Spec.Components.Istio.Ingress.Type = "NodePort"
+	cr.Spec.Components.Istio.Ingress.Type = vzapi.NodePort
 	istioInstallArgs := cr.Spec.Components.Istio.IstioInstallArgs
-	istioInstallArgs = append(istioInstallArgs, vzapi.InstallArgs{Name: "gateways.istio-ingressgateway.externalIPs", Value: u.applicationExternalLBIP})
+	istioInstallArgs = append(istioInstallArgs, vzapi.InstallArgs{Name: "gateways.istio-ingressgateway.externalIPs", ValueList: []string{u.applicationExternalLBIP}})
 	cr.Spec.Components.Istio.IstioInstallArgs = istioInstallArgs
 }
 
@@ -234,7 +234,10 @@ var _ = t.Describe("Update nginx-istio", Label("f:platform-lcm.update"), func() 
 				istioCount = nodeCount
 			}
 			m := NginxAutoscalingIstioRelicasAffintyModifier{nginxReplicas: nodeCount, istioIngressReplicas: istioCount, istioEgressReplicas: istioCount}
-			update.UpdateCR(m)
+			err := update.UpdateCR(m)
+			if err != nil {
+				Fail(err.Error())
+			}
 
 			update.ValidatePods(nginxLabelValue, nginxLabelKey, constants.IngressNamespace, nodeCount, false)
 			update.ValidatePods(istioIngressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, istioCount, false)
@@ -245,7 +248,10 @@ var _ = t.Describe("Update nginx-istio", Label("f:platform-lcm.update"), func() 
 	t.Describe("verrazzano-nginx-istio update service ports", Label("f:platform-lcm.nginx-istio-update-ports"), func() {
 		t.It("nginx-istio update service ports", func() {
 			m := NginxIstioServicePortsModifier{}
-			update.UpdateCR(m)
+			err := update.UpdateCR(m)
+			if err != nil {
+				Fail(err.Error())
+			}
 
 			validateServicePorts()
 		})
@@ -254,7 +260,10 @@ var _ = t.Describe("Update nginx-istio", Label("f:platform-lcm.update"), func() 
 	t.Describe("verrazzano-nginx-istio update nodeport", Label("f:platform-lcm.nginx-istio-update-nodeport"), func() {
 		t.It("nginx-istio update ingress type", func() {
 			t.Logs.Info("Create external load balancers")
-			pkg.CreateNamespaceWithAnnotations("external-lb", map[string]string{}, map[string]string{})
+			_, err := pkg.CreateNamespaceWithAnnotations("external-lb", map[string]string{}, map[string]string{})
+			if err != nil {
+				Fail(err.Error())
+			}
 
 			nodes, err := pkg.ListNodes()
 			if err != nil {
@@ -291,7 +300,10 @@ var _ = t.Describe("Update nginx-istio", Label("f:platform-lcm.update"), func() 
 
 			t.Logs.Infof("Update nginx/istio ingresses to use NodePort with external load balancers: %s and %s", sysIP, appIP)
 			m := NginxIstioNodePortModifier{systemExternalLBIP: sysIP, applicationExternalLBIP: appIP}
-			update.UpdateCR(m)
+			err = update.UpdateCR(m)
+			if err != nil {
+				Fail(err.Error())
+			}
 
 			t.Logs.Info("Validate nginx/istio ingresses for NodePort and externalIPs")
 			validateServiceTypeAndExternalIP(sysIP, appIP)
@@ -304,12 +316,12 @@ func applyResource(resourceFile string, templateData *externalLBsTemplateData) {
 	if err != nil {
 		Fail(err.Error())
 	}
-	template, err := template.ParseFiles(file)
+	fileTemplate, err := template.ParseFiles(file)
 	if err != nil {
 		Fail(err.Error())
 	}
 	var buff bytes.Buffer
-	err = template.Execute(&buff, templateData)
+	err = fileTemplate.Execute(&buff, templateData)
 	if err != nil {
 		Fail(err.Error())
 	}
@@ -348,22 +360,22 @@ func validateServiceTypeAndExternalIP(sysIP, appIP string) {
 		if err != nil {
 			return err
 		}
-		if "NodePort" == nginxIngress.Spec.Type {
+		if nginxIngress.Spec.Type != corev1.ServiceTypeNodePort {
 			return fmt.Errorf("expect nginx ingress with type NodePort, but got %v", nginxIngress.Spec.Type)
 		}
-		expectedSysIPs := [1]string{sysIP}
-		if !reflect.DeepEqual(expectedSysIPs, nginxIngress.Spec.ExternalIPs[0]) {
+		expectedSysIPs := []string{sysIP}
+		if !reflect.DeepEqual(expectedSysIPs, nginxIngress.Spec.ExternalIPs) {
 			return fmt.Errorf("expect nginx ingress with externalIPs %v, but got %v", expectedSysIPs, nginxIngress.Spec.ExternalIPs)
 		}
 		istioIngress, err := pkg.GetService(constants.IstioSystemNamespace, "istio-ingressgateway")
 		if err != nil {
 			return err
 		}
-		if "NodePort" == istioIngress.Spec.Type {
+		if istioIngress.Spec.Type != corev1.ServiceTypeNodePort {
 			return fmt.Errorf("expect istio ingress with type NodePort, but got %v", istioIngress.Spec.Type)
 		}
-		expectedAppIPs := [1]string{appIP}
-		if !reflect.DeepEqual(expectedAppIPs, istioIngress.Spec.ExternalIPs[0]) {
+		expectedAppIPs := []string{appIP}
+		if !reflect.DeepEqual(expectedAppIPs, istioIngress.Spec.ExternalIPs) {
 			return fmt.Errorf("expect nginx ingress with externalIPs %v, but got %v", expectedAppIPs, istioIngress.Spec.ExternalIPs)
 		}
 		return nil
