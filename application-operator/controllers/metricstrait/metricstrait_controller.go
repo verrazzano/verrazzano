@@ -6,6 +6,7 @@ package metricstrait
 import (
 	"context"
 	"fmt"
+	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"regexp"
 	"strconv"
 	"strings"
@@ -404,7 +405,11 @@ func (r *Reconciler) deleteOrUpdateObsoleteResources(ctx context.Context, trait 
 		if !status.ContainsRelation(rel) {
 			switch rel.Role {
 			case scraperRole:
-				update.RecordOutcomeIfError(r.deleteOrUpdateScraperConfigMap(ctx, trait, rel, log)) // Need to pass down traitDefaults, current scraper or current scraper deployment
+				if rel.Kind == promoperapi.ServiceMonitorsKind {
+					update.RecordOutcome(r.deleteServiceMonitor(ctx, rel))
+				} else {
+					update.RecordOutcomeIfError(r.deleteOrUpdateScraperConfigMap(ctx, trait, rel, log)) // Need to pass down traitDefaults, current scraper or current scraper deployment
+				}
 			case sourceRole:
 				update.RecordOutcomeIfError(r.deleteOrUpdateMetricSourceResource(ctx, trait, rel, log))
 			default:
@@ -600,7 +605,11 @@ func (r *Reconciler) updateTraitStatus(ctx context.Context, trait *vzapi.Metrics
 func updateStatusIfRequired(status *vzapi.MetricsTraitStatus, results *reconcileresults.ReconcileResults) bool {
 	updated := false
 	if !vzapi.QualifiedResourceRelationSlicesEquivalent(status.Resources, results.Relations) {
-		status.Resources = results.Relations
+		for _, relation := range results.Relations {
+			if !vzapi.QualifiedResourceRelationsContain(status.Resources, &relation) {
+				status.Resources = append(status.Resources, relation)
+			}
+		}
 		updated = true
 	}
 	conditionedStatus := results.CreateConditionedStatus()
@@ -758,7 +767,7 @@ func MutateLabels(trait *vzapi.MetricsTrait, workload *unstructured.Unstructured
 // createPrometheusScrapeConfigMapJobName creates a Prometheus scrape configmap job name from a trait.
 // Format is {oam_app}_{cluster}_{namespace}_{oam_comp}
 func createPrometheusScrapeConfigMapJobName(trait *vzapi.MetricsTrait, portNum int) (string, error) {
-	return createPodMonitorName(trait, portNum)
+	return createServiceMonitorName(trait, portNum)
 }
 
 // createScrapeConfigFromTrait creates Prometheus scrape config for a trait.

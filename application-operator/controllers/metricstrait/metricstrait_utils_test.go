@@ -312,7 +312,7 @@ func TestCreatePodMonitorName(t *testing.T) {
 	}
 	assert := asserts.New(t)
 	for _, tt := range tests {
-		name, err := createPodMonitorName(tt.trait, tt.portNum)
+		name, err := createServiceMonitorName(tt.trait, tt.portNum)
 		if tt.expectError {
 			assert.Error(err)
 		} else {

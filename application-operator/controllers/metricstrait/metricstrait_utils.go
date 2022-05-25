@@ -134,9 +134,9 @@ func GetSupportedWorkloadType(apiVerKind string) string {
 	return ""
 }
 
-// createPodMonitorName creates a Prometheus scrape configmap job name from a trait.
+// createServiceMonitorName creates a Prometheus scrape configmap job name from a trait.
 // Format is {oam_app}_{cluster}_{namespace}_{oam_comp}
-func createPodMonitorName(trait *vzapi.MetricsTrait, portNum int) (string, error) {
+func createServiceMonitorName(trait *vzapi.MetricsTrait, portNum int) (string, error) {
 	cluster := getClusterNameFromObjectMetaOrDefault(trait.ObjectMeta)
 	namespace := getNamespaceFromObjectMetaOrDefault(trait.ObjectMeta)
 	app, found := trait.Labels[appObjectMetaLabel]

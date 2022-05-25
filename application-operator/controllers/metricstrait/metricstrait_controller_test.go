@@ -437,7 +437,7 @@ func TestDeploymentUpdateError(t *testing.T) {
 			assert.Len(trait.Status.Conditions, 1)
 			assert.Equal(oamrt.ReasonReconcileError, trait.Status.Conditions[0].Reason)
 			return nil
-		})
+		}).Times(2)
 	// Expect a call to get the Namespace to check if Istio is enabled
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Name: "test-namespace"}, gomock.Not(gomock.Nil())).

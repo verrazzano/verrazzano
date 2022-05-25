@@ -5,10 +5,10 @@ package metricstrait
 
 import (
 	"context"
-
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -46,8 +46,6 @@ func (r *Reconciler) reconcileOperatorTraitCreateOrUpdate(ctx context.Context, t
 		return reconcile.Result{Requeue: false}, nil
 	}
 
-	// TODO enable external Prometheus
-
 	// Find the child resources of the workload based on the childResourceKinds from the
 	// workload definition, workload uid and the ownerReferences of the children.
 	var children []*unstructured.Unstructured
@@ -60,12 +58,17 @@ func (r *Reconciler) reconcileOperatorTraitCreateOrUpdate(ctx context.Context, t
 
 	status.RecordOutcome(r.updateServiceMonitor(ctx, trait, workload, traitDefaults, log))
 
-	// Don't update the trait status because it overrides the resource relation
-	// return r.updateTraitStatus(ctx, trait, status, log)
-	return reconcile.Result{Requeue: true}, nil
+	return r.updateTraitStatus(ctx, trait, status, log)
 }
 
 func (r *Reconciler) reconcileOperatorTraitDelete(ctx context.Context, trait *vzapi.MetricsTrait, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
+	status := r.deleteOrUpdateObsoleteResources(ctx, trait, &reconcileresults.ReconcileResults{}, log)
+	// Only remove the finalizer if all related resources were successfully updated.
+	if !status.ContainsErrors() {
+		if err := r.removeFinalizerIfRequired(ctx, trait, log); err != nil {
+			return reconcile.Result{}, err
+		}
+	}
 	return ctrl.Result{}, nil
 }
 

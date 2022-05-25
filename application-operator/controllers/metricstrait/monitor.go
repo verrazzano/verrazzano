@@ -6,6 +6,7 @@ package metricstrait
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"strings"
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -37,7 +38,7 @@ func (r *Reconciler) updateServiceMonitor(ctx context.Context, trait *vzapi.Metr
 	// Creating a pod monitor with name and namespace
 	// Replacing underscores with dashes in name to appease Kubernetes requirements
 	serviceMonitor := promoperapi.ServiceMonitor{}
-	pmName, err := createPodMonitorName(trait, 0)
+	pmName, err := createServiceMonitorName(trait, 0)
 	if err != nil {
 		return rel, controllerutil.OperationResultNone, log.ErrorfNewErr("Failed to create Pod Monitor name: %v", err)
 	}
@@ -48,10 +49,25 @@ func (r *Reconciler) updateServiceMonitor(ctx context.Context, trait *vzapi.Metr
 	result, err := controllerutil.CreateOrUpdate(ctx, r.Client, &serviceMonitor, func() error {
 		return r.mutatePodMonitorFromTrait(ctx, &serviceMonitor, trait, workload, traitDefaults, log)
 	})
+
+	rel = vzapi.QualifiedResourceRelation{APIVersion: serviceMonitor.APIVersion, Kind: serviceMonitor.Kind, Namespace: serviceMonitor.Namespace, Name: serviceMonitor.Name, Role: scraperRole}
+
 	if err != nil {
 		return rel, result, err
 	}
 	return rel, result, nil
+}
+
+// deleteServiceMonitor deletes the object responsible for transporting metrics from the source to Prometheus
+func (r *Reconciler) deleteServiceMonitor(ctx context.Context, rel vzapi.QualifiedResourceRelation) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
+	serviceMonitor := promoperapi.ServiceMonitor{}
+	serviceMonitor.SetName(rel.Name)
+	serviceMonitor.SetNamespace(rel.Namespace)
+	serviceMonitor.SetGroupVersionKind(schema.GroupVersionKind{Group: promoperapi.SchemeGroupVersion.Group, Version: promoperapi.SchemeGroupVersion.Version, Kind: promoperapi.ServiceMonitorsKind})
+	if err := r.Delete(ctx, &serviceMonitor); err != nil {
+		return rel, controllerutil.OperationResultNone, err
+	}
+	return rel, controllerutil.OperationResultUpdated, nil
 }
 
 // mutatePodMonitorFromTrait mutates the Pod Monitor to prepare for a create or update
