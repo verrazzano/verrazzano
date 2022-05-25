@@ -64,7 +64,7 @@ type HelmComponent struct {
 	// AppendOverridesFunc is an optional function get additional override values
 	AppendOverridesFunc appendOverridesSig
 
-	// GetHelmOverrides is an optional function get Helm override sources
+	// GetHelmOverridesFunc is an optional function get Helm override sources
 	GetHelmOverridesFunc getHelmOverridesSig
 
 	// ResolveNamespaceFunc is an optional function to process the namespace name
@@ -144,7 +144,7 @@ func (h HelmComponent) GetJSONName() string {
 	return h.JSONName
 }
 
-// GetHelmOverrides returns the list of Helm value overrides for a component
+// GetOverrides returns the list of Helm value overrides for a component
 func (h HelmComponent) GetOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
 	if h.GetHelmOverridesFunc != nil {
 		return h.GetHelmOverridesFunc(ctx)
