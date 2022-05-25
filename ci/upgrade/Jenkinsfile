@@ -252,6 +252,11 @@ pipeline {
                                 runGinkgoSerial('upgrade/pre-upgrade/opensearch-dashboards')
                             }
                         }
+                        stage('grafana pre-upgrade') {
+                            steps {
+                                runGinkgoSerial('upgrade/pre-upgrade/grafana')
+                            }
+                        }
                         // Re-enable this stage when a mechanism is in place to deploy different comp and app yamls based on VZ version
 //                         stage('examples socks') {
 //                             steps {
@@ -460,6 +465,11 @@ pipeline {
                         stage('opensearch post-upgrade') {
                             steps {
                                 runGinkgoSerial('upgrade/post-upgrade/opensearch')
+                            }
+                        }
+                        stage('grafana post-upgrade') {
+                            steps {
+                                runGinkgoSerial('upgrade/post-upgrade/grafana')
                             }
                         }
                         stage('examples socks') {
