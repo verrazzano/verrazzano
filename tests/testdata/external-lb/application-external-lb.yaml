@@ -1,0 +1,40 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: application-external-lb
+  name: application-external-lb
+  namespace: external-lb
+spec:
+  selector:
+    matchLabels:
+      app: application-external-lb
+  template:
+    metadata:
+      labels:
+        app: application-external-lb
+    spec:
+      volumes:
+        - name: config
+          configMap:
+            name: application-external-lb-cm
+            items:
+              - key: startup.sh
+                path: startup.sh
+                mode: 0755
+              - key: nginx.conf
+                path: nginx.conf
+                mode: 0744
+      containers:
+        - image: ghcr.io/verrazzano/nginx-ingress-controller:1.1.1-20220413170248-b60724ed1
+          imagePullPolicy: IfNotPresent
+          name: application-external-lb
+          command: [ "/config/startup.sh" ]
+          ports:
+            - containerPort: 8777
+          volumeMounts:
+            - mountPath: /config
+              name: config
