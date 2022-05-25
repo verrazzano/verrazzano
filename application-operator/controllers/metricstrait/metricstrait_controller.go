@@ -605,8 +605,8 @@ func (r *Reconciler) updateTraitStatus(ctx context.Context, trait *vzapi.Metrics
 func updateStatusIfRequired(status *vzapi.MetricsTraitStatus, results *reconcileresults.ReconcileResults) bool {
 	updated := false
 	if !vzapi.QualifiedResourceRelationSlicesEquivalent(status.Resources, results.Relations) {
-		for _, relation := range results.Relations {
-			if !vzapi.QualifiedResourceRelationsContain(status.Resources, &relation) {
+		for i, relation := range results.Relations {
+			if !vzapi.QualifiedResourceRelationsContain(status.Resources, &results.Relations[i]) {
 				status.Resources = append(status.Resources, relation)
 			}
 		}
