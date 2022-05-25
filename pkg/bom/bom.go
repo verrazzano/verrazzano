@@ -121,16 +121,21 @@ type KeyValue struct {
 	IsFile    bool // for -f
 }
 
-// Create a new bom from a JSON file
+// Create a new BOM instance from a JSON file
 func NewBom(bomPath string) (Bom, error) {
 	jsonBom, err := ioutil.ReadFile(bomPath)
 	if err != nil {
 		return Bom{}, err
 	}
+	return NewBOMFromJSON(jsonBom)
+}
+
+//NewBOMFromJSON Create a new BOM instance from a JSON payload
+func NewBOMFromJSON(jsonBom []byte) (Bom, error) {
 	bom := Bom{
 		subComponentMap: make(map[string]*BomSubComponent),
 	}
-	err = bom.init(string(jsonBom))
+	err := bom.init(string(jsonBom))
 	if err != nil {
 		return Bom{}, err
 	}
