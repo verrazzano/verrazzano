@@ -43,7 +43,7 @@ var testVZ = vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		Components: vzapi.ComponentSpec{PrometheusOperator: &vzapi.PrometheusOperatorComponent{
 			Enabled: True(),
-			HelmValueOverrides: vzapi.HelmValueOverrides{
+			InstallOverrides: vzapi.InstallOverrides{
 				MonitorChanges: True(),
 				ValueOverrides: []vzapi.Overrides{
 					{
