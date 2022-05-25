@@ -40,6 +40,7 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:     AppendOverrides,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_0_0,
 			Dependencies:            []string{},
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
@@ -69,5 +70,16 @@ func (e externalDNSComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.V
 	if e.IsEnabled(old) && !e.IsEnabled(new) {
 		return fmt.Errorf("Disabling an existing OCI DNS configuration is not allowed")
 	}
-	return nil
+	return e.HelmComponent.ValidateUpdate(old, new)
+}
+
+// MonitorOverrides checks whether monitoring of install overrides is enabled or not
+func (e externalDNSComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.DNS != nil {
+		if ctx.EffectiveCR().Spec.Components.DNS.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.DNS.MonitorChanges
+		}
+		return true
+	}
+	return false
 }
