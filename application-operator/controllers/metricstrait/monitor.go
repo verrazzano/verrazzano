@@ -18,21 +18,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+// updateServiceMonitor creates or updates a service monitor given the trait and workload parameters
+// A service monitor emulates a scrape config for Prometheus with the Prometheus Operator
 func (r *Reconciler) updateServiceMonitor(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, log vzlog.VerrazzanoLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
-	rel := vzapi.QualifiedResourceRelation{}
+	var rel vzapi.QualifiedResourceRelation
 
 	// If the metricsTrait is being disabled then return nil for the config
 	if !isEnabled(trait) || workload == nil {
 		return rel, controllerutil.OperationResultNone, nil
-	}
-
-	// Fetch the secret by name if it is provided in either the trait or the trait defaults.
-	secret, err := r.fetchSourceCredentialsSecretIfRequired(ctx, trait, traitDefaults, workload)
-	if err != nil {
-		return rel, controllerutil.OperationResultNone, log.ErrorfNewErr("Failed to fetch metrics source credentials: %v", err)
-	}
-	if secret != nil && secret.Name == "" {
-		return rel, controllerutil.OperationResultNone, err
 	}
 
 	// Creating a pod monitor with name and namespace
@@ -47,7 +40,7 @@ func (r *Reconciler) updateServiceMonitor(ctx context.Context, trait *vzapi.Metr
 
 	// Create or Update pod monitor with valid scrape config for the target workload
 	result, err := controllerutil.CreateOrUpdate(ctx, r.Client, &serviceMonitor, func() error {
-		return r.mutatePodMonitorFromTrait(ctx, &serviceMonitor, trait, workload, traitDefaults, log)
+		return r.mutateServiceMonitorFromTrait(ctx, &serviceMonitor, trait, workload, traitDefaults, log)
 	})
 
 	rel = vzapi.QualifiedResourceRelation{APIVersion: serviceMonitor.APIVersion, Kind: serviceMonitor.Kind, Namespace: serviceMonitor.Namespace, Name: serviceMonitor.Name, Role: scraperRole}
@@ -70,37 +63,65 @@ func (r *Reconciler) deleteServiceMonitor(ctx context.Context, rel vzapi.Qualifi
 	return rel, controllerutil.OperationResultUpdated, nil
 }
 
-// mutatePodMonitorFromTrait mutates the Pod Monitor to prepare for a create or update
+// mutateServiceMonitorFromTrait mutates the Pod Monitor to prepare for a create or update
 // the Pod Monitor reflects the specifications of the trait and the trait defaults
-func (r *Reconciler) mutatePodMonitorFromTrait(ctx context.Context, podMonitor *promoperapi.ServiceMonitor, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, log vzlog.VerrazzanoLogger) error {
+func (r *Reconciler) mutateServiceMonitorFromTrait(ctx context.Context, serviceMonitor *promoperapi.ServiceMonitor, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, log vzlog.VerrazzanoLogger) error {
 	// Create the Pod monitor name from the trait if the label exists
 	// Create the Pod Monitor selector from the trait label if it exists
-	if podMonitor.ObjectMeta.Labels == nil {
-		podMonitor.ObjectMeta.Labels = map[string]string{}
+	if serviceMonitor.ObjectMeta.Labels == nil {
+		serviceMonitor.ObjectMeta.Labels = map[string]string{}
 	}
-	podMonitor.Labels["release"] = "prometheus-operator"
-	podMonitor.Spec.NamespaceSelector = promoperapi.NamespaceSelector{
+	serviceMonitor.Labels["release"] = "prometheus-operator"
+	serviceMonitor.Spec.NamespaceSelector = promoperapi.NamespaceSelector{
 		MatchNames: []string{workload.GetNamespace()},
 	}
 
+	// Fetch the secret by name if it is provided in either the trait or the trait defaults.
+	secret, err := r.fetchSourceCredentialsSecretIfRequired(ctx, trait, traitDefaults, workload)
+	if err != nil {
+		return log.ErrorfNewErr("Failed to fetch metrics source credentials: %v", err)
+	}
+
 	// Clear the existing endpoints to avoid duplications
-	podMonitor.Spec.Endpoints = nil
+	serviceMonitor.Spec.Endpoints = nil
 
 	// Loop through ports in the trait and create scrape targets for each
 	ports := getPortSpecs(trait, traitDefaults)
 	for i := range ports {
-		endpoint, err := r.createPodMetricsEndpoint(ctx, trait, workload, traitDefaults, i)
+		endpoint, err := r.createServiceMonitorEndpoint(ctx, trait, secret, i)
 		if err != nil {
 			return log.ErrorfNewErr("Failed to create the pod metrics endpoint for the pod monitor: %v", err)
 		}
-		podMonitor.Spec.Endpoints = append(podMonitor.Spec.Endpoints, endpoint)
+		serviceMonitor.Spec.Endpoints = append(serviceMonitor.Spec.Endpoints, endpoint)
 	}
 
 	return nil
 }
 
-func (r *Reconciler) createPodMetricsEndpoint(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, portIncrement int) (promoperapi.Endpoint, error) {
+// createServiceMonitorEndpoint creates an endpoint for a given port and trait
+// this function effectively creates a scrape config for the trait target through the Service Monitor API
+func (r *Reconciler) createServiceMonitorEndpoint(ctx context.Context, trait *vzapi.MetricsTrait, secret *k8score.Secret, portIncrement int) (promoperapi.Endpoint, error) {
 	var endpoint promoperapi.Endpoint
+
+	// Add the secret username and password if basic auth is required for this endpoint
+	// The secret has to exist in the workload and namespace
+	if secret != nil {
+		trueVal := true
+		endpoint.BasicAuth.Username = k8score.SecretKeySelector{
+			LocalObjectReference: k8score.LocalObjectReference{
+				Name: secret.Name,
+			},
+			Key:      "username",
+			Optional: &trueVal,
+		}
+		endpoint.BasicAuth.Username = k8score.SecretKeySelector{
+			LocalObjectReference: k8score.LocalObjectReference{
+				Name: secret.Name,
+			},
+			Key:      "password",
+			Optional: &trueVal,
+		}
+	}
 
 	endpoint.Scheme = "http"
 	endpoint.Path = "/metrics"

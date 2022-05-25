@@ -6,7 +6,6 @@ package metricstrait
 import (
 	"context"
 	"fmt"
-	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"regexp"
 	"strconv"
 	"strings"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/Jeffail/gabs/v2"
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
@@ -255,14 +255,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	// Do reconcile for the Prometheus Operator controller Prometheus instance
 	res2, err := r.doOperatorReconcile(ctx, trait, log)
+	if err != nil {
+		return clusters.NewRequeueWithDelay(), err
+	}
 	if clusters.ShouldRequeue(res1) {
 		return res1, nil
 	}
 	if clusters.ShouldRequeue(res2) {
 		return res2, nil
-	}
-	if err != nil {
-		return clusters.NewRequeueWithDelay(), err
 	}
 
 	log.Oncef("Finished reconciling metrics trait %v", req.NamespacedName)
