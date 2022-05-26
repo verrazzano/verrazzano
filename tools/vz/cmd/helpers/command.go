@@ -17,5 +17,6 @@ func NewCommand(vzHelper helpers.VZHelper, use string, short string, long string
 	}
 	cmd.SetOut(vzHelper.GetOutputStream())
 	cmd.SetErr(vzHelper.GetErrorStream())
+	cmd.SetIn(vzHelper.GetInputStream())
 	return cmd
 }

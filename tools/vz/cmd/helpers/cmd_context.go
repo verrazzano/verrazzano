@@ -33,6 +33,11 @@ func (rc *RootCmdContext) GetErrorStream() io.Writer {
 	return rc.IOStreams.ErrOut
 }
 
+// GetInputStream - return the input stream
+func (rc *RootCmdContext) GetInputStream() io.Reader {
+	return rc.IOStreams.In
+}
+
 // GetClient - return a kubernetes client that supports the schemes used by the CLI
 func (rc *RootCmdContext) GetClient(cmd *cobra.Command) (client.Client, error) {
 	// Get command line value of kubeConfig location
