@@ -256,29 +256,7 @@ var _ = t.Describe("Update nginx-istio", Label("f:platform-lcm.update"), func() 
 	t.Describe("verrazzano-nginx-istio update nodeport", Label("f:platform-lcm.nginx-istio-update-nodeport"), func() {
 		t.It("nginx-istio update ingress type", func() {
 			t.Logs.Info("Create external load balancers")
-			_, err := pkg.CreateNamespaceWithAnnotations("external-lb", map[string]string{}, map[string]string{})
-			if err != nil {
-				Fail(err.Error())
-			}
-
-			systemServerList, applicationServerList, err := buildServerLists()
-			if err != nil {
-				Fail(err.Error())
-			}
-
-			applyResource("testdata/external-lb/system-external-lb-cm.yaml", &externalLBsTemplateData{ServerList: systemServerList})
-			applyResource("testdata/external-lb/system-external-lb.yaml", &externalLBsTemplateData{})
-			applyResource("testdata/external-lb/system-external-lb-svc.yaml", &externalLBsTemplateData{})
-			applyResource("testdata/external-lb/application-external-lb-cm.yaml", &externalLBsTemplateData{ServerList: applicationServerList})
-			applyResource("testdata/external-lb/application-external-lb.yaml", &externalLBsTemplateData{})
-			applyResource("testdata/external-lb/application-external-lb-svc.yaml", &externalLBsTemplateData{})
-
-			sysIP, err := getServiceLoadBalancerIP("external-lb", "system-external-lb-svc")
-			if err != nil {
-				Fail(err.Error())
-			}
-
-			appIP, err := getServiceLoadBalancerIP("external-lb", "application-external-lb-svc")
+			sysIP, appIP, err := deployExternalLBs()
 			if err != nil {
 				Fail(err.Error())
 			}
@@ -295,6 +273,37 @@ var _ = t.Describe("Update nginx-istio", Label("f:platform-lcm.update"), func() 
 		})
 	})
 })
+
+func deployExternalLBs() (string, string, error) {
+	_, err := pkg.CreateNamespaceWithAnnotations("external-lb", map[string]string{}, map[string]string{})
+	if err != nil {
+		return "", "", err
+	}
+
+	systemServerList, applicationServerList, err := buildServerLists()
+	if err != nil {
+		return "", "", err
+	}
+
+	applyResource("testdata/external-lb/system-external-lb-cm.yaml", &externalLBsTemplateData{ServerList: systemServerList})
+	applyResource("testdata/external-lb/system-external-lb.yaml", &externalLBsTemplateData{})
+	applyResource("testdata/external-lb/system-external-lb-svc.yaml", &externalLBsTemplateData{})
+	applyResource("testdata/external-lb/application-external-lb-cm.yaml", &externalLBsTemplateData{ServerList: applicationServerList})
+	applyResource("testdata/external-lb/application-external-lb.yaml", &externalLBsTemplateData{})
+	applyResource("testdata/external-lb/application-external-lb-svc.yaml", &externalLBsTemplateData{})
+
+	sysIP, err := getServiceLoadBalancerIP("external-lb", "system-external-lb-svc")
+	if err != nil {
+		return "", "", err
+	}
+
+	appIP, err := getServiceLoadBalancerIP("external-lb", "application-external-lb-svc")
+	if err != nil {
+		return "", "", err
+	}
+
+	return sysIP, appIP, nil
+}
 
 func buildServerLists() (string, string, error) {
 	nodes, err := pkg.ListNodes()
