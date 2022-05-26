@@ -158,7 +158,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 	return ctrl.Result{}, nil
 }
 
-// checkConfigUpdated checks if the component confg in the VZ CR has been updated and the component needs to
+// checkConfigUpdated checks if the component config in the VZ CR has been updated and the component needs to
 // reset the state back to pre-install to re-enter install flow
 func checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.ComponentStatusDetails, name string) bool {
 	vzState := ctx.ActualCR().Status.State
