@@ -188,6 +188,6 @@ const PromAdditionalScrapeConfigsSecretName = "additional-scrape-configs"
 // PromAdditionalScrapeConfigsSecretKey is the name of the key in the additional scrape configurations secret that contains the scrape config YAML
 const PromAdditionalScrapeConfigsSecretKey = "jobs"
 
-// PromManagedClusterTLSCertsSecretName is the name of the secret that contains managed cluster TLS certificates. The secret is mounted
+// PromManagedClusterCACertsSecretName is the name of the secret that contains managed cluster CA certificates. The secret is mounted
 // as a volume in the Prometheus pod.
-const PromManagedClusterTLSCertsSecretName = "managed-cluster-tls-certs"
+const PromManagedClusterCACertsSecretName = "managed-cluster-ca-certs"

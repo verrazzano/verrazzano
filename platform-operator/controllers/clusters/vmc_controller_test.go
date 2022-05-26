@@ -743,7 +743,7 @@ scrape_configs:
 
 	// Expect a call to get the managed cluster TLS certs secret - return it configured with two managed cluster certs
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: vpoconstants.PromManagedClusterTLSCertsSecretName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: vpoconstants.PromManagedClusterCACertsSecretName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
 				"ca-test":  []byte("ca-cert-1"),
@@ -1769,8 +1769,8 @@ func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometh
 
 	// Expect a call to get the managed cluster TLS certs secret - return NotFound error
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: vpoconstants.PromManagedClusterTLSCertsSecretName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, vpoconstants.PromManagedClusterTLSCertsSecretName))
+		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: vpoconstants.PromManagedClusterCACertsSecretName}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, vpoconstants.PromManagedClusterCACertsSecretName))
 
 	// Expect a call to update the managed cluster TLS certs secret
 	mock.EXPECT().

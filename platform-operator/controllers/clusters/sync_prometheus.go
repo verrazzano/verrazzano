@@ -28,7 +28,7 @@ const (
 	scrapeConfigsKey         = "scrape_configs"
 	jobNameKey               = "job_name"
 	prometheusConfigBasePath = "/etc/prometheus/config/"
-	managedCertsBasePath     = "/etc/prometheus/managed-cluster-tls-certs/"
+	managedCertsBasePath     = "/etc/prometheus/managed-cluster-ca-certs/"
 	configMapKind            = "ConfigMap"
 	configMapVersion         = "v1"
 	scrapeConfigTemplate     = `job_name: ##JOB_NAME##
@@ -101,7 +101,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncPrometheusScraper(ctx context.C
 	if err != nil {
 		return err
 	}
-	err = r.mutateManagedClusterTLSSecret(ctx, vmc, &secret)
+	err = r.mutateManagedClusterCACertsSecret(ctx, vmc, &secret)
 	if err != nil {
 		return err
 	}
@@ -262,7 +262,7 @@ func getCAKey(vmc *clustersv1alpha1.VerrazzanoManagedCluster) string {
 	return "ca-" + vmc.Name
 }
 
-// mutateAdditionalScrapeConfigs adds and removes scrape config for managed clusters to the additional scrape configurations secret. Prometheus appends the raw scrape config
+// mutateAdditionalScrapeConfigs adds and removes scrape config for managed clusters to the additional scrape configurations secret. Prometheus Operator appends the raw scrape config
 // in this secret to the scrape config it generates from PodMonitor and ServiceMonitor resources.
 func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, cacrtSecret *v1.Secret) error {
 	// get the existing additional scrape config, if the secret doesn't exist we will create it
@@ -288,7 +288,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx c
 	}
 	if newScrapeConfig == nil {
 		// we are removing the scrape config, so remove the TLS cert for the managed cluster from the TLS certs secret
-		err = r.mutateManagedClusterTLSSecret(ctx, vmc, cacrtSecret)
+		err = r.mutateManagedClusterCACertsSecret(ctx, vmc, cacrtSecret)
 		if err != nil {
 			return err
 		}
@@ -338,11 +338,11 @@ func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx c
 	return nil
 }
 
-// mutateManagedClusterTLSSecret adds and removes managed cluster TLS certs to/from the managed cluster TLS certs secret
-func (r *VerrazzanoManagedClusterReconciler) mutateManagedClusterTLSSecret(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, cacrtSecret *v1.Secret) error {
+// mutateManagedClusterCACertsSecret adds and removes managed cluster CA certs to/from the managed cluster CA certs secret
+func (r *VerrazzanoManagedClusterReconciler) mutateManagedClusterCACertsSecret(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, cacrtSecret *v1.Secret) error {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      vpoconst.PromManagedClusterTLSCertsSecretName,
+			Name:      vpoconst.PromManagedClusterCACertsSecretName,
 			Namespace: vpoconst.VerrazzanoMonitoringNamespace,
 		},
 	}
