@@ -1,6 +1,8 @@
 // Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+// WIP: The Jenkinsfile does not (yet) support kind cluster creation and testing.
+
 // This pipeline is configured to test Verrazzano post-install updates
 // -> Starts with default Verrazzano installation on either 'kind' or 'oke'
 // -> Deploys Verrazzano test applications 
