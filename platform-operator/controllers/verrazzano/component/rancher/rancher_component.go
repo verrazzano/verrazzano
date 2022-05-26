@@ -69,7 +69,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	log := ctx.Log()
 	rancherHostName, err := getRancherHostname(ctx.Client(), ctx.EffectiveCR())
 	if err != nil {
-		return kvs, log.ErrorfThrottledNewErr("Error retrieving Rancher hostname: %s", err.Error())
+		return kvs, log.ErrorfThrottledNewErr("Failed retrieving Rancher hostname: %s", err.Error())
 	}
 	kvs = append(kvs, bom.KeyValue{
 		Key:   "hostname",
@@ -108,7 +108,7 @@ func appendRegistryOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyValue, error) {
 	cm := ctx.EffectiveCR().Spec.Components.CertManager
 	if cm == nil {
-		return kvs, log.ErrorfThrottledNewErr("certManager component not found in effective cr")
+		return kvs, log.ErrorfThrottledNewErr("Failed to find certManager component in effective cr")
 	}
 
 	// Configure CA Issuer KVs
@@ -177,11 +177,11 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 	c := ctx.Client()
 	log := ctx.Log()
 	if err := createCattleSystemNamespace(log, c); err != nil {
-		log.ErrorfThrottledNewErr("Error creating cattle-system namespace: %s", err.Error())
+		log.ErrorfThrottledNewErr("Failed creating cattle-system namespace: %s", err.Error())
 		return err
 	}
 	if err := copyDefaultCACertificate(log, c, vz); err != nil {
-		log.ErrorfThrottledNewErr("Error copying default CA certificate: %s", err.Error())
+		log.ErrorfThrottledNewErr("Failed copying default CA certificate: %s", err.Error())
 		return err
 	}
 	return nil
@@ -196,17 +196,17 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 func (r rancherComponent) Install(ctx spi.ComponentContext) error {
 	log := ctx.Log()
 	if err := r.HelmComponent.Install(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("Error retrieving Rancher install component: %s", err.Error())
+		return log.ErrorfThrottledNewErr("Failed retrieving Rancher install component: %s", err.Error())
 	}
 	c := ctx.Client()
 	// Set MKNOD Cap on Rancher deployment
 	if err := patchRancherDeployment(c); err != nil {
-		return log.ErrorfThrottledNewErr("Error patching Rancher deployment: %s", err.Error())
+		return log.ErrorfThrottledNewErr("Failed patching Rancher deployment: %s", err.Error())
 	}
 	log.Debugf("Patched Rancher deployment to support MKNOD")
 	// Annotate Rancher ingress for NGINX/TLS
 	if err := patchRancherIngress(c, ctx.EffectiveCR()); err != nil {
-		return log.ErrorfThrottledNewErr("Error patching Rancher ingress: %s", err.Error())
+		return log.ErrorfThrottledNewErr("Failed patching Rancher ingress: %s", err.Error())
 	}
 	log.Debugf("Patched Rancher ingress")
 
@@ -234,29 +234,29 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	log := ctx.Log()
 
 	if err := createAdminSecretIfNotExists(log, c); err != nil {
-		return log.ErrorfThrottledNewErr("Error creating Rancher admin secret: %s", err.Error())
+		return log.ErrorfThrottledNewErr("Failed creating Rancher admin secret: %s", err.Error())
 	}
 	password, err := common.GetAdminSecret(c)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Error getting Rancher admin secret: %s", err.Error())
+		return log.ErrorfThrottledNewErr("Failed getting Rancher admin secret: %s", err.Error())
 	}
 	rancherHostName, err := getRancherHostname(c, vz)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Error getting Rancher hostname: %s", err.Error())
+		return log.ErrorfThrottledNewErr("Failed getting Rancher hostname: %s", err.Error())
 	}
 
 	rest, err := common.NewClient(c, rancherHostName, password)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Error getting Rancher client: %s", err.Error())
+		return log.ErrorfThrottledNewErr("Failed getting Rancher client: %s", err.Error())
 	}
 	if err := rest.SetAccessToken(); err != nil {
-		return log.ErrorfThrottledNewErr("Error setting Rancher access token: %s", err.Error())
+		return log.ErrorfThrottledNewErr("Failed setting Rancher access token: %s", err.Error())
 	}
 	if err := rest.PutServerURL(); err != nil {
-		return log.ErrorfThrottledNewErr("Error setting Rancher server URL: %s", err.Error())
+		return log.ErrorfThrottledNewErr("Failed setting Rancher server URL: %s", err.Error())
 	}
 	if err := removeBootstrapSecretIfExists(log, c); err != nil {
-		return log.ErrorfThrottledNewErr("Error removing Rancher bootstrap secret: %s", err.Error())
+		return log.ErrorfThrottledNewErr("Failed removing Rancher bootstrap secret: %s", err.Error())
 	}
 	return r.HelmComponent.PostInstall(ctx)
 }
