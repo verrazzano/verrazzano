@@ -67,9 +67,13 @@ pipeline {
         string defaultValue: 'NONE', description: 'Verrazzano platform operator image name (within ghcr.io/verrazzano repo)', name: 'VERRAZZANO_OPERATOR_IMAGE', trim: true
         choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
                 choices: testEnvironments)
-        string (name: 'GIT_COMMIT_TO_USE',
+        string (name: 'VZ_GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
+                        trim: true)
+        string (name: 'TF_OCI_OLCNE_GIT_COMMIT_TO_USE',
+                        defaultValue: 'release-1.5',
+                        description: 'This is the full git commit hash of the terraform-oci-olcne repository to be used for all jobs',
                         trim: true)
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
@@ -171,6 +175,9 @@ pipeline {
         // used to generate Ginkgo test reports
         TEST_REPORT = "test-report.xml"
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
+
+        // used for setting up terraform-oci-olcne repository
+        TF_OCI_OLCNE_GIT_URL="https://linux-git.oraclecorp.com/OLCNE/terraform/terraform-oci-olcne.git"
     }
 
     stages {
@@ -178,29 +185,48 @@ pipeline {
             steps {
                 script {
                     EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
-                    if (params.GIT_COMMIT_TO_USE == "NONE") {
+                    if (params.VZ_GIT_COMMIT_TO_USE == "NONE") {
                         echo "Specific GIT commit was not specified, use current head"
                         def scmInfo = checkout scm
-                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                        env.VZ_GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.VZ_GIT_BRANCH = scmInfo.GIT_BRANCH
                     } else {
-                        echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
+                        echo "SCM checkout of ${params.VZ_GIT_COMMIT_TO_USE}"
                         def scmInfo = checkout([
                             $class: 'GitSCM',
-                            branches: [[name: params.GIT_COMMIT_TO_USE]],
+                            branches: [[name: params.VZ_GIT_COMMIT_TO_USE]],
                             doGenerateSubmoduleConfigurations: false,
                             extensions: [],
                             submoduleCfg: [],
                             userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
-                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                        env.VZ_GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.VZ_GIT_BRANCH = scmInfo.GIT_BRANCH
                         // If the commit we were handed is not what the SCM says we are using, fail
-                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
-                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
+                        if (!env.VZ_GIT_COMMIT.equals(params.VZ_GIT_COMMIT_TO_USE)) {
+                            echo "SCM didn't checkout the commit we expected. Expected: ${params.VZ_GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
                             exit 1
                         }
                     }
-                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                    echo "SCM checkout of ${env.VZ_GIT_BRANCH} at ${env.VZ_GIT_COMMIT}"
+                }
+
+                // Checkout 
+                script {
+                    def scmInfo = checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: params.TF_OCI_OLCNE_GIT_BRANCH]],
+                        doGenerateSubmoduleConfigurations: false,
+                        extensions: [],
+                        submoduleCfg: [],
+                        userRemoteConfigs: [[url: env.TF_OCI_OLCNE_GIT_URL]]])
+                    env.TF_OCI_OLCNE_GIT_COMMIT = scmInfo.GIT_COMMIT
+                    env.TF_OCI_OLCNE_GIT_BRANCH = scmInfo.GIT_BRANCH
+                    // If the commit we were handed is not what the SCM says we are using, fail
+                    if (!env.TF_OCI_OLCNE_GIT_BRANCH.equals(params.TF_OCI_OLCNE_GIT_BRANCH)) {
+                        echo "SCM didn't checkout the commit we expected. Expected: ${params.TF_OCI_OLCNE_GIT_BRANCH}, Found: ${scmInfo.GIT_BRANCH}"
+                        exit 1
+                    }
+                    echo "SCM checkout of ${env.TF_OCI_OLCNE_GIT_BRANCH} at ${env.TF_OCI_OLCNE_GIT_COMMIT}"
                 }
 
                 sh """
@@ -733,7 +759,7 @@ def getMetricLabels() {
     labels = 'build_number=\\"' + "${buildNumber}"+'\\",' +
              'jenkins_build_number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
              'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
-             'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\",' +
+             'commit_sha=\\"' + "${env.VZ_GIT_COMMIT}"+'\\",' +
              'kubernetes_version=\\"' + "${params.OKE_CLUSTER_VERSION}"+'\\",' +
              'test_env=\\"' + "ocidns_oke"+'\\"'
     return labels
@@ -755,7 +781,7 @@ def metricTimerEnd(metricName, status) {
 
         // OCI-Telemetry
         // labels = '\\"number\\"=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
-        //          '\\"commit_sha\\"=\\"' + "${env.GIT_COMMIT}"+'\\",' +
+        //          '\\"commit_sha\\"=\\"' + "${env.VZ_GIT_COMMIT}"+'\\",' +
         //          '\\"test_env\\"=\\"' + "$testEnv"+'\\"'
         // OCI_MET=sh(returnStdout: true, script: "ci/scripts/oci_metric_emit.sh ${env.OC_TELEMETRY_URL} ${env.OCI_COMPARTMENT_ID} ${OCI_METRICS_NAMESPACE} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
 
