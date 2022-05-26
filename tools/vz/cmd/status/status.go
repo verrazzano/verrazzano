@@ -170,7 +170,7 @@ func runCmdStatus(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) 
 	vz := vzapi.Verrazzano{}
 	err = client.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &vz)
 	if err != nil {
-		return fmt.Errorf("Failed to find Verrazzano with name %s in namespace %s: %v", name, namespace, err.Error())
+		return fmt.Errorf("Failed to find Verrazzano with name %q in namespace %s: %v", name, namespace, err.Error())
 	}
 
 	// Report the status information
