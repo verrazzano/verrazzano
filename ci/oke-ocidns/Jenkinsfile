@@ -332,8 +332,10 @@ pipeline {
             environment {
                 OCI_CLI_AUTH="instance_principal"
             }
-            script {
-                utils.log("INFO", "Install Platform Operator")
+            steps {
+                script {
+                    utils.log("INFO", "Install Platform Operator")
+                }
                 sh """
                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                     cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
@@ -478,9 +480,7 @@ pipeline {
 
         stage('acceptance-tests') {
             parallel {
-                script {
-                    runVerrazzanoAcceptanceTests()
-                }
+                runVerrazzanoAcceptanceTests()
             }
         }
     }
