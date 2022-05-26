@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	v1 "k8s.io/api/core/v1"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -116,17 +117,16 @@ var _ = t.Describe("Pre upgrade Prometheus", Label("f:observability.logging.es")
 
 func deployMetricsApplication() {
 	t.Logs.Info("Deploy DeployMetrics Application")
-	Eventually(func() (*v1.Namespace, error) {
-		// If the test namespace already exists, use that for the application deployment
-		namespace, _ := pkg.GetNamespace(testNamespace)
-		if namespace != nil {
-			pkg.Log(pkg.Info, "Namespace already exists")
-			return namespace, nil
-		}
+	Eventually(func() *v1.Namespace {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
 			"istio-injection":    "true"}
-		return pkg.CreateNamespace(testNamespace, nsLabels)
+		ns, err := pkg.CreateNamespace(testNamespace, nsLabels)
+		if  err != nil && strings.Contains(err.Error(), "already exists") {
+			ns, _ = pkg.GetNamespace(testNamespace)
+			return ns
+		}
+		return ns
 	}, threeMinutes, pollingInterval).ShouldNot(BeNil())
 
 	t.Logs.Info("Create component resource")
