@@ -178,14 +178,13 @@ pipeline {
         KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
         VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
         UTILS_FILE = "${WORKSPACE}/ci/utils.groovy"
+        INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
 
         // used for cluster dump
         DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${WORKSPACE}/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
-
-        INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
 
         DISABLE_SPINNER=1
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
@@ -216,24 +215,15 @@ pipeline {
         stage('Initialize') {
             steps {
                 script {
-                    // Check if the utils file has been loaded successfully
-                    env.utils = load("${UTILS_FILE}")
-                    status = env.utils.testUtilsFile()
-                    if (status == "success") {
-                        env.utils.log("INFO", "utils.groovy loaded successfully")
-                    } else {
-                        echo "Error in loading utils.groovy"
-                        exit 1
-                    }
                     // Proceed with checkout
                     EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
                     if (params.GIT_COMMIT_TO_USE == "NONE") {
-                        env.utils.log("INFO", "Specific GIT commit was not specified, use current head")
+                        echo "[INFO] Specific GIT commit was not specified, use current head"
                         def scmInfo = checkout scm
                         env.GIT_COMMIT = scmInfo.GIT_COMMIT
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                     } else {
-                        env.utils.log("INFO", "SCM checkout of ${params.GIT_COMMIT_TO_USE}")
+                        echo "[INFO] SCM checkout of ${params.GIT_COMMIT_TO_USE}"
                         def scmInfo = checkout([
                             $class: 'GitSCM',
                             branches: [[name: params.GIT_COMMIT_TO_USE]],
@@ -245,11 +235,23 @@ pipeline {
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                         // If the commit we were handed is not what the SCM says we are using, fail
                         if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
-                            env.utils.log("ERROR", "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}")
+                            echo "[ERROR] SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
                             exit 1
                         }
                     }
-                    env.utils.log("INFO", "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}")
+                    echo "[INFO] SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                }
+
+                script {
+                    // Check if the utils file has been loaded successfully
+                    env.utils = load("${UTILS_FILE}")
+                    status = env.utils.testUtilsFile()
+                    if (status == "success") {
+                        env.utils.log("INFO", "utils.groovy loaded successfully")
+                    } else {
+                        echo "Error in loading utils.groovy"
+                        exit 1
+                    }
                 }
 
                 sh """

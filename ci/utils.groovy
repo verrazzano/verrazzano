@@ -12,7 +12,7 @@ def testUtilsFile() {
 
 def log(status, msg) {
     // timestamp = dateFormat.format(new Date())
-    println("${status} - ${msg}")
+    println("[${status}] ${msg}")
 }
 
 return this
