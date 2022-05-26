@@ -45,7 +45,7 @@ func (r *Reconciler) updateServiceMonitor(ctx context.Context, trait *vzapi.Metr
 		return rel, result, err
 	}
 
-	rel = vzapi.QualifiedResourceRelation{APIVersion: serviceMonitor.APIVersion, Kind: serviceMonitor.Kind, Namespace: serviceMonitor.Namespace, Name: serviceMonitor.Name, Role: scraperRole}
+	rel = vzapi.QualifiedResourceRelation{APIVersion: promoperapi.SchemeGroupVersion.String(), Kind: promoperapi.ServiceMonitorsKind, Namespace: serviceMonitor.Namespace, Name: serviceMonitor.Name, Role: scraperRole}
 	return rel, result, nil
 }
 
