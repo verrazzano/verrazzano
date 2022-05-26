@@ -14,7 +14,9 @@
 // -> Cleanup resources
 
 // Load the utils file
-def utils = load("../utils.groovy")
+// def utils = load("../utils.groovy")
+import java.text.SimpleDateFormat
+def dateFormat = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss")
 
 // Test environment vars
 def clusterType = ["kind", "oke"]
@@ -216,7 +218,7 @@ pipeline {
             steps {
                 script {
                     // Check if the utils file has been loaded successfully
-                    status = utils.testUtilsFile()
+                    status = utils_testUtilsFile()
                     if (status == "success") {
                         utils.log("INFO", "utils.groovy loaded successfully")
                     } else {
@@ -873,4 +875,13 @@ def runVerrazzanoAcceptanceTests() {
             }
         }
     ]
+}
+
+def utils_log(status, msg) {
+    timestamp = dateFormat.format(new Date())
+    println("${timestamp} ${status} - ${msg}")
+}    
+
+def utils_testUtilsFile() {
+    return "success"
 }
