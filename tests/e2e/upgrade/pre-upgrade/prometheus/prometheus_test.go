@@ -116,6 +116,11 @@ var _ = t.Describe("Pre upgrade Prometheus", Label("f:observability.logging.es")
 
 func deployMetricsApplication() {
 	t.Logs.Info("Deploy DeployMetrics Application")
+	namespace, _ := pkg.GetNamespace(testNamespace)
+	if namespace != nil {
+		pkg.Log(pkg.Info, "Namespace already exists, application should be already deployed, skipping further steps")
+		return
+	}
 	Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
