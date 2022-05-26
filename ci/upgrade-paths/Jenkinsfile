@@ -398,8 +398,7 @@ pipeline {
                         }
                         stage('Prometheus pre-upgrade') {
                             steps {
-                                runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/prometheus', "${TEST_DUMP_ROOT}/prometheus")
-                                runGinkgoVerifyManaged("upgrade/pre-upgrade/prometheus", "${TEST_DUMP_ROOT}/prometheus-managed", "false", "false", "false")
+                                runGinkgoRandomizeSerial('upgrade/pre-upgrade/prometheus')
                             }
                         }
                     }
@@ -593,8 +592,7 @@ pipeline {
                         }
                         stage('Prometheus post-upgrade') {
                             steps {
-                                runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/prometheus', "${TEST_DUMP_ROOT}/prometheus")
-                                runGinkgoVerifyManaged("upgrade/post-upgrade/prometheus", "${TEST_DUMP_ROOT}/prometheus-managed", "false", "false", "false")
+                                runGinkgoRandomizeSerial('upgrade/post-upgrade/prometheus')
                             }
                         }
                     }
