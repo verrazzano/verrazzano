@@ -56,9 +56,9 @@ function read_config() {
 function usage {
     echo
     echo "usage: $0 [-o oci_config_file] [-s config_file_section]"
-    echo "  -o oci_config_file         The full path to the OCI configuration file (default ~/.oci/config)"
-    echo "  -s config_file_section     The properties section within the OCI configuration file.  Default is DEFAULT"
-    echo "  -k secret_name             The secret name containing the OCI configuration.  Default is \"oci-fluentd\""
+    echo "  -o oci_config_file         The full path to the OCI configuration file. Default is ~/.oci/config"
+    echo "  -s config_file_section     The properties section within the OCI configuration file. Default is DEFAULT"
+    echo "  -k secret_name             The secret name containing the OCI configuration. Default is \"oci-fluentd\""
     echo "  -c context_name            The kubectl context to use"
     echo "  -h                         Help"
     echo
@@ -84,6 +84,12 @@ do
         *) usage;;
     esac
 done
+
+if [[ ! -f ${OCI_CONFIG_FILE} ]]; then
+    echo "OCI CLI configuration ${OCI_CONFIG_FILE} does not exist."
+    usage
+    exit 1
+fi
 
 SECTION_PROPS=$(read_config $OCI_CONFIG_FILE $SECTION *)
 eval $SECTION_PROPS
