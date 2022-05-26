@@ -9,6 +9,8 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -44,6 +46,23 @@ func NewMinimalContext(c clipkg.Client, log vzlog.VerrazzanoLogger) (ComponentCo
 	return componentContext{
 		log:    log,
 		client: c,
+	}, nil
+}
+
+func NewModuleContext(log vzlog.VerrazzanoLogger, c clipkg.Client, actualCR *v1alpha1.Verrazzano, module *modulesv1alpha1.Module, dryRun bool) (ComponentContext, error) {
+	// Generate the effective CR based ond the declared profile and any overrides in the user-supplied one
+	effectiveCR, err := transform.GetEffectiveCR(actualCR)
+	if err != nil {
+		return nil, err
+	}
+	return componentContext{
+		log:         log,
+		client:      c,
+		dryRun:      dryRun,
+		module:      module,
+		cr:          actualCR,
+		effectiveCR: effectiveCR,
+		component:   module.Name,
 	}, nil
 }
 
@@ -94,6 +113,8 @@ type componentContext struct {
 	client clipkg.Client
 	// dryRun If true, do a dry run of operations
 	dryRun bool
+	// module represents the current Module object
+	module *modulesv1alpha1.Module
 	// cr Represents the current v1alpha1.Verrazzano object state in the cluster
 	cr *v1alpha1.Verrazzano
 	// crv1beta1 Represents the current v1beta1.Verrazzano object state in the cluster
@@ -120,6 +141,10 @@ func (c componentContext) IsDryRun() bool {
 	return c.dryRun
 }
 
+func (c componentContext) Module() *modulesv1alpha1.Module {
+	return c.module
+}
+
 func (c componentContext) ActualCR() *v1alpha1.Verrazzano {
 	return c.cr
 }
@@ -141,6 +166,7 @@ func (c componentContext) Copy() ComponentContext {
 		log:         c.log,
 		client:      c.client,
 		dryRun:      c.dryRun,
+		module:      c.module,
 		cr:          c.cr,
 		effectiveCR: c.effectiveCR,
 		operation:   c.operation,

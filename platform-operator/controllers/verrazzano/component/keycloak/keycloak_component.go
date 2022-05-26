@@ -6,22 +6,18 @@ package keycloak
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 
-	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/modules"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/reconciler"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
@@ -47,46 +43,61 @@ type KeycloakComponent struct {
 	helm.HelmComponent
 }
 
-// Verify that KeycloakComponent implements Component
-var _ spi.Component = KeycloakComponent{}
-
 var certificates = []types.NamespacedName{
 	{Namespace: ComponentNamespace, Name: keycloakCertificateName},
 }
 
 // NewComponent returns a new Keycloak component
-func NewComponent() spi.Component {
-	return KeycloakComponent{
-		helm.HelmComponent{
-			ReleaseName:               ComponentName,
-			JSONName:                  ComponentJSONName,
-			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), ComponentName),
-			ChartNamespace:            ComponentNamespace,
-			IgnoreNamespaceOverride:   true,
-			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
-			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
-			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName, nginx.ComponentName, certmanager.ComponentName, mysql.ComponentName},
-			SupportsOperatorInstall:   true,
-			SupportsOperatorUninstall: true,
-			AppendOverridesFunc:       AppendKeycloakOverrides,
-			Certificates:              certificates,
-			AvailabilityObjects: &ready.AvailabilityObjects{
-				StatefulsetNames: []types.NamespacedName{
-					{
-						Name:      ComponentName,
-						Namespace: ComponentNamespace,
-					},
-				},
+func NewComponent(module *modulesv1alpha1.Module) modules.DelegateReconciler {
+	h := helm.HelmComponent{
+		ChartDir:               config.GetThirdPartyDir(),
+		ImagePullSecretKeyname: secret.DefaultImagePullSecretKeyName,
+		AppendOverridesFunc:    AppendKeycloakOverrides,
+		Certificates:           certificates,
+		IngressNames: []types.NamespacedName{
+			{
+				Namespace: ComponentNamespace,
+				Name:      constants.KeycloakIngress,
 			},
-			IngressNames: []types.NamespacedName{
-				{
-					Namespace: ComponentNamespace,
-					Name:      constants.KeycloakIngress,
-				},
-			},
-			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
+	helm.SetForModule(&h, module)
+	return &reconciler.Reconciler{
+		ModuleComponent: KeycloakComponent{
+			HelmComponent: h,
+		},
+	}
+	//return KeycloakComponent{
+	//	helm.HelmComponent{
+	//		ReleaseName:               ComponentName,
+	//		JSONName:                  ComponentJSONName,
+	//		ChartDir:                  filepath.Join(config.GetThirdPartyDir(), ComponentName),
+	//		ChartNamespace:            ComponentNamespace,
+	//		IgnoreNamespaceOverride:   true,
+	//		ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
+	//		ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
+	//		Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName, nginx.ComponentName, certmanager.ComponentName, mysql.ComponentName},
+	//		SupportsOperatorInstall:   true,
+	//		SupportsOperatorUninstall: true,
+	//		AppendOverridesFunc:       AppendKeycloakOverrides,
+	//		Certificates:              certificates,
+	//		AvailabilityObjects: &ready.AvailabilityObjects{
+	//			StatefulsetNames: []types.NamespacedName{
+	//				{
+	//					Name:      ComponentName,
+	//					Namespace: ComponentNamespace,
+	//				},
+	//			},
+	//		},
+	//		IngressNames: []types.NamespacedName{
+	//			{
+	//				Namespace: ComponentNamespace,
+	//				Name:      constants.KeycloakIngress,
+	//			},
+	//		},
+	//		GetInstallOverridesFunc: GetOverrides,
+	//	},
+	//}
 }
 
 // Reconcile - first checks whether Keycloak is installed yet, then

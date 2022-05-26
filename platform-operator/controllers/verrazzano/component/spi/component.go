@@ -8,6 +8,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
+	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -18,6 +20,8 @@ type ComponentContext interface {
 	Log() vzlog.VerrazzanoLogger
 	// GetClient returns the controller client for the context
 	Client() clipkg.Client
+	// Module returns the actual Verrazzano Module
+	Module() *modulesv1alpha1.Module
 	// ActualCR returns the actual unmerged v1alpha1.Verrazzano resource
 	ActualCR() *v1alpha1.Verrazzano
 	// EffectiveCR returns the effective merged v1alpha1.Verrazzano CR
@@ -132,4 +136,9 @@ type Component interface {
 	ComponentValidator
 
 	Reconcile(ctx ComponentContext) error
+}
+
+type ModuleComponent interface {
+	Component
+	Uninstall(ctx ComponentContext) error
 }

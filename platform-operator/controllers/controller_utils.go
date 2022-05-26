@@ -17,6 +17,27 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+func CheckCondtitionType(currentCondition installv1alpha1.ConditionType) installv1alpha1.CompStateType {
+	switch currentCondition {
+	case installv1alpha1.CondPreInstall:
+		return installv1alpha1.CompStatePreInstalling
+	case installv1alpha1.CondInstallStarted:
+		return installv1alpha1.CompStateInstalling
+	case installv1alpha1.CondUninstallStarted:
+		return installv1alpha1.CompStateUninstalling
+	case installv1alpha1.CondUpgradeStarted:
+		return installv1alpha1.CompStateUpgrading
+	case installv1alpha1.CondUpgradePaused:
+		return installv1alpha1.CompStateUpgrading
+	case installv1alpha1.CondUninstallComplete:
+		return installv1alpha1.CompStateReady
+	case installv1alpha1.CondInstallFailed, installv1alpha1.CondUpgradeFailed, installv1alpha1.CondUninstallFailed:
+		return installv1alpha1.CompStateFailed
+	}
+	// Return ready for installv1alpha1.CondInstallComplete, installv1alpha1.CondUpgradeComplete
+	return installv1alpha1.CompStateReady
+}
+
 // VzContainsResource checks to see if the resource is listed in the Verrazzano
 func VzContainsResource(ctx spi.ComponentContext, objectName string, objectKind string) (string, bool) {
 	for _, component := range registry.GetComponents() {

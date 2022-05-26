@@ -18,7 +18,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafanadashboards"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
@@ -80,10 +79,8 @@ func InitRegistry() {
 		grafana.NewComponent(),
 		grafanadashboards.NewComponent(),
 		authproxy.NewComponent(),
-		coherence.NewComponent(),
 		mysqloperator.NewComponent(), // mysqloperator needs to be upgraded before mysql
 		mysql.NewComponent(),
-		keycloak.NewComponent(),
 		kiali.NewComponent(),
 		promoperator.NewComponent(),
 		promadapter.NewComponent(),
