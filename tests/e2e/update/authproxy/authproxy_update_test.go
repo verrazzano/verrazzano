@@ -4,8 +4,6 @@
 package authproxy
 
 import (
-	"fmt"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 
@@ -85,7 +83,7 @@ var nodeCount uint32
 
 var _ = t.BeforeSuite(func() {
 	var err error
-	nodeCount, err = getNodeCount()
+	nodeCount, err = pkg.GetNodeCount()
 	if err != nil {
 		Fail(err.Error())
 	}
@@ -150,14 +148,3 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 		})
 	})
 })
-
-func getNodeCount() (uint32, error) {
-	nodes, err := pkg.ListNodes()
-	if err != nil {
-		return 0, err
-	}
-	if len(nodes.Items) < 1 {
-		return 0, fmt.Errorf("can not find node in the cluster")
-	}
-	return uint32(len(nodes.Items)), nil
-}
