@@ -460,7 +460,7 @@ pipeline {
                         runGinkgoAdmin('update/fluentdextes')
                     }
                 }
-                stage("verify-custom-ca-update") {
+                stage("verify-managed-cluster-cert-update") {
                     steps {
                         runGinkgoAdmin('update/certmc')
                     }
