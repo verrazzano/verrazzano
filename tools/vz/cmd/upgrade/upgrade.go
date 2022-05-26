@@ -34,6 +34,7 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().String(constants.VersionFlag, "latest", constants.VersionFlagHelp)
 	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an upgrade")
 	cmd.PersistentFlags().String(constants.OperatorFileFlag, "", constants.OperatorFileFlagHelp)
+	cmd.PersistentFlags().Bool(constants.LogsFlag, false, constants.LogsFlagHelp)
 
 	return cmd
 }

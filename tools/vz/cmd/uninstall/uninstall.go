@@ -32,6 +32,7 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().Bool(constants.WaitFlag, false, constants.WaitFlagHelp)
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*20, constants.TimeoutFlagHelp)
 	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an uninstall")
+	cmd.PersistentFlags().Bool(constants.LogsFlag, false, constants.LogsFlagHelp)
 
 	return cmd
 }

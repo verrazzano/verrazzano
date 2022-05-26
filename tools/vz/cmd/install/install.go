@@ -22,6 +22,8 @@ const (
 For example:
 
 vz install --version v1.3.0 --wait --timeout 20m
+vz install --version v1.3.0 --dry-run
+vz install --version v1.3.0 --logs
 `
 )
 
@@ -34,6 +36,7 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().String(constants.VersionFlag, "latest", constants.VersionFlagHelp)
 	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an install")
 	cmd.PersistentFlags().String(constants.OperatorFileFlag, "", constants.OperatorFileFlagHelp)
+	cmd.PersistentFlags().Bool(constants.LogsFlag, false, constants.LogsFlagHelp)
 
 	return cmd
 }

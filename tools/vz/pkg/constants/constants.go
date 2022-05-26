@@ -13,17 +13,21 @@ const GlobalFlagContext = "context"
 const GlobalFlagHelp = "help"
 
 // Flags that are common to more than one command
+const (
+	WaitFlag     = "wait"
+	WaitFlagHelp = "Wait for the command to complete.  It will wait for as long as --timeout."
 
-const WaitFlag = "wait"
-const WaitFlagHelp = "Wait for the command to complete.  It will wait for as long as --timeout."
+	TimeoutFlag     = "timeout"
+	TimeoutFlagHelp = "Time to wait for a command to complete"
 
-const TimeoutFlag = "timeout"
-const TimeoutFlagHelp = "Time to wait for a command to complete"
+	VersionFlag     = "version"
+	VersionFlagHelp = "The version of Verrazzano to install or upgrade"
 
-const VersionFlag = "version"
-const VersionFlagHelp = "The version of Verrazzano to install or upgrade"
+	DryRunFlag = "dry-run"
 
-const DryRunFlag = "dry-run"
+	OperatorFileFlag     = "operator-file"
+	OperatorFileFlagHelp = "The path to the file for installing the Verrazzano platform operator. The default is derived from the version string."
 
-const OperatorFileFlag = "operator-file"
-const OperatorFileFlagHelp = "The path to the file for installing the Verrazzano platform operator. The default value is derived from the version string."
+	LogsFlag     = "logs"
+	LogsFlagHelp = "Print the logs until the command completes"
+)
