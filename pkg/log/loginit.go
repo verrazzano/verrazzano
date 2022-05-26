@@ -95,7 +95,7 @@ func IgnoreConflictWithLog(message string, err error, log *zap.SugaredLogger) (r
 // BuildZapLogger initializes zap logger
 func BuildZapLogger(callerSkip int) (*zap.SugaredLogger, error) {
 	config := zap.NewProductionConfig()
-	config.Level.SetLevel(zapcore.InfoLevel)
+	config.Level.SetLevel(zapcore.DebugLevel)
 
 	config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(timeFormat)
 	config.EncoderConfig.TimeKey = "@timestamp"

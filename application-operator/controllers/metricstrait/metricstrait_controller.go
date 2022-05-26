@@ -407,7 +407,7 @@ func (r *Reconciler) deleteOrUpdateObsoleteResources(ctx context.Context, trait 
 			switch rel.Role {
 			case scraperRole:
 				if rel.Kind == promoperapi.ServiceMonitorsKind {
-					update.RecordOutcome(r.deleteServiceMonitor(ctx, rel, log))
+					update.RecordOutcome(r.deleteServiceMonitor(ctx, rel, trait, log))
 				} else {
 					update.RecordOutcomeIfError(r.deleteOrUpdateScraperConfigMap(ctx, trait, rel, log)) // Need to pass down traitDefaults, current scraper or current scraper deployment
 				}

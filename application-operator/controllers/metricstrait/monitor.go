@@ -50,7 +50,13 @@ func (r *Reconciler) updateServiceMonitor(ctx context.Context, trait *vzapi.Metr
 }
 
 // deleteServiceMonitor deletes the object responsible for transporting metrics from the source to Prometheus
-func (r *Reconciler) deleteServiceMonitor(ctx context.Context, rel vzapi.QualifiedResourceRelation, log vzlog.VerrazzanoLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
+func (r *Reconciler) deleteServiceMonitor(ctx context.Context, rel vzapi.QualifiedResourceRelation, trait *vzapi.MetricsTrait, log vzlog.VerrazzanoLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
+	if trait.DeletionTimestamp.IsZero() && isEnabled(trait) {
+		log.Debugf("Maintaining Service Monitor name: %s namespace: %s because the trait is enabled and not in the deletion process")
+		return rel, controllerutil.OperationResultNone, nil
+	}
+
+	// If the trait is being deleted or is not enabled, delete the Service Monitor
 	log.Debugf("Deleting Service Monitor name: %s namespace: %s from resource relation", rel.Namespace, rel.Name)
 	serviceMonitor := promoperapi.ServiceMonitor{}
 	serviceMonitor.SetName(rel.Name)
