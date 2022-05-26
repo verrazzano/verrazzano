@@ -15,12 +15,10 @@ import (
 )
 
 const (
-	CommandName = "uninstall"
-	helpShort   = "Uninstall Verrazzano"
-	helpLong    = `Uninstall the Verrazzano Platform Operator and all of the currently installed components.
-
-For example:
-
+	CommandName  = "uninstall"
+	helpShort    = "Uninstall Verrazzano"
+	helpLong     = `Uninstall the Verrazzano Platform Operator and all of the currently installed components.`
+	helpExamples = `
 TBD
 `
 )
@@ -28,6 +26,7 @@ TBD
 func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.Run = runCmdVersion
+	cmd.Example = helpExamples
 
 	cmd.PersistentFlags().Bool(constants.WaitFlag, false, constants.WaitFlagHelp)
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*20, constants.TimeoutFlagHelp)

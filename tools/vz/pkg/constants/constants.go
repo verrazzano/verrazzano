@@ -30,4 +30,7 @@ const (
 
 	LogsFlag     = "logs"
 	LogsFlagHelp = "Print the logs until the command completes"
+
+	FilenameFlag     = "filename"
+	FilenameFlagHelp = "Path to file containing Verrazzano custom resource.  This flag can be specified multiple times to overlay multiple files."
 )
