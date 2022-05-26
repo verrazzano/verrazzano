@@ -5,19 +5,18 @@ package coherence
 
 import (
 	"fmt"
-	"path/filepath"
 
-	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-	"k8s.io/apimachinery/pkg/types"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/webhook"
+	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/modules"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/reconciler"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
@@ -37,30 +36,40 @@ type coherenceComponent struct {
 	helm.HelmComponent
 }
 
-func NewComponent() spi.Component {
-	return coherenceComponent{
-		helm.HelmComponent{
-			ReleaseName:               ComponentName,
-			JSONName:                  ComponentJSONName,
-			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), ComponentName),
-			ChartNamespace:            ComponentNamespace,
-			IgnoreNamespaceOverride:   true,
-			SupportsOperatorInstall:   true,
-			SupportsOperatorUninstall: true,
-			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
-			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "coherence-values.yaml"),
-			Dependencies:              []string{networkpolicies.ComponentName},
-			GetInstallOverridesFunc:   GetOverrides,
-			AvailabilityObjects: &ready.AvailabilityObjects{
-				DeploymentNames: []types.NamespacedName{
-					{
-						Name:      ComponentName,
-						Namespace: ComponentNamespace,
-					},
-				},
-			},
+func NewComponent(module *modulesv1alpha1.Module) modules.DelegateReconciler {
+	h := helm.HelmComponent{
+		ChartDir:               config.GetThirdPartyDir(),
+		ImagePullSecretKeyname: secret.DefaultImagePullSecretKeyName,
+	}
+	helm.SetForModule(&h, module)
+	return &reconciler.Reconciler{
+		ModuleComponent: coherenceComponent{
+			h,
 		},
 	}
+	//return coherenceComponent{
+	//	helm.HelmComponent{
+	//		ReleaseName:               ComponentName,
+	//		JSONName:                  ComponentJSONName,
+	//		ChartDir:                  filepath.Join(config.GetThirdPartyDir(), ComponentName),
+	//		ChartNamespace:            ComponentNamespace,
+	//		IgnoreNamespaceOverride:   true,
+	//		SupportsOperatorInstall:   true,
+	//		SupportsOperatorUninstall: true,
+	//		ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
+	//		ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "coherence-values.yaml"),
+	//		Dependencies:              []string{networkpolicies.ComponentName},
+	//		GetInstallOverridesFunc:   GetOverrides,
+	//		AvailabilityObjects: &ready.AvailabilityObjects{
+	//			DeploymentNames: []types.NamespacedName{
+	//				{
+	//					Name:      ComponentName,
+	//					Namespace: ComponentNamespace,
+	//				},
+	//			},
+	//		},
+	//	},
+	//}
 }
 
 // IsEnabled Coherence-specific enabled check for installation

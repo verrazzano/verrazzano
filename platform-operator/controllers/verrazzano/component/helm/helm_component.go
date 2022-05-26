@@ -13,9 +13,6 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
-
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -25,11 +22,15 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/yaml"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"k8s.io/apimachinery/pkg/types"
+	"path/filepath"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -135,8 +136,13 @@ type resolveNamespaceSig func(ns string) string
 // upgradeFuncSig is a function needed for unit test override
 type upgradeFuncSig func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helm.HelmOverrides) (stdout []byte, stderr []byte, err error)
 
+// uninstallFuncSig is the uninstall function
+type uninstallFunSig func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error)
+
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = helm.Upgrade
+
+var uninstallFunc uninstallFunSig = helm.Uninstall
 
 func SetUpgradeFunc(f upgradeFuncSig) {
 	upgradeFunc = f
@@ -297,6 +303,26 @@ func (h HelmComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1bet
 
 func (h HelmComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	return true
+}
+
+func (h HelmComponent) Uninstall(ctx spi.ComponentContext) error {
+	resolvedNamespace := h.resolveNamespace(ctx.EffectiveCR().Namespace)
+	_, _, err := uninstallFunc(ctx.Log(), h.ReleaseName, resolvedNamespace, ctx.IsDryRun())
+	return err
+}
+
+func SetForModule(h *HelmComponent, module *modulesv1alpha1.Module) {
+	chart := module.Spec.Installer.HelmChart
+	if chart != nil {
+		h.ReleaseName = chart.Name
+		h.JSONName = chart.Name
+		h.ChartDir = filepath.Join(h.ChartDir, chart.Repository.Path)
+		h.ChartNamespace = chart.Namespace
+		h.IgnoreNamespaceOverride = true
+		h.GetInstallOverridesFunc = func(_ *vzapi.Verrazzano) []vzapi.Overrides {
+			return chart.InstallOverrides.ValueOverrides
+		}
+	}
 }
 
 // Install installs the component using Helm
