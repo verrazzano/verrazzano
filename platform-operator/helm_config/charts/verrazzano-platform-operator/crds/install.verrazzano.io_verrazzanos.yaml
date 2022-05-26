@@ -81,6 +81,8 @@ spec:
                               required:
                               - key
                               type: object
+                            overrideValues:
+                              x-kubernetes-preserve-unknown-fields: true
                             secretRef:
                               description: SecretKeySelector selects a key of a Secret.
                               properties:
@@ -1106,6 +1108,8 @@ spec:
                               required:
                               - key
                               type: object
+                            overrideValues:
+                              x-kubernetes-preserve-unknown-fields: true
                             secretRef:
                               description: SecretKeySelector selects a key of a Secret.
                               properties:
@@ -1190,6 +1194,8 @@ spec:
                               required:
                               - key
                               type: object
+                            overrideValues:
+                              x-kubernetes-preserve-unknown-fields: true
                             secretRef:
                               description: SecretKeySelector selects a key of a Secret.
                               properties:
@@ -1241,6 +1247,8 @@ spec:
                               required:
                               - key
                               type: object
+                            overrideValues:
+                              x-kubernetes-preserve-unknown-fields: true
                             secretRef:
                               description: SecretKeySelector selects a key of a Secret.
                               properties:
@@ -1326,6 +1334,8 @@ spec:
                               required:
                               - key
                               type: object
+                            overrideValues:
+                              x-kubernetes-preserve-unknown-fields: true
                             secretRef:
                               description: SecretKeySelector selects a key of a Secret.
                               properties:
@@ -1585,6 +1595,8 @@ spec:
                               required:
                               - key
                               type: object
+                            overrideValues:
+                              x-kubernetes-preserve-unknown-fields: true
                             secretRef:
                               description: SecretKeySelector selects a key of a Secret.
                               properties:
@@ -3900,6 +3912,8 @@ spec:
                               required:
                               - key
                               type: object
+                            overrideValues:
+                              x-kubernetes-preserve-unknown-fields: true
                             secretRef:
                               description: SecretKeySelector selects a key of a Secret.
                               properties:
@@ -3919,8 +3933,6 @@ spec:
                               required:
                               - key
                               type: object
-                            values:
-                              x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
                     type: object
@@ -5648,6 +5660,8 @@ spec:
                               required:
                               - key
                               type: object
+                            overrideValues:
+                              x-kubernetes-preserve-unknown-fields: true
                             secretRef:
                               description: SecretKeySelector selects a key of a Secret.
                               properties:
@@ -5699,6 +5713,8 @@ spec:
                               required:
                               - key
                               type: object
+                            overrideValues:
+                              x-kubernetes-preserve-unknown-fields: true
                             secretRef:
                               description: SecretKeySelector selects a key of a Secret.
                               properties:
@@ -5756,6 +5772,8 @@ spec:
                               required:
                               - key
                               type: object
+                            overrideValues:
+                              x-kubernetes-preserve-unknown-fields: true
                             secretRef:
                               description: SecretKeySelector selects a key of a Secret.
                               properties:
@@ -5807,6 +5825,8 @@ spec:
                               required:
                               - key
                               type: object
+                            overrideValues:
+                              x-kubernetes-preserve-unknown-fields: true
                             secretRef:
                               description: SecretKeySelector selects a key of a Secret.
                               properties:
@@ -5826,8 +5846,6 @@ spec:
                               required:
                               - key
                               type: object
-                            values:
-                              x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
                     type: object
@@ -5866,6 +5884,8 @@ spec:
                               required:
                               - key
                               type: object
+                            overrideValues:
+                              x-kubernetes-preserve-unknown-fields: true
                             secretRef:
                               description: SecretKeySelector selects a key of a Secret.
                               properties:
@@ -5917,6 +5937,8 @@ spec:
                               required:
                               - key
                               type: object
+                            overrideValues:
+                              x-kubernetes-preserve-unknown-fields: true
                             secretRef:
                               description: SecretKeySelector selects a key of a Secret.
                               properties:
@@ -5968,6 +5990,8 @@ spec:
                               required:
                               - key
                               type: object
+                            overrideValues:
+                              x-kubernetes-preserve-unknown-fields: true
                             secretRef:
                               description: SecretKeySelector selects a key of a Secret.
                               properties:
@@ -6019,6 +6043,8 @@ spec:
                               required:
                               - key
                               type: object
+                            overrideValues:
+                              x-kubernetes-preserve-unknown-fields: true
                             secretRef:
                               description: SecretKeySelector selects a key of a Secret.
                               properties:
@@ -6070,6 +6096,8 @@ spec:
                               required:
                               - key
                               type: object
+                            overrideValues:
+                              x-kubernetes-preserve-unknown-fields: true
                             secretRef:
                               description: SecretKeySelector selects a key of a Secret.
                               properties:
@@ -6146,6 +6174,8 @@ spec:
                               required:
                               - key
                               type: object
+                            overrideValues:
+                              x-kubernetes-preserve-unknown-fields: true
                             secretRef:
                               description: SecretKeySelector selects a key of a Secret.
                               properties:
@@ -6197,6 +6227,8 @@ spec:
                               required:
                               - key
                               type: object
+                            overrideValues:
+                              x-kubernetes-preserve-unknown-fields: true
                             secretRef:
                               description: SecretKeySelector selects a key of a Secret.
                               properties:

@@ -453,7 +453,7 @@ func ValidateInstallOverrides(Overrides []Overrides) error {
 		if override.SecretRef != nil {
 			overridePerItem++
 		}
-		if override.Values != nil {
+		if override.OverrideValues != nil {
 			overridePerItem++
 		}
 		if overridePerItem > 1 {

@@ -9,7 +9,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // ProfileType is the type of install profile.
@@ -798,19 +797,7 @@ type InstallOverrides struct {
 
 // Overrides stores the specified InstallOverrides
 type Overrides struct {
-	ConfigMapRef *corev1.ConfigMapKeySelector `json:"configMapRef,omitempty"`
-	SecretRef    *corev1.SecretKeySelector    `json:"secretRef,omitempty"`
-	Values       *apiextensionsv1.JSON        `json:"values,omitempty"`
-}
-
-type OverrideValues unstructured.Unstructured
-
-// +kubebuilder:pruning:PreserveUnknownFields
-// +kubebuilder:validation:EmbeddedResource
-func (in *OverrideValues) DeepCopyInto(out *OverrideValues) {
-	if out != nil {
-		casted := unstructured.Unstructured(*in)
-		deepCopy := casted.DeepCopy()
-		out.Object = deepCopy.Object
-	}
+	ConfigMapRef   *corev1.ConfigMapKeySelector `json:"configMapRef,omitempty"`
+	SecretRef      *corev1.SecretKeySelector    `json:"secretRef,omitempty"`
+	OverrideValues *apiextensionsv1.JSON        `json:"overrideValues,omitempty"`
 }

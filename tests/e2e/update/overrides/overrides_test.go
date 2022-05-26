@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/tests/e2e/update"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"strings"
 	"time"
 
@@ -29,6 +30,7 @@ const (
 	verrazzanoMonitoringNamespace string = "verrazzano-monitoring"
 	dataKey                       string = "values.yaml"
 	overrideKey                   string = "override"
+	inlineOverrideKey             string = "inlineOverride"
 	overrideOldValue              string = "true"
 	overrideNewValue              string = "false"
 	deploymentName                string = "prometheus-operator-kube-p-operator"
@@ -37,6 +39,8 @@ const (
 var (
 	t = framework.NewTestFramework("overrides")
 )
+
+var inlineData *string
 
 var failed = false
 var _ = t.AfterEach(func() {
@@ -81,6 +85,11 @@ func (o PrometheusOperatorOverridesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 				Optional: &trueVal,
 			},
 		},
+		{
+			OverrideValues: &apiextensionsv1.JSON{
+				Raw: []byte(*inlineData),
+			},
+		},
 	}
 	cr.Spec.Components.PrometheusOperator.Enabled = &trueVal
 	cr.Spec.Components.PrometheusOperator.MonitorChanges = &trueVal
@@ -88,6 +97,7 @@ func (o PrometheusOperatorOverridesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 var _ = t.BeforeSuite(func() {
+	*inlineData = oldInlineData
 	m := PrometheusOperatorOverridesModifier{}
 	update.UpdateCR(m)
 	_ = update.GetCR()
@@ -141,6 +151,14 @@ var _ = t.Describe("Post Install Overrides", func() {
 		// Update the overrides resources listed in Verrazzano and verify
 		// that the new values have been applied to promtheus-operator
 		t.Context("Update Overrides", func() {
+			t.It("Update Inline Data", func() {
+				*inlineData = newInlineData
+				m := PrometheusOperatorOverridesModifier{}
+				gomega.Eventually(func() error {
+					return update.UpdateCR(m)
+				}, waitTimeout, pollingInterval).Should(gomega.BeNil())
+			})
+
 			t.It("Update ConfigMap", func() {
 				testConfigMap.Data[dataKey] = newCMData
 				gomega.Eventually(func() error {
@@ -187,7 +205,8 @@ var _ = t.Describe("Post Install Overrides", func() {
 					if strings.Contains(pod.Name, deploymentName) {
 						_, foundLabel := pod.Labels[overrideKey]
 						_, foundAnnotation := pod.Annotations[overrideKey]
-						if !foundLabel && !foundAnnotation {
+						_, foundInlineAnnotation := pod.Annotations[inlineOverrideKey]
+						if !foundLabel && !foundAnnotation && !foundInlineAnnotation {
 							return true
 						}
 					}
@@ -206,6 +225,9 @@ var _ = t.Describe("Post Install Overrides", func() {
 })
 
 func deleteOverrides() {
+	m := PrometheusOperatorDefaultModifier{}
+	update.UpdateCR(m)
+
 	err0 := pkg.DeleteConfigMap(constants.DefaultNamespace, overrideConfigMapSecretName)
 	if err0 != nil && !k8serrors.IsNotFound(err0) {
 		ginkgo.AbortSuite("Failed to delete ConfigMap")
@@ -215,7 +237,6 @@ func deleteOverrides() {
 	if err1 != nil && !k8serrors.IsNotFound(err1) {
 		ginkgo.AbortSuite("Failed to delete Secret")
 	}
-
 }
 
 func vzReady() error {
@@ -243,5 +264,11 @@ func checkValues(overrideValue string) bool {
 			foundAnnotation = true
 		}
 	}
-	return len(pods) == 1 && foundAnnotation
+	foundInlineAnnotation := false
+	for _, pod := range pods {
+		if val, ok := pod.Annotations[inlineOverrideKey]; ok && val == overrideValue {
+			foundInlineAnnotation = true
+		}
+	}
+	return len(pods) == 1 && foundAnnotation && foundInlineAnnotation
 }
