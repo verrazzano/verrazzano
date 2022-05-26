@@ -15,5 +15,5 @@ spec:
     - apps/v1.StatefulSet
     - apps/v1.DaemonSet
   definitionRef:
-    name: networking.istio.io/v1beta1.AuthorizationPolicy
+    name: security.istio.io/v1beta1.AuthorizationPolicy
   workloadRefPath: spec.workloadRef
