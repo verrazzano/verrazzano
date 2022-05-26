@@ -1236,7 +1236,25 @@ data:
         #log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
         #                  '$status $body_bytes_sent "$http_referer" '
         #                  '"$http_user_agent" "$http_x_forwarded_for"';
-
+        log_format  json_combined escape=json '{'
+            '"@timestamp": "$time_iso8601", ' # local time in the ISO 8601 standard format
+            '"req_id": "$request_id", ' # the unique request id
+            '"upstream_status": "$upstream_status", '
+            '"upstream_addr": "$upstream_addr", ' # upstream backend server for proxied requests
+            '"message": "$request_method $http_host$request_uri", '
+            '"http_request": {'
+                '"request_method": "$request_method", ' # request method
+                '"requestUrl": "$http_host$request_uri", '
+                '"status": "$status", ' # response status code
+                '"requestSize": "$request_length", ' # request length (including headers and body)
+                '"responseSize": "$upstream_response_length", ' # upstream response length
+                '"userAgent": "$http_user_agent", ' # user agent
+                '"remoteIp": "$remote_addr", ' # client IP
+                '"referer": "$http_referer", ' # HTTP referer
+                '"latency": "$upstream_response_time s", ' # time spent receiving upstream body
+                '"protocol": "$server_protocol" ' # request protocol, like HTTP/1.1 or HTTP/2.0
+            '}'
+          '}';
         sendfile        on;
         #tcp_nopush     on;
 
@@ -1260,6 +1278,7 @@ data:
         lua_shared_dict jwks 1m;
 
         #access_log  logs/host.access.log  main;
+        access_log  /var/log/nginx/access.log json_combined;
         server_tokens off;
 
         #charset koi8-r;
@@ -1291,6 +1310,7 @@ data:
             }
         }
     }
+    daemon off;
   startup.sh: |
     #!/bin/bash
     startupDir=$(dirname $0)

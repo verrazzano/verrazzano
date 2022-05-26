@@ -78,10 +78,10 @@ func (i istioComponent) GetJSONName() string {
 	return ComponentJSONName
 }
 
-// GetOverrides returns the install overrides for a component
-func (i istioComponent) GetOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
-	if ctx.EffectiveCR().Spec.Components.Istio != nil {
-		return ctx.EffectiveCR().Spec.Components.Istio.ValueOverrides
+// GetOverrides returns the Helm override sources for a component
+func (i istioComponent) GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+	if effectiveCR.Spec.Components.Istio != nil {
+		return effectiveCR.Spec.Components.Istio.ValueOverrides
 	}
 	return []vzapi.Overrides{}
 }

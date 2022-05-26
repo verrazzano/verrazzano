@@ -1,6 +1,6 @@
 # Verrazzano CLI
 
-The Verrazzano Command Line Interface (CLI) is a tool which can be used to interact with the Verrazzano resources.
+The Verrazzano Command (vz) is a tool which can be used to interact with Verrazzano resources.
 
 ## Building the CLI
 

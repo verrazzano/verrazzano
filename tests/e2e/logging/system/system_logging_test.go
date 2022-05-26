@@ -289,7 +289,7 @@ func validateAuthProxyLogs() bool {
 	}
 	exceptions = append(exceptions, istioExceptions...)
 	return validateElasticsearchRecords(
-		allElasticsearchRecordValidator,
+		noLevelElasticsearchRecordValidator,
 		func() (string, error) { return pkg.GetOpenSearchSystemIndex(systemNamespace) },
 		"kubernetes.labels.app.keyword",
 		"verrazzano-authproxy",
