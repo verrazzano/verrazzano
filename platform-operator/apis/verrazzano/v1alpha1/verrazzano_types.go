@@ -7,6 +7,7 @@ import (
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -783,5 +784,17 @@ type InstallOverrides struct {
 type Overrides struct {
 	ConfigMapRef *corev1.ConfigMapKeySelector `json:"configMapRef,omitempty"`
 	SecretRef    *corev1.SecretKeySelector    `json:"secretRef,omitempty"`
-	Values       *unstructured.Unstructured   `json:"values,omitempty"`
+	Values       *apiextensionsv1.JSON        `json:"values,omitempty"`
+}
+
+type OverrideValues unstructured.Unstructured
+
+// +kubebuilder:pruning:PreserveUnknownFields
+// +kubebuilder:validation:EmbeddedResource
+func (in *OverrideValues) DeepCopyInto(out *OverrideValues) {
+	if out != nil {
+		casted := unstructured.Unstructured(*in)
+		deepCopy := casted.DeepCopy()
+		out.Object = deepCopy.Object
+	}
 }

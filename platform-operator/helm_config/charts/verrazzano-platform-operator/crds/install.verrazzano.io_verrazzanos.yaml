@@ -3650,7 +3650,7 @@ spec:
                               - key
                               type: object
                             values:
-                              type: object
+                              x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
                     type: object
@@ -5446,7 +5446,7 @@ spec:
                               - key
                               type: object
                             values:
-                              type: object
+                              x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
                     type: object
