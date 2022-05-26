@@ -12,6 +12,7 @@ import (
 	vmcontrollerv1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -1039,6 +1040,11 @@ func (in *Overrides) DeepCopyInto(out *Overrides) {
 	if in.SecretRef != nil {
 		in, out := &in.SecretRef, &out.SecretRef
 		*out = new(v1.SecretKeySelector)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.OverrideValues != nil {
+		in, out := &in.OverrideValues, &out.OverrideValues
+		*out = new(apiextensionsv1.JSON)
 		(*in).DeepCopyInto(*out)
 	}
 }
