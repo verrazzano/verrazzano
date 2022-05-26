@@ -4,10 +4,10 @@
 package authproxy
 
 import (
-	"os"
-	"strconv"
+	"fmt"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
@@ -81,23 +81,24 @@ func (u AuthProxyDefaultModifier) ModifyCR(cr *vzapi.Verrazzano) {
 
 var t = framework.NewTestFramework("update authproxy")
 
-var nodeCount uint32 = 1
+var nodeCount uint32
 
 var _ = t.BeforeSuite(func() {
-	kindNodeCount := os.Getenv("KIND_NODE_COUNT")
-	if len(kindNodeCount) > 0 {
-		u, err := strconv.ParseUint(kindNodeCount, 10, 32)
-		if err == nil {
-			nodeCount = uint32(u)
-		}
+	var err error
+	nodeCount, err = getNodeCount()
+	if err != nil {
+		Fail(err.Error())
 	}
 })
 
 var _ = t.AfterSuite(func() {
 	m := AuthProxyDefaultModifier{}
-	update.UpdateCR(m)
-	cr := update.GetCR()
+	err := update.UpdateCR(m)
+	if err != nil {
+		Fail(err.Error())
+	}
 
+	cr := update.GetCR()
 	expectedRunning := uint32(1)
 	if cr.Spec.Profile == "prod" || cr.Spec.Profile == "" {
 		expectedRunning = 2
@@ -121,7 +122,10 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-authproxy update replicas", Label("f:platform-lcm.authproxy-update-replicas"), func() {
 		t.It("authproxy explicit replicas", func() {
 			m := AuthProxyReplicasModifier{replicas: nodeCount}
-			update.UpdateCR(m)
+			err := update.UpdateCR(m)
+			if err != nil {
+				Fail(err.Error())
+			}
 
 			expectedRunning := nodeCount
 			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
@@ -131,7 +135,10 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-authproxy update affinity", Label("f:platform-lcm.authproxy-update-affinity"), func() {
 		t.It("authproxy explicit affinity", func() {
 			m := AuthProxyPodPerNodeAffintyModifier{}
-			update.UpdateCR(m)
+			err := update.UpdateCR(m)
+			if err != nil {
+				Fail(err.Error())
+			}
 
 			expectedRunning := nodeCount - 1
 			expectedPending := true
@@ -143,3 +150,14 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 		})
 	})
 })
+
+func getNodeCount() (uint32, error) {
+	nodes, err := pkg.ListNodes()
+	if err != nil {
+		return 0, err
+	}
+	if len(nodes.Items) < 1 {
+		return 0, fmt.Errorf("can not find node in the cluster")
+	}
+	return uint32(len(nodes.Items)), nil
+}
