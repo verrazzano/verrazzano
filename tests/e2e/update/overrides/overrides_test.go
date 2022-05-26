@@ -40,7 +40,7 @@ var (
 	t = framework.NewTestFramework("overrides")
 )
 
-var inlineData *string
+var inlineData string
 
 var failed = false
 var _ = t.AfterEach(func() {
@@ -87,7 +87,7 @@ func (o PrometheusOperatorOverridesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		},
 		{
 			OverrideValues: &apiextensionsv1.JSON{
-				Raw: []byte(*inlineData),
+				Raw: []byte(inlineData),
 			},
 		},
 	}
@@ -97,7 +97,7 @@ func (o PrometheusOperatorOverridesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 var _ = t.BeforeSuite(func() {
-	*inlineData = oldInlineData
+	inlineData = oldInlineData
 	m := PrometheusOperatorOverridesModifier{}
 	update.UpdateCR(m)
 	_ = update.GetCR()
@@ -152,7 +152,7 @@ var _ = t.Describe("Post Install Overrides", func() {
 		// that the new values have been applied to promtheus-operator
 		t.Context("Update Overrides", func() {
 			t.It("Update Inline Data", func() {
-				*inlineData = newInlineData
+				inlineData = newInlineData
 				m := PrometheusOperatorOverridesModifier{}
 				gomega.Eventually(func() error {
 					return update.UpdateCR(m)
