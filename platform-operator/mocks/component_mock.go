@@ -275,6 +275,20 @@ func (mr *MockComponentInfoMockRecorder) GetMinVerrazzanoVersion() *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMinVerrazzanoVersion", reflect.TypeOf((*MockComponentInfo)(nil).GetMinVerrazzanoVersion))
 }
 
+// GetOverrides mocks base method.
+func (m *MockComponentInfo) GetOverrides(arg0 spi.ComponentContext) []v1alpha1.Overrides {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOverrides", arg0)
+	ret0, _ := ret[0].([]v1alpha1.Overrides)
+	return ret0
+}
+
+// GetOverrides indicates an expected call of GetOverrides.
+func (mr *MockComponentInfoMockRecorder) GetOverrides(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOverrides", reflect.TypeOf((*MockComponentInfo)(nil).GetOverrides), arg0)
+}
+
 // IsEnabled mocks base method.
 func (m *MockComponentInfo) IsEnabled(arg0 *v1alpha1.Verrazzano) bool {
 	m.ctrl.T.Helper()
@@ -301,6 +315,20 @@ func (m *MockComponentInfo) IsReady(arg0 spi.ComponentContext) bool {
 func (mr *MockComponentInfoMockRecorder) IsReady(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsReady", reflect.TypeOf((*MockComponentInfo)(nil).IsReady), arg0)
+}
+
+// MonitorOverrides mocks base method.
+func (m *MockComponentInfo) MonitorOverrides(arg0 spi.ComponentContext) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MonitorOverrides", arg0)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// MonitorOverrides indicates an expected call of MonitorOverrides.
+func (mr *MockComponentInfoMockRecorder) MonitorOverrides(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MonitorOverrides", reflect.TypeOf((*MockComponentInfo)(nil).MonitorOverrides), arg0)
 }
 
 // Name mocks base method.
@@ -569,6 +597,20 @@ func (mr *MockComponentMockRecorder) GetMinVerrazzanoVersion() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMinVerrazzanoVersion", reflect.TypeOf((*MockComponent)(nil).GetMinVerrazzanoVersion))
 }
 
+// GetOverrides mocks base method.
+func (m *MockComponent) GetOverrides(arg0 spi.ComponentContext) []v1alpha1.Overrides {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOverrides", arg0)
+	ret0, _ := ret[0].([]v1alpha1.Overrides)
+	return ret0
+}
+
+// GetOverrides indicates an expected call of GetOverrides.
+func (mr *MockComponentMockRecorder) GetOverrides(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOverrides", reflect.TypeOf((*MockComponent)(nil).GetOverrides), arg0)
+}
+
 // Install mocks base method.
 func (m *MockComponent) Install(arg0 spi.ComponentContext) error {
 	m.ctrl.T.Helper()
@@ -638,6 +680,20 @@ func (m *MockComponent) IsReady(arg0 spi.ComponentContext) bool {
 func (mr *MockComponentMockRecorder) IsReady(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsReady", reflect.TypeOf((*MockComponent)(nil).IsReady), arg0)
+}
+
+// MonitorOverrides mocks base method.
+func (m *MockComponent) MonitorOverrides(arg0 spi.ComponentContext) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MonitorOverrides", arg0)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// MonitorOverrides indicates an expected call of MonitorOverrides.
+func (mr *MockComponentMockRecorder) MonitorOverrides(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MonitorOverrides", reflect.TypeOf((*MockComponent)(nil).MonitorOverrides), arg0)
 }
 
 // Name mocks base method.
