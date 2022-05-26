@@ -220,7 +220,7 @@ pipeline {
                     // Check if the utils file has been loaded successfully
                     status = utils_testUtilsFile()
                     if (status == "success") {
-                        utils.log("INFO", "utils.groovy loaded successfully")
+                        utils_log("INFO", "utils.groovy loaded successfully")
                     } else {
                         echo "Error in loading utils.groovy"
                         exit 1
@@ -228,12 +228,12 @@ pipeline {
                     // Proceed with checkout
                     EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
                     if (params.GIT_COMMIT_TO_USE == "NONE") {
-                        utils.log("INFO", "Specific GIT commit was not specified, use current head")
+                        utils_log("INFO", "Specific GIT commit was not specified, use current head")
                         def scmInfo = checkout scm
                         env.GIT_COMMIT = scmInfo.GIT_COMMIT
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                     } else {
-                        utils.log("INFO", "SCM checkout of ${params.GIT_COMMIT_TO_USE}")
+                        utils_log("INFO", "SCM checkout of ${params.GIT_COMMIT_TO_USE}")
                         def scmInfo = checkout([
                             $class: 'GitSCM',
                             branches: [[name: params.GIT_COMMIT_TO_USE]],
@@ -245,11 +245,11 @@ pipeline {
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                         // If the commit we were handed is not what the SCM says we are using, fail
                         if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
-                            utils.log("ERROR", "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}")
+                            utils_log("ERROR", "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}")
                             exit 1
                         }
                     }
-                    utils.log("INFO", "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}")
+                    utils_log("INFO", "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}")
                 }
 
                 sh """
@@ -258,9 +258,9 @@ pipeline {
                 """
 
                 script {
-                    utils.log("INFO", "${params.OKE_CLUSTER_REGION}")
-                    utils.log("INFO", "agentlabel: ${agentLabel}")
-                    utils.log("INFO", "${NODE_LABELS}")
+                    utils_log("INFO", "${params.OKE_CLUSTER_REGION}")
+                    utils_log("INFO", "agentlabel: ${agentLabel}")
+                    utils_log("INFO", "${NODE_LABELS}")
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     // update the description with some meaningful info
                     setDisplayName()
@@ -287,7 +287,7 @@ pipeline {
                     def RUNNER_REGION = sh(returnStdout: true, script: "curl -s -H \"Authorization: Bearer Oracle\" http://169.254.169.254/opc/v2/instance/canonicalRegionName").trim()
                     env.TF_VAR_region = "${OCI_DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OKE_CLUSTER_REGION}"
                     env.OCI_CLI_REGION = "${OCI_DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OKE_CLUSTER_REGION}"
-                    utils.log("INFO", "runner region is ${RUNNER_REGION}, tf var region is ${env.TF_VAR_REGION}")
+                    utils_log("INFO", "runner region is ${RUNNER_REGION}, tf var region is ${env.TF_VAR_REGION}")
                         sh """
                             # get the ssh public key
                             ssh-keygen -y -e -f ${OPC_USER_KEY_FILE} > /tmp/opc_ssh2.pub
@@ -305,7 +305,7 @@ pipeline {
             post {
                 failure {
                     script {
-                        utils.log("ERROR", "Cluster create failed")
+                        utils_log("ERROR", "Cluster create failed")
                     }
                 }
             }
@@ -336,7 +336,7 @@ pipeline {
             }
             steps {
                 script {
-                    utils.log("INFO", "Install Platform Operator")
+                    utils_log("INFO", "Install Platform Operator")
                 }
                 sh """
                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
@@ -364,7 +364,7 @@ pipeline {
             }
             steps {
                 script {
-                     utils.log("INFO", "OCI_DNS_SCOPE =  ${OCI_DNS_SCOPE}")
+                     utils_log("INFO", "OCI_DNS_SCOPE =  ${OCI_DNS_SCOPE}")
                      if (OCI_DNS_SCOPE == "PRIVATE") {
                         switch(TF_VAR_region) {
                            case "uk-london-1":
@@ -374,7 +374,7 @@ pipeline {
                              env.VCN_VIEW_ID = "${DNS_VIEW_FOR_PRIVATE_DNS_PHX}"
                              break
                          }
-                         utils.log("INFO", "view id is ${env.VCN_VIEW_ID}")
+                         utils_log("INFO", "view id is ${env.VCN_VIEW_ID}")
                      }
                     // VCN_VIEW_ID is used inside oci_dns_ops.sh to associate private zones to view
                     // this is only used when zone is PRIVATE
@@ -661,7 +661,7 @@ def getEffectiveDumpOnSuccess() {
     def effectiveValue = params.DUMP_K8S_CLUSTER_ON_SUCCESS
     if (FORCE_DUMP_K8S_CLUSTER_ON_SUCCESS.equals("true") && (env.BRANCH_NAME.equals("master"))) {
         effectiveValue = true
-        utils.log("INFO", "Forcing dump on success based on global override setting")
+        utils_log("INFO", "Forcing dump on success based on global override setting")
     }
     return effectiveValue
 }
@@ -710,7 +710,7 @@ def metricTimerEnd(metricName, status) {
         labels = getMetricLabels()
         withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
             EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
-            utils.log("INFO", "emit prometheus metrics: $EMIT")
+            utils_log("INFO", "emit prometheus metrics: $EMIT")
             return EMIT
         }
     } else {
@@ -739,21 +739,21 @@ def metricBuildDuration() {
         labels = labels + ',result=\\"' + "${statusLabel}"+'\\"'
         withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
             METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
-            utils.log("INFO", "Publishing the metrics for build duration and status returned status code $METRIC_STATUS")
+            utils_log("INFO", "Publishing the metrics for build duration and status returned status code $METRIC_STATUS")
         }
     }
 }
 
 
 def setDisplayName() {
-    utils.log("INFO", "Start setDisplayName")
+    utils_log("INFO", "Start setDisplayName")
     def causes = currentBuild.getBuildCauses()
-    utils.log("INFO", "causes: " + causes.toString())
+    utils_log("INFO", "causes: " + causes.toString())
     for (cause in causes) {
         def causeString = cause.toString()
-        utils.log("INFO", "current cause: " + causeString)
+        utils_log("INFO", "current cause: " + causeString)
         if (causeString.contains("UpstreamCause") && causeString.contains("Started by upstream project")) {
-             utils.log("INFO", "This job was caused by " + causeString)
+             utils_log("INFO", "This job was caused by " + causeString)
              if (causeString.contains("verrazzano-periodic-triggered-tests")) {
                  currentBuild.displayName = env.BUILD_NUMBER + " : PERIODIC"
              } else if (causeString.contains("verrazzano-flaky-tests")) {
@@ -761,7 +761,7 @@ def setDisplayName() {
              }
          }
     }
-    utils.log("INFO", "End setDisplayName")
+    utils_log("INFO", "End setDisplayName")
 }
 
 def createImagePullSecrets() {
