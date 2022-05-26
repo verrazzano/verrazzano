@@ -254,11 +254,11 @@ pipeline {
                     cp -f "${NETRC_FILE}" $HOME/.netrc
                     chmod 600 $HOME/.netrc
                 """
-                utils.log("INFO", "${params.OKE_CLUSTER_REGION}")
-                utils.log("INFO", "agentlabel: ${agentLabel}")
-                utils.log("INFO", "${NODE_LABELS}")
 
                 script {
+                    utils.log("INFO", "${params.OKE_CLUSTER_REGION}")
+                    utils.log("INFO", "agentlabel: ${agentLabel}")
+                    utils.log("INFO", "${NODE_LABELS}")
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     // update the description with some meaningful info
                     setDisplayName()
@@ -332,7 +332,7 @@ pipeline {
             environment {
                 OCI_CLI_AUTH="instance_principal"
             }
-            steps {
+            script {
                 utils.log("INFO", "Install Platform Operator")
                 sh """
                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
@@ -477,8 +477,8 @@ pipeline {
         }
 
         stage('acceptance-tests') {
-            script {
-                parallel {
+            parallel {
+                script {
                     runVerrazzanoAcceptanceTests()
                 }
             }
