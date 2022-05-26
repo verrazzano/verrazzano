@@ -69,32 +69,6 @@ spec:
 type AssertFn func(configMap *corev1.ConfigMap) error
 type secretAssertFn func(secret *corev1.Secret) error
 
-// validateScrapeConfig validates that a scrape config job has the expected field names and values
-func validateScrapeConfig(t *testing.T, scrapeConfig *gabs.Container, caBasePath string, expectTLSConfig bool) {
-	asserts := assert.New(t)
-	asserts.NotNil(scrapeConfig)
-	asserts.Equal(getPrometheusHost(),
-		scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
-	asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
-
-	// assert that the verrazzano_cluster label is added in the static config
-	asserts.Equal(testManagedCluster, scrapeConfig.Search(
-		"static_configs", "0", "labels", "verrazzano_cluster").Data(),
-		"Label verrazzano_cluster not set correctly in static_configs")
-
-	// assert that the VMC job relabels verrazzano_cluster label to the right value
-	asserts.Equal("verrazzano_cluster", scrapeConfig.Search("metric_relabel_configs", "0",
-		"target_label").Data(),
-		"metric_relabel_configs entry to post-process verrazzano_cluster label does not have expected target_label value")
-	asserts.Equal(testManagedCluster, scrapeConfig.Search("metric_relabel_configs", "0",
-		"replacement").Data(),
-		"metric_relabel_configs entry to post-process verrazzano_cluster label does not have right replacement value")
-	if expectTLSConfig {
-		asserts.Equal("https", scrapeConfig.Path("scheme").Data(), "wrong scheme")
-		asserts.Equal(caBasePath+"ca-test", scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
-	}
-}
-
 // TestCreateVMC tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an VerrazzanoManagedCluster resource
 // WHEN a VerrazzanoManagedCluster resource has been applied
@@ -143,6 +117,9 @@ func TestCreateVMC(t *testing.T) {
 		}
 		scrapeConfig := getJob(scrapeConfigs.Children(), testManagedCluster)
 		validateScrapeConfig(t, scrapeConfig, managedCertsBasePath, true)
+		return nil
+	}, func(secret *corev1.Secret) error {
+		asserts.NotEmpty(secret.Data["ca-test"], "Expected to find a managed cluster TLS cert")
 		return nil
 	})
 
@@ -210,6 +187,9 @@ func TestCreateVMCWithExternalES(t *testing.T) {
 		scrapeConfig := getJob(scrapeConfigs.Children(), testManagedCluster)
 		validateScrapeConfig(t, scrapeConfig, managedCertsBasePath, true)
 		return nil
+	}, func(secret *corev1.Secret) error {
+		asserts.NotEmpty(secret.Data["ca-test"], "Expected to find a managed cluster TLS cert")
+		return nil
 	})
 
 	// expect status updated with condition Ready=true
@@ -276,6 +256,9 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 		scrapeConfig := getJob(scrapeConfigs.Children(), testManagedCluster)
 		validateScrapeConfig(t, scrapeConfig, managedCertsBasePath, false)
 		return nil
+	}, func(secret *corev1.Secret) error {
+		asserts.Empty(secret.Data["ca-test"])
+		return nil
 	})
 
 	// expect status updated with condition Ready=true
@@ -340,6 +323,9 @@ func TestCreateVMCNoCACert(t *testing.T) {
 		}
 		scrapeConfig := getJob(scrapeConfigs.Children(), testManagedCluster)
 		validateScrapeConfig(t, scrapeConfig, managedCertsBasePath, false)
+		return nil
+	}, func(secret *corev1.Secret) error {
+		asserts.Empty(secret.Data["ca-test"])
 		return nil
 	})
 
@@ -419,6 +405,9 @@ scrape_configs:
 		scrapeConfig := getJob(scrapeConfigs.Children(), testManagedCluster)
 		validateScrapeConfig(t, scrapeConfig, managedCertsBasePath, true)
 		return nil
+	}, func(secret *corev1.Secret) error {
+		asserts.NotEmpty(secret.Data["ca-test"], "Expected to find a managed cluster TLS cert")
+		return nil
 	})
 
 	// expect status updated with condition Ready=true
@@ -496,6 +485,9 @@ scrape_configs:
 		scrapeConfig := getJob(scrapeConfigs.Children(), testManagedCluster)
 		validateScrapeConfig(t, scrapeConfig, managedCertsBasePath, true)
 		return nil
+	}, func(secret *corev1.Secret) error {
+		asserts.NotEmpty(secret.Data["ca-test"], "Expected to find a managed cluster TLS cert")
+		return nil
 	})
 
 	// expect status updated with condition Ready=true
@@ -562,6 +554,9 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 		}
 		scrapeConfig := getJob(scrapeConfigs.Children(), testManagedCluster)
 		validateScrapeConfig(t, scrapeConfig, managedCertsBasePath, true)
+		return nil
+	}, func(secret *corev1.Secret) error {
+		asserts.NotEmpty(secret.Data["ca-test"], "Expected to find a managed cluster TLS cert")
 		return nil
 	})
 
@@ -1284,6 +1279,9 @@ func TestRegisterClusterWithRancherOverrideRegistry(t *testing.T) {
 		scrapeConfig := getJob(scrapeConfigs.Children(), testManagedCluster)
 		validateScrapeConfig(t, scrapeConfig, managedCertsBasePath, true)
 		return nil
+	}, func(secret *corev1.Secret) error {
+		asserts.NotEmpty(secret.Data["ca-test"], "Expected to find a managed cluster TLS cert")
+		return nil
 	})
 
 	// expect status updated with condition Ready=true
@@ -1688,7 +1686,8 @@ func expectVmcGetAndUpdate(t *testing.T, mock *mocks.MockClient, name string, ca
 
 }
 
-func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometheusYaml string, jobs string, caSecretExists bool, cacrtSecretData string, f AssertFn, additionalScrapeConfigsAssertFunc secretAssertFn) {
+func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometheusYaml string, jobs string, caSecretExists bool, cacrtSecretData string,
+	f AssertFn, additionalScrapeConfigsAssertFunc secretAssertFn, managedClusterCertsAssertFunc secretAssertFn) {
 	const internalSecretPassword = "nRXlxXgMwN" //nolint:gosec //#gosec G101
 
 	if caSecretExists {
@@ -1777,7 +1776,7 @@ func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometh
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.UpdateOption) error {
-			return nil
+			return managedClusterCertsAssertFunc(secret)
 		})
 
 }
@@ -2001,4 +2000,30 @@ func expectStatusUpdateReadyCondition(asserts *assert.Assertions, mock *mocks.Mo
 			asserts.Equal(1, readyConditionCount, "Found more than one Ready condition")
 			return nil
 		})
+}
+
+// validateScrapeConfig validates that a scrape config job has the expected field names and values
+func validateScrapeConfig(t *testing.T, scrapeConfig *gabs.Container, caBasePath string, expectTLSConfig bool) {
+	asserts := assert.New(t)
+	asserts.NotNil(scrapeConfig)
+	asserts.Equal(getPrometheusHost(),
+		scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
+	asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
+
+	// assert that the verrazzano_cluster label is added in the static config
+	asserts.Equal(testManagedCluster, scrapeConfig.Search(
+		"static_configs", "0", "labels", "verrazzano_cluster").Data(),
+		"Label verrazzano_cluster not set correctly in static_configs")
+
+	// assert that the VMC job relabels verrazzano_cluster label to the right value
+	asserts.Equal("verrazzano_cluster", scrapeConfig.Search("metric_relabel_configs", "0",
+		"target_label").Data(),
+		"metric_relabel_configs entry to post-process verrazzano_cluster label does not have expected target_label value")
+	asserts.Equal(testManagedCluster, scrapeConfig.Search("metric_relabel_configs", "0",
+		"replacement").Data(),
+		"metric_relabel_configs entry to post-process verrazzano_cluster label does not have right replacement value")
+	if expectTLSConfig {
+		asserts.Equal("https", scrapeConfig.Path("scheme").Data(), "wrong scheme")
+		asserts.Equal(caBasePath+"ca-test", scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
+	}
 }
