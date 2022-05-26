@@ -5,7 +5,7 @@ def agentLabel = env.JOB_NAME.contains('master') ? "phxsmall" : "VM.Standard2.2"
 
 pipeline {
     options {
-        timeout(time: 4, unit: 'HOURS')
+        timeout(time: 6, unit: 'HOURS')
         skipDefaultCheckout true
     }
 
