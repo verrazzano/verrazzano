@@ -5,6 +5,9 @@ package install
 
 import (
 	"fmt"
+	"time"
+
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 
 	"github.com/spf13/cobra"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
@@ -18,13 +21,19 @@ const (
 
 For example:
 
-TBD
+vz install --version v1.3.0 --wait --timeout 20m
 `
 )
 
 func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.Run = runCmdVersion
+
+	cmd.PersistentFlags().Bool(constants.WaitFlag, false, constants.WaitFlagHelp)
+	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*20, constants.TimeoutFlagHelp)
+	cmd.PersistentFlags().String(constants.VersionFlag, "latest", constants.VersionFlagHelp)
+	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an install")
+	cmd.PersistentFlags().String(constants.OperatorFileFlag, "", constants.OperatorFileFlagHelp)
 
 	return cmd
 }
