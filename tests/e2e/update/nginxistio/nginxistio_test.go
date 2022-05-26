@@ -6,9 +6,7 @@ package nginxistio
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"reflect"
-	"strconv"
 	"text/template"
 	"time"
 
@@ -200,15 +198,13 @@ func (u NginxIstioServicePortsModifier) ModifyCR(cr *vzapi.Verrazzano) {
 
 var t = framework.NewTestFramework("update nginx-istio")
 
-var nodeCount uint32 = 1
+var nodeCount uint32
 
 var _ = t.BeforeSuite(func() {
-	kindNodeCount := os.Getenv("KIND_NODE_COUNT")
-	if len(kindNodeCount) > 0 {
-		u, err := strconv.ParseUint(kindNodeCount, 10, 32)
-		if err == nil {
-			nodeCount = uint32(u)
-		}
+	var err error
+	nodeCount, err = pkg.GetNodeCount()
+	if err != nil {
+		Fail(err.Error())
 	}
 })
 
@@ -260,40 +256,7 @@ var _ = t.Describe("Update nginx-istio", Label("f:platform-lcm.update"), func() 
 	t.Describe("verrazzano-nginx-istio update nodeport", Label("f:platform-lcm.nginx-istio-update-nodeport"), func() {
 		t.It("nginx-istio update ingress type", func() {
 			t.Logs.Info("Create external load balancers")
-			_, err := pkg.CreateNamespaceWithAnnotations("external-lb", map[string]string{}, map[string]string{})
-			if err != nil {
-				Fail(err.Error())
-			}
-
-			nodes, err := pkg.ListNodes()
-			if err != nil {
-				Fail(err.Error())
-			}
-			if len(nodes.Items) < 1 {
-				Fail("can not find node in the cluster")
-			}
-			var nginxList, istioList string
-			for _, node := range nodes.Items {
-				if len(node.Status.Addresses) < 1 {
-					Fail("can not find address in the node")
-				}
-				nginxList = nginxList + fmt.Sprintf("           server %s:31443;\n", node.Status.Addresses[0].Address)
-				istioList = istioList + fmt.Sprintf("           server %s:32443;\n", node.Status.Addresses[0].Address)
-			}
-
-			applyResource("testdata/external-lb/system-external-lb-cm.yaml", &externalLBsTemplateData{ServerList: nginxList})
-			applyResource("testdata/external-lb/system-external-lb.yaml", &externalLBsTemplateData{})
-			applyResource("testdata/external-lb/system-external-lb-svc.yaml", &externalLBsTemplateData{})
-			applyResource("testdata/external-lb/application-external-lb-cm.yaml", &externalLBsTemplateData{ServerList: istioList})
-			applyResource("testdata/external-lb/application-external-lb.yaml", &externalLBsTemplateData{})
-			applyResource("testdata/external-lb/application-external-lb-svc.yaml", &externalLBsTemplateData{})
-
-			sysIP, err := getServiceLoadBalancerIP("external-lb", "system-external-lb-svc")
-			if err != nil {
-				Fail(err.Error())
-			}
-
-			appIP, err := getServiceLoadBalancerIP("external-lb", "application-external-lb-svc")
+			sysIP, appIP, err := deployExternalLBs()
 			if err != nil {
 				Fail(err.Error())
 			}
@@ -310,6 +273,56 @@ var _ = t.Describe("Update nginx-istio", Label("f:platform-lcm.update"), func() 
 		})
 	})
 })
+
+func deployExternalLBs() (string, string, error) {
+	_, err := pkg.CreateNamespaceWithAnnotations("external-lb", map[string]string{}, map[string]string{})
+	if err != nil {
+		return "", "", err
+	}
+
+	systemServerList, applicationServerList, err := buildServerLists()
+	if err != nil {
+		return "", "", err
+	}
+
+	applyResource("testdata/external-lb/system-external-lb-cm.yaml", &externalLBsTemplateData{ServerList: systemServerList})
+	applyResource("testdata/external-lb/system-external-lb.yaml", &externalLBsTemplateData{})
+	applyResource("testdata/external-lb/system-external-lb-svc.yaml", &externalLBsTemplateData{})
+	applyResource("testdata/external-lb/application-external-lb-cm.yaml", &externalLBsTemplateData{ServerList: applicationServerList})
+	applyResource("testdata/external-lb/application-external-lb.yaml", &externalLBsTemplateData{})
+	applyResource("testdata/external-lb/application-external-lb-svc.yaml", &externalLBsTemplateData{})
+
+	sysIP, err := getServiceLoadBalancerIP("external-lb", "system-external-lb-svc")
+	if err != nil {
+		return "", "", err
+	}
+
+	appIP, err := getServiceLoadBalancerIP("external-lb", "application-external-lb-svc")
+	if err != nil {
+		return "", "", err
+	}
+
+	return sysIP, appIP, nil
+}
+
+func buildServerLists() (string, string, error) {
+	nodes, err := pkg.ListNodes()
+	if err != nil {
+		return "", "", err
+	}
+	if len(nodes.Items) < 1 {
+		return "", "", fmt.Errorf("can not find node in the cluster")
+	}
+	var serverListNginx, serverListIstio string
+	for _, node := range nodes.Items {
+		if len(node.Status.Addresses) < 1 {
+			return "", "", fmt.Errorf("can not find address in the node")
+		}
+		serverListNginx = serverListNginx + fmt.Sprintf("           server %s:31443;\n", node.Status.Addresses[0].Address)
+		serverListIstio = serverListIstio + fmt.Sprintf("           server %s:32443;\n", node.Status.Addresses[0].Address)
+	}
+	return serverListNginx, serverListIstio, nil
+}
 
 func applyResource(resourceFile string, templateData *externalLBsTemplateData) {
 	file, err := pkg.FindTestDataFile(resourceFile)
