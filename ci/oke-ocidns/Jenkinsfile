@@ -479,8 +479,10 @@ pipeline {
         }
 
         stage('acceptance-tests') {
-            parallel {
-                runVerrazzanoAcceptanceTests()
+            steps {
+                script {
+                    parallel runVerrazzanoAcceptanceTests()
+                }
             }
         }
     }
