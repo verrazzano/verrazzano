@@ -230,6 +230,10 @@ func (r *VerrazzanoManagedClusterReconciler) deleteClusterPrometheusConfiguratio
 	if err != nil {
 		return err
 	}
+	err = r.mutateManagedClusterCACertsSecret(ctx, vmc, nil)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -285,13 +289,6 @@ func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx c
 	newScrapeConfig, err := r.newScrapeConfig(cacrtSecret, vmc)
 	if err != nil {
 		return err
-	}
-	if newScrapeConfig == nil {
-		// we are removing the scrape config, so remove the TLS cert for the managed cluster from the TLS certs secret
-		err = r.mutateManagedClusterCACertsSecret(ctx, vmc, cacrtSecret)
-		if err != nil {
-			return err
-		}
 	}
 	// TODO: Set this in the newScrapeConfig function when we remove the "old" Prometheus code
 	newScrapeConfig.Set(managedCertsBasePath+getCAKey(vmc), "tls_config", "ca_file")

@@ -741,27 +741,6 @@ scrape_configs:
 			return nil
 		})
 
-	// Expect a call to get the managed cluster TLS certs secret - return it configured with two managed cluster certs
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: vpoconstants.PromManagedClusterCACertsSecretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				"ca-test":  []byte("ca-cert-1"),
-				"ca-test2": []byte("ca-cert-1"),
-			}
-			return nil
-		})
-
-	// Expect a call to update the managed cluster TLS certs secret
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.UpdateOption) error {
-			// validate that the cert for the cluster being deleted is no longer present
-			asserts.Len(secret.Data, 1, "Expected only one managed cluster cert")
-			asserts.Contains(secret.Data, "ca-test2", "Expected to find cert for managed cluster not being deleted")
-			return nil
-		})
-
 	// Expect a call to get the additional scrape config secret (we call controllerruntime.CreateOrUpdate so it fetches again) - return it
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: vpoconstants.PromAdditionalScrapeConfigsSecretName}, gomock.Not(gomock.Nil())).
@@ -784,6 +763,27 @@ scrape_configs:
 			asserts.Len(scrapeConfigs.Children(), 1, "Expected only one scrape config")
 			scrapeJobName := scrapeConfigs.Children()[0].Search(jobNameKey).Data()
 			asserts.Equal("test2", scrapeJobName)
+			return nil
+		})
+
+	// Expect a call to get the managed cluster TLS certs secret - return it configured with two managed cluster certs
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: vpoconstants.PromManagedClusterCACertsSecretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				"ca-test":  []byte("ca-cert-1"),
+				"ca-test2": []byte("ca-cert-1"),
+			}
+			return nil
+		})
+
+	// Expect a call to update the managed cluster TLS certs secret
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.UpdateOption) error {
+			// validate that the cert for the cluster being deleted is no longer present
+			asserts.Len(secret.Data, 1, "Expected only one managed cluster cert")
+			asserts.Contains(secret.Data, "ca-test2", "Expected to find cert for managed cluster not being deleted")
 			return nil
 		})
 
