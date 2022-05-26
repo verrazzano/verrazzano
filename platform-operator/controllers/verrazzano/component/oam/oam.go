@@ -98,7 +98,7 @@ func ensureClusterRoles(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// add a cluster role that allows the OAM operator to manage secret resources
 	certClusterRole := rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: certClusterRoleName}}
 
