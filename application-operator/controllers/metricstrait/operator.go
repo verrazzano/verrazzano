@@ -18,6 +18,7 @@ import (
 // doOperatorReconcile reconciles a metrics trait to work with the Prometheus Operator
 // This reconciler will create a ServiceMonitor for each metrics trait application to hook up metrics with Prometheus
 func (r *Reconciler) doOperatorReconcile(ctx context.Context, trait *vzapi.MetricsTrait, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
+	log.Debugf("Entering the Service Monitor reconcile process for trait : %s", trait.Name)
 	if trait.DeletionTimestamp.IsZero() {
 		return r.reconcileOperatorTraitCreateOrUpdate(ctx, trait, log)
 	}
@@ -25,6 +26,7 @@ func (r *Reconciler) doOperatorReconcile(ctx context.Context, trait *vzapi.Metri
 }
 
 func (r *Reconciler) reconcileOperatorTraitCreateOrUpdate(ctx context.Context, trait *vzapi.MetricsTrait, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
+	log.Debugf("Creating or Updating the Service Monitor from trait: %s", trait.Name)
 	var err error
 	// Add finalizer if required.
 	if err := r.addFinalizerIfRequired(ctx, trait, log); err != nil {
@@ -62,6 +64,7 @@ func (r *Reconciler) reconcileOperatorTraitCreateOrUpdate(ctx context.Context, t
 }
 
 func (r *Reconciler) reconcileOperatorTraitDelete(ctx context.Context, trait *vzapi.MetricsTrait, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
+	log.Debugf("Deleting the Service Monitor from trait: %s", trait.Name)
 	status := r.deleteOrUpdateObsoleteResources(ctx, trait, &reconcileresults.ReconcileResults{}, log)
 	// Only remove the finalizer if all related resources were successfully updated.
 	if !status.ContainsErrors() {

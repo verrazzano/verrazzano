@@ -36,6 +36,7 @@ func (r *Reconciler) updateServiceMonitor(ctx context.Context, trait *vzapi.Metr
 	serviceMonitor.SetName(strings.Replace(pmName, "_", "-", -1))
 	serviceMonitor.SetNamespace(workload.GetNamespace())
 
+	log.Debugf("Creating or updating the Service Monitor name: %s namespace: %s", serviceMonitor.Name, serviceMonitor.Namespace)
 	// Create or Update Service Monitor with valid scrape config for the target workload
 	result, err := controllerutil.CreateOrUpdate(ctx, r.Client, &serviceMonitor, func() error {
 		return r.mutateServiceMonitorFromTrait(ctx, &serviceMonitor, trait, workload, traitDefaults, log)
@@ -49,7 +50,8 @@ func (r *Reconciler) updateServiceMonitor(ctx context.Context, trait *vzapi.Metr
 }
 
 // deleteServiceMonitor deletes the object responsible for transporting metrics from the source to Prometheus
-func (r *Reconciler) deleteServiceMonitor(ctx context.Context, rel vzapi.QualifiedResourceRelation) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
+func (r *Reconciler) deleteServiceMonitor(ctx context.Context, rel vzapi.QualifiedResourceRelation, log vzlog.VerrazzanoLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
+	log.Debugf("Deleting Service Monitor name: %s namespace: %s from resource relation", rel.Namespace, rel.Name)
 	serviceMonitor := promoperapi.ServiceMonitor{}
 	serviceMonitor.SetName(rel.Name)
 	serviceMonitor.SetNamespace(rel.Namespace)

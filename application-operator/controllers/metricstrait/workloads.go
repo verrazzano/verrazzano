@@ -24,6 +24,7 @@ import (
 // createOrUpdateWorkloads creates or updates resources related to this trait
 // The related resources are the workload children and the Prometheus config
 func (r *Reconciler) createOrUpdateRelatedWorkloads(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, children []*unstructured.Unstructured, log vzlog.VerrazzanoLogger) *reconcileresults.ReconcileResults {
+	log.Debugf("Creating or updating workload children of the Prometheus workload: %s", workload.GetName())
 	status := reconcileresults.ReconcileResults{}
 	for _, child := range children {
 		switch child.GroupVersionKind() {

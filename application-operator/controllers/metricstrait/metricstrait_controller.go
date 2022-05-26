@@ -399,6 +399,7 @@ func (r *Reconciler) deleteOrUpdateObsoleteResources(ctx context.Context, trait 
 	//   If the reference is not found or updated dont' add it to the reconcile status
 	//   Otherwise carry the reference over in the status as an error.
 
+	log.Debugf("Deleting obsolete resources for trait: %s", trait.Name)
 	// Cleanup the relations that are in the trait status relations but not in the reconcile status.
 	update := reconcileresults.ReconcileResults{}
 	for _, rel := range trait.Status.Resources {
@@ -406,7 +407,7 @@ func (r *Reconciler) deleteOrUpdateObsoleteResources(ctx context.Context, trait 
 			switch rel.Role {
 			case scraperRole:
 				if rel.Kind == promoperapi.ServiceMonitorsKind {
-					update.RecordOutcome(r.deleteServiceMonitor(ctx, rel))
+					update.RecordOutcome(r.deleteServiceMonitor(ctx, rel, log))
 				} else {
 					update.RecordOutcomeIfError(r.deleteOrUpdateScraperConfigMap(ctx, trait, rel, log)) // Need to pass down traitDefaults, current scraper or current scraper deployment
 				}
