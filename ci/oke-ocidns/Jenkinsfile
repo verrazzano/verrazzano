@@ -177,6 +177,7 @@ pipeline {
         TEST_CONFIG_FILE = "${HOME}/testConfigOke.yaml"
         KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
         VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
+        UTILS_FILE = "${WORKSPACE}/ci/utils.groovy"
 
         // used for cluster dump
         DUMP_KUBECONFIG="${KUBECONFIG}"
@@ -216,7 +217,7 @@ pipeline {
             steps {
                 script {
                     // Check if the utils file has been loaded successfully
-                    env.utils = load("../utils.groovy")
+                    env.utils = load("${UTILS_FILE}")
                     status = env.utils.testUtilsFile()
                     if (status == "success") {
                         env.utils.log("INFO", "utils.groovy loaded successfully")
