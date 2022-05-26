@@ -63,7 +63,7 @@ var _ = t.Describe("Pre upgrade Prometheus", Label("f:observability.logging.es")
 	// GIVEN a running Prometheus instance,
 	// WHEN a scrape config is created,
 	// THEN verify that the scrape config is created correctly
-	It("Scrape targets can be listed and there is atleast 1 scrape target", func() {
+	It("Scrape targets can be listed and there is at least 1 scrape target", func() {
 		Eventually(func() bool {
 			scrapeTargets, err := pkg.ScrapeTargets()
 			if err != nil {
@@ -72,7 +72,7 @@ var _ = t.Describe("Pre upgrade Prometheus", Label("f:observability.logging.es")
 			}
 			return len(scrapeTargets) > 0
 		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(),
-			"Expected not to find any old indices")
+			"Expected to find at least 1 scraping target")
 	})
 
 	// GIVEN a running Prometheus instance,
@@ -109,7 +109,7 @@ var _ = t.Describe("Pre upgrade Prometheus", Label("f:observability.logging.es")
 		Eventually(func() bool {
 			return pkg.MetricsExist(testMetricName, testMetricLabelKey, testMetricLabelValue)
 		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(),
-			"Expected not to find any old indices")
+			"Expected to find test metrics created by application deploy with metrics trait")
 	})
 
 })
@@ -117,6 +117,7 @@ var _ = t.Describe("Pre upgrade Prometheus", Label("f:observability.logging.es")
 func deployMetricsApplication() {
 	t.Logs.Info("Deploy DeployMetrics Application")
 	Eventually(func() (*v1.Namespace, error) {
+		// If the test namespace already exists, use that for the application deployment
 		namespace, _ := pkg.GetNamespace(testNamespace)
 		if namespace != nil {
 			pkg.Log(pkg.Info, "Namespace already exists")

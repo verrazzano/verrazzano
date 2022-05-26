@@ -98,9 +98,8 @@ var _ = t.Describe("Post upgrade Prometheus", Label("f:observability.logging.es"
 		Eventually(func() bool {
 			return pkg.MetricsExist(testMetricName, testMetricLabelKey, testMetricLabelValue)
 		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(),
-			"Expected not to find any old indices")
+			"Expected to find test metrics created by application deploy with metrics trait")
 	})
-
 })
 
 func undeployMetricsApplication() {
@@ -123,7 +122,8 @@ func undeployMetricsApplication() {
 
 	Eventually(func() bool {
 		return pkg.IsAppInPromConfig(promConfigJobName)
-	}, threeMinutes, pollingInterval).Should(BeFalse(), "Expected App to be removed from Prometheus Config")
+	}, threeMinutes, pollingInterval).Should(BeFalse(),
+		"Expected App to be removed from Prometheus Config")
 
 	t.Logs.Info("Delete namespace")
 	Eventually(func() error {
