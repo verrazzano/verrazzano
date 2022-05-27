@@ -105,7 +105,7 @@ func TestStatusCmd(t *testing.T) {
 	statusCmd.SetArgs([]string{fmt.Sprintf("--%s", nameFlag), name, fmt.Sprintf("--%s", namespaceFlag), "default"})
 	err = statusCmd.Execute()
 	assert.Error(t, err)
-	assert.True(t, strings.Contains(errBuf.String(), "Failed to find Verrazzano with name verrazzano in namespace default"))
+	assert.True(t, strings.Contains(errBuf.String(), "Failed to find Verrazzano with name \"verrazzano\" in namespace \"default\""))
 
 	// Run the status command with the incorrect name, expect that the Verrazzano resource is not found
 	errBuf.Reset()
@@ -113,7 +113,7 @@ func TestStatusCmd(t *testing.T) {
 	statusCmd.SetArgs([]string{fmt.Sprintf("--%s", nameFlag), "bad", fmt.Sprintf("--%s", namespaceFlag), namespace})
 	err = statusCmd.Execute()
 	assert.Error(t, err)
-	assert.True(t, strings.Contains(errBuf.String(), "Failed to find Verrazzano with name bad in namespace test"))
+	assert.True(t, strings.Contains(errBuf.String(), "Failed to find Verrazzano with name \"bad\" in namespace \"test\""))
 }
 
 func makeVerrazzanoComponentStatusMap() vzapi.ComponentStatusMap {

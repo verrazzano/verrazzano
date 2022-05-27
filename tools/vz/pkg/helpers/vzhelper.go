@@ -13,5 +13,6 @@ import (
 type VZHelper interface {
 	GetOutputStream() io.Writer
 	GetErrorStream() io.Writer
+	GetInputStream() io.Reader
 	GetClient(cmd *cobra.Command) (client.Client, error)
 }

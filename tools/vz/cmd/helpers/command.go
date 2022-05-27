@@ -15,7 +15,13 @@ func NewCommand(vzHelper helpers.VZHelper, use string, short string, long string
 		Short: short,
 		Long:  long,
 	}
+
+	// Configure the IO streams
 	cmd.SetOut(vzHelper.GetOutputStream())
 	cmd.SetErr(vzHelper.GetErrorStream())
+	cmd.SetIn(vzHelper.GetInputStream())
+
+	// Disable usage output on errors
+	cmd.SilenceUsage = true
 	return cmd
 }
