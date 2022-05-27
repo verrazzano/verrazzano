@@ -97,8 +97,8 @@ func (o PrometheusOperatorOverridesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 var _ = t.BeforeSuite(func() {
-	inlineData = oldInlineData
 	m := PrometheusOperatorOverridesModifier{}
+	inlineData = oldInlineData
 	gomega.Eventually(func() error {
 		return update.UpdateCR(m)
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil())
@@ -155,13 +155,13 @@ var _ = t.Describe("Post Install Overrides", func() {
 		// Update the overrides resources listed in Verrazzano and verify
 		// that the new values have been applied to promtheus-operator
 		t.Context("Update Overrides", func() {
-			//t.It("Update Inline Data", func() {
-			//	inlineData = newInlineData
-			//	m := PrometheusOperatorOverridesModifier{}
-			//	gomega.Eventually(func() error {
-			//		return update.UpdateCR(m)
-			//	}, waitTimeout, pollingInterval).Should(gomega.BeNil())
-			//})
+			t.It("Update Inline Data", func() {
+				inlineData = newInlineData
+				m := PrometheusOperatorOverridesModifier{}
+				gomega.Eventually(func() error {
+					return update.UpdateCR(m)
+				}, waitTimeout, pollingInterval).Should(gomega.BeNil())
+			})
 
 			t.It("Update ConfigMap", func() {
 				testConfigMap.Data[dataKey] = newCMData
