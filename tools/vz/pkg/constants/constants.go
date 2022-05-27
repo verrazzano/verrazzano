@@ -25,6 +25,9 @@ const (
 
 	DryRunFlag = "dry-run"
 
+	SetFlag     = "set"
+	SetFlagHelp = "Override a Verrazzano resource value."
+
 	OperatorFileFlag     = "operator-file"
 	OperatorFileFlagHelp = "The path to the file for installing the Verrazzano platform operator. The default is derived from the version string."
 

@@ -21,9 +21,14 @@ const (
 # Install the latest version of Verrazzano using the dev profile. Stream the logs to the console until the install completes.
 vz install --logs
 
-vz install --version v1.3.0 --wait --timeout 20m
-vz install --version v1.3.0 --dry-run
-vz install --version v1.3.0 --logs`
+# Install version 1.3.0 using a prod profile, timeout the command after 20 minutes
+vz install --version v1.3.0 --set profile=prod --wait --timeout 20m
+
+# Install version 1.3.0 using a dev profile with elasticsearch disabled and wait for the install to complete
+vz install --version v1.3.0 --set profile=dev --set components.elasticsearch.enabled=false --wait
+
+# Do a dry run of installing version 1.3.0 and see a summary of what the install would have done
+vz install --version v1.3.0 --dry-run`
 )
 
 var logsEnum = cmdhelpers.LogsFormatPretty
@@ -41,6 +46,7 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().StringSlice(constants.FilenameFlag, []string{}, constants.FilenameFlagHelp)
 	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an install")
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogsFlag, constants.LogsFlagHelp)
+	cmd.PersistentFlags().StringArray(constants.SetFlag, []string{}, constants.SetFlagHelp)
 
 	// Initially the operator-file flag may be for internal use, hide from help until
 	// a decision is made on supporting this option.
