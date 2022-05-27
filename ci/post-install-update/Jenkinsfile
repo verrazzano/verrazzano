@@ -1,27 +1,36 @@
 // Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-// This runs the acceptance tests on an OKE cluster with OCI DNS
-// This is used during the release process
-// This will eventually be replaced by the new multi-cluster job!
+// WIP: The Jenkinsfile does not (yet) support kind cluster creation and testing.
 
-def DEFAULT_REPO_URL
-def zoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
-def dns_zone_ocid = 'dummy'
-// for different Jenkins jobs sharing this Jenkins file, the default TEST_ENV (the first in testEnvironments) is different.
-def testEnvironments = env.JOB_NAME.contains('oci-dns-acceptance')
-                       ? ["ocidns_oke", "magicdns_oke", "kind"]
-                       : env.JOB_NAME.contains('magic-dns')
-                       ? ["magicdns_oke", "ocidns_oke", "kind"]
-                       : ["kind", "magicdns_oke", "ocidns_oke"]
-def acmeEnvironments = [ "staging", "production" ]
-def certIssuers = [ "self-signed", "acme" ]
+// This pipeline is configured to test Verrazzano post-install updates
+// -> Starts with default Verrazzano installation on either 'kind' or 'oke'
+// -> Deploys Verrazzano test applications 
+// -> Runs validations
+// -> Updates Verrazzano resource (e.g. DNS, CertManager)
+// -> Runs validations 
+// -> Undeploy the apps
+// -> Uninstall Verrazzano
+// -> Cleanup resources
+
+// Load the utils file in this variable
+def utils
+
+// Test environment vars
+def clusterType = ["kind", "oke"]
 def agentLabel = env.JOB_NAME.contains('-dns-') ? "" : env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
-
 // pulling "ap-*" from the test regions given discovery of image pull issues
-def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
-                          "sa-saopaulo-1", "uk-london-1" ]
+def availableRegions = ["us-ashburn-1", "ca-montreal-1", "ca-toronto-1", 
+                        "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1",
+                        "me-jeddah-1", "sa-saopaulo-1", "uk-london-1"]
 Collections.shuffle(availableRegions)
+// VZ resource configs
+// NOTE: dnsZoneID is different from dnsZoneOCID
+def dnsZoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
+def dnsZoneOCID = 'dummy'
+def dnsScopesOCI = ["GLOBAL", "PRIVATE"]
+def acmeEnvironments = [ "staging", "production" ]
+// Other vars
 def keepOKEClusterOnFailure = "false"
 def OKE_CLUSTER_PREFIX = ""
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
@@ -43,122 +52,151 @@ pipeline {
     }
 
     parameters {
+        // Cluster type
+        choice (
+            name: 'CLUSTER_TYPE',
+            description: 'Verrazzano Test Environment', 
+            choices: clusterType)
+        // OKE configuration
         // OKE_CLUSTER_REGION parameter will be ignored for private DNS tests. They get overwritten with runner region
-        choice (description: 'OCI region to launch OKE clusters in. This parameter will be ignored for private DNS tests', name: 'OKE_CLUSTER_REGION',
-            // 1st choice is the default value
+        choice (
+            name: 'OKE_CLUSTER_REGION',
+            description: 'OCI region to launch OKE clusters in. This parameter will be ignored for private DNS tests',
             choices: availableRegions )
-        choice (description: 'OKE node pool configuration', name: 'OKE_NODE_POOL',
-            // 1st choice is the default value
+        choice (
+            name: 'OKE_NODE_POOL',
+            description: 'OKE node pool configuration', 
             choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.2" ])
-        choice (description: 'Use instance principal for oci dns tests', name: 'OCI_DNS_AUTH',
-                // 1st choice is the default value
-                choices: [ "user_principal", "instance_principal" ])
-        choice (description: 'Specifies  DNS scope. Values: GLOBAL, PRIVATE. Default: GLOBAL',name: 'DNS_SCOPE',
-            // 1st choice is the default value
-            choices: [ "GLOBAL","PRIVATE" ])
-        choice (description: 'Kubernetes Version for OKE Cluster', name: 'OKE_CLUSTER_VERSION',
-                // 1st choice is the default value
-                choices: [ "v1.22.5", "v1.21.5", "v1.20.8" ])
-        choice (description: 'Certificate Issuer', name: 'CERT_ISSUER',
-                choices: certIssuers)
-        choice (description: 'ACME Certificate Environment (Staging or Production)', name: 'ACME_ENVIRONMENT',
-                choices: acmeEnvironments)
-        string defaultValue: 'dev', description: 'Verrazzano install profile name', name: "INSTALL_PROFILE", trim: true
-        string defaultValue: 'NONE', description: 'Verrazzano platform operator image name (within ghcr.io/verrazzano repo)', name: 'VERRAZZANO_OPERATOR_IMAGE', trim: true
-        choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
-                choices: testEnvironments)
-        string (name: 'GIT_COMMIT_TO_USE',
-                        defaultValue: 'NONE',
-                        description: 'This is the full git commit hash from the source build to be used for all jobs',
-                        trim: true)
-        booleanParam (description: 'Whether to create the cluster with Calico for AT testing', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
-        booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
-        booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
+        choice (
+            name: 'OKE_CLUSTER_VERSION',
+            description: 'Kubernetes Version for OKE Cluster', 
+            choices: [ "v1.22.5", "v1.21.5", "v1.20.8" ])
+        // Verrazzano post-install udpate configuration
+        choice(
+            name: 'OCI_DNS_SCOPE',
+            description: 'Specifies OCI DNS scope. Values: GLOBAL, PRIVATE. Default: GLOBAL', 
+            choices: dnsScopesOCI)
+        choice (
+            name: 'OCI_DNS_AUTH',
+            description: 'Use instance principal for OCI DNS tests', 
+            choices: [ "user_principal", "instance_principal" ])
+        choice (
+            name: 'ACME_ENV',
+            description: 'ACME Certificate Environment (Staging or Production)', 
+            choices: acmeEnvironments)
+        string (
+            name: "INSTALL_PROFILE",
+            defaultValue: 'dev',
+            description: 'Verrazzano install profile name',
+            trim: true)
+        string (
+            name: 'VERRAZZANO_OPERATOR_IMAGE', 
+            description: 'Verrazzano platform operator image name (within ghcr.io/verrazzano repo)', 
+            defaultValue: 'NONE', 
+            trim: true)
+        string (
+            name: 'GIT_COMMIT_TO_USE',
+            description: 'This is the full git commit hash from the source build to be used for all jobs',
+            defaultValue: 'NONE',
+            trim: true)
+        booleanParam (
+            name: 'CREATE_CLUSTER_USE_CALICO', 
+            description: 'Whether to create the cluster with Calico for AT testing', 
+            defaultValue: true)
+        booleanParam (
+            name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', 
+            description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', 
+            defaultValue: false)
+        booleanParam (
+            name: 'EMIT_METRICS', 
+            description: 'Whether to emit metrics from the pipeline', 
+            defaultValue: true)
         string (name: 'TAGGED_TESTS',
-                defaultValue: '',
                 description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
+                defaultValue: '',
                 trim: true)
         string (name: 'INCLUDED_TESTS',
-                defaultValue: '.*',
                 description: 'A regex matching any fully qualified test file that should be executed (e.g. examples/helidon/). Default: .*',
+                defaultValue: '.*',
                 trim: true)
         string (name: 'EXCLUDED_TESTS',
-                defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
+                defaultValue: '_excluded_test',
                 trim: true)
     }
 
     environment {
-        CLUSTER_NAME = 'byok8s-kind'
+        // Repositories and credentials
+        GHCR_REPO = 'ghcr.io'
+        OCIR_PHX_REPO = 'phx.ocir.io'
+        OCR_REPO = 'container-registry.oracle.com'
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         NETRC_FILE = credentials('netrc')
-        OCR_REPO = 'container-registry.oracle.com'
-        GHCR_REPO = 'ghcr.io'
-        VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
-        TEST_ENV = "${params.TEST_ENV}"
-        INSTALL_PROFILE = "${params.INSTALL_PROFILE}"
         GITHUB_PKGS_CREDS = credentials('github-packages-credentials-rw')
         OCIR_CREDS = credentials('ocir-pull-and-push-account')
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // needed by install_todo.sh OAM example test
         DATABASE_PSW = credentials('todo-mysql-password') // needed by install_todo.sh OAM example test
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
-        OCIR_PHX_REPO = 'phx.ocir.io'
         POST_DUMP_FAILED = 'false'
+
         GOPATH = '/home/opc/go'
-
-        TF_VAR_tenancy_id = credentials('oci-tenancy')
-        TF_VAR_user_id = credentials('oci-user-ocid')
-
+        
+        // Terraform vars
         TF_VAR_kubernetes_version = "${params.OKE_CLUSTER_VERSION}"
         TF_VAR_nodepool_config = "${params.OKE_NODE_POOL}"
+        TF_VAR_tenancy_id = credentials('oci-tenancy')
+        TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
+        TF_VAR_user_id = credentials('oci-user-ocid')
         TF_VAR_api_fingerprint = credentials('oci-api-key-fingerprint')
         TF_VAR_api_private_key_path = credentials('oci-api-key')
         TF_VAR_s3_bucket_access_key = credentials('oci-s3-bucket-access-key')
         TF_VAR_s3_bucket_secret_key = credentials('oci-s3-bucket-secret-key')
         TF_VAR_ssh_public_key_path = credentials('oci-tf-pub-ssh-key')
-        TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
-
+        
+        // OCI vars
+        OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
         OCI_CLI_TENANCY = credentials('oci-tenancy')
         OCI_CLI_USER = credentials('oci-user-ocid')
         OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
 
+        // OCI_DNS_COMPARTMENT_OCID and OCI_PRIVATE_KEY_FILE are needed for setting up DNS zone in OCI
+        OCI_DNS_COMPARTMENT_OCID = credentials('oci-dns-compartment')
+        OCI_PRIVATE_KEY_FILE = credentials('oci-api-key')
+        OCI_DNS_AUTH = "${params.OCI_DNS_AUTH}"
+
+        // Verrazzano vars
+        CLUSTER_NAME = 'byok8s-kind'
+        TEST_ENV = "${params.TEST_ENV}"
+        VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
+        INSTALL_PROFILE = "${params.INSTALL_PROFILE}"
+        VZ_ENVIRONMENT_NAME = "${params.TEST_ENV == 'oke' ? 'b' + env.BUILD_NUMBER : 'default'}"
+        OCI_DNS_SCOPE = "${params.OCI_DNS_SCOPE}"
+        OCI_DNS_ZONE_NAME="${OCI_DNS_SCOPE == 'PRIVATE' ? "z${dnsZoneId}-private.v8o.io" : "z${dnsZoneId}.v8o.io"}"
+        ACME_ENVIRONMENT="${params.ACME_ENVIRONMENT}"
         TEST_CONFIG_FILE = "${HOME}/testConfigOke.yaml"
-        CLUSTER_TYPE = getTestClusterType("${TEST_ENV}")
         KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
         VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
-
-        DISABLE_SPINNER=1
-        OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
-
-        TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
-        SHORT_TIME_STAMP = sh(returnStdout: true, script: "date +%m%d%H%M%S").trim()
-
-        POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
-
-        INSTALL_CONFIG_FILE_OCIDNS = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-ocidns.yaml"
+        UTILS_FILE = "${WORKSPACE}/ci/utils.groovy"
         INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
-        INSTALL_CONFIG_FILE_NODEPORT = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nodeport.yaml"
 
-        //OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
-        OCI_DNS_ZONE_NAME="${params.DNS_SCOPE == 'PRIVATE' ? "z${zoneId}-private.v8o.io" : "z${zoneId}.v8o.io"}"
-        CERT_ISSUER="${params.CERT_ISSUER}"
-        ACME_ENVIRONMENT="${params.ACME_ENVIRONMENT}"
-
-        VZ_ENVIRONMENT_NAME = "${params.TEST_ENV == 'ocidns_oke' ? 'b' + env.BUILD_NUMBER : 'default'}"
-
+        // used for cluster dump
         DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${WORKSPACE}/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
+        POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
+
+        DISABLE_SPINNER=1
+        TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+        SHORT_TIME_STAMP = sh(returnStdout: true, script: "date +%m%d%H%M%S").trim()
 
         // used for console artifact capture on failure
         JENKINS_READ = credentials('jenkins-auditor')
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
-
-        //OCI_COMPARTMENT_ID = credentials('oci-tiburon-dev-compartment-ocid')
-        //OC_TELEMETRY_URL = credentials('oci-telemetry-url')
+        // OCI_COMPARTMENT_ID = credentials('oci-tiburon-dev-compartment-ocid')
+        // OCI_TELEMETRY_URL = credentials('oci-telemetry-url')
 
         // used to emit metrics
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
@@ -177,14 +215,15 @@ pipeline {
         stage('Initialize') {
             steps {
                 script {
+                    // Proceed with checkout
                     EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
                     if (params.GIT_COMMIT_TO_USE == "NONE") {
-                        echo "Specific GIT commit was not specified, use current head"
+                        echo "[INFO] Specific GIT commit was not specified, use current head"
                         def scmInfo = checkout scm
                         env.GIT_COMMIT = scmInfo.GIT_COMMIT
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                     } else {
-                        echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
+                        echo "[INFO] SCM checkout of ${params.GIT_COMMIT_TO_USE}"
                         def scmInfo = checkout([
                             $class: 'GitSCM',
                             branches: [[name: params.GIT_COMMIT_TO_USE]],
@@ -196,30 +235,40 @@ pipeline {
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                         // If the commit we were handed is not what the SCM says we are using, fail
                         if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
-                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
+                            echo "[ERROR] SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
                             exit 1
                         }
                     }
-                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                    echo "[INFO] SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                }
+
+                // Load the utils file
+                script {
+                    utils = load("${UTILS_FILE}")
+                    status = utils.testUtilsFile()
+                    if (status == "success") {
+                        utils.log("INFO", "utils.groovy loaded successfully")
+                    } else {
+                        echo "Error in loading utils.groovy"
+                        exit 1
+                    }
                 }
 
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
                     chmod 600 $HOME/.netrc
                 """
-                println("${params.OKE_CLUSTER_REGION}")
-                println("agentlabel: ${agentLabel}")
-                sh """
-                    echo "${NODE_LABELS}"
-                """
 
                 script {
+                    utils.log("INFO", "${params.OKE_CLUSTER_REGION}")
+                    utils.log("INFO", "agentlabel: ${agentLabel}")
+                    utils.log("INFO", "${NODE_LABELS}")
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     // update the description with some meaningful info
                     setDisplayName()
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + params.OKE_CLUSTER_REGION + " : " + params.OKE_CLUSTER_VERSION
 
-                    if (params.TEST_ENV != "kind") {
+                    if (params.TEST_ENV == "oke") {
                         // derive the prefix for the OKE cluster
                         OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_oke_cluster_name.sh").trim()
                     }
@@ -230,7 +279,7 @@ pipeline {
         }
 
         stage("install-oke") {
-            when { expression { return params.TEST_ENV != 'kind' } }
+            when { expression { return params.TEST_ENV == 'oke' } }
             environment {
                 TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
             }
@@ -238,9 +287,9 @@ pipeline {
                 script {
                     withCredentials([sshUserPrivateKey(credentialsId: '5fcc03de-31ce-4566-b11f-9de38e5d98fd', keyFileVariable: 'OPC_USER_KEY_FILE', passphraseVariable: 'OPC_USER_PASSPHRASE', usernameVariable: 'OPC_USERNAME')]) {
                     def RUNNER_REGION = sh(returnStdout: true, script: "curl -s -H \"Authorization: Bearer Oracle\" http://169.254.169.254/opc/v2/instance/canonicalRegionName").trim()
-                    env.TF_VAR_region = "${params.DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OKE_CLUSTER_REGION}"
-                    env.OCI_CLI_REGION = "${params.DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OKE_CLUSTER_REGION}"
-                    println("runner region is ${RUNNER_REGION}, tf var region is ${env.TF_VAR_REGION}")
+                    env.TF_VAR_region = "${OCI_DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OKE_CLUSTER_REGION}"
+                    env.OCI_CLI_REGION = "${OCI_DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OKE_CLUSTER_REGION}"
+                    utils.log("INFO", "runner region is ${RUNNER_REGION}, tf var region is ${env.TF_VAR_REGION}")
                         sh """
                             # get the ssh public key
                             ssh-keygen -y -e -f ${OPC_USER_KEY_FILE} > /tmp/opc_ssh2.pub
@@ -258,7 +307,7 @@ pipeline {
             post {
                 failure {
                     script {
-                        echo "Cluster create failed"
+                        utils.log("ERROR", "Cluster create failed")
                     }
                 }
             }
@@ -267,6 +316,9 @@ pipeline {
         stage('install-kind') {
             when { expression { return params.TEST_ENV == 'kind' } }
             steps {
+                // TODO: Error in installing kind cluster - 
+                // File not found at ${WORKSPACE}/verrazzano-acceptance-test-suite/scripts/install_kind.sh
+                // Found this file - ${WORKSPACE}/ci/scripts/setup_kind_for_jenkins.sh
                 sh """
                     cd ${WORKSPACE}/verrazzano-acceptance-test-suite
                     ${WORKSPACE}/verrazzano-acceptance-test-suite/scripts/install_kind.sh
@@ -285,13 +337,15 @@ pipeline {
                 OCI_CLI_AUTH="instance_principal"
             }
             steps {
+                script {
+                    utils.log("INFO", "Install Platform Operator")
+                }
                 sh """
-                    echo "Install Platform Operator"
                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                     cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
 
                     # Install the verrazzano-platform-operator
-                    kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
+                    kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
 
                     # make sure ns exists
                     ${WORKSPACE}/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
@@ -307,15 +361,13 @@ pipeline {
         }
 
         stage("create-dns-zone") {
-            when { expression { return params.TEST_ENV == 'ocidns_oke' } }
             environment {
-                            TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
-
-                        }
+                TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
+            }
             steps {
                 script {
-                     println("DNS_SCOPE =  ${params.DNS_SCOPE}")
-                     if (params.DNS_SCOPE == "PRIVATE") {
+                     utils.log("INFO", "OCI_DNS_SCOPE =  ${OCI_DNS_SCOPE}")
+                     if (OCI_DNS_SCOPE == "PRIVATE") {
                         switch(TF_VAR_region) {
                            case "uk-london-1":
                               env.VCN_VIEW_ID = "${DNS_VIEW_FOR_PRIVATE_DNS_LHR}"
@@ -324,38 +376,18 @@ pipeline {
                              env.VCN_VIEW_ID = "${DNS_VIEW_FOR_PRIVATE_DNS_PHX}"
                              break
                          }
-                         println("view id is ${env.VCN_VIEW_ID}")
+                         utils.log("INFO", "view id is ${env.VCN_VIEW_ID}")
                      }
                     // VCN_VIEW_ID is used inside oci_dns_ops.sh to associate private zones to view
                     // this is only used when zone is PRIVATE
-                    dns_zone_ocid = sh(script: "${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId} -k ${params.DNS_SCOPE}", returnStdout: true)
-                }
-            }
-        }
-
-        stage("setup-oci-dns-config") {
-            when { expression { return params.TEST_ENV == 'ocidns_oke' } }
-            environment {
-                OCI_DNS_COMPARTMENT_OCID = credentials('oci-dns-compartment')
-                OCI_PRIVATE_KEY_FILE = credentials('oci-api-key')
-                OCI_DNS_ZONE_OCID = "${dns_zone_ocid}"
-            }
-            steps {
-                script {
-                    sh """
-                        ${WORKSPACE}/tests/e2e/config/scripts/process_oci_dns_install_yaml.sh $INSTALL_CONFIG_FILE_OCIDNS $CERT_ISSUER $ACME_ENVIRONMENT ${params.DNS_SCOPE}
-                    """
+                    dnsZoneOCID = sh(script: "${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${dnsZoneId} -k ${OCI_DNS_SCOPE}", returnStdout: true)
                 }
             }
         }
 
         stage("create-oci-config-secret") {
-            when { expression { return params.TEST_ENV == 'ocidns_oke' } }
             steps {
                 script {
-                    if (params.OCI_DNS_AUTH == "instance_principal") {
-                            env.OCI_DNS_AUTH="instance_principal"
-                    }
                     sh """
                         ${WORKSPACE}/tests/e2e/config/scripts/create-test-oci-config-secret.sh
                     """
@@ -364,22 +396,11 @@ pipeline {
         }
 
         stage("setup-nip-io-config") {
-            when { expression { return params.TEST_ENV == 'magicdns_oke' } }
+            when { expression { return params.TEST_ENV == 'oke' } }
             steps {
                 script {
                     sh """
                         ${WORKSPACE}/tests/e2e/config/scripts/process_nipio_install_yaml.sh $INSTALL_CONFIG_FILE_NIPIO
-                    """
-                }
-            }
-        }
-
-        stage("setup-nodeport-config") {
-            when { expression { return params.TEST_ENV == 'kind' } }
-            steps {
-                script {
-                    sh """
-                        ${WORKSPACE}/tests/e2e/config/scripts/process_nodeport_install_yaml.sh $INSTALL_CONFIG_FILE_NODEPORT
                     """
                 }
             }
@@ -392,25 +413,18 @@ pipeline {
                     kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
                     echo "Installing Verrazzano on ${TEST_ENV}"
                     # apply config to create cluster
-                    if [ "${TEST_ENV}" == "magicdns_oke" ]; then
-                      kubectl apply -f ${INSTALL_CONFIG_FILE_NIPIO}
-                    elif [ "${TEST_ENV}" == "ocidns_oke" ]; then
-                      kubectl apply -f ${INSTALL_CONFIG_FILE_OCIDNS}
-                    elif [ "${TEST_ENV}" == "kind" ]; then
-                      kubectl apply -f ${INSTALL_CONFIG_FILE_NODEPORT}
-                    fi
+                    kubectl apply -f ${INSTALL_CONFIG_FILE_NIPIO}
                     # wait for Verrazzano install to complete
                     ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
                     # Create acceptance test configuration file
-                    ${WORKSPACE}/tests/e2e/config/scripts/common-test-setup-script.sh "${WORKSPACE}" "${TEST_CONFIG_FILE}" "${env.DOCKER_REPO}" "${KUBECONFIG}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}" "${VZ_ENVIRONMENT_NAME}"
+                    ${WORKSPACE}/tests/e2e/config/scripts/common-test-setup-script.sh "${WORKSPACE}" "${TEST_CONFIG_FILE}" "${DOCKER_REPO}" "${KUBECONFIG}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}" "${VZ_ENVIRONMENT_NAME}"
 
                     # edit DNS info in the test config file
-                    if [ "${TEST_ENV}" == "magicdns_oke" ]; then
-                      ${WORKSPACE}/tests/e2e/config/scripts/get_ingress_ip.sh ${TEST_CONFIG_FILE}
-                    elif [ "${TEST_ENV}" == "ocidns_oke" ]; then
-                      ${WORKSPACE}/tests/e2e/config/scripts/get_oci_dns_zone.sh ${TEST_CONFIG_FILE} ${OCI_DNS_ZONE_NAME}
+                    if [ "${TEST_ENV}" == "oke" ]; then
+                        ${WORKSPACE}/tests/e2e/config/scripts/get_ingress_ip.sh ${TEST_CONFIG_FILE}
                     elif [ "${TEST_ENV}" == "kind" ]; then
-                      ${WORKSPACE}/tests/e2e/config/scripts/get_node_ip.sh ${CLUSTER_NAME} ${TEST_CONFIG_FILE}
+                        # TODO: File not found - get_node_ip.sh
+                        ${WORKSPACE}/tests/e2e/config/scripts/get_node_ip.sh ${CLUSTER_NAME} ${TEST_CONFIG_FILE}
                     fi
                     echo "----------Test config file:-------------"
                     cat ${TEST_CONFIG_FILE}
@@ -447,95 +461,31 @@ pipeline {
             }
         }
 
+        stage("run-DNS-update-tests") {
+            environment {
+                // These environment variables are required by the test
+                OCI_DNS_COMPARTMENT_OCID = "${OCI_DNS_COMPARTMENT_OCID}"
+                OCI_DNS_ZONE_OCID = "${dnsZoneOCID}"
+                OCI_DNS_ZONE_NAME = "${OCI_DNS_ZONE_NAME}"
+                OCI_DNS_SCOPE = "${OCI_DNS_SCOPE}"
+                OCI_CONFIG_SECRET = "oci"
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/ocidns-update"
+            }
+            steps {
+                runGinkgo('update/ocidns')
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
+
         stage('acceptance-tests') {
-            parallel {
-                stage('metrics') {
-                    steps {
-                        script {
-                            runGinkgo('metrics/syscomponents')
-                        }
-                    }
-                }
-                stage('restapi') {
-                    steps {
-                        script {
-                            runGinkgo('verify-infra/restapi')
-                        }
-                    }
-                }
-                stage('vmi') {
-                    steps {
-                        script {
-                            runGinkgo('verify-infra/vmi')
-                        }
-                    }
-                }
-                stage('oam') {
-                    steps {
-                        script {
-                            runGinkgo('verify-infra/oam')
-                        }
-                    }
-                }
-                stage('system logging') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-logging"
-                    }
-                    steps {
-                        runGinkgo('logging/system')
-                    }
-                }
-                stage('istio authorization policy') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-istio-auth-policy"
-                    }
-                    steps {
-                        runGinkgo('istio/authz')
-                    }
-                }
-                stage('security role based access') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-rbac"
-                    }
-                    steps {
-                        runGinkgo('security/rbac')
-                    }
-                }
-                stage('WebLogic logging') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-logging"
-                    }
-                    steps {
-                        script {
-                            runGinkgoFailFast('logging/weblogic')
-                        }
-                    }
-                }
-                stage('helidon workload') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/helidon-workload"
-                    }
-                    steps {
-                        script {
-                            runGinkgoFailFast('examples/helidon')
-                        }
-                    }
-                }
-                stage('weblogic workload') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
-                    }
-                    steps {
-                        runGinkgoFailFast('workloads/weblogic')
-                    }
-                }
-                stage('coherence workload') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
-                    }
-                    steps {
-                        runGinkgoFailFast('workloads/coherence')
-                    }
+            steps {
+                script {
+                    parallel runVerrazzanoAcceptanceTests()
                 }
             }
         }
@@ -566,13 +516,13 @@ pipeline {
             }
 
             sh """
-                if [ "${TEST_ENV}" == "ocidns_oke" ]; then
-                  ${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} -k ${params.DNS_SCOPE} || echo "Failed to delete DNS zone z${zoneId}"
+                if [[ "${TEST_ENV}" == "kind" || "${keepOKEClusterOnFailure}" == "false" ]]; then
+                    ${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${dnsZoneId} -k ${OCI_DNS_SCOPE} || echo "Failed to delete DNS zone z${dnsZoneId}"
                 fi
                 if [ "${TEST_ENV}" == "kind" ]; then
-                  ${WORKSPACE}/tests/e2e/config/scripts/delete-kind-cluster.sh
+                    ${WORKSPACE}/tests/e2e/config/scripts/delete-kind-cluster.sh
                 elif [ "${keepOKEClusterOnFailure}" == "false" ]; then
-                  TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${WORKSPACE}/tests/e2e/config/scripts/delete_oke_cluster.sh || true
+                    TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${WORKSPACE}/tests/e2e/config/scripts/delete_oke_cluster.sh || true
                 fi
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then
                   echo "Failures seen during dumping of artifacts, treat post as failed"
@@ -713,7 +663,7 @@ def getEffectiveDumpOnSuccess() {
     def effectiveValue = params.DUMP_K8S_CLUSTER_ON_SUCCESS
     if (FORCE_DUMP_K8S_CLUSTER_ON_SUCCESS.equals("true") && (env.BRANCH_NAME.equals("master"))) {
         effectiveValue = true
-        echo "Forcing dump on success based on global override setting"
+        utils.log("INFO", "Forcing dump on success based on global override setting")
     }
     return effectiveValue
 }
@@ -757,12 +707,12 @@ def metricTimerEnd(metricName, status) {
         // labels = '\\"number\\"=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
         //          '\\"commit_sha\\"=\\"' + "${env.GIT_COMMIT}"+'\\",' +
         //          '\\"test_env\\"=\\"' + "$testEnv"+'\\"'
-        // OCI_MET=sh(returnStdout: true, script: "ci/scripts/oci_metric_emit.sh ${env.OC_TELEMETRY_URL} ${env.OCI_COMPARTMENT_ID} ${OCI_METRICS_NAMESPACE} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+        // OCI_MET=sh(returnStdout: true, script: "ci/scripts/oci_metric_emit.sh ${OCI_TELEMETRY_URL} ${OCI_COMPARTMENT_ID} ${OCI_METRICS_NAMESPACE} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
 
         labels = getMetricLabels()
         withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
             EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
-            echo "emit prometheus metrics: $EMIT"
+            utils.log("INFO", "emit prometheus metrics: $EMIT")
             return EMIT
         }
     } else {
@@ -791,21 +741,21 @@ def metricBuildDuration() {
         labels = labels + ',result=\\"' + "${statusLabel}"+'\\"'
         withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
             METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
-            echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
+            utils.log("INFO", "Publishing the metrics for build duration and status returned status code $METRIC_STATUS")
         }
     }
 }
 
 
 def setDisplayName() {
-    echo "Start setDisplayName"
+    utils.log("INFO", "Start setDisplayName")
     def causes = currentBuild.getBuildCauses()
-    echo "causes: " + causes.toString()
+    utils.log("INFO", "causes: " + causes.toString())
     for (cause in causes) {
         def causeString = cause.toString()
-        echo "current cause: " + causeString
+        utils.log("INFO", "current cause: " + causeString)
         if (causeString.contains("UpstreamCause") && causeString.contains("Started by upstream project")) {
-             echo "This job was caused by " + causeString
+             utils.log("INFO", "This job was caused by " + causeString)
              if (causeString.contains("verrazzano-periodic-triggered-tests")) {
                  currentBuild.displayName = env.BUILD_NUMBER + " : PERIODIC"
              } else if (causeString.contains("verrazzano-flaky-tests")) {
@@ -813,7 +763,7 @@ def setDisplayName() {
              }
          }
     }
-    echo "End setDisplayName"
+    utils.log("INFO", "End setDisplayName")
 }
 
 def createImagePullSecrets() {
@@ -834,4 +784,97 @@ def emitJobMetrics() {
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
     env.TIME_WAITING = startTimeInMillis-timeInMillis
     runGinkgo('jobmetrics')
+}
+
+def runVerrazzanoAcceptanceTests() {
+    return [
+        'metrics': stage('metrics') {
+            steps {
+                script {
+                    runGinkgo('metrics/syscomponents')
+                }
+            }
+        },
+        'restapi': stage('restapi') {
+            steps {
+                script {
+                    runGinkgo('verify-infra/restapi')
+                }
+            }
+        },
+        'vmi': stage('vmi') {
+            steps {
+                script {
+                    runGinkgo('verify-infra/vmi')
+                }
+            }
+        },
+        'oam': stage('oam') {
+            steps {
+                script {
+                    runGinkgo('verify-infra/oam')
+                }
+            }
+        },
+        'system-logging': stage('system-logging') {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-logging"
+            }
+            steps {
+                runGinkgo('logging/system')
+            }
+        },
+        'istio-authorization-policy': stage('istio-authorization-policy') {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-istio-auth-policy"
+            }
+            steps {
+                runGinkgo('istio/authz')
+            }
+        },
+        'security-role-based-access': stage('security-role-based-access') {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-rbac"
+            }
+            steps {
+                runGinkgo('security/rbac')
+            }
+        },
+        'WebLogic-logging': stage('WebLogic-logging') {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-logging"
+            }
+            steps {
+                script {
+                    runGinkgoFailFast('logging/weblogic')
+                }
+            }
+        },
+        'helidon-workload': stage('helidon-workload') {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/helidon-workload"
+            }
+            steps {
+                script {
+                    runGinkgoFailFast('examples/helidon')
+                }
+            }
+        },
+        'weblogic-workload': stage('weblogic-workload') {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
+            }
+            steps {
+                runGinkgoFailFast('workloads/weblogic')
+            }
+        },
+        'coherence-workload': stage('coherence-workload') {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
+            }
+            steps {
+                runGinkgoFailFast('workloads/coherence')
+            }
+        }
+    ]
 }
