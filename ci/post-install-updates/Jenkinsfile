@@ -54,7 +54,7 @@ pipeline {
     parameters {
         // Cluster type
         choice (
-            name: 'CLUSTER_TYPE',
+            name: 'TEST_ENV',
             description: 'Verrazzano Test Environment', 
             choices: clusterType)
         // OKE configuration
@@ -167,7 +167,7 @@ pipeline {
 
         // Verrazzano vars
         CLUSTER_NAME = 'byok8s-kind'
-        TEST_ENV = "${params.CLUSTER_TYPE}"
+        TEST_ENV = "${params.TEST_ENV}"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
         INSTALL_PROFILE = "${params.INSTALL_PROFILE}"
         VZ_ENVIRONMENT_NAME = "${params.TEST_ENV == 'oke' ? 'b' + env.BUILD_NUMBER : 'default'}"
@@ -201,7 +201,7 @@ pipeline {
         // used to emit metrics
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
-        TEST_ENV_LABEL = "${params.CLUSTER_TYPE}"
+        TEST_ENV_LABEL = "${params.TEST_ENV}"
         SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
         SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
         SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
@@ -268,7 +268,7 @@ pipeline {
                     setDisplayName()
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + params.OKE_CLUSTER_REGION + " : " + params.OKE_CLUSTER_VERSION
 
-                    if (params.TEST_ENV == "oke") {
+                    if (env.TEST_ENV == "oke") {
                         // derive the prefix for the OKE cluster
                         OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_oke_cluster_name.sh").trim()
                     }
@@ -279,7 +279,7 @@ pipeline {
         }
 
         stage("install-oke") {
-            when { expression { return params.TEST_ENV == 'oke' } }
+            when { expression { return env.TEST_ENV == 'oke' } }
             environment {
                 TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
             }
@@ -314,7 +314,7 @@ pipeline {
         }
 
         stage('install-kind') {
-            when { expression { return params.TEST_ENV == 'kind' } }
+            when { expression { return env.TEST_ENV == 'kind' } }
             steps {
                 // TODO: Error in installing kind cluster - 
                 // File not found at ${WORKSPACE}/verrazzano-acceptance-test-suite/scripts/install_kind.sh
@@ -396,7 +396,7 @@ pipeline {
         }
 
         stage("setup-nip-io-config") {
-            when { expression { return params.TEST_ENV == 'oke' } }
+            when { expression { return env.TEST_ENV == 'oke' } }
             steps {
                 script {
                     sh """
