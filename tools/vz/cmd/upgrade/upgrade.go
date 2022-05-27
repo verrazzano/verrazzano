@@ -19,8 +19,7 @@ const (
 	helpShort    = "Upgrade Verrazzano"
 	helpLong     = `Upgrade the Verrazzano Platform Operator to the specified version and update all of the currently installed components.`
 	helpExamples = `
-TBD
-`
+TBD`
 )
 
 func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {

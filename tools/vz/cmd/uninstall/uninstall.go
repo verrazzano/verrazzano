@@ -15,12 +15,13 @@ import (
 )
 
 const (
-	CommandName  = "uninstall"
-	helpShort    = "Uninstall Verrazzano"
-	helpLong     = `Uninstall the Verrazzano Platform Operator and all of the currently installed components.`
-	helpExamples = `
-TBD
-`
+	CommandName   = "uninstall"
+	purgeFlag     = "purge"
+	purgeFlagHelp = "Completely remove all resources including cluster-wide resources from cluster."
+	helpShort     = "Uninstall Verrazzano"
+	helpLong      = `Uninstall the Verrazzano Platform Operator and all of the currently installed components.`
+	helpExamples  = `
+TBD`
 )
 
 func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
@@ -32,6 +33,7 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*20, constants.TimeoutFlagHelp)
 	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an uninstall")
 	cmd.PersistentFlags().Bool(constants.LogsFlag, false, constants.LogsFlagHelp)
+	cmd.PersistentFlags().Bool(purgeFlag, false, purgeFlagHelp)
 
 	return cmd
 }

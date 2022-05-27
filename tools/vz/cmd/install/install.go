@@ -21,8 +21,7 @@ const (
 	helpExamples = `
 vz install --version v1.3.0 --wait --timeout 20m
 vz install --version v1.3.0 --dry-run
-vz install --version v1.3.0 --logs
-`
+vz install --version v1.3.0 --logs`
 )
 
 func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
