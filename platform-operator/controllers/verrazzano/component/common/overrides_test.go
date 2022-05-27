@@ -164,7 +164,7 @@ func TestGetInstallOverridesYAML(t *testing.T) {
 			name: "test overrideValue valid YAML",
 			overrides: []v1alpha1.Overrides{
 				{
-					OverrideValues: &apiextensionsv1.JSON{
+					Values: &apiextensionsv1.JSON{
 						Raw: []byte(goodJSON),
 					},
 				},
@@ -176,7 +176,7 @@ func TestGetInstallOverridesYAML(t *testing.T) {
 			name: "test overrideValue valid YAML",
 			overrides: []v1alpha1.Overrides{
 				{
-					OverrideValues: &apiextensionsv1.JSON{
+					Values: &apiextensionsv1.JSON{
 						Raw: []byte(badJSON),
 					},
 				},

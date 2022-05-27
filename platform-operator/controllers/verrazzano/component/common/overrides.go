@@ -39,8 +39,8 @@ func GetInstallOverridesYAML(ctx spi.ComponentContext, overrides []v1alpha1.Over
 			overrideStrings = append(overrideStrings, data)
 			continue
 		}
-		if override.OverrideValues != nil {
-			overrideValuesData, err := yaml.Marshal(override.OverrideValues)
+		if override.Values != nil {
+			overrideValuesData, err := yaml.Marshal(override.Values)
 			if err != nil {
 				return overrideStrings, err
 			}

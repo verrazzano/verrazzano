@@ -1042,8 +1042,8 @@ func (in *Overrides) DeepCopyInto(out *Overrides) {
 		*out = new(v1.SecretKeySelector)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.OverrideValues != nil {
-		in, out := &in.OverrideValues, &out.OverrideValues
+	if in.Values != nil {
+		in, out := &in.Values, &out.Values
 		*out = new(apiextensionsv1.JSON)
 		(*in).DeepCopyInto(*out)
 	}

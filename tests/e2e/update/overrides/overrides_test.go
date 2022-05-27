@@ -86,7 +86,7 @@ func (o PrometheusOperatorOverridesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 			},
 		},
 		{
-			OverrideValues: &apiextensionsv1.JSON{
+			Values: &apiextensionsv1.JSON{
 				Raw: []byte(inlineData),
 			},
 		},
