@@ -87,7 +87,7 @@ func (o PrometheusOperatorOverridesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		},
 		{
 			OverrideValues: &apiextensionsv1.JSON{
-				Raw: []byte(oldInlineData),
+				Raw: []byte(inlineData),
 			},
 		},
 	}
@@ -158,6 +158,7 @@ var _ = t.Describe("Post Install Overrides", func() {
 			t.It("Update Inline Data", func() {
 				inlineData = newInlineData
 				m := PrometheusOperatorOverridesModifier{}
+				inlineData = newInlineData
 				gomega.Eventually(func() error {
 					return update.UpdateCR(m)
 				}, waitTimeout, pollingInterval).Should(gomega.BeNil())
