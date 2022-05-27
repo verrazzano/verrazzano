@@ -243,16 +243,16 @@ pipeline {
                 }
 
                 // Load the utils file
-                script {
-                    utils = load("${UTILS_FILE}")
-                    status = utils.testUtilsFile()
-                    if (status == "success") {
-                        utils.log("INFO", "utils.groovy loaded successfully")
-                    } else {
-                        echo "Error in loading utils.groovy"
-                        exit 1
-                    }
-                }
+                // script {
+                    // utils = load("${UTILS_FILE}")
+                    // status = utils.testUtilsFile()
+                    // if (status == "success") {
+                    //     echo "INFO", "utils.groovy loaded successfully"
+                    // } else {
+                    //     echo "Error in loading utils.groovy"
+                    //     exit 1
+                    // }
+                // }
 
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
@@ -260,9 +260,9 @@ pipeline {
                 """
 
                 script {
-                    utils.log("INFO", "${params.OKE_CLUSTER_REGION}")
-                    utils.log("INFO", "agentlabel: ${agentLabel}")
-                    utils.log("INFO", "${NODE_LABELS}")
+                    echo "INFO", "${params.OKE_CLUSTER_REGION}"
+                    echo "INFO", "agentlabel: ${agentLabel}"
+                    echo "INFO", "${NODE_LABELS}"
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     // update the description with some meaningful info
                     setDisplayName()
@@ -289,7 +289,7 @@ pipeline {
                     def RUNNER_REGION = sh(returnStdout: true, script: "curl -s -H \"Authorization: Bearer Oracle\" http://169.254.169.254/opc/v2/instance/canonicalRegionName").trim()
                     env.TF_VAR_region = "${OCI_DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OKE_CLUSTER_REGION}"
                     env.OCI_CLI_REGION = "${OCI_DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OKE_CLUSTER_REGION}"
-                    utils.log("INFO", "runner region is ${RUNNER_REGION}, tf var region is ${env.TF_VAR_REGION}")
+                    echo "INFO", "runner region is ${RUNNER_REGION}, tf var region is ${env.TF_VAR_REGION}"
                         sh """
                             # get the ssh public key
                             ssh-keygen -y -e -f ${OPC_USER_KEY_FILE} > /tmp/opc_ssh2.pub
@@ -307,7 +307,7 @@ pipeline {
             post {
                 failure {
                     script {
-                        utils.log("ERROR", "Cluster create failed")
+                        echo "ERROR", "Cluster create failed"
                     }
                 }
             }
@@ -338,7 +338,7 @@ pipeline {
             }
             steps {
                 script {
-                    utils.log("INFO", "Install Platform Operator")
+                    echo "INFO", "Install Platform Operator"
                 }
                 sh """
                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
@@ -366,7 +366,7 @@ pipeline {
             }
             steps {
                 script {
-                     utils.log("INFO", "OCI_DNS_SCOPE =  ${OCI_DNS_SCOPE}")
+                     echo "INFO", "OCI_DNS_SCOPE =  ${OCI_DNS_SCOPE}"
                      if (OCI_DNS_SCOPE == "PRIVATE") {
                         switch(TF_VAR_region) {
                            case "uk-london-1":
@@ -376,7 +376,7 @@ pipeline {
                              env.VCN_VIEW_ID = "${DNS_VIEW_FOR_PRIVATE_DNS_PHX}"
                              break
                          }
-                         utils.log("INFO", "view id is ${env.VCN_VIEW_ID}")
+                         echo "INFO", "view id is ${env.VCN_VIEW_ID}"
                      }
                     // VCN_VIEW_ID is used inside oci_dns_ops.sh to associate private zones to view
                     // this is only used when zone is PRIVATE
@@ -663,7 +663,7 @@ def getEffectiveDumpOnSuccess() {
     def effectiveValue = params.DUMP_K8S_CLUSTER_ON_SUCCESS
     if (FORCE_DUMP_K8S_CLUSTER_ON_SUCCESS.equals("true") && (env.BRANCH_NAME.equals("master"))) {
         effectiveValue = true
-        utils.log("INFO", "Forcing dump on success based on global override setting")
+        echo "INFO", "Forcing dump on success based on global override setting"
     }
     return effectiveValue
 }
@@ -712,7 +712,7 @@ def metricTimerEnd(metricName, status) {
         labels = getMetricLabels()
         withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
             EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
-            utils.log("INFO", "emit prometheus metrics: $EMIT")
+            echo "INFO", "emit prometheus metrics: $EMIT"
             return EMIT
         }
     } else {
@@ -741,21 +741,21 @@ def metricBuildDuration() {
         labels = labels + ',result=\\"' + "${statusLabel}"+'\\"'
         withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
             METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
-            utils.log("INFO", "Publishing the metrics for build duration and status returned status code $METRIC_STATUS")
+            echo "INFO", "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }
 }
 
 
 def setDisplayName() {
-    utils.log("INFO", "Start setDisplayName")
+    echo "INFO", "Start setDisplayName"
     def causes = currentBuild.getBuildCauses()
-    utils.log("INFO", "causes: " + causes.toString())
+    echo "INFO", "causes: " + causes.toString()
     for (cause in causes) {
         def causeString = cause.toString()
-        utils.log("INFO", "current cause: " + causeString)
+        echo "INFO", "current cause: " + causeString
         if (causeString.contains("UpstreamCause") && causeString.contains("Started by upstream project")) {
-             utils.log("INFO", "This job was caused by " + causeString)
+             echo "INFO", "This job was caused by " + causeString
              if (causeString.contains("verrazzano-periodic-triggered-tests")) {
                  currentBuild.displayName = env.BUILD_NUMBER + " : PERIODIC"
              } else if (causeString.contains("verrazzano-flaky-tests")) {
@@ -763,7 +763,7 @@ def setDisplayName() {
              }
          }
     }
-    utils.log("INFO", "End setDisplayName")
+    echo "INFO", "End setDisplayName"
 }
 
 def createImagePullSecrets() {
