@@ -167,7 +167,7 @@ pipeline {
 
         // Verrazzano vars
         CLUSTER_NAME = 'byok8s-kind'
-        TEST_ENV = "${params.TEST_ENV}"
+        TEST_ENV = "${params.CLUSTER_TYPE}"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
         INSTALL_PROFILE = "${params.INSTALL_PROFILE}"
         VZ_ENVIRONMENT_NAME = "${params.TEST_ENV == 'oke' ? 'b' + env.BUILD_NUMBER : 'default'}"
@@ -201,7 +201,7 @@ pipeline {
         // used to emit metrics
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
-        TEST_ENV_LABEL = "${params.TEST_ENV}"
+        TEST_ENV_LABEL = "${params.CLUSTER_TYPE}"
         SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
         SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
         SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
