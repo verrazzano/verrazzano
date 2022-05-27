@@ -147,7 +147,7 @@ pipeline {
         GOPATH = '/home/opc/go'
         
         // Terraform vars
-        TF_VAR_kubernetes_version = "${params.K8S_VERSION}"
+        TF_VAR_kubernetes_version = "v${params.K8S_VERSION}"
         TF_VAR_nodepool_config = "${params.OKE_NODE_POOL}"
         TF_VAR_tenancy_id = credentials('oci-tenancy')
         TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
@@ -273,7 +273,7 @@ pipeline {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     // update the description with some meaningful info
                     setDisplayName()
-                    currentBuild.description = SHORT_COMMIT_HASH + " : " + params.OKE_CLUSTER_REGION + " : " + params.K8S_VERSION
+                    currentBuild.description = SHORT_COMMIT_HASH + " : " + params.OKE_CLUSTER_REGION + " : v" + params.K8S_VERSION
 
                     if (env.TEST_ENV == "oke") {
                         // derive the prefix for the OKE cluster
@@ -325,7 +325,7 @@ pipeline {
             steps {
                 sh """
                     echo "[INFO] Create Kind cluster"
-                    ${WORKSPACE}/tests/e2e/config/scripts/create_kind_cluster.sh "${CLUSTER_NAME}" "${WORKSPACE}/platform-operator" "${KUBECONFIG}" "${K8S_VERSION}" true true true ${CREATE_CLUSTER_USE_CALICO} "NONE"
+                    ${WORKSPACE}/tests/e2e/config/scripts/create_kind_cluster.sh "${CLUSTER_NAME}" "${WORKSPACE}/platform-operator" "${KUBECONFIG}" "${K8S_VERSION}" true true true "${CREATE_CLUSTER_USE_CALICO}" "NONE"
                     if [ $? -ne 0 ]; then
                         mkdir ${WORKSPACE}/kind-logs
                         kind export logs ${WORKSPACE}/kind-logs
@@ -887,7 +887,7 @@ def getMetricLabels() {
              'jenkins_build_number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
              'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
              'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\",' +
-             'kubernetes_version=\\"' + "${params.K8S_VERSION}"+'\\",' +
+             'kubernetes_version=\\"' + "v${params.K8S_VERSION}"+'\\",' +
              'test_env=\\"' + "ocidns_oke"+'\\"'
     return labels
 }
