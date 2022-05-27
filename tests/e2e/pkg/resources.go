@@ -48,6 +48,22 @@ func CreateOrUpdateResourceFromFile(file string) error {
 	return CreateOrUpdateResourceFromFileInCluster(file, kubeconfigPath)
 }
 
+// CreateOrUpdateResourceFromBytes creates or updates a Kubernetes resources from a YAML test data byte array.
+// The cluster used is the one set by default in the environment
+func CreateOrUpdateResourceFromBytes(data []byte) error {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return err
+	}
+
+	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
+	if err != nil {
+		return fmt.Errorf("failed to get kube config: %w", err)
+	}
+	return createOrUpdateResourceFromBytes(data, config)
+}
+
 // CreateOrUpdateResourceFromFileInCluster is identical to CreateOrUpdateResourceFromFile, except that
 // it uses the cluster specified by the kubeconfigPath argument instead of the default cluster in the environment
 func CreateOrUpdateResourceFromFileInCluster(file string, kubeconfigPath string) error {

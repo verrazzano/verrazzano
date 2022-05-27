@@ -6,6 +6,7 @@ package oam
 import (
 	"context"
 	"fmt"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
@@ -62,4 +63,12 @@ func ensureClusterRoles(ctx spi.ComponentContext) error {
 		return nil
 	})
 	return err
+}
+
+// GetOverrides gets the install overrides
+func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+	if effectiveCR.Spec.Components.OAM != nil {
+		return effectiveCR.Spec.Components.OAM.ValueOverrides
+	}
+	return []vzapi.Overrides{}
 }

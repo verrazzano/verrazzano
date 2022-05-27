@@ -67,6 +67,7 @@ func NewComponent() spi.Component {
 					Name:      constants.KeycloakIngress,
 				},
 			},
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
@@ -187,7 +188,7 @@ func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verr
 	if err := common.CompareInstallArgs(c.getInstallArgs(old), c.getInstallArgs(new)); err != nil {
 		return fmt.Errorf("Updates to istioInstallArgs not allowed for %s", ComponentJSONName)
 	}
-	return nil
+	return c.HelmComponent.ValidateUpdate(old, new)
 }
 
 func (c KeycloakComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
@@ -195,4 +196,15 @@ func (c KeycloakComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallA
 		return vz.Spec.Components.Keycloak.KeycloakInstallArgs
 	}
 	return nil
+}
+
+// MonitorOverrides checks whether monitoring of install overrides is enabled or not
+func (c KeycloakComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.Keycloak != nil {
+		if ctx.EffectiveCR().Spec.Components.Keycloak.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.Keycloak.MonitorChanges
+		}
+		return true
+	}
+	return false
 }

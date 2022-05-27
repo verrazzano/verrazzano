@@ -111,7 +111,7 @@ type preUpgradeFuncSig func(log vzlog.VerrazzanoLogger, client clipkg.Client, re
 type appendOverridesSig func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error)
 
 // getInstallOverridesSig is an optional function called to generate additional overrides.
-type getInstallOverridesSig func(context spi.ComponentContext) []vzapi.Overrides
+type getInstallOverridesSig func(vz *vzapi.Verrazzano) []vzapi.Overrides
 
 // resolveNamespaceSig is an optional function called for special namespace processing
 type resolveNamespaceSig func(ns string) string
@@ -144,9 +144,9 @@ func (h HelmComponent) GetJSONName() string {
 }
 
 // GetOverrides returns the list of install overrides for a component
-func (h HelmComponent) GetOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
+func (h HelmComponent) GetOverrides(cr *vzapi.Verrazzano) []vzapi.Overrides {
 	if h.GetInstallOverridesFunc != nil {
-		return h.GetInstallOverridesFunc(ctx)
+		return h.GetInstallOverridesFunc(cr)
 	}
 	return []vzapi.Overrides{}
 }
@@ -219,11 +219,17 @@ func (h HelmComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
 func (h HelmComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	if err := vzapi.ValidateInstallOverrides(h.GetOverrides(vz)); err != nil {
+		return err
+	}
 	return nil
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (h HelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	if err := vzapi.ValidateInstallOverrides(h.GetOverrides(new)); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -380,7 +386,7 @@ func (h HelmComponent) buildCustomHelmOverrides(context spi.ComponentContext, na
 	// Sort the kvs list by priority (0th term has the highest priority)
 
 	// Getting user defined Helm overrides as the highest priority
-	overrideStrings, err := common.GetInstallOverridesYAML(context, h.GetOverrides(context))
+	overrideStrings, err := common.GetInstallOverridesYAML(context, h.GetOverrides(context.EffectiveCR()))
 	if err != nil {
 		return overrides, err
 	}

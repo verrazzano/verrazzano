@@ -18,6 +18,7 @@ installerFileName = "install-verrazzano.yaml"
 
 pipeline {
     options {
+        timeout(time: 2, unit: 'HOURS')
         skipDefaultCheckout true
         timestamps ()
     }
