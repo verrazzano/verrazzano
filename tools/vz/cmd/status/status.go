@@ -21,14 +21,11 @@ const (
 	namespaceFlag = "namespace"
 	nameFlag      = "name"
 	helpShort     = "Status of the Verrazzano install and access endpoints"
-	helpLong      = `The command 'status' returns summary information about a Verrazzano installation.
-
-For example:
-
+	helpLong      = `The command 'status' returns summary information about a Verrazzano installation.`
+	helpExample   = `
 vz status --name my-verrazzano
 vz status --name my-verrazzano --context minikube
-vz status --name my-verrazzano --kubeconfig ~/.kube/config --context minikube
-`
+vz status --name my-verrazzano --kubeconfig ~/.kube/config --context minikube`
 )
 
 var namespace string
@@ -151,6 +148,7 @@ func NewCmdStatus(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return runCmdStatus(cmd, args, vzHelper)
 	}
+	cmd.Example = helpExample
 
 	// Add flags specific to this command and its sub-commands
 	cmd.PersistentFlags().StringVarP(&namespace, namespaceFlag, "n", "default", "The namespace of the Verrazzano resource")

@@ -14,17 +14,15 @@ import (
 const (
 	CommandName = "version"
 	helpShort   = "Verrazzano version information"
-	helpLong    = `The command 'version' reports information about the version of the vz tool being run.
-
-For example:
-
-vz version
-`
+	helpLong    = `The command 'version' reports information about the version of the vz tool being run.`
+	helpExample = `
+vz version`
 )
 
 func NewCmdVersion(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.Run = runCmdVersion
+	cmd.Example = helpExample
 
 	return cmd
 }
