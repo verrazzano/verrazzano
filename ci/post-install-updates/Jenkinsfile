@@ -61,7 +61,7 @@ pipeline {
         choice (
             name: 'K8S_VERSION',
             description: 'Kubernetes Version for the cluster', 
-            choices: [ "1.22", "1.21", "1.20" ])
+            choices: [ "v1.22.5", "v1.21.5", "v1.20.8" ])
         // OKE configuration
         // OKE_CLUSTER_REGION parameter will be ignored for private DNS tests. They get overwritten with runner region
         choice (
@@ -147,7 +147,7 @@ pipeline {
         GOPATH = '/home/opc/go'
         
         // Terraform vars
-        TF_VAR_kubernetes_version = "v${params.K8S_VERSION}"
+        TF_VAR_kubernetes_version = "${params.K8S_VERSION}"
         TF_VAR_nodepool_config = "${params.OKE_NODE_POOL}"
         TF_VAR_tenancy_id = credentials('oci-tenancy')
         TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
@@ -220,7 +220,7 @@ pipeline {
     }
 
     stages {
-        stage('Initialise') {
+        stage('Initialize') {
             steps {
                 script {
                     // Proceed with checkout
@@ -274,7 +274,7 @@ pipeline {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     // update the description with some meaningful info
                     setDisplayName()
-                    currentBuild.description = SHORT_COMMIT_HASH + " : " + params.OKE_CLUSTER_REGION + " : v" + params.K8S_VERSION
+                    currentBuild.description = SHORT_COMMIT_HASH + " : " + params.OKE_CLUSTER_REGION + " : " + params.K8S_VERSION
 
                     if (env.TEST_ENV == "oke") {
                         // derive the prefix for the OKE cluster
@@ -326,7 +326,7 @@ pipeline {
             steps {
                 sh """
                     echo "[INFO] Create Kind cluster"
-                    ${WORKSPACE}/tests/e2e/config/scripts/create_kind_cluster.sh ${CLUSTER_NAME} ${WORKSPACE}/platform-operator ${KUBECONFIG} ${K8S_VERSION} true true true ${CREATE_CLUSTER_USE_CALICO} "NONE" 1
+                    ${WORKSPACE}/tests/e2e/config/scripts/create_kind_cluster.sh ${CLUSTER_NAME} ${WORKSPACE}/platform-operator ${KUBECONFIG} ${env.K8S_VERSION_LABEL} true true true ${CREATE_CLUSTER_USE_CALICO} "NONE" 1
                     if [ \$? -ne 0 ]; then
                         mkdir ${WORKSPACE}/kind-logs
                         kind export logs ${WORKSPACE}/kind-logs
@@ -888,7 +888,7 @@ def getMetricLabels() {
              'jenkins_build_number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
              'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
              'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\",' +
-             'kubernetes_version=\\"' + "v${params.K8S_VERSION}"+'\\",' +
+             'kubernetes_version=\\"' + "${params.K8S_VERSION}"+'\\",' +
              'test_env=\\"' + "ocidns_oke"+'\\"'
     return labels
 }
