@@ -20,19 +20,19 @@ const (
 	purgeFlagHelp = "Completely remove all resources including cluster-wide resources from cluster."
 	helpShort     = "Uninstall Verrazzano"
 	helpLong      = `Uninstall the Verrazzano Platform Operator and all of the currently installed components.`
-	helpExamples  = `
+	helpExample   = `
 TBD`
 )
 
 func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.Run = runCmdVersion
-	cmd.Example = helpExamples
+	cmd.Example = helpExample
 
 	cmd.PersistentFlags().Bool(constants.WaitFlag, false, constants.WaitFlagHelp)
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*20, constants.TimeoutFlagHelp)
 	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an uninstall")
-	cmd.PersistentFlags().Bool(constants.LogsFlag, false, constants.LogsFlagHelp)
+	cmd.PersistentFlags().String(constants.LogsFlag, constants.LogsFormatPretty, constants.LogsFlagHelp)
 	cmd.PersistentFlags().Bool(purgeFlag, false, purgeFlagHelp)
 
 	return cmd

@@ -28,8 +28,10 @@ const (
 	OperatorFileFlag     = "operator-file"
 	OperatorFileFlagHelp = "The path to the file for installing the Verrazzano platform operator. The default is derived from the version string."
 
-	LogsFlag     = "logs"
-	LogsFlagHelp = "Print the logs until the command completes"
+	LogsFlag         = "logs"
+	LogsFlagHelp     = "Print the logs until the command completes. Valid output formats are pretty and json"
+	LogsFormatPretty = "pretty"
+	LogsFormatJson   = "json"
 
 	FilenameFlag     = "filename"
 	FilenameFlagHelp = "Path to file containing Verrazzano custom resource.  This flag can be specified multiple times to overlay multiple files."
