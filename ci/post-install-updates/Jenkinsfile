@@ -406,7 +406,7 @@ pipeline {
             }
         }
 
-        stage("Install verrazzano") {
+        stage("Install Verrazzano") {
             steps {
                 sh """
                     echo "Waiting for Operator to be ready"
@@ -450,18 +450,57 @@ pipeline {
             }
         }
 
-        stage('Verify-install') {
+        stage('Post-install Verify Tests') {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-install-verify-install"
+            }
             steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    sh """
-                        cd ${WORKSPACE}/tests/e2e
-                        ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/...
-                    """
+                runGinkgoRandomize('verify-install')
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
             }
         }
 
-        stage("Post-install DNS update") {
+        stage('Post-install Infra Tests') {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-install-infra-tests"
+            }
+            steps {
+                script {
+                    parallel generateVerifyInfraStages("${TEST_DUMP_ROOT}/post-install-infra-tests")
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
+
+        stage('Post-install Acceptance Tests') {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-update"
+            }
+            steps {
+                // Run all acceptance tests after installation
+                script {
+                    parallel generateAllAcceptanceTestStages("${TEST_DUMP_ROOT}/post-install-acceptance-tests", 'true', 'false')
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
+
+        stage("Post-install CM-DNS update") {
             environment {
                 // These environment variables are required by the test
                 OCI_DNS_COMPARTMENT_OCID = "${OCI_DNS_COMPARTMENT_OCID}"
@@ -469,10 +508,11 @@ pipeline {
                 OCI_DNS_ZONE_NAME = "${OCI_DNS_ZONE_NAME}"
                 OCI_DNS_SCOPE = "${OCI_DNS_SCOPE}"
                 OCI_CONFIG_SECRET = "oci"
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/ocidns-update"
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/cm-dns-update"
             }
             steps {
                 runGinkgo('update/ocidns')
+                runGinkgo('update/cm-lets-encrypt')
             }
             post {
                 always {
