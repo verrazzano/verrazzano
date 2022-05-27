@@ -30,7 +30,9 @@ var logsEnum = cmdhelpers.LogsFormatPretty
 
 func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
-	cmd.Run = runCmdVersion
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		return runCmdInstall(cmd, args, vzHelper)
+	}
 	cmd.Example = helpExample
 
 	cmd.PersistentFlags().Bool(constants.WaitFlag, false, constants.WaitFlagHelp)
@@ -48,6 +50,7 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	return cmd
 }
 
-func runCmdVersion(cmd *cobra.Command, args []string) {
-	fmt.Println("Not implemented yet")
+func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
+	fmt.Fprintf(vzHelper.GetOutputStream(), "Not implemented yet\n")
+	return nil
 }
