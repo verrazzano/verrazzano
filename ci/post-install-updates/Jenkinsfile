@@ -327,7 +327,7 @@ pipeline {
                 sh """
                     echo "[INFO] Create Kind cluster"
                     ${WORKSPACE}/tests/e2e/config/scripts/create_kind_cluster.sh ${CLUSTER_NAME} ${WORKSPACE}/platform-operator ${KUBECONFIG} ${K8S_VERSION} true true true ${CREATE_CLUSTER_USE_CALICO} "NONE" 1
-                    if [ ${?} -ne 0 ]; then
+                    if [ \$? -ne 0 ]; then
                         mkdir ${WORKSPACE}/kind-logs
                         kind export logs ${WORKSPACE}/kind-logs
                         echo "[ERROR] Kind cluster creation failed"
