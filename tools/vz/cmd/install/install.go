@@ -18,6 +18,7 @@ const (
 	helpShort   = "Install Verrazzano"
 	helpLong    = `Install the Verrazzano Platform Operator and install the Verrazzano components specified by the Verrazzano CR provided on the command line.`
 	helpExample = `
+vz install --wait
 vz install --version v1.3.0 --wait --timeout 20m
 vz install --version v1.3.0 --dry-run
 vz install --version v1.3.0 --logs`
