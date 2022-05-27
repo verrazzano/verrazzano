@@ -4,7 +4,6 @@
 package status
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -156,21 +155,11 @@ func runCmdStatus(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) 
 		return err
 	}
 
-	// Find the VZ resource
-	vzList := vzapi.VerrazzanoList{}
-	err = client.List(context.TODO(), &vzList)
+	// Get the VZ resource
+	vz, err := helpers.FindVerrazzanoResource(client)
 	if err != nil {
 		return err
 	}
-	if len(vzList.Items) == 0 {
-		return fmt.Errorf("Failed to find any Verrazzano resources")
-	}
-	if len(vzList.Items) != 1 {
-		return fmt.Errorf("Expected to only find one Verrazzano resource, but found %d", len(vzList.Items))
-	}
-
-	// Get the VZ resource
-	vz := vzList.Items[0]
 
 	// Report the status information
 	templateValues := map[string]string{
