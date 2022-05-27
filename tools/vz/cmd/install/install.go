@@ -18,13 +18,15 @@ const (
 	helpShort   = "Install Verrazzano"
 	helpLong    = `Install the Verrazzano Platform Operator and install the Verrazzano components specified by the Verrazzano CR provided on the command line.`
 	helpExample = `
-vz install --wait
+# Install the latest version of Verrazzano using the dev profile. Stream the logs to the console until the install completes.
+vz install --logs
+
 vz install --version v1.3.0 --wait --timeout 20m
 vz install --version v1.3.0 --dry-run
 vz install --version v1.3.0 --logs`
 )
 
-var logsEnum = helpers.LogsFormatPretty
+var logsEnum = cmdhelpers.LogsFormatPretty
 
 func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)

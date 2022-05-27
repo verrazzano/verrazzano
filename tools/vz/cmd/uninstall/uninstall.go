@@ -23,7 +23,7 @@ const (
 TBD`
 )
 
-var logsEnum = helpers.LogsFormatPretty
+var logsEnum = cmdhelpers.LogsFormatPretty
 
 func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
