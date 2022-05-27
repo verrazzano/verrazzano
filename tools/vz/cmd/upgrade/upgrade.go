@@ -7,10 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
-
 	"github.com/spf13/cobra"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 )
 
@@ -22,6 +21,8 @@ const (
 TBD`
 )
 
+var logsEnum = helpers.LogsFormatPretty
+
 func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.Run = runCmdVersion
@@ -32,7 +33,7 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().String(constants.VersionFlag, "latest", constants.VersionFlagHelp)
 	cmd.PersistentFlags().StringSlice(constants.FilenameFlag, []string{}, constants.FilenameFlagHelp)
 	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an upgrade")
-	cmd.PersistentFlags().String(constants.LogsFlag, constants.LogsFormatPretty, constants.LogsFlagHelp)
+	cmd.PersistentFlags().Var(&logsEnum, constants.LogsFlag, constants.LogsFlagHelp)
 
 	// Initially the operator-file flag may be for internal use, hide from help until
 	// a decision is made on supporting this option.

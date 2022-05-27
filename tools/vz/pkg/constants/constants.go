@@ -15,7 +15,7 @@ const GlobalFlagHelp = "help"
 // Flags that are common to more than one command
 const (
 	WaitFlag     = "wait"
-	WaitFlagHelp = "Wait for the command to complete.  It will wait for as long as --timeout."
+	WaitFlagHelp = "Wait for the command to complete."
 
 	TimeoutFlag     = "timeout"
 	TimeoutFlagHelp = "Time to wait for a command to complete"
@@ -28,10 +28,8 @@ const (
 	OperatorFileFlag     = "operator-file"
 	OperatorFileFlagHelp = "The path to the file for installing the Verrazzano platform operator. The default is derived from the version string."
 
-	LogsFlag         = "logs"
-	LogsFlagHelp     = "Print the logs until the command completes. Valid output formats are pretty and json"
-	LogsFormatPretty = "pretty"
-	LogsFormatJson   = "json"
+	LogsFlag     = "logs"
+	LogsFlagHelp = "Print the logs until the command completes. Valid output formats are \"pretty\" and \"json\""
 
 	FilenameFlag     = "filename"
 	FilenameFlagHelp = "Path to file containing Verrazzano custom resource.  This flag can be specified multiple times to overlay multiple files."

@@ -7,10 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
-
 	"github.com/spf13/cobra"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 )
 
@@ -24,6 +23,8 @@ const (
 TBD`
 )
 
+var logsEnum = helpers.LogsFormatPretty
+
 func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.Run = runCmdVersion
@@ -32,7 +33,7 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().Bool(constants.WaitFlag, false, constants.WaitFlagHelp)
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*20, constants.TimeoutFlagHelp)
 	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an uninstall")
-	cmd.PersistentFlags().String(constants.LogsFlag, constants.LogsFormatPretty, constants.LogsFlagHelp)
+	cmd.PersistentFlags().Var(&logsEnum, constants.LogsFlag, constants.LogsFlagHelp)
 	cmd.PersistentFlags().Bool(purgeFlag, false, purgeFlagHelp)
 
 	return cmd
