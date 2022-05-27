@@ -174,6 +174,7 @@ pipeline {
         CLUSTER_NAME = 'byok8s-kind'
         TEST_ENV = "${params.TEST_ENV}"
         WILDCARD_DNS_DOMAIN = "${params.WILDCARD_DNS_DOMAIN}"
+        CREATE_CLUSTER_USE_CALICO = "${params.CREATE_CLUSTER_USE_CALICO}"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
         INSTALL_PROFILE = "${params.INSTALL_PROFILE}"
         VZ_ENVIRONMENT_NAME = "${params.TEST_ENV == 'oke' ? 'b' + env.BUILD_NUMBER : 'default'}"
@@ -306,7 +307,7 @@ pipeline {
                             export TF_VAR_ssh_public_key_path=/tmp/opc_ssh.pub
                             export TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME}
                             # call create_oke_cluster with cluster access private
-                            ${WORKSPACE}/tests/e2e/config/scripts/create_oke_cluster.sh true ${params.CREATE_CLUSTER_USE_CALICO}
+                            ${WORKSPACE}/tests/e2e/config/scripts/create_oke_cluster.sh true ${CREATE_CLUSTER_USE_CALICO}
                         """
                     }
                 }
@@ -325,7 +326,7 @@ pipeline {
             steps {
                 sh """
                     echo "[INFO] Create Kind cluster"
-                    ${WORKSPACE}/tests/e2e/config/scripts/create_kind_cluster.sh "${CLUSTER_NAME}" "${WORKSPACE}/platform-operator" "${KUBECONFIG}" "${K8S_VERSION}" true true true "${CREATE_CLUSTER_USE_CALICO}" "NONE"
+                    ${WORKSPACE}/tests/e2e/config/scripts/create_kind_cluster.sh ${CLUSTER_NAME} ${WORKSPACE}/platform-operator ${KUBECONFIG} ${K8S_VERSION} true true true ${CREATE_CLUSTER_USE_CALICO} NONE 1
                     if [ $? -ne 0 ]; then
                         mkdir ${WORKSPACE}/kind-logs
                         kind export logs ${WORKSPACE}/kind-logs
@@ -335,7 +336,7 @@ pipeline {
 
                     if [ ${CREATE_CLUSTER_USE_CALICO} == true ]; then
                         echo "[INFO] Install Calico"
-                        ${WORKSPACE}/ci/scripts/install_calico.sh "${CLUSTER_NAME}"
+                        ${WORKSPACE}/ci/scripts/install_calico.sh ${CLUSTER_NAME}
                     fi
 
                     # With the Calico configuration to set disableDefaultCNI to true in the KIND configuration, the control plane node will
