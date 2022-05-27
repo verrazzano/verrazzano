@@ -17,7 +17,7 @@
 def utils
 
 // Test environment vars
-def clusterType = ["oke", "kind"]
+def testEnvironments = ["oke", "kind"]
 def agentLabel = env.JOB_NAME.contains('-dns-') ? "" : env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 // pulling "ap-*" from the test regions given discovery of image pull issues
 def availableRegions = ["us-ashburn-1", "ca-montreal-1", "ca-toronto-1", 
@@ -56,7 +56,7 @@ pipeline {
         choice (
             name: 'TEST_ENV',
             description: 'Verrazzano Test Environment', 
-            choices: clusterType)
+            choices: testEnvironments)
         // OKE configuration
         // OKE_CLUSTER_REGION parameter will be ignored for private DNS tests. They get overwritten with runner region
         choice (
