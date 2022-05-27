@@ -28,9 +28,9 @@ Collections.shuffle(availableRegions)
 // NOTE: dnsZoneID is different from dnsZoneOCID
 def dnsZoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
 def dnsZoneOCID = 'dummy'
-def dnsWildcardDomains = ["nip.io", "sslip.io"]
-def dnsScopesOCI = ["GLOBAL", "PRIVATE"]
-def acmeEnvironments = [ "staging", "production" ]
+def dnsWildcardDomains = ['nip.io', 'sslip.io']
+def dnsScopesOCI = ['GLOBAL', 'PRIVATE']
+def acmeEnvironments = [ 'staging', 'production' ]
 // Other vars
 def keepOKEClusterOnFailure = "false"
 def OKE_CLUSTER_PREFIX = ""
@@ -326,8 +326,7 @@ pipeline {
             steps {
                 sh """
                     echo "[INFO] Create Kind cluster"
-                    echo ${CREATE_CLUSTER_USE_CALICO}
-                    ${WORKSPACE}/tests/e2e/config/scripts/create_kind_cluster.sh ${CLUSTER_NAME} ${WORKSPACE}/platform-operator ${KUBECONFIG} ${K8S_VERSION} true true true ${CREATE_CLUSTER_USE_CALICO} "NONE" 1
+                    ${WORKSPACE}/tests/e2e/config/scripts/create_kind_cluster.sh $CLUSTER_NAME $WORKSPACE/platform-operator $KUBECONFIG $K8S_VERSION true true true $CREATE_CLUSTER_USE_CALICO "NONE" 1
                     if [ $? -ne 0 ]; then
                         mkdir ${WORKSPACE}/kind-logs
                         kind export logs ${WORKSPACE}/kind-logs
