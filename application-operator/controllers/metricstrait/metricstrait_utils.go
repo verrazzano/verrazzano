@@ -6,6 +6,7 @@ package metricstrait
 import (
 	"context"
 	"fmt"
+	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"regexp"
 	"strings"
@@ -236,4 +237,17 @@ func fetchSourceCredentialsSecretIfRequired(ctx context.Context, trait *vzapi.Me
 		return nil, fmt.Errorf("failed to fetch secret %v: %w", secretKey, err)
 	}
 	return &secretObj, nil
+}
+
+// isWLSWorkload returns true if the unstructured object is a Weblogic Workload
+func isWLSWorkload(workload *unstructured.Unstructured) (bool, error) {
+	apiVerKind, err := vznav.GetAPIVersionKindOfUnstructured(workload)
+	if err != nil {
+		return false, err
+	}
+	// Match any version of APIVersion=weblogic.oracle and Kind=Domain
+	if matched, _ := regexp.MatchString("^weblogic.oracle/.*\\.Domain$", apiVerKind); matched {
+		return true, nil
+	}
+	return false, nil
 }

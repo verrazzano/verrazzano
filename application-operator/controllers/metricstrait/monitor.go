@@ -92,7 +92,7 @@ func (r *Reconciler) mutateServiceMonitorFromTrait(ctx context.Context, serviceM
 	// Loop through ports in the trait and create scrape targets for each
 	ports := getPortSpecs(trait, traitDefaults)
 	for i := range ports {
-		endpoint, err := r.createServiceMonitorEndpoint(ctx, trait, secret, i)
+		endpoint, err := r.createServiceMonitorEndpoint(ctx, trait, workload, secret, i)
 		if err != nil {
 			return log.ErrorfNewErr("Failed to create an endpoint for the Service Monitor: %v", err)
 		}
@@ -104,7 +104,7 @@ func (r *Reconciler) mutateServiceMonitorFromTrait(ctx context.Context, serviceM
 
 // createServiceMonitorEndpoint creates an endpoint for a given port and trait
 // this function effectively creates a scrape config for the trait target through the Service Monitor API
-func (r *Reconciler) createServiceMonitorEndpoint(ctx context.Context, trait *vzapi.MetricsTrait, secret *k8score.Secret, portIncrement int) (promoperapi.Endpoint, error) {
+func (r *Reconciler) createServiceMonitorEndpoint(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, secret *k8score.Secret, portIncrement int) (promoperapi.Endpoint, error) {
 	var endpoint promoperapi.Endpoint
 
 	// Add the secret username and password if basic auth is required for this endpoint
@@ -160,6 +160,20 @@ func (r *Reconciler) createServiceMonitorEndpoint(ctx context.Context, trait *vz
 		endpoint.TLSConfig.InsecureSkipVerify = true
 	}
 
+	// Change the expected labels based on the workload type
+	enabledLabel := fmt.Sprintf("__meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled%s", portString)
+	portLabel := fmt.Sprintf("__meta_kubernetes_pod_annotation_verrazzano_io_metricsPort%s", portString)
+	pathLabel := fmt.Sprintf("__meta_kubernetes_pod_annotation_verrazzano_io_metricsPath%s", portString)
+	wlsWorkload, err := isWLSWorkload(workload)
+	if err != nil {
+		return endpoint, err
+	}
+	if wlsWorkload {
+		enabledLabel = "__meta_kubernetes_pod_annotation_prometheus_io_scrape"
+		portLabel = "__meta_kubernetes_pod_annotation_prometheus_io_port"
+		pathLabel = "__meta_kubernetes_pod_annotation_prometheus_io_path"
+	}
+
 	// Relabel the cluster name
 	endpoint.RelabelConfigs = append(endpoint.RelabelConfigs, &promoperapi.RelabelConfig{
 		Action:      "replace",
@@ -172,10 +186,20 @@ func (r *Reconciler) createServiceMonitorEndpoint(ctx context.Context, trait *vz
 		Action: "keep",
 		Regex:  fmt.Sprintf("true;%s;%s", trait.Labels[appObjectMetaLabel], trait.Labels[compObjectMetaLabel]),
 		SourceLabels: []promoperapi.LabelName{
-			promoperapi.LabelName(fmt.Sprintf("__meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled%s", portString)),
+			promoperapi.LabelName(enabledLabel),
 			"__meta_kubernetes_pod_label_app_oam_dev_name",
 			"__meta_kubernetes_pod_label_app_oam_dev_component",
 		},
+	})
+
+	// Replace the metrics path if specified
+	endpoint.RelabelConfigs = append(endpoint.RelabelConfigs, &promoperapi.RelabelConfig{
+		Action: "replace",
+		Regex:  "(.+)",
+		SourceLabels: []promoperapi.LabelName{
+			promoperapi.LabelName(pathLabel),
+		},
+		TargetLabel: "__metrics_path__",
 	})
 
 	// Relabel the address of the metrics endpoint
@@ -185,7 +209,7 @@ func (r *Reconciler) createServiceMonitorEndpoint(ctx context.Context, trait *vz
 		Replacement: "$1:$2",
 		SourceLabels: []promoperapi.LabelName{
 			"__address__",
-			promoperapi.LabelName(fmt.Sprintf("__meta_kubernetes_pod_annotation_verrazzano_io_metricsPort%s", portString)),
+			promoperapi.LabelName(portLabel),
 		},
 		TargetLabel: "__address__",
 	})

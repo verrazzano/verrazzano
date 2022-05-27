@@ -6,7 +6,6 @@ package metricstrait
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -812,12 +811,12 @@ func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait,
 			context[sslProtocolHolder] = httpsProtocol
 		}
 		configTemplate = prometheusScrapeConfigTemplate
-		apiVerKind, err := vznav.GetAPIVersionKindOfUnstructured(workload)
+
+		wlsWorkload, err := isWLSWorkload(workload)
 		if err != nil {
 			return "", nil, err
 		}
-		// Match any version of APIVersion=weblogic.oracle and Kind=Domain
-		if matched, _ := regexp.MatchString("^weblogic.oracle/.*\\.Domain$", apiVerKind); matched {
+		if wlsWorkload {
 			configTemplate = prometheusWLSScrapeConfigTemplate
 		}
 
