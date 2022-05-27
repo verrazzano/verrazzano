@@ -123,11 +123,6 @@ type fluentdValues struct {
 	OCI               *ociLoggingSettings `json:"oci,omitempty"`
 }
 
-type consoleValues struct {
-	Enabled bool   `json:"enabled"` // Always write
-	Name    string `json:"name,omitempty"`
-}
-
 type apiValues struct {
 	Name string `json:"name,omitempty"`
 	Port int    `json:"port,omitempty"`
