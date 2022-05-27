@@ -212,7 +212,7 @@ pipeline {
     }
 
     stages {
-        stage('initialize') {
+        stage('Initialise') {
             steps {
                 script {
                     // Proceed with checkout
@@ -278,7 +278,7 @@ pipeline {
             }
         }
 
-        stage("install-oke") {
+        stage("Create OKE cluster") {
             when { expression { return env.TEST_ENV == 'oke' } }
             environment {
                 TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
@@ -313,7 +313,7 @@ pipeline {
             }
         }
 
-        stage('install-kind') {
+        stage('Create KIND cluster') {
             when { expression { return env.TEST_ENV == 'kind' } }
             steps {
                 // TODO: Error in installing kind cluster - 
@@ -326,13 +326,13 @@ pipeline {
             }
         }
 
-        stage("create-image-pull-secrets") {
+        stage("Create image pull secrets") {
             steps {
                 createImagePullSecrets()
             }
         }
 
-        stage("install-platform-operator") {
+        stage("Install Verrazzano platform operator") {
             environment {
                 OCI_CLI_AUTH="instance_principal"
             }
@@ -360,7 +360,7 @@ pipeline {
             }
         }
 
-        stage("create-dns-zone") {
+        stage("Create OCI DNS zone") {
             environment {
                 TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
             }
@@ -385,7 +385,7 @@ pipeline {
             }
         }
 
-        stage("create-oci-config-secret") {
+        stage("Create OCI config secret") {
             steps {
                 script {
                     sh """
@@ -395,7 +395,7 @@ pipeline {
             }
         }
 
-        stage("setup-nip-io-config") {
+        stage("Setup nip.io config") {
             when { expression { return env.TEST_ENV == 'oke' } }
             steps {
                 script {
@@ -406,7 +406,7 @@ pipeline {
             }
         }
 
-        stage("install-verrazzano") {
+        stage("Install verrazzano") {
             steps {
                 sh """
                     echo "Waiting for Operator to be ready"
@@ -450,7 +450,7 @@ pipeline {
             }
         }
 
-        stage('verify-install') {
+        stage('Verify-install') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
@@ -461,7 +461,7 @@ pipeline {
             }
         }
 
-        stage("run-DNS-update-tests") {
+        stage("Post-install DNS update") {
             environment {
                 // These environment variables are required by the test
                 OCI_DNS_COMPARTMENT_OCID = "${OCI_DNS_COMPARTMENT_OCID}"
@@ -482,10 +482,52 @@ pipeline {
             }
         }
 
-        stage('acceptance-tests') {
+        stage('Post-update Verify Tests') {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update-verify-install"
+            }
+            steps {
+                runGinkgoRandomize('verify-install')
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
+
+        stage('Post-update Infra Tests') {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update-infra-tests"
+            }
             steps {
                 script {
-                    parallel runVerrazzanoAcceptanceTests()
+                    parallel generateVerifyInfraStages("${TEST_DUMP_ROOT}/post-update-infra-tests")
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
+
+        stage('Post-update Acceptance Tests') {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-update"
+            }
+            steps {
+                // Run all acceptance tests after the sequence of updates including CM and DNS; undeploy apps after
+                script {
+                    parallel generateAllAcceptanceTestStages("${TEST_DUMP_ROOT}/post-cm-dns-acceptance-tests", 'true', 'false')
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
             }
         }
@@ -560,11 +602,106 @@ pipeline {
     }
 }
 
+def generateNonWLSAcceptanceTestStages(dumpRoot, skipDeploy = 'false', skipUndeploy = 'false') {
+    return generate_security_tests(dumpRoot) + generate_nonwls_tests(dumpRoot, skipDeploy, skipUndeploy)
+}
+
+def generateAllAcceptanceTestStages(dumpRoot, skipDeploy = 'false', skipUndeploy = 'false') {
+    return generate_security_tests(dumpRoot) +
+        generate_nonwls_tests(dumpRoot, skipDeploy, skipUndeploy) +
+        generate_wls_tests(dumpRoot, skipDeploy, skipUndeploy)
+}
+
+def generateVerifyInfraStages(dumpRoot) {
+    return [
+        "verify-scripts": {
+            runGinkgo('scripts', '', "${KUBECONFIG}")
+        },
+        "verify-infra restapi": {
+            runGinkgoRandomize('verify-infra/restapi', "${dumpRoot}/verify-infra-restapi")
+        },
+        "verify-infra oam": {
+            runGinkgoRandomize('verify-infra/oam', "${dumpRoot}/verify-infra-oam")
+        },
+        "system component metrics": {
+            runGinkgoRandomize('metrics/syscomponents', "${dumpRoot}/system-component-metrics")
+        },
+        "console": {
+            acceptanceTestsConsole("${dumpRoot}")
+        },
+    ]
+}
+
+def generate_security_tests(dumpRoot) {
+    return [
+        "istio authorization policy": {
+            runGinkgo('istio/authz', "${dumpRoot}/istio-authz-policy")
+        },
+        "security role based access": {
+            runGinkgo('security/rbac', "${dumpRoot}/sec-role-based-access")
+        },
+        "security network policies": {
+            if (params.CREATE_CLUSTER_USE_CALICO == true) {
+                runGinkgo('security/netpol', "${dumpRoot}/netpol")
+            } else {
+                echo "Calico not enabled, skipping network policies tests"
+            }
+        },
+    ]
+}
+
+def generate_nonwls_tests(dumpRoot, skipDeploy = 'false', skipUndeploy = 'false') {
+    return [
+        "k8s deployment workload metrics": {
+            runGinkgo('metrics/deploymetrics', "${dumpRoot}/k8sdeploy-workload-metrics")
+        },
+        "examples logging helidon": {
+            runGinkgo('logging/helidon', "${dumpRoot}/examples-logging-helidon")
+        },
+        "examples spring": {
+            runGinkgoAppTest('examples/springboot', "springboot", "${dumpRoot}/examples-spring", skipDeploy, skipUndeploy)
+        },
+        "examples helidon": {
+            runGinkgoAppTest('examples/helidon', "hello-helidon", "${dumpRoot}/examples-helidon", skipDeploy, skipUndeploy)
+        },
+        "examples helidon-config": {
+            runGinkgoAppTest('examples/helidonconfig', "helidon-config", "${dumpRoot}/examples-helidon-config", skipDeploy, skipUndeploy)
+        },
+    ]
+}
+
+def generate_wls_tests(dumpRoot, skipDeploy = 'false', skipUndeploy = 'false') {
+    return [
+        "weblogic workload": {
+            runGinkgoAppTest('workloads/weblogic', "hello-wls", "${dumpRoot}/weblogic-workload", skipDeploy, skipUndeploy)
+        },
+        "coherence workload": {
+            runGinkgoAppTest('workloads/coherence', "hello-coherence", "${dumpRoot}/coherence-workload", skipDeploy, skipUndeploy)
+        },
+        "console ingress": {
+            // doesn't work with the deployement hooks
+            runGinkgo('ingress/console', "wls-console", "${dumpRoot}/console-ingress")
+        },
+    ]
+}
+
 def getTestClusterType(testEnv) {
     if("kind".equalsIgnoreCase(testEnv)) {
         return "KIND"
     } else {
         return "OKE"
+    }
+}
+
+def runGinkgoRandomize(testSuitePath, dumpDir = '') {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            if [ ! -z "${dumpDir}" ]; then
+                export DUMP_DIRECTORY=${dumpDir}
+            fi
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+        """
     }
 }
 
