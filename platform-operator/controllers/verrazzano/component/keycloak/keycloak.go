@@ -1294,3 +1294,11 @@ func isPodReady(pod *v1.Pod) bool {
 	}
 	return false
 }
+
+// GetOverrides gets the install overrides
+func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+	if effectiveCR.Spec.Components.Keycloak != nil {
+		return effectiveCR.Spec.Components.Keycloak.ValueOverrides
+	}
+	return []vzapi.Overrides{}
+}

@@ -18,6 +18,7 @@ installerFileName = "install-verrazzano.yaml"
 
 pipeline {
     options {
+        timeout(time: 2, unit: 'HOURS')
         skipDefaultCheckout true
         timestamps ()
     }
@@ -396,12 +397,6 @@ pipeline {
                         }
                     }
                 }
-                stage("Update external OpenSearch") {
-                    when { expression { return params.EXTERNAL_ELASTICSEARCH == true } }
-                    steps {
-                        runGinkgoAdmin('update/fluentdextes')
-                    }
-                }
                 stage ('Register managed clusters') {
                     steps {
                         registerManagedClusters()
@@ -460,12 +455,21 @@ pipeline {
 
         stage ('Verify Install') {
             stages {
+                stage("verify-fluentd-update") {
+                    steps {
+                        runGinkgoAdmin('update/fluentdextes')
+                    }
+                }
+                stage("verify-managed-cluster-cert-update") {
+                    steps {
+                        runGinkgoAdmin('update/certmc')
+                    }
+                }
                 stage('verify-install') {
                     steps {
                         runGinkgoRandomize('verify-install')
                     }
                 }
-
                 stage ('multicluster/verify-install') {
                     steps {
                         runGinkgoRandomize('multicluster/verify-install')
@@ -475,28 +479,9 @@ pipeline {
         }
 
         stage ('Verify Infra') {
-            // NOTE: The stages are executed in parallel, however the tests themselves are executed against
-            //       each cluster in sequence. If possible, we should parallelize that as well.
-            parallel {
-                stage('verify-scripts') {
-                    steps {
-                        runGinkgoRandomize('scripts')
-                    }
-                }
-                stage('verify-infra restapi') {
-                    steps {
-                        runGinkgoRandomize('verify-infra/restapi')
-                    }
-                }
-                stage('verify-infra oam') {
-                    steps {
-                        runGinkgoRandomize('verify-infra/oam')
-                    }
-                }
-                stage('verify-infra vmi') {
-                    steps {
-                        runGinkgoRandomize('verify-infra/vmi')
-                    }
+            steps {
+                script {
+                    parallel verifyInfra()
                 }
             }
             post {
@@ -510,33 +495,9 @@ pipeline {
         stage('Acceptance Tests') {
             stages {
                 stage ('Example apps') {
-                    parallel {
-                        stage ('Examples Helidon') {
-                            steps {
-                                runGinkgo("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload")
-                            }
-                        }
-                        stage ('Examples Helidon Deprecated') {
-                            steps {
-                                runGinkgo("multicluster/examples/helidon-deprecated", "${TEST_DUMP_ROOT}/helidon-deprecated")
-                            }
-                        }
-                        stage ('Delete Deployed App NS') {
-                            steps {
-                                script {
-                                    runHelidonNsOpsTest()
-                                }
-                            }
-                        }
-                        stage ('WebLogic Workload') {
-                            steps {
-                                runGinkgo("multicluster/workloads/mcweblogic", "${TEST_DUMP_ROOT}/weblogic-workload")
-                            }
-                        }
-                        stage ('Coherence Workload') {
-                            steps {
-                                runGinkgo("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload")
-                            }
+                    steps {
+                        script {
+                            parallel verifyExamples()
                         }
                     }
                 }
@@ -689,28 +650,6 @@ pipeline {
                         """
                     }
                 }
-
-                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                if (env.TEST_ENV == "KIND") {
-                    for(int count=1; count<=clusterCount; count++) {
-                        sh """
-                            if [ "${env.TEST_ENV}" == "KIND" ]
-                            then
-                                kind delete cluster --name ${CLUSTER_NAME_PREFIX}-$count
-                            fi
-                        """
-                    }
-                } else {
-                    sh """
-                        mkdir -p ${KUBECONFIG_DIR}
-                        if [ "${TEST_ENV}" == "ocidns_oke" ]; then
-                          cd ${GO_REPO_PATH}/verrazzano
-                          ./tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
-                        fi
-                        cd ${TEST_SCRIPTS_DIR}
-                        TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./delete_oke_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}" || true
-                    """
-                }
                 sh """
                     if [ -f ${POST_DUMP_FAILED_FILE} ]; then
                         echo "Failures seen during dumping of artifacts, treat post as failed"
@@ -720,9 +659,43 @@ pipeline {
             }
         }
         cleanup {
+            // Delete clusters as the very first thing in cleanup to reclaim cluster resources especially OKE resources
+            deleteClusters()
             metricBuildDuration()
             emitJobMetrics()
             deleteDir()
+        }
+    }
+}
+
+def deleteOkeClusters() {
+    script {
+        sh """
+            mkdir -p ${KUBECONFIG_DIR}
+            if [ "${TEST_ENV}" == "ocidns_oke" ]; then
+              cd ${GO_REPO_PATH}/verrazzano
+              ./tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
+            fi
+            cd ${TEST_SCRIPTS_DIR}
+            TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./delete_oke_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}" || true
+        """
+    }
+}
+
+def deleteClusters() {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        if (env.TEST_ENV == "KIND") {
+            for(int count=1; count<=clusterCount; count++) {
+                sh """
+                    if [ "${env.TEST_ENV}" == "KIND" ]
+                    then
+                        kind delete cluster --name ${CLUSTER_NAME_PREFIX}-$count
+                    fi
+                """
+            }
+        } else {
+            deleteOkeClusters()
         }
     }
 }
@@ -1548,6 +1521,45 @@ def verifyUpgrade() {
         },
         "Verify Metrics": {
             runGinkgoRandomize('metrics/syscomponents')
+        },
+    ]
+}
+
+// NOTE: The stages are executed in parallel, however the tests themselves are executed against
+//       each cluster in sequence. If possible, we should parallelize that as well.
+def verifyInfra() {
+    return [
+        "verify-scripts": {
+            runGinkgoRandomize('scripts')
+        },
+        "verify-infra restapi": {
+            runGinkgoRandomize('verify-infra/restapi')
+        },
+        "verify-infra oam": {
+            runGinkgoRandomize('verify-infra/oam')
+        },
+        "verify-infra vmi": {
+            runGinkgoRandomize('verify-infra/vmi')
+        },
+    ]
+}
+
+def verifyExamples() {
+    return [
+        "Examples Helidon": {
+            runGinkgo("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload")
+        },
+        "Examples Helidon Deprecated": {
+            runGinkgo("multicluster/examples/helidon-deprecated", "${TEST_DUMP_ROOT}/helidon-deprecated")
+        },
+        "Delete Deployed App NS": {
+            runHelidonNsOpsTest()
+        },
+        "WebLogic Workload": {
+            runGinkgo("multicluster/workloads/mcweblogic", "${TEST_DUMP_ROOT}/weblogic-workload")
+        },
+        "Coherence Workload": {
+            runGinkgo("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload")
         },
     ]
 }

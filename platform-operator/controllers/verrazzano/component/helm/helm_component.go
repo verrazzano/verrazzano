@@ -4,8 +4,8 @@
 package helm
 
 import (
-	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"os"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -21,7 +21,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/yaml"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -112,7 +111,7 @@ type preUpgradeFuncSig func(log vzlog.VerrazzanoLogger, client clipkg.Client, re
 type appendOverridesSig func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error)
 
 // getInstallOverridesSig is an optional function called to generate additional overrides.
-type getInstallOverridesSig func(context spi.ComponentContext) []vzapi.Overrides
+type getInstallOverridesSig func(vz *vzapi.Verrazzano) []vzapi.Overrides
 
 // resolveNamespaceSig is an optional function called for special namespace processing
 type resolveNamespaceSig func(ns string) string
@@ -145,9 +144,9 @@ func (h HelmComponent) GetJSONName() string {
 }
 
 // GetOverrides returns the list of install overrides for a component
-func (h HelmComponent) GetOverrides(ctx spi.ComponentContext) []vzapi.Overrides {
+func (h HelmComponent) GetOverrides(cr *vzapi.Verrazzano) []vzapi.Overrides {
 	if h.GetInstallOverridesFunc != nil {
-		return h.GetInstallOverridesFunc(ctx)
+		return h.GetInstallOverridesFunc(cr)
 	}
 	return []vzapi.Overrides{}
 }
@@ -220,11 +219,17 @@ func (h HelmComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
 func (h HelmComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	if err := vzapi.ValidateInstallOverrides(h.GetOverrides(vz)); err != nil {
+		return err
+	}
 	return nil
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (h HelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	if err := vzapi.ValidateInstallOverrides(h.GetOverrides(new)); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -379,10 +384,18 @@ func (h HelmComponent) buildCustomHelmOverrides(context spi.ComponentContext, na
 	var overrides []helm.HelmOverrides
 
 	// Sort the kvs list by priority (0th term has the highest priority)
-	// Getting user defined install overrides as the highest priority
-	kvs, err = h.retrieveInstallOverrideResources(context, h.GetOverrides(context))
+
+	// Getting user defined Helm overrides as the highest priority
+	overrideStrings, err := common.GetInstallOverridesYAML(context, h.GetOverrides(context.EffectiveCR()))
 	if err != nil {
 		return overrides, err
+	}
+	for _, overrideString := range overrideStrings {
+		file, err := vzos.CreateTempFile(context.Log(), fmt.Sprintf("install-overrides-%s-*.yaml", h.Name()), []byte(overrideString))
+		if err != nil {
+			return overrides, err
+		}
+		kvs = append(kvs, bom.KeyValue{Value: file.Name(), IsFile: true})
 	}
 
 	// Create files from the Verrazzano Helm values
@@ -488,91 +501,6 @@ func (h HelmComponent) organizeHelmOverrides(kvs []bom.KeyValue) []helm.HelmOver
 		}
 	}
 	return overrides
-}
-
-// retrieveInstallOverrideResources takes the list of Overrides and returns a list of key value pairs
-func (h HelmComponent) retrieveInstallOverrideResources(ctx spi.ComponentContext, overrides []vzapi.Overrides) ([]bom.KeyValue, error) {
-	var kvs []bom.KeyValue
-	for _, override := range overrides {
-		// Check if ConfigMapRef is populated and gather helm file
-		if override.ConfigMapRef != nil {
-			// Get the ConfigMap
-			configMap := &corev1.ConfigMap{}
-			selector := override.ConfigMapRef
-			nsn := types.NamespacedName{Name: selector.Name, Namespace: ctx.EffectiveCR().Namespace}
-			optional := selector.Optional
-			err := ctx.Client().Get(context.TODO(), nsn, configMap)
-			if err != nil {
-				if optional == nil || !*optional {
-					err := ctx.Log().ErrorfNewErr("Could not get Configmap %s from namespace %s: %v", nsn.Name, nsn.Namespace, err)
-					return kvs, err
-				}
-				ctx.Log().Debugf("Optional Configmap %s from namespace %s not found", nsn.Name, nsn.Namespace)
-				continue
-			}
-
-			tmpFile, err := createInstallOverrideFile(ctx, nsn, configMap.Data, selector.Key, selector.Optional)
-			if err != nil {
-				return kvs, err
-			}
-			if tmpFile != nil {
-				kvs = append(kvs, bom.KeyValue{Value: tmpFile.Name(), IsFile: true})
-			}
-		}
-		// Check if SecretRef is populated and gather helm file
-		if override.SecretRef != nil {
-			// Get the Secret
-			sec := &corev1.Secret{}
-			selector := override.SecretRef
-			nsn := types.NamespacedName{Name: selector.Name, Namespace: ctx.EffectiveCR().Namespace}
-			optional := selector.Optional
-			err := ctx.Client().Get(context.TODO(), nsn, sec)
-			if err != nil {
-				if optional == nil || !*optional {
-					err := ctx.Log().ErrorfNewErr("Could not get Secret %s from namespace %s: %v", nsn.Name, nsn.Namespace, err)
-					return kvs, err
-				}
-				ctx.Log().Debugf("Optional Secret %s from namespace %s not found", nsn.Name, nsn.Namespace)
-				continue
-			}
-
-			dataStrings := map[string]string{}
-			for key, val := range sec.Data {
-				dataStrings[key] = string(val)
-			}
-			tmpFile, err := createInstallOverrideFile(ctx, nsn, dataStrings, selector.Key, selector.Optional)
-			if err != nil {
-				return kvs, err
-			}
-			if tmpFile != nil {
-				kvs = append(kvs, bom.KeyValue{Value: tmpFile.Name(), IsFile: true})
-			}
-		}
-	}
-	return kvs, nil
-}
-
-// createInstallOverrideFile takes in the data from a kubernetes resource and creates a temporary file for helm install
-func createInstallOverrideFile(ctx spi.ComponentContext, nsn types.NamespacedName, data map[string]string, dataKey string, optional *bool) (*os.File, error) {
-	var file *os.File
-
-	// Get resource data
-	fieldData, ok := data[dataKey]
-	if !ok {
-		if optional == nil || !*optional {
-			err := ctx.Log().ErrorfNewErr("Could not get Data field %s from Resource %s from namespace %s", dataKey, nsn.Name, nsn.Namespace)
-			return file, err
-		}
-		ctx.Log().Debugf("Optional Resource %s from namespace %s missing Data key %s", nsn.Name, nsn.Namespace, dataKey)
-		return file, nil
-	}
-
-	// Create the temp file for the data
-	file, err := vzos.CreateTempFile(ctx.Log(), "helm-overrides-*.yaml", []byte(fieldData))
-	if err != nil {
-		return file, err
-	}
-	return file, nil
 }
 
 // resolveNamespace Resolve/normalize the namespace for a Helm-based component

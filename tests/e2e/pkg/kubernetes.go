@@ -322,6 +322,18 @@ func ListNodes() (*corev1.NodeList, error) {
 	return nodes, nil
 }
 
+// GetNodeCount returns the number of nodes for the cluster
+func GetNodeCount() (uint32, error) {
+	nodes, err := ListNodes()
+	if err != nil {
+		return 0, err
+	}
+	if len(nodes.Items) < 1 {
+		return 0, fmt.Errorf("can not find node in the cluster")
+	}
+	return uint32(len(nodes.Items)), nil
+}
+
 // GetPodsFromSelector returns a collection of pods for the given namespace and selector
 func GetPodsFromSelector(selector *metav1.LabelSelector, namespace string) ([]corev1.Pod, error) {
 	var pods *corev1.PodList
@@ -725,6 +737,20 @@ func IsJaegerOperatorEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	return *vz.Spec.Components.JaegerOperator.Enabled
+}
+
+// IsGrafanaEnabled returns false if the Grafana component is not set, or the value of its Enabled field otherwise
+func IsGrafanaEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.Grafana == nil || vz.Spec.Components.Grafana.Enabled == nil {
+		// Grafana component is enabled by default
+		return true
+	}
+	return *vz.Spec.Components.Grafana.Enabled
 }
 
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
@@ -1427,4 +1453,26 @@ func WaitForVZCondition(conditionType v1alpha1.ConditionType, pollingInterval, t
 		}
 		return false
 	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(gomega.BeTrue())
+}
+
+// DeleteConfigMap to delete the ConfigMap with the given name and namespace
+func DeleteConfigMap(namespace string, name string) error {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return err
+	}
+	return clientset.CoreV1().ConfigMaps(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+}
+
+// CreateConfigMap creates the ConfigMap
+func CreateConfigMap(configMap *corev1.ConfigMap) error {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return err
+	}
+	_, err = clientset.CoreV1().ConfigMaps(configMap.Namespace).Create(context.TODO(), configMap, metav1.CreateOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
 }

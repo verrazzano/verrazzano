@@ -151,10 +151,16 @@ func checkRancherUpgradeFailure(c client.Client, log vzlog.VerrazzanoLogger) err
 	}
 
 	// Check the logs of each pod
+	podsRestarted := false
 	for i, pod := range podList.Items {
+		// Skip pods that are already being deleted
+		if pod.DeletionTimestamp != nil {
+			continue
+		}
+
 		// Skip pods that are not ready, they will get checked again in another call to isReady.
 		if !isPodReady(pod) {
-			break
+			continue
 		}
 
 		// Get the pod log stream
@@ -168,7 +174,9 @@ func checkRancherUpgradeFailure(c client.Client, log vzlog.VerrazzanoLogger) err
 		restartPod := false
 		scanner := bufio.NewScanner(logStream)
 		for scanner.Scan() {
-			if strings.Contains(scanner.Text(), "Failed to find system chart") {
+			token := scanner.Text()
+			if strings.Contains(token, "[ERROR] available chart version") {
+				log.Infof("Rancher IsReady: Failed to find system chart for pod %s: %s", pod.Name, token)
 				restartPod = true
 				break
 			}
@@ -188,7 +196,14 @@ func checkRancherUpgradeFailure(c client.Client, log vzlog.VerrazzanoLogger) err
 			if err != nil {
 				return err
 			}
+			podsRestarted = true
 		}
+	}
+
+	// If any pods were restarted, return an error so that the IsReady check will not continue
+	// any further.  Checks will resume again after the pod is ready again.
+	if podsRestarted {
+		return fmt.Errorf("Rancher IsReady: pods were restarted, waiting for them to be ready again")
 	}
 
 	return nil
@@ -236,11 +251,7 @@ func deleteClusterRepos(log vzlog.VerrazzanoLogger) error {
 		return err
 	}
 
-	// Only need to delete the custom resources if the default branch is still release-2.5
 	log.Infof("Rancher IsReady: The default release branch is currently set to %s", defaultBranch)
-	if defaultBranch != "release-v2.5" {
-		return nil
-	}
 
 	// Delete settings.management.cattle.io chart-default-branch
 	err = dynamicClient.Resource(gvr).Delete(context.TODO(), name, metav1.DeleteOptions{})
@@ -269,4 +280,12 @@ func deleteClusterRepos(log vzlog.VerrazzanoLogger) error {
 	}
 
 	return nil
+}
+
+// GetOverrides returns install overrides for a component
+func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+	if effectiveCR.Spec.Components.Rancher != nil {
+		return effectiveCR.Spec.Components.Rancher.ValueOverrides
+	}
+	return []vzapi.Overrides{}
 }
