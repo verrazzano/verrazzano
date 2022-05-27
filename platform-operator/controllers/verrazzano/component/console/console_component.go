@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"path/filepath"
 )
 
@@ -45,11 +46,7 @@ func NewComponent() spi.Component {
 
 // IsEnabled console-specific enabled check for installation
 func (c consoleComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.Console
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
+	return vzconfig.IsConsoleEnabled(effectiveCR)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
@@ -58,7 +55,7 @@ func (c consoleComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	return c.HelmComponent.ValidateUpdate(old, new)
+	return nil
 }
 
 // IsReady component check
@@ -71,22 +68,7 @@ func (c consoleComponent) IsReady(ctx spi.ComponentContext) bool {
 
 // PreInstall - actions to perform prior to installing this component
 func (c consoleComponent) PreInstall(ctx spi.ComponentContext) error {
-	ctx.Log().Debug("Verrazzano Console pre-install")
-	if err := preHook(ctx); err != nil {
-		return err
-	}
-
-	// Temporary work around for installer bug of calling pre-install after a component is installed
-	installed, err := c.IsInstalled(ctx)
-	if err != nil {
-		return err
-	}
-	if installed {
-		ctx.Log().Oncef("Component %s already installed, skipping PreInstall checks", ComponentName)
-		return nil
-	}
-
-	return nil
+	return preHook(ctx)
 }
 
 // PreUpgrade performs any required pre upgrade operations

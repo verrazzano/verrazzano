@@ -34,7 +34,6 @@ type verrazzanoValues struct {
 	NodeExporter           *nodeExporterValues           `json:"nodeExporter,omitempty"`
 	Logging                *loggingValues                `json:"logging,omitempty"`
 	Fluentd                *fluentdValues                `json:"fluentd,omitempty"`
-	Console                *consoleValues                `json:"console,omitempty"`
 	API                    *apiValues                    `json:"api,omitempty"`
 	Config                 *configValues                 `json:"config,omitempty"`
 	Security               *securityRoleBindingValues    `json:"security,omitempty"`
