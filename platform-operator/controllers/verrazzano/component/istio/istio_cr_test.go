@@ -5,12 +5,13 @@ package istio
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -207,8 +208,6 @@ spec:
     global:
       defaultPodDisruptionBudget:
         enabled: false
-    meshConfig:
-        enableTracing: false
     pilot:
       resources:
         requests:
@@ -357,8 +356,6 @@ spec:
     global:
       defaultPodDisruptionBudget:
         enabled: false
-    meshConfig:
-        enableTracing: false
     pilot:
       resources:
         requests:
@@ -506,9 +503,6 @@ spec:
         service:
           type: LoadBalancer
       name: istio-ingressgateway
-  values:
-    meshConfig:
-      enableTracing: false
 `
 
 var cr4 = &vzapi.IstioComponent{
