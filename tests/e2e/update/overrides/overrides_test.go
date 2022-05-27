@@ -99,17 +99,13 @@ func (o PrometheusOperatorOverridesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 var _ = t.BeforeSuite(func() {
 	m := PrometheusOperatorOverridesModifier{}
 	inlineData = oldInlineData
-	gomega.Eventually(func() error {
-		return update.UpdateCR(m)
-	}, waitTimeout, pollingInterval).Should(gomega.BeNil())
+	update.UpdateCR(m)
 	_ = update.GetCR()
 })
 
 var _ = t.AfterSuite(func() {
 	m := PrometheusOperatorDefaultModifier{}
-	gomega.Eventually(func() error {
-		return update.UpdateCR(m)
-	}, waitTimeout, pollingInterval).Should(gomega.BeNil())
+	update.UpdateCR(m)
 	_ = update.GetCR()
 	if failed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
@@ -159,9 +155,7 @@ var _ = t.Describe("Post Install Overrides", func() {
 				inlineData = newInlineData
 				m := PrometheusOperatorOverridesModifier{}
 				inlineData = newInlineData
-				gomega.Eventually(func() error {
-					return update.UpdateCR(m)
-				}, waitTimeout, pollingInterval).Should(gomega.BeNil())
+				update.UpdateCR(m)
 			})
 
 			t.It("Update ConfigMap", func() {
@@ -231,9 +225,7 @@ var _ = t.Describe("Post Install Overrides", func() {
 
 func deleteOverrides() {
 	m := PrometheusOperatorDefaultModifier{}
-	gomega.Eventually(func() error {
-		return update.UpdateCR(m)
-	}, waitTimeout, pollingInterval).Should(gomega.BeNil())
+	update.UpdateCR(m)
 
 	err0 := pkg.DeleteConfigMap(constants.DefaultNamespace, overrideConfigMapSecretName)
 	if err0 != nil && !k8serrors.IsNotFound(err0) {
