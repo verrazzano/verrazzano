@@ -20,9 +20,9 @@ const (
 	helpShort   = "Status of the Verrazzano install and access endpoints"
 	helpLong    = `The command 'status' returns summary information about a Verrazzano installation.`
 	helpExample = `
-vz status --name my-verrazzano
-vz status --name my-verrazzano --context minikube
-vz status --name my-verrazzano --kubeconfig ~/.kube/config --context minikube`
+vz status
+vz status --context minikube
+vz status --kubeconfig ~/.kube/config --context minikube`
 )
 
 // The component output is disabled pending the resolution some issues with
