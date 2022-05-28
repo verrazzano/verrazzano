@@ -4,7 +4,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
-set -e
+set -u
 
 NAME=$1
 DOCKER_SERVER=$2
@@ -15,6 +15,11 @@ NAMESPACE=${5:-default}
 if [ -z "${KUBECONFIG}" ] ; then
     echo "KUBECONFIG env var must be set!"
     exit 1
+fi
+
+if kubectl get secret ${NAME} ; then
+  echo "Secret ${NAME} already exists"
+  exit 0
 fi
 
 kubectl create secret docker-registry ${NAME} \
