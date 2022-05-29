@@ -21,13 +21,16 @@ const (
 # Install the latest version of Verrazzano using the dev profile. Stream the logs to the console until the install completes.
 vz install --logs
 
-# Install version 1.3.0 using a prod profile, timeout the command after 20 minutes
+# Install version 1.3.0 using a prod profile, timeout the command after 20 minutes.
 vz install --version v1.3.0 --set profile=prod --wait --timeout 20m
 
-# Install version 1.3.0 using a dev profile with elasticsearch disabled and wait for the install to complete
+# Install version 1.3.0 using a dev profile with elasticsearch disabled and wait for the install to complete.
 vz install --version v1.3.0 --set profile=dev --set components.elasticsearch.enabled=false --wait
 
-# Do a dry run of installing version 1.3.0 and see a summary of what the install would have done
+# Install the latest version of Verrazzano using CR overlays and explicit value sets.
+vz install -f base.yaml -f custom.yaml --set profile=prod --logs
+
+# Do a dry run of installing version 1.3.0 and see a summary of what the install would have done.
 vz install --version v1.3.0 --dry-run`
 )
 
@@ -43,7 +46,7 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().Bool(constants.WaitFlag, false, constants.WaitFlagHelp)
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*30, constants.TimeoutFlagHelp)
 	cmd.PersistentFlags().String(constants.VersionFlag, "latest", constants.VersionFlagHelp)
-	cmd.PersistentFlags().StringSlice(constants.FilenameFlag, []string{}, constants.FilenameFlagHelp)
+	cmd.PersistentFlags().StringSliceP(constants.FilenameFlag, "f", []string{}, constants.FilenameFlagHelp)
 	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an install.")
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogsFlag, constants.LogsFlagHelp)
 	cmd.PersistentFlags().StringArray(constants.SetFlag, []string{}, constants.SetFlagHelp)

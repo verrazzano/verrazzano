@@ -20,7 +20,14 @@ const (
 	helpShort     = "Uninstall Verrazzano"
 	helpLong      = `Uninstall the Verrazzano Platform Operator and all of the currently installed components.`
 	helpExample   = `
-TBD`
+# Uninstall Verrazzano except for CRDs and stream the logs to the console.
+vz uninstall --logs
+
+# Uninstall Verrazzano including the CRDs and wait for the command to complete.
+vz uninstall --purge --wait
+
+# Do a dry run of uninstalling Verrazzano.
+vz uninstall --dry-run`
 )
 
 var logsEnum = cmdhelpers.LogsFormatPretty
