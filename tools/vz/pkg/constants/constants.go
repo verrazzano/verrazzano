@@ -20,7 +20,7 @@ const (
 	WaitFlagHelp = "Wait for the command to complete."
 
 	TimeoutFlag     = "timeout"
-	TimeoutFlagHelp = "Time to wait for a command to complete."
+	TimeoutFlagHelp = "Limits the amount of time a command will wait to complete."
 
 	VersionFlag     = "version"
 	VersionFlagHelp = "The version of Verrazzano to install or upgrade."
