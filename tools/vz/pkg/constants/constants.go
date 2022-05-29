@@ -36,6 +36,7 @@ const (
 	LogsFlag     = "logs"
 	LogsFlagHelp = "Print the logs until the command completes. Valid output formats are \"pretty\" and \"json\"."
 
-	FilenameFlag     = "filename"
-	FilenameFlagHelp = "Path to file containing Verrazzano custom resource.  This flag can be specified multiple times to overlay multiple files."
+	FilenameFlag          = "filename"
+	FilenameFlagShorthand = "f"
+	FilenameFlagHelp      = "Path to file containing Verrazzano custom resource.  This flag can be specified multiple times to overlay multiple files."
 )
