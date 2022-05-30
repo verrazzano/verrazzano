@@ -456,12 +456,3 @@ func TestIsEnabledDevProfile(t *testing.T) {
 func getBoolPtr(b bool) *bool {
 	return &b
 }
-
-func getSecretCall(mock *mocks.MockClient) {
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
-			return nil
-		})
-
-}
