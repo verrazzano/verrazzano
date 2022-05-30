@@ -8,7 +8,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
@@ -166,10 +165,7 @@ func checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.Compone
 	if vzState == vzapi.VzStateUpgrading || vzState == vzapi.VzStatePaused {
 		return false
 	}
-	// Current VerrazzanoSpec or CRD does not define VerrazzanoSpec.components.mysql. MySQL Config update is not allowed yet.
-	if name == mysql.ComponentName {
-		return false
-	}
+
 	// The component is being reconciled/installed with ReconcilingGeneration of the CR
 	// if CR.Generation > ReconcilingGeneration then re-enter install flow
 	if componentStatus.ReconcilingGeneration > 0 {
