@@ -87,25 +87,35 @@ do
     esac
 done
 
-if [[ ! -f ${OCI_CONFIG_FILE} ]]; then
-    echo "OCI CLI configuration ${OCI_CONFIG_FILE} does not exist."
-    usage
-    exit 1
-fi
-
 if [ "${OCI_AUTH_TYPE_INPUT:-}" ] ; then
   if [ ${OCI_AUTH_TYPE_INPUT} == "user_principal" ] || [ ${OCI_AUTH_TYPE_INPUT} == "instance_principal" ]; then
     OCI_AUTH_TYPE=${OCI_AUTH_TYPE_INPUT}
   fi
 fi
 
-#create the yaml file
-SECTION_PROPS=$(read_config $OCI_CONFIG_FILE $SECTION *)
-eval $SECTION_PROPS
 if [ ${OCI_AUTH_TYPE} == "instance_principal" ] ; then
   echo "auth:" > $OUTPUT_FILE
   echo "  authtype: instance_principal" >> $OUTPUT_FILE
-else
+fi
+
+if [ ${OCI_AUTH_TYPE} == "user_principal" ] ; then
+  if [[ ! -f ${OCI_CONFIG_FILE} ]]; then
+    echo "OCI CLI configuration ${OCI_CONFIG_FILE} does not exist."
+    usage
+    exit 1
+  fi
+
+  SECTION_PROPS=$(read_config $OCI_CONFIG_FILE $SECTION *)
+  eval $SECTION_PROPS
+
+  # The entries user, fingerprint, key_file, tenancy and region are mandatory in the OCI CLI configuration file.
+  # An empty/null value for any of the values in $OUTPUT_FILE indicates an issue with the configuration file.
+  if [ -z "$region" ] || [ -z "$tenancy" ] || [ -z "$user" ] || [ -z "$key_file" ] || [ -z "$fingerprint" ]; then
+    echo "One or more required entries are missing from section $SECTION in OCI CLI configuration."
+    exit 1
+  fi
+
+  #create the yaml file
   echo "auth:" > $OUTPUT_FILE
   echo "  region: $region" >> $OUTPUT_FILE
   echo "  tenancy: $tenancy" >> $OUTPUT_FILE

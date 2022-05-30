@@ -94,6 +94,13 @@ fi
 SECTION_PROPS=$(read_config $OCI_CONFIG_FILE $SECTION *)
 eval $SECTION_PROPS
 
+# The entries user, fingerprint, key_file, tenancy and region are mandatory in the OCI CLI configuration file.
+# An empty/null value for any of the values in $OUTPUT_FILE indicates an issue with the configuration file.
+if [ -z "$region" ] || [ -z "$tenancy" ] || [ -z "$user" ] || [ -z "$key_file" ] || [ -z "$fingerprint" ]; then
+  echo "One or more required entries are missing from section $SECTION in OCI CLI configuration."
+  exit 1
+fi
+
 CONFIG_TMP=$TMP_DIR/oci_config_tmp
 cat <<EOT > $CONFIG_TMP
 [DEFAULT]
