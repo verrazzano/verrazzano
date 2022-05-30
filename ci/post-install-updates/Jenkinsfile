@@ -478,11 +478,8 @@ pipeline {
         }
 
         stage('Post-install Verify Tests') {
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-install-verify-install"
-            }
             steps {
-                runGinkgoRandomize('verify-install')
+                runGinkgoRandomize('verify-install', "${TEST_DUMP_ROOT}/post-install-verify-install")
             }
             post {
                 always {
@@ -493,9 +490,6 @@ pipeline {
         }
 
         stage('Post-install Infra Tests') {
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-install-infra-tests"
-            }
             steps {
                 script {
                     parallel generateVerifyInfraStages("${TEST_DUMP_ROOT}/post-install-infra-tests")
@@ -535,11 +529,9 @@ pipeline {
                 OCI_DNS_ZONE_NAME = "${OCI_DNS_ZONE_NAME}"
                 OCI_DNS_SCOPE = "${OCI_DNS_SCOPE}"
                 OCI_CONFIG_SECRET = "oci"
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/cm-dns-update"
-            }
             steps {
-                runGinkgo('update/ocidns')
-                runGinkgo('update/cm-lets-encrypt')
+                runGinkgo('update/ocidns', "${TEST_DUMP_ROOT}/cm-dns-update")
+                runGinkgo('update/cm-lets-encrypt', "${TEST_DUMP_ROOT}/cm-dns-update")
             }
             post {
                 always {
@@ -550,11 +542,8 @@ pipeline {
         }
 
         stage('Post-update Verify Tests') {
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update-verify-install"
-            }
             steps {
-                runGinkgoRandomize('verify-install')
+                runGinkgoRandomize('verify-install', "${TEST_DUMP_ROOT}/post-update-verify-install")
             }
             post {
                 always {
@@ -780,16 +769,22 @@ def runGinkgoRandomize(testSuitePath, dumpDir = '') {
             if [ ! -z "${dumpDir}" ]; then
                 export DUMP_DIRECTORY=${dumpDir}
             fi
-            cd ${WORKSPACE}/tests/e2e
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
 
-def runGinkgo(testSuitePath) {
+def runGinkgo(testSuitePath, dumpDir = '', kubeconfig = '') {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
-            cd ${WORKSPACE}/tests/e2e
+            if [ ! -z "${dumpDir}" ]; then
+                export DUMP_DIRECTORY=${dumpDir}
+            fi
+            if [ ! -z "${kubeConfig}" ]; then
+                export KUBECONFIG="${kubeConfig}"
+            fi
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
