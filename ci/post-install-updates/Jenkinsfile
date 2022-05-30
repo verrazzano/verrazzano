@@ -752,6 +752,20 @@ def generate_wls_tests(dumpRoot, skipDeploy = 'false', skipUndeploy = 'false') {
     ]
 }
 
+// Called in parallel Stage console of Stage Run Acceptance Tests
+def acceptanceTestsConsole(dumpRoot) {
+    try {
+        sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
+    } catch (err) {
+        saveConsoleScreenShots()
+        error "${err}"
+    }
+}
+
+def saveConsoleScreenShots() {
+    sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
+}
+
 def getTestClusterType(testEnv) {
     if("kind".equalsIgnoreCase(testEnv)) {
         return "KIND"
@@ -786,6 +800,18 @@ def runGinkgoFailFast(testSuitePath) {
         sh """
             cd ${WORKSPACE}/tests/e2e
             ginkgo -v --fail-fast --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+        """
+    }
+}
+
+def runGinkgoAppTest(testSuitePath, namespace, dumpDir = '', skipDeploy = 'false', skipUndeploy = 'false') {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            if [ ! -z "${dumpDir}" ]; then
+                export DUMP_DIRECTORY=${dumpDir}
+            fi
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --namespace=${namespace}
         """
     }
 }
