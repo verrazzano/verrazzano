@@ -351,38 +351,13 @@ pipeline {
 
         stage("create-oci-config-secret") {
             when { expression { return params.TEST_ENV == 'ocidns_oke' } }
-            environment {
-                OUTPUT_FILE="${WORKSPACE}/oci_config"
-                KEY_FILE="${WORKSPACE}/oci_key"
-            }
             steps {
                 script {
+                    if (params.OCI_DNS_AUTH == "instance_principal") {
+                        env.OCI_DNS_AUTH="instance_principal"
+                    }
                     sh """
-                        cp ${WORKSPACE}/platform-operator/scripts/install/create_oci_config_secret.sh ${WORKSPACE}/create_oci_config_secret.sh
-                        chmod +x ${WORKSPACE}/create_oci_config_secret.sh
-                        if [ "${params.OCI_DNS_AUTH}" == "user_principal" ]; then
-                          OUTPUT_FILE="${WORKSPACE}/oci_config"
-                          echo "Creating OCI config files"
-                          echo "[DEFAULT]" > $OUTPUT_FILE
-                          echo "region=${OCI_CLI_REGION}" >> $OUTPUT_FILE
-                          echo "tenancy=${OCI_CLI_TENANCY}" >> $OUTPUT_FILE
-                          echo "user=${OCI_CLI_USER}" >> $OUTPUT_FILE
-                          echo "fingerprint=${OCI_CLI_FINGERPRINT}" >> $OUTPUT_FILE
-                          echo "key_file=$KEY_FILE" >> $OUTPUT_FILE
-                          cat ${OCI_CLI_KEY_FILE} > $KEY_FILE
-                          echo "Creating the secret with auth_type user_principal"
-                          ${WORKSPACE}/create_oci_config_secret.sh -o ${OUTPUT_FILE}
-                        else
-                          echo "Creating the secret with auth_type instance_principal"
-                          ${WORKSPACE}/create_oci_config_secret.sh -a instance_principal
-                        fi
-                    """
-                }
-            }
-            post {
-                always {
-                    sh """
-                        rm -f $OUTPUT_FILE $KEY_FILE
+                        ${WORKSPACE}/tests/e2e/config/scripts/create-test-oci-config-secret.sh
                     """
                 }
             }
