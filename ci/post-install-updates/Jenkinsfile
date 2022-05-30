@@ -104,6 +104,10 @@ pipeline {
             description: 'This is the full git commit hash from the source build to be used for all jobs',
             defaultValue: 'NONE',
             trim: true)
+        string (name: 'CONSOLE_REPO_BRANCH',
+                defaultValue: '',
+                description: 'The branch to check out after cloning the console repository.',
+                trim: true)
         booleanParam (
             name: 'CREATE_CLUSTER_USE_CALICO', 
             description: 'Whether to create the cluster with Calico for AT testing', 
@@ -784,9 +788,12 @@ def runGinkgo(testSuitePath, dumpDir = '', kubeconfig = '') {
     }
 }
 
-def runGinkgoFailFast(testSuitePath) {
+def runGinkgoFailFast(testSuitePath, dumpDir = '') {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
+            if [! -z "${dumpDir}" ]; then
+                export DUMP_DIRECTORY=${dumpDir}
+            fi 
             cd ${WORKSPACE}/tests/e2e
             ginkgo -v --fail-fast --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
@@ -1009,90 +1016,57 @@ def runVerrazzanoAcceptanceTests() {
     return [
         'metrics': stage('metrics') {
             steps {
-                script {
-                    runGinkgo('metrics/syscomponents')
-                }
+                runGinkgo('metrics/syscomponents', "${TEST_DUMP_ROOT}/syscomponents-metrics")
             }
         },
         'restapi': stage('restapi') {
             steps {
-                script {
-                    runGinkgo('verify-infra/restapi')
-                }
+                runGinkgo('verify-infra/restapi', "${TEST_DUMP_ROOT}/restapi-infra")
             }
         },
         'vmi': stage('vmi') {
             steps {
-                script {
-                    runGinkgo('verify-infra/vmi')
-                }
+                runGinkgo('verify-infra/vmi', "${TEST_DUMP_ROOT}/vmi-infra")
             }
         },
         'oam': stage('oam') {
             steps {
-                script {
-                    runGinkgo('verify-infra/oam')
-                }
+                runGinkgo('verify-infra/oam', "${TEST_DUMP_ROOT}/oam-infra")
             }
         },
         'system-logging': stage('system-logging') {
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-logging"
-            }
             steps {
-                runGinkgo('logging/system')
+                runGinkgo('logging/system', "${TEST_DUMP_ROOT}/system-logging")
             }
         },
         'istio-authorization-policy': stage('istio-authorization-policy') {
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-istio-auth-policy"
-            }
             steps {
-                runGinkgo('istio/authz')
+                runGinkgo('istio/authz', "${TEST_DUMP_ROOT}/examples-istio-auth-policy")
             }
         },
         'security-role-based-access': stage('security-role-based-access') {
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-rbac"
-            }
             steps {
-                runGinkgo('security/rbac')
+                runGinkgo('security/rbac', "${TEST_DUMP_ROOT}/examples-rbac")
             }
         },
         'WebLogic-logging': stage('WebLogic-logging') {
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-logging"
-            }
             steps {
-                script {
-                    runGinkgoFailFast('logging/weblogic')
-                }
+                runGinkgoFailFast('logging/weblogic', "${TEST_DUMP_ROOT}/weblogic-logging")
             }
         },
         'helidon-workload': stage('helidon-workload') {
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/helidon-workload"
-            }
             steps {
-                script {
-                    runGinkgoFailFast('examples/helidon')
-                }
+                runGinkgoFailFast('examples/helidon', "${TEST_DUMP_ROOT}/helidon-workload")
             }
         },
         'weblogic-workload': stage('weblogic-workload') {
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
-            }
             steps {
-                runGinkgoFailFast('workloads/weblogic')
+                runGinkgoFailFast('workloads/weblogic', "${TEST_DUMP_ROOT}/weblogic-workload")
             }
         },
         'coherence-workload': stage('coherence-workload') {
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
-            }
             steps {
-                runGinkgoFailFast('workloads/coherence')
+                runGinkgoFailFast('workloads/coherence', "${TEST_DUMP_ROOT}/coherence-workload")
             }
         }
     ]
