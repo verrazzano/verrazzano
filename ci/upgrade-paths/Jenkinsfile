@@ -522,19 +522,14 @@ pipeline {
             stages {
                 stage('Post-upgrade Acceptance Tests parallel') {
                     parallel {
-                        stage("Validate BOM") {
+                        stage("Validate BOM : Admin and Managed") {
                             when {
                                 allOf {
                                     expression{params.RUN_BOM_VALIDATOR == true}
                                 }
                             }
-                            environment {
-                                OCI_CLI_AUTH="instance_principal"
-                                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                                OCI_OS_BUCKET="verrazzano-builds"
-                            }
                             steps {
-                                executeBOMValidatorAdmin()
+                                executeBomValidator()
                             }
                         }
                         stage ('Console') {
@@ -1419,15 +1414,39 @@ def createOKEClusters(clusterPrefix) {
     }
 }
 
-// Execute bom-validator against admin cluster
-def executeBOMValidatorAdmin() {
+// execute bom validation against admin and managed cluster
+def executeBomValidator() {
+    script {
+        getBomValidatorFile()
+        def validateBomStages = createClusterExecutionsMap()
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        validateBomStages["validate bom vz-admin"] = validateBom(1)
+        for(int count=2; count<=clusterCount; count++) {
+            validateBomStages["validate bom vz-mgd-${count-1}"] = validateBom(count)
+        }
+        parallel validateBomStages
+    }
+}
+
+// download the bom validator executable file
+def getBomValidatorFile() {
     script {
         sh """
             oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
             chmod +x ${WORKSPACE}/bom-validator
-            export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
-            ${WORKSPACE}/bom-validator
         """
+    }
+}
+
+// validate bom-validator against a cluster
+def validateBom(count) {
+    return {
+        script {
+            sh """
+                export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                ${WORKSPACE}/bom-validator
+            """
+        }
     }
 }
 
@@ -1863,7 +1882,7 @@ def runConsoleTests() {
         export CONSOLE_APP_CLUSTER="managed1"
         export CONSOLE_APP_COMP="${SAMPLE_APP_COMPONENT}"
         KUBECONFIG=${ADMIN_KUBECONFIG} RUN_APP_TESTS=true ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh
-   """
+    """
 }
 
 def emitJobMetrics() {
