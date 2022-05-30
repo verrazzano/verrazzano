@@ -162,6 +162,11 @@ func ScrapeTargets() ([]interface{}, error) {
 		return nil, err
 	}
 
+	return ScrapeTargetsInCluster(kubeconfigPath)
+}
+
+// ScrapeTargetsInCluster queries Prometheus API /api/v1/targets to list scrape targets
+func ScrapeTargetsInCluster(kubeconfigPath string) ([]interface{}, error) {
 	metricsURL := fmt.Sprintf("https://%s/api/v1/targets", getPrometheusIngressHost(kubeconfigPath))
 	password, err := GetVerrazzanoPasswordInCluster(kubeconfigPath)
 	if err != nil {

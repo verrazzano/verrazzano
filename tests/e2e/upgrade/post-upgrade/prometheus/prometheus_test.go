@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -43,7 +44,8 @@ const (
 )
 
 var expectedPodsDeploymetricsApp = []string{"deploymetrics-workload"}
-
+var adminKubeConfig string
+var isManagedClusterProfile bool
 var t = framework.NewTestFramework("prometheus")
 
 var _ = t.BeforeSuite(func() {
@@ -56,10 +58,22 @@ var _ = t.BeforeSuite(func() {
 	if !supported {
 		Skip("Prometheus component is not enabled")
 	}
+	var present bool
+	adminKubeConfig, present = os.LookupEnv("ADMIN_KUBECONFIG")
+	isManagedClusterProfile = pkg.IsManagedClusterProfile()
+	if isManagedClusterProfile {
+		if !present {
+			Fail(fmt.Sprintln("Environment variable ADMIN_KUBECONFIG is required to run the test"))
+		}
+	} else {
+		adminKubeConfig = kubeconfigPath
+	}
 })
 
 var _ = t.AfterSuite(func() {
-	undeployMetricsApplication()
+	if !isManagedClusterProfile {
+		undeployMetricsApplication()
+	}
 })
 
 var _ = t.Describe("Post upgrade Prometheus", Label("f:observability.logging.es"), func() {
@@ -69,7 +83,8 @@ var _ = t.Describe("Post upgrade Prometheus", Label("f:observability.logging.es"
 	// THEN verify that the metric could be retrieved.
 	t.It("Verify sample NGINX metrics can be queried from Prometheus", func() {
 		Eventually(func() bool {
-			return pkg.MetricsExist(ingressControllerSuccess, controllerNamespace, ingressNginxNamespace)
+			return pkg.MetricsExistInCluster(ingressControllerSuccess,
+				map[string]string{controllerNamespace: ingressNginxNamespace}, adminKubeConfig)
 		}).WithPolling(pollingInterval).WithTimeout(longTimeout).Should(BeTrue())
 	})
 
@@ -78,7 +93,8 @@ var _ = t.Describe("Post upgrade Prometheus", Label("f:observability.logging.es"
 	// THEN verify that the metric could be retrieved.
 	t.It("Verify sample Container Advisor metrics can be queried from Prometheus", func() {
 		Eventually(func() bool {
-			return pkg.MetricsExist(containerStartTimeSeconds, job, cadvisor)
+			return pkg.MetricsExistInCluster(containerStartTimeSeconds,
+				map[string]string{job: cadvisor}, adminKubeConfig)
 		}).WithPolling(pollingInterval).WithTimeout(longTimeout).Should(BeTrue())
 	})
 
@@ -87,7 +103,8 @@ var _ = t.Describe("Post upgrade Prometheus", Label("f:observability.logging.es"
 	// THEN verify that the metric could be retrieved.
 	t.It("Verify sample Node Exporter metrics can be queried from Prometheus", func() {
 		Eventually(func() bool {
-			return pkg.MetricsExist(cpuSecondsTotal, job, nodeExporter)
+			return pkg.MetricsExistInCluster(cpuSecondsTotal,
+				map[string]string{job: nodeExporter}, adminKubeConfig)
 		}).WithPolling(pollingInterval).WithTimeout(longTimeout).Should(BeTrue())
 	})
 

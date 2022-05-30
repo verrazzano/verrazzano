@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	v1 "k8s.io/api/core/v1"
+	"os"
 	"strings"
 	"time"
 
@@ -43,6 +44,8 @@ const (
 )
 
 var expectedPodsDeploymetricsApp = []string{"deploymetrics-workload"}
+var adminKubeConfig string
+var isManagedClusterProfile bool
 
 var t = framework.NewTestFramework("prometheus")
 
@@ -56,7 +59,17 @@ var _ = t.BeforeSuite(func() {
 	if !supported {
 		Skip("Prometheus component is not enabled")
 	}
-	deployMetricsApplication()
+	var present bool
+	adminKubeConfig, present = os.LookupEnv("ADMIN_KUBECONFIG")
+	isManagedClusterProfile = pkg.IsManagedClusterProfile()
+	if isManagedClusterProfile {
+		if !present {
+			Fail(fmt.Sprintln("Environment variable ADMIN_KUBECONFIG is required to run the test"))
+		}
+	} else {
+		adminKubeConfig = kubeconfigPath
+		deployMetricsApplication()
+	}
 })
 
 var _ = t.Describe("Pre upgrade Prometheus", Label("f:observability.logging.es"), func() {
@@ -66,7 +79,7 @@ var _ = t.Describe("Pre upgrade Prometheus", Label("f:observability.logging.es")
 	// THEN verify that the scrape config is created correctly
 	It("Scrape targets can be listed and there is at least 1 scrape target", func() {
 		Eventually(func() bool {
-			scrapeTargets, err := pkg.ScrapeTargets()
+			scrapeTargets, err := pkg.ScrapeTargetsInCluster(adminKubeConfig)
 			if err != nil {
 				pkg.Log(pkg.Error, err.Error())
 				return false
@@ -81,7 +94,8 @@ var _ = t.Describe("Pre upgrade Prometheus", Label("f:observability.logging.es")
 	// THEN verify that the metric could be retrieved.
 	t.It("Verify sample NGINX metrics can be queried from Prometheus", func() {
 		Eventually(func() bool {
-			return pkg.MetricsExist(ingressControllerSuccess, controllerNamespace, ingressNginxNamespace)
+			return pkg.MetricsExistInCluster(ingressControllerSuccess,
+				map[string]string{controllerNamespace: ingressNginxNamespace}, adminKubeConfig)
 		}).WithPolling(pollingInterval).WithTimeout(longTimeout).Should(BeTrue())
 	})
 
@@ -99,7 +113,8 @@ var _ = t.Describe("Pre upgrade Prometheus", Label("f:observability.logging.es")
 	// THEN verify that the metric could be retrieved.
 	t.It("Verify sample Node Exporter metrics can be queried from Prometheus", func() {
 		Eventually(func() bool {
-			return pkg.MetricsExist(cpuSecondsTotal, job, nodeExporter)
+			return pkg.MetricsExistInCluster(cpuSecondsTotal,
+				map[string]string{job: nodeExporter}, adminKubeConfig)
 		}).WithPolling(pollingInterval).WithTimeout(longTimeout).Should(BeTrue())
 	})
 
@@ -108,7 +123,8 @@ var _ = t.Describe("Pre upgrade Prometheus", Label("f:observability.logging.es")
 	// THEN verify that the metric is persisted in the prometheus time series DB.
 	It("Validate if the test metric created by the test OAM deployment exists", func() {
 		Eventually(func() bool {
-			return pkg.MetricsExist(testMetricName, testMetricLabelKey, testMetricLabelValue)
+			return pkg.MetricsExistInCluster(testMetricName,
+				map[string]string{testMetricLabelKey: testMetricLabelValue}, adminKubeConfig)
 		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(),
 			"Expected to find test metrics created by application deploy with metrics trait")
 	})
@@ -122,7 +138,7 @@ func deployMetricsApplication() {
 			"verrazzano-managed": "true",
 			"istio-injection":    "true"}
 		ns, err := pkg.CreateNamespace(testNamespace, nsLabels)
-		if  err != nil && strings.Contains(err.Error(), "already exists") {
+		if err != nil && strings.Contains(err.Error(), "already exists") {
 			ns, _ = pkg.GetNamespace(testNamespace)
 			return ns
 		}
