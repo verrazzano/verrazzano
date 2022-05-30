@@ -369,9 +369,6 @@ pipeline {
                           echo "user=${OCI_CLI_USER}" >> $OUTPUT_FILE
                           echo "fingerprint=${OCI_CLI_FINGERPRINT}" >> $OUTPUT_FILE
                           echo "key_file=$KEY_FILE" >> $OUTPUT_FILE
-                          if [[ ! -z "${OCI_PRIVATE_KEY_PASSPHRASE}" ]]; then
-                            echo "pass_phrase=${OCI_PRIVATE_KEY_PASSPHRASE}" >> $OUTPUT_FILE
-                          fi
                           cat ${OCI_CLI_KEY_FILE} > $KEY_FILE
                           echo "Creating the secret with auth_type user_principal"
                           ${WORKSPACE}/create_oci_config_secret.sh -o ${OUTPUT_FILE}
