@@ -43,7 +43,7 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().StringSliceP(constants.FilenameFlag, constants.FilenameFlagShorthand, []string{}, constants.FilenameFlagHelp)
 	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an upgrade.")
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogsFlag, constants.LogsFlagHelp)
-	cmd.PersistentFlags().StringArray(constants.SetFlag, []string{}, constants.SetFlagHelp)
+	cmd.PersistentFlags().StringArrayP(constants.SetFlag, constants.SetFlagShorthand, []string{}, constants.SetFlagHelp)
 
 	// Initially the operator-file flag may be for internal use, hide from help until
 	// a decision is made on supporting this option.
