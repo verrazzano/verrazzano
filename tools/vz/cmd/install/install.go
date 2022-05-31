@@ -18,11 +18,11 @@ const (
 	helpShort   = "Install Verrazzano"
 	helpLong    = `Install the Verrazzano Platform Operator and install the Verrazzano components specified by the Verrazzano CR provided on the command line.`
 	helpExample = `
-# Install the latest version of Verrazzano using the dev profile. Stream the logs to the console until the install completes.
+# Install the latest version of Verrazzano using the prod profile. Stream the logs to the console until the install completes.
 vz install --logs
 
-# Install version 1.3.0 using a prod profile, timeout the command after 20 minutes.
-vz install --version v1.3.0 --set profile=prod --wait --timeout 20m
+# Install version 1.3.0 using a dev profile, timeout the command after 20 minutes.
+vz install --version v1.3.0 --set profile=dev --wait --timeout 20m
 
 # Install version 1.3.0 using a dev profile with elasticsearch disabled and wait for the install to complete.
 vz install --version v1.3.0 --set profile=dev --set components.elasticsearch.enabled=false --wait
@@ -34,7 +34,7 @@ vz install -f base.yaml -f custom.yaml --set profile=prod --logs
 vz install --version v1.3.0 --dry-run`
 )
 
-var logsEnum = cmdhelpers.LogsFormatPretty
+var logsEnum = cmdhelpers.LogsFormatSimple
 
 func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)

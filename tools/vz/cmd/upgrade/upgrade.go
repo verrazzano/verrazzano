@@ -28,7 +28,7 @@ vz upgrade --version v1.3.0 --logs
 vz upgrade --version v1.3.0 -f update.yaml --wait`
 )
 
-var logsEnum = cmdhelpers.LogsFormatPretty
+var logsEnum = cmdhelpers.LogsFormatSimple
 
 func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)

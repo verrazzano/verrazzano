@@ -14,23 +14,23 @@ import (
 )
 
 const (
-	CommandName   = "uninstall"
-	purgeFlag     = "purge"
-	purgeFlagHelp = "Completely remove all resources including cluster-wide resources from cluster."
-	helpShort     = "Uninstall Verrazzano"
-	helpLong      = `Uninstall the Verrazzano Platform Operator and all of the currently installed components.`
-	helpExample   = `
+	CommandName  = "uninstall"
+	crdsFlag     = "crds"
+	crdsFlagHelp = "Completely remove all CRDs that were installed by Verrazzano."
+	helpShort    = "Uninstall Verrazzano"
+	helpLong     = `Uninstall the Verrazzano Platform Operator and all of the currently installed components.`
+	helpExample  = `
 # Uninstall Verrazzano except for CRDs and stream the logs to the console.
 vz uninstall --logs
 
 # Uninstall Verrazzano including the CRDs and wait for the command to complete.
-vz uninstall --purge --wait
+vz uninstall --crds --wait
 
 # Do a dry run of uninstalling Verrazzano.
 vz uninstall --dry-run`
 )
 
-var logsEnum = cmdhelpers.LogsFormatPretty
+var logsEnum = cmdhelpers.LogsFormatSimple
 
 func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
@@ -43,7 +43,7 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*30, constants.TimeoutFlagHelp)
 	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an uninstall.")
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogsFlag, constants.LogsFlagHelp)
-	cmd.PersistentFlags().Bool(purgeFlag, false, purgeFlagHelp)
+	cmd.PersistentFlags().Bool(crdsFlag, false, crdsFlagHelp)
 
 	return cmd
 }

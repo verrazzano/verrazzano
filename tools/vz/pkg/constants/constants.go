@@ -34,7 +34,7 @@ const (
 	OperatorFileFlagHelp = "The path to the file for installing the Verrazzano platform operator. The default is derived from the version string."
 
 	LogsFlag     = "logs"
-	LogsFlagHelp = "Print the logs until the command completes. Valid output formats are \"pretty\" and \"json\"."
+	LogsFlagHelp = "Print the logs until the command completes. Valid output formats are \"simple\" and \"json\"."
 
 	FilenameFlag          = "filename"
 	FilenameFlagShorthand = "f"

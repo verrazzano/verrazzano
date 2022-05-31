@@ -8,7 +8,7 @@ import "fmt"
 type LogsFormat string
 
 const (
-	LogsFormatPretty LogsFormat = "pretty"
+	LogsFormatSimple LogsFormat = "simple"
 	LogsFormatJSON   LogsFormat = "json"
 )
 
@@ -26,10 +26,10 @@ func (lf *LogsFormat) Type() string {
 // Set must have pointer receiver so it doesn't change the value of a copy
 func (lf *LogsFormat) Set(value string) error {
 	switch value {
-	case string(LogsFormatJSON), string(LogsFormatPretty):
+	case string(LogsFormatJSON), string(LogsFormatSimple):
 		*lf = LogsFormat(value)
 		return nil
 	default:
-		return fmt.Errorf("allowed values are %q and %q", string(LogsFormatPretty), string(LogsFormatJSON))
+		return fmt.Errorf("allowed values are %q and %q", string(LogsFormatSimple), string(LogsFormatJSON))
 	}
 }
