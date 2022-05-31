@@ -86,12 +86,6 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(ctx context.Context, req 
 		return newRequeueWithDelay(), nil
 	}
 
-	// Never return an error since it has already been logged and we don't want the
-	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
-	if err != nil {
-		return newRequeueWithDelay(), nil
-	}
-
 	// The resource has been reconciled.
 	log.Oncef("Successfully reconciled VerrazzanoManagedCluster resource %v", req.NamespacedName)
 

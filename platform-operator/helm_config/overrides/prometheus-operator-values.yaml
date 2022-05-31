@@ -9,6 +9,11 @@ kubeStateMetrics:
   enabled: false
 prometheus:
   enabled: true
+  prometheusSpec:
+    additionalScrapeConfigsSecret:
+      enabled: true
+      name: additional-scrape-configs
+      key: jobs
 alertmanager:
   enabled: false
 prometheusOperator:
