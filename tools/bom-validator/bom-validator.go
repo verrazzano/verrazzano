@@ -16,7 +16,6 @@ import (
 )
 
 const (
-	tagLen                              = 10                             // The number of unique tags for a specific image
 	platformOperatorPodNameSearchString = "verrazzano-platform-operator" // Pod Substring for finding the platform operator pod
 	oracleLinuxWarningMessage           = "See case-03/04 of VZ-5962, generalisations of bom validator"
 	rancherWarningMessage               = "See VZ-5937, Rancher upgrade issue, all VZ versions" // For known Rancher issues with VZ upgrade
@@ -50,7 +49,7 @@ type verrazzanoBom struct {
 // Capture Tags for artifact, 1 from BOM, All from images in cluster
 type imageError struct {
 	bomImageTag      string
-	clusterImageTags [tagLen]string
+	clusterImageTags []string
 }
 
 var (
@@ -81,7 +80,8 @@ var knownImageIssues = map[string]knownIssues{
 
 func main() {
 	var vBom verrazzanoBom                                // BOM from platform operator in struct form
-	var imagesInstalled = make(map[string][tagLen]string) // Map that contains the images installed into the cluster with associated set of tags
+	var imagesInstalled = make(map[string][]string) // Map that contains the images installed into the cluster with associated set of tags
+	var containersInstalled =  make(map[string]bool)
 	var imageTagErrors = make(map[string]imageError)      // Map of image names that match but tags don't  Failure Condition
 	var imagesNotFound = make(map[string]string)          // Map of image names not found in cluster. Informational.  This may be valid based on profile
 	var imageWarnings = make(map[string]string)           // Map of image names not found in cluster. Informational.  This may be valid based on profile
@@ -95,17 +95,19 @@ func main() {
 	// Get the BOM from installed Platform Operator
 	getBOM(&vBom)
 
+	populateMapWithBomImages(&vBom,containersInstalled, imagesInstalled)
+
 	// Get the container images in the cluster
-	populateMapWithContainerImages(imagesInstalled)
+	populateMapWithContainerImages(imagesInstalled, containersInstalled, imagesNotFound, imageTagErrors, imageWarnings)
 
 	// Get the initContainer images in the cluster
-	populateMapWithInitContainerImages(imagesInstalled)
+	populateMapWithInitContainerImages(imagesInstalled, containersInstalled, imagesNotFound, imageTagErrors, imageWarnings)
 
 	//  Loop through BOM and check against cluster images
-	passedValidation := validateBOM(&vBom, imagesInstalled, imagesNotFound, imageTagErrors, imageWarnings)
+	//passedValidation := validateBOM(&vBom, imagesInstalled, containersInstalled, imagesNotFound, imageTagErrors, imageWarnings)
 
 	// Write to stdout
-	reportResults(imagesNotFound, imageTagErrors, imageWarnings, passedValidation)
+	passedValidation := reportResults(imagesNotFound, imageTagErrors, imageWarnings)
 
 	// Failure
 	if !passedValidation {
@@ -157,13 +159,23 @@ func getBOM(vBom *verrazzanoBom) {
 	if len(string(out)) == 0 {
 		log.Fatal("Error retrieving BOM from platform operator, zero length\n")
 	}
-
 	json.Unmarshal(out, &vBom)
+}
 
+func populateMapWithBomImages(vBom *verrazzanoBom, clusterContainerMap map[string]bool, clusterImageMap map[string][]string) {
+	for _, component := range vBom.Components {
+		for _, subcomponent := range component.Subcomponents {
+			for _, image := range subcomponent.Images {
+				clusterContainerMap[image.Image+":"+image.Tag] = true
+				clusterImageMap[image.Image] = append(clusterImageMap[image.Image], image.Tag)
+			}
+		}
+	}
 }
 
 // Populate a HashMap with all the container images found in the cluster
-func populateMapWithContainerImages(clusterImageMap map[string][tagLen]string) {
+func populateMapWithContainerImages(clusterImageMap map[string][]string, clusterContainerMap map[string]bool, imagesNotFound map[string]string,
+	imageTagErrors map[string]imageError, imageWarnings map[string]string) {
 	out, err := exec.Command("kubectl", "get", "pods", "--all-namespaces", "-o", "jsonpath=\"{.items[*].spec.containers[*].image}\"").Output()
 	if err != nil {
 		log.Fatal(err)
@@ -171,11 +183,12 @@ func populateMapWithContainerImages(clusterImageMap map[string][tagLen]string) {
 
 	containerImages := string(out)
 	containerArray := strings.Split(containerImages, " ")
-	populateClusterImageMap(containerArray, clusterImageMap)
+	validateBomImages(containerArray, clusterImageMap, clusterContainerMap,imagesNotFound,imageTagErrors,imageWarnings)
 }
 
 //  Populate a HashMap with all the initContainer images found in the cluster
-func populateMapWithInitContainerImages(clusterImageMap map[string][tagLen]string) {
+func populateMapWithInitContainerImages(clusterImageMap map[string][]string, clusterContainerMap map[string]bool, imagesNotFound map[string]string,
+	imageTagErrors map[string]imageError, imageWarnings map[string]string) {
 	out, err := exec.Command("kubectl", "get", "pods", "--all-namespaces", "-o", "jsonpath=\"{.items[*].spec.initContainers[*].image}\"").Output()
 	if err != nil {
 		log.Fatal(err)
@@ -183,7 +196,7 @@ func populateMapWithInitContainerImages(clusterImageMap map[string][tagLen]strin
 
 	initContainerImages := string(out)
 	initContainerArray := strings.Split(initContainerImages, " ")
-	populateClusterImageMap(initContainerArray, clusterImageMap)
+	validateBomImages(initContainerArray, clusterImageMap, clusterContainerMap,imagesNotFound,imageTagErrors,imageWarnings)
 }
 
 // Validate the images in the BOM against the images found in the cluster
@@ -191,8 +204,9 @@ func populateMapWithInitContainerImages(clusterImageMap map[string][tagLen]strin
 //    Valid, Tags match
 //    Not Found, OK based on profile
 //    InValid, image tags between BOM and cluster image do not match
-func validateBOM(vBom *verrazzanoBom, clusterImageMap map[string][10]string, imagesNotFound map[string]string,
+func validateBOM(vBom *verrazzanoBom, clusterImageMap map[string][]string, containersInstalled map[string]bool, imagesNotFound map[string]string,
 	imageTagErrors map[string]imageError, imageWarnings map[string]string) bool {
+
 	var errorsFound = false
 	for _, component := range vBom.Components {
 		for _, subcomponent := range component.Subcomponents {
@@ -210,7 +224,7 @@ func validateBOM(vBom *verrazzanoBom, clusterImageMap map[string][10]string, ima
 }
 
 // checkImageTags - compares the image tags in the cluster with what's in the BOM, and against any known issues; returns true if any errors are found
-func checkImageTags(clusterImageMap map[string][10]string, image imageDetails, imageWarnings map[string]string,
+func checkImageTags(clusterImageMap map[string][]string, image imageDetails, imageWarnings map[string]string,
 	imageTagErrors map[string]imageError, errorsFound bool, imagesNotFound map[string]string) bool {
 	if tags, ok := clusterImageMap[image.Image]; ok {
 		var tagFound = false
@@ -251,7 +265,7 @@ func ignoreSubComponent(name string) bool {
 // Report out the findings
 // ImagesNotFound is informational
 // imageTagErrors is a failure condition
-func reportResults(imagesNotFound map[string]string, imageTagErrors map[string]imageError, warnings map[string]string, passedValidation bool) {
+func reportResults(imagesNotFound map[string]string, imageTagErrors map[string]imageError, warnings map[string]string) bool{
 	// Dump Images Not Found to Console, Informational
 	const textDivider = "----------------------------------------"
 
@@ -271,38 +285,44 @@ func reportResults(imagesNotFound map[string]string, imageTagErrors map[string]i
 	}
 	fmt.Println()
 	// Dump Images that don't match BOM, Failure
-	if !passedValidation {
-		fmt.Println("Image Errors: BOM Images that don't match Cluster Images")
-		fmt.Println(textDivider)
-		for name, tags := range imageTagErrors {
-			fmt.Printf("Check failed! Image Name = %s, Tag from BOM = %s  Tag from Cluster = %v\n", name, tags.bomImageTag, tags.clusterImageTags)
-		}
+	fmt.Println("Image Errors: BOM Images that don't match Cluster Images")
+	fmt.Println(textDivider)
+	for name, tags := range imageTagErrors {
+		fmt.Printf("Check failed! Image Name = %s, Tag from BOM = %s  Tag from Cluster = %v\n", name, tags.bomImageTag, tags.clusterImageTags)
 	}
+	if len(imageTagErrors) > 0 {
+		return true
+	}
+	return false
 }
 
 // Build out the cluster image map based off of the container array, filter dups
-func populateClusterImageMap(containerArray []string, clusterImageMap map[string][tagLen]string) {
-	// Loop through containers and populate hashmap
-	var i int
+func validateBomImages(containerArray []string, clusterImageMap map[string][]string, clusterContainerMap map[string]bool, imagesNotFound map[string]string,
+	imageTagErrors map[string]imageError, imageWarnings map[string]string) {
 	for _, container := range containerArray {
 		begin := strings.LastIndex(container, "/")
 		end := len(container)
 		containerName := container[begin+1 : end]
 		nameTag := strings.Split(containerName, ":")
-		tags := clusterImageMap[nameTag[0]]
-		for i = 0; i < len(tags); i++ {
-			if tags[i] == nameTag[1] {
-				break
-			}
-			if tags[i] == "" {
-				tags[i] = nameTag[1]
-				clusterImageMap[nameTag[0]] = tags
-				break
-			}
+
+		if _, ok := clusterImageMap[nameTag[0]]; !ok {
+			// cluster's image not found into bom
+			imagesNotFound[nameTag[0]] = nameTag[1]
+			continue
 		}
-		// Notify that the tag array for a specific image has maxed out.  This should not happen.  There should not be a Verrazzano installed image that has more than 10(taglen) distinct tags
-		if i == tagLen {
-			fmt.Printf("Tag Limit Exceeded! More than 10 tags exist for Image Name = %s, Tags from Cluster = %+v\n", nameTag[0], tags)
+		// Check if the image/tag in the cluster is known to have issues
+		imageWarning, hasKnownIssues := knownImageIssues[nameTag[0]]
+		if hasKnownIssues && vzstring.SliceContainsString(imageWarning.alternateTags, nameTag[1]) {
+			imageWarnings[nameTag[0]] = fmt.Sprintf("Known issue for image %s, found tag %s, expected tag %s message: %s",
+				nameTag[0], nameTag[1], clusterImageMap[nameTag[0]], imageWarning.message)
+			continue
+		}
+
+		if !clusterContainerMap[containerName] {
+			// cluster's image found into bom
+			// cluster's image:tag not found into bom
+			imageTagErrors[nameTag[0]] = imageError{nameTag[1], clusterImageMap[nameTag[0]]}
+			continue
 		}
 	}
 }
