@@ -110,21 +110,18 @@ func (r *Reconciler) createServiceMonitorEndpoint(ctx context.Context, trait *vz
 	// Add the secret username and password if basic auth is required for this endpoint
 	// The secret has to exist in the workload and namespace
 	if secret != nil {
-		trueVal := true
 		endpoint.BasicAuth = &promoperapi.BasicAuth{
 			Username: k8score.SecretKeySelector{
 				LocalObjectReference: k8score.LocalObjectReference{
 					Name: secret.Name,
 				},
-				Key:      "username",
-				Optional: &trueVal,
+				Key: "username",
 			},
 			Password: k8score.SecretKeySelector{
 				LocalObjectReference: k8score.LocalObjectReference{
 					Name: secret.Name,
 				},
-				Key:      "password",
-				Optional: &trueVal,
+				Key: "password",
 			},
 		}
 	}
