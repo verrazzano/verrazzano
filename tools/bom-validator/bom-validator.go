@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	platformOperatorPodNameSearchString = "verrazzano-platform-operator" // Pod Substring for finding the platform operator pod
+	platformOperatorPodNameSearchString = "verrazzano-platform-operator"                        // Pod Substring for finding the platform operator pod
 	rancherWarningMessage               = "See VZ-5937, Rancher upgrade issue, all VZ versions" // For known Rancher issues with VZ upgrade
 	imageMissingMessage                 = "cluster image is not mentioned into vz bom"
 )
@@ -49,7 +49,7 @@ type verrazzanoBom struct {
 // Capture Tags for artifact, 1 from BOM, All from images in cluster
 type imageError struct {
 	clusterImageTag string
-	bomImageTags []string
+	bomImageTags    []string
 }
 
 var (
@@ -71,29 +71,29 @@ type knownIssues struct {
 // Mainly a workaround for Rancher additional images; Rancher does not always update to the latest version
 // in the BOM file, possible Rancher bug that we are pursuing with the Rancher team
 var knownImageIssues = map[string]knownIssues{
-	"rancher-webhook": {alternateTags: []string{"v0.1.1", "v0.1.2", "v0.1.4"}, message: rancherWarningMessage},
-	"fleet-agent":     {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
-	"fleet":           {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
-	"gitjob":          {alternateTags: []string{"v0.1.15"}, message: rancherWarningMessage},
-	"coredns":     	   {alternateTags: []string{"v1.8.0"}, message: imageMissingMessage},
-	"kindnetd":        {alternateTags: []string{"v20210326-1e038dc5"}, message: imageMissingMessage},
-	"kube-apiserver":  {alternateTags: []string{"v1.21.1"}, message: imageMissingMessage},
-	"kube-controller-manager":     {alternateTags: []string{"v1.21.1"}, message: imageMissingMessage},
-	"kube-scheduler":     {alternateTags: []string{"v1.21.1"}, message: imageMissingMessage},
-	"controller":     {alternateTags: []string{"v0.11.0"}, message: imageMissingMessage},
-	"speaker":     {alternateTags: []string{"v0.11.0"}, message: imageMissingMessage},
-	"etcd":     {alternateTags: []string{"3.4.13-0"}, message: imageMissingMessage},
-	"kube-proxy":     {alternateTags: []string{"v1.21.1"}, message: imageMissingMessage},
-	"example-helidon-greet-app-v1":     {alternateTags: []string{"1.0.0-1-20210728181814-eb1e622"}, message: imageMissingMessage},
+	"rancher-webhook":              {alternateTags: []string{"v0.1.1", "v0.1.2", "v0.1.4"}, message: rancherWarningMessage},
+	"fleet-agent":                  {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
+	"fleet":                        {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
+	"gitjob":                       {alternateTags: []string{"v0.1.15"}, message: rancherWarningMessage},
+	"coredns":                      {alternateTags: []string{"v1.8.0"}, message: imageMissingMessage},
+	"kindnetd":                     {alternateTags: []string{"v20210326-1e038dc5"}, message: imageMissingMessage},
+	"kube-apiserver":               {alternateTags: []string{"v1.21.1"}, message: imageMissingMessage},
+	"kube-controller-manager":      {alternateTags: []string{"v1.21.1"}, message: imageMissingMessage},
+	"kube-scheduler":               {alternateTags: []string{"v1.21.1"}, message: imageMissingMessage},
+	"controller":                   {alternateTags: []string{"v0.11.0"}, message: imageMissingMessage},
+	"speaker":                      {alternateTags: []string{"v0.11.0"}, message: imageMissingMessage},
+	"etcd":                         {alternateTags: []string{"3.4.13-0"}, message: imageMissingMessage},
+	"kube-proxy":                   {alternateTags: []string{"v1.21.1"}, message: imageMissingMessage},
+	"example-helidon-greet-app-v1": {alternateTags: []string{"1.0.0-1-20210728181814-eb1e622"}, message: imageMissingMessage},
 }
 
 func main() {
-	var vBom verrazzanoBom                                       // BOM from platform operator in struct form
-	var bomImages = make(map[string][]string)                    // Map that contains the images mentioned into the bom with associated set of tags
-	var bomContainers =  make(map[string]bool)                   // Map that contains the containers mentioned into the bom
-	var clusterImageTagErrors = make(map[string]imageError)      // Map of cluster image match but tags doesn't match with bom, hence a Failure Condition
-	var clusterImagesNotFound = make(map[string]string)          // Map of cluster image doesn't match with bom, hence a Failure Condition
-	var clusterImageWarnings = make(map[string]string)           // Map of image names not found in cluster. Warning/ Known Issues/ Informational.  This may be valid based on profile
+	var vBom verrazzanoBom                                  // BOM from platform operator in struct form
+	var bomImages = make(map[string][]string)               // Map that contains the images mentioned into the bom with associated set of tags
+	var bomContainers = make(map[string]bool)               // Map that contains the containers mentioned into the bom
+	var clusterImageTagErrors = make(map[string]imageError) // Map of cluster image match but tags doesn't match with bom, hence a Failure Condition
+	var clusterImagesNotFound = make(map[string]string)     // Map of cluster image doesn't match with bom, hence a Failure Condition
+	var clusterImageWarnings = make(map[string]string)      // Map of image names not found in cluster. Warning/ Known Issues/ Informational.  This may be valid based on profile
 
 	// Validate KubeConfig
 	if !validateKubeConfig() {
@@ -105,7 +105,7 @@ func main() {
 	getBOM(&vBom)
 
 	// populate the bom's container images into map
-	populateBomContainerImagesMap(&vBom,bomContainers, bomImages)
+	populateBomContainerImagesMap(&vBom, bomContainers, bomImages)
 
 	// Validate the cluster's container images with the populated bom images and tags map
 	validateClusterContainerImages(bomImages, bomContainers, clusterImagesNotFound, clusterImageTagErrors, clusterImageWarnings)
@@ -191,9 +191,9 @@ func validateClusterContainerImages(bomImageMap map[string][]string, bomContaine
 		log.Fatal(err)
 	}
 
-	containerImages := strings.TrimSuffix(string(out),`"`)
+	containerImages := strings.TrimSuffix(string(out), `"`)
 	containerArray := strings.Split(containerImages, " ")
-	validateContainerImages(containerArray, bomImageMap, bomContainerMap,clusterImagesNotFound,clusterImageTagErrors,clusterImageWarnings)
+	validateContainerImages(containerArray, bomImageMap, bomContainerMap, clusterImagesNotFound, clusterImageTagErrors, clusterImageWarnings)
 }
 
 //  Populate a HashMap with all the initContainer images found in the cluster
@@ -204,9 +204,9 @@ func validateClusterInitContainerImages(bomImageMap map[string][]string, bomCont
 		log.Fatal(err)
 	}
 
-	initContainerImages := strings.TrimSuffix(string(out),`"`)
+	initContainerImages := strings.TrimSuffix(string(out), `"`)
 	initContainerArray := strings.Split(initContainerImages, " ")
-	validateContainerImages(initContainerArray, bomImageMap, bomContainerMap,clusterImagesNotFound,clusterImageTagErrors,clusterImageWarnings)
+	validateContainerImages(initContainerArray, bomImageMap, bomContainerMap, clusterImagesNotFound, clusterImageTagErrors, clusterImageWarnings)
 }
 
 // Report out the findings
