@@ -75,6 +75,14 @@ var knownImageIssues = map[string]knownIssues{
 	"fleet-agent":     {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
 	"fleet":           {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
 	"gitjob":          {alternateTags: []string{"v0.1.15"}, message: rancherWarningMessage},
+	"coredns":     	   {alternateTags: []string{"v1.8.0"}, message: oracleLinuxWarningMessage},
+	"kindnetd":        {alternateTags: []string{"v20210326-1e038dc5"}, message: oracleLinuxWarningMessage},
+	"kube-apiserver":  {alternateTags: []string{"v1.21.1"}, message: oracleLinuxWarningMessage},
+	"kube-controller-manager":     {alternateTags: []string{"v1.21.1"}, message: oracleLinuxWarningMessage},
+	"kube-scheduler":     {alternateTags: []string{"v1.21.1"}, message: oracleLinuxWarningMessage},
+	"controller":     {alternateTags: []string{"v0.11.0"}, message: oracleLinuxWarningMessage},
+	"speaker":     {alternateTags: []string{"v0.11.0"}, message: oracleLinuxWarningMessage},
+	"etcd":     {alternateTags: []string{"3.4.13-0"}, message: oracleLinuxWarningMessage},
 	"oraclelinux":     {alternateTags: []string{"7-slim", "7.9"}, message: oracleLinuxWarningMessage},
 }
 
@@ -308,11 +316,6 @@ func validateBomImages(containerArray []string, clusterImageMap map[string][]str
 		containerName := container[begin+1 : end]
 		nameTag := strings.Split(containerName, ":")
 
-		if _, ok := clusterImageMap[nameTag[0]]; !ok {
-			// cluster's image not found into bom
-			imagesNotFound[nameTag[0]] = nameTag[1]
-			continue
-		}
 		// Check if the image/tag in the cluster is known to have issues
 		imageWarning, hasKnownIssues := knownImageIssues[nameTag[0]]
 		if hasKnownIssues && vzstring.SliceContainsString(imageWarning.alternateTags, nameTag[1]) {
@@ -320,9 +323,16 @@ func validateBomImages(containerArray []string, clusterImageMap map[string][]str
 				nameTag[0], nameTag[1], clusterImageMap[nameTag[0]], imageWarning.message)
 			continue
 		}
-
+		// error scenarios,
+		// 1. if cluster's image not found into bom
+		if _, ok := clusterImageMap[nameTag[0]]; !ok {
+			// cluster's image not found into bom
+			imagesNotFound[nameTag[0]] = nameTag[1]
+			continue
+		}
+		// 2. if cluster's image's tag not found into bom
 		if !clusterContainerMap[containerName] {
-			// cluster's image found into bom
+			// cluster's image found into bom but,
 			// cluster's image:tag not found into bom
 			imageTagErrors[nameTag[0]] = imageError{nameTag[1], clusterImageMap[nameTag[0]]}
 		}
