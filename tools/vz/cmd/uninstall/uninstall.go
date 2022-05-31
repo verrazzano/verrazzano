@@ -36,9 +36,9 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 	}
 	cmd.Example = helpExample
 
-	cmd.PersistentFlags().Bool(constants.WaitFlag, false, constants.WaitFlagHelp)
+	cmd.PersistentFlags().Bool(constants.WaitFlag, constants.WaitFlagDefault, constants.WaitFlagHelp)
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*30, constants.TimeoutFlagHelp)
-	cmd.PersistentFlags().Var(&logsEnum, constants.LogsFlag, constants.LogsFlagHelp)
+	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
 	cmd.PersistentFlags().Bool(crdsFlag, false, crdsFlagHelp)
 
 	// Dry run flag is still being discussed - keep hidden for now
