@@ -4,10 +4,8 @@
 package prometheus
 
 import (
-	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/tests/e2e/upgrade/common"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -21,122 +19,47 @@ const (
 	pollingInterval = 10 * time.Second
 	longTimeout     = 10 * time.Minute
 
-	// Constants for sample metrics of system components validated by the test
-	ingressControllerSuccess  = "nginx_ingress_controller_success"
-	containerStartTimeSeconds = "container_start_time_seconds"
-	cpuSecondsTotal           = "node_cpu_seconds_total"
-
-	// Namespaces used for validating envoy stats
-	ingressNginxNamespace = "ingress-nginx"
-
-	// Constants for various metric labels, used in the validation
-	nodeExporter        = "node-exporter"
-	controllerNamespace = "controller_namespace"
-	job                 = "job"
-	cadvisor            = "cadvisor"
-
-	// Constants for test metric
-	testNamespace        = "deploymetrics"
-	testMetricName       = "tomcat_sessions_created_sessions_total"
-	testMetricLabelKey   = "app_oam_dev_component"
-	testMetricLabelValue = "deploymetrics-deployment"
-	promConfigJobName    = "deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment"
+	promConfigJobName = "deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment"
 )
 
-var expectedPodsDeploymetricsApp = []string{"deploymetrics-workload"}
 var adminKubeConfig string
-var isManagedClusterProfile bool
-var isMinVersion110 bool
-var clusterName = os.Getenv("CLUSTER_NAME")
 
 var t = framework.NewTestFramework("prometheus")
 
 var _ = t.BeforeSuite(func() {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-	}
-	supported := pkg.IsPrometheusEnabled(kubeconfigPath)
-	// Only run tests if Prometheus component is enabled in Verrazzano CR
-	if !supported {
-		Skip("Prometheus component is not enabled")
-	}
-	var present bool
-	adminKubeConfig, present = os.LookupEnv("ADMIN_KUBECONFIG")
-	isManagedClusterProfile = pkg.IsManagedClusterProfile()
-	if isManagedClusterProfile {
-		if !present {
-			Fail(fmt.Sprintln("Environment variable ADMIN_KUBECONFIG is required to run the test"))
-		}
-	} else {
-		adminKubeConfig = kubeconfigPath
-	}
-	isMinVersion110, err = pkg.IsVerrazzanoMinVersion("1.1.0", adminKubeConfig)
-	if err != nil {
-		Fail(err.Error())
-	}
+	common.SkipIfPrometheusDisabled()
+	adminKubeConfig = common.InitKubeConfigPath()
 })
 
 var _ = t.AfterSuite(func() {
 	undeployMetricsApplication()
 })
 
-var _ = t.Describe("Post upgrade Prometheus", Label("f:observability.logging.es"), func() {
+var _ = t.Describe("Post upgrade Prometheus", Label("f:observability.monitoring.prom"), func() {
 
 	// GIVEN a running Prometheus instance,
 	// WHEN a sample NGINX metric is queried,
 	// THEN verify that the metric could be retrieved.
-	t.It("Verify sample NGINX metrics can be queried from Prometheus", func() {
-		Eventually(func() bool {
-			return pkg.MetricsExistInCluster(ingressControllerSuccess,
-				map[string]string{controllerNamespace: ingressNginxNamespace}, adminKubeConfig)
-		}).WithPolling(pollingInterval).WithTimeout(longTimeout).Should(BeTrue())
-	})
+	t.It("Verify sample NGINX metrics can be queried from Prometheus",
+		common.VerifyNginxMetric(adminKubeConfig))
 
 	// GIVEN a running Prometheus instance,
 	// WHEN a sample Container advisor metric is queried,
 	// THEN verify that the metric could be retrieved.
-	t.It("Verify sample Container Advisor metrics can be queried from Prometheus", func() {
-		Eventually(func() bool {
-			return pkg.MetricsExistInCluster(containerStartTimeSeconds,
-				map[string]string{job: cadvisor}, adminKubeConfig)
-		}).WithPolling(pollingInterval).WithTimeout(longTimeout).Should(BeTrue())
-	})
+	t.It("Verify sample Container Advisor metrics can be queried from Prometheus",
+		common.VerifyContainerAdvisorMetric(adminKubeConfig))
 
 	// GIVEN a running Prometheus instance,
 	// WHEN a sample node exporter metric is queried,
 	// THEN verify that the metric could be retrieved.
-	t.It("Verify sample Node Exporter metrics can be queried from Prometheus", func() {
-		Eventually(func() bool {
-			return pkg.MetricsExistInCluster(cpuSecondsTotal,
-				map[string]string{job: nodeExporter}, adminKubeConfig)
-		}).WithPolling(pollingInterval).WithTimeout(longTimeout).Should(BeTrue())
-	})
+	t.It("Verify sample Node Exporter metrics can be queried from Prometheus",
+		common.VerifyNodeExporterMetric(adminKubeConfig))
 
 	// GIVEN a running Prometheus instance,
 	// WHEN checking for the test metric created during pre-upgrade,
 	// THEN verify that the metric is present.
-	It("Check if the created test metrics is present", func() {
-		Eventually(func() bool {
-			defaultKubeConfigPath, err := k8sutil.GetKubeConfigLocation()
-			if err != nil {
-				pkg.Log(pkg.Error, err.Error())
-				return false
-			}
-			label, err := pkg.GetClusterNameMetricLabel(defaultKubeConfigPath)
-			if err != nil {
-				pkg.Log(pkg.Error, err.Error())
-				return false
-			}
-			pkg.Log(pkg.Info, "Found cluster name metric label - "+label)
-			metricLabels := map[string]string{
-				testMetricLabelKey: testMetricLabelValue,
-				label:              getClusterNameForPromQuery(),
-			}
-			return pkg.MetricsExistInCluster(testMetricName, metricLabels, adminKubeConfig)
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(),
-			"Expected to find test metrics created by application deploy with metrics trait")
-	})
+	It("Check if the created test metrics is present",
+		common.VerifyDeploymentMetric(adminKubeConfig))
 })
 
 func undeployMetricsApplication() {
@@ -153,7 +76,7 @@ func undeployMetricsApplication() {
 
 	t.Logs.Info("Wait for pods to terminate")
 	Eventually(func() bool {
-		podsNotRunning, _ := pkg.PodsNotRunning(testNamespace, expectedPodsDeploymetricsApp)
+		podsNotRunning, _ := pkg.PodsNotRunning(common.TestNamespace, common.ExpectedPodsDeploymetricsApp)
 		return podsNotRunning
 	}, threeMinutes, pollingInterval).Should(BeTrue())
 
@@ -164,28 +87,17 @@ func undeployMetricsApplication() {
 
 	t.Logs.Info("Delete namespace")
 	Eventually(func() error {
-		return pkg.DeleteNamespace(testNamespace)
+		return pkg.DeleteNamespace(common.TestNamespace)
 	}, threeMinutes, pollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Wait for Finalizer to be removed")
 	Eventually(func() bool {
-		return pkg.CheckNamespaceFinalizerRemoved(testNamespace)
+		return pkg.CheckNamespaceFinalizerRemoved(common.TestNamespace)
 	}, threeMinutes, pollingInterval).Should(BeTrue())
 
 	t.Logs.Info("Waiting for namespace deletion")
 	Eventually(func() bool {
-		_, err := pkg.GetNamespace(testNamespace)
+		_, err := pkg.GetNamespace(common.TestNamespace)
 		return err != nil && errors.IsNotFound(err)
 	}, longTimeout, pollingInterval).Should(BeTrue())
-}
-
-// Return the cluster name used for the Prometheus query
-func getClusterNameForPromQuery() string {
-	if isManagedClusterProfile {
-		return clusterName
-	}
-	if isMinVersion110 {
-		return "local"
-	}
-	return ""
 }
