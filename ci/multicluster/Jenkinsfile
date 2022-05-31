@@ -460,9 +460,11 @@ pipeline {
                         runGinkgoAdmin('update/fluentdextes')
                     }
                 }
-                stage("verify-managed-cluster-cert-update") {
+                stage("verify-cert-manager-update") {
                     steps {
-                        runGinkgoAdmin('update/certmc')
+                        script {
+                            parallel verifyCertManagerUpdate()
+                        }
                     }
                 }
                 stage('verify-install') {
@@ -1521,6 +1523,17 @@ def verifyUpgrade() {
         },
         "Verify Metrics": {
             runGinkgoRandomize('metrics/syscomponents')
+        },
+    ]
+}
+
+def verifyCertManagerUpdate() {
+    return [
+        "verify-admin-cluster-cert-manager-update": {
+            runGinkgoAdmin('update/certac')
+        },
+        "verify-managed-cluster-cert-manager-update": {
+            runGinkgoAdmin('update/certmc')
         },
     ]
 }
