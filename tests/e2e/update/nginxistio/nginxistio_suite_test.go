@@ -10,7 +10,7 @@ import (
 	"github.com/onsi/gomega"
 )
 
-func TestAuthProxyUpdate(t *testing.T) {
+func TestNginxIstioUpdate(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "Update nginx-istio Suite")
 }

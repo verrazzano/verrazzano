@@ -7,17 +7,25 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 )
 
-const CommandName = "version"
+const (
+	CommandName = "version"
+	helpShort   = "Verrazzano version information"
+	helpLong    = `The command 'version' reports information about the version of the vz tool being run.
 
-func NewCmdVersion() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   CommandName,
-		Short: "Verrazzano version information",
-		Long:  "Verrazzano version information",
-		Run:   runCmdVersion,
-	}
+For example:
+
+vz version
+`
+)
+
+func NewCmdVersion(vzHelper helpers.VZHelper) *cobra.Command {
+	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
+	cmd.Run = runCmdVersion
+
 	return cmd
 }
 
