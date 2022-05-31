@@ -18,6 +18,7 @@ installerFileName = "install-verrazzano.yaml"
 
 pipeline {
     options {
+        timeout(time: 2, unit: 'HOURS')
         skipDefaultCheckout true
         timestamps ()
     }
@@ -459,6 +460,11 @@ pipeline {
                         runGinkgoAdmin('update/fluentdextes')
                     }
                 }
+                stage("verify-managed-cluster-cert-update") {
+                    steps {
+                        runGinkgoAdmin('update/certmc')
+                    }
+                }
                 stage('verify-install') {
                     steps {
                         runGinkgoRandomize('verify-install')
@@ -473,28 +479,9 @@ pipeline {
         }
 
         stage ('Verify Infra') {
-            // NOTE: The stages are executed in parallel, however the tests themselves are executed against
-            //       each cluster in sequence. If possible, we should parallelize that as well.
-            parallel {
-                stage('verify-scripts') {
-                    steps {
-                        runGinkgoRandomize('scripts')
-                    }
-                }
-                stage('verify-infra restapi') {
-                    steps {
-                        runGinkgoRandomize('verify-infra/restapi')
-                    }
-                }
-                stage('verify-infra oam') {
-                    steps {
-                        runGinkgoRandomize('verify-infra/oam')
-                    }
-                }
-                stage('verify-infra vmi') {
-                    steps {
-                        runGinkgoRandomize('verify-infra/vmi')
-                    }
+            steps {
+                script {
+                    parallel verifyInfra()
                 }
             }
             post {
@@ -508,33 +495,9 @@ pipeline {
         stage('Acceptance Tests') {
             stages {
                 stage ('Example apps') {
-                    parallel {
-                        stage ('Examples Helidon') {
-                            steps {
-                                runGinkgo("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload")
-                            }
-                        }
-                        stage ('Examples Helidon Deprecated') {
-                            steps {
-                                runGinkgo("multicluster/examples/helidon-deprecated", "${TEST_DUMP_ROOT}/helidon-deprecated")
-                            }
-                        }
-                        stage ('Delete Deployed App NS') {
-                            steps {
-                                script {
-                                    runHelidonNsOpsTest()
-                                }
-                            }
-                        }
-                        stage ('WebLogic Workload') {
-                            steps {
-                                runGinkgo("multicluster/workloads/mcweblogic", "${TEST_DUMP_ROOT}/weblogic-workload")
-                            }
-                        }
-                        stage ('Coherence Workload') {
-                            steps {
-                                runGinkgo("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload")
-                            }
+                    steps {
+                        script {
+                            parallel verifyExamples()
                         }
                     }
                 }
@@ -1558,6 +1521,45 @@ def verifyUpgrade() {
         },
         "Verify Metrics": {
             runGinkgoRandomize('metrics/syscomponents')
+        },
+    ]
+}
+
+// NOTE: The stages are executed in parallel, however the tests themselves are executed against
+//       each cluster in sequence. If possible, we should parallelize that as well.
+def verifyInfra() {
+    return [
+        "verify-scripts": {
+            runGinkgoRandomize('scripts')
+        },
+        "verify-infra restapi": {
+            runGinkgoRandomize('verify-infra/restapi')
+        },
+        "verify-infra oam": {
+            runGinkgoRandomize('verify-infra/oam')
+        },
+        "verify-infra vmi": {
+            runGinkgoRandomize('verify-infra/vmi')
+        },
+    ]
+}
+
+def verifyExamples() {
+    return [
+        "Examples Helidon": {
+            runGinkgo("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload")
+        },
+        "Examples Helidon Deprecated": {
+            runGinkgo("multicluster/examples/helidon-deprecated", "${TEST_DUMP_ROOT}/helidon-deprecated")
+        },
+        "Delete Deployed App NS": {
+            runHelidonNsOpsTest()
+        },
+        "WebLogic Workload": {
+            runGinkgo("multicluster/workloads/mcweblogic", "${TEST_DUMP_ROOT}/weblogic-workload")
+        },
+        "Coherence Workload": {
+            runGinkgo("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload")
         },
     ]
 }
