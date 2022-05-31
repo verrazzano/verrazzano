@@ -104,7 +104,8 @@ var _ = t.Describe("Pre upgrade Prometheus", Label("f:observability.logging.es")
 	// THEN verify that the metric could be retrieved.
 	t.It("Verify sample Container Advisor metrics can be queried from Prometheus", func() {
 		Eventually(func() bool {
-			return pkg.MetricsExist(containerStartTimeSeconds, job, cadvisor)
+			return pkg.MetricsExistInCluster(containerStartTimeSeconds,
+				map[string]string{job: cadvisor}, adminKubeConfig)
 		}).WithPolling(pollingInterval).WithTimeout(longTimeout).Should(BeTrue())
 	})
 

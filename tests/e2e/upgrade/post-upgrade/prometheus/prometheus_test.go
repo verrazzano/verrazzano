@@ -111,7 +111,8 @@ var _ = t.Describe("Post upgrade Prometheus", Label("f:observability.logging.es"
 	// THEN verify that the metric is present.
 	It("Check if the created test metrics is present", func() {
 		Eventually(func() bool {
-			return pkg.MetricsExist(testMetricName, testMetricLabelKey, testMetricLabelValue)
+			return pkg.MetricsExistInCluster(testMetricName,
+				map[string]string{testMetricLabelKey: testMetricLabelValue}, adminKubeConfig)
 		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(),
 			"Expected to find test metrics created by application deploy with metrics trait")
 	})
