@@ -127,13 +127,13 @@ func (o PrometheusOperatorValuesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 var _ = t.BeforeSuite(func() {
 	m := PrometheusOperatorOverridesModifier{}
 	inlineData = oldInlineData
-	update.UpdateCR(m)
+	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 	_ = update.GetCR()
 })
 
 var _ = t.AfterSuite(func() {
 	m := PrometheusOperatorDefaultModifier{}
-	update.UpdateCR(m)
+	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 	_ = update.GetCR()
 	if failed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
@@ -182,7 +182,7 @@ var _ = t.Describe("Post Install Overrides", func() {
 			t.It("Update Inline Data", func() {
 				inlineData = newInlineData
 				m := PrometheusOperatorOverridesModifier{}
-				update.UpdateCR(m)
+				update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 				_ = update.GetCR()
 			})
 
@@ -262,7 +262,7 @@ func deleteOverrides() {
 		ginkgo.AbortSuite("Failed to delete Secret")
 	}
 	m := PrometheusOperatorValuesModifier{}
-	update.UpdateCR(m)
+	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 	_ = update.GetCR()
 }
 
