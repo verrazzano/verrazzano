@@ -1,0 +1,1 @@
+Verrazzano Console Helm chart has been installed!
