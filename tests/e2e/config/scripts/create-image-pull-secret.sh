@@ -17,7 +17,7 @@ if [ -z "${KUBECONFIG}" ] ; then
     exit 1
 fi
 
-if kubectl get secret ${NAME} ; then
+if kubectl get secret -n ${NAMESPACE} ${NAME} 2>&1 > /dev/null; then
   echo "Secret ${NAME} already exists"
   exit 0
 fi

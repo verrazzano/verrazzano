@@ -22,10 +22,6 @@ if [ -z "$WORKSPACE" ]; then
   echo "WORKSPACE must be set"
   exit 1
 fi
-if [ -z "$OCI_OS_LOCATION" ]; then
-  echo "OCI_OS_LOCATION must be set to point to the ObjectStore location for the Verrazzano build output location"
-  exit 1
-fi
 if [ -z "$TEST_SCRIPTS_DIR" ]; then
   echo "TEST_SCRIPTS_DIR must be set to the E2E test script directory location"
   exit 1
@@ -55,10 +51,16 @@ if [ -n "${JENKINS_URL}" ]; then
   CONNECT_JENKINS_RUNNER_TO_NETWORK=true
 fi
 
+OCI=oci
+
 INSTALL_CALICO=${1:-false}
 CLUSTER_NAME=${CLUSTER_NAME:="kind"}
 KIND_NODE_COUNT=${KIND_NODE_COUNT:-1}
 VERRAZZANO_OPERATOR_IMAGE=${VERRAZZANO_OPERATOR_IMAGE:-"NONE"}
+
+BRANCH_NAME=${BRANCH_NAME:-$(git branch --show-current)}
+SHORT_COMMIT_HASH=${SHORT_COMMIT_HASH:-$(git rev-parse --short=8 HEAD)}
+OCI_OS_LOCATION=${OCI_OS_LOCATION:-${BRANCH_NAME}/${SHORT_COMMIT_HASH}}
 
 TEST_OVERRIDE_CONFIGMAP_FILE="${TEST_SCRIPTS_DIR}/pre-install-overrides/test-overrides-configmap.yaml"
 TEST_OVERRIDE_SECRET_FILE="${TEST_SCRIPTS_DIR}/pre-install-overrides/test-overrides-secret.yaml"
@@ -104,7 +106,7 @@ ${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER
 ${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
 ${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
 
-if ! kubectl get cm test-overrides ; then
+if ! kubectl get cm test-overrides 2>&1 > /dev/null; then
   echo "Creating Override ConfigMap"
   kubectl create cm test-overrides --from-file=${TEST_OVERRIDE_CONFIGMAP_FILE}
   if [ $? -ne 0 ]; then
@@ -113,7 +115,7 @@ if ! kubectl get cm test-overrides ; then
   fi
 fi
 
-if ! kubectl get secret test-overrides ; then
+if ! kubectl get secret test-overrides 2>&1 > /dev/null; then
   echo "Creating Override Secret"
   kubectl create secret generic test-overrides --from-file=${TEST_OVERRIDE_SECRET_FILE}
   if [ $? -ne 0 ]; then
@@ -132,7 +134,7 @@ if [ -z "$OPERATOR_YAML" ] && [ "" = "${OPERATOR_YAML}" ]; then
   # Derive the name of the operator.yaml file, copy or generate the file, then install
   if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
       echo "Using operator.yaml from object storage"
-      oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${OCI_OS_LOCATION}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+      ${OCI} --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${OCI_OS_LOCATION}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
       cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
   else
       echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"

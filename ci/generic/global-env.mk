@@ -14,3 +14,6 @@ export TEST_SCRIPTS_DIR ?= ${VZ_ROOT}/tests/e2e/config/scripts
 export KUBECONFIG ?= ${WORKSPACE}/test_kubeconfig
 export OCI_OS_ARTIFACT_BUCKET=build-failure-artifacts
 export OCI_OS_BUCKET=verrazzano-builds
+
+export OCI_CLI_PROFILE ?= DEFAULT
+#export OPERATOR_YAML ?= ""
