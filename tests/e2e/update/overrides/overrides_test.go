@@ -50,6 +50,9 @@ var _ = t.AfterEach(func() {
 type PrometheusOperatorOverridesModifier struct {
 }
 
+type PrometheusOperatorValuesModifier struct {
+}
+
 type PrometheusOperatorDefaultModifier struct {
 }
 
@@ -94,6 +97,10 @@ func (o PrometheusOperatorOverridesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.PrometheusOperator.Enabled = &trueVal
 	cr.Spec.Components.PrometheusOperator.MonitorChanges = &trueVal
 	cr.Spec.Components.PrometheusOperator.ValueOverrides = overrides
+}
+
+func (o PrometheusOperatorValuesModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	cr.Spec.Components.PrometheusOperator.ValueOverrides[2].Values = nil
 }
 
 var _ = t.BeforeSuite(func() {
@@ -224,7 +231,7 @@ var _ = t.Describe("Post Install Overrides", func() {
 })
 
 func deleteOverrides() {
-	m := PrometheusOperatorDefaultModifier{}
+	m := PrometheusOperatorValuesModifier{}
 	update.UpdateCR(m)
 
 	err0 := pkg.DeleteConfigMap(constants.DefaultNamespace, overrideConfigMapSecretName)

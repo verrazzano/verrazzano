@@ -796,7 +796,7 @@ type InstallOverrides struct {
 	ValueOverrides []Overrides `json:"overrides,omitempty"`
 }
 
-// Overrides stores the specified InstallOverrides
+// Overrides stores the specified overrides
 type Overrides struct {
 	ConfigMapRef *corev1.ConfigMapKeySelector `json:"configMapRef,omitempty"`
 	SecretRef    *corev1.SecretKeySelector    `json:"secretRef,omitempty"`

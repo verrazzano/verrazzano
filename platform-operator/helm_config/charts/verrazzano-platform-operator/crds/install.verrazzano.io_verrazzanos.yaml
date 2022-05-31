@@ -61,7 +61,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -1088,7 +1088,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -1174,7 +1174,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -1227,7 +1227,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -1314,7 +1314,7 @@ spec:
                         type: object
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -1575,7 +1575,7 @@ spec:
                         type: array
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -3892,7 +3892,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -4007,7 +4007,7 @@ spec:
                             type: array
                           overrides:
                             items:
-                              description: Overrides stores the specified InstallOverrides
+                              description: Overrides stores the specified overrides
                               properties:
                                 configMapRef:
                                   description: Selects a key from a ConfigMap.
@@ -4049,6 +4049,8 @@ spec:
                                   required:
                                   - key
                                   type: object
+                                values:
+                                  x-kubernetes-preserve-unknown-fields: true
                               type: object
                             type: array
                           volumeSource:
@@ -5688,7 +5690,7 @@ spec:
                         type: object
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -5741,7 +5743,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -5800,7 +5802,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -5853,7 +5855,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -5912,7 +5914,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -5965,7 +5967,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -6018,7 +6020,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -6071,7 +6073,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -6124,7 +6126,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -6202,7 +6204,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -6255,7 +6257,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
