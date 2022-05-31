@@ -161,8 +161,8 @@ var _ = t.Describe("Post Install Overrides", func() {
 			t.It("Update Inline Data", func() {
 				inlineData = newInlineData
 				m := PrometheusOperatorOverridesModifier{}
-				inlineData = newInlineData
 				update.UpdateCR(m)
+				_ = update.GetCR()
 			})
 
 			t.It("Update ConfigMap", func() {
@@ -231,9 +231,6 @@ var _ = t.Describe("Post Install Overrides", func() {
 })
 
 func deleteOverrides() {
-	m := PrometheusOperatorValuesModifier{}
-	update.UpdateCR(m)
-
 	err0 := pkg.DeleteConfigMap(constants.DefaultNamespace, overrideConfigMapSecretName)
 	if err0 != nil && !k8serrors.IsNotFound(err0) {
 		ginkgo.AbortSuite("Failed to delete ConfigMap")
@@ -243,6 +240,9 @@ func deleteOverrides() {
 	if err1 != nil && !k8serrors.IsNotFound(err1) {
 		ginkgo.AbortSuite("Failed to delete Secret")
 	}
+	m := PrometheusOperatorValuesModifier{}
+	update.UpdateCR(m)
+	_ = update.GetCR()
 }
 
 func vzReady() error {
