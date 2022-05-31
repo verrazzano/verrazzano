@@ -2,7 +2,6 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 include ./global-env.mk
-include ./env.mk
 include ./kind.mk
 include ./install.mk
 

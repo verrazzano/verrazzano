@@ -1,11 +1,25 @@
 #!/usr/bin/env bash
-#
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
-
-# $1 Boolean indicates whether to setup and install Calico or not
-
+# Required env vars:
+# INSTALL_CONFIG_FILE_KIND - source Verrazzano install configuration for KIND
+# WORKSPACE - workspace for output files, temp files, etc
+# TEST_SCRIPTS_DIR - Location of the E2E tests directory
+# KUBECONFIG - kubeconfig path for the target cluster
+# GO_REPO_PATH - Local path to the Verrazzano Github repo
+#
+# Indirect/optional env vars (used to process the installation config):
+#
+# INSTALL_PROFILE - Verrazzano profile, defaults to "dev"
+# VZ_ENVIRONMENT_NAME - environmentName default
+# DNS_WILDCARD_DOMAIN - wildcard DNS domain to use
+# EXTERNAL_ELASTICSEARCH - if "true" && VZ_ENVIRONMENT_NAME=="admin", sets Fluentd configuration to point to EXTERNAL_ES_SECRET and EXTERNAL_ES_URL
+# SYSTEM_LOG_ID - configures Verrazzano for OCI logging using the specified OCI logging ID
+# ENABLE_API_ENVOY_LOGGING - enables debug in the Istio Envoy containers
+# WILDCARD_DNS_DOMAIN - an override for a user-specified wildcard DNS domain to use
+# VERRAZZANO_INSTALL_LOGS_DIR - output location for the VZ install logs
+#
 set -o pipefail
 
 if [ -z "$GO_REPO_PATH" ] ; then
@@ -38,11 +52,10 @@ fi
 
 WILDCARD_DNS_DOMAIN=${WILDCARD_DNS_DOMAIN:-""}
 
-CLUSTER_NAME=${CLUSTER_NAME:="kind"}
 ENABLE_API_ENVOY_LOGGING=${ENABLE_API_ENVOY_LOGGING:-"false"}
 
-INSTALL_PROFILE=${INSTALL_PROFILE:="dev"}
-VZ_ENVIRONMENT_NAME=${VZ_ENVIRONMENT_NAME:="default"}
+INSTALL_PROFILE=${INSTALL_PROFILE:-"dev"}
+VERRAZZANO_INSTALL_LOGS_DIR=${VERRAZZANO_INSTALL_LOGS_DIR:-${WORKSPACE}/logs}
 
 # Configure the custom resource to install Verrazzano on Kind
 ${TEST_SCRIPTS_DIR}/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}
