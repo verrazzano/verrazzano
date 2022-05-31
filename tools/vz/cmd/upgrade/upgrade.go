@@ -22,10 +22,7 @@ const (
 vz upgrade --wait
 
 # Upgrade to Verrazzano v1.3.0 and stream the logs to the console.
-vz upgrade --version v1.3.0 --logs
-
-# Upgrade to Verrazzano 1.3.0 and update some configuration settings.
-vz upgrade --version v1.3.0 -f update.yaml --wait`
+vz upgrade --version v1.3.0 --logs`
 )
 
 var logsEnum = cmdhelpers.LogsFormatSimple
@@ -40,9 +37,7 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().Bool(constants.WaitFlag, false, constants.WaitFlagHelp)
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*30, constants.TimeoutFlagHelp)
 	cmd.PersistentFlags().String(constants.VersionFlag, "latest", constants.VersionFlagHelp)
-	cmd.PersistentFlags().StringSliceP(constants.FilenameFlag, constants.FilenameFlagShorthand, []string{}, constants.FilenameFlagHelp)
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogsFlag, constants.LogsFlagHelp)
-	cmd.PersistentFlags().StringArrayP(constants.SetFlag, constants.SetFlagShorthand, []string{}, constants.SetFlagHelp)
 
 	// Initially the operator-file flag may be for internal use, hide from help until
 	// a decision is made on supporting this option.
