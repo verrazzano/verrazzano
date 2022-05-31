@@ -40,6 +40,20 @@ var crEnabled = vzapi.Verrazzano{
 	},
 }
 
+var mySQLSecret = v1.Secret{
+	TypeMeta: metav1.TypeMeta{
+		Kind: vzconst.SecretKind,
+	},
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      secretName,
+		Namespace: ComponentNamespace,
+	},
+	Immutable:  nil,
+	Data:       nil,
+	StringData: nil,
+	Type:       "",
+}
+
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
 const (
@@ -59,10 +73,38 @@ func TestAppendMySQLOverrides(t *testing.T) {
 		config.SetDefaultBomFilePath("")
 	}()
 	vz := &vzapi.Verrazzano{}
-	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	ctx := spi.NewFakeContext(fakeClient, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
+	assert.Equal(t, mySQLUsername, bom.FindKV(kvs, mySQLUsernameKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
+	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
+}
+
+// TestAppendMySQLOverridesUpdate tests the appendMySQLOverrides function
+// GIVEN a call to appendMySQLOverrides
+// WHEN the mysql secret exists in the keycloak namespace during install
+// THEN the correct overrides are returned
+func TestAppendMySQLOverridesUpdate(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	vz := &vzapi.Verrazzano{}
+	secret := mySQLSecret
+	secret.Data = map[string][]byte{}
+	secret.Data[mySQLRootKey] = []byte("test-root-key")
+	secret.Data[mySQLKey] = []byte("test-key")
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&secret).Build()
+	ctx := spi.NewFakeContext(fakeClient, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
+	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
+	assert.NoError(t, err)
+	assert.Len(t, kvs, 5+minExpectedHelmOverridesCount)
+	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
+	assert.Equal(t, "test-key", bom.FindKV(kvs, helmPwd))
 	assert.Equal(t, mySQLUsername, bom.FindKV(kvs, mySQLUsernameKey))
 	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
 	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
@@ -92,7 +134,8 @@ func TestAppendMySQLOverridesWithInstallArgs(t *testing.T) {
 			},
 		},
 	}
-	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	ctx := spi.NewFakeContext(fakeClient, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
@@ -120,7 +163,8 @@ func TestAppendMySQLOverridesDev(t *testing.T) {
 			},
 		},
 	}
-	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	ctx := spi.NewFakeContext(fakeClient, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
@@ -164,7 +208,8 @@ func TestAppendMySQLOverridesDevWithPersistence(t *testing.T) {
 			},
 		},
 	}
-	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	ctx := spi.NewFakeContext(fakeClient, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 5+minExpectedHelmOverridesCount)
@@ -190,7 +235,8 @@ func TestAppendMySQLOverridesProd(t *testing.T) {
 			Profile: vzapi.ProfileType("prod"),
 		},
 	}
-	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	ctx := spi.NewFakeContext(fakeClient, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
@@ -229,7 +275,8 @@ func TestAppendMySQLOverridesProdWithOverrides(t *testing.T) {
 			}},
 		},
 	}
-	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	ctx := spi.NewFakeContext(fakeClient, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 5+minExpectedHelmOverridesCount)
