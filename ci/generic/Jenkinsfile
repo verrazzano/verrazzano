@@ -194,7 +194,7 @@ pipeline {
 
         stage('Acceptance Tests') {
             stages {
-                stage('Prepare AT environment') {
+                stage('Setup and Install') {
                     environment {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                         OCI_CLI_AUTH="instance_principal"
@@ -536,13 +536,10 @@ pipeline {
 }
 
 def runMakeCommand(makeTarget) {
-    return
-        steps {
-           sh """
-               cd ${GO_REPO_PATH}/verrazzano/ci/generic
-               make ${makeTarget}
-           """
-   }
+   sh """
+       cd ${GO_REPO_PATH}/verrazzano/ci/generic
+       make ${makeTarget}
+   """
 }
 
 def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
