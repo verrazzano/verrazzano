@@ -29,7 +29,7 @@ const (
 
 	SetFlag          = "set"
 	SetFlagShorthand = "s"
-	SetFlagHelp      = "Override a Verrazzano resource value."
+	SetFlagHelp      = "Override a Verrazzano resource value (e.g. --set profile=dev).  This flag can be specified multiple times."
 
 	OperatorFileFlag     = "operator-file"
 	OperatorFileFlagHelp = "The path to the file for installing the Verrazzano platform operator. The default is derived from the version string."
