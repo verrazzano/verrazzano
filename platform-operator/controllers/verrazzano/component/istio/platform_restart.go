@@ -191,10 +191,15 @@ func DoesPodContainOldIstioSidecar(log vzlog.VerrazzanoLogger, podList *v1.PodLi
 func DoesPodContainNoIstioSidecar(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType string, workloadName string, _ string) bool {
 	for _, pod := range podList.Items {
 		// Ignore pods that are not expected to have Istio injected
+		noInjection := false
 		for _, item := range config.GetNoInjectionComponents() {
-			if item == pod.Name {
-				continue
+			if strings.Contains(pod.Name, item) {
+				noInjection = true
+				break
 			}
+		}
+		if noInjection {
+			continue
 		}
 		proxyFound := false
 		for _, container := range pod.Spec.Containers {
