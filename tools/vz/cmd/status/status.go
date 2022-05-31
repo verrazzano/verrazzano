@@ -4,7 +4,6 @@
 package status
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -13,26 +12,17 @@ import (
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/templates"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
-	CommandName   = "status"
-	namespaceFlag = "namespace"
-	nameFlag      = "name"
-	helpShort     = "Status of the Verrazzano install and access endpoints"
-	helpLong      = `The command 'status' returns summary information about a Verrazzano installation.
-
-For example:
-
-vz status --name my-verrazzano
-vz status --name my-verrazzano --context minikube
-vz status --name my-verrazzano --kubeconfig ~/.kube/config --context minikube
-`
+	CommandName = "status"
+	helpShort   = "Status of the Verrazzano install and access endpoints"
+	helpLong    = `The command 'status' returns summary information about a Verrazzano installation.`
+	helpExample = `
+vz status
+vz status --context minikube
+vz status --kubeconfig ~/.kube/config --context minikube`
 )
-
-var namespace string
-var name string
 
 // The component output is disabled pending the resolution some issues with
 // the content of the Verrazzano status block
@@ -40,7 +30,9 @@ var componentOutputEnabled = false
 
 // statusOutputTemplate - template for output of status command
 const statusOutputTemplate = `
-Status of Verrazzano {{.verrazzano_name}}
+Verrazzano Status
+  Name: {{.verrazzano_name}}
+  Namespace: {{.verrazzano_namespace}}
   Version: {{.verrazzano_version}}
   State: {{.verrazzano_state}}
   Profile: {{.install_profile}}
@@ -151,10 +143,7 @@ func NewCmdStatus(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return runCmdStatus(cmd, args, vzHelper)
 	}
-
-	// Add flags specific to this command and its sub-commands
-	cmd.PersistentFlags().StringVarP(&namespace, namespaceFlag, "n", "default", "The namespace of the Verrazzano resource")
-	cmd.PersistentFlags().StringVar(&name, nameFlag, "", "The name of the Verrazzano resource")
+	cmd.Example = helpExample
 
 	return cmd
 }
@@ -167,18 +156,18 @@ func runCmdStatus(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) 
 	}
 
 	// Get the VZ resource
-	vz := vzapi.Verrazzano{}
-	err = client.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &vz)
+	vz, err := helpers.FindVerrazzanoResource(client)
 	if err != nil {
-		return fmt.Errorf("Failed to find Verrazzano with name %q in namespace %q: %v", name, namespace, err.Error())
+		return err
 	}
 
 	// Report the status information
 	templateValues := map[string]string{
-		"verrazzano_name":    vz.Name,
-		"verrazzano_version": vz.Status.Version,
-		"verrazzano_state":   string(vz.Status.State),
-		"install_profile":    string(vz.Spec.Profile),
+		"verrazzano_name":      vz.Name,
+		"verrazzano_namespace": vz.Namespace,
+		"verrazzano_version":   vz.Status.Version,
+		"verrazzano_state":     string(vz.Status.State),
+		"install_profile":      string(vz.Spec.Profile),
 	}
 	addAccessEndpoints(vz.Status.VerrazzanoInstance, templateValues)
 	addComponents(vz.Status.Components, templateValues)
