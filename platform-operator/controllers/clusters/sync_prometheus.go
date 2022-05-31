@@ -12,9 +12,13 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/yaml"
 )
 
@@ -24,6 +28,7 @@ const (
 	scrapeConfigsKey         = "scrape_configs"
 	jobNameKey               = "job_name"
 	prometheusConfigBasePath = "/etc/prometheus/config/"
+	managedCertsBasePath     = "/etc/prometheus/managed-cluster-ca-certs/"
 	configMapKind            = "ConfigMap"
 	configMapVersion         = "v1"
 	scrapeConfigTemplate     = `job_name: ##JOB_NAME##
@@ -89,6 +94,18 @@ func (r *VerrazzanoManagedClusterReconciler) syncPrometheusScraper(ctx context.C
 	if err != nil {
 		return err
 	}
+
+	// The additional scrape configs and managed cluster TLS secrets are needed by the Prometheus Operator Prometheus
+	// because the federated scrape config can't be represented in a PodMonitor, ServiceMonitor, etc.
+	err = r.mutateAdditionalScrapeConfigs(ctx, vmc, &secret)
+	if err != nil {
+		return err
+	}
+	err = r.mutateManagedClusterCACertsSecret(ctx, vmc, &secret)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -208,6 +225,16 @@ func (r *VerrazzanoManagedClusterReconciler) deleteClusterPrometheusConfiguratio
 	if err != nil {
 		return err
 	}
+
+	err = r.mutateAdditionalScrapeConfigs(ctx, vmc, nil)
+	if err != nil {
+		return err
+	}
+	err = r.mutateManagedClusterCACertsSecret(ctx, vmc, nil)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -237,4 +264,99 @@ func parsePrometheusConfig(promConfigStr string) (*gabs.Container, error) {
 // getCAKey returns the key by which the CA cert will be retrieved by the scaper HTTP client
 func getCAKey(vmc *clustersv1alpha1.VerrazzanoManagedCluster) string {
 	return "ca-" + vmc.Name
+}
+
+// mutateAdditionalScrapeConfigs adds and removes scrape config for managed clusters to the additional scrape configurations secret. Prometheus Operator appends the raw scrape config
+// in this secret to the scrape config it generates from PodMonitor and ServiceMonitor resources.
+func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, cacrtSecret *v1.Secret) error {
+	// get the existing additional scrape config, if the secret doesn't exist we will create it
+	secret, err := r.getSecret(vpoconst.VerrazzanoMonitoringNamespace, vpoconst.PromAdditionalScrapeConfigsSecretName, false)
+	if err != nil && !errors.IsNotFound(err) {
+		return err
+	}
+	var jobs string
+	if secret.Data != nil {
+		jobs = string(secret.Data[vpoconst.PromAdditionalScrapeConfigsSecretKey])
+	}
+
+	// parse the scrape config so we can manipulate it
+	scrapeConfigs, err := parseScrapeConfig(jobs)
+	if err != nil {
+		return err
+	}
+
+	// create the scrape config for the new managed cluster
+	newScrapeConfig, err := r.newScrapeConfig(cacrtSecret, vmc)
+	if err != nil {
+		return err
+	}
+	// TODO: Set this in the newScrapeConfig function when we remove the "old" Prometheus code
+	newScrapeConfig.Set(managedCertsBasePath+getCAKey(vmc), "tls_config", "ca_file")
+
+	found := false
+	for index, scrapeConfig := range scrapeConfigs.Children() {
+		scrapeJobName := scrapeConfig.Search(jobNameKey).Data()
+		if vmc.Name == scrapeJobName {
+			// found an existing scrape config, either remove it or replace it
+			found = true
+			if newScrapeConfig == nil {
+				scrapeConfigs.ArrayRemove(index)
+			} else {
+				scrapeConfigs.SetIndex(newScrapeConfig.Data(), index)
+			}
+			break
+		}
+	}
+	if !found && newScrapeConfig != nil {
+		// if we didn't find an existing scrape config and we are not removing it, append it to the existing scrape config
+		scrapeConfigs.ArrayAppend(newScrapeConfig.Data())
+	}
+
+	bytes, err := yaml.JSONToYAML(scrapeConfigs.Bytes())
+	if err != nil {
+		return err
+	}
+
+	// update the secret with the updated scrape config
+	secret = corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      vpoconst.PromAdditionalScrapeConfigsSecretName,
+			Namespace: vpoconst.VerrazzanoMonitoringNamespace,
+		},
+		Data: map[string][]byte{},
+	}
+	if _, err := controllerruntime.CreateOrUpdate(ctx, r.Client, &secret, func() error {
+		secret.Data[vpoconst.PromAdditionalScrapeConfigsSecretKey] = bytes
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// mutateManagedClusterCACertsSecret adds and removes managed cluster CA certs to/from the managed cluster CA certs secret
+func (r *VerrazzanoManagedClusterReconciler) mutateManagedClusterCACertsSecret(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, cacrtSecret *v1.Secret) error {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      vpoconst.PromManagedClusterCACertsSecretName,
+			Namespace: vpoconst.VerrazzanoMonitoringNamespace,
+		},
+	}
+
+	if _, err := controllerruntime.CreateOrUpdate(ctx, r.Client, secret, func() error {
+		if secret.Data == nil {
+			secret.Data = make(map[string][]byte)
+		}
+		if cacrtSecret != nil && cacrtSecret.Data != nil && len(cacrtSecret.Data["cacrt"]) > 0 {
+			secret.Data[getCAKey(vmc)] = cacrtSecret.Data["cacrt"]
+		} else {
+			delete(secret.Data, getCAKey(vmc))
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }
