@@ -48,8 +48,8 @@ type verrazzanoBom struct {
 
 // Capture Tags for artifact, 1 from BOM, All from images in cluster
 type imageError struct {
-	bomImageTag      string
-	clusterImageTags []string
+	clusterImageTag string
+	bomImageTags []string
 }
 
 var (
@@ -107,10 +107,10 @@ func main() {
 	//passedValidation := validateBOM(&vBom, imagesInstalled, containersInstalled, imagesNotFound, imageTagErrors, imageWarnings)
 
 	// Write to stdout
-	passedValidation := reportResults(imagesNotFound, imageTagErrors, imageWarnings)
+	errorFound := reportResults(imagesNotFound, imageTagErrors, imageWarnings)
 
 	// Failure
-	if !passedValidation {
+	if errorFound {
 		os.Exit(1)
 	}
 }
@@ -268,32 +268,35 @@ func ignoreSubComponent(name string) bool {
 func reportResults(imagesNotFound map[string]string, imageTagErrors map[string]imageError, warnings map[string]string) bool{
 	// Dump Images Not Found to Console, Informational
 	const textDivider = "----------------------------------------"
+	var error bool = false
 
-	fmt.Println()
-	fmt.Println("Images From BOM not installed in cluster")
-	fmt.Println(textDivider)
-	for name, tag := range imagesNotFound {
-		fmt.Printf("Image not installed: %s:%s\n", name, tag)
-	}
-	fmt.Println()
 	if len(warnings) > 0 {
+		fmt.Println()
 		fmt.Println("Image Warnings - Tags not at expected BOM level due to known issues")
 		fmt.Println(textDivider)
 		for name, msg := range warnings {
 			fmt.Printf("Warning: Image Name = %s: %s\n", name, msg)
 		}
 	}
-	fmt.Println()
-	// Dump Images that don't match BOM, Failure
-	fmt.Println("Image Errors: BOM Images that don't match Cluster Images")
-	fmt.Println(textDivider)
-	for name, tags := range imageTagErrors {
-		fmt.Printf("Check failed! Image Name = %s, Tag from BOM = %s  Tag from Cluster = %v\n", name, tags.bomImageTag, tags.clusterImageTags)
+	if len(imagesNotFound) > 0 {
+		fmt.Println()
+		fmt.Println("Image Errors: CLuster Images not mentioned into bom")
+		fmt.Println(textDivider)
+		for name, tag := range imagesNotFound {
+			fmt.Printf("Image not mentioned into bom: %s:%s\n", name, tag)
+		}
+		error = true
 	}
 	if len(imageTagErrors) > 0 {
-		return true
+		fmt.Println()
+		fmt.Println("Image's Tag Errors: Cluster Image's Tags doesn't mentioned into Bom Image's Tags")
+		fmt.Println(textDivider)
+		for name, tags := range imageTagErrors {
+			fmt.Println("Check failed! Image Name = ", name, ", Tag from Cluster = ", tags.clusterImageTag, "Tags from Bom = ", tags.bomImageTags)
+		}
+		error = true
 	}
-	return false
+	return error
 }
 
 // Build out the cluster image map based off of the container array, filter dups
@@ -322,7 +325,6 @@ func validateBomImages(containerArray []string, clusterImageMap map[string][]str
 			// cluster's image found into bom
 			// cluster's image:tag not found into bom
 			imageTagErrors[nameTag[0]] = imageError{nameTag[1], clusterImageMap[nameTag[0]]}
-			continue
 		}
 	}
 }
