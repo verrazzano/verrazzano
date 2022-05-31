@@ -199,7 +199,7 @@ function dump_extra_details_per_namespace() {
         kubectl --insecure-skip-tls-verify get Coherence -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/coherence.json || true
         kubectl --insecure-skip-tls-verify get gateway -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/gateways.json || true
         kubectl --insecure-skip-tls-verify get virtualservice -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/virtualservices.json || true
-        kubectl --insecure-skip-tls-verify describe verrazzano -n $NAMESPACE 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/verrazzano_resources.json || true
+        kubectl --insecure-skip-tls-verify get verrazzano -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/verrazzano_resources.json || true
         kubectl --insecure-skip-tls-verify get rolebindings -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/role-bindings.json || true
         kubectl --insecure-skip-tls-verify get clusterrolebindings -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/cluster-role-bindings.json || true
         kubectl --insecure-skip-tls-verify get clusterroles -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/cluster-roles.json || true
