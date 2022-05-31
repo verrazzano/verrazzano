@@ -75,16 +75,12 @@ var knownImageIssues = map[string]knownIssues{
 	"fleet-agent":                  {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
 	"fleet":                        {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
 	"gitjob":                       {alternateTags: []string{"v0.1.15"}, message: rancherWarningMessage},
-	"coredns":                      {alternateTags: []string{"v1.8.0"}, message: imageMissingMessage},
-	"kindnetd":                     {alternateTags: []string{"v20210326-1e038dc5"}, message: imageMissingMessage},
-	"kube-apiserver":               {alternateTags: []string{"v1.21.1"}, message: imageMissingMessage},
-	"kube-controller-manager":      {alternateTags: []string{"v1.21.1"}, message: imageMissingMessage},
-	"kube-scheduler":               {alternateTags: []string{"v1.21.1"}, message: imageMissingMessage},
-	"controller":                   {alternateTags: []string{"v0.11.0"}, message: imageMissingMessage},
-	"speaker":                      {alternateTags: []string{"v0.11.0"}, message: imageMissingMessage},
-	"etcd":                         {alternateTags: []string{"3.4.13-0"}, message: imageMissingMessage},
-	"kube-proxy":                   {alternateTags: []string{"v1.21.1"}, message: imageMissingMessage},
 	"example-helidon-greet-app-v1": {alternateTags: []string{"1.0.0-1-20210728181814-eb1e622"}, message: imageMissingMessage},
+}
+
+var whitelistedNamespaces []string = []string{
+	"verrazzano-system",
+	"cert-manager",
 }
 
 func main() {
@@ -186,26 +182,30 @@ func populateBomContainerImagesMap(vBom *verrazzanoBom, bomContainerMap map[stri
 // Populate a HashMap with all the container images found in the cluster
 func validateClusterContainerImages(bomImageMap map[string][]string, bomContainerMap map[string]bool, clusterImagesNotFound map[string]string,
 	clusterImageTagErrors map[string]imageError, clusterImageWarnings map[string]string) {
-	out, err := exec.Command("kubectl", "get", "pods", "--all-namespaces", "-o", "jsonpath=\"{.items[*].spec.containers[*].image}\"").Output()
-	if err != nil {
-		log.Fatal(err)
+	var containerImages string
+	for _, namespace := range whitelistedNamespaces {
+		out, err := exec.Command("kubectl", "get", "pods", "-n", namespace, "-o", "jsonpath=\"{.items[*].spec.containers[*].image}\"").Output()
+		if err != nil {
+			log.Fatal(err)
+		}
+		containerImages += strings.TrimPrefix(strings.TrimSuffix(string(out), `"`), `"`) + " "
 	}
-
-	containerImages := strings.TrimSuffix(string(out), `"`)
-	containerArray := strings.Split(containerImages, " ")
+	containerArray := strings.Split(strings.TrimSpace(containerImages), " ")
 	validateContainerImages(containerArray, bomImageMap, bomContainerMap, clusterImagesNotFound, clusterImageTagErrors, clusterImageWarnings)
 }
 
 //  Populate a HashMap with all the initContainer images found in the cluster
 func validateClusterInitContainerImages(bomImageMap map[string][]string, bomContainerMap map[string]bool, clusterImagesNotFound map[string]string,
 	clusterImageTagErrors map[string]imageError, clusterImageWarnings map[string]string) {
-	out, err := exec.Command("kubectl", "get", "pods", "--all-namespaces", "-o", "jsonpath=\"{.items[*].spec.initContainers[*].image}\"").Output()
-	if err != nil {
-		log.Fatal(err)
+	var initContainerImages string
+	for _, namespace := range whitelistedNamespaces {
+		out, err := exec.Command("kubectl", "get", "pods", "-n", namespace, "-o", "jsonpath=\"{.items[*].spec.initContainers[*].image}\"").Output()
+		if err != nil {
+			log.Fatal(err)
+		}
+		initContainerImages += strings.TrimPrefix(strings.TrimSuffix(string(out), `"`), `"`) + " "
 	}
-
-	initContainerImages := strings.TrimSuffix(string(out), `"`)
-	initContainerArray := strings.Split(initContainerImages, " ")
+	initContainerArray := strings.Split(strings.TrimSpace(initContainerImages), " ")
 	validateContainerImages(initContainerArray, bomImageMap, bomContainerMap, clusterImagesNotFound, clusterImageTagErrors, clusterImageWarnings)
 }
 
@@ -242,6 +242,10 @@ func reportResults(clusterImagesNotFound map[string]string, clusterImageTagError
 			fmt.Println("Check failed! Image Name = ", name, ", Tag from Cluster = ", tags.clusterImageTag, "Tags from Bom = ", tags.bomImageTags)
 		}
 		error = true
+	}
+	if !error {
+		fmt.Println()
+		fmt.Println("!! BOM Validation Successful !!")
 	}
 	return error
 }
