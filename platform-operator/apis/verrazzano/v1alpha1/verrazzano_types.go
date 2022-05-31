@@ -644,7 +644,8 @@ type MySQLComponent struct {
 	// is used, it must reference a VolumeClaimSpecTemplate in the VolumeClaimSpecTemplates section.
 	// +optional
 	// +patchStrategy=replace
-	VolumeSource *corev1.VolumeSource `json:"volumeSource,omitempty" patchStrategy:"replace"`
+	VolumeSource     *corev1.VolumeSource `json:"volumeSource,omitempty" patchStrategy:"replace"`
+	InstallOverrides `json:",inline"`
 }
 
 // RancherComponent specifies the Rancher configuration
