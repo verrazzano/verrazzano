@@ -202,7 +202,9 @@ pipeline {
                         OCI_OS_BUCKET="verrazzano-builds"
                         OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
                     }
-                    runMakeCommand("install")
+                    steps {
+                        runMakeCommand("install")
+                    }
                     post {
                         failure {
                             archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
@@ -532,11 +534,11 @@ pipeline {
     }
 }
 
-def runMakeCommand(makeTarget) {
+def runMakeCommand(directory makeTarget) {
     return
         steps {
            sh """
-               cd ${GO_REPO_PATH}/verrazzano/ci/scripts/generic
+               cd ${directory}
                make ${makeTarget}
            """
    }

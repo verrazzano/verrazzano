@@ -8,7 +8,7 @@
 
 set -o pipefail
 
-set -xv
+#set -xv
 
 if [ -z "$GO_REPO_PATH" ] ; then
   echo "GO_REPO_PATH must be set"
@@ -44,7 +44,7 @@ scriptHome=$(dirname ${BASH_SOURCE[0]})
 set -e
 
 if [ -n "${VZ_TEST_DEBUG}" ]; then
-  set -x
+  set -xv
 fi
 
 export KUBECONFIG=$KUBECONFIG
