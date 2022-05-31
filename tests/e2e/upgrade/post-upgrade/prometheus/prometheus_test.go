@@ -41,12 +41,14 @@ const (
 	testMetricLabelKey   = "app_oam_dev_component"
 	testMetricLabelValue = "deploymetrics-deployment"
 	promConfigJobName    = "deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment"
-	clusterNameKey       = "verrazzano_cluster"
 )
 
 var expectedPodsDeploymetricsApp = []string{"deploymetrics-workload"}
 var adminKubeConfig string
 var isManagedClusterProfile bool
+var isMinVersion110 bool
+var clusterName = os.Getenv("CLUSTER_NAME")
+
 var t = framework.NewTestFramework("prometheus")
 
 var _ = t.BeforeSuite(func() {
@@ -68,6 +70,10 @@ var _ = t.BeforeSuite(func() {
 		}
 	} else {
 		adminKubeConfig = kubeconfigPath
+	}
+	isMinVersion110, err = pkg.IsVerrazzanoMinVersion("1.1.0", adminKubeConfig)
+	if err != nil {
+		Fail(err.Error())
 	}
 })
 
@@ -125,7 +131,7 @@ var _ = t.Describe("Post upgrade Prometheus", Label("f:observability.logging.es"
 			pkg.Log(pkg.Info, "Found cluster name metric label - "+label)
 			metricLabels := map[string]string{
 				testMetricLabelKey: testMetricLabelValue,
-				clusterNameKey:     label,
+				label:              getClusterNameForPromQuery(),
 			}
 			return pkg.MetricsExistInCluster(testMetricName, metricLabels, adminKubeConfig)
 		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(),
@@ -171,4 +177,15 @@ func undeployMetricsApplication() {
 		_, err := pkg.GetNamespace(testNamespace)
 		return err != nil && errors.IsNotFound(err)
 	}, longTimeout, pollingInterval).Should(BeTrue())
+}
+
+// Return the cluster name used for the Prometheus query
+func getClusterNameForPromQuery() string {
+	if isManagedClusterProfile {
+		return clusterName
+	}
+	if isMinVersion110 {
+		return "local"
+	}
+	return ""
 }
