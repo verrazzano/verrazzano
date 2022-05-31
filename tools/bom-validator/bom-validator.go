@@ -103,18 +103,16 @@ func main() {
 	// Get the BOM from installed Platform Operator
 	getBOM(&vBom)
 
-	populateMapWithBomImages(&vBom,containersInstalled, imagesInstalled)
+	// populate the bom's containers and images into map
+	populateBomContainerImagesMap(&vBom,containersInstalled, imagesInstalled)
 
-	// Get the container images in the cluster
-	populateMapWithContainerImages(imagesInstalled, containersInstalled, imagesNotFound, imageTagErrors, imageWarnings)
+	// Validate the cluster's container images with the populated bom images and tags
+	validateClusterContainerImages(imagesInstalled, containersInstalled, imagesNotFound, imageTagErrors, imageWarnings)
 
-	// Get the initContainer images in the cluster
-	populateMapWithInitContainerImages(imagesInstalled, containersInstalled, imagesNotFound, imageTagErrors, imageWarnings)
+	// Validate the cluster's init container images with the populated bom images and tags
+	validateClusterInitContainerImages(imagesInstalled, containersInstalled, imagesNotFound, imageTagErrors, imageWarnings)
 
-	//  Loop through BOM and check against cluster images
-	//passedValidation := validateBOM(&vBom, imagesInstalled, containersInstalled, imagesNotFound, imageTagErrors, imageWarnings)
-
-	// Write to stdout
+	// Checkout the results
 	errorFound := reportResults(imagesNotFound, imageTagErrors, imageWarnings)
 
 	// Failure
@@ -170,7 +168,7 @@ func getBOM(vBom *verrazzanoBom) {
 	json.Unmarshal(out, &vBom)
 }
 
-func populateMapWithBomImages(vBom *verrazzanoBom, clusterContainerMap map[string]bool, clusterImageMap map[string][]string) {
+func populateBomContainerImagesMap(vBom *verrazzanoBom, clusterContainerMap map[string]bool, clusterImageMap map[string][]string) {
 	for _, component := range vBom.Components {
 		for _, subcomponent := range component.Subcomponents {
 			for _, image := range subcomponent.Images {
@@ -182,7 +180,7 @@ func populateMapWithBomImages(vBom *verrazzanoBom, clusterContainerMap map[strin
 }
 
 // Populate a HashMap with all the container images found in the cluster
-func populateMapWithContainerImages(clusterImageMap map[string][]string, clusterContainerMap map[string]bool, imagesNotFound map[string]string,
+func validateClusterContainerImages(clusterImageMap map[string][]string, clusterContainerMap map[string]bool, imagesNotFound map[string]string,
 	imageTagErrors map[string]imageError, imageWarnings map[string]string) {
 	out, err := exec.Command("kubectl", "get", "pods", "--all-namespaces", "-o", "jsonpath=\"{.items[*].spec.containers[*].image}\"").Output()
 	if err != nil {
@@ -195,7 +193,7 @@ func populateMapWithContainerImages(clusterImageMap map[string][]string, cluster
 }
 
 //  Populate a HashMap with all the initContainer images found in the cluster
-func populateMapWithInitContainerImages(clusterImageMap map[string][]string, clusterContainerMap map[string]bool, imagesNotFound map[string]string,
+func validateClusterInitContainerImages(clusterImageMap map[string][]string, clusterContainerMap map[string]bool, imagesNotFound map[string]string,
 	imageTagErrors map[string]imageError, imageWarnings map[string]string) {
 	out, err := exec.Command("kubectl", "get", "pods", "--all-namespaces", "-o", "jsonpath=\"{.items[*].spec.initContainers[*].image}\"").Output()
 	if err != nil {
@@ -205,59 +203,6 @@ func populateMapWithInitContainerImages(clusterImageMap map[string][]string, clu
 	initContainerImages := string(out)
 	initContainerArray := strings.Split(initContainerImages, " ")
 	validateBomImages(initContainerArray, clusterImageMap, clusterContainerMap,imagesNotFound,imageTagErrors,imageWarnings)
-}
-
-// Validate the images in the BOM against the images found in the cluster
-// It can be
-//    Valid, Tags match
-//    Not Found, OK based on profile
-//    InValid, image tags between BOM and cluster image do not match
-func validateBOM(vBom *verrazzanoBom, clusterImageMap map[string][]string, containersInstalled map[string]bool, imagesNotFound map[string]string,
-	imageTagErrors map[string]imageError, imageWarnings map[string]string) bool {
-
-	var errorsFound = false
-	for _, component := range vBom.Components {
-		for _, subcomponent := range component.Subcomponents {
-			if ignoreSubComponent(subcomponent.Name) {
-				fmt.Printf("Subcomponent %s of component %s on ignore list, skipping images %v\n",
-					subcomponent.Name, component.Name, subcomponent.Images)
-				continue
-			}
-			for _, image := range subcomponent.Images {
-				errorsFound = checkImageTags(clusterImageMap, image, imageWarnings, imageTagErrors, errorsFound, imagesNotFound)
-			}
-		}
-	}
-	return !errorsFound
-}
-
-// checkImageTags - compares the image tags in the cluster with what's in the BOM, and against any known issues; returns true if any errors are found
-func checkImageTags(clusterImageMap map[string][]string, image imageDetails, imageWarnings map[string]string,
-	imageTagErrors map[string]imageError, errorsFound bool, imagesNotFound map[string]string) bool {
-	if tags, ok := clusterImageMap[image.Image]; ok {
-		var tagFound = false
-		for _, tag := range tags {
-			if tag == image.Tag {
-				tagFound = true
-				break
-			}
-			// Check if the image/tag in the cluster is known to have issues
-			imageWarning, hasKnownIssues := knownImageIssues[image.Image]
-			if hasKnownIssues && vzstring.SliceContainsString(imageWarning.alternateTags, tag) {
-				imageWarnings[image.Image] = fmt.Sprintf("Known issue for image %s, found tag %s, expected tag %s message: %s",
-					image.Image, tag, image.Tag, imageWarning.message)
-				tagFound = true
-				break
-			}
-		}
-		if !tagFound {
-			imageTagErrors[image.Image] = imageError{image.Tag, tags}
-			errorsFound = true
-		}
-	} else {
-		imagesNotFound[image.Image] = image.Tag
-	}
-	return errorsFound
 }
 
 // ignoreSubComponent - checks to see if a particular subcomponent is to be ignored
