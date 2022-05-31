@@ -272,6 +272,12 @@ pipeline {
                     chmod 600 $HOME/.netrc
                 """
 
+                sh """
+                    rm -rf ${GO_REPO_PATH}/verrazzano
+                    mkdir -p ${GO_REPO_PATH}/verrazzano
+                    tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
+                """
+
                 script {
                     echo "[INFO] ${params.OKE_CLUSTER_REGION}"
                     echo "[INFO] agentlabel: ${agentLabel}"
