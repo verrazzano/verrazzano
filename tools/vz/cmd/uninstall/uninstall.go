@@ -24,10 +24,7 @@ const (
 vz uninstall --logs
 
 # Uninstall Verrazzano including the CRDs and wait for the command to complete.
-vz uninstall --crds --wait
-
-# Do a dry run of uninstalling Verrazzano.
-vz uninstall --dry-run`
+vz uninstall --crds --wait`
 )
 
 var logsEnum = cmdhelpers.LogsFormatSimple
@@ -41,9 +38,12 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 
 	cmd.PersistentFlags().Bool(constants.WaitFlag, false, constants.WaitFlagHelp)
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*30, constants.TimeoutFlagHelp)
-	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an uninstall.")
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogsFlag, constants.LogsFlagHelp)
 	cmd.PersistentFlags().Bool(crdsFlag, false, crdsFlagHelp)
+
+	// Dry run flag is still being discussed - keep hidden for now
+	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an uninstall.")
+	cmd.PersistentFlags().MarkHidden(constants.DryRunFlag)
 
 	return cmd
 }

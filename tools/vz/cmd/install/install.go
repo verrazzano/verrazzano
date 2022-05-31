@@ -28,10 +28,7 @@ vz install --version v1.3.0 --set profile=dev --wait --timeout 20m
 vz install --version v1.3.0 --set profile=dev --set components.elasticsearch.enabled=false --wait
 
 # Install the latest version of Verrazzano using CR overlays and explicit value sets.  Output the logs in json format.
-vz install -f base.yaml -f custom.yaml --set profile=prod --logs json
-
-# Do a dry run of installing version 1.3.0 and see a summary of what the install would have done.
-vz install --version v1.3.0 --dry-run`
+vz install -f base.yaml -f custom.yaml --set profile=prod --logs json`
 )
 
 var logsEnum = cmdhelpers.LogsFormatSimple
@@ -47,7 +44,6 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*30, constants.TimeoutFlagHelp)
 	cmd.PersistentFlags().String(constants.VersionFlag, "latest", constants.VersionFlagHelp)
 	cmd.PersistentFlags().StringSliceP(constants.FilenameFlag, constants.FilenameFlagShorthand, []string{}, constants.FilenameFlagHelp)
-	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an install.")
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogsFlag, constants.LogsFlagHelp)
 	cmd.PersistentFlags().StringArrayP(constants.SetFlag, constants.SetFlagShorthand, []string{}, constants.SetFlagHelp)
 
@@ -55,6 +51,10 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	// a decision is made on supporting this option.
 	cmd.PersistentFlags().String(constants.OperatorFileFlag, "", constants.OperatorFileFlagHelp)
 	cmd.PersistentFlags().MarkHidden(constants.OperatorFileFlag)
+
+	// Dry run flag is still being discussed - keep hidden for now
+	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an install.")
+	cmd.PersistentFlags().MarkHidden(constants.DryRunFlag)
 
 	return cmd
 }

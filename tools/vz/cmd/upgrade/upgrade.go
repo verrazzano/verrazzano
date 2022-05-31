@@ -41,7 +41,6 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*30, constants.TimeoutFlagHelp)
 	cmd.PersistentFlags().String(constants.VersionFlag, "latest", constants.VersionFlagHelp)
 	cmd.PersistentFlags().StringSliceP(constants.FilenameFlag, constants.FilenameFlagShorthand, []string{}, constants.FilenameFlagHelp)
-	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an upgrade.")
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogsFlag, constants.LogsFlagHelp)
 	cmd.PersistentFlags().StringArrayP(constants.SetFlag, constants.SetFlagShorthand, []string{}, constants.SetFlagHelp)
 
@@ -49,6 +48,10 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 	// a decision is made on supporting this option.
 	cmd.PersistentFlags().String(constants.OperatorFileFlag, "", constants.OperatorFileFlagHelp)
 	cmd.PersistentFlags().MarkHidden(constants.OperatorFileFlag)
+
+	// Dry run flag is still being discussed - keep hidden for now
+	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an upgrade.")
+	cmd.PersistentFlags().MarkHidden(constants.DryRunFlag)
 
 	return cmd
 }
