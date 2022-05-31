@@ -92,7 +92,7 @@ func stopDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, appCon
 	}
 
 	// Check if any pods contain the old Istio proxy image
-	found, oldImage := doesPodContainOldIstioSidecar(podList, istioProxyImage)
+	found, oldImage := DoesPodContainOldIstioSidecar(podList, istioProxyImage)
 	if !found {
 		return nil
 	}
@@ -203,7 +203,7 @@ func restartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVer
 		}
 
 		// Check if any pods contain the old Istio proxy image
-		found, oldImage := doesPodContainOldIstioSidecar(podList, istioProxyImage)
+		found, oldImage := DoesPodContainOldIstioSidecar(podList, istioProxyImage)
 		if !found {
 			continue
 		}

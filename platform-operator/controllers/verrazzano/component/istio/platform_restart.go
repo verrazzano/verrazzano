@@ -21,9 +21,12 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
+// RestartCheckFunc is the function used to check if a pod needs to be restarted
+type RestartCheckFunc func(cpodList *v1.PodList, istioProxyImageName string) (bool, string)
+
 // RestartComponents restarts all the deployments, StatefulSets, and DaemonSets
 // in all of the Istio injected system namespaces
-func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generation int64) error {
+func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generation int64, restartCheckFunc RestartCheckFunc) error {
 	// Get the latest Istio proxy image name from the bom
 	istioProxyImage, err := getIstioProxyImageFromBom()
 	if err != nil {
@@ -56,7 +59,7 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 			return err
 		}
 		// Check if any pods contain the old Istio proxy image
-		found, oldImage := doesPodContainOldIstioSidecar(podList, istioProxyImage)
+		found, oldImage := restartCheckFunc(podList, istioProxyImage)
 		if !found {
 			continue
 		}
@@ -96,7 +99,7 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 			return err
 		}
 		// Check if any pods contain the old Istio proxy image
-		found, oldImage := doesPodContainOldIstioSidecar(podList, istioProxyImage)
+		found, oldImage := restartCheckFunc(podList, istioProxyImage)
 		if !found {
 			continue
 		}
@@ -132,7 +135,7 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 			return err
 		}
 		// Check if any pods contain the old Istio proxy image
-		found, oldImage := doesPodContainOldIstioSidecar(podList, istioProxyImage)
+		found, oldImage := restartCheckFunc(podList, istioProxyImage)
 		if !found {
 			continue
 		}
@@ -169,8 +172,8 @@ func getIstioProxyImageFromBom() (string, error) {
 	return "", errors.New("Failed to find Istio proxy image in the BOM for Istiod")
 }
 
-// doesPodContainOldIstioSidecar returns true if any pods contain an old Istio proxy sidecar
-func doesPodContainOldIstioSidecar(podList *v1.PodList, istioProxyImageName string) (bool, string) {
+// DoesPodContainOldIstioSidecar returns true if any pods contain an old Istio proxy sidecar
+func DoesPodContainOldIstioSidecar(podList *v1.PodList, istioProxyImageName string) (bool, string) {
 	for _, pod := range podList.Items {
 		for _, container := range pod.Spec.Containers {
 			if strings.Contains(container.Image, "proxyv2") {

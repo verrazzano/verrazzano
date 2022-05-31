@@ -42,7 +42,7 @@ func TestRestartAllWorkloadTypes(t *testing.T) {
 	k8sutil.SetFakeClient(clientSet)
 
 	namespaces := []string{constants.VerrazzanoSystemNamespace}
-	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1)
+	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, DoesPodContainOldIstioSidecar)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -78,7 +78,7 @@ func TestNoRestartAllWorkloadTypes(t *testing.T) {
 	k8sutil.SetFakeClient(clientSet)
 
 	namespaces := []string{constants.VerrazzanoSystemNamespace}
-	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1)
+	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, DoesPodContainOldIstioSidecar)
 
 	// Validate the results
 	asserts.NoError(err)
