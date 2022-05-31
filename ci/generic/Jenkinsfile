@@ -203,6 +203,7 @@ pipeline {
                         OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
                     }
                     steps {
+                        runMakeCommand("setup")
                         runMakeCommand("install")
                     }
                     post {
@@ -534,11 +535,11 @@ pipeline {
     }
 }
 
-def runMakeCommand(directory makeTarget) {
+def runMakeCommand(makeTarget) {
     return
         steps {
            sh """
-               cd ${directory}
+               cd ${GO_REPO_PATH}/verrazzano/ci/generic
                make ${makeTarget}
            """
    }
