@@ -187,6 +187,30 @@ func DoesPodContainOldIstioSidecar(log vzlog.VerrazzanoLogger, podList *v1.PodLi
 	return false
 }
 
+// DoesPodContainNoIstioSidecar returns true if any pods don't have an Istio proxy sidecar
+func DoesPodContainNoIstioSidecar(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType string, workloadName string, _ string) bool {
+	for _, pod := range podList.Items {
+		// Ignore pods that are not expected to have Istio injected
+		for _, item := range config.GetNoInjectionComponents() {
+			if item == pod.Name {
+				continue
+			}
+		}
+		proxyFound := false
+		for _, container := range pod.Spec.Containers {
+			if strings.Contains(container.Image, "proxyv2") {
+				proxyFound = true
+			}
+		}
+		if !proxyFound {
+			log.Oncef("Restarting %s %s which has a pod with no Istio proxy image", workloadType, workloadName)
+			return true
+		}
+	}
+
+	return false
+}
+
 // Get the matching pods in namespace given a selector
 func getMatchingPods(log vzlog.VerrazzanoLogger, client kubernetes.Interface, ns string, labelSelector *metav1.LabelSelector) (*v1.PodList, error) {
 	// Conver the resource labelselector to a go-client label selector
