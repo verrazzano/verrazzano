@@ -100,7 +100,28 @@ func (o PrometheusOperatorOverridesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 func (o PrometheusOperatorValuesModifier) ModifyCR(cr *vzapi.Verrazzano) {
-	cr.Spec.Components.PrometheusOperator.ValueOverrides[2].Values = nil
+	var trueVal = true
+	overrides := []vzapi.Overrides{
+		{
+			ConfigMapRef: &corev1.ConfigMapKeySelector{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: overrideConfigMapSecretName,
+				},
+				Key:      dataKey,
+				Optional: &trueVal,
+			},
+		},
+		{
+			SecretRef: &corev1.SecretKeySelector{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: overrideConfigMapSecretName,
+				},
+				Key:      dataKey,
+				Optional: &trueVal,
+			},
+		},
+	}
+	cr.Spec.Components.PrometheusOperator.ValueOverrides = overrides
 }
 
 var _ = t.BeforeSuite(func() {
