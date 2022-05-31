@@ -41,6 +41,7 @@ const (
 	testMetricLabelKey   = "app_oam_dev_component"
 	testMetricLabelValue = "deploymetrics-deployment"
 	promConfigJobName    = "deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment"
+	clusterNameKey       = "verrazzano_cluster"
 )
 
 var expectedPodsDeploymetricsApp = []string{"deploymetrics-workload"}
@@ -111,8 +112,22 @@ var _ = t.Describe("Post upgrade Prometheus", Label("f:observability.logging.es"
 	// THEN verify that the metric is present.
 	It("Check if the created test metrics is present", func() {
 		Eventually(func() bool {
-			return pkg.MetricsExistInCluster(testMetricName,
-				map[string]string{testMetricLabelKey: testMetricLabelValue}, adminKubeConfig)
+			defaultKubeConfigPath, err := k8sutil.GetKubeConfigLocation()
+			if err != nil {
+				pkg.Log(pkg.Error, err.Error())
+				return false
+			}
+			label, err := pkg.GetClusterNameMetricLabel(defaultKubeConfigPath)
+			if err != nil {
+				pkg.Log(pkg.Error, err.Error())
+				return false
+			}
+			pkg.Log(pkg.Info, "Found cluster name metric label - "+label)
+			metricLabels := map[string]string{
+				testMetricLabelKey: testMetricLabelValue,
+				clusterNameKey:     label,
+			}
+			return pkg.MetricsExistInCluster(testMetricName, metricLabels, adminKubeConfig)
 		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(),
 			"Expected to find test metrics created by application deploy with metrics trait")
 	})
