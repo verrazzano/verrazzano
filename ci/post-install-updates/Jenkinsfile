@@ -149,6 +149,7 @@ pipeline {
         POST_DUMP_FAILED = 'false'
 
         GOPATH = '/home/opc/go'
+        GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         
         // Terraform vars
         TF_VAR_kubernetes_version = "${params.K8S_VERSION}"
