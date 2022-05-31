@@ -18,11 +18,11 @@ const (
 	helpShort   = "Upgrade Verrazzano"
 	helpLong    = `Upgrade the Verrazzano Platform Operator to the specified version and update all of the currently installed components.`
 	helpExample = `
-# Upgrade to the latest version of Verrazzano and wait for the command to complete.
-vz upgrade --wait
+# Upgrade to the latest version of Verrazzano and wait for the command to complete.  Stream the logs to the console until the upgrade completes.
+vz upgrade
 
-# Upgrade to Verrazzano v1.3.0 and stream the logs to the console.
-vz upgrade --version v1.3.0 --logs`
+# Upgrade to Verrazzano v1.3.0, stream the logs to the console and timeout after 20m.
+vz upgrade --version v1.3.0 --timeout 20m`
 )
 
 var logsEnum = cmdhelpers.LogsFormatSimple
