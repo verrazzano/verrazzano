@@ -68,8 +68,8 @@ var _ = t.BeforeSuite(func() {
 		}
 	} else {
 		adminKubeConfig = kubeconfigPath
-		deployMetricsApplication()
 	}
+	deployMetricsApplication()
 })
 
 var _ = t.Describe("Pre upgrade Prometheus", Label("f:observability.logging.es"), func() {

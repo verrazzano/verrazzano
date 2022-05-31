@@ -71,9 +71,7 @@ var _ = t.BeforeSuite(func() {
 })
 
 var _ = t.AfterSuite(func() {
-	if !isManagedClusterProfile {
-		undeployMetricsApplication()
-	}
+	undeployMetricsApplication()
 })
 
 var _ = t.Describe("Post upgrade Prometheus", Label("f:observability.logging.es"), func() {
