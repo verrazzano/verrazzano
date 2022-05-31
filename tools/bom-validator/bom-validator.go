@@ -18,8 +18,8 @@ import (
 const (
 	tagLen                              = 10                             // The number of unique tags for a specific image
 	platformOperatorPodNameSearchString = "verrazzano-platform-operator" // Pod Substring for finding the platform operator pod
-
-	rancherWarningMessage = "See VZ-5937, Rancher upgrade issue, all VZ versions" // For known Rancher issues with VZ upgrade
+	oracleLinuxWarningMessage           = "See case-03/04 of VZ-5962, generalisations of bom validator"
+	rancherWarningMessage               = "See VZ-5937, Rancher upgrade issue, all VZ versions" // For known Rancher issues with VZ upgrade
 )
 
 // Verrazzano BOM types
@@ -55,7 +55,13 @@ type imageError struct {
 
 var (
 	ignoreSubComponents []string
+	kubeconfig          string
 )
+
+func init() {
+	flag.StringVar(&kubeconfig, "kubeconfig", "", "KubeConfig for cluster being validated")
+	flag.Parse()
+}
 
 // Hack to work around an issue with the 1.2 upgrade; Rancher does not always update the webhook image
 type knownIssues struct {
@@ -70,6 +76,7 @@ var knownImageIssues = map[string]knownIssues{
 	"fleet-agent":     {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
 	"fleet":           {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
 	"gitjob":          {alternateTags: []string{"v0.1.15"}, message: rancherWarningMessage},
+	"oraclelinux":     {alternateTags: []string{"7-slim", "7.9"}, message: oracleLinuxWarningMessage},
 }
 
 func main() {
@@ -108,15 +115,8 @@ func main() {
 
 // Validate that KubeConfig is valued. This will point to the cluster being validated
 func validateKubeConfig() bool {
-	var kubeconfig string
-	// Get the options
-	kubeconfigPtr := flag.String("kubeconfig", "", "KubeConfig for cluster being validated")
-	flag.Parse()
-	if *kubeconfigPtr == "" {
-		// Try the Env
+	if kubeconfig == "" {
 		kubeconfig = os.Getenv("KUBECONFIG")
-	} else {
-		kubeconfig = *kubeconfigPtr
 	}
 	if kubeconfig != "" {
 		fmt.Println("USING KUBECONFIG: ", kubeconfig)
