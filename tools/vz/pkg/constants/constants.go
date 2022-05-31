@@ -17,7 +17,7 @@ const GlobalFlagHelp = "help"
 // Flags that are common to more than one command
 const (
 	WaitFlag     = "wait"
-	WaitFlagHelp = "Wait for the command to complete."
+	WaitFlagHelp = "Wait for the command to complete. The wait period is controlled by --timeout."
 
 	TimeoutFlag     = "timeout"
 	TimeoutFlagHelp = "Limits the amount of time a command will wait to complete."
