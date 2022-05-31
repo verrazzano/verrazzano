@@ -17,7 +17,6 @@ import (
 
 const (
 	platformOperatorPodNameSearchString = "verrazzano-platform-operator" // Pod Substring for finding the platform operator pod
-	oracleLinuxWarningMessage           = "See case-03/04 of VZ-5962, generalisations of bom validator"
 	rancherWarningMessage               = "See VZ-5937, Rancher upgrade issue, all VZ versions" // For known Rancher issues with VZ upgrade
 	imageMissingMessage                 = "cluster image is not mentioned into vz bom"
 )
@@ -86,7 +85,6 @@ var knownImageIssues = map[string]knownIssues{
 	"etcd":     {alternateTags: []string{"3.4.13-0"}, message: imageMissingMessage},
 	"kube-proxy":     {alternateTags: []string{"v1.21.1"}, message: imageMissingMessage},
 	"example-helidon-greet-app-v1":     {alternateTags: []string{"1.0.0-1-20210728181814-eb1e622"}, message: imageMissingMessage},
-	"oraclelinux":     {alternateTags: []string{"7-slim", "7.9"}, message: oracleLinuxWarningMessage},
 }
 
 func main() {
