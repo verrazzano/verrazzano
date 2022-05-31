@@ -7,6 +7,7 @@ import (
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
@@ -38,6 +39,7 @@ func NewComponent() spi.Component {
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
+			Dependencies:            []string{authproxy.ComponentName},
 			AppendOverridesFunc:     AppendOverrides,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 		},
