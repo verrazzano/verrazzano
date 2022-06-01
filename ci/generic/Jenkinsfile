@@ -92,7 +92,6 @@ pipeline {
         // Used for dumping cluster from inside tests
         DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
-        //TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
         DUMP_ROOT_DIRECTORY="${WORKSPACE}/test-cluster-dumps"
 
         VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
@@ -117,8 +116,8 @@ pipeline {
 
         // used to generate Ginkgo test reports
         TEST_REPORT = "test-report.xml"
-        GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
+        GINGKO_ARGS = "-v --keep-going --no-color --junit-report=test-report.xml --keep-separate-reports=true"
     }
 
     stages {
@@ -223,11 +222,8 @@ pipeline {
                 }
 
                 stage('Verify Install') {
-                    environment {
-                        TEST_SUITES="verify-install/..."
-                    }
                     steps {
-                        runMakeCommand("test")
+                        runTest("verify-install")
                     }
                     post {
                         always {
@@ -236,23 +232,41 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Run Acceptance Tests Infra') {
                     parallel {
-                        stage('verify-infra') {
-                            environment {
-                                TEST_SUITES="verify-infra/... verify-scripts/... scripts/... security/rbac/... metrics/syscomponents/..."
-                            }
+                        stage('verify-scripts') {
                             steps {
-                                runMakeCommand("test")
+                                runTest("scripts")
+                            }
+                        }
+                        stage('verify-infra restapi') {
+                            steps {
+                                runTest('verify-infra/restapi')
+                            }
+                        }
+                        stage('verify-infra oam') {
+                            steps {
+                                runTest('verify-infra/oam')
+                            }
+                        }
+                        stage('verify-infra vmi') {
+                            steps {
+                                runTest('verify-infra/vmi')
+                            }
+                        }
+                        stage('security role based access') {
+                            steps {
+                                runTest('security/rbac')
+                            }
+                        }
+                        stage('system component metrics') {
+                            steps {
+                                runTest('metrics/syscomponents')
                             }
                         }
                         stage ('console') {
-                            environment {
-                                DUMP_DIRECTORY="${DUMP_ROOT_DIRECTORY}/console"
-                            }
                             steps {
-                                sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
+                                runMakeCommand("console-test")
                             }
                             post {
                                 failure {
@@ -271,24 +285,96 @@ pipeline {
 
                 stage('Run Acceptance Tests Deployments') {
                     parallel {
-                        stage('Deployment Tests') {
-                            environment {
-                                TEST_SUITES="opensearch/topology/... istio/authz/... metrics/deploymetrics/... logging/system/... logging/opensearch/... logging/helidon/... examples/helidonmetrics/... examples/helidon/... workloads/... ingress/console/... loggingtrait/... metricsbinding/..."
-                            }
+                        stage('opensearch-topology') {
                             steps {
-                                runMakeCommand("test")
+                                runTest('opensearch/topology')
+                            }
+                        }
+                        stage('istio authorization policy') {
+                            steps {
+                                runTest('istio/authz')
                             }
                         }
                         stage('security network policies') {
-                            environment {
-                                DUMP_DIRECTORY="${DUMP_ROOT_DIRECTORY}/netpol"
-                            }
                             steps {
                                 script {
                                     if (params.CREATE_CLUSTER_USE_CALICO == true) {
-                                        runGinkgo('security/netpol')
+                                        runTest('security/netpol')
                                     }
                                 }
+                            }
+                        }
+                        stage('k8s deployment workload metrics') {
+                            steps {
+                                runTest('metrics/deploymetrics')
+                            }
+                        }
+                        stage('system logging') {
+                            steps {
+                                runTest('logging/system')
+                            }
+                        }
+                        stage('opensearch logging') {
+                            steps {
+                                runTest('logging/opensearch')
+                            }
+                        }
+                        stage('examples logging helidon') {
+                            steps {
+                                runTest('logging/helidon')
+                            }
+                        }
+                        stage('examples helidon') {
+                            steps {
+                                runTest('examples/helidon')
+                            }
+                        }
+                        stage('weblogic workload') {
+                            steps {
+                                runTest('workloads/weblogic')
+                            }
+                        }
+                        stage('coherence workload') {
+                            steps {
+                                runTest('workloads/coherence')
+                            }
+                        }
+                        stage('OAM workloads') {
+                            steps {
+                                runTest('workloads/oam')
+                            }
+                        }
+                        stage('examples helidon-metrics') {
+                            when {
+                                expression {params.RUN_SLOW_TESTS == true}
+                            }
+                            steps {
+                                runTest('examples/helidonmetrics')
+                            }
+                        }
+                        stage('console ingress') {
+                            steps {
+                                runTest('ingress/console')
+                            }
+                        }
+                        stage('logging trait WebLogic workload') {
+                            steps {
+                                runTest('loggingtrait/weblogicworkload')
+                            }
+                        }
+                        stage('logging trait Helidon workload') {
+                            steps {
+                                runTest('loggingtrait/helidonworkload')
+                            }
+                        }
+                        stage('logging trait Coherence workload') {
+                            steps {
+                                runTest('loggingtrait/coherenceworkload')
+                            }
+                        }
+                        stage('poko metricsbinding') {
+                            steps {
+                                runTest('metricsbinding')
                             }
                         }
                     }
@@ -380,11 +466,37 @@ pipeline {
     }
 }
 
+def getDeploymentTestTargets() {
+    def targets = "opensearch/topology/... istio/authz/... metrics/deploymetrics/... logging/system/... logging/opensearch/... " +
+        "logging/helidon/... examples/helidonmetrics/... examples/helidon/... workloads/... ingress/console/... " +
+        "loggingtrait/... metricsbinding/..."
+    if (params.CREATE_CLUSTER_USE_CALICO == true) {
+        targets += "security/netpol"
+    }
+    return targets
+}
+
+def getVerifyInstallTestTargets() {
+    return "verify-install/... verify-infra/... scripts/... security/rbac/... metrics/syscomponents/..."
+}
+
+def runTest(makeTarget, testSuitePath) {
+    return catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+           export TEST_SUITES="${testSuitePath}/..."
+           cd ${GO_REPO_PATH}/verrazzano/ci/generic
+           make ${makeTarget}
+        """
+    }
+}
+
 def runMakeCommand(makeTarget) {
-   sh """
-       cd ${GO_REPO_PATH}/verrazzano/ci/generic
-       make ${makeTarget}
-   """
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+           cd ${GO_REPO_PATH}/verrazzano/ci/generic
+           make ${makeTarget}
+        """
+    }
 }
 
 def runGinkgoRandomize(testSuitePath, kubeConfig = '') {

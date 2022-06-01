@@ -3,12 +3,13 @@
 
 include global-env.mk
 
-export TEST_DUMP_ROOT ?= ${WORKSPACE}/cluster-dumps
+export DUMP_ROOT_DIRECTORY ?= ${WORKSPACE}/cluster-dumps
 export GINGKO_ARGS ?= -v --keep-going --no-color
-#verify-install: export DUMP_DIRECTORY ?= ${TEST_DUMP_ROOT}/verify-install
-#verify-install: export TEST_SUITES := verify-install
-#.PHONY: verify-install
-#verify-install: run-test
+
+console-test: export DUMP_DIRECTORY ?= ${DUMP_ROOT_DIRECTORY}/console
+PHONY: console-test
+console-test:
+	${CI_SCRIPTS_DIR}/run_console_tests.sh
 
 run-test: export RANDOMIZE_TESTS ?= true
 run-test: export RUN_PARALLEL ?= true

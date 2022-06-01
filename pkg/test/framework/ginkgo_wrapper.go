@@ -32,8 +32,8 @@ func NewTestFramework(pkg string) *TestFramework {
 
 // initDumpDirectoryIfNecessary - sets the DUMP_DIRECTORY env variable to a default if not set externally
 func (t *TestFramework) initDumpDirectoryIfNecessary() {
-	if dumpDirectory, dumpDirIsSet := os.LookupEnv(test.DumpDirectoryEnvVarName); !dumpDirIsSet {
-		dumpDirectory = t.Pkg
+	if _, dumpDirIsSet := os.LookupEnv(test.DumpDirectoryEnvVarName); !dumpDirIsSet {
+		dumpDirectory := t.Pkg
 		dumpRoot, exists := os.LookupEnv(test.DumpRootDirectoryEnvVarName)
 		if exists {
 			dumpDirectory = fmt.Sprintf("%s/%s", dumpRoot, t.Pkg)
