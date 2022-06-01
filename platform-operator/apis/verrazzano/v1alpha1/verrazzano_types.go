@@ -225,9 +225,6 @@ type Condition struct {
 type VzStateType string
 
 const (
-	// VzStateInstalling is the state when an install is in progress
-	VzStateInstalling VzStateType = "Installing"
-
 	// VzStateUninstalling is the state when an uninstall is in progress
 	VzStateUninstalling VzStateType = "Uninstalling"
 
@@ -242,6 +239,9 @@ const (
 
 	// VzStateFailed is the state when an install/uninstall/upgrade has failed
 	VzStateFailed VzStateType = "Failed"
+
+	// VzStateReconciling is the state when a resource is in progress reconciling
+	VzStateReconciling VzStateType = "Reconciling"
 )
 
 // CompStateType identifies the state of a component

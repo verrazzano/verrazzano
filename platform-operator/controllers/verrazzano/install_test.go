@@ -39,7 +39,7 @@ func TestUpdate(t *testing.T) {
 		"1.3.0", "1.3.0", namespace, name)
 	defer reset()
 	asserts.NoError(err)
-	asserts.Equal(vzapi.VzStateInstalling, vz.Status.State)
+	asserts.Equal(vzapi.VzStateReconciling, vz.Status.State)
 	asserts.True(*fakeCompUpdated)
 	asserts.True(result.Requeue)
 }
@@ -97,7 +97,7 @@ func TestUpdateOnUpdate(t *testing.T) {
 		"1.3.3", "1.3.3", namespace, name)
 	defer reset()
 	asserts.NoError(err)
-	asserts.Equal(vzapi.VzStateInstalling, vz.Status.State)
+	asserts.Equal(vzapi.VzStateReconciling, vz.Status.State)
 	asserts.True(*fakeCompUpdated)
 	asserts.True(result.Requeue)
 }
