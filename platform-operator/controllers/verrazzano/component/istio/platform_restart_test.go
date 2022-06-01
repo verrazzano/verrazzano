@@ -29,7 +29,7 @@ const (
 // TestRestartAllWorkloadTypesWithOldProxy tests the RestartComponents method for the following use case
 // GIVEN a request to RestartComponents passing DoesPodContainOldIstioSidecar
 // WHEN where the fake client has deployments, statefulsets, and daemonsets that need to be restarted
-// THEN the workloads have the restart annotation with the Verraazano CR generation as the value
+// THEN the workloads have the restart annotation with the Verrazzano CR generation as the value
 func TestRestartAllWorkloadTypesWithOldProxy(t *testing.T) {
 	asserts := assert.New(t)
 	config.SetDefaultBomFilePath(unitTestBomFile)
@@ -65,7 +65,7 @@ func TestRestartAllWorkloadTypesWithOldProxy(t *testing.T) {
 // TestNoRestartAllWorkloadTypesWithNoProxy tests the RestartComponents method for the following use case
 // GIVEN a request to RestartComponents passing DoesPodContainNoIstioSidecar
 // WHEN where the fake client has deployments, statefulsets, and daemonsets that do not need to be restarted
-// THEN the workloads should not have the restart annotation with the Verraazano CR generation as the value
+// THEN the workloads should not have the restart annotation with the Verrazzano CR generation as the value
 func TestNoRestartAllWorkloadTypesWithNoProxy(t *testing.T) {
 	asserts := assert.New(t)
 	config.SetDefaultBomFilePath(unitTestBomFile)
@@ -101,7 +101,7 @@ func TestNoRestartAllWorkloadTypesWithNoProxy(t *testing.T) {
 // TestNoRestartAllWorkloadTypesNoOldProxy tests the RestartComponents method for the following use case
 // GIVEN a request to RestartComponents a component passing DoesPodContainOldIstioSidecar
 // WHEN where the fake client has deployments, statefulsets, and daemonsets that do not need to be restarted
-// THEN the workloads should not have the restart annotation with the Verraazano CR generation as the value
+// THEN the workloads should not have the restart annotation with the Verrazzano CR generation as the value
 func TestNoRestartAllWorkloadTypesNoOldProxy(t *testing.T) {
 	asserts := assert.New(t)
 	config.SetDefaultBomFilePath(unitTestBomFile)
@@ -134,7 +134,7 @@ func TestNoRestartAllWorkloadTypesNoOldProxy(t *testing.T) {
 // TestNoRestartAllWorkloadTypesWithProxy tests the RestartComponents method for the following use case
 // GIVEN a request to RestartComponents a component passing DoesPodContainNoIstioSidecar
 // WHEN where the fake client has deployments, statefulsets, and daemonsets that do not need to be restarted
-// THEN the workloads should not have the restart annotation with the Verraazano CR generation as the value
+// THEN the workloads should not have the restart annotation with the Verrazzano CR generation as the value
 func TestNoRestartAllWorkloadTypesWithProxy(t *testing.T) {
 	asserts := assert.New(t)
 	config.SetDefaultBomFilePath(unitTestBomFile)
@@ -167,7 +167,7 @@ func TestNoRestartAllWorkloadTypesWithProxy(t *testing.T) {
 // TestNoRestartAllWorkloadTypesWithOAMPod tests the RestartComponents method for the following use case
 // GIVEN a request to RestartComponents a component passing DoesPodContainNoIstioSidecar
 // WHEN where the fake client has deployments, statefulsets, and daemonsets that do not need to be restarted
-// THEN the workloads should not have the restart annotation with the Verraazano CR generation as the value
+// THEN the workloads should not have the restart annotation with the Verrazzano CR generation as the value
 func TestNoRestartAllWorkloadTypesWithOAMPod(t *testing.T) {
 	asserts := assert.New(t)
 	config.SetDefaultBomFilePath(unitTestBomFile)
