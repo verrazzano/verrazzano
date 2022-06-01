@@ -4,6 +4,7 @@
 include ./global-env.mk
 include ./kind.mk
 include ./install.mk
+include ./acceptance-tests.mk
 
 .PHONY: all
 all: setup install test upgrade uninstall cleanup
@@ -25,7 +26,8 @@ install: install-verrazzano
 # Executes test suite(s) against the target Verrazzano install
 .PHONY: test
 test:
-	@echo "Running tests"
+	@echo "Running tests ${TEST_SUITES}"
+	make run-test
 
 # Executes an upgrade to a new Verrazzano version from the initially installed version
 .PHONY: upgrade
