@@ -53,8 +53,7 @@ type imageError struct {
 }
 
 var (
-	ignoreSubComponents []string
-	kubeconfig          string
+	kubeconfig string
 )
 
 func init() {
