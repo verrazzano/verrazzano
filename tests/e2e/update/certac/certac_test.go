@@ -6,6 +6,7 @@ package certac
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -58,18 +59,18 @@ var _ = t.AfterSuite(func() {
 var _ = t.Describe("Update admin-cluster cert-manager", Label("f:platform-lcm.update"), func() {
 	t.Describe("multicluster cert-manager verify", Label("f:platform-lcm.multicluster-verify"), func() {
 		t.It("admin-cluster cert-manager custom CA", func() {
-			//start := time.Now()
+			start := time.Now()
 			oldIngressCaCrt := updateAdminClusterCA()
 			verifyCaSync(oldIngressCaCrt)
-			//verifyManagedFluentd(start)
+			verifyManagedFluentd(start)
 		})
 	})
 	t.Describe("multicluster cert-manager verify", Label("f:platform-lcm.multicluster-verify"), func() {
 		t.It("admin-cluster cert-manager default self-signed CA", func() {
-			//start := time.Now()
+			start := time.Now()
 			oldIngressCaCrt := revertToDefaultCertManager()
 			verifyCaSync(oldIngressCaCrt)
-			//verifyManagedFluentd(start)
+			verifyManagedFluentd(start)
 		})
 	})
 })
@@ -146,24 +147,22 @@ func verifyManagedClusterRegistration(managedCluster *multicluster.Cluster, admC
 	}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Sync CA %v", managedCluster.Name))
 }
 
-//func verifyManagedFluentd(since time.Time) {
-//	for _, managedCluster := range managedClusters {
-//		gomega.Eventually(func() bool {
-//			logs := managedCluster.FluentdLogs(5, since)
-//			ok := checkFluentdLogs(logs)
-//			if !ok {
-//				pkg.Log(pkg.Error, fmt.Sprintf("%v Fluentd is not read: \n%v\n", managedCluster.Name, logs))
-//			}
-//			return ok
-//		}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("scrape target of %s is not ready", managedCluster.Name))
-//	}
-//}
-//
-//func checkFluentdLogs(logs string) bool {
-//	return !strings.Contains(strings.ToUpper(logs), "ERROR") &&
-//		!strings.Contains(logs, "Exception") &&
-//		(strings.Contains(logs, "filter chain optimization") || strings.Contains(logs, "following tail of"))
-//}
+func verifyManagedFluentd(since time.Time) {
+	for _, managedCluster := range managedClusters {
+		gomega.Eventually(func() bool {
+			logs := managedCluster.FluentdLogs(5, since)
+			ok := checkFluentdLogs(logs)
+			if !ok {
+				pkg.Log(pkg.Error, fmt.Sprintf("%v Fluentd is not read: \n%v\n", managedCluster.Name, logs))
+			}
+			return ok
+		}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("scrape target of %s is not ready", managedCluster.Name))
+	}
+}
+
+func checkFluentdLogs(logs string) bool {
+	return !strings.Contains(strings.ToUpper(logs), "ERROR") && !strings.Contains(logs, "Exception")
+}
 
 func verifyRegistration() {
 	for _, managedCluster := range managedClusters {
