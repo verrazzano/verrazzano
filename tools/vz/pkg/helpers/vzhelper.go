@@ -18,6 +18,7 @@ type VZHelper interface {
 	GetErrorStream() io.Writer
 	GetInputStream() io.Reader
 	GetClient(cmd *cobra.Command) (client.Client, error)
+	GetLatestReleaseVersion() (string, error)
 }
 
 // FindVerrazzanoResource - find the single Verrazzano resource

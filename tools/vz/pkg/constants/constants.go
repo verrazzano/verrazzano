@@ -23,8 +23,9 @@ const (
 	TimeoutFlag     = "timeout"
 	TimeoutFlagHelp = "Limits the amount of time a command will wait to complete."
 
-	VersionFlag     = "version"
-	VersionFlagHelp = "The version of Verrazzano to install or upgrade."
+	VersionFlag        = "version"
+	VersionFlagDefault = "latest"
+	VersionFlagHelp    = "The version of Verrazzano to install or upgrade."
 
 	DryRunFlag = "dry-run"
 
@@ -42,3 +43,6 @@ const (
 	FilenameFlagShorthand = "f"
 	FilenameFlagHelp      = "Path to file containing Verrazzano custom resource.  This flag can be specified multiple times to overlay multiple files."
 )
+
+// GitHubLatestVerrazzanoRelease - API for getting the latest Verrazzano release
+const GitHubLatestVerrazzanoRelease = "https://github.com/verrazzano/verrazzano/releases/latest"

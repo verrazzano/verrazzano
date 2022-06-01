@@ -41,6 +41,10 @@ func (rc *FakeRootCmdContext) SetClient(client client.Client) {
 	rc.client = client
 }
 
+func (rc *FakeRootCmdContext) GetLatestReleaseVersion() (string, error) {
+	return "v1.3.0", nil
+}
+
 func NewFakeRootCmdContext(streams genericclioptions.IOStreams) *FakeRootCmdContext {
 	return &FakeRootCmdContext{
 		IOStreams: streams,

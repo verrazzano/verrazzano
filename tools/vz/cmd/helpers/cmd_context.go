@@ -5,6 +5,8 @@ package helpers
 
 import (
 	"io"
+	"net/http"
+	"strings"
 
 	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/spf13/cobra"
@@ -13,6 +15,7 @@ import (
 	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/github"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -65,6 +68,29 @@ func (rc *RootCmdContext) GetClient(cmd *cobra.Command) (client.Client, error) {
 	_ = corev1.SchemeBuilder.AddToScheme(scheme)
 
 	return client.New(config, client.Options{Scheme: scheme})
+}
+
+// GetLatestReleaseVersion - get the version of the latest release of Verrazzano
+func (rc *RootCmdContext) GetLatestReleaseVersion() (string, error) {
+	// Create HTTP client
+	client, err := github.NewClient()
+	if err != nil {
+		return "", err
+	}
+
+	// Request the latest version
+	resp, err := client.Get(constants.GitHubLatestVerrazzanoRelease)
+	if err != nil {
+		return "", err
+	}
+
+	// Was the response a redirect?
+	if resp.StatusCode == http.StatusOK {
+		tokens := strings.Split(resp.Request.URL.Path, "/")
+		return tokens[len(tokens)-1], nil
+	}
+
+	return "", nil
 }
 
 // NewRootCmdContext - create the root command context object
