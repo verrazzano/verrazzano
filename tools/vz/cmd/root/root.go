@@ -6,7 +6,10 @@ package root
 import (
 	"github.com/spf13/cobra"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/install"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/status"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/uninstall"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/upgrade"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -26,12 +29,15 @@ func NewRootCmd(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 
 	// Add global flags
-	cmd.PersistentFlags().StringVar(&kubeconfig, constants.GlobalFlagKubeConfig, "", "Path to the kubeconfig file to use")
-	cmd.PersistentFlags().StringVar(&context, constants.GlobalFlagContext, "", "The name of the kubeconfig context to use")
+	cmd.PersistentFlags().StringVar(&kubeconfig, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
+	cmd.PersistentFlags().StringVar(&context, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
 
 	// Add commands
 	cmd.AddCommand(status.NewCmdStatus(vzHelper))
 	cmd.AddCommand(version.NewCmdVersion(vzHelper))
+	cmd.AddCommand(install.NewCmdInstall(vzHelper))
+	cmd.AddCommand(upgrade.NewCmdUpgrade(vzHelper))
+	cmd.AddCommand(uninstall.NewCmdUninstall(vzHelper))
 
 	return cmd
 }
