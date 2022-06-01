@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	longPollingInterval = 8 * time.Second
-	longWaitTimeout     = 10 * time.Minute
+	longPollingInterval = 20 * time.Second
+	longWaitTimeout     = 20 * time.Minute
 
 	// Constants for sample metrics of system components validated by the test
 	ingressControllerSuccess       = "nginx_ingress_controller_success"
@@ -74,7 +74,6 @@ var excludePodsVS = []string{
 	"verrazzano-application-operator",
 	"verrazzano-monitoring-operator",
 	"verrazzano-operator",
-	"verrazzano-authproxy",
 }
 
 // List of pods to be excluded from istio-system namespace for envoy-stats as they do not have envoy
