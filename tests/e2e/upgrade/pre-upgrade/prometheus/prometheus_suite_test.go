@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestVerifyPrometheusPostUpgrade(t *testing.T) {
+func TestVerifyPrometheusPreUpgrade(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Post Upgrade Verify Prometheus Suite")
+	ginkgo.RunSpecs(t, "Pre Upgrade Verify Prometheus Suite")
 }

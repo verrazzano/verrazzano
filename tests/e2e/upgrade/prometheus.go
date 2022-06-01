@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package common
+package upgrade
 
 import (
 	"fmt"
@@ -16,7 +16,6 @@ import (
 const (
 	threeMinutes    = 3 * time.Minute
 	pollingInterval = 10 * time.Second
-	longTimeout     = 10 * time.Minute
 
 	// Constants for sample metrics of system components validated by the test
 	ingressControllerSuccess  = "nginx_ingress_controller_success"
@@ -35,14 +34,18 @@ const (
 
 // Constants for test deployment with Metric trait
 const (
-	TestNamespace        = "deploymetrics"
-	TestMetricName       = "tomcat_sessions_created_sessions_total"
-	TestMetricLabelKey   = "app_oam_dev_component"
-	TestMetricLabelValue = "deploymetrics-deployment"
+	PromAppNamespace        = "deploymetrics"
+	PromAppMetricName       = "tomcat_sessions_created_sessions_total"
+	PromAppMetricLabelKey   = "app_oam_dev_component"
+	PromAppMetricLabelValue = "deploymetrics-deployment"
 )
 
 var ExpectedPodsDeploymetricsApp = []string{"deploymetrics-workload"}
 var clusterName = os.Getenv("CLUSTER_NAME")
+
+// In a multi cluster setup, all queries to prometheus should be done via the prometheus
+// endpoint of the admin cluster.
+var adminKubeConfig string
 
 func SkipIfPrometheusDisabled() {
 	kubeConfigPath := getDefaultKubeConfigPath()
@@ -53,22 +56,11 @@ func SkipIfPrometheusDisabled() {
 	}
 }
 
-func InitKubeConfigPath() string {
-	adminKubeConfig, present := os.LookupEnv("ADMIN_KUBECONFIG")
-	if pkg.IsManagedClusterProfile() {
-		if !present {
-			ginkgo.Fail(fmt.Sprintln("Environment variable ADMIN_KUBECONFIG is required to run the test"))
-		}
-	} else {
-		adminKubeConfig = getDefaultKubeConfigPath()
-	}
-	return adminKubeConfig
-}
-
-func VerifyScrapeTargets(kubeConfigPath string) func() {
+func VerifyScrapeTargets() func() {
 	return func() {
+		initKubeConfigPath()
 		gomega.Eventually(func() bool {
-			scrapeTargets, err := pkg.ScrapeTargetsInCluster(kubeConfigPath)
+			scrapeTargets, err := pkg.ScrapeTargetsInCluster(adminKubeConfig)
 			if err != nil {
 				pkg.Log(pkg.Error, err.Error())
 				return false
@@ -79,63 +71,68 @@ func VerifyScrapeTargets(kubeConfigPath string) func() {
 	}
 }
 
-func VerifyNginxMetric(kubeConfigPath string) func() {
+func VerifyNginxMetric() func() {
 	return func() {
+		initKubeConfigPath()
 		gomega.Eventually(func() bool {
 			return pkg.MetricsExistInCluster(ingressControllerSuccess,
-				map[string]string{controllerNamespace: ingressNginxNamespace}, kubeConfigPath)
-		}).WithPolling(pollingInterval).WithTimeout(longTimeout).Should(gomega.BeTrue())
+				map[string]string{controllerNamespace: ingressNginxNamespace}, adminKubeConfig)
+		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(gomega.BeTrue())
 	}
 }
 
-func VerifyContainerAdvisorMetric(kubeConfigPath string) func() {
+func VerifyContainerAdvisorMetric() func() {
 	return func() {
+		initKubeConfigPath()
 		gomega.Eventually(func() bool {
 			return pkg.MetricsExistInCluster(containerStartTimeSeconds,
-				map[string]string{job: cadvisor}, kubeConfigPath)
-		}).WithPolling(pollingInterval).WithTimeout(longTimeout).Should(gomega.BeTrue())
+				map[string]string{job: cadvisor}, adminKubeConfig)
+		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(gomega.BeTrue())
 	}
 }
 
-func VerifyNodeExporterMetric(kubeConfigPath string) func() {
+func VerifyNodeExporterMetric() func() {
 	return func() {
+		initKubeConfigPath()
 		gomega.Eventually(func() bool {
 			return pkg.MetricsExistInCluster(cpuSecondsTotal,
-				map[string]string{job: nodeExporter}, kubeConfigPath)
-		}).WithPolling(pollingInterval).WithTimeout(longTimeout).Should(gomega.BeTrue())
+				map[string]string{job: nodeExporter}, adminKubeConfig)
+		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(gomega.BeTrue())
 	}
 }
 
-func VerifyDeploymentMetric(kubeConfigPath string) func() {
+func VerifyDeploymentMetric() func() {
 	return func() {
+		initKubeConfigPath()
 		gomega.Eventually(func() bool {
 			defaultKubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 			if err != nil {
 				pkg.Log(pkg.Error, err.Error())
 				return false
 			}
+			pkg.Log(pkg.Info, "Kube config path for current cluster - "+defaultKubeConfigPath)
 			label, err := pkg.GetClusterNameMetricLabel(defaultKubeConfigPath)
 			if err != nil {
 				pkg.Log(pkg.Error, err.Error())
 				return false
 			}
-			pkg.Log(pkg.Info, "Found cluster name metric label - "+label)
 			metricLabels := map[string]string{
-				TestMetricLabelKey: TestMetricLabelValue,
-				label:              getClusterNameForPromQuery(kubeConfigPath),
+				PromAppMetricLabelKey: PromAppMetricLabelValue,
+				label:                 getClusterNameForPromQuery(),
 			}
-			return pkg.MetricsExistInCluster(TestMetricName, metricLabels, kubeConfigPath)
+			return pkg.MetricsExistInCluster(PromAppMetricName, metricLabels, adminKubeConfig)
 		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(gomega.BeTrue(),
 			"Expected to find test metrics created by application deploy with metrics trait")
 	}
 }
 
 // Return the cluster name used for the Prometheus query
-func getClusterNameForPromQuery(kubeConfigPath string) string {
+func getClusterNameForPromQuery() string {
 	if pkg.IsManagedClusterProfile() {
+		pkg.Log(pkg.Info, "This is a managed cluster, returning cluster name - "+clusterName)
 		return clusterName
 	}
-	isMinVersion110, err := pkg.IsVerrazzanoMinVersion("1.1.0", kubeConfigPath)
+	isMinVersion110, err := pkg.IsVerrazzanoMinVersion("1.1.0", adminKubeConfig)
 	if err != nil {
 		pkg.Log(pkg.Error, err.Error())
 		return ""
@@ -151,5 +148,23 @@ func getDefaultKubeConfigPath() string {
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
+	pkg.Log(pkg.Info, "Default kube config path -"+kubeConfigPath)
 	return kubeConfigPath
+}
+
+func initKubeConfigPath() {
+	if adminKubeConfig != "" {
+		pkg.Log(pkg.Info, "Using pre initialized kube config path - "+adminKubeConfig)
+		return
+	}
+	var present bool
+	adminKubeConfig, present = os.LookupEnv("ADMIN_KUBECONFIG")
+	if pkg.IsManagedClusterProfile() {
+		if !present {
+			ginkgo.Fail(fmt.Sprintln("Environment variable ADMIN_KUBECONFIG is required to run the test"))
+		}
+	} else {
+		adminKubeConfig = getDefaultKubeConfigPath()
+	}
+	pkg.Log(pkg.Info, "Initialized kube config path - "+adminKubeConfig)
 }

@@ -5,6 +5,7 @@ package prometheus
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/tests/e2e/upgrade"
 	v1 "k8s.io/api/core/v1"
 	"strings"
 	"time"
@@ -13,7 +14,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"github.com/verrazzano/verrazzano/tests/e2e/upgrade/common"
 )
 
 const (
@@ -21,13 +21,10 @@ const (
 	pollingInterval = 10 * time.Second
 )
 
-var adminKubeConfig string
-
 var t = framework.NewTestFramework("prometheus")
 
 var _ = t.BeforeSuite(func() {
-	common.SkipIfPrometheusDisabled()
-	adminKubeConfig = common.InitKubeConfigPath()
+	upgrade.SkipIfPrometheusDisabled()
 	deployMetricsApplication()
 })
 
@@ -37,31 +34,31 @@ var _ = t.Describe("Pre upgrade Prometheus", Label("f:observability.monitoring.p
 	// WHEN a scrape config is created,
 	// THEN verify that the scrape config is created correctly
 	It("Scrape targets can be listed and there is at least 1 scrape target",
-		common.VerifyScrapeTargets(adminKubeConfig))
+		upgrade.VerifyScrapeTargets())
 
 	// GIVEN a running Prometheus instance,
 	// WHEN a sample NGINX metric is queried,
 	// THEN verify that the metric could be retrieved.
 	t.It("Verify sample NGINX metrics can be queried from Prometheus",
-		common.VerifyNginxMetric(adminKubeConfig))
+		upgrade.VerifyNginxMetric())
 
 	// GIVEN a running Prometheus instance,
 	// WHEN a sample Container advisor metric is queried,
 	// THEN verify that the metric could be retrieved.
 	t.It("Verify sample Container Advisor metrics can be queried from Prometheus",
-		common.VerifyContainerAdvisorMetric(adminKubeConfig))
+		upgrade.VerifyContainerAdvisorMetric())
 
 	// GIVEN a running Prometheus instance,
 	// WHEN a sample node exporter metric is queried,
 	// THEN verify that the metric could be retrieved.
 	t.It("Verify sample Node Exporter metrics can be queried from Prometheus",
-		common.VerifyNodeExporterMetric(adminKubeConfig))
+		upgrade.VerifyNodeExporterMetric())
 
 	// GIVEN a running Prometheus instance,
 	// WHEN a metric is created,
 	// THEN verify that the metric is persisted in the prometheus time series DB.
 	It("Validate if the test metric created by the test OAM deployment exists",
-		common.VerifyDeploymentMetric(adminKubeConfig))
+		upgrade.VerifyDeploymentMetric())
 
 })
 
@@ -71,9 +68,9 @@ func deployMetricsApplication() {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
 			"istio-injection":    "true"}
-		ns, err := pkg.CreateNamespace(common.TestNamespace, nsLabels)
+		ns, err := pkg.CreateNamespace(upgrade.PromAppNamespace, nsLabels)
 		if err != nil && strings.Contains(err.Error(), "already exists") {
-			ns, _ = pkg.GetNamespace(common.TestNamespace)
+			ns, _ = pkg.GetNamespace(upgrade.PromAppNamespace)
 			return ns
 		}
 		return ns
@@ -90,15 +87,15 @@ func deployMetricsApplication() {
 	}, threeMinutes, pollingInterval).ShouldNot(HaveOccurred(), "Failed to create DeployMetrics application resource")
 
 	Eventually(func() bool {
-		return pkg.ContainerImagePullWait(common.TestNamespace, common.ExpectedPodsDeploymetricsApp)
+		return pkg.ContainerImagePullWait(upgrade.PromAppNamespace, upgrade.ExpectedPodsDeploymetricsApp)
 	}, threeMinutes, pollingInterval).Should(BeTrue())
 
 	t.Logs.Info("Verify deploymetrics-workload pod is running")
 	Eventually(func() bool {
-		result, err := pkg.PodsRunning(common.TestNamespace, common.ExpectedPodsDeploymetricsApp)
+		result, err := pkg.PodsRunning(upgrade.PromAppNamespace, upgrade.ExpectedPodsDeploymetricsApp)
 		if err != nil {
 			pkg.Log(pkg.Error, fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v",
-				common.TestNamespace, err))
+				upgrade.PromAppNamespace, err))
 			return false
 		}
 		return result

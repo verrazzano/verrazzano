@@ -4,7 +4,7 @@
 package prometheus
 
 import (
-	"github.com/verrazzano/verrazzano/tests/e2e/upgrade/common"
+	"github.com/verrazzano/verrazzano/tests/e2e/upgrade"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"time"
 
@@ -22,13 +22,10 @@ const (
 	promConfigJobName = "deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment"
 )
 
-var adminKubeConfig string
-
 var t = framework.NewTestFramework("prometheus")
 
 var _ = t.BeforeSuite(func() {
-	common.SkipIfPrometheusDisabled()
-	adminKubeConfig = common.InitKubeConfigPath()
+	upgrade.SkipIfPrometheusDisabled()
 })
 
 var _ = t.AfterSuite(func() {
@@ -41,25 +38,25 @@ var _ = t.Describe("Post upgrade Prometheus", Label("f:observability.monitoring.
 	// WHEN a sample NGINX metric is queried,
 	// THEN verify that the metric could be retrieved.
 	t.It("Verify sample NGINX metrics can be queried from Prometheus",
-		common.VerifyNginxMetric(adminKubeConfig))
+		upgrade.VerifyNginxMetric())
 
 	// GIVEN a running Prometheus instance,
 	// WHEN a sample Container advisor metric is queried,
 	// THEN verify that the metric could be retrieved.
 	t.It("Verify sample Container Advisor metrics can be queried from Prometheus",
-		common.VerifyContainerAdvisorMetric(adminKubeConfig))
+		upgrade.VerifyContainerAdvisorMetric())
 
 	// GIVEN a running Prometheus instance,
 	// WHEN a sample node exporter metric is queried,
 	// THEN verify that the metric could be retrieved.
 	t.It("Verify sample Node Exporter metrics can be queried from Prometheus",
-		common.VerifyNodeExporterMetric(adminKubeConfig))
+		upgrade.VerifyNodeExporterMetric())
 
 	// GIVEN a running Prometheus instance,
 	// WHEN checking for the test metric created during pre-upgrade,
 	// THEN verify that the metric is present.
 	It("Check if the created test metrics is present",
-		common.VerifyDeploymentMetric(adminKubeConfig))
+		upgrade.VerifyDeploymentMetric())
 })
 
 func undeployMetricsApplication() {
@@ -76,7 +73,7 @@ func undeployMetricsApplication() {
 
 	t.Logs.Info("Wait for pods to terminate")
 	Eventually(func() bool {
-		podsNotRunning, _ := pkg.PodsNotRunning(common.TestNamespace, common.ExpectedPodsDeploymetricsApp)
+		podsNotRunning, _ := pkg.PodsNotRunning(upgrade.PromAppNamespace, upgrade.ExpectedPodsDeploymetricsApp)
 		return podsNotRunning
 	}, threeMinutes, pollingInterval).Should(BeTrue())
 
@@ -87,17 +84,17 @@ func undeployMetricsApplication() {
 
 	t.Logs.Info("Delete namespace")
 	Eventually(func() error {
-		return pkg.DeleteNamespace(common.TestNamespace)
+		return pkg.DeleteNamespace(upgrade.PromAppNamespace)
 	}, threeMinutes, pollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Wait for Finalizer to be removed")
 	Eventually(func() bool {
-		return pkg.CheckNamespaceFinalizerRemoved(common.TestNamespace)
+		return pkg.CheckNamespaceFinalizerRemoved(upgrade.PromAppNamespace)
 	}, threeMinutes, pollingInterval).Should(BeTrue())
 
 	t.Logs.Info("Waiting for namespace deletion")
 	Eventually(func() bool {
-		_, err := pkg.GetNamespace(common.TestNamespace)
+		_, err := pkg.GetNamespace(upgrade.PromAppNamespace)
 		return err != nil && errors.IsNotFound(err)
 	}, longTimeout, pollingInterval).Should(BeTrue())
 }
