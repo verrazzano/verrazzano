@@ -398,7 +398,7 @@ pipeline {
                         }
                         stage('Prometheus pre-upgrade') {
                             steps {
-                                runGinkgoVerifySerial('metrics/deploymetrics', "${TEST_DUMP_ROOT}/prompreupgrade", "false", "true", "false", "deploymetrics")
+                                runGinkgoVerifyParallel('Prometheus pre-upgrade', 'metrics/deploymetrics', "${TEST_DUMP_ROOT}/prompreupgrade", "false", "true", "true", "deploymetrics")
                             }
                         }
                     }
@@ -565,7 +565,7 @@ pipeline {
                         }
                         stage('Prometheus post-upgrade') {
                             steps {
-                                runGinkgoVerifySerial('metrics/deploymetrics', "${TEST_DUMP_ROOT}/prompostupgrade", "true", "false", "false", "deploymetrics")
+                                runGinkgoVerifyParallel('Prometheus post-upgrade', 'metrics/deploymetrics', "${TEST_DUMP_ROOT}/prompostupgrade", "true", "false", "false", "deploymetrics")
                             }
                         }
                         stage ("Verify install scripts") {
@@ -1329,7 +1329,7 @@ def runGinkgoVerify(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeplo
     }
 }
 
-def runGinkgoVerifyParallel(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace) {
+def runGinkgoVerifyParallel(testSuitePrefix, testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace) {
     script {
         def runGinkgoVerifyStages = createClusterExecutionsMap()
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
@@ -1342,7 +1342,7 @@ def runGinkgoVerifyParallel(testSuitePath, clusterDumpDirectory, skipDeploy, ski
             } else {
                 clusterName="managed${count-1}"
             }
-            runGinkgoVerifyStages["${clusterName} - ${testSuitePath}"] = runGinkgoVerifyInCluster(count, clusterName, testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace)
+            runGinkgoVerifyStages["${testSuitePrefix} - ${clusterName}"] = runGinkgoVerifyInCluster(count, clusterName, testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace)
         }
         parallel runGinkgoVerifyStages
     }
