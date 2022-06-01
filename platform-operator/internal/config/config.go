@@ -192,3 +192,7 @@ func GetDefaultBOMFilePath() string {
 func GetInjectedSystemNamespaces() []string {
 	return []string{constants.VerrazzanoSystemNamespace, constants.IngressNginxNamespace, constants.KeycloakNamespace}
 }
+
+func GetNoInjectionComponents() []string {
+	return []string{"coherence-operator", "oam-kubernetes-runtime", "verrazzano-application-operator"}
+}
