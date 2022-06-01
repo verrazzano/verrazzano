@@ -270,13 +270,15 @@ pipeline {
                 }
 
                 stage('Run Acceptance Tests Deployments') {
-                    environment {
-                        TEST_SUITES="opensearch/topology/... istio/authz/... metrics/deploymetrics/... logging/system/... logging/opensearch/... logging/helidon/... examples/helidonmetrics/... examples/helidon/... workloads/... ingress/console/... loggingtrait/... metricsbinding/..."
-                    }
-                    steps {
-                        runMakeCommand("test")
-                    }
                     parallel {
+                        stage {
+                            environment {
+                                TEST_SUITES="opensearch/topology/... istio/authz/... metrics/deploymetrics/... logging/system/... logging/opensearch/... logging/helidon/... examples/helidonmetrics/... examples/helidon/... workloads/... ingress/console/... loggingtrait/... metricsbinding/..."
+                            }
+                            steps {
+                                runMakeCommand("test")
+                            }
+                        }
                         stage('security network policies') {
                             environment {
                                 DUMP_DIRECTORY="${DUMP_ROOT_DIRECTORY}/netpol"
