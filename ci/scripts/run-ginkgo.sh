@@ -13,7 +13,7 @@ fi
 TEST_DUMP_ROOT=${TEST_DUMP_ROOT:-"."}
 SEQUENTIAL_SUITES=${SEQUENTIAL_SUITES:-false}
 
-GINGKO_ARGS=${GINGKO_ARGS:-"-v --keep-going --no-color"}
+GINGKO_ARGS=${GINGKO_ARGS:-""}
 if [ "${RUN_PARALLEL}" == "true" ]; then
   GINGKO_ARGS="${GINGKO_ARGS} -p"
 fi
@@ -21,13 +21,13 @@ if [ "${RANDOMIZE_TESTS}" == "true" ]; then
   GINGKO_ARGS="${GINGKO_ARGS} --randomize-all"
 fi
 if [ -n "${TAGGED_TESTS}" ]; then
-  GINGKO_ARGS="${GINGKO_ARGS} -tags=\"${TAGGED_TESTS}\""
+  GINGKO_ARGS="${GINGKO_ARGS} -tags=${TAGGED_TESTS}"
 fi
 if [ -n "${INCLUDED_TESTS}" ]; then
-  GINGKO_ARGS="${GINGKO_ARGS} --focus-file=\"${INCLUDED_TESTS}\""
+  GINGKO_ARGS="${GINGKO_ARGS} --focus-file=${INCLUDED_TESTS}"
 fi
 if [ -n "${EXCLUDED_TESTS}" ]; then
-  GINGKO_ARGS="${GINGKO_ARGS} --skip-file=\"${EXCLUDED_TESTS}\""
+  GINGKO_ARGS="${GINGKO_ARGS} --skip-file=${EXCLUDED_TESTS}"
 fi
 if [ -n "${SKIP_DEPLOY}" ]; then
   TEST_ARGS="${TEST_ARGS} --skip-deploy=${SKIP_DEPLOY}"
@@ -37,8 +37,12 @@ if [ -n "${SKIP_UNDEPLOY}" ]; then
 fi
 set -x
 
+if [ -n "${TEST_ARGS}" ]; then
+  TEST_ARGS="-- ${TEST_ARGS}"
+fi
+
 cd ${TEST_ROOT}
-ginkgo ${GINGKO_ARGS} ${TEST_SUITES} -- ${TEST_ARGS}
+ginkgo ${GINGKO_ARGS} ${TEST_SUITES} ${TEST_ARGS}
 #for suite in ${TEST_SUITES}; do
 #  DUMP_DIRECTORY=${TEST_DUMP_ROOT}/${suite}
 #  if [ "${SEQUENTIAL_SUITES}" == "true" ]; then

@@ -4,15 +4,14 @@
 include global-env.mk
 
 export TEST_DUMP_ROOT ?= ${WORKSPACE}/cluster-dumps
-
+export GINGKO_ARGS ?= -v --keep-going --no-color
 #verify-install: export DUMP_DIRECTORY ?= ${TEST_DUMP_ROOT}/verify-install
 #verify-install: export TEST_SUITES := verify-install
 #.PHONY: verify-install
 #verify-install: run-test
 
 run-test: export RANDOMIZE_TESTS ?= true
-run-test: export RUN_PARALLEL ?= false
-run-test: export SEQUENTIAL_SUITES ?= false
+run-test: export RUN_PARALLEL ?= true
 .PHONY: run-test
 run-test:
 	${CI_SCRIPTS_DIR}/run-ginkgo.sh
