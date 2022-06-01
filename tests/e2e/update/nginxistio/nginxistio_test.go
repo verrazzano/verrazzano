@@ -32,7 +32,7 @@ const (
 	istioEgressLabelValue  = "istio-egressgateway"
 	waitTimeout            = 5 * time.Minute
 	pollingInterval        = 5 * time.Second
-	ociLBShapeAnnotation   = "oci-load-balancer-shape"
+	ociLBShapeAnnotation   = "service.beta.kubernetes.io/oci-load-balancer-shape"
 	nginxLBShapeArg        = "controller.service.annotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\""
 	istioLBShapeArg        = "gateways.istio-ingressgateway.serviceAnnotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\""
 )
@@ -206,6 +206,7 @@ func (u NginxIstioIngressServiceAnnotationModifier) ModifyCR(cr *vzapi.Verrazzan
 	if cr.Spec.Components.Ingress == nil {
 		cr.Spec.Components.Ingress = &vzapi.IngressNginxComponent{}
 	}
+	cr.Spec.Components.Ingress.Type = vzapi.LoadBalancer
 	nginxInstallArgs := cr.Spec.Components.Ingress.NGINXInstallArgs
 	nginxInstallArgs = append(nginxInstallArgs, vzapi.InstallArgs{Name: nginxLBShapeArg, Value: "10Mbps"})
 	nginxInstallArgs = append(nginxInstallArgs, vzapi.InstallArgs{Name: "controller.service.annotations.name-n", Value: "value-n"})
@@ -216,6 +217,7 @@ func (u NginxIstioIngressServiceAnnotationModifier) ModifyCR(cr *vzapi.Verrazzan
 	if cr.Spec.Components.Istio.Ingress == nil {
 		cr.Spec.Components.Istio.Ingress = &vzapi.IstioIngressSection{}
 	}
+	cr.Spec.Components.Istio.Ingress.Type = vzapi.LoadBalancer
 	istioInstallArgs := cr.Spec.Components.Istio.IstioInstallArgs
 	istioInstallArgs = append(istioInstallArgs, vzapi.InstallArgs{Name: istioLBShapeArg, Value: "flexible"})
 	istioInstallArgs = append(istioInstallArgs, vzapi.InstallArgs{Name: "gateways.istio-ingressgateway.serviceAnnotations.name-i", Value: "value-i"})
