@@ -5,6 +5,7 @@ package framework
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/test"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"go.uber.org/zap"
 	"os"
@@ -31,14 +32,14 @@ func NewTestFramework(pkg string) *TestFramework {
 
 // initDumpDirectoryIfNecessary - sets the DUMP_DIRECTORY env variable to a default if not set externally
 func (t *TestFramework) initDumpDirectoryIfNecessary() {
-	if dumpDirectory, dumpDirIsSet := os.LookupEnv(DumpDirectoryEnvVarName); !dumpDirIsSet {
+	if dumpDirectory, dumpDirIsSet := os.LookupEnv(test.DumpDirectoryEnvVarName); !dumpDirIsSet {
 		dumpDirectory = t.Pkg
-		dumpRoot, exists := os.LookupEnv(DumpRootDirectoryEnvVarName)
+		dumpRoot, exists := os.LookupEnv(test.DumpRootDirectoryEnvVarName)
 		if exists {
 			dumpDirectory = fmt.Sprintf("%s/%s", dumpRoot, t.Pkg)
 		}
-		t.Logs.Infof("Defaulting %s to %s", DumpDirectoryEnvVarName, dumpDirectory)
-		os.Setenv(DumpDirectoryEnvVarName, dumpDirectory)
+		t.Logs.Infof("Defaulting %s to %s", test.DumpDirectoryEnvVarName, dumpDirectory)
+		os.Setenv(test.DumpDirectoryEnvVarName, dumpDirectory)
 	}
 }
 
