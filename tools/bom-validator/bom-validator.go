@@ -74,6 +74,7 @@ var knownImageIssues = map[string]knownIssues{
 	"fleet-agent":                  {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
 	"fleet":                        {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
 	"gitjob":                       {alternateTags: []string{"v0.1.15"}, message: rancherWarningMessage},
+	"shell":                        {alternateTags: []string{"v0.1.6"}, message: rancherWarningMessage},
 	"example-helidon-greet-app-v1": {alternateTags: []string{"1.0.0-1-20210728181814-eb1e622"}, message: imageMissingMessage},
 }
 
