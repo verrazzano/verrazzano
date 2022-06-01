@@ -5,6 +5,8 @@ package deploymetrics
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"os"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
@@ -20,6 +22,7 @@ import (
 const (
 	testNamespace     = "deploymetrics"
 	promConfigJobName = "deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment"
+	skipVerifications = "Skip Verifications"
 )
 
 var expectedPodsDeploymetricsApp = []string{"deploymetrics-workload"}
@@ -32,15 +35,28 @@ var longPollingInterval = 30 * time.Second
 var imagePullWaitTimeout = 40 * time.Minute
 var imagePullPollingInterval = 30 * time.Second
 
+var adminKubeConfig string
+var label string
 var t = framework.NewTestFramework("deploymetrics")
 
 var clusterDump = pkg.NewClusterDumpWrapper()
 var _ = clusterDump.BeforeSuite(func() {
-	deployMetricsApplication()
+	if !skipDeploy {
+		deployMetricsApplication()
+	}
+	var err error
+	label, err = pkg.GetClusterNameMetricLabel(getDefaultKubeConfigPath())
+	if err != nil {
+		pkg.Log(pkg.Error, err.Error())
+		Fail(err.Error())
+	}
+	initKubeConfigPath()
 })
 var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
 var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
-	undeployMetricsApplication()
+	if !skipUndeploy {
+		undeployMetricsApplication()
+	}
 })
 
 func deployMetricsApplication() {
@@ -126,6 +142,9 @@ var _ = t.Describe("DeployMetrics Application test", Label("f:app-lcm.oam"), fun
 
 	t.Context("for Prometheus Config.", Label("f:observability.monitoring.prom"), func() {
 		t.It("Verify that Prometheus Config Data contains deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
 			Eventually(func() bool {
 				return pkg.IsAppInPromConfig(promConfigJobName)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find App in Prometheus Config")
@@ -134,15 +153,69 @@ var _ = t.Describe("DeployMetrics Application test", Label("f:app-lcm.oam"), fun
 
 	t.Context("Retrieve Prometheus scraped metrics for", Label("f:observability.monitoring.prom"), func() {
 		t.It("App Component", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
+			metricLabels := map[string]string{
+				"app_oam_dev_name": "deploymetrics-appconf",
+				label:              getClusterNameForPromQuery(),
+			}
 			Eventually(func() bool {
-				return pkg.MetricsExist("http_server_requests_seconds_count", "app_oam_dev_name", "deploymetrics-appconf")
+				return pkg.MetricsExistInCluster("http_server_requests_seconds_count", metricLabels, adminKubeConfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for App Component.")
 		})
 		t.It("App Config", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
+			metricLabels := map[string]string{
+				"app_oam_dev_component": "deploymetrics-deployment",
+				label:                   getClusterNameForPromQuery(),
+			}
 			Eventually(func() bool {
-				return pkg.MetricsExist("tomcat_sessions_created_sessions_total", "app_oam_dev_component", "deploymetrics-deployment")
+				return pkg.MetricsExistInCluster("tomcat_sessions_created_sessions_total", metricLabels, adminKubeConfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for App Config.")
 		})
 	})
 
 })
+
+// Return the cluster name used for the Prometheus query
+func getClusterNameForPromQuery() string {
+	if pkg.IsManagedClusterProfile() {
+		var clusterName = os.Getenv("CLUSTER_NAME")
+		pkg.Log(pkg.Info, "This is a managed cluster, returning cluster name - "+clusterName)
+		return clusterName
+	}
+	isMinVersion110, err := pkg.IsVerrazzanoMinVersion("1.1.0", adminKubeConfig)
+	if err != nil {
+		pkg.Log(pkg.Error, err.Error())
+		return ""
+	}
+	if isMinVersion110 {
+		return "local"
+	}
+	return ""
+}
+
+func getDefaultKubeConfigPath() string {
+	kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
+	pkg.Log(pkg.Info, "Default kube config path -"+kubeConfigPath)
+	return kubeConfigPath
+}
+
+func initKubeConfigPath() {
+	var present bool
+	adminKubeConfig, present = os.LookupEnv("ADMIN_KUBECONFIG")
+	if pkg.IsManagedClusterProfile() {
+		if !present {
+			Fail(fmt.Sprintln("Environment variable ADMIN_KUBECONFIG is required to run the test"))
+		}
+	} else {
+		adminKubeConfig = getDefaultKubeConfigPath()
+	}
+	pkg.Log(pkg.Info, "Initialized kube config path - "+adminKubeConfig)
+}
