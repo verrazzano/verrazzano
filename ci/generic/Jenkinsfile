@@ -92,7 +92,8 @@ pipeline {
         // Used for dumping cluster from inside tests
         DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
-        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
+        //TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
+        DUMP_ROOT_DIRECTORY="${WORKSPACE}/test-cluster-dumps"
 
         VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
         VERRAZZANO_INSTALL_LOG="verrazzano-install.log"
@@ -223,10 +224,10 @@ pipeline {
 
                 stage('Verify Install') {
                     environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
+                        TEST_SUITES="verify-install/..."
                     }
                     steps {
-                        runGinkgoRandomize('verify-install')
+                        runMakeCommand("test")
                     }
                     post {
                         always {
@@ -238,54 +239,17 @@ pipeline {
 
                 stage('Run Acceptance Tests Infra') {
                     parallel {
-                        stage('verify-scripts') {
-                            steps {
-                                runGinkgoRandomize('scripts', "${KUBECONFIG}")
-                            }
-                        }
-                        stage('verify-infra restapi') {
+                        stage('verify-infra') {
                             environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-restapi"
+                                TEST_SUITES="verify-infra/... verify-scripts/... scripts/... security/rbac/... metrics/syscomponents/..."
                             }
                             steps {
-                                runGinkgoRandomize('verify-infra/restapi')
-                            }
-                        }
-                        stage('verify-infra oam') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-oam"
-                            }
-                            steps {
-                                runGinkgoRandomize('verify-infra/oam')
-                            }
-                        }
-                        stage('verify-infra vmi') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-vmi"
-                            }
-                            steps {
-                                runGinkgoRandomize('verify-infra/vmi')
-                            }
-                        }
-                        stage('security role based access') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
-                            }
-                            steps {
-                                runGinkgo('security/rbac')
-                            }
-                        }
-                        stage('system component metrics') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-component-metrics"
-                            }
-                            steps {
-                                runGinkgo('metrics/syscomponents')
+                                runMakeCommand("test")
                             }
                         }
                         stage ('console') {
                             environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
+                                DUMP_DIRECTORY="${DUMP_ROOT_DIRECTORY}/console"
                             }
                             steps {
                                 sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
@@ -306,23 +270,16 @@ pipeline {
                 }
 
                 stage('Run Acceptance Tests Deployments') {
+                    environment {
+                        TEST_SUITES="opensearch/topology/... istio/authz/... metrics/deploymetrics/... logging/system/... logging/opensearch/... logging/helidon/... examples/helidonmetrics/... examples/helidon/... workloads/... ingress/console/... loggingtrait/... metricsbinding/..."
+                    }
+                    steps {
+                        runMakeCommand("test")
+                    }
                     parallel {
-                        stage('opensearch-topology') {
-                            steps {
-                                runGinkgoRandomize('opensearch/topology')
-                            }
-                        }
-                        stage('istio authorization policy') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"
-                            }
-                            steps {
-                                runGinkgo('istio/authz')
-                            }
-                        }
                         stage('security network policies') {
                             environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/netpol"
+                                DUMP_DIRECTORY="${DUMP_ROOT_DIRECTORY}/netpol"
                             }
                             steps {
                                 script {
@@ -330,121 +287,6 @@ pipeline {
                                         runGinkgo('security/netpol')
                                     }
                                 }
-                            }
-                        }
-                        stage('k8s deployment workload metrics') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/k8sdeploy-workload-metrics"
-                            }
-                            steps {
-                                runGinkgo('metrics/deploymetrics')
-                            }
-                        }
-                        stage('system logging') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-logging"
-                            }
-                            steps {
-                                runGinkgo('logging/system')
-                            }
-                        }
-                        stage('opensearch logging') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-logging"
-                            }
-                            steps {
-                                runGinkgo('logging/opensearch')
-                            }
-                        }
-                        stage('examples logging helidon') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"
-                            }
-                            steps {
-                                runGinkgo('logging/helidon')
-                            }
-                        }
-                        stage('examples helidon') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
-                            }
-                            steps {
-                                runGinkgo('examples/helidon')
-                            }
-                        }
-                        stage('weblogic workload') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
-                            }
-                            steps {
-                                runGinkgo('workloads/weblogic')
-                            }
-                        }
-                        stage('coherence workload') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
-                            }
-                            steps {
-                                runGinkgo('workloads/coherence')
-                            }
-                        }
-                        stage('OAM workloads') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/oam-workloads"
-                            }
-                            steps {
-                                runGinkgo('workloads/oam')
-                            }
-                        }
-                        stage('examples helidon-metrics') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/helidonmetrics"
-                            }
-                            when {
-                                expression {params.RUN_SLOW_TESTS == true}
-                            }
-                            steps {
-                                runGinkgo('examples/helidonmetrics')
-                            }
-                        }
-                        stage('console ingress') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console-ingress"
-                            }
-                            steps {
-                                runGinkgo('ingress/console')
-                            }
-                        }
-                        stage('logging trait WebLogic workload') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
-                            }
-                            steps {
-                                runGinkgo('loggingtrait/weblogicworkload')
-                            }
-                        }
-                        stage('logging trait Helidon workload') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-helidonworkload"
-                            }
-                            steps {
-                                runGinkgo('loggingtrait/helidonworkload')
-                            }
-                        }
-                        stage('logging trait Coherence workload') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-coherenceworkload"
-                            }
-                            steps {
-                                runGinkgo('loggingtrait/coherenceworkload')
-                            }
-                        }
-                        stage('poko metricsbinding') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/metricsbinding"
-                            }
-                            steps {
-                                runGinkgo('metricsbinding')
                             }
                         }
                     }
