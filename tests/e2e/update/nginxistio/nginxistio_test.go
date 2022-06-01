@@ -25,21 +25,21 @@ import (
 )
 
 const (
-	nginxLabelKey          = "app.kubernetes.io/component"
-	nginxLabelValue        = "controller"
-	istioAppLabelKey       = "app"
-	istioIngressLabelValue = "istio-ingressgateway"
-	istioEgressLabelValue  = "istio-egressgateway"
-	waitTimeout            = 5 * time.Minute
-	pollingInterval        = 5 * time.Second
-	ociLBShapeAnnotation   = "service.beta.kubernetes.io/oci-load-balancer-shape"
-	nginxLBShapeArg        = "controller.service.annotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\""
-	istioLBShapeArg        = "gateways.istio-ingressgateway.serviceAnnotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\""
-	nginxArgPrefixForAnno  = "controller.service.annotations."
-	istioArgPrefixForAnno  = "gateways.istio-ingressgateway.serviceAnnotations."
-	nginxTestAnnotationName = "name-n"
+	nginxLabelKey            = "app.kubernetes.io/component"
+	nginxLabelValue          = "controller"
+	istioAppLabelKey         = "app"
+	istioIngressLabelValue   = "istio-ingressgateway"
+	istioEgressLabelValue    = "istio-egressgateway"
+	waitTimeout              = 5 * time.Minute
+	pollingInterval          = 5 * time.Second
+	ociLBShapeAnnotation     = "service.beta.kubernetes.io/oci-load-balancer-shape"
+	nginxLBShapeArg          = "controller.service.annotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\""
+	istioLBShapeArg          = "gateways.istio-ingressgateway.serviceAnnotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\""
+	nginxArgPrefixForAnno    = "controller.service.annotations."
+	istioArgPrefixForAnno    = "gateways.istio-ingressgateway.serviceAnnotations."
+	nginxTestAnnotationName  = "name-n"
 	nginxTestAnnotationValue = "value-n"
-	istioTestAnnotationName = "name-i"
+	istioTestAnnotationName  = "name-i"
 	istioTestAnnotationValue = "value-i"
 )
 
@@ -405,6 +405,9 @@ func validateIngressServiceAnnotations() {
 			return fmt.Errorf("expect nginx ingress annotation %v with value 10Mbps, but got %v", ociLBShapeAnnotation, nginxIngress.Annotations[ociLBShapeAnnotation])
 		}
 		istioIngress, err := pkg.GetService(constants.IstioSystemNamespace, "istio-ingressgateway")
+		if err != nil {
+			return err
+		}
 		if istioIngress.Annotations[istioTestAnnotationName] != istioTestAnnotationValue {
 			return fmt.Errorf("expect istio ingress annotation %v with %v, but got %v", istioTestAnnotationName, istioTestAnnotationValue, istioIngress.Annotations[istioTestAnnotationName])
 		}
