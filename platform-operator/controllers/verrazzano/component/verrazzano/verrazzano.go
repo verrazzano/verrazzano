@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
 	"io/ioutil"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -44,8 +45,7 @@ const (
 	fluentDaemonset       = "fluentd"
 	nodeExporterDaemonset = "node-exporter"
 
-	prometheusDeployment        = "vmi-system-prometheus-0"
-	verrazzanoConsoleDeployment = "verrazzano-console"
+	prometheusDeployment = "vmi-system-prometheus-0"
 )
 
 var (
@@ -71,14 +71,6 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 
 	// First, check deployments
 	var deployments []types.NamespacedName
-	if vzconfig.IsConsoleEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments,
-			types.NamespacedName{
-				Name:      verrazzanoConsoleDeployment,
-				Namespace: ComponentNamespace,
-			})
-	}
-
 	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments,
 			types.NamespacedName{
@@ -400,6 +392,20 @@ func exportFromHelmChart(cli clipkg.Client) error {
 			return err
 		}
 	}
+
+	// Associate console objects
+	consoleReleaseName := types.NamespacedName{Name: console.ComponentName, Namespace: console.ComponentNamespace}
+	consoleObjects := []clipkg.Object{
+		&corev1.ServiceAccount{},
+		&corev1.Service{},
+		&appsv1.Deployment{},
+	}
+	for _, obj := range consoleObjects {
+		if _, err := common.AssociateHelmObject(cli, obj, consoleReleaseName, consoleReleaseName, true); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

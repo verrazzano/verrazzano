@@ -1,0 +1,39 @@
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ .Values.name }}
+  name: {{ .Values.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.name }}
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "true"
+      labels:
+        app: {{ .Values.name }}
+    spec:
+      containers:
+        - image: {{ .Values.imageName }}:{{ .Values.imageTag }}
+          imagePullPolicy: {{ .Values.pullPolicy }}
+          name: {{ .Values.name }}
+          ports:
+            - containerPort: 8000
+              name: http-console
+              protocol: TCP
+          env:
+            - name: VZ_API_URL
+              value: "https://verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}"
+      serviceAccountName: {{ .Values.name }}
