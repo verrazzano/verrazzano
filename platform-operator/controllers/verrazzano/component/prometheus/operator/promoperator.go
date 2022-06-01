@@ -6,6 +6,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"strconv"
 
 	vmoconst "github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
@@ -19,7 +20,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
@@ -217,28 +217,31 @@ func (c prometheusComponent) validatePrometheusOperator(vz *vzapi.Verrazzano) er
 // appendIstioOverrides appends Istio annotations necessary for Prometheus in Istio
 // Istio is required on the Prometheus for mTLS between it and Verrazzano applications
 func appendIstioOverrides(ctx spi.ComponentContext, annotationsKey, volumeMountKey, volumeKey string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	// Istio annotations that will copy the volume mount for the Istio certs to the envoy sidecar
+	// The last annotation allows envoy to intercept only requests from the Keycloak Service IP
+	annotations := map[string]string{
+		`proxy\.istio\.io/config`:            `{"proxyMetadata":{ "OUTPUT_CERTS": "/etc/istio-output-certs"}}`,
+		`sidecar\.istio\.io/userVolumeMount`: `[{"name": "istio-certs-dir", "mountPath": "/etc/istio-output-certs"}]`,
+	}
+
 	// Set the Istio annotation on Prometheus to exclude Keycloak HTTP Service IP address.
 	// The includeOutboundIPRanges implies all others are excluded.
 	// This is done by adding the traffic.sidecar.istio.io/includeOutboundIPRanges=<Keycloak IP>/32 annotation.
 	svc := corev1.Service{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: "keycloak-http", Namespace: constants.KeycloakNamespace}, &svc)
-	if err != nil {
-		if !errors.IsNotFound(err) {
+	if keycloak.NewComponent().IsEnabled(ctx.EffectiveCR()) {
+		err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: "keycloak-http", Namespace: constants.KeycloakNamespace}, &svc)
+		if err != nil {
 			return kvs, ctx.Log().ErrorfNewErr("Failed to get keycloak-http service: %v", err)
 		}
 	}
-	outboundIP := fmt.Sprintf("%s/32", svc.Spec.ClusterIP)
+	// If the ClusterIP is not located or is empty, we will exclude all outbound ports
+	// this is akin to including no outbound port
 	if svc.Spec.ClusterIP == "" {
-		outboundIP = "0.0.0.0/0"
+		annotations[`traffic\.sidecar\.istio\.io/excludeOutboundIPRanges`] = "0.0.0.0/0"
+	} else {
+		annotations[`traffic\.sidecar\.istio\.io/includeOutboundIPRanges`] = fmt.Sprintf("%s/32", svc.Spec.ClusterIP)
 	}
 
-	// Istio annotations that will copy the volume mount for the Istio certs to the envoy sidecar
-	// The last annotation allows envoy to intercept only requests from the Keycloak Service IP
-	annotations := map[string]string{
-		`proxy\.istio\.io/config`:                             `{"proxyMetadata":{ "OUTPUT_CERTS": "/etc/istio-output-certs"}}`,
-		`sidecar\.istio\.io/userVolumeMount`:                  `[{"name": "istio-certs-dir", "mountPath": "/etc/istio-output-certs"}]`,
-		`traffic\.sidecar\.istio\.io/includeOutboundIPRanges`: outboundIP,
-	}
 	for key, value := range annotations {
 		kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s.%s", annotationsKey, key), Value: value})
 	}
