@@ -44,7 +44,6 @@ const (
 	fluentDaemonset       = "fluentd"
 	nodeExporterDaemonset = "node-exporter"
 
-	prometheusDeployment        = "vmi-system-prometheus-0"
 	verrazzanoConsoleDeployment = "verrazzano-console"
 )
 
@@ -79,14 +78,6 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 			})
 	}
 
-	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments,
-			types.NamespacedName{
-				Name:      prometheusDeployment,
-				Namespace: ComponentNamespace,
-			})
-	}
-
 	if !status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
 		return false
 	}
@@ -111,16 +102,6 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 		return false
 	}
 	return common.IsVMISecretReady(ctx)
-}
-
-// doesPromExist is the verrazzano IsInstalled check
-func doesPromExist(ctx spi.ComponentContext) bool {
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	deploy := []types.NamespacedName{{
-		Name:      prometheusDeployment,
-		Namespace: ComponentNamespace,
-	}}
-	return status.DoDeploymentsExist(ctx.Log(), ctx.Client(), deploy, 1, prefix)
 }
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart

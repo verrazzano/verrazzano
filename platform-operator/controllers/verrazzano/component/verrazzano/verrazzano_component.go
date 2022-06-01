@@ -143,11 +143,7 @@ func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 
 // IsInstalled component check
 func (c verrazzanoComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
-	installed, _ := c.HelmComponent.IsInstalled(ctx)
-	if installed {
-		return doesPromExist(ctx), nil
-	}
-	return false, nil
+	return c.HelmComponent.IsInstalled(ctx)
 }
 
 // PostInstall - post-install, clean up temp files

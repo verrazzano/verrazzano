@@ -215,12 +215,13 @@
       "name": "verrazzano-monitoring-operator",
       "subcomponents": [
         {
-          "repository": "verrazzano",
+          "registry": "phx.ocir.io",
+          "repository": "odsbuilddev/sandboxes/fred.tibbitts/dev",
           "name": "verrazzano-monitoring-operator",
           "images": [
             {
-              "image": "verrazzano-monitoring-operator",
-              "tag": "1.4.0-20220525201121-c0046fa",
+              "image": "verrazzano-monitoring-operator-dev",
+              "tag": "local-c0046fa",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
