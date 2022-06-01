@@ -7,12 +7,12 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"log"
 	"os"
 	"os/exec"
-	"strings"
 	"regexp"
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	"strings"
 )
 
 const (
@@ -103,19 +103,14 @@ func main() {
 		fmt.Println("KUBECONFIG Not Valued, Terminating")
 		os.Exit(1)
 	}
-
 	// Get the BOM from installed Platform Operator
 	getBOM(&vBom)
-
 	// populate the bom's container images into map
 	populateBomContainerImagesMap(&vBom, bomContainers, bomImages)
-	
 	// Validate the cluster's container (including init) images with the populated bom images and tags map
 	validateClusterContainerImages(bomImages, bomContainers, clusterImagesNotFound, clusterImageTagErrors, clusterImageWarnings)
-
 	// Report the bom validation results
 	errorFound := reportResults(clusterImagesNotFound, clusterImageTagErrors, clusterImageWarnings)
-
 	// Failure
 	if errorFound {
 		os.Exit(1)
