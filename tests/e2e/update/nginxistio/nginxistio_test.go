@@ -403,7 +403,7 @@ func validateIngressServiceAnnotations() {
 			return fmt.Errorf("expect istio ingress annotation name-i with value-i, but got %v", istioIngress.Annotations["name-i"])
 		}
 		if istioIngress.Annotations[ociLBShapeAnnotation] != "flexible" {
-			return fmt.Errorf("expect istio ingress annotation %v with value 10Mbps, but got %v", ociLBShapeAnnotation, istioIngress.Annotations[ociLBShapeAnnotation])
+			return fmt.Errorf("expect istio ingress annotation %v with value flexible, but got %v", ociLBShapeAnnotation, istioIngress.Annotations[ociLBShapeAnnotation])
 		}
 		return nil
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "expect to get correct ports setting from nginx and istio services")
