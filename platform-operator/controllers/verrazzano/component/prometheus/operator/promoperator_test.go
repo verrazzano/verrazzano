@@ -124,6 +124,9 @@ func TestAppendOverrides(t *testing.T) {
 				CertManager: &vzapi.CertManagerComponent{
 					Enabled: &trueValue,
 				},
+				Keycloak: &vzapi.KeycloakComponent{
+					Enabled: &falseValue,
+				},
 			},
 		},
 	}
@@ -154,6 +157,9 @@ func TestAppendOverrides(t *testing.T) {
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				CertManager: &vzapi.CertManagerComponent{
+					Enabled: &falseValue,
+				},
+				Keycloak: &vzapi.KeycloakComponent{
 					Enabled: &falseValue,
 				},
 			},
