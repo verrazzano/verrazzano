@@ -169,7 +169,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger
 	case installv1alpha1.VzStatePaused:
 		return r.ProcPausedUpgradeState(vzctx)
 	default:
-		panic("Invalid Verrazzano contoller state")
+		panic("Invalid Verrazzano controller state")
 	}
 }
 
