@@ -35,6 +35,12 @@ const (
 	ociLBShapeAnnotation   = "service.beta.kubernetes.io/oci-load-balancer-shape"
 	nginxLBShapeArg        = "controller.service.annotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\""
 	istioLBShapeArg        = "gateways.istio-ingressgateway.serviceAnnotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\""
+	nginxArgPrefixForAnno  = "controller.service.annotations."
+	istioArgPrefixForAnno  = "gateways.istio-ingressgateway.serviceAnnotations."
+	nginxTestAnnotationName = "name-n"
+	nginxTestAnnotationValue = "value-n"
+	istioTestAnnotationName = "name-i"
+	istioTestAnnotationValue = "value-i"
 )
 
 var testNginxIngressPorts = []corev1.ServicePort{
@@ -209,7 +215,7 @@ func (u NginxIstioIngressServiceAnnotationModifier) ModifyCR(cr *vzapi.Verrazzan
 	cr.Spec.Components.Ingress.Type = vzapi.LoadBalancer
 	nginxInstallArgs := cr.Spec.Components.Ingress.NGINXInstallArgs
 	nginxInstallArgs = append(nginxInstallArgs, vzapi.InstallArgs{Name: nginxLBShapeArg, Value: "10Mbps"})
-	nginxInstallArgs = append(nginxInstallArgs, vzapi.InstallArgs{Name: "controller.service.annotations.name-n", Value: "value-n"})
+	nginxInstallArgs = append(nginxInstallArgs, vzapi.InstallArgs{Name: nginxArgPrefixForAnno + nginxTestAnnotationName, Value: nginxTestAnnotationValue})
 	cr.Spec.Components.Ingress.NGINXInstallArgs = nginxInstallArgs
 	if cr.Spec.Components.Istio == nil {
 		cr.Spec.Components.Istio = &vzapi.IstioComponent{}
@@ -220,7 +226,7 @@ func (u NginxIstioIngressServiceAnnotationModifier) ModifyCR(cr *vzapi.Verrazzan
 	cr.Spec.Components.Istio.Ingress.Type = vzapi.LoadBalancer
 	istioInstallArgs := cr.Spec.Components.Istio.IstioInstallArgs
 	istioInstallArgs = append(istioInstallArgs, vzapi.InstallArgs{Name: istioLBShapeArg, Value: "flexible"})
-	istioInstallArgs = append(istioInstallArgs, vzapi.InstallArgs{Name: "gateways.istio-ingressgateway.serviceAnnotations.name-i", Value: "value-i"})
+	istioInstallArgs = append(istioInstallArgs, vzapi.InstallArgs{Name: istioArgPrefixForAnno + istioTestAnnotationName, Value: istioTestAnnotationValue})
 	cr.Spec.Components.Istio.IstioInstallArgs = istioInstallArgs
 }
 
@@ -392,15 +398,15 @@ func validateIngressServiceAnnotations() {
 		if err != nil {
 			return err
 		}
-		if nginxIngress.Annotations["name-n"] != "value-n" {
-			return fmt.Errorf("expect nginx ingress annotation name-n with value-n, but got %v", nginxIngress.Annotations["name-n"])
+		if nginxIngress.Annotations[nginxTestAnnotationName] != nginxTestAnnotationValue {
+			return fmt.Errorf("expect nginx ingress annotation %v with %v, but got %v", nginxTestAnnotationName, nginxTestAnnotationValue, nginxIngress.Annotations[nginxTestAnnotationName])
 		}
 		if nginxIngress.Annotations[ociLBShapeAnnotation] != "10Mbps" {
 			return fmt.Errorf("expect nginx ingress annotation %v with value 10Mbps, but got %v", ociLBShapeAnnotation, nginxIngress.Annotations[ociLBShapeAnnotation])
 		}
 		istioIngress, err := pkg.GetService(constants.IstioSystemNamespace, "istio-ingressgateway")
-		if istioIngress.Annotations["name-i"] != "value-i" {
-			return fmt.Errorf("expect istio ingress annotation name-i with value-i, but got %v", istioIngress.Annotations["name-i"])
+		if istioIngress.Annotations[istioTestAnnotationName] != istioTestAnnotationValue {
+			return fmt.Errorf("expect istio ingress annotation %v with %v, but got %v", istioTestAnnotationName, istioTestAnnotationValue, istioIngress.Annotations[istioTestAnnotationName])
 		}
 		if istioIngress.Annotations[ociLBShapeAnnotation] != "flexible" {
 			return fmt.Errorf("expect istio ingress annotation %v with value flexible, but got %v", ociLBShapeAnnotation, istioIngress.Annotations[ociLBShapeAnnotation])
