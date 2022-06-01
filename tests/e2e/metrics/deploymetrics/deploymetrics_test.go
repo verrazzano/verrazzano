@@ -20,7 +20,6 @@ import (
 )
 
 const (
-	testNamespace     = "deploymetrics"
 	promConfigJobName = "deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment"
 	skipVerifications = "Skip Verifications"
 )
@@ -68,7 +67,7 @@ func deployMetricsApplication() {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
 			"istio-injection":    istioInjection}
-		return pkg.CreateNamespace(testNamespace, nsLabels)
+		return pkg.CreateNamespace(namespace, nsLabels)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	t.Logs.Info("Create component resource")
@@ -82,14 +81,14 @@ func deployMetricsApplication() {
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create DeployMetrics application resource")
 
 	Eventually(func() bool {
-		return pkg.ContainerImagePullWait(testNamespace, expectedPodsDeploymetricsApp)
+		return pkg.ContainerImagePullWait(namespace, expectedPodsDeploymetricsApp)
 	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 
 	t.Logs.Info("Verify deploymetrics-workload pod is running")
 	Eventually(func() bool {
-		result, err := pkg.PodsRunning(testNamespace, expectedPodsDeploymetricsApp)
+		result, err := pkg.PodsRunning(namespace, expectedPodsDeploymetricsApp)
 		if err != nil {
-			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 		}
 		return result
 	}, waitTimeout, pollingInterval).Should(BeTrue())
@@ -112,7 +111,7 @@ func undeployMetricsApplication() {
 
 	t.Logs.Info("Wait for pods to terminate")
 	Eventually(func() bool {
-		podsNotRunning, _ := pkg.PodsNotRunning(testNamespace, expectedPodsDeploymetricsApp)
+		podsNotRunning, _ := pkg.PodsNotRunning(namespace, expectedPodsDeploymetricsApp)
 		return podsNotRunning
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
@@ -122,17 +121,17 @@ func undeployMetricsApplication() {
 
 	t.Logs.Info("Delete namespace")
 	Eventually(func() error {
-		return pkg.DeleteNamespace(testNamespace)
+		return pkg.DeleteNamespace(namespace)
 	}, longWaitTimeout, longPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Wait for Finalizer to be removed")
 	Eventually(func() bool {
-		return pkg.CheckNamespaceFinalizerRemoved(testNamespace)
+		return pkg.CheckNamespaceFinalizerRemoved(namespace)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
 	t.Logs.Info("Waiting for namespace deletion")
 	Eventually(func() bool {
-		_, err := pkg.GetNamespace(testNamespace)
+		_, err := pkg.GetNamespace(namespace)
 		return err != nil && errors.IsNotFound(err)
 	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
