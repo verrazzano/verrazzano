@@ -181,3 +181,13 @@ const ConfigMapKind = "ConfigMap"
 
 // SecretKind is a label value for Secret Kind
 const SecretKind = "Secret"
+
+// PromAdditionalScrapeConfigsSecretName is the name of the secret that contains the additional scrape configurations loaded by Prometheus
+const PromAdditionalScrapeConfigsSecretName = "additional-scrape-configs"
+
+// PromAdditionalScrapeConfigsSecretKey is the name of the key in the additional scrape configurations secret that contains the scrape config YAML
+const PromAdditionalScrapeConfigsSecretKey = "jobs"
+
+// PromManagedClusterCACertsSecretName is the name of the secret that contains managed cluster CA certificates. The secret is mounted
+// as a volume in the Prometheus pod.
+const PromManagedClusterCACertsSecretName = "managed-cluster-ca-certs"

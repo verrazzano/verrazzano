@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -60,24 +61,10 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	}
 
 	if compContext.Init(ComponentName).GetOperation() == vzconst.UpgradeOperation {
-		secret := &v1.Secret{}
-		nsName := types.NamespacedName{
-			Namespace: ComponentNamespace,
-			Name:      secretName}
-		// Get the mysql secret
-		err := compContext.Client().Get(context.TODO(), nsName, secret)
+		kvs, err = appendMySQLSecret(compContext, kvs)
 		if err != nil {
-			return []bom.KeyValue{}, compContext.Log().ErrorfNewErr("Failed getting MySQL secret: %v", err)
+			return []bom.KeyValue{}, err
 		}
-		// Force mysql to use the initial password and root password during the upgrade, by specifying as helm overrides
-		kvs = append(kvs, bom.KeyValue{
-			Key:   helmRootPwd,
-			Value: string(secret.Data[mySQLRootKey]),
-		})
-		kvs = append(kvs, bom.KeyValue{
-			Key:   helmPwd,
-			Value: string(secret.Data[mySQLKey]),
-		})
 	}
 
 	kvs = append(kvs, bom.KeyValue{Key: mySQLUsernameKey, Value: mySQLUsername})
@@ -89,6 +76,10 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 		}
 		kvs = append(kvs, bom.KeyValue{Key: "initializationFiles.create-db\\.sql", Value: mySQLInitFile, SetFile: true})
 		kvs = append(kvs, bom.KeyValue{Key: "configurationFiles.mysql-hook\\.sh", Value: mySQLHookFile, SetFile: true})
+		kvs, err = appendMySQLSecret(compContext, kvs)
+		if err != nil {
+			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+		}
 	}
 
 	// generate the MySQl PV overrides
@@ -269,4 +260,40 @@ func getInstallArgs(cr *vzapi.Verrazzano) []vzapi.InstallArgs {
 		return []vzapi.InstallArgs{}
 	}
 	return cr.Spec.Components.Keycloak.MySQL.MySQLInstallArgs
+}
+
+// GetOverrides gets the list of overrides
+func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+	if effectiveCR.Spec.Components.Keycloak != nil {
+		return effectiveCR.Spec.Components.Keycloak.MySQL.ValueOverrides
+	}
+	return []vzapi.Overrides{}
+}
+
+func appendMySQLSecret(compContext spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	secret := &v1.Secret{}
+	nsName := types.NamespacedName{
+		Namespace: ComponentNamespace,
+		Name:      secretName}
+	// Get the mysql secret
+	err := compContext.Client().Get(context.TODO(), nsName, secret)
+	if err != nil {
+		// A secret is not expected to be found the first time around (i.e. it's an install and not an update scenario).
+		// So do not return an error in this case.
+		if errors.IsNotFound(err) && compContext.Init(ComponentName).GetOperation() == vzconst.InstallOperation {
+			return kvs, nil
+		}
+		// Return an error for upgrade or update
+		return []bom.KeyValue{}, compContext.Log().ErrorfNewErr("Failed getting MySQL secret: %v", err)
+	}
+	// Force mysql to use the initial password and root password during the upgrade or update, by specifying as helm overrides
+	kvs = append(kvs, bom.KeyValue{
+		Key:   helmRootPwd,
+		Value: string(secret.Data[mySQLRootKey]),
+	})
+	kvs = append(kvs, bom.KeyValue{
+		Key:   helmPwd,
+		Value: string(secret.Data[mySQLKey]),
+	})
+	return kvs, nil
 }
