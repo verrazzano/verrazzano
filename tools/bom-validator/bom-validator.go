@@ -11,7 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-
+	"regexp"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 )
 
@@ -78,9 +78,16 @@ var knownImageIssues = map[string]knownIssues{
 	"example-helidon-greet-app-v1": {alternateTags: []string{"1.0.0-1-20210728181814-eb1e622"}, message: imageMissingMessage},
 }
 
-var whitelistedNamespaces []string = []string{
-	"verrazzano-system",
-	"cert-manager",
+var allowedNamespaces = []string{
+	"^cattle-*",
+	"^fleet-*",
+	"^cluster-fleet-*",
+	"^cert-manager",
+	"^ingress-nginx",
+	"^istio-system",
+	"^keycloak",
+	"^monitoring",
+	"^verrazzano-*",
 }
 
 func main() {
@@ -102,14 +109,11 @@ func main() {
 
 	// populate the bom's container images into map
 	populateBomContainerImagesMap(&vBom, bomContainers, bomImages)
-
-	// Validate the cluster's container images with the populated bom images and tags map
+	
+	// Validate the cluster's container (including init) images with the populated bom images and tags map
 	validateClusterContainerImages(bomImages, bomContainers, clusterImagesNotFound, clusterImageTagErrors, clusterImageWarnings)
 
-	// Validate the cluster's init container images with the populated bom images and tags map
-	validateClusterInitContainerImages(bomImages, bomContainers, clusterImagesNotFound, clusterImageTagErrors, clusterImageWarnings)
-
-	// Checkout the results
+	// Report the bom validation results
 	errorFound := reportResults(clusterImagesNotFound, clusterImageTagErrors, clusterImageWarnings)
 
 	// Failure
@@ -165,6 +169,7 @@ func getBOM(vBom *verrazzanoBom) {
 	json.Unmarshal(out, &vBom)
 }
 
+// Populate bom images and containers into Hashmap
 func populateBomContainerImagesMap(vBom *verrazzanoBom, bomContainerMap map[string]bool, bomImageMap map[string][]string) {
 	for _, component := range vBom.Components {
 		for _, subcomponent := range component.Subcomponents {
@@ -179,34 +184,42 @@ func populateBomContainerImagesMap(vBom *verrazzanoBom, bomContainerMap map[stri
 	}
 }
 
-// Populate a HashMap with all the container images found in the cluster
+// Return all installed namespaces of a cluster
+func getAllNamespaces() []string {
+	cmd := "kubectl get namespaces | grep -v NAME | awk '{print $1}'"
+	out, err := exec.Command("bash", "-c", cmd).Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return strings.Split(strings.TrimSpace(string(out)), "\n")
+}
+
+// Populate a HashMap with all the container & initContainer images found in the cluster
+// Send Cluster's Images Hashmap for BOM Validations
 func validateClusterContainerImages(bomImageMap map[string][]string, bomContainerMap map[string]bool, clusterImagesNotFound map[string]string,
 	clusterImageTagErrors map[string]imageError, clusterImageWarnings map[string]string) {
 	var containerImages string
-	for _, namespace := range whitelistedNamespaces {
-		out, err := exec.Command("kubectl", "get", "pods", "-n", namespace, "-o", "jsonpath=\"{.items[*].spec.containers[*].image}\"").Output()
-		if err != nil {
-			log.Fatal(err)
+	installedClusterNamespaces := getAllNamespaces()
+	for _, installedNamespace := range installedClusterNamespaces {
+		for _, whiteListedNamespace := range allowedNamespaces {
+			if ok, _ := regexp.MatchString(whiteListedNamespace, installedNamespace); ok {
+				out, err := exec.Command("kubectl", "get", "pods", "-n", installedNamespace, "-o", "jsonpath=\"{.items[*].spec.containers[*].image}\"").Output()
+				if err != nil {
+					log.Fatal(err)
+				}
+				containerImages += strings.TrimPrefix(strings.TrimSuffix(string(out), `"`), `"`)
+				out, err = exec.Command("kubectl", "get", "pods", "-n", installedNamespace, "-o", "jsonpath=\"{.items[*].spec.initContainers[*].image}\"").Output()
+				if err != nil {
+					log.Fatal(err)
+				}
+				containerImages += strings.TrimPrefix(strings.TrimSuffix(string(out), `"`), `"`)
+			}
 		}
-		containerImages += strings.TrimPrefix(strings.TrimSuffix(string(out), `"`), `"`) + " "
 	}
+	// HashMap for all the container & initContainer images found in the cluster
 	containerArray := strings.Split(strings.TrimSpace(containerImages), " ")
+	// sending hashmap of cluster & bom images/containers for bom validations
 	validateContainerImages(containerArray, bomImageMap, bomContainerMap, clusterImagesNotFound, clusterImageTagErrors, clusterImageWarnings)
-}
-
-//  Populate a HashMap with all the initContainer images found in the cluster
-func validateClusterInitContainerImages(bomImageMap map[string][]string, bomContainerMap map[string]bool, clusterImagesNotFound map[string]string,
-	clusterImageTagErrors map[string]imageError, clusterImageWarnings map[string]string) {
-	var initContainerImages string
-	for _, namespace := range whitelistedNamespaces {
-		out, err := exec.Command("kubectl", "get", "pods", "-n", namespace, "-o", "jsonpath=\"{.items[*].spec.initContainers[*].image}\"").Output()
-		if err != nil {
-			log.Fatal(err)
-		}
-		initContainerImages += strings.TrimPrefix(strings.TrimSuffix(string(out), `"`), `"`) + " "
-	}
-	initContainerArray := strings.Split(strings.TrimSpace(initContainerImages), " ")
-	validateContainerImages(initContainerArray, bomImageMap, bomContainerMap, clusterImagesNotFound, clusterImageTagErrors, clusterImageWarnings)
 }
 
 // Report out the findings
@@ -250,7 +263,7 @@ func reportResults(clusterImagesNotFound map[string]string, clusterImageTagError
 	return error
 }
 
-// Build out the cluster image map based off of the container array, filter dups
+// Validate out the presence of cluster images and tags into vz bom
 func validateContainerImages(containerArray []string, bomImageMap map[string][]string, bomContainerMap map[string]bool, clusterImagesNotFound map[string]string,
 	clusterImageTagErrors map[string]imageError, clusterImageWarnings map[string]string) {
 	for _, container := range containerArray {
