@@ -224,7 +224,7 @@ func isLastCondition(st installv1alpha1.VerrazzanoStatus, conditionType installv
 // postVerrazzanoUpgrade restarts pods with old Istio sidecar proxies
 func postVerrazzanoUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, cr *installv1alpha1.Verrazzano) error {
 	log.Oncef("Checking if any pods with Istio sidecars need to be restarted to pick up the new version of the Istio proxy")
-	return istio.RestartComponents(log, config.GetInjectedSystemNamespaces(), cr.Generation)
+	return istio.RestartComponents(log, config.GetInjectedSystemNamespaces(), cr.Generation, istio.DoesPodContainOldIstioSidecar)
 }
 
 // getNSNKey gets the key for the verrazzano resource
