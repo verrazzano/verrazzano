@@ -563,6 +563,11 @@ pipeline {
                                 runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/grafana', "${TEST_DUMP_ROOT}/grafana")
                             }
                         }
+                        stage('Prometheus post-upgrade') {
+                            steps {
+                                runGinkgoVerifySerial('metrics/deploymetrics', "${TEST_DUMP_ROOT}/prompostupgrade", "true", "false", "false", "deploymetrics")
+                            }
+                        }
                         stage ("Verify install scripts") {
                             steps {
                                 runGinkgoRandomizeAdmin("scripts/install", "${TEST_DUMP_ROOT}/install-scripts")
@@ -583,11 +588,6 @@ pipeline {
                                         dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-dump-pre-uninstall")
                                     }
                                 }
-                            }
-                        }
-                        stage('Prometheus post-upgrade') {
-                            steps {
-                                runGinkgoVerifySerial('metrics/deploymetrics', "${TEST_DUMP_ROOT}/prompostupgrade", "true", "false", "false", "deploymetrics")
                             }
                         }
                     }
@@ -1330,23 +1330,21 @@ def runGinkgoVerify(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeplo
 }
 
 def runGinkgoVerifyParallel(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace) {
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        script {
-            def runGinkgoVerifyStages = createClusterExecutionsMap()
-            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-            def clusterName = ""
-            for(int count=1; count<=clusterCount; count++) {
-                // The first cluster created by this script is named as admin, and the subsequent clusters are named as
-                // managed1, managed2, etc.
-                if (count == 1) {
-                    clusterName="admin"
-                } else {
-                    clusterName="managed${count-1}"
-                }
-                runGinkgoVerifyStages["${clusterName} - ${testSuitePath}"] = runGinkgoVerifyInCluster(count, clusterName, testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace)
+    script {
+        def runGinkgoVerifyStages = createClusterExecutionsMap()
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        def clusterName = ""
+        for(int count=1; count<=clusterCount; count++) {
+            // The first cluster created by this script is named as admin, and the subsequent clusters are named as
+            // managed1, managed2, etc.
+            if (count == 1) {
+                clusterName="admin"
+            } else {
+                clusterName="managed${count-1}"
             }
-            parallel runGinkgoVerifyStages
+            runGinkgoVerifyStages["${clusterName} - ${testSuitePath}"] = runGinkgoVerifyInCluster(count, clusterName, testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace)
         }
+        parallel runGinkgoVerifyStages
     }
 }
 
