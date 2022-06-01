@@ -7,6 +7,7 @@ import (
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -795,8 +796,9 @@ type InstallOverrides struct {
 	ValueOverrides []Overrides `json:"overrides,omitempty"`
 }
 
-// Overrides stores the specified InstallOverrides
+// Overrides stores the specified overrides
 type Overrides struct {
 	ConfigMapRef *corev1.ConfigMapKeySelector `json:"configMapRef,omitempty"`
 	SecretRef    *corev1.SecretKeySelector    `json:"secretRef,omitempty"`
+	Values       *apiextensionsv1.JSON        `json:"values,omitempty"`
 }

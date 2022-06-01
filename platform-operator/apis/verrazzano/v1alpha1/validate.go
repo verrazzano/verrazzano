@@ -453,6 +453,9 @@ func ValidateInstallOverrides(Overrides []Overrides) error {
 		if override.SecretRef != nil {
 			overridePerItem++
 		}
+		if override.Values != nil {
+			overridePerItem++
+		}
 		if overridePerItem > 1 {
 			return fmt.Errorf("Invalid install overrides. Cannot specify more than one override type in the same list element")
 		}

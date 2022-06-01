@@ -43,11 +43,12 @@ var _ = t.BeforeSuite(func() {
 		start := time.Now()
 		pkg.DeployHelloHelidonApplication(namespace, "", istioInjection)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
+
+		Eventually(func() bool {
+			return pkg.ContainerImagePullWait(namespace, expectedPodsHelloHelidon)
+		}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	}
 
-	Eventually(func() bool {
-		return pkg.ContainerImagePullWait(namespace, expectedPodsHelloHelidon)
-	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	// Verify hello-helidon-deployment pod is running
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig are created
