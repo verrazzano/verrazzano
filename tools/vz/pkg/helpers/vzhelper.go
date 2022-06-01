@@ -9,7 +9,9 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/github"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -18,7 +20,6 @@ type VZHelper interface {
 	GetErrorStream() io.Writer
 	GetInputStream() io.Reader
 	GetClient(cmd *cobra.Command) (client.Client, error)
-	GetLatestReleaseVersion() (string, error)
 }
 
 // FindVerrazzanoResource - find the single Verrazzano resource
@@ -36,4 +37,35 @@ func FindVerrazzanoResource(client client.Client) (*vzapi.Verrazzano, error) {
 		return nil, fmt.Errorf("Expected to only find one Verrazzano resource, but found %d", len(vzList.Items))
 	}
 	return &vzList.Items[0], nil
+}
+
+// GetLatestReleaseVersion - get the version of the latest release of Verrazzano
+func GetLatestReleaseVersion() (string, error) {
+	// Get the list of all Verrazzano releases
+	releases, err := github.ListReleases()
+	if err != nil {
+		return "", fmt.Errorf("Failed to get list of Verrazzano releases: %s", err.Error())
+	}
+	return getLatestReleaseVersion(releases)
+}
+
+// getLatestReleaseVersion - determine which release it the latest based on semver values
+func getLatestReleaseVersion(releases []string) (string, error) {
+	var latestRelease *semver.SemVersion
+	for _, tag := range releases {
+		tagSemver, err := semver.NewSemVersion(tag)
+		if err != nil {
+			return "", err
+		}
+		if latestRelease == nil {
+			// Initialize with the first tag
+			latestRelease = tagSemver
+		} else {
+			if tagSemver.IsGreatherThan(latestRelease) {
+				// Update the latest release found
+				latestRelease = tagSemver
+			}
+		}
+	}
+	return fmt.Sprintf("v%s", latestRelease.ToString()), nil
 }

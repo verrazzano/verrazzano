@@ -67,13 +67,12 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		return err
 	}
 	if version == constants.VersionFlagDefault {
-		// Find the latest version
-		version, err = vzHelper.GetLatestReleaseVersion()
+		// Find the latest release version of Verrazzano
+		version, err = helpers.GetLatestReleaseVersion()
 		if err != nil {
 			return err
 		}
 	}
-	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("The version of Verrazzano being installed is %q\n", version))
 
 	fmt.Fprintf(vzHelper.GetOutputStream(), "Not implemented yet\n")
 	return nil

@@ -4,10 +4,7 @@
 package helpers
 
 import (
-	"fmt"
 	"io"
-
-	"github.com/verrazzano/verrazzano/pkg/semver"
 
 	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/spf13/cobra"
@@ -16,7 +13,6 @@ import (
 	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/github"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -69,34 +65,6 @@ func (rc *RootCmdContext) GetClient(cmd *cobra.Command) (client.Client, error) {
 	_ = corev1.SchemeBuilder.AddToScheme(scheme)
 
 	return client.New(config, client.Options{Scheme: scheme})
-}
-
-// GetLatestReleaseVersion - get the version of the latest release of Verrazzano
-func (rc *RootCmdContext) GetLatestReleaseVersion() (string, error) {
-	// Get the list of all Verrazzano releases
-	releases, err := github.ListReleases()
-	if err != nil {
-		return "", fmt.Errorf("Failed to get list of Verrazzano releases: %s", err.Error())
-	}
-
-	// Determine which tag is the latest release
-	var latestRelease *semver.SemVersion
-	for _, tag := range releases {
-		tagSemver, err := semver.NewSemVersion(tag)
-		if err != nil {
-			return "", err
-		}
-		if latestRelease == nil {
-			// Initialize with the first tag
-			latestRelease = tagSemver
-		} else {
-			if tagSemver.IsGreatherThan(latestRelease) {
-				// Update the latest release found
-				latestRelease = tagSemver
-			}
-		}
-	}
-	return fmt.Sprintf("v%s", latestRelease.ToString()), nil
 }
 
 // NewRootCmdContext - create the root command context object
