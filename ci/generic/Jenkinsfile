@@ -271,7 +271,7 @@ pipeline {
 
                 stage('Run Acceptance Tests Deployments') {
                     parallel {
-                        stage {
+                        stage('Deployment Tests') {
                             environment {
                                 TEST_SUITES="opensearch/topology/... istio/authz/... metrics/deploymetrics/... logging/system/... logging/opensearch/... logging/helidon/... examples/helidonmetrics/... examples/helidon/... workloads/... ingress/console/... loggingtrait/... metricsbinding/..."
                             }
