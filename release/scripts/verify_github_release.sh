@@ -51,6 +51,8 @@ function verify_released_artifacts() {
   ${SHA_CMD} k8s-dump-cluster.sh.sha256
   ${SHA_CMD} verrazzano-analysis-darwin-amd64.tar.gz.sha256
   ${SHA_CMD} verrazzano-analysis-linux-amd64.tar.gz.sha256
+  ${SHA_CMD} verrazzano-cli-darwin-amd64.tar.gz.sha256
+  ${SHA_CMD} verrazzano-cli-linux-amd64.tar.gz.sha256
 
   # Latest tag is automatic, do we really need to check ? If required, better compare the files from the two directories
   local latestVersionDir=${TMPDIR}}/latest
@@ -67,6 +69,8 @@ function verify_released_artifacts() {
   ${SHA_CMD} k8s-dump-cluster.sh.sha256
   ${SHA_CMD} verrazzano-analysis-darwin-amd64.tar.gz.sha256
   ${SHA_CMD} verrazzano-analysis-linux-amd64.tar.gz.sha256
+  ${SHA_CMD} verrazzano-cli-darwin-amd64.tar.gz.sha256
+  ${SHA_CMD} verrazzano-cli-linux-amd64.tar.gz.sha256
 }
 
 verify_released_artifacts
