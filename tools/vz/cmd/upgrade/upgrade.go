@@ -18,14 +18,11 @@ const (
 	helpShort   = "Upgrade Verrazzano"
 	helpLong    = `Upgrade the Verrazzano Platform Operator to the specified version and update all of the currently installed components.`
 	helpExample = `
-# Upgrade to the latest version of Verrazzano and wait for the command to complete.
-vz upgrade --wait
+# Upgrade to the latest version of Verrazzano and wait for the command to complete.  Stream the logs to the console until the upgrade completes.
+vz upgrade
 
-# Upgrade to Verrazzano v1.3.0 and stream the logs to the console.
-vz upgrade --version v1.3.0 --logs
-
-# Upgrade to Verrazzano 1.3.0 and update some configuration settings.
-vz upgrade --version v1.3.0 -f update.yaml --wait`
+# Upgrade to Verrazzano v1.3.0, stream the logs to the console and timeout after 20m.
+vz upgrade --version v1.3.0 --timeout 20m`
 )
 
 var logsEnum = cmdhelpers.LogsFormatSimple
@@ -37,18 +34,19 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 	}
 	cmd.Example = helpExample
 
-	cmd.PersistentFlags().Bool(constants.WaitFlag, false, constants.WaitFlagHelp)
+	cmd.PersistentFlags().Bool(constants.WaitFlag, constants.WaitFlagDefault, constants.WaitFlagHelp)
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*30, constants.TimeoutFlagHelp)
 	cmd.PersistentFlags().String(constants.VersionFlag, "latest", constants.VersionFlagHelp)
-	cmd.PersistentFlags().StringSliceP(constants.FilenameFlag, constants.FilenameFlagShorthand, []string{}, constants.FilenameFlagHelp)
-	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an upgrade.")
-	cmd.PersistentFlags().Var(&logsEnum, constants.LogsFlag, constants.LogsFlagHelp)
-	cmd.PersistentFlags().StringArrayP(constants.SetFlag, constants.SetFlagShorthand, []string{}, constants.SetFlagHelp)
+	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
 
 	// Initially the operator-file flag may be for internal use, hide from help until
 	// a decision is made on supporting this option.
 	cmd.PersistentFlags().String(constants.OperatorFileFlag, "", constants.OperatorFileFlagHelp)
 	cmd.PersistentFlags().MarkHidden(constants.OperatorFileFlag)
+
+	// Dry run flag is still being discussed - keep hidden for now
+	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an upgrade.")
+	cmd.PersistentFlags().MarkHidden(constants.DryRunFlag)
 
 	return cmd
 }

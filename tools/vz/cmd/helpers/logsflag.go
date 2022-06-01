@@ -20,7 +20,7 @@ func (lf *LogsFormat) String() string {
 
 // Type is only used in help text
 func (lf *LogsFormat) Type() string {
-	return "logFormat"
+	return "format"
 }
 
 // Set must have pointer receiver so it doesn't change the value of a copy
