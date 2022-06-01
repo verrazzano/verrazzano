@@ -44,5 +44,5 @@ const (
 	FilenameFlagHelp      = "Path to file containing Verrazzano custom resource.  This flag can be specified multiple times to overlay multiple files."
 )
 
-// GitHubLatestVerrazzanoRelease - API for getting the latest Verrazzano release
-const GitHubLatestVerrazzanoRelease = "https://github.com/verrazzano/verrazzano/releases/latest"
+// VerrazzanoReleaseList - API for getting the list of Verrazzano releases
+const VerrazzanoReleaseList = "https://api.github.com/repos/verrazzano/verrazzano/releases"
