@@ -18,7 +18,6 @@ import (
 const (
 	platformOperatorPodNameSearchString = "verrazzano-platform-operator"                        // Pod Substring for finding the platform operator pod
 	rancherWarningMessage               = "See VZ-5937, Rancher upgrade issue, all VZ versions" // For known Rancher issues with VZ upgrade
-	imageMissingMessage                 = "cluster image is not mentioned into vz bom"
 )
 
 // Verrazzano BOM types
@@ -70,12 +69,11 @@ type knownIssues struct {
 // Mainly a workaround for Rancher additional images; Rancher does not always update to the latest version
 // in the BOM file, possible Rancher bug that we are pursuing with the Rancher team
 var knownImageIssues = map[string]knownIssues{
-	"rancher-webhook":              {alternateTags: []string{"v0.1.1", "v0.1.2", "v0.1.4"}, message: rancherWarningMessage},
-	"fleet-agent":                  {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
-	"fleet":                        {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
-	"gitjob":                       {alternateTags: []string{"v0.1.15"}, message: rancherWarningMessage},
-	"shell":                        {alternateTags: []string{"v0.1.6"}, message: rancherWarningMessage},
-	"example-helidon-greet-app-v1": {alternateTags: []string{"1.0.0-1-20210728181814-eb1e622"}, message: imageMissingMessage},
+	"rancher-webhook": {alternateTags: []string{"v0.1.1", "v0.1.2", "v0.1.4"}, message: rancherWarningMessage},
+	"fleet-agent":     {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
+	"fleet":           {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
+	"gitjob":          {alternateTags: []string{"v0.1.15"}, message: rancherWarningMessage},
+	"shell":           {alternateTags: []string{"v0.1.6"}, message: rancherWarningMessage},
 }
 
 var allowedNamespaces = []string{
@@ -164,7 +162,9 @@ func getBOM(vBom *verrazzanoBom) {
 	json.Unmarshal(out, &vBom)
 }
 
-// Populate bom images and containers into Hashmap
+// Populate bom images and containers into Hashmaps bomImageMap and bomContainerMap respectively
+// bomContainerMap contains a map keyed by a unique "image:tag" tuple to allow lookups of in-cluster container image versions against the BOM entries
+// bomImageMap contains a map of "image" in the BOM to validate an image found in an allowed namespace exists in the bom
 func populateBomContainerImagesMap(vBom *verrazzanoBom, bomContainerMap map[string]bool, bomImageMap map[string][]string) {
 	for _, component := range vBom.Components {
 		for _, subcomponent := range component.Subcomponents {
@@ -179,7 +179,7 @@ func populateBomContainerImagesMap(vBom *verrazzanoBom, bomContainerMap map[stri
 	}
 }
 
-// Return all installed namespaces of a cluster
+// Return all installed cluster namespaces
 func getAllNamespaces() []string {
 	cmd := "kubectl get namespaces | grep -v NAME | awk '{print $1}'"
 	out, err := exec.Command("bash", "-c", cmd).Output()
@@ -189,8 +189,11 @@ func getAllNamespaces() []string {
 	return strings.Split(strings.TrimSpace(string(out)), "\n")
 }
 
-// Populate a HashMap with all the container & initContainer images found in the cluster
-// Send Cluster's Images Hashmap for BOM Validations
+// Get the cluster namespaces and validate images of allowed namespaces only
+// Populate an Array 'A' with all the container & initContainer images found in the cluster of allowed namespaces
+// Send Cluster's Images Array 'A' for BOM Validations against populated bom hashmaps 'bomContainerMap' and 'bomImageMap'
+// Hashmap 'clusterImagesNotFound' are images found in allowed namespaces that are not declared in the BOM
+// Hashmap 'clusterImageTagErrors' are images in allowed namespaces without matching tags in the BOM
 func validateClusterContainerImages(bomImageMap map[string][]string, bomContainerMap map[string]bool, clusterImagesNotFound map[string]string,
 	clusterImageTagErrors map[string]imageError, clusterImageWarnings map[string]string) {
 	var containerImages string
@@ -235,16 +238,16 @@ func reportResults(clusterImagesNotFound map[string]string, clusterImageTagError
 	}
 	if len(clusterImagesNotFound) > 0 {
 		fmt.Println()
-		fmt.Println("Image Errors: CLuster Images not mentioned into bom")
+		fmt.Println("Image Errors: Images found in allowed namespaces not declared in BOM")
 		fmt.Println(textDivider)
 		for name, tag := range clusterImagesNotFound {
-			fmt.Printf("Image not mentioned into bom: %s:%s\n", name, tag)
+			fmt.Printf("Found image in allowed namespace not declared in bom: %s:%s\n", name, tag)
 		}
 		error = true
 	}
 	if len(clusterImageTagErrors) > 0 {
 		fmt.Println()
-		fmt.Println("Image's Tag Errors: Cluster Image's Tags doesn't mentioned into Bom Image's Tags")
+		fmt.Println("Image Errors: Images found in allowed namespace of cluster with unexpected tags")
 		fmt.Println(textDivider)
 		for name, tags := range clusterImageTagErrors {
 			fmt.Println("Check failed! Image Name = ", name, ", Tag from Cluster = ", tags.clusterImageTag, "Tags from Bom = ", tags.bomImageTags)
