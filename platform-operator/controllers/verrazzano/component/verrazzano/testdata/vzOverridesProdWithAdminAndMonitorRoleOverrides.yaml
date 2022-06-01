@@ -38,8 +38,6 @@ security:
     subject-0:
       kind: Group
       name: group-of-monitors
-nodeExporter:
-  enabled: true
 prometheusOperator:
   enabled: false
 prometheusAdapter:

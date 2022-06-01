@@ -36,10 +36,6 @@ kibana:
 kiali:
   name: vmi-system-kiali
 
-nodeExporter:
-  enabled: true
-
-
 monitoringOperator:
   name: verrazzano-monitoring-operator
 

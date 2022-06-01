@@ -31,7 +31,6 @@ type verrazzanoValues struct {
 	Kiali                  *kialiValues                  `json:"kiali,omitempty"`
 	Keycloak               *keycloakValues               `json:"keycloak,omitempty"`
 	Rancher                *rancherValues                `json:"rancher,omitempty"`
-	NodeExporter           *nodeExporterValues           `json:"nodeExporter,omitempty"`
 	Logging                *loggingValues                `json:"logging,omitempty"`
 	Fluentd                *fluentdValues                `json:"fluentd,omitempty"`
 	API                    *apiValues                    `json:"api,omitempty"`
@@ -104,10 +103,6 @@ type kibanaValues struct {
 type grafanaValues struct {
 	Enabled  bool                          `json:"enabled"` // Always write
 	Requests *common.ResourceRequestValues `json:"requests,omitempty"`
-}
-
-type nodeExporterValues struct {
-	Enabled bool `json:"enabled"` // Always write
 }
 
 type loggingValues struct {

@@ -14,8 +14,6 @@ monitoringOperator:
   enabled: true
 rancher:
   enabled: true
-NodeExporter:
-  enabled: true
 prometheusOperator:
   enabled: false
 prometheusAdapter:

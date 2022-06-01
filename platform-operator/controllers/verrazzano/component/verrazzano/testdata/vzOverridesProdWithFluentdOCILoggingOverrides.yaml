@@ -32,8 +32,6 @@ prometheus:
   enabled: true
 rancher:
   enabled: true
-nodeExporter:
-  enabled: true
 prometheusOperator:
   enabled: false
 prometheusAdapter:

@@ -37,8 +37,6 @@ security:
     subject-1:
       kind: User
       name: joe-monitor
-nodeExporter:
-  enabled: true
 prometheusOperator:
   enabled: false
 prometheusAdapter:

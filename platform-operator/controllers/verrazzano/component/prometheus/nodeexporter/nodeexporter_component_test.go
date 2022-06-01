@@ -26,10 +26,10 @@ func TestIsEnabled(t *testing.T) {
 		{
 			// GIVEN a default Verrazzano custom resource
 			// WHEN we call IsReady on the Prometheus Node-Exporter component
-			// THEN the call returns false (since it is disabled by default)
+			// THEN the call returns true (since by default, it is enabled when Prometheus is enabled)
 			name:       "Test IsEnabled when using default Verrazzano CR",
 			actualCR:   vzapi.Verrazzano{},
-			expectTrue: false,
+			expectTrue: true,
 		},
 		{
 			// GIVEN a Verrazzano custom resource with the Prometheus Node-Exporter enabled
@@ -56,6 +56,23 @@ func TestIsEnabled(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						PrometheusNodeExporter: &vzapi.PrometheusNodeExporterComponent{
+							Enabled: &falseValue,
+						},
+					},
+				},
+			},
+			expectTrue: false,
+		},
+		{
+			// GIVEN a Verrazzano custom resource with Prometheus disabled
+			// AND Prometheus Node-Exporter is not specified
+			// WHEN we call IsReady on the Prometheus Node-Exporter component
+			// THEN the call returns false
+			name: "Test IsEnabled when Prometheus is disabled and Node-Exporter component is not specified",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Prometheus: &vzapi.PrometheusComponent{
 							Enabled: &falseValue,
 						},
 					},

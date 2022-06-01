@@ -287,7 +287,6 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 				}, twoMinutes, pollingInterval).Should(BeTrue(), fmt.Sprintf("DaemonSet %s for component %s is not ready", dsName, componentName))
 			},
 			t.Entry("Checking StatefulSet fluentd", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "fluentd"),
-			t.Entry("Checking StatefulSet node-exporter", vzconst.VerrazzanoMonitoringNamespace, verrazzano.ComponentName, "node-exporter"),
 		)
 	})
 })

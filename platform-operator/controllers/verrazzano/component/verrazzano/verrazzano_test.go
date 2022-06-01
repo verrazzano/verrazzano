@@ -992,16 +992,6 @@ func TestIsReadySecretNotReady(t *testing.T) {
 				NumberAvailable:        1,
 			},
 		},
-		&appsv1.DaemonSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: globalconst.VerrazzanoMonitoringNamespace,
-				Name:      nodeExporterDaemonset,
-			},
-			Status: appsv1.DaemonSetStatus{
-				UpdatedNumberScheduled: 1,
-				NumberAvailable:        1,
-			},
-		},
 	).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
 	assert.False(t, isVerrazzanoReady(ctx))
@@ -1039,16 +1029,6 @@ func TestIsReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: globalconst.VerrazzanoSystemNamespace,
 				Name:      fluentDaemonset,
-			},
-			Status: appsv1.DaemonSetStatus{
-				UpdatedNumberScheduled: 1,
-				NumberAvailable:        1,
-			},
-		},
-		&appsv1.DaemonSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: globalconst.VerrazzanoMonitoringNamespace,
-				Name:      nodeExporterDaemonset,
 			},
 			Status: appsv1.DaemonSetStatus{
 				UpdatedNumberScheduled: 1,

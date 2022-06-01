@@ -52,12 +52,12 @@ func NewComponent() spi.Component {
 	}
 }
 
-// IsEnabled returns true if the Prometheus Node-Exporter is enabled or if the component is not specified
-// in the Verrazzano CR.
+// IsEnabled returns true if the Prometheus Node-Exporter is explicitly enabled in the Verrazzano CR, otherwise
+// it returns true if the Prometheus component is enabled.
 func (c prometheusNodeExporterComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	comp := effectiveCR.Spec.Components.PrometheusNodeExporter
 	if comp == nil || comp.Enabled == nil {
-		return false
+		return vzconfig.IsPrometheusEnabled(effectiveCR)
 	}
 	return *comp.Enabled
 }

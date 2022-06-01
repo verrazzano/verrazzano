@@ -178,34 +178,6 @@ spec:
   policyTypes:
     - Ingress
 {{- end }}
-{{- if .Values.nodeExporter.enabled }}
----
-# Network policy for Node Exporter
-# Ingress: allow connect from Prometheus to scrape metrics
-# Egress: allow all
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: node-exporter
-  namespace: monitoring
-spec:
-  podSelector:
-    matchLabels:
-      app: node-exporter
-  policyTypes:
-    - Ingress
-  ingress:
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: verrazzano-system
-          podSelector:
-            matchLabels:
-              app: system-prometheus
-      ports:
-        - port: 9100
-          protocol: TCP
-{{- end }}
 {{- if .Values.keycloak.enabled }}
 ---
 # Network policy for Keycloak
