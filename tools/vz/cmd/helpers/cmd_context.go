@@ -87,9 +87,11 @@ func (rc *RootCmdContext) GetLatestReleaseVersion() (string, error) {
 			return "", err
 		}
 		if latestRelease == nil {
+			// Initialize with the first tag
 			latestRelease = tagSemver
 		} else {
 			if tagSemver.IsGreatherThan(latestRelease) {
+				// Update the latest release found
 				latestRelease = tagSemver
 			}
 		}
