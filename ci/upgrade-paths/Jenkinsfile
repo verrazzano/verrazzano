@@ -398,7 +398,7 @@ pipeline {
                         }
                         stage('Prometheus pre-upgrade') {
                             steps {
-                                runGinkgoRandomizeSerial('upgrade/pre-upgrade/prometheus')
+                                runGinkgoRandomizeParallel('upgrade/pre-upgrade/prometheus')
                             }
                         }
                     }
@@ -587,7 +587,7 @@ pipeline {
                         }
                         stage('Prometheus post-upgrade') {
                             steps {
-                                runGinkgoRandomizeSerial('upgrade/post-upgrade/prometheus')
+                                runGinkgoRandomizeParallel('upgrade/post-upgrade/prometheus')
                             }
                         }
                     }
