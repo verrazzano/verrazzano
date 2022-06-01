@@ -45,6 +45,9 @@ const (
 	fluentDaemonset = "fluentd"
 
 	prometheusDeployment = "vmi-system-prometheus-0"
+
+	monitoringNamespace = "monitoring"
+	nodeExporter        = "node-exporter"
 )
 
 var (
@@ -390,4 +393,57 @@ func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
 		return effectiveCR.Spec.Components.Verrazzano.ValueOverrides
 	}
 	return []vzapi.Overrides{}
+}
+
+// removeNodeExporterResources removes all resources related to the "old" Prometheus node exporter installed by the
+// Verrazzano helm chart in the "monitoring" namespace. There is a new node exporter installed in the
+// "verrazzano-monitoring" namespace that replaces it.
+func removeNodeExporterResources(ctx spi.ComponentContext) {
+	ctx.Log().Infof("Removing old node exporter resources from %s namespace", monitoringNamespace)
+
+	namespacedName := types.NamespacedName{Namespace: monitoringNamespace, Name: nodeExporter}
+	s := &corev1.Service{}
+	if err := ctx.Client().Get(context.TODO(), namespacedName, s); err != nil {
+		ctx.Log().Debugf("Ignoring failure to get service %s/%s: %v", monitoringNamespace, nodeExporter, err)
+	} else {
+		if err := ctx.Client().Delete(context.TODO(), s); err != nil {
+			ctx.Log().Debugf("Ignoring failure to delete service %s/%s: %v", monitoringNamespace, nodeExporter, err)
+		}
+	}
+
+	sa := &corev1.ServiceAccount{}
+	if err := ctx.Client().Get(context.TODO(), namespacedName, sa); err != nil {
+		ctx.Log().Debugf("Ignoring failure to get service account %s/%s: %v", monitoringNamespace, nodeExporter, err)
+	} else {
+		if err := ctx.Client().Delete(context.TODO(), sa); err != nil {
+			ctx.Log().Debugf("Ignoring failure to delete service account %s/%s: %v", monitoringNamespace, nodeExporter, err)
+		}
+	}
+
+	ds := &appsv1.DaemonSet{}
+	if err := ctx.Client().Get(context.TODO(), namespacedName, ds); err != nil {
+		ctx.Log().Debugf("Ignoring failure to get daemon set %s/%s: %v", monitoringNamespace, nodeExporter, err)
+	} else {
+		if err := ctx.Client().Delete(context.TODO(), ds); err != nil {
+			ctx.Log().Debugf("Ignoring failure to delete daemon set %s/%s: %v", monitoringNamespace, nodeExporter, err)
+		}
+	}
+
+	crb := &rbacv1.ClusterRoleBinding{}
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: nodeExporter}, crb); err != nil {
+		ctx.Log().Debugf("Ignoring failure to get cluster role binding %s/%s: %v", monitoringNamespace, nodeExporter, err)
+	} else {
+		if err := ctx.Client().Delete(context.TODO(), crb); err != nil {
+			ctx.Log().Debugf("Ignoring failure to delete cluster role binding %s/%s: %v", monitoringNamespace, nodeExporter, err)
+		}
+	}
+
+	cr := &rbacv1.ClusterRole{}
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: nodeExporter}, cr); err != nil {
+		ctx.Log().Debugf("Ignoring failure to get cluster role %s/%s: %v", monitoringNamespace, nodeExporter, err)
+	} else {
+		if err := ctx.Client().Delete(context.TODO(), cr); err != nil {
+			ctx.Log().Debugf("Ignoring failure to delete cluster role %s/%s: %v", monitoringNamespace, nodeExporter, err)
+		}
+	}
 }

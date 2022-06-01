@@ -31,6 +31,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -1112,4 +1113,65 @@ func TestIsinstalled(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	ctx := spi.NewFakeContext(c, vz, false)
 	assert.True(t, doesPromExist(ctx))
+}
+
+// TestRemoveNodeExporterResources tests the removeNodeExporterResources function
+// GIVEN a Verrazzano component
+// WHEN I call the removeNodeExporterResources function
+// THEN the function removes all of the expected resources from the cluster
+func TestRemoveNodeExporterResources(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: monitoringNamespace,
+				Name:      nodeExporter,
+			},
+		},
+		&corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: monitoringNamespace,
+				Name:      nodeExporter,
+			},
+		},
+		&appsv1.DaemonSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: monitoringNamespace,
+				Name:      nodeExporter,
+			},
+		},
+		&rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: nodeExporter,
+			},
+		},
+		&rbacv1.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: nodeExporter,
+			},
+		},
+	).Build()
+
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
+	removeNodeExporterResources(ctx)
+
+	namespacedName := types.NamespacedName{Namespace: monitoringNamespace, Name: nodeExporter}
+	s := &corev1.Service{}
+	err := c.Get(context.TODO(), namespacedName, s)
+	assert.True(t, errors.IsNotFound(err))
+
+	sa := &corev1.ServiceAccount{}
+	err = c.Get(context.TODO(), namespacedName, sa)
+	assert.True(t, errors.IsNotFound(err))
+
+	ds := &appsv1.DaemonSet{}
+	err = c.Get(context.TODO(), namespacedName, ds)
+	assert.True(t, errors.IsNotFound(err))
+
+	crb := &rbacv1.ClusterRoleBinding{}
+	err = c.Get(context.TODO(), types.NamespacedName{Name: nodeExporter}, crb)
+	assert.True(t, errors.IsNotFound(err))
+
+	cr := &rbacv1.ClusterRole{}
+	err = c.Get(context.TODO(), types.NamespacedName{Name: nodeExporter}, cr)
+	assert.True(t, errors.IsNotFound(err))
 }

@@ -170,6 +170,7 @@ func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 			return err
 		}
 	}
+	removeNodeExporterResources(ctx)
 	return c.HelmComponent.PostUpgrade(ctx)
 }
 
