@@ -387,6 +387,7 @@ func applyResource(resourceFile string, templateData *externalLBsTemplateData) {
 
 func validateIngressServiceAnnotations() {
 	gomega.Eventually(func() error {
+		var err error
 		nginxIngress, err := pkg.GetService(constants.IngressNamespace, "ingress-controller-ingress-nginx-controller")
 		if err != nil {
 			return err
