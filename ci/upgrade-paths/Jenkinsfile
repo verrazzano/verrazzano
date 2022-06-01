@@ -398,8 +398,7 @@ pipeline {
                         }
                         stage('Prometheus pre-upgrade') {
                             steps {
-                                runGinkgoVerify('metrics/deploymetrics', "${TEST_DUMP_ROOT}/prom-preupgrade-admin", "false", "false", "true")
-                                runGinkgoVerifyManaged('metrics/deploymetrics', "${TEST_DUMP_ROOT}/prom-preupgrade-managed", "false", "false", "true")
+                                runGinkgoVerifyParallel('metrics/deploymetrics', "${TEST_DUMP_ROOT}/prom-preupgrade", "false", "false", "true", "deploymetrics")
                             }
                         }
                     }
@@ -588,8 +587,7 @@ pipeline {
                         }
                         stage('Prometheus post-upgrade') {
                             steps {
-                                runGinkgoVerify('metrics/deploymetrics', "${TEST_DUMP_ROOT}/prom-postupgrade-admin", "true", "false", "false")
-                                runGinkgoVerifyManaged('metrics/deploymetrics', "${TEST_DUMP_ROOT}/prom-postupgrade-managed", "true", "false", "false")
+                                runGinkgoVerifyParallel('metrics/deploymetrics', "${TEST_DUMP_ROOT}/prom-postupgrade-admin", "true", "false", "false", "deploymetrics")
                             }
                         }
                     }
@@ -1328,6 +1326,44 @@ def runGinkgoVerify(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeplo
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify} --namespace=${namespace}
         """
+    }
+}
+
+def runGinkgoVerifyParallel(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace) {
+ catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        script {
+            def runGinkgoVerifyStages = createClusterExecutionsMap()
+            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+            def clusterName = ""
+            for(int count=1; count<=clusterCount; count++) {
+                // The first cluster created by this script is named as admin, and the subsequent clusters are named as
+                // managed1, managed2, etc.
+                if (count == 1) {
+                    clusterName="admin"
+                } else {
+                    clusterName="managed${count-1}"
+                }
+                runGinkgoVerifyStages["${count} - Executing ginkgo test suite ${testSuitePath}"] = runGinkgoVerifyInCluster(count, clusterName, testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace)
+            }
+            parallel runGinkgoVerifyStages
+        }
+    }
+}
+
+def runGinkgoVerifyInCluster(count, clusterName, testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace) {
+    // For parallel execution, wrap this in a Groovy enclosure {}
+    return {
+        script {
+            sh """
+                export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                export CLUSTER_NAME=${clusterName}
+                export ADMIN_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+                export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                export DUMP_DIRECTORY="${clusterDumpDirectory}-${count}"
+                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify} --namespace=${namespace}
+            """
+        }
     }
 }
 
