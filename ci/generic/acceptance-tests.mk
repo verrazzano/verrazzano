@@ -11,7 +11,7 @@ export TEST_DUMP_ROOT ?= ${WORKSPACE}/cluster-dumps
 #verify-install: run-test
 
 run-test: export RANDOMIZE_TESTS ?= true
-run-test: export RUN_PARALLEL ?= true
+run-test: export RUN_PARALLEL ?= false
 run-test: export SEQUENTIAL_SUITES ?= false
 .PHONY: run-test
 run-test:
