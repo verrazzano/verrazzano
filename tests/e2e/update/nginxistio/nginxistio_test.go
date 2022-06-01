@@ -244,7 +244,7 @@ var _ = t.BeforeSuite(func() {
 	}
 })
 
-var _ = t.Describe("Update nginx-istio", Label("f:platform-lcm.update"), func() {
+var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-nginx-istio verify", Label("f:platform-lcm.nginx-istio-verify"), func() {
 		t.It("nginx-istio default replicas", func() {
 			cr := update.GetCR()
