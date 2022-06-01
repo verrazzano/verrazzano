@@ -398,7 +398,7 @@ pipeline {
                         }
                         stage('Prometheus pre-upgrade') {
                             steps {
-                                runGinkgoVerifySerial('metrics/deploymetrics', "${TEST_DUMP_ROOT}/prompreupgrade", "false", "true", "false", "deploymetrics")
+                                runGinkgoVerifyParallel('metrics/deploymetrics', "${TEST_DUMP_ROOT}/prompreupgrade", "false", "true", "false", "deploymetrics")
                             }
                         }
                     }
@@ -565,7 +565,7 @@ pipeline {
                         }
                         stage('Prometheus post-upgrade') {
                             steps {
-                                runGinkgoVerifySerial('metrics/deploymetrics', "${TEST_DUMP_ROOT}/prompostupgrade", "true", "false", "false", "deploymetrics")
+                                runGinkgoVerifyParallel('metrics/deploymetrics', "${TEST_DUMP_ROOT}/prompostupgrade", "true", "false", "false", "deploymetrics")
                             }
                         }
                         stage ("Verify install scripts") {
