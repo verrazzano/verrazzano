@@ -4,9 +4,10 @@
 package helpers
 
 import (
+	"fmt"
 	"io"
-	"net/http"
-	"strings"
+
+	"github.com/verrazzano/verrazzano/pkg/semver"
 
 	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/spf13/cobra"
@@ -72,25 +73,28 @@ func (rc *RootCmdContext) GetClient(cmd *cobra.Command) (client.Client, error) {
 
 // GetLatestReleaseVersion - get the version of the latest release of Verrazzano
 func (rc *RootCmdContext) GetLatestReleaseVersion() (string, error) {
-	// Create HTTP client
-	client, err := github.NewClient()
+	// Get the list of all Verrazzano releases
+	releases, err := github.ListReleases()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("Failed to get list of Verrazzano releases: %s", err.Error())
 	}
 
-	// Request the latest version
-	resp, err := client.Get(constants.GitHubLatestVerrazzanoRelease)
-	if err != nil {
-		return "", err
+	// Determine which tag is the latest release
+	var latestRelease *semver.SemVersion
+	for _, tag := range releases {
+		tagSemver, err := semver.NewSemVersion(tag)
+		if err != nil {
+			return "", err
+		}
+		if latestRelease == nil {
+			latestRelease = tagSemver
+		} else {
+			if tagSemver.IsGreatherThan(latestRelease) {
+				latestRelease = tagSemver
+			}
+		}
 	}
-
-	// Was the response a redirect?
-	if resp.StatusCode == http.StatusOK {
-		tokens := strings.Split(resp.Request.URL.Path, "/")
-		return tokens[len(tokens)-1], nil
-	}
-
-	return "", nil
+	return fmt.Sprintf("v%s", latestRelease.ToString()), nil
 }
 
 // NewRootCmdContext - create the root command context object
