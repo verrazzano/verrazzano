@@ -398,7 +398,7 @@ pipeline {
                         }
                         stage('Prometheus pre-upgrade') {
                             steps {
-                                runGinkgoVerifyParallel('metrics/deploymetrics', "${TEST_DUMP_ROOT}/prom-preupgrade", "false", "false", "true", "deploymetrics")
+                                runGinkgoVerifyParallel('metrics/deploymetrics', "${TEST_DUMP_ROOT}/prom-preupgrade", "false", "true", "false", "deploymetrics")
                             }
                         }
                     }
