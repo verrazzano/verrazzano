@@ -487,21 +487,10 @@ def getVerifyInstallTestTargets() {
 
 def runTest(testSuitePath) {
     return script {
-            sh """
-               export TEST_SUITES="${testSuitePath}/..."
-               #cd ${GO_REPO_PATH}/verrazzano/ci/generic
-               echo "make test"
-            """
-        }
-}
-
-def runTest(testSuitePath) {
-    return script {
         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
             sh """
                export TEST_SUITES="${testSuitePath}/..."
-               #cd ${GO_REPO_PATH}/verrazzano/ci/generic
-               #echo "TEST_SUITES=\"${testSuitePath}/...\" make test"
+               cd ${GO_REPO_PATH}/verrazzano/ci/generic
                make test
             """
         }
