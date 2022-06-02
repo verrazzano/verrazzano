@@ -118,7 +118,7 @@ spec:
         volumeMounts:
         - mountPath: /api-config
           name: api-config
-      serviceAccount: {{ .Values.name }}
+      serviceAccountName: {{ .Values.name }}
 ---
 apiVersion: v1
 kind: Service
