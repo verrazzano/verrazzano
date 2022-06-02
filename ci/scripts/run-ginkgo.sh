@@ -13,7 +13,7 @@ fi
 TEST_DUMP_ROOT=${TEST_DUMP_ROOT:-"."}
 SEQUENTIAL_SUITES=${SEQUENTIAL_SUITES:-false}
 
-GINGKO_ARGS=${GINGKO_ARGS:-""}
+GINGKO_ARGS=${GINGKO_ARGS:-"-v --keep-going --no-color"}
 if [ "${RUN_PARALLEL}" == "true" ]; then
   GINGKO_ARGS="${GINGKO_ARGS} -p"
 fi

@@ -4,7 +4,7 @@
 include global-env.mk
 
 export DUMP_ROOT_DIRECTORY ?= ${WORKSPACE}/cluster-dumps
-export GINGKO_ARGS ?= -v --keep-going --no-color
+export GINGKO_ARGS ?= -v --keep-going --no-color --junit-report=test-report.xml --keep-separate-reports=true
 
 run-test: export RANDOMIZE_TESTS ?= true
 run-test: export RUN_PARALLEL ?= true
