@@ -12,14 +12,14 @@ if [ -z "$GO_REPO_PATH" ]; then
   exit 1
 fi
 
-cleanupOnError() {
-  local rc=$1
-  if [ "${rc}" != "0" ]; then
+cleanup() {
+  local ec=$1
+  if [ "${ec}" != "0" ]; then
     sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
-    git checkout ${CONSOLE_BRANCH}
-    exit ${rc}
   fi
+  git checkout ${CONSOLE_BRANCH}
 }
+
 set -e
 
 # Temporarily clone the console repo until it is moved to the Verrazzano repo
@@ -60,16 +60,14 @@ git checkout ${console_sha}
 
 # Run the basic UI tests, and if they fail make sure to exit with a fail status
 make run-ui-tests
-rc=$?
-if [ "${rc}" != "0" ]; then
-  sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
-  git checkout ${CONSOLE_BRANCH}
-  cleanupOnError $?
-fi
+ec=$?
 
 # Run the application page UI tests if specified
-if [ "true" == "${RUN_APP_TESTS}" ]; then
+if [ "${ec}" == "0" ] && [ "true" == "${RUN_APP_TESTS}" ]; then
   echo "Running Application Page UI tests"
   make run-app-page-test
-  cleanupOnError $?
+  ec=$?
 fi
+
+cleanup ${ec}
+exit ${ec}
