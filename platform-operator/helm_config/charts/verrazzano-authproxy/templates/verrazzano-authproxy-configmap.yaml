@@ -1289,6 +1289,12 @@ data:
                 proxy_pass $backend_server_url;
                 proxy_ssl_trusted_certificate /etc/nginx/upstream.pem;
             }
+
+            location /nginx_status {
+                stub_status;
+                allow 127.0.0.1;
+                deny all;
+            }
         }
     }
   startup.sh: |
@@ -1315,6 +1321,9 @@ data:
         echo "retry nginx startup ..."
         /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx
     done
+
+    echo "Starting the prometheus exporter"
+     /nginx-prometheus-exporter -nginx.scrape-uri=http://localhost:8775/nginx_status &
 
     sh -c "$startupDir/reload.sh &"
 

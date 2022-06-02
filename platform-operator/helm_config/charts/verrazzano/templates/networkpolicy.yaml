@@ -45,7 +45,7 @@ spec:
             matchLabels:
               app: system-prometheus
       ports:
-        - port: 15090
+        - port: 9113
           protocol: TCP
 {{- if .Values.console.enabled }}
 ---

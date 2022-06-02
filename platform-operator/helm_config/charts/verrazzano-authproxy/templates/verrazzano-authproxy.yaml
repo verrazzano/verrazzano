@@ -106,7 +106,10 @@ spec:
         - name: VZ_API_VERSION
           value: "20210501"
         ports:
-            - containerPort: {{ .Values.port }}
+        - containerPort: 9113
+          name: http-metrics
+          protocol: TCP
+        - containerPort: {{ .Values.port }}
         volumeMounts:
         - mountPath: /api-config
           name: api-config

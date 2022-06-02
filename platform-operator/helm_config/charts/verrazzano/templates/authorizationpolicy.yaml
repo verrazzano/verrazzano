@@ -38,7 +38,7 @@ spec:
             principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}"]
       to:
         - operation:
-            ports: ["15090"]
+            ports: ["9113"]
 
 ---
 {{- if .Values.elasticSearch.enabled }}
