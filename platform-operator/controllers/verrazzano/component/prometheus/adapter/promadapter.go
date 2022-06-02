@@ -7,8 +7,10 @@ import (
 	"context"
 	"fmt"
 
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -44,4 +46,12 @@ func preInstall(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed to create or update the %s namespace: %v", ComponentNamespace, err)
 	}
 	return nil
+}
+
+// GetOverrides gets the install overrides
+func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+	if effectiveCR.Spec.Components.PrometheusAdapter != nil {
+		return effectiveCR.Spec.Components.PrometheusAdapter.ValueOverrides
+	}
+	return []vzapi.Overrides{}
 }

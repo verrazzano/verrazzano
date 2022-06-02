@@ -189,13 +189,9 @@ func TestPreInstall(t *testing.T) {
 func TestGetHelmOverridesPromNotConfigured(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 
-	// Nil CR
-	overrides := GetOverrides(spi.NewFakeContext(client, nil, false))
-	assert.Equal(t, []vzapi.Overrides{}, overrides)
-
 	// Nil Prom Operator component
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
-	overrides = GetOverrides(ctx)
+	overrides := GetOverrides(ctx.EffectiveCR())
 	assert.Equal(t, []vzapi.Overrides{}, overrides)
 }
 
@@ -225,6 +221,6 @@ func TestGetHelmOverrides(t *testing.T) {
 		false,
 	)
 
-	overrides := GetOverrides(ctx)
+	overrides := GetOverrides(ctx.EffectiveCR())
 	assert.Equal(t, expectedOverrides, overrides)
 }

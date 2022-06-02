@@ -341,7 +341,7 @@ func TestDeletion(t *testing.T) {
 	asserts.Equal(int64(1), vz.Status.Components["prometheus-operator"].ReconcilingGeneration)
 }
 
-// TestSecretCall tests the reconcileHelmOverrideSecret for the following use case
+// TestSecretCall tests the reconcileInstallOverrideSecret for the following use case
 // GIVEN a request to reconcile a Secret
 // WHEN the request namespace matches the Verrazzano CR namespace
 // THEN expect a call to get the Secret
@@ -359,14 +359,14 @@ func TestSecretCall(t *testing.T) {
 
 	request := newRequest(testNS, testSecretName)
 	reconciler := newSecretsReconciler(mock)
-	result, err := reconciler.reconcileHelmOverrideSecret(context.TODO(), request, &testVZ)
+	result, err := reconciler.reconcileInstallOverrideSecret(context.TODO(), request, &testVZ)
 	asserts.NoError(err)
 	mocker.Finish()
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
 
-// TestOtherNS tests the reconcileHelmOverrideSecret for the following use case
+// TestOtherNS tests the reconcileInstallOverrideSecret for the following use case
 // GIVEN a request to reconcile a Secret
 // WHEN the request namespace does not match with the CR namespace
 // THEN the request is ignored
@@ -383,7 +383,7 @@ func TestOtherNS(t *testing.T) {
 
 	request := newRequest("test0", "test1")
 	reconciler := newSecretsReconciler(mock)
-	result, err := reconciler.reconcileHelmOverrideSecret(context.TODO(), request, &testVZ)
+	result, err := reconciler.reconcileInstallOverrideSecret(context.TODO(), request, &testVZ)
 	asserts.NoError(err)
 	mocker.Finish()
 	asserts.Equal(false, result.Requeue)

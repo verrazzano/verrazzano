@@ -20,7 +20,7 @@ import (
 func VzContainsResource(ctx spi.ComponentContext, objectName string, objectKind string) (string, bool) {
 	for _, component := range registry.GetComponents() {
 		if component.MonitorOverrides(ctx) {
-			if found := componentContainsResource(component.GetOverrides(ctx), objectName, objectKind); found {
+			if found := componentContainsResource(component.GetOverrides(ctx.EffectiveCR()), objectName, objectKind); found {
 				return component.Name(), found
 			}
 		}
@@ -45,9 +45,9 @@ func componentContainsResource(Overrides []installv1alpha1.Overrides, objectName
 	return false
 }
 
-// UpdateVerrazzanoForHelmOverrides mutates the status subresource of Verrazzano Custom Resource specific
+// UpdateVerrazzanoForInstallOverrides mutates the status subresource of Verrazzano Custom Resource specific
 // to a component to cause a reconcile
-func UpdateVerrazzanoForHelmOverrides(c client.Client, componentCtx spi.ComponentContext, componentName string) error {
+func UpdateVerrazzanoForInstallOverrides(c client.Client, componentCtx spi.ComponentContext, componentName string) error {
 	cr := componentCtx.ActualCR()
 	// Return an error to requeue if Verrazzano Component Status hasn't been initialized
 	if cr.Status.Components == nil {
@@ -78,7 +78,7 @@ func ProcDeletedOverride(c client.Client, vz *installv1alpha1.Verrazzano, object
 		return nil
 	}
 
-	if err := UpdateVerrazzanoForHelmOverrides(c, ctx, compName); err != nil {
+	if err := UpdateVerrazzanoForInstallOverrides(c, ctx, compName); err != nil {
 		return err
 	}
 	return nil
