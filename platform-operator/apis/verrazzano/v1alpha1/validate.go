@@ -235,8 +235,8 @@ func ValidateActiveInstall(client client.Client) error {
 }
 
 // ValidateInProgress makes sure there is not an install, uninstall or upgrade in progress
-func ValidateInProgress(old *Verrazzano, new *Verrazzano) error {
-	if old.Status.State == "" || old.Status.State == VzStateReady || old.Status.State == VzStateFailed || old.Status.State == VzStatePaused || old.Status.State == VzStateInstalling {
+func ValidateInProgress(old *Verrazzano) error {
+	if old.Status.State == "" || old.Status.State == VzStateReady || old.Status.State == VzStateFailed || old.Status.State == VzStatePaused || old.Status.State == VzStateReconciling {
 		return nil
 	}
 	return fmt.Errorf(ValidateInProgressError)
@@ -451,6 +451,9 @@ func ValidateInstallOverrides(Overrides []Overrides) error {
 			overridePerItem++
 		}
 		if override.SecretRef != nil {
+			overridePerItem++
+		}
+		if override.Values != nil {
 			overridePerItem++
 		}
 		if overridePerItem > 1 {

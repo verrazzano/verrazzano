@@ -58,7 +58,7 @@ func TestStatusCmd(t *testing.T) {
 				KialiURL:      &kialiURL,
 			},
 			Conditions: nil,
-			State:      vzapi.VzStateInstalling,
+			State:      vzapi.VzStateReconciling,
 			Components: makeVerrazzanoComponentStatusMap(),
 		},
 	}
@@ -68,7 +68,7 @@ func TestStatusCmd(t *testing.T) {
 		"verrazzano_name":      name,
 		"verrazzano_namespace": namespace,
 		"verrazzano_version":   version,
-		"verrazzano_state":     string(vzapi.VzStateInstalling),
+		"verrazzano_state":     string(vzapi.VzStateReconciling),
 		"console_url":          consoleURL,
 		"keycloak_url":         keycloakURL,
 		"rancher_url":          rancherURL,
