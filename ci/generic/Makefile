@@ -46,6 +46,6 @@ uninstall:
 
 # Executes an upgrade to a new Verrazzano version from the initially installed version
 .PHONY: cleanup
-cleanup: clean-kind
+cleanup: pipeline-artifacts clean-kind
 	@echo "Running test cleanup"
 

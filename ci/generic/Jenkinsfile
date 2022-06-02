@@ -117,7 +117,6 @@ pipeline {
         // used to generate Ginkgo test reports
         TEST_REPORT = "test-report.xml"
         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
-        GINGKO_ARGS = "-v --keep-going --no-color --junit-report=test-report.xml --keep-separate-reports=true"
     }
 
     stages {
@@ -221,42 +220,13 @@ pipeline {
                     }
                 }
 
-                stage('Verify Install') {
+                stage('Run Acceptance Tests') {
                     steps {
-                        runTest("verify-install")
+                        runMakeCommand("verify-all")
                     }
                     post {
                         always {
                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                    }
-                }
-                stage('Run Acceptance Tests Infra') {
-                    steps {
-                        script {
-                            parallel getVerifyInstallTestTargets()
-                        }
-                    }
-                    post {
-                        //failure {
-                        //    sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
-                        //}
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                    }
-                }
-                stage('Run Acceptance Tests Deployments') {
-                    steps {
-                        script {
-                            parallel getDeploymentTestTargets()
-                        }
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
@@ -286,25 +256,12 @@ pipeline {
     post {
         always {
             script {
-                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                    dumpVerrazzanoSystemPods()
-                    dumpCattleSystemPods()
-                    dumpNginxIngressControllerLogs()
-                    dumpVerrazzanoPlatformOperatorLogs()
-                    dumpVerrazzanoApplicationOperatorLogs()
-                    dumpOamKubernetesRuntimeLogs()
-                    dumpVerrazzanoApiLogs()
-                }
+                runMakeCommand("cleanup")
             }
 
-            sh """
-                # Copy the generated test reports to WORKSPACE to archive them
-                mkdir -p ${TEST_REPORT_DIR}
-                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
-            """
             archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
+
             script {
                 if (params.EMIT_METRICS) {
                     withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
@@ -314,23 +271,9 @@ pipeline {
                     }
                 }
             }
-            deleteCluster()
         }
         failure {
-            sh """
-                curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
-            """
-            archiveArtifacts artifacts: '**/build-console-output.log', allowEmptyArchive: true
-            sh """
-                curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip
-                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip
-                rm archive.zip
-            """
-            script {
-                if (env.BRANCH_NAME == "master" || env.BRANCH_NAME ==~ "release-.*" || env.BRANCH_NAME ==~ "mark/*") {
-                    slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
-                }
-            }
+            postFailureProcessing()
         }
         cleanup {
             metricBuildDuration()
@@ -340,164 +283,40 @@ pipeline {
     }
 }
 
-def getDeploymentTestTargets() {
-    targets = [
-        "opensearch-topology": { runMakeCommand("verify-opensearch-topology") },
-        "istio authorization policy": { runMakeCommand("verify-istio-authz") },
-        "k8s deployment workload metrics": { runMakeCommand("verify-deployment-workload-metrics") },
-        "system logging": { runMakeCommand("verify-system-logging") },
-        "opensearch logging": { runMakeCommand("verify-opensearch-logging") },
-        "examples logging helidon": { runMakeCommand("verify-helidon-logging") },
-        "examples helidon-metrics": { runMakeCommand("verify-helidon-metrics") },
-        "examples helidon": { runMakeCommand("verify-examples-helidon") },
-        "workloads": { runMakeCommand("verify-workloads") },
-        "console ingress": { runMakeCommand("verify-console-ingress") },
-        "logging trait WebLogic workload": { runMakeCommand("verify-wls-loggingtraits") },
-        "poko metricsbinding": { runMakeCommand("verify-poko-metricsbinding") },
-        ]
-    if (params.CREATE_CLUSTER_USE_CALICO == true) {
-        targets = targets + [
-            "security network policies": { runMakeCommand("verify-security-netpol") },
-         ]
-    }
-    return targets
-}
-
-def getVerifyInstallTestTargets() {
-    return [
-        //"verify-install": { runMakeCommand("verify-install") },
-        "verify-scripts": { runMakeCommand("verify-scripts") },
-        "verify-infra": { runMakeCommand("verify-infra") },
-        "security role based access": { runMakeCommand("verify-security-rbac") },
-        "system component metrics": { runMakeCommand("verify-system-metrics") },
-        "console": { runMakeCommand("verify-console") },
-        ]
-}
-
 def runTest(testSuitePath, runParallel = "true", randomize = "true") {
     return script {
-        //catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-            sh """
-               export TEST_SUITES="${testSuitePath}/..."
-               export RANDOMIZE_TESTS=${randomize}
-               export RUN_PARALLEL=${runParallel}
-               cd ${GO_REPO_PATH}/verrazzano/ci/generic
-               make test
-            """
-        //}
+        sh """
+           export TEST_SUITES="${testSuitePath}/..."
+           export RANDOMIZE_TESTS=${randomize}
+           export RUN_PARALLEL=${runParallel}
+           cd ${GO_REPO_PATH}/verrazzano/ci/generic
+           make test
+        """
     }
 }
 
 def runMakeCommand(makeTarget) {
-    //catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        sh """
-           cd ${GO_REPO_PATH}/verrazzano/ci/generic
-           make ${makeTarget}
-        """
-    //}
+    sh """
+       cd ${GO_REPO_PATH}/verrazzano/ci/generic
+       make ${makeTarget}
+    """
 }
 
-def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        sh """
-            if [ ! -z "${kubeConfig}" ]; then
-                export KUBECONFIG="${kubeConfig}"
-            fi
-            cd ${GO_REPO_PATH}/verrazzano/ci/generic
-            TEST_SUITES="${testSuitePath}/..." make test
-        """
+def postFailureProcessing() {
+    sh """
+        curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
+    """
+    archiveArtifacts artifacts: '**/build-console-output.log', allowEmptyArchive: true
+    sh """
+        curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip
+        rm archive.zip
+    """
+    script {
+        if (env.BRANCH_NAME == "master" || env.BRANCH_NAME ==~ "release-.*" || env.BRANCH_NAME ==~ "mark/*") {
+            slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
+        }
     }
-}
-
-def runGinkgo(testSuitePath) {
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        sh """
-            cd ${GO_REPO_PATH}/verrazzano/ci/generic
-            TEST_SUITES="${testSuitePath}/..." make test
-        """
-    }
-}
-
-def dumpK8sCluster(dumpDirectory) {
-    sh """
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
-    """
-}
-
-def dumpVerrazzanoSystemPods() {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-system-pods.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -m "verrazzano system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-system-certs.log"
-        ./scripts/install/k8s-dump-objects.sh -o cert -n verrazzano-system -m "verrazzano system certs" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-system-kibana.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-kibana-*" -m "verrazzano system kibana log" -l -c kibana || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-system-es-master.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-es-master-*" -m "verrazzano system kibana log" -l -c es-master || echo "failed" > ${POST_DUMP_FAILED_FILE}
-    """
-}
-
-def dumpCattleSystemPods() {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/cattle-system-pods.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -m "cattle system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/rancher.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -r "rancher-*" -m "Rancher logs" -c rancher -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
-    """
-}
-
-def dumpNginxIngressControllerLogs() {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/nginx-ingress-controller.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -c controller -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
-    """
-}
-
-def dumpVerrazzanoPlatformOperatorLogs() {
-    sh """
-        ## dump out verrazzano-platform-operator logs
-        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
-        kubectl -n verrazzano-install logs --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        kubectl -n verrazzano-install describe pod --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        echo "verrazzano-platform-operator logs dumped to verrazzano-platform-operator-pod.log"
-        echo "verrazzano-platform-operator pod description dumped to verrazzano-platform-operator-pod.out"
-        echo "------------------------------------------"
-    """
-}
-
-def dumpVerrazzanoApplicationOperatorLogs() {
-    sh """
-        ## dump out verrazzano-application-operator logs
-        mkdir -p ${WORKSPACE}/verrazzano-application-operator/logs
-        kubectl -n verrazzano-system logs --selector=app=verrazzano-application-operator > ${WORKSPACE}/verrazzano-application-operator/logs/verrazzano-application-operator-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        kubectl -n verrazzano-system describe pod --selector=app=verrazzano-application-operator > ${WORKSPACE}/verrazzano-application-operator/logs/verrazzano-application-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        echo "verrazzano-application-operator logs dumped to verrazzano-application-operator-pod.log"
-        echo "verrazzano-application-operator pod description dumped to verrazzano-application-operator-pod.out"
-        echo "------------------------------------------"
-    """
-}
-
-def dumpOamKubernetesRuntimeLogs() {
-    sh """
-        ## dump out oam-kubernetes-runtime logs
-        mkdir -p ${WORKSPACE}/oam-kubernetes-runtime/logs
-        kubectl -n verrazzano-system logs --selector=app.kubernetes.io/instance=oam-kubernetes-runtime > ${WORKSPACE}/oam-kubernetes-runtime/logs/oam-kubernetes-runtime-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        kubectl -n verrazzano-system describe pod --selector=app.kubernetes.io/instance=oam-kubernetes-runtime > ${WORKSPACE}/verrazzano-application-operator/logs/oam-kubernetes-runtime-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        echo "verrazzano-application-operator logs dumped to oam-kubernetes-runtime-pod.log"
-        echo "verrazzano-application-operator pod description dumped to oam-kubernetes-runtime-pod.out"
-        echo "------------------------------------------"
-    """
-}
-
-def dumpVerrazzanoApiLogs() {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-authproxy.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-authproxy-*" -m "verrazzano api" -c verrazzano-authproxy -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
-    """
 }
 
 def getEffectiveDumpOnSuccess() {
@@ -507,17 +326,6 @@ def getEffectiveDumpOnSuccess() {
         echo "Forcing dump on success based on global override setting"
     }
     return effectiveValue
-}
-
-def deleteCluster() {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        make delete-cluster
-        if [ -f ${POST_DUMP_FAILED_FILE} ]; then
-          echo "Failures seen during dumping of artifacts, treat post as failed"
-          exit 1
-        fi
-    """
 }
 
 def metricJobName(stageName) {
@@ -617,5 +425,77 @@ def emitJobMetrics() {
     long timeInMillis = "${currentBuild.timeInMillis}" as long;
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
     env.TIME_WAITING = startTimeInMillis-timeInMillis
-    runGinkgoRandomize('jobmetrics')
+    runTest('jobmetrics')
 }
+
+//def deleteCluster() {
+//    sh """
+//        cd ${GO_REPO_PATH}/verrazzano/platform-operator
+//        make delete-cluster
+//        if [ -f ${POST_DUMP_FAILED_FILE} ]; then
+//          echo "Failures seen during dumping of artifacts, treat post as failed"
+//          exit 1
+//        fi
+//    """
+//}
+
+//                stage('Run Acceptance Tests Infra') {
+//                    steps {
+//                        script {
+//                            parallel getVerifyInstallTestTargets()
+//                        }
+//                    }
+//                    post {
+//                        always {
+//                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+//                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+//                        }
+//                    }
+//                }
+//                stage('Run Acceptance Tests Deployments') {
+//                    steps {
+//                        script {
+//                            parallel getDeploymentTestTargets()
+//                        }
+//                    }
+//                    post {
+//                        always {
+//                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
+//                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+//                        }
+//                    }
+//                }
+
+//def getDeploymentTestTargets() {
+//    targets = [
+//        "opensearch-topology": { runMakeCommand("verify-opensearch-topology") },
+//        "istio authorization policy": { runMakeCommand("verify-istio-authz") },
+//        "k8s deployment workload metrics": { runMakeCommand("verify-deployment-workload-metrics") },
+//        "system logging": { runMakeCommand("verify-system-logging") },
+//        "opensearch logging": { runMakeCommand("verify-opensearch-logging") },
+//        "examples logging helidon": { runMakeCommand("verify-helidon-logging") },
+//        "examples helidon-metrics": { runMakeCommand("verify-helidon-metrics") },
+//        "examples helidon": { runMakeCommand("verify-examples-helidon") },
+//        "workloads": { runMakeCommand("verify-workloads") },
+//        "console ingress": { runMakeCommand("verify-console-ingress") },
+//        "logging trait WebLogic workload": { runMakeCommand("verify-wls-loggingtraits") },
+//        "poko metricsbinding": { runMakeCommand("verify-poko-metricsbinding") },
+//        ]
+//    if (params.CREATE_CLUSTER_USE_CALICO == true) {
+//        targets = targets + [
+//            "security network policies": { runMakeCommand("verify-security-netpol") },
+//         ]
+//    }
+//    return targets
+//}
+
+//def getVerifyInstallTestTargets() {
+//    return [
+//        //"verify-install": { runMakeCommand("verify-install") },
+//        "verify-scripts": { runMakeCommand("verify-scripts") },
+//        "verify-infra": { runMakeCommand("verify-infra") },
+//        "security role based access": { runMakeCommand("verify-security-rbac") },
+//        "system component metrics": { runMakeCommand("verify-system-metrics") },
+//        "console": { runMakeCommand("verify-console") },
+//        ]
+//}
