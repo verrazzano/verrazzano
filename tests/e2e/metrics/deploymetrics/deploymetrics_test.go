@@ -21,14 +21,16 @@ import (
 
 const (
 	deploymetricsCompYaml = "testdata/deploymetrics/deploymetrics-comp.yaml"
+	deploymetricsCompName = "deploymetrics-deployment"
 	deploymetricsAppYaml  = "testdata/deploymetrics/deploymetrics-app.yaml"
-	promConfigJobName     = "deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment"
+	deployMetricsAppName  = "deploymetrics-appconf"
 	skipVerifications     = "Skip Verifications"
 )
 
 var (
 	expectedPodsDeploymetricsApp = []string{"deploymetrics-workload"}
 	generatedNamespace           = pkg.GenerateNamespace("deploymetrics")
+	promConfigJobName            = fmt.Sprintf("%s_default_%s_%s", deployMetricsAppName, generatedNamespace, deploymetricsCompName)
 
 	waitTimeout              = 10 * time.Minute
 	pollingInterval          = 30 * time.Second
