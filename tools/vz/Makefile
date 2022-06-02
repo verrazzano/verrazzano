@@ -27,7 +27,7 @@ EXTRA_PARAMS=
 INTEG_RUN_ID=
 ENV_NAME=verrazzano-cli
 GO = GO111MODULE=on GOPRIVATE=github.com/verrazzano/* go
-GO_LDFLAGS ?= -extldflags -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
+GO_LDFLAGS ?= -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
 GO_LDFLAGS_LINUX ?= -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
 
 #
