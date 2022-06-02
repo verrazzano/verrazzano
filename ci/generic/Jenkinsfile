@@ -343,21 +343,21 @@ pipeline {
 def getDeploymentTestTargets() {
     targets = [
         "opensearch-topology": { runTest("opensearch/topology") },
-        "istio-authz": { runTest("istio/authz", "false") },
-        "metrics-deploymetrics": { runTest("metrics/deploymetrics") },
-        "logging-system": { runTest("logging/system", "false") },
-        "logging-opensearch": { runTest("logging/opensearch", "false") },
-        "logging-helidon": { runTest("logging/helidon", "false") },
-        "examples-helidonmetrics": { runTest("examples/helidonmetrics", "false") },
-        "examples-helidon": { runTest("examples/helidon") },
+        "istio authorization policy": { runTest("istio/authz", "false") },
+        "k8s deployment workload metrics": { runTest("metrics/deploymetrics") },
+        "system logging": { runTest("logging/system", "false") },
+        "opensearch logging": { runTest("logging/opensearch", "false") },
+        "examples logging helidon": { runTest("logging/helidon", "false") },
+        "examples helidon-metrics": { runTest("examples/helidonmetrics", "false") },
+        "examples helidon": { runTest("examples/helidon") },
         "workloads": { runTest("workloads", "false") },
-        "ingress-console": { runTest("ingress/console", "false") },
-        "loggingtrait": { runTest("loggingtrait", "false") },
-        "metricsbinding": { runTest("metricsbinding", "false") },
+        "console ingress": { runTest("ingress/console", "false") },
+        "logging trait WebLogic workload": { runTest("loggingtrait", "false") },
+        "poko metricsbinding": { runTest("metricsbinding", "false") },
         ]
     if (params.CREATE_CLUSTER_USE_CALICO == true) {
         targets = targets + [
-            "security/netpol": { runTest("security/netpol", "false") },
+            "security network policies": { runTest("security/netpol", "false") },
          ]
     }
     return targets
