@@ -41,6 +41,9 @@ const StatefulSetWorkloadKind = "StatefulSet"
 // DaemonSetWorkloadKind - the DaemonSet workload resource kind
 const DaemonSetWorkloadKind = "DaemonSet"
 
+// VerrazzanoInstallNamespace is the namespace for installing the verrazzano-platform-operator
+const VerrazzanoInstallNamespace = "verrazzano-install"
+
 // VerrazzanoSystemNamespace is the system namespace for Verrazzano
 const VerrazzanoSystemNamespace = "verrazzano-system"
 

@@ -4,13 +4,24 @@
 package install
 
 import (
+	"bytes"
+	"context"
 	"fmt"
+	"os/exec"
 	"time"
 
 	"github.com/spf13/cobra"
+	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/types"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -29,6 +40,9 @@ vz install --version v1.3.0 --set profile=dev --set components.elasticsearch.ena
 
 # Install the latest version of Verrazzano using CR overlays and explicit value sets.  Output the logs in json format.
 vz install -f base.yaml -f custom.yaml --set profile=prod --log-format json`
+
+	verrazzanoPlatformOperator     = "verrazzano-platform-operator"
+	verrazzanoPlatformOperatorWait = 5
 )
 
 var logsEnum = cmdhelpers.LogsFormatSimple
@@ -60,7 +74,40 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
+	// Apply the Verrazzano operator.yaml.
+	err := applyPlatfornOperatorYaml(cmd, vzHelper)
+	if err != nil {
+		return err
+	}
 
+	client, err := vzHelper.GetClient(cmd)
+	if err != nil {
+		return err
+	}
+
+	err = waitForPlatformOperator(client, vzHelper)
+	if err != nil {
+		return err
+	}
+
+	// Create the Verrazzano install resource.
+	vz := &vzapi.Verrazzano{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      "verrazzano",
+		},
+	}
+	err = client.Create(context.TODO(), vz)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// applyPlatfornOperatorYaml applies a given version of the platform operator yaml file
+func applyPlatfornOperatorYaml(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	// Get the version from the command line
 	version, err := cmd.PersistentFlags().GetString(constants.VersionFlag)
 	if err != nil {
@@ -74,6 +121,76 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		}
 	}
 
-	fmt.Fprintf(vzHelper.GetOutputStream(), "Not implemented yet\n")
+	// Apply the Verrazzano operator.yaml. A valid version must be specified for this to succeed.
+	kubectl := exec.Command("kubectl", "apply", "-f", fmt.Sprintf("https://github.com/verrazzano/verrazzano/releases/download/%s/operator.yaml", version))
+	var stdout bytes.Buffer
+	kubectl.Stdout = &stdout
+	var stderr bytes.Buffer
+	kubectl.Stderr = &stderr
+	cmdErr := kubectl.Run()
+	if cmdErr != nil {
+		return fmt.Errorf("Failed to download operator.yaml: %s", stderr.String())
+	}
+	fmt.Fprintf(vzHelper.GetOutputStream(), stdout.String())
+
+	return nil
+}
+
+// waitForPlatformOperator waits for the verrazzano-platform-operator to be ready
+func waitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper) error {
+	// Find the verrazzano-platform-operator using the app label selector
+	appLabel, _ := labels.NewRequirement("app", selection.Equals, []string{verrazzanoPlatformOperator})
+	labelSelector := labels.NewSelector()
+	labelSelector = labelSelector.Add(*appLabel)
+	podList := corev1.PodList{}
+	err := client.List(
+		context.TODO(),
+		&podList,
+		&clipkg.ListOptions{
+			Namespace:     vzconstants.VerrazzanoInstallNamespace,
+			LabelSelector: labelSelector,
+		})
+	if err != nil {
+		return fmt.Errorf("Failed to list pods %v", err)
+	}
+	if len(podList.Items) == 0 {
+		return fmt.Errorf("%s pod not found in namespace %s", verrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
+	}
+	if len(podList.Items) > 1 {
+		return fmt.Errorf("More than one %s pod was found in namespace %s", verrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
+	}
+
+	// We found the verrazzano-platform-operator pod. Wait until it's containers are ready.
+	pod := &corev1.Pod{}
+	seconds := 0
+	for {
+		err := client.Get(context.TODO(), types.NamespacedName{Namespace: podList.Items[0].Namespace, Name: podList.Items[0].Name}, pod)
+		if err != nil {
+			return err
+		}
+		initReady := true
+		for _, initContainer := range pod.Status.InitContainerStatuses {
+			if !initContainer.Ready {
+				initReady = false
+				break
+			}
+		}
+		ready := true
+		for _, container := range pod.Status.ContainerStatuses {
+			if !container.Ready {
+				ready = false
+				break
+			}
+		}
+
+		if initReady && ready {
+			fmt.Fprintf(vzHelper.GetOutputStream(), "\n")
+			break
+		}
+
+		time.Sleep(verrazzanoPlatformOperatorWait * time.Second)
+		seconds += verrazzanoPlatformOperatorWait
+		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("\rWaiting for verrazzano-platform-operator to be ready - %d seconds", seconds))
+	}
 	return nil
 }
