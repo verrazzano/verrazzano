@@ -4,6 +4,7 @@
 package install
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
@@ -21,6 +22,8 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
+	ctrl "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -85,7 +88,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		return err
 	}
 
-	err = waitForPlatformOperator(client, vzHelper)
+	podName, err := waitForPlatformOperator(client, vzHelper)
 	if err != nil {
 		return err
 	}
@@ -101,6 +104,33 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	err = client.Create(context.TODO(), vz)
 	if err != nil {
 		return err
+	}
+
+	config, err := ctrl.GetConfig()
+	if err != nil {
+		return fmt.Errorf("Failed to get kubeconfig: %v", err)
+	}
+
+	kubeClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return fmt.Errorf("Failed to get clientset: %v", err)
+	}
+
+	sinceTime := metav1.Now()
+	rc, err := kubeClient.CoreV1().Pods(vzconstants.VerrazzanoInstallNamespace).GetLogs(podName, &corev1.PodLogOptions{
+		Container: verrazzanoPlatformOperator,
+		Follow:    true,
+		SinceTime: &sinceTime,
+	}).Stream(context.TODO())
+	if err != nil {
+		return fmt.Errorf("Failed to get logs stream: %v", err)
+	}
+	defer rc.Close()
+
+	sc := bufio.NewScanner(rc)
+	sc.Split(bufio.ScanLines)
+	for sc.Scan() {
+		fmt.Fprintln(vzHelper.GetOutputStream(), sc.Text())
 	}
 
 	return nil
@@ -137,7 +167,7 @@ func applyPlatfornOperatorYaml(cmd *cobra.Command, vzHelper helpers.VZHelper) er
 }
 
 // waitForPlatformOperator waits for the verrazzano-platform-operator to be ready
-func waitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper) error {
+func waitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper) (string, error) {
 	// Find the verrazzano-platform-operator using the app label selector
 	appLabel, _ := labels.NewRequirement("app", selection.Equals, []string{verrazzanoPlatformOperator})
 	labelSelector := labels.NewSelector()
@@ -151,13 +181,13 @@ func waitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper) er
 			LabelSelector: labelSelector,
 		})
 	if err != nil {
-		return fmt.Errorf("Failed to list pods %v", err)
+		return "", fmt.Errorf("Failed to list pods %v", err)
 	}
 	if len(podList.Items) == 0 {
-		return fmt.Errorf("%s pod not found in namespace %s", verrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
+		return "", fmt.Errorf("%s pod not found in namespace %s", verrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
 	}
 	if len(podList.Items) > 1 {
-		return fmt.Errorf("More than one %s pod was found in namespace %s", verrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
+		return "", fmt.Errorf("More than one %s pod was found in namespace %s", verrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
 	}
 
 	// We found the verrazzano-platform-operator pod. Wait until it's containers are ready.
@@ -166,7 +196,7 @@ func waitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper) er
 	for {
 		err := client.Get(context.TODO(), types.NamespacedName{Namespace: podList.Items[0].Namespace, Name: podList.Items[0].Name}, pod)
 		if err != nil {
-			return err
+			return "", err
 		}
 		initReady := true
 		for _, initContainer := range pod.Status.InitContainerStatuses {
@@ -192,5 +222,5 @@ func waitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper) er
 		seconds += verrazzanoPlatformOperatorWait
 		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("\rWaiting for verrazzano-platform-operator to be ready - %d seconds", seconds))
 	}
-	return nil
+	return pod.Name, nil
 }
