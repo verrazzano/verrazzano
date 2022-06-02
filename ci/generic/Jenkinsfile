@@ -477,16 +477,34 @@ def getDeploymentTestTargets() {
 }
 
 def getVerifyInstallTestTargets() {
-    return "verify-install/... verify-infra/... scripts/... security/rbac/... metrics/syscomponents/..."
+    return [
+        "verify-install": { runTest("verify-install") },
+        "verify-scripts": { runTest("scripts") },
+        "security-rbac": { runTest("security/rbac") },
+        "metrics-syscomp": { runTest("metrics/syscomponents") },
+        ]
 }
 
-def runTest(makeTarget, testSuitePath) {
-    return catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        sh """
-           export TEST_SUITES="${testSuitePath}/..."
-           cd ${GO_REPO_PATH}/verrazzano/ci/generic
-           make ${makeTarget}
-        """
+def runTest(testSuitePath) {
+    return script {
+            sh """
+               export TEST_SUITES="${testSuitePath}/..."
+               #cd ${GO_REPO_PATH}/verrazzano/ci/generic
+               echo "make test"
+            """
+        }
+}
+
+def runTest(testSuitePath) {
+    return script {
+        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+            sh """
+               export TEST_SUITES="${testSuitePath}/..."
+               #cd ${GO_REPO_PATH}/verrazzano/ci/generic
+               #echo "TEST_SUITES=\"${testSuitePath}/...\" make test"
+               make test
+            """
+        }
     }
 }
 
