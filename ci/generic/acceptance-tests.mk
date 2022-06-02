@@ -18,7 +18,10 @@ run-test: export RUN_PARALLEL := false
 run-sequential: run-test
 
 .PHONY: verify-all
-verify-all: verify-install verify-scripts verify-infra verify-security-rbac verify-system-metrics verify-console
+verify-all: verify-infra-all verify-deployment-all
+
+.PHONY: verify-infra-all
+verify-infra-all: verify-install verify-scripts verify-infra verify-security-rbac verify-system-metrics verify-console
 
 .PHONY: verify-install
 verify-install:
@@ -45,3 +48,60 @@ PHONY: verify-console
 verify-console:
 	${CI_SCRIPTS_DIR}/run_console_tests.sh
 
+.PHONY: verify-deployment-all
+verify-deployment-all: verify-opensearch-topology verify-istio-authz verify-deployment-workload-metrics \
+	verify-system-logging verify-opensearch-logging verify-helidon-logging verify-helidon-metrics \
+	verify-examples-helidon verify-workloads verify-console-ingress verify-wls-loggingtraits verify-poko-metricsbinding \
+	verify-security-netpol
+
+.PHONY: verify-opensearch-topology
+verify-opensearch-topology:
+	TEST_SUITES=opensearch/topology/... make test
+
+.PHONY: verify-istio-authz
+verify-istio-authz:
+	TEST_SUITES=istio/authz/... make run-sequential
+
+.PHONY: verify-deployment-workload-metrics
+verify-deployment-workload-metrics:
+	TEST_SUITES=metrics/deploymetrics/... make test
+
+.PHONY: verify-system-logging
+verify-system-logging:
+	TEST_SUITES=logging/system/... make run-sequential
+
+.PHONY: verify-opensearch-logging
+verify-opensearch-logging:
+	TEST_SUITES=logging/opensearch/... make run-sequential
+
+.PHONY: verify-helidon-logging
+verify-helidon-logging:
+	TEST_SUITES=logging/helidon/... make run-sequential
+
+.PHONY: verify-helidon-metrics
+verify-helidon-metrics:
+	TEST_SUITES=examples/helidonmetrics/... make run-sequential
+
+.PHONY: verify-examples-helidon
+verify-examples-helidon:
+	TEST_SUITES=examples/helidon/... make test
+
+.PHONY: verify-workloads
+verify-workloads:
+	TEST_SUITES=workloads/... make run-sequential
+
+.PHONY: verify-console-ingress
+verify-console-ingress:
+	TEST_SUITES=ingress/console/... make run-sequential
+
+.PHONY: verify-wls-loggingtraits
+verify-wls-loggingtraits:
+	TEST_SUITES=loggingtrait/... make run-sequential
+
+.PHONY: verify-poko-metricsbinding
+verify-poko-metricsbinding:
+	TEST_SUITES=metricsbinding/... make run-sequential
+
+.PHONY: verify-security-netpol
+verify-security-netpol:
+	TEST_SUITES=security/netpol/... make run-sequential
