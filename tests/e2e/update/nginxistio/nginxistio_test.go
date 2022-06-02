@@ -255,9 +255,15 @@ var t = framework.NewTestFramework("update nginx-istio")
 
 var nodeCount uint32
 
+var systemExternalIP, applicationExternalIP string
+
 var _ = t.BeforeSuite(func() {
 	var err error
 	nodeCount, err = pkg.GetNodeCount()
+	if err != nil {
+		Fail(err.Error())
+	}
+	systemExternalIP, applicationExternalIP, err = deployExternalLBs()
 	if err != nil {
 		Fail(err.Error())
 	}
@@ -322,21 +328,15 @@ var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.
 
 	t.Describe("verrazzano-nginx-istio update nodeport", Label("f:platform-lcm.nginx-istio-update-nodeport"), func() {
 		t.It("nginx-istio update ingress type to nodeport", func() {
-			t.Logs.Info("Create external load balancers")
-			sysIP, appIP, err := deployExternalLBs()
-			if err != nil {
-				Fail(err.Error())
-			}
-
-			t.Logs.Infof("Update nginx/istio ingresses to use NodePort with external load balancers: %s and %s", sysIP, appIP)
-			m := NginxIstioNodePortModifier{systemExternalLBIP: sysIP, applicationExternalLBIP: appIP}
-			err = update.UpdateCR(m)
+			t.Logs.Infof("Update nginx/istio ingresses to use NodePort with external load balancers: %s and %s", systemExternalIP, applicationExternalIP)
+			m := NginxIstioNodePortModifier{systemExternalLBIP: systemExternalIP, applicationExternalLBIP: applicationExternalIP}
+			err := update.UpdateCR(m)
 			if err != nil {
 				Fail(err.Error())
 			}
 
 			t.Logs.Info("Validate nginx/istio ingresses for NodePort type and externalIPs")
-			validateServiceNodePortAndExternalIP(sysIP, appIP)
+			validateServiceNodePortAndExternalIP(systemExternalIP, applicationExternalIP)
 		})
 	})
 
@@ -350,6 +350,20 @@ var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.
 
 			t.Logs.Info("Validate nginx/istio ingresses for LoadBalancer type and loadBalancer IP")
 			validateServiceLoadBalancer()
+		})
+	})
+
+	t.Describe("verrazzano-nginx-istio update nodeport 2", Label("f:platform-lcm.nginx-istio-update-nodeport-2"), func() {
+		t.It("nginx-istio update ingress type to nodeport 2", func() {
+			t.Logs.Infof("Update nginx/istio ingresses to use NodePort with external load balancers: %s and %s", systemExternalIP, applicationExternalIP)
+			m := NginxIstioNodePortModifier{systemExternalLBIP: systemExternalIP, applicationExternalLBIP: applicationExternalIP}
+			err := update.UpdateCR(m)
+			if err != nil {
+				Fail(err.Error())
+			}
+
+			t.Logs.Info("Validate nginx/istio ingresses for NodePort type and externalIPs")
+			validateServiceNodePortAndExternalIP(systemExternalIP, applicationExternalIP)
 		})
 	})
 })
@@ -423,6 +437,30 @@ func applyResource(resourceFile string, templateData *externalLBsTemplateData) {
 	if err != nil {
 		Fail(err.Error())
 	}
+}
+
+func getServiceLoadBalancerIP(ns, svcName string) (string, error) {
+	gomega.Eventually(func() error {
+		svc, err := pkg.GetService(ns, svcName)
+		if err != nil {
+			return err
+		}
+		if len(svc.Status.LoadBalancer.Ingress) == 0 {
+			return fmt.Errorf("loadBalancer for service %s/%s is not ready yet", ns, svcName)
+		}
+		return nil
+	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), fmt.Sprintf("Expected to get a loadBalancer for service %s/%s", ns, svcName))
+
+	// Get the CR
+	svc, err := pkg.GetService(ns, svcName)
+	if err != nil {
+		return "", fmt.Errorf("can not get IP for service %s/%s due to error: %v", ns, svcName, err.Error())
+	}
+	if len(svc.Status.LoadBalancer.Ingress) > 0 {
+		return svc.Status.LoadBalancer.Ingress[0].IP, nil
+	}
+
+	return "", fmt.Errorf("no IP is found for service %s/%s", ns, svcName)
 }
 
 func validateServiceAnnotations(m NginxIstioIngressServiceAnnotationModifier) {
@@ -535,28 +573,4 @@ func validateServiceLoadBalancer() {
 		}
 		return nil
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "expect to get LoadBalancer type and loadBalancer IP from nginx and istio services")
-}
-
-func getServiceLoadBalancerIP(ns, svcName string) (string, error) {
-	gomega.Eventually(func() error {
-		svc, err := pkg.GetService(ns, svcName)
-		if err != nil {
-			return err
-		}
-		if len(svc.Status.LoadBalancer.Ingress) == 0 {
-			return fmt.Errorf("loadBalancer for service %s/%s is not ready yet", ns, svcName)
-		}
-		return nil
-	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), fmt.Sprintf("Expected to get a loadBalancer for service %s/%s", ns, svcName))
-
-	// Get the CR
-	svc, err := pkg.GetService(ns, svcName)
-	if err != nil {
-		return "", fmt.Errorf("can not get IP for service %s/%s due to error: %v", ns, svcName, err.Error())
-	}
-	if len(svc.Status.LoadBalancer.Ingress) > 0 {
-		return svc.Status.LoadBalancer.Ingress[0].IP, nil
-	}
-
-	return "", fmt.Errorf("no IP is found for service %s/%s", ns, svcName)
 }
