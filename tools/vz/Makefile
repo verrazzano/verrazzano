@@ -41,11 +41,11 @@ run:
 .PHONY: go-build
 go-build:
 	GOOS=darwin GOARCH=amd64 $(GO) build \
-		-ldflags "-X main.cliVersion=${CLI_VERSION}" \
+		-ldflags "${GO_LDFLAGS} -X main.cliVersion=${CLI_VERSION}" \
 		-o out/darwin_amd64/verrazzano-cli \
 		${GOPATH}/src/github.com/verrazzano/verrazzano/tools/vz/main.go
 	GOOS=linux GOARCH=amd64 $(GO) build \
-		-ldflags "-X main.cliVersion=${CLI_VERSION}" \
+		-ldflags "${GO_LDFLAGS} -X main.cliVersion=${CLI_VERSION}" \
 		-o out/linux_amd64/verrazzano-cli \
 		${GOPATH}/src/github.com/verrazzano/verrazzano/tools/vz/main.go
 
