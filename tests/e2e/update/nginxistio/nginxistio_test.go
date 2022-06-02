@@ -321,7 +321,7 @@ var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.
 	})
 
 	t.Describe("verrazzano-nginx-istio update nodeport", Label("f:platform-lcm.nginx-istio-update-nodeport"), func() {
-		t.It("nginx-istio update ingress type", func() {
+		t.It("nginx-istio update ingress type to nodeport", func() {
 			t.Logs.Info("Create external load balancers")
 			sysIP, appIP, err := deployExternalLBs()
 			if err != nil {
@@ -335,8 +335,21 @@ var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.
 				Fail(err.Error())
 			}
 
-			t.Logs.Info("Validate nginx/istio ingresses for NodePort and externalIPs")
+			t.Logs.Info("Validate nginx/istio ingresses for NodePort type and externalIPs")
 			validateServiceNodePortAndExternalIP(sysIP, appIP)
+		})
+	})
+
+	t.Describe("verrazzano-nginx-istio update loadbalancer", Label("f:platform-lcm.nginx-istio-update-loadbalancer"), func() {
+		t.It("nginx-istio update ingress type to loadbalancer", func() {
+			m := NginxIstioLoadBalancerModifier{}
+			err := update.UpdateCR(m)
+			if err != nil {
+				Fail(err.Error())
+			}
+
+			t.Logs.Info("Validate nginx/istio ingresses for LoadBalancer type and loadBalancer IP")
+			validateServiceLoadBalancer()
 		})
 	})
 })
@@ -499,9 +512,12 @@ func validateServiceLoadBalancer() {
 		if nginxIngress.Spec.Type != corev1.ServiceTypeLoadBalancer {
 			return fmt.Errorf("expect nginx ingress with type LoadBalancer, but got %v", nginxIngress.Spec.Type)
 		}
-		_, err = getServiceLoadBalancerIP(constants.IngressNamespace, nginxIngressServiceName)
+		nginxLBIP, err := getServiceLoadBalancerIP(constants.IngressNamespace, nginxIngressServiceName)
 		if err != nil {
 			return err
+		}
+		if len(nginxLBIP) == 0 {
+			return fmt.Errorf("invalid loadBalancer IP %s for nginx", nginxLBIP)
 		}
 		istioIngress, err := pkg.GetService(constants.IstioSystemNamespace, istioIngressServiceName)
 		if err != nil {
@@ -510,9 +526,12 @@ func validateServiceLoadBalancer() {
 		if istioIngress.Spec.Type != corev1.ServiceTypeLoadBalancer {
 			return fmt.Errorf("expect istio ingress with type LoadBalancer, but got %v", istioIngress.Spec.Type)
 		}
-		_, err = getServiceLoadBalancerIP(constants.IstioSystemNamespace, istioIngressServiceName)
+		istioLBIP, err := getServiceLoadBalancerIP(constants.IstioSystemNamespace, istioIngressServiceName)
 		if err != nil {
 			return err
+		}
+		if len(istioLBIP) == 0 {
+			return fmt.Errorf("invalid loadBalancer IP %s for istio", istioLBIP)
 		}
 		return nil
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "expect to get LoadBalancer type and loadBalancer IP from nginx and istio services")
