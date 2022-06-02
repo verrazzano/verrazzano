@@ -20,7 +20,9 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -331,4 +333,37 @@ func TestValidatePrometheusOperator(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestApplySystemMonitors tests the applySystemMonitors function
+func TestApplySystemMonitors(t *testing.T) {
+	// GIVEN the Prometheus Operator is being installed or upgraded
+	// WHEN we call the applySystemMonitors function
+	// THEN ServiceMonitor and PodMonitor resources are applied so that
+	// Verrazzano system components will have their metrics collected
+	oldConfig := config.Get()
+	defer config.Set(oldConfig)
+	config.Set(config.OperatorConfig{
+		VerrazzanoRootDir: "../../../../../..",
+	})
+
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+
+	err := applySystemMonitors(ctx)
+	assert.NoError(t, err)
+
+	// expect that 3 PodMonitors are created
+	monitors := &unstructured.UnstructuredList{}
+	monitors.SetGroupVersionKind(schema.GroupVersionKind{Group: "monitoring.coreos.com", Version: "v1", Kind: "PodMonitor"})
+	err = client.List(context.TODO(), monitors)
+	assert.NoError(t, err)
+	assert.Len(t, monitors.Items, 3)
+
+	// expect that 1 ServiceMonitor is created
+	monitors = &unstructured.UnstructuredList{}
+	monitors.SetGroupVersionKind(schema.GroupVersionKind{Group: "monitoring.coreos.com", Version: "v1", Kind: "ServiceMonitor"})
+	err = client.List(context.TODO(), monitors)
+	assert.NoError(t, err)
+	assert.Len(t, monitors.Items, 1)
 }
