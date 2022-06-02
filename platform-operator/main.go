@@ -5,6 +5,7 @@ package main
 
 import (
 	"flag"
+	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"sync"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
@@ -56,7 +57,10 @@ func init() {
 	_ = vzapp.AddToScheme(scheme)
 
 	// Add cert-manager components to the scheme
-	cmapiv1.AddToScheme(scheme)
+	_ = cmapiv1.AddToScheme(scheme)
+
+	// Add the Prometheus Operator resources to the scheme
+	_ = promoperapi.AddToScheme(scheme)
 
 	// +kubebuilder:scaffold:scheme
 }
