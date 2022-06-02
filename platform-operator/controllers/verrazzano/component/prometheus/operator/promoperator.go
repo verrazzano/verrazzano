@@ -161,7 +161,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	}
 
 	// Add a label to Prometheus Operator resources to distinguish Verrazzano resources
-	kvs = append(kvs, bom.KeyValue{Key: "commonLabels[0].verrazzano-component", Value: "prometheus-operator"})
+	kvs = append(kvs, bom.KeyValue{Key: "commonLabels.verrazzano-component", Value: "prometheus-operator"})
 
 	return kvs, nil
 }
