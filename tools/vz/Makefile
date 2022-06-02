@@ -28,7 +28,7 @@ INTEG_RUN_ID=
 ENV_NAME=verrazzano-cli
 GO = GO111MODULE=on GOPRIVATE=github.com/verrazzano/* go
 GO_LDFLAGS ?= -extldflags -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
-GO_LDFLAGS_LINUX ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
+GO_LDFLAGS_LINUX ?= -extldflags -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
 
 #
 # CLI
