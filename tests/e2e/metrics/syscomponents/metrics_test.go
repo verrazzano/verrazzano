@@ -19,7 +19,7 @@ import (
 
 const (
 	longPollingInterval = 20 * time.Second
-	longWaitTimeout     = 20 * time.Minute
+	longWaitTimeout     = 60 * time.Minute
 
 	// Constants for sample metrics of system components validated by the test
 	ingressControllerSuccess       = "nginx_ingress_controller_success"
