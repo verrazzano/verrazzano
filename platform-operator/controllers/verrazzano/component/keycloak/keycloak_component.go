@@ -16,7 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
+	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -152,7 +152,7 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 	}
 
 	// Update the Prometheus annotations to include the Keycloak service as an outbound IP address
-	if operator.NewComponent().IsEnabled(ctx.EffectiveCR()) {
+	if promoperator.NewComponent().IsEnabled(ctx.EffectiveCR()) {
 		err = updatePrometheusAnnotations(ctx)
 		if err != nil {
 			return err
@@ -166,6 +166,14 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
 		return err
+	}
+
+	// Update the Prometheus annotations to include the Keycloak service as an outbound IP address
+	if promoperator.NewComponent().IsEnabled(ctx.EffectiveCR()) {
+		err := updatePrometheusAnnotations(ctx)
+		if err != nil {
+			return err
+		}
 	}
 
 	return configureKeycloakRealms(ctx)
