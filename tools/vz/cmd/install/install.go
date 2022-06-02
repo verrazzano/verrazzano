@@ -84,11 +84,13 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		return err
 	}
 
+	// Get the controller runtime client
 	client, err := vzHelper.GetClient(cmd)
 	if err != nil {
 		return err
 	}
 
+	// Wait for the platform operator to be ready before we create the verrazzano resource.
 	podName, err := waitForPlatformOperator(client, vzHelper)
 	if err != nil {
 		return err
