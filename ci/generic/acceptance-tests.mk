@@ -12,7 +12,7 @@ console-test:
 	${CI_SCRIPTS_DIR}/run_console_tests.sh
 
 run-test: export RANDOMIZE_TESTS ?= true
-run-test: export RUN_PARALLEL ?= true
+run-test: export RUN_PARALLEL ?= false
 .PHONY: run-test
 run-test:
 	${CI_SCRIPTS_DIR}/run-ginkgo.sh
