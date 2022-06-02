@@ -5,6 +5,7 @@ package metricstrait
 
 import (
 	"context"
+
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
