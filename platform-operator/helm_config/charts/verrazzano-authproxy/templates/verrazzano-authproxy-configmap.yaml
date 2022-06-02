@@ -1323,7 +1323,7 @@ data:
     done
 
     echo "Starting the prometheus exporter"
-     /nginx-prometheus-exporter -nginx.scrape-uri=http://localhost:8775/nginx_status &
+    /nginx-prometheus-exporter -nginx.scrape-uri=http://localhost:8775/nginx_status &
 
     sh -c "$startupDir/reload.sh &"
 
