@@ -4,7 +4,6 @@ apiVersion: core.oam.dev/v1alpha2
 kind: ApplicationConfiguration
 metadata:
   name: deploymetrics-appconf
-  namespace: deploymetrics
   annotations:
     version: v1.0.0
     description: "Test that Prometheus can scrape metrics from a Deployment Component"

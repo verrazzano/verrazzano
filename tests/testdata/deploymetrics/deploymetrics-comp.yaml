@@ -4,7 +4,6 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: deploymetrics-deployment
-  namespace: deploymetrics
 spec:
   workload:
     apiVersion: apps/v1

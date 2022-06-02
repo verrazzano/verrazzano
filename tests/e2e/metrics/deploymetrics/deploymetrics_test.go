@@ -20,23 +20,30 @@ import (
 )
 
 const (
-	promConfigJobName = "deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment"
-	skipVerifications = "Skip Verifications"
+	deploymetricsCompYaml = "testdata/deploymetrics/deploymetrics-comp.yaml"
+	deploymetricsAppYaml  = "testdata/deploymetrics/deploymetrics-app.yaml"
+	promConfigJobName     = "deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment"
+	skipVerifications     = "Skip Verifications"
 )
 
-var expectedPodsDeploymetricsApp = []string{"deploymetrics-workload"}
-var waitTimeout = 10 * time.Minute
-var pollingInterval = 30 * time.Second
-var shortPollingInterval = 10 * time.Second
-var shortWaitTimeout = 5 * time.Minute
-var longWaitTimeout = 15 * time.Minute
-var longPollingInterval = 30 * time.Second
-var imagePullWaitTimeout = 40 * time.Minute
-var imagePullPollingInterval = 30 * time.Second
+var (
+	expectedPodsDeploymetricsApp = []string{"deploymetrics-workload"}
+	generatedNamespace           = pkg.GenerateNamespace("deploymetrics")
 
-var adminKubeConfig string
-var label string
-var t = framework.NewTestFramework("deploymetrics")
+	waitTimeout              = 10 * time.Minute
+	pollingInterval          = 30 * time.Second
+	shortPollingInterval     = 10 * time.Second
+	shortWaitTimeout         = 5 * time.Minute
+	longWaitTimeout          = 15 * time.Minute
+	longPollingInterval      = 30 * time.Second
+	imagePullWaitTimeout     = 40 * time.Minute
+	imagePullPollingInterval = 30 * time.Second
+
+	adminKubeConfig string
+	label           string
+
+	t = framework.NewTestFramework("deploymetrics")
+)
 
 var clusterDump = pkg.NewClusterDumpWrapper()
 var _ = clusterDump.BeforeSuite(func() {
@@ -72,12 +79,12 @@ func deployMetricsApplication() {
 
 	t.Logs.Info("Create component resource")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/deploymetrics/deploymetrics-comp.yaml")
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(deploymetricsCompYaml, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create application resource")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/deploymetrics/deploymetrics-app.yaml")
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(deploymetricsAppYaml, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create DeployMetrics application resource")
 
 	Eventually(func() bool {
@@ -101,12 +108,12 @@ func undeployMetricsApplication() {
 	t.Logs.Info("Delete application")
 	start := time.Now()
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/deploymetrics/deploymetrics-app.yaml")
+		return pkg.DeleteResourceFromFileInGeneratedNamespace(deploymetricsCompYaml, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Delete components")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/deploymetrics/deploymetrics-comp.yaml")
+		return pkg.DeleteResourceFromFileInGeneratedNamespace(deploymetricsAppYaml, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Wait for pods to terminate")
