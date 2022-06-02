@@ -9,10 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	vmoconst "github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
-	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -205,8 +203,8 @@ func TestAppendIstioOverrides(t *testing.T) {
 			name: "test expect overrides",
 			expectOverrides: []bom.KeyValue{
 				{
-					Key:   fmt.Sprintf(`%s.traffic\.sidecar\.istio\.io/includeOutboundIPRanges`, annotationKey),
-					Value: "0.0.0.0/32",
+					Key:   fmt.Sprintf(`%s.traffic\.sidecar\.istio\.io/excludeOutboundIPRanges`, annotationKey),
+					Value: "0.0.0.0/0",
 				},
 				{
 					Key:   fmt.Sprintf(`%s.proxy\.istio\.io/config`, annotationKey),
@@ -235,18 +233,9 @@ func TestAppendIstioOverrides(t *testing.T) {
 			},
 		},
 	}
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).DoAndReturn(
-		func(ctx context.Context, name types.NamespacedName, service *v1.Service) error {
-			service.Spec.ClusterIP = "0.0.0.0"
-			return nil
-		})
-	vz := vzapi.Verrazzano{}
-	ctx := spi.NewFakeContext(mock, &vz, false)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			kvs, err := appendIstioOverrides(ctx, annotationKey, volumeMountKey, volumeKey, []bom.KeyValue{})
+			kvs, err := appendIstioOverrides(annotationKey, volumeMountKey, volumeKey, []bom.KeyValue{})
 
 			assert.Equal(t, len(tt.expectOverrides), len(kvs))
 
