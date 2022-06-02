@@ -6,13 +6,37 @@ include global-env.mk
 export DUMP_ROOT_DIRECTORY ?= ${WORKSPACE}/cluster-dumps
 export GINGKO_ARGS ?= -v --keep-going --no-color
 
-console-test: export DUMP_DIRECTORY ?= ${DUMP_ROOT_DIRECTORY}/console
-PHONY: console-test
-console-test:
-	${CI_SCRIPTS_DIR}/run_console_tests.sh
-
 run-test: export RANDOMIZE_TESTS ?= true
 run-test: export RUN_PARALLEL ?= false
 .PHONY: run-test
 run-test:
 	${CI_SCRIPTS_DIR}/run-ginkgo.sh
+
+.PHONY: verify-install
+verify-install:
+	TEST_SUITES=verify-install/... make test
+
+.PHONY: verify-scripts
+verify-scripts:
+	TEST_SUITES=scripts/... make test
+
+.PHONY: verify-infra
+verify-infra:
+	TEST_SUITES=verify-infra/... make test
+
+.PHONY: verify-infra
+verify-infra:
+	TEST_SUITES=verify-infra/... make test
+
+.PHONY: verify-security-rbac
+verify-security-rbac:
+	TEST_SUITES=security/rbac/... RUN_PARALLEL=false make test
+
+.PHONY: verify-system-metrics
+verify-system-metrics:
+	TEST_SUITES=metrics/syscomponents/... RUN_PARALLEL=false make test
+
+verify-console: export DUMP_DIRECTORY ?= ${DUMP_ROOT_DIRECTORY}/console
+PHONY: verify-console
+verify-console:
+	${CI_SCRIPTS_DIR}/run_console_tests.sh

@@ -31,8 +31,8 @@ pipeline {
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
                         trim: true)
-        string (name: 'VERRAZZANO_OPERATOR_IMAGE',
-                        defaultValue: 'NONE',
+        string (name: 'VERRAZZANO_OPERATOR_IMAGE', // FIXME: default this back to NONE before merging
+                        defaultValue: 'ghcr.io/verrazzano/verrazzano-platform-operator-jenkins:1.4.0-20220531145624-8b776357',
                         description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the operator.yaml from Verrazzano repo will be used to create Verrazzano platform operator',
                         trim: true)
         choice (name: 'WILDCARD_DNS_DOMAIN',
@@ -373,7 +373,7 @@ def getVerifyInstallTestTargets() {
         //"security role based access": { runTest("security/rbac", "false" ) },
         "system component metrics": { runTest("metrics/syscomponents", "false") },
         //"console": {
-        //    runMakeCommand("console-test")
+        //    runMakeCommand("verify-console")
         //    },
         ]
 }
