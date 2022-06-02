@@ -78,9 +78,7 @@ create_kind_cluster() {
       SOURCE_KIND_CONFIG_FILE=${TEST_SCRIPTS_DIR}/kind-config-ci${CALICO_SUFFIX}.yaml
     fi
   fi
-  if [ ! -e ${KIND_CONFIG_FILE} ]; then
-    cp -v ${SOURCE_KIND_CONFIG_FILE} ${KIND_CONFIG_FILE}
-  fi
+  cp -v ${SOURCE_KIND_CONFIG_FILE} ${KIND_CONFIG_FILE}
 
   # List the permissions of /dev/null.  We have seen a failure where `docker ps` gets an operation not permitted error.
   # Listing the permissions will help to analyze what is wrong, if we see the failure again.

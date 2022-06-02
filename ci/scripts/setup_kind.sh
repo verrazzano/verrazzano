@@ -66,7 +66,7 @@ TEST_OVERRIDE_CONFIGMAP_FILE="${TEST_SCRIPTS_DIR}/pre-install-overrides/test-ove
 TEST_OVERRIDE_SECRET_FILE="${TEST_SCRIPTS_DIR}/pre-install-overrides/test-overrides-secret.yaml"
 
 KIND_CACHING=${KIND_CACHING:="false"}
-KIND_NODE_COUNT=${KIND_NODE_COUNT:=1}
+KIND_NODE_COUNT=${KIND_NODE_COUNT:-1}
 
 mkdir -p $WORKSPACE || true
 
