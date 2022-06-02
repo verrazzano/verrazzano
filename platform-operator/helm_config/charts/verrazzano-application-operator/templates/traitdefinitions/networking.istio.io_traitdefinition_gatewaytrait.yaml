@@ -4,7 +4,7 @@
 apiVersion: core.oam.dev/v1alpha2
 kind: TraitDefinition
 metadata:
-  name: istiogateways.oam.verrazzano.io
+  name: gateways.networking.istio.io
 spec:
   appliesToWorkloads:
     - core.oam.dev/v1alpha2.ContainerizedWorkload

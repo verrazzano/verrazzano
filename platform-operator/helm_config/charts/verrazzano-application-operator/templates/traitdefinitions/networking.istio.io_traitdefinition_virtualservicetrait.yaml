@@ -4,7 +4,7 @@
 apiVersion: core.oam.dev/v1alpha2
 kind: TraitDefinition
 metadata:
-  name: istioaps.oam.verrazzano.io
+  name: virtualservices.networking.istio.io
 spec:
   appliesToWorkloads:
     - core.oam.dev/v1alpha2.ContainerizedWorkload
@@ -15,5 +15,5 @@ spec:
     - apps/v1.StatefulSet
     - apps/v1.DaemonSet
   definitionRef:
-    name: security.istio.io/v1beta1.AuthorizationPolicy
+    name: networking.istio.io/v1beta1.VirtualService
   workloadRefPath: spec.workloadRef
