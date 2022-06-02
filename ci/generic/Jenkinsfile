@@ -343,21 +343,21 @@ pipeline {
 def getDeploymentTestTargets() {
     targets = [
         "opensearch-topology": { runTest("opensearch/topology") },
-        "istio authorization policy": { runTest("istio/authz", "false") },
+        "istio authorization policy": { runTest("istio/authz", "false", "false") },
         "k8s deployment workload metrics": { runTest("metrics/deploymetrics") },
-        "system logging": { runTest("logging/system", "false") },
-        "opensearch logging": { runTest("logging/opensearch", "false") },
-        "examples logging helidon": { runTest("logging/helidon", "false") },
-        "examples helidon-metrics": { runTest("examples/helidonmetrics", "false") },
+        "system logging": { runTest("logging/system", "false", "false") },
+        "opensearch logging": { runTest("logging/opensearch", "false", "false") },
+        "examples logging helidon": { runTest("logging/helidon", "false", "false") },
+        "examples helidon-metrics": { runTest("examples/helidonmetrics", "false", "false") },
         "examples helidon": { runTest("examples/helidon") },
-        "workloads": { runTest("workloads", "false") },
-        "console ingress": { runTest("ingress/console", "false") },
-        "logging trait WebLogic workload": { runTest("loggingtrait", "false") },
-        "poko metricsbinding": { runTest("metricsbinding", "false") },
+        "workloads": { runTest("workloads", "false", "false") },
+        "console ingress": { runTest("ingress/console", "false", "false") },
+        "logging trait WebLogic workload": { runTest("loggingtrait", "false", "false") },
+        "poko metricsbinding": { runTest("metricsbinding", "false", "false") },
         ]
     if (params.CREATE_CLUSTER_USE_CALICO == true) {
         targets = targets + [
-            "security network policies": { runTest("security/netpol", "false") },
+            "security network policies": { runTest("security/netpol", "false", "false") },
          ]
     }
     return targets
@@ -370,8 +370,8 @@ def getVerifyInstallTestTargets() {
         "verify-infra restapi": { runtest("verify-infra/restapi") },
         "verify-infra oam": { runtest("verify-infra/oam") },
         "verify-infra vmi": { runtest("verify-infra/vmi") },
-        //"security role based access": { runTest("security/rbac", "false" ) },
-        "system component metrics": { runTest("metrics/syscomponents", "false") },
+        "security role based access": { runTest("security/rbac", "false", "false" ) },
+        "system component metrics": { runTest("metrics/syscomponents", "false", "false") },
         //"console": {
         //    runMakeCommand("verify-console")
         //    },

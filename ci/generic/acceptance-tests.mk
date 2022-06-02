@@ -17,6 +17,9 @@ run-test: export RUN_PARALLEL := false
 .PHONY: run-sequential
 run-sequential: run-test
 
+.PHONY: verify-all
+verify-all: verify-install verify-scripts verify-infra verify-security-rbac verify-system-metrics verify-console
+
 .PHONY: verify-install
 verify-install:
 	TEST_SUITES=verify-install/... make test
