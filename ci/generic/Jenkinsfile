@@ -370,7 +370,7 @@ def getVerifyInstallTestTargets() {
         "verify-infra restapi": { runtest("verify-infra/restapi") },
         "verify-infra oam": { runtest("verify-infra/oam") },
         "verify-infra vmi": { runtest("verify-infra/vmi") },
-        "security role based access": { runTest("security/rbac", "false" ) },
+        //"security role based access": { runTest("security/rbac", "false" ) },
         "system component metrics": { runTest("metrics/syscomponents", "false") },
         "console": {
             runMakeCommand("console-test")
