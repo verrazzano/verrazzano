@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"regexp"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -45,7 +46,7 @@ vz install --version v1.3.0 --set profile=dev --set components.elasticsearch.ena
 vz install -f base.yaml -f custom.yaml --set profile=prod --log-format json`
 
 	verrazzanoPlatformOperator     = "verrazzano-platform-operator"
-	verrazzanoPlatformOperatorWait = 5
+	verrazzanoPlatformOperatorWait = 1
 )
 
 var logsEnum = cmdhelpers.LogsFormatSimple
@@ -130,7 +131,11 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	sc := bufio.NewScanner(rc)
 	sc.Split(bufio.ScanLines)
 	for sc.Scan() {
-		fmt.Fprintln(vzHelper.GetOutputStream(), sc.Text())
+		re := regexp.MustCompile(`"level":"(.*?)","@timestamp":"(.*?)","caller":"(.*?)","message":"(.*?)"`)
+		res := re.FindAllStringSubmatch(sc.Text(), -1)
+		if res != nil {
+			fmt.Fprintln(vzHelper.GetOutputStream(), fmt.Sprintf("%s %s %s", res[0][2], res[0][1], res[0][4]))
+		}
 	}
 
 	return nil
