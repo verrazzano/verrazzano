@@ -5,7 +5,6 @@ package operator
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -42,7 +41,7 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0].name",
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-operator-values.yaml"),
-			Dependencies:            []string{keycloak.ComponentName},
+			Dependencies:            []string{},
 			AppendOverridesFunc:     AppendOverrides,
 			GetInstallOverridesFunc: GetOverrides,
 		},
