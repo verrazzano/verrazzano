@@ -239,9 +239,9 @@ pipeline {
                         }
                     }
                     post {
-                        failure {
-                            sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
-                        }
+                        //failure {
+                        //    sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
+                        //}
                         always {
                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
@@ -372,15 +372,15 @@ def getVerifyInstallTestTargets() {
         "verify-infra vmi": { runtest("verify-infra/vmi") },
         //"security role based access": { runTest("security/rbac", "false" ) },
         "system component metrics": { runTest("metrics/syscomponents", "false") },
-        "console": {
-            runMakeCommand("console-test")
-            },
+        //"console": {
+        //    runMakeCommand("console-test")
+        //    },
         ]
 }
 
 def runTest(testSuitePath, runParallel = "true", randomize = "true") {
     return script {
-        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        //catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
             sh """
                export TEST_SUITES="${testSuitePath}/..."
                export RANDOMIZE_TESTS=${randomize}
@@ -388,17 +388,17 @@ def runTest(testSuitePath, runParallel = "true", randomize = "true") {
                cd ${GO_REPO_PATH}/verrazzano/ci/generic
                make test
             """
-        }
+        //}
     }
 }
 
 def runMakeCommand(makeTarget) {
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+    //catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
            cd ${GO_REPO_PATH}/verrazzano/ci/generic
            make ${makeTarget}
         """
-    }
+    //}
 }
 
 def runGinkgoRandomize(testSuitePath, kubeConfig = '') {

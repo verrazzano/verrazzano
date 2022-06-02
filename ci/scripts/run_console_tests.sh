@@ -36,10 +36,20 @@ cd console
 git checkout ${console_sha}
 
 # Run the basic UI tests, and if they fail make sure to exit with a fail status
-make run-ui-tests || exit 1
+make run-ui-tests
+rc=$?
+if [ "${rc}" != "0" ]; then
+  sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
+  exit ${rc}
+fi
 
 # Run the application page UI tests if specified
 if [ "true" == "${RUN_APP_TESTS}" ]; then
   echo "Running Application Page UI tests"
   make run-app-page-test
+  rc=$?
+  if [ "${rc}" != "0" ]; then
+    sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
+    exit ${rc}
+  fi
 fi
