@@ -28,7 +28,6 @@ INTEG_RUN_ID=
 ENV_NAME=verrazzano-cli
 GO = GO111MODULE=on GOPRIVATE=github.com/verrazzano/* go
 GO_LDFLAGS ?= -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
-GO_LDFLAGS_LINUX ?= -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
 
 #
 # CLI
@@ -46,7 +45,7 @@ go-build:
 		-o out/darwin_amd64/verrazzano-cli \
 		${GOPATH}/src/github.com/verrazzano/verrazzano/tools/vz/main.go
 	GOOS=linux GOARCH=amd64 $(GO) build \
-		-ldflags "${GO_LDFLAGS_LINUX} -X main.cliVersion=${CLI_VERSION}" \
+		-ldflags "${GO_LDFLAGS} -X main.cliVersion=${CLI_VERSION}" \
 		-o out/linux_amd64/verrazzano-cli \
 		${GOPATH}/src/github.com/verrazzano/verrazzano/tools/vz/main.go
 
