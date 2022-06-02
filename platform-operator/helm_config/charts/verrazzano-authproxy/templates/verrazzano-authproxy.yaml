@@ -107,6 +107,14 @@ spec:
           value: "20210501"
         ports:
             - containerPort: {{ .Values.port }}
+        livenessProbe:
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+          timeoutSeconds: 1
+          tcpSocket:
+            port: {{ .Values.port }}
         volumeMounts:
         - mountPath: /api-config
           name: api-config
