@@ -367,9 +367,7 @@ def getVerifyInstallTestTargets() {
     return [
         //"verify-install": { runMakeCommand("verify-install") },
         "verify-scripts": { runMakeCommand("verify-scripts") },
-        "verify-infra restapi": { runMakeCommand("verify-infra") },
-        //"verify-infra oam": { runtest("verify-infra/oam") },
-        //"verify-infra vmi": { runtest("verify-infra/vmi") },
+        "verify-infra": { runMakeCommand("verify-infra") },
         "security role based access": { runMakeCommand("verify-security-rbac") },
         "system component metrics": { runMakeCommand("verify-system-metrics") },
         "console": { runMakeCommand("verify-console") },
