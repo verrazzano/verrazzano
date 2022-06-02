@@ -158,7 +158,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger
 	switch vz.Status.State {
 	case installv1alpha1.VzStateFailed:
 		return r.ProcFailedState(vzctx)
-	case installv1alpha1.VzStateInstalling:
+	case installv1alpha1.VzStateReconciling:
 		return r.ProcInstallingState(vzctx)
 	case installv1alpha1.VzStateReady:
 		return r.ProcReadyState(vzctx)
@@ -760,7 +760,7 @@ func checkCondtitionType(currentCondition installv1alpha1.ConditionType) install
 func conditionToVzState(currentCondition installv1alpha1.ConditionType) installv1alpha1.VzStateType {
 	switch currentCondition {
 	case installv1alpha1.CondInstallStarted:
-		return installv1alpha1.VzStateInstalling
+		return installv1alpha1.VzStateReconciling
 	case installv1alpha1.CondUninstallStarted:
 		return installv1alpha1.VzStateUninstalling
 	case installv1alpha1.CondUpgradeStarted:

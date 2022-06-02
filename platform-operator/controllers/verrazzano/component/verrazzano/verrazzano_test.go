@@ -240,7 +240,6 @@ func Test_appendVerrazzanoValues(t *testing.T) {
 					Profile:         "dev",
 					EnvironmentName: "myenv",
 					Components: vzapi.ComponentSpec{
-						Console:                &vzapi.ConsoleComponent{Enabled: &falseValue},
 						Prometheus:             &vzapi.PrometheusComponent{Enabled: &falseValue},
 						Kibana:                 &vzapi.KibanaComponent{Enabled: &falseValue},
 						Elasticsearch:          &vzapi.ElasticsearchComponent{Enabled: &falseValue},
@@ -531,7 +530,6 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 					Profile:         "dev",
 					EnvironmentName: "myenv",
 					Components: vzapi.ComponentSpec{
-						Console:                &vzapi.ConsoleComponent{Enabled: &falseValue},
 						Prometheus:             &vzapi.PrometheusComponent{Enabled: &falseValue},
 						Kibana:                 &vzapi.KibanaComponent{Enabled: &falseValue},
 						Elasticsearch:          &vzapi.ElasticsearchComponent{Enabled: &falseValue},
@@ -975,18 +973,6 @@ func TestIsReadySecretNotReady(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      verrazzanoConsoleDeployment,
-				Labels:    map[string]string{"app": verrazzanoConsoleDeployment},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
 				Name:      prometheusDeployment,
 				Labels:    map[string]string{"app": "system-prometheus"},
 			},
@@ -1040,18 +1026,6 @@ func TestIsReady(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      verrazzanoConsoleDeployment,
-				Labels:    map[string]string{"app": verrazzanoConsoleDeployment},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
 				Name:      prometheusDeployment,
 				Labels:    map[string]string{"app": "system-prometheus"},
 			},
@@ -1091,63 +1065,6 @@ func TestIsReady(t *testing.T) {
 	assert.True(t, isVerrazzanoReady(ctx))
 }
 
-// TestIsReadyDeploymentNotAvailable tests the Verrazzano isVerrazzanoReady call
-// GIVEN a Verrazzano component
-//  WHEN I call isVerrazzanoReady when the Verrazzano console deployment is not available
-//  THEN false is returned
-func TestIsReadyDeploymentNotAvailable(t *testing.T) {
-	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      verrazzanoConsoleDeployment,
-				Labels:    map[string]string{"app": verrazzanoConsoleDeployment},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   0,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      prometheusDeployment,
-				Labels:    map[string]string{"app": "system-prometheus"},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.DaemonSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: globalconst.VerrazzanoSystemNamespace,
-				Name:      fluentDaemonset,
-			},
-			Status: appsv1.DaemonSetStatus{
-				UpdatedNumberScheduled: 1,
-				NumberAvailable:        1,
-			},
-		},
-		&appsv1.DaemonSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: globalconst.VerrazzanoMonitoringNamespace,
-				Name:      nodeExporterDaemonset,
-			},
-			Status: appsv1.DaemonSetStatus{
-				UpdatedNumberScheduled: 1,
-				NumberAvailable:        1,
-			},
-		},
-		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
-			Namespace: ComponentNamespace}},
-	).Build()
-	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, isVerrazzanoReady(ctx))
-}
-
 // TestIsReadyDeploymentVMIDisabled tests the Verrazzano isVerrazzanoReady call
 // GIVEN a Verrazzano component with all VMI components disabled
 //  WHEN I call isVerrazzanoReady
@@ -1163,7 +1080,6 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	falseValue := false
 	vz.Spec.Components = vzapi.ComponentSpec{
-		Console:       &vzapi.ConsoleComponent{Enabled: &falseValue},
 		Fluentd:       &vzapi.FluentdComponent{Enabled: &falseValue},
 		Kibana:        &vzapi.KibanaComponent{Enabled: &falseValue},
 		Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &falseValue},

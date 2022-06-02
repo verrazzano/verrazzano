@@ -242,7 +242,7 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 
 	// Make sure istioctl successfully completed.  We have seen cases during install where the Istio
 	// deployments are ready but istioctl fails.
-	if context.ActualCR().Status.State == vzapi.VzStateInstalling && !i.monitor.isIstioctlSuccess() {
+	if context.ActualCR().Status.State == vzapi.VzStateReconciling && !i.monitor.isIstioctlSuccess() {
 		context.Log().Infof("%s is waiting for istioctl install to successfully complete", prefix)
 		return false
 	}

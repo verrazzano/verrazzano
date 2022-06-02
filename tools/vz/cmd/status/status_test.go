@@ -5,25 +5,25 @@ package status
 
 import (
 	"bytes"
-	"fmt"
 	"os"
-	"strings"
 	"testing"
-
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	corev1 "k8s.io/api/core/v1"
-
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/templates"
 
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/templates"
 	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+// TestStatusCmd tests the status command
+// GIVEN an environment with a single VZ resource
+//  WHEN I run the command vz status
+//  THEN expect a successful status report
 func TestStatusCmd(t *testing.T) {
 	name := "verrazzano"
 	namespace := "test"
@@ -58,25 +58,26 @@ func TestStatusCmd(t *testing.T) {
 				KialiURL:      &kialiURL,
 			},
 			Conditions: nil,
-			State:      vzapi.VzStateInstalling,
+			State:      vzapi.VzStateReconciling,
 			Components: makeVerrazzanoComponentStatusMap(),
 		},
 	}
 
 	// Template map for status command output
 	templateMap := map[string]string{
-		"verrazzano_name":    name,
-		"verrazzano_version": version,
-		"verrazzano_state":   string(vzapi.VzStateInstalling),
-		"console_url":        consoleURL,
-		"keycloak_url":       keycloakURL,
-		"rancher_url":        rancherURL,
-		"os_url":             osURL,
-		"kibana_url":         kibanaURL,
-		"grafana_url":        grafanaURL,
-		"prometheus_url":     prometheusURL,
-		"kiali_url":          kialiURL,
-		"install_profile":    string(vzapi.Dev),
+		"verrazzano_name":      name,
+		"verrazzano_namespace": namespace,
+		"verrazzano_version":   version,
+		"verrazzano_state":     string(vzapi.VzStateReconciling),
+		"console_url":          consoleURL,
+		"keycloak_url":         keycloakURL,
+		"rancher_url":          rancherURL,
+		"os_url":               osURL,
+		"kibana_url":           kibanaURL,
+		"grafana_url":          grafanaURL,
+		"prometheus_url":       prometheusURL,
+		"kiali_url":            kialiURL,
+		"install_profile":      string(vzapi.Dev),
 	}
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
@@ -91,29 +92,74 @@ func TestStatusCmd(t *testing.T) {
 	assert.NotNil(t, statusCmd)
 
 	// Run the status command, check for the expected status results to be displayed
-	statusCmd.SetArgs([]string{fmt.Sprintf("--%s", nameFlag), name, fmt.Sprintf("--%s", namespaceFlag), namespace})
 	err := statusCmd.Execute()
 	assert.NoError(t, err)
 	result := buf.String()
 	expectedResult, err := templates.ApplyTemplate(statusOutputTemplate, templateMap)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedResult, result)
+}
 
-	// Run the status command with the incorrect namespace, expect that the Verrazzano resource is not found
-	errBuf.Reset()
-	buf.Reset()
-	statusCmd.SetArgs([]string{fmt.Sprintf("--%s", nameFlag), name, fmt.Sprintf("--%s", namespaceFlag), "default"})
-	err = statusCmd.Execute()
-	assert.Error(t, err)
-	assert.True(t, strings.Contains(errBuf.String(), "Failed to find Verrazzano with name \"verrazzano\" in namespace \"default\""))
+// TestVZNotFound tests the status command
+// GIVEN an environment with a no VZ resources exist
+//  WHEN I run the command vz status
+//  THEN expect an error of no VZ resources found
+func TestVZNotFound(t *testing.T) {
 
-	// Run the status command with the incorrect name, expect that the Verrazzano resource is not found
-	errBuf.Reset()
-	buf.Reset()
-	statusCmd.SetArgs([]string{fmt.Sprintf("--%s", nameFlag), "bad", fmt.Sprintf("--%s", namespaceFlag), namespace})
-	err = statusCmd.Execute()
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
+
+	// Send the command output to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	statusCmd := NewCmdStatus(rc)
+	assert.NotNil(t, statusCmd)
+
+	// Run the status command, check for the expected status results to be displayed
+	err := statusCmd.Execute()
 	assert.Error(t, err)
-	assert.True(t, strings.Contains(errBuf.String(), "Failed to find Verrazzano with name \"bad\" in namespace \"test\""))
+	assert.Equal(t, "Failed to find any Verrazzano resources", err.Error())
+}
+
+// TestStatusMultipleVZ tests the status command
+// GIVEN an environment with a two VZ resources
+//  WHEN I run the command vz status
+//  THEN expect an error of only expecting one VZ
+func TestStatusMultipleVZ(t *testing.T) {
+	name := "verrazzano"
+	namespace1 := "test1"
+	namespace2 := "test2"
+
+	vz1 := vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace1,
+			Name:      name,
+		},
+	}
+	vz2 := vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace2,
+			Name:      name,
+		},
+	}
+
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&vz1, &vz2).Build()
+
+	// Send the command output to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	statusCmd := NewCmdStatus(rc)
+	assert.NotNil(t, statusCmd)
+
+	// Run the status command, check for the expected status results to be displayed
+	err := statusCmd.Execute()
+	assert.Error(t, err)
+	assert.Equal(t, "Expected to only find one Verrazzano resource, but found 2", err.Error())
 }
 
 func makeVerrazzanoComponentStatusMap() vzapi.ComponentStatusMap {

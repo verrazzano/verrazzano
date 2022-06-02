@@ -25,13 +25,22 @@ import (
 )
 
 const (
-	nginxLabelKey          = "app.kubernetes.io/component"
-	nginxLabelValue        = "controller"
-	istioAppLabelKey       = "app"
-	istioIngressLabelValue = "istio-ingressgateway"
-	istioEgressLabelValue  = "istio-egressgateway"
-	waitTimeout            = 5 * time.Minute
-	pollingInterval        = 5 * time.Second
+	nginxLabelKey            = "app.kubernetes.io/component"
+	nginxLabelValue          = "controller"
+	istioAppLabelKey         = "app"
+	istioIngressLabelValue   = "istio-ingressgateway"
+	istioEgressLabelValue    = "istio-egressgateway"
+	waitTimeout              = 5 * time.Minute
+	pollingInterval          = 5 * time.Second
+	ociLBShapeAnnotation     = "service.beta.kubernetes.io/oci-load-balancer-shape"
+	nginxLBShapeArg          = "controller.service.annotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\""
+	istioLBShapeArg          = "gateways.istio-ingressgateway.serviceAnnotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\""
+	nginxArgPrefixForAnno    = "controller.service.annotations."
+	istioArgPrefixForAnno    = "gateways.istio-ingressgateway.serviceAnnotations."
+	nginxTestAnnotationName  = "name-n"
+	nginxTestAnnotationValue = "value-n"
+	istioTestAnnotationName  = "name-i"
+	istioTestAnnotationValue = "value-i"
 )
 
 var testNginxIngressPorts = []corev1.ServicePort{
@@ -73,6 +82,11 @@ type NginxIstioNodePortModifier struct {
 }
 
 type NginxIstioServicePortsModifier struct {
+}
+
+type NginxIstioIngressServiceAnnotationModifier struct {
+	nginxLBShape string
+	istioLBShape string
 }
 
 func (m NginxAutoscalingIstioRelicasAffintyModifier) ModifyCR(cr *vzapi.Verrazzano) {
@@ -196,6 +210,28 @@ func (u NginxIstioServicePortsModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Istio.Ingress.Ports = testIstioIngressPorts
 }
 
+func (u NginxIstioIngressServiceAnnotationModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	if cr.Spec.Components.Ingress == nil {
+		cr.Spec.Components.Ingress = &vzapi.IngressNginxComponent{}
+	}
+	cr.Spec.Components.Ingress.Type = vzapi.LoadBalancer
+	nginxInstallArgs := cr.Spec.Components.Ingress.NGINXInstallArgs
+	nginxInstallArgs = append(nginxInstallArgs, vzapi.InstallArgs{Name: nginxLBShapeArg, Value: u.nginxLBShape})
+	nginxInstallArgs = append(nginxInstallArgs, vzapi.InstallArgs{Name: nginxArgPrefixForAnno + nginxTestAnnotationName, Value: nginxTestAnnotationValue})
+	cr.Spec.Components.Ingress.NGINXInstallArgs = nginxInstallArgs
+	if cr.Spec.Components.Istio == nil {
+		cr.Spec.Components.Istio = &vzapi.IstioComponent{}
+	}
+	if cr.Spec.Components.Istio.Ingress == nil {
+		cr.Spec.Components.Istio.Ingress = &vzapi.IstioIngressSection{}
+	}
+	cr.Spec.Components.Istio.Ingress.Type = vzapi.LoadBalancer
+	istioInstallArgs := cr.Spec.Components.Istio.IstioInstallArgs
+	istioInstallArgs = append(istioInstallArgs, vzapi.InstallArgs{Name: istioLBShapeArg, Value: u.istioLBShape})
+	istioInstallArgs = append(istioInstallArgs, vzapi.InstallArgs{Name: istioArgPrefixForAnno + istioTestAnnotationName, Value: istioTestAnnotationValue})
+	cr.Spec.Components.Istio.IstioInstallArgs = istioInstallArgs
+}
+
 var t = framework.NewTestFramework("update nginx-istio")
 
 var nodeCount uint32
@@ -208,7 +244,7 @@ var _ = t.BeforeSuite(func() {
 	}
 })
 
-var _ = t.Describe("Update nginx-istio", Label("f:platform-lcm.update"), func() {
+var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-nginx-istio verify", Label("f:platform-lcm.nginx-istio-verify"), func() {
 		t.It("nginx-istio default replicas", func() {
 			cr := update.GetCR()
@@ -220,6 +256,18 @@ var _ = t.Describe("Update nginx-istio", Label("f:platform-lcm.update"), func() 
 			update.ValidatePods(nginxLabelValue, nginxLabelKey, constants.IngressNamespace, uint32(1), false)
 			update.ValidatePods(istioIngressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, expectedIstioRunning, false)
 			update.ValidatePods(istioEgressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, expectedIstioRunning, false)
+		})
+	})
+
+	t.Describe("verrazzano-nginx-istio update ingress service annotations", Label("f:platform-lcm.nginx-istio-update-annotations"), func() {
+		t.It("nginx-istio update ingress service annotations", func() {
+			m := NginxIstioIngressServiceAnnotationModifier{nginxLBShape: "flexible", istioLBShape: "10Mbps"}
+			err := update.UpdateCR(m)
+			if err != nil {
+				Fail(err.Error())
+			}
+
+			validateIngressServiceAnnotations(m)
 		})
 	})
 
@@ -343,6 +391,33 @@ func applyResource(resourceFile string, templateData *externalLBsTemplateData) {
 	if err != nil {
 		Fail(err.Error())
 	}
+}
+
+func validateIngressServiceAnnotations(m NginxIstioIngressServiceAnnotationModifier) {
+	gomega.Eventually(func() error {
+		var err error
+		nginxIngress, err := pkg.GetService(constants.IngressNamespace, "ingress-controller-ingress-nginx-controller")
+		if err != nil {
+			return err
+		}
+		if nginxIngress.Annotations[nginxTestAnnotationName] != nginxTestAnnotationValue {
+			return fmt.Errorf("expect nginx ingress annotation %v with %v, but got %v", nginxTestAnnotationName, nginxTestAnnotationValue, nginxIngress.Annotations[nginxTestAnnotationName])
+		}
+		if nginxIngress.Annotations[ociLBShapeAnnotation] != m.nginxLBShape {
+			return fmt.Errorf("expect nginx ingress annotation %v with value %v, but got %v", ociLBShapeAnnotation, m.nginxLBShape, nginxIngress.Annotations[ociLBShapeAnnotation])
+		}
+		istioIngress, err := pkg.GetService(constants.IstioSystemNamespace, "istio-ingressgateway")
+		if err != nil {
+			return err
+		}
+		if istioIngress.Annotations[istioTestAnnotationName] != istioTestAnnotationValue {
+			return fmt.Errorf("expect istio ingress annotation %v with %v, but got %v", istioTestAnnotationName, istioTestAnnotationValue, istioIngress.Annotations[istioTestAnnotationName])
+		}
+		if istioIngress.Annotations[ociLBShapeAnnotation] != m.istioLBShape {
+			return fmt.Errorf("expect istio ingress annotation %v with value %v, but got %v", ociLBShapeAnnotation, m.istioLBShape, istioIngress.Annotations[ociLBShapeAnnotation])
+		}
+		return nil
+	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "expect to get correct ports setting from nginx and istio services")
 }
 
 func validateServicePorts() {

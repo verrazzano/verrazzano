@@ -11,9 +11,17 @@ import (
 	"github.com/onsi/gomega"
 )
 
+var skipDeploy bool
+var skipUndeploy bool
+var namespace string
+var skipVerify bool
 var istioInjection string
 
 func init() {
+	flag.BoolVar(&skipDeploy, "skipDeploy", false, "skipDeploy skips the call to install the application")
+	flag.BoolVar(&skipUndeploy, "skipUndeploy", false, "skipUndeploy skips the call to install the application")
+	flag.StringVar(&namespace, "namespace", generatedNamespace, "namespace is the app namespace")
+	flag.BoolVar(&skipVerify, "skipVerify", false, "skipVerify skips the post deployment app validations")
 	flag.StringVar(&istioInjection, "istioInjection", "enabled", "istioInjection enables the injection of istio side cars")
 }
 

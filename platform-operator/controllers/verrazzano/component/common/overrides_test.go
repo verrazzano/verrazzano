@@ -5,6 +5,7 @@ package common
 
 import (
 	"context"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -28,6 +29,9 @@ func TestGetInstallOverridesYAML(t *testing.T) {
 	wrongKey := "wrongKey"
 	testName := "testName"
 	dataVal := "dataVal"
+	goodJSON := "{\"foo\": {\"foo\": \"bar\"}}"
+	goodYAML := "foo:\n  foo: bar\n"
+	badJSON := "{\"foo\": {\"foo\": \"bar\"}"
 
 	tests := []struct {
 		name          string
@@ -35,6 +39,7 @@ func TestGetInstallOverridesYAML(t *testing.T) {
 		expectError   bool
 		expectCMGet   bool
 		expectSecGet  bool
+		expectValGet  bool
 		expectCMData  map[string]string
 		expectSecData map[string][]byte
 	}{
@@ -155,6 +160,30 @@ func TestGetInstallOverridesYAML(t *testing.T) {
 				dataKey: []byte(dataVal),
 			},
 		},
+		{
+			name: "test overrideValue valid YAML",
+			overrides: []v1alpha1.Overrides{
+				{
+					Values: &apiextensionsv1.JSON{
+						Raw: []byte(goodJSON),
+					},
+				},
+			},
+			expectError:  false,
+			expectValGet: true,
+		},
+		{
+			name: "test overrideValue valid YAML",
+			overrides: []v1alpha1.Overrides{
+				{
+					Values: &apiextensionsv1.JSON{
+						Raw: []byte(badJSON),
+					},
+				},
+			},
+			expectError:  true,
+			expectValGet: true,
+		},
 	}
 
 	a := assert.New(t)
@@ -190,6 +219,9 @@ func TestGetInstallOverridesYAML(t *testing.T) {
 					}
 					if tt.expectSecGet {
 						a.Equal(tt.expectSecData[dataKey], []byte(d))
+					}
+					if tt.expectValGet {
+						a.Equal(goodYAML, d)
 					}
 				}
 				a.NoError(err)
