@@ -30,6 +30,8 @@ const (
 	istioAppLabelKey         = "app"
 	istioIngressLabelValue   = "istio-ingressgateway"
 	istioEgressLabelValue    = "istio-egressgateway"
+	nginxIngressServiceName  = "ingress-controller-ingress-nginx-controller"
+	istioIngressServiceName  = "istio-ingressgateway"
 	waitTimeout              = 5 * time.Minute
 	pollingInterval          = 5 * time.Second
 	ociLBShapeAnnotation     = "service.beta.kubernetes.io/oci-load-balancer-shape"
@@ -79,6 +81,9 @@ type NginxAutoscalingIstioRelicasAffintyModifier struct {
 type NginxIstioNodePortModifier struct {
 	systemExternalLBIP      string
 	applicationExternalLBIP string
+}
+
+type NginxIstioLoadBalancerModifier struct {
 }
 
 type NginxIstioServicePortsModifier struct {
@@ -196,6 +201,20 @@ func (u NginxIstioNodePortModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Istio.IstioInstallArgs = istioInstallArgs
 }
 
+func (u NginxIstioLoadBalancerModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	if cr.Spec.Components.Ingress == nil {
+		cr.Spec.Components.Ingress = &vzapi.IngressNginxComponent{}
+	}
+	cr.Spec.Components.Ingress.Type = vzapi.LoadBalancer
+	if cr.Spec.Components.Istio == nil {
+		cr.Spec.Components.Istio = &vzapi.IstioComponent{}
+	}
+	if cr.Spec.Components.Istio.Ingress == nil {
+		cr.Spec.Components.Istio.Ingress = &vzapi.IstioIngressSection{}
+	}
+	cr.Spec.Components.Istio.Ingress.Type = vzapi.LoadBalancer
+}
+
 func (u NginxIstioServicePortsModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.Ingress == nil {
 		cr.Spec.Components.Ingress = &vzapi.IngressNginxComponent{}
@@ -267,7 +286,7 @@ var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.
 				Fail(err.Error())
 			}
 
-			validateIngressServiceAnnotations(m)
+			validateServiceAnnotations(m)
 		})
 	})
 
@@ -317,7 +336,7 @@ var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.
 			}
 
 			t.Logs.Info("Validate nginx/istio ingresses for NodePort and externalIPs")
-			validateServiceTypeAndExternalIP(sysIP, appIP)
+			validateServiceNodePortAndExternalIP(sysIP, appIP)
 		})
 	})
 })
@@ -393,10 +412,10 @@ func applyResource(resourceFile string, templateData *externalLBsTemplateData) {
 	}
 }
 
-func validateIngressServiceAnnotations(m NginxIstioIngressServiceAnnotationModifier) {
+func validateServiceAnnotations(m NginxIstioIngressServiceAnnotationModifier) {
 	gomega.Eventually(func() error {
 		var err error
-		nginxIngress, err := pkg.GetService(constants.IngressNamespace, "ingress-controller-ingress-nginx-controller")
+		nginxIngress, err := pkg.GetService(constants.IngressNamespace, nginxIngressServiceName)
 		if err != nil {
 			return err
 		}
@@ -406,7 +425,7 @@ func validateIngressServiceAnnotations(m NginxIstioIngressServiceAnnotationModif
 		if nginxIngress.Annotations[ociLBShapeAnnotation] != m.nginxLBShape {
 			return fmt.Errorf("expect nginx ingress annotation %v with value %v, but got %v", ociLBShapeAnnotation, m.nginxLBShape, nginxIngress.Annotations[ociLBShapeAnnotation])
 		}
-		istioIngress, err := pkg.GetService(constants.IstioSystemNamespace, "istio-ingressgateway")
+		istioIngress, err := pkg.GetService(constants.IstioSystemNamespace, istioIngressServiceName)
 		if err != nil {
 			return err
 		}
@@ -423,14 +442,14 @@ func validateIngressServiceAnnotations(m NginxIstioIngressServiceAnnotationModif
 func validateServicePorts() {
 	gomega.Eventually(func() error {
 		var err error
-		nginxIngress, err := pkg.GetService(constants.IngressNamespace, "ingress-controller-ingress-nginx-controller")
+		nginxIngress, err := pkg.GetService(constants.IngressNamespace, nginxIngressServiceName)
 		if err != nil {
 			return err
 		}
 		if !reflect.DeepEqual(testNginxIngressPorts, nginxIngress.Spec.Ports) {
 			return fmt.Errorf("expect nginx ingress with ports %v, but got %v", testNginxIngressPorts, nginxIngress.Spec.Ports)
 		}
-		istioIngress, err := pkg.GetService(constants.IstioSystemNamespace, "istio-ingressgateway")
+		istioIngress, err := pkg.GetService(constants.IstioSystemNamespace, istioIngressServiceName)
 		if err != nil {
 			return err
 		}
@@ -441,10 +460,10 @@ func validateServicePorts() {
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "expect to get correct ports setting from nginx and istio services")
 }
 
-func validateServiceTypeAndExternalIP(sysIP, appIP string) {
+func validateServiceNodePortAndExternalIP(sysIP, appIP string) {
 	gomega.Eventually(func() error {
 		var err error
-		nginxIngress, err := pkg.GetService(constants.IngressNamespace, "ingress-controller-ingress-nginx-controller")
+		nginxIngress, err := pkg.GetService(constants.IngressNamespace, nginxIngressServiceName)
 		if err != nil {
 			return err
 		}
@@ -455,7 +474,7 @@ func validateServiceTypeAndExternalIP(sysIP, appIP string) {
 		if !reflect.DeepEqual(expectedSysIPs, nginxIngress.Spec.ExternalIPs) {
 			return fmt.Errorf("expect nginx ingress with externalIPs %v, but got %v", expectedSysIPs, nginxIngress.Spec.ExternalIPs)
 		}
-		istioIngress, err := pkg.GetService(constants.IstioSystemNamespace, "istio-ingressgateway")
+		istioIngress, err := pkg.GetService(constants.IstioSystemNamespace, istioIngressServiceName)
 		if err != nil {
 			return err
 		}
@@ -467,7 +486,36 @@ func validateServiceTypeAndExternalIP(sysIP, appIP string) {
 			return fmt.Errorf("expect nginx ingress with externalIPs %v, but got %v", expectedAppIPs, istioIngress.Spec.ExternalIPs)
 		}
 		return nil
-	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "expect to get correct type and externalIPs from nginx and istio services")
+	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "expect to get NodePort type and externalIPs from nginx and istio services")
+}
+
+func validateServiceLoadBalancer() {
+	gomega.Eventually(func() error {
+		var err error
+		nginxIngress, err := pkg.GetService(constants.IngressNamespace, nginxIngressServiceName)
+		if err != nil {
+			return err
+		}
+		if nginxIngress.Spec.Type != corev1.ServiceTypeLoadBalancer {
+			return fmt.Errorf("expect nginx ingress with type LoadBalancer, but got %v", nginxIngress.Spec.Type)
+		}
+		_, err = getServiceLoadBalancerIP(constants.IngressNamespace, nginxIngressServiceName)
+		if err != nil {
+			return err
+		}
+		istioIngress, err := pkg.GetService(constants.IstioSystemNamespace, istioIngressServiceName)
+		if err != nil {
+			return err
+		}
+		if istioIngress.Spec.Type != corev1.ServiceTypeLoadBalancer {
+			return fmt.Errorf("expect istio ingress with type LoadBalancer, but got %v", istioIngress.Spec.Type)
+		}
+		_, err = getServiceLoadBalancerIP(constants.IstioSystemNamespace, istioIngressServiceName)
+		if err != nil {
+			return err
+		}
+		return nil
+	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "expect to get LoadBalancer type and loadBalancer IP from nginx and istio services")
 }
 
 func getServiceLoadBalancerIP(ns, svcName string) (string, error) {
@@ -480,12 +528,12 @@ func getServiceLoadBalancerIP(ns, svcName string) (string, error) {
 			return fmt.Errorf("loadBalancer for service %s/%s is not ready yet", ns, svcName)
 		}
 		return nil
-	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get a loadBalancer for service")
+	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), fmt.Sprintf("Expected to get a loadBalancer for service %s/%s", ns, svcName))
 
 	// Get the CR
 	svc, err := pkg.GetService(ns, svcName)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("can not get IP for service %s/%s due to error: %v", ns, svcName, err.Error())
 	}
 	if len(svc.Status.LoadBalancer.Ingress) > 0 {
 		return svc.Status.LoadBalancer.Ingress[0].IP, nil
