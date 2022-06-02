@@ -76,6 +76,7 @@ var knownImageIssues = map[string]knownIssues{
 	"shell":           {alternateTags: []string{"v0.1.6"}, message: rancherWarningMessage},
 }
 
+// Bom validations validates the images of below allowed namespaces only
 var allowedNamespaces = []string{
 	"^cattle-*",
 	"^fleet-*",
@@ -91,7 +92,6 @@ var allowedNamespaces = []string{
 func main() {
 	var vBom verrazzanoBom                                  // BOM from platform operator in struct form
 	var bomImages = make(map[string][]string)               // Map that contains the images mentioned into the bom with associated set of tags
-	var bomContainers = make(map[string]bool)               // Map that contains the containers mentioned into the bom
 	var clusterImageTagErrors = make(map[string]imageError) // Map of cluster image match but tags doesn't match with bom, hence a Failure Condition
 	var clusterImagesNotFound = make(map[string]string)     // Map of cluster image doesn't match with bom, hence a Failure Condition
 	var clusterImageWarnings = make(map[string]string)      // Map of image names not found in cluster. Warning/ Known Issues/ Informational.  This may be valid based on profile
@@ -103,10 +103,10 @@ func main() {
 	}
 	// Get the BOM from installed Platform Operator
 	getBOM(&vBom)
-	// populate the bom's container images into map
-	populateBomContainerImagesMap(&vBom, bomContainers, bomImages)
-	// Validate the cluster's container (including init) images with the populated bom images and tags map
-	validateClusterContainerImages(bomImages, bomContainers, clusterImagesNotFound, clusterImageTagErrors, clusterImageWarnings)
+	// populate the bom's images and their versions into hashmap
+	populateBomContainerImagesMap(&vBom, bomImages)
+	// Validate the cluster's container (including init containers) images with the populated bom image map
+	validateClusterContainerImages(bomImages, clusterImagesNotFound, clusterImageTagErrors, clusterImageWarnings)
 	// Report the bom validation results
 	errorFound := reportResults(clusterImagesNotFound, clusterImageTagErrors, clusterImageWarnings)
 	// Failure
@@ -162,17 +162,12 @@ func getBOM(vBom *verrazzanoBom) {
 	json.Unmarshal(out, &vBom)
 }
 
-// Populate bom images and containers into Hashmaps bomImageMap and bomContainerMap respectively
-// bomContainerMap contains a map keyed by a unique "image:tag" tuple to allow lookups of in-cluster container image versions against the BOM entries
+// Populate bom images into Hashmap bomImageMap
 // bomImageMap contains a map of "image" in the BOM to validate an image found in an allowed namespace exists in the bom
-func populateBomContainerImagesMap(vBom *verrazzanoBom, bomContainerMap map[string]bool, bomImageMap map[string][]string) {
+func populateBomContainerImagesMap(vBom *verrazzanoBom, bomImageMap map[string][]string) {
 	for _, component := range vBom.Components {
 		for _, subcomponent := range component.Subcomponents {
 			for _, image := range subcomponent.Images {
-				if bomContainerMap[image.Image+":"+image.Tag] {
-					continue
-				}
-				bomContainerMap[image.Image+":"+image.Tag] = true
 				bomImageMap[image.Image] = append(bomImageMap[image.Image], image.Tag)
 			}
 		}
@@ -191,10 +186,10 @@ func getAllNamespaces() []string {
 
 // Get the cluster namespaces and validate images of allowed namespaces only
 // Populate an Array 'A' with all the container & initContainer images found in the cluster of allowed namespaces
-// Send Cluster's Images Array 'A' for BOM Validations against populated bom hashmaps 'bomContainerMap' and 'bomImageMap'
+// Send Cluster's Images Array 'A' for BOM Validations against populated bom hashmap 'bomImageMap'
 // Hashmap 'clusterImagesNotFound' are images found in allowed namespaces that are not declared in the BOM
 // Hashmap 'clusterImageTagErrors' are images in allowed namespaces without matching tags in the BOM
-func validateClusterContainerImages(bomImageMap map[string][]string, bomContainerMap map[string]bool, clusterImagesNotFound map[string]string,
+func validateClusterContainerImages(bomImageMap map[string][]string, clusterImagesNotFound map[string]string,
 	clusterImageTagErrors map[string]imageError, clusterImageWarnings map[string]string) {
 	var containerImages string
 	installedClusterNamespaces := getAllNamespaces()
@@ -214,10 +209,10 @@ func validateClusterContainerImages(bomImageMap map[string][]string, bomContaine
 			}
 		}
 	}
-	// HashMap for all the container & initContainer images found in the cluster
-	containerArray := strings.Split(strings.TrimSpace(containerImages), " ")
-	// sending hashmap of cluster & bom images/containers for bom validations
-	validateContainerImages(containerArray, bomImageMap, bomContainerMap, clusterImagesNotFound, clusterImageTagErrors, clusterImageWarnings)
+	// List of all the container & initContainer images found in the cluster
+	clusterImageArray := strings.Split(strings.TrimSpace(containerImages), " ")
+	// validating cluster images with bom images
+	validateContainerImages(clusterImageArray, bomImageMap, clusterImagesNotFound, clusterImageTagErrors, clusterImageWarnings)
 }
 
 // Report out the findings
@@ -262,9 +257,9 @@ func reportResults(clusterImagesNotFound map[string]string, clusterImageTagError
 }
 
 // Validate out the presence of cluster images and tags into vz bom
-func validateContainerImages(containerArray []string, bomImageMap map[string][]string, bomContainerMap map[string]bool, clusterImagesNotFound map[string]string,
+func validateContainerImages(clusterImageArray []string, bomImageMap map[string][]string, clusterImagesNotFound map[string]string,
 	clusterImageTagErrors map[string]imageError, clusterImageWarnings map[string]string) {
-	for _, container := range containerArray {
+	for _, container := range clusterImageArray {
 		begin := strings.LastIndex(container, "/")
 		end := len(container)
 		containerName := container[begin+1 : end]
@@ -284,10 +279,9 @@ func validateContainerImages(containerArray []string, bomImageMap map[string][]s
 			clusterImagesNotFound[nameTag[0]] = nameTag[1]
 			continue
 		}
-		// 2. if cluster's image's tag not found into bom's image map
-		if !bomContainerMap[containerName] {
-			// cluster's image found into bom but,
-			// cluster's image:tag not found into bom
+		// 2. if cluster's image's version (tag) mismatched to bom's image versions(tags)
+		if !vzstring.SliceContainsString(bomImageMap[nameTag[0]], nameTag[1]) {
+			// cluster's image's version (tag) mismatched to bom image versions(tags)
 			clusterImageTagErrors[nameTag[0]] = imageError{nameTag[1], bomImageMap[nameTag[0]]}
 		}
 	}
