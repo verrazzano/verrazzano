@@ -20,12 +20,9 @@ import (
 )
 
 const (
-	testNamespace         = "deploymetrics"
 	promConfigJobName     = "deploymetrics-appconf_deploymetrics"
 	deploymetricsCompYaml = "testdata/deploymetrics/deploymetrics-comp.yaml"
-	deploymetricsCompName = "deploymetrics-deployment"
 	deploymetricsAppYaml  = "testdata/deploymetrics/deploymetrics-app.yaml"
-	deployMetricsAppName  = "deploymetrics-appconf"
 	skipVerifications     = "Skip Verifications"
 )
 
