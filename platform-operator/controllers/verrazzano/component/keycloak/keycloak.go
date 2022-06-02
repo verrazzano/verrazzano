@@ -479,9 +479,7 @@ func updatePrometheusAnnotations(ctx spi.ComponentContext) error {
 	if svc.Spec.ClusterIP != "" {
 		for _, prom := range promList.Items {
 			_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), prom, func() error {
-				if _, ok := prom.Spec.PodMetadata.Annotations["traffic.sidecar.istio.io/excludeOutboundIPRanges"]; ok {
-					delete(prom.Spec.PodMetadata.Annotations, "traffic.sidecar.istio.io/excludeOutboundIPRanges")
-				}
+				delete(prom.Spec.PodMetadata.Annotations, "traffic.sidecar.istio.io/excludeOutboundIPRanges")
 				prom.Spec.PodMetadata.Annotations["traffic.sidecar.istio.io/includeOutboundIPRanges"] = fmt.Sprintf("%s/32", svc.Spec.ClusterIP)
 				return nil
 			})
