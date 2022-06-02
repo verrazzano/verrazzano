@@ -7,10 +7,15 @@ export DUMP_ROOT_DIRECTORY ?= ${WORKSPACE}/cluster-dumps
 export GINGKO_ARGS ?= -v --keep-going --no-color
 
 run-test: export RANDOMIZE_TESTS ?= true
-run-test: export RUN_PARALLEL ?= false
+run-test: export RUN_PARALLEL ?= true
 .PHONY: run-test
 run-test:
 	${CI_SCRIPTS_DIR}/run-ginkgo.sh
+
+run-test: export RANDOMIZE_TESTS := false
+run-test: export RUN_PARALLEL := false
+.PHONY: run-sequential
+run-sequential: run-test
 
 .PHONY: verify-install
 verify-install:
@@ -24,19 +29,16 @@ verify-scripts:
 verify-infra:
 	TEST_SUITES=verify-infra/... make test
 
-.PHONY: verify-infra
-verify-infra:
-	TEST_SUITES=verify-infra/... make test
-
 .PHONY: verify-security-rbac
 verify-security-rbac:
-	TEST_SUITES=security/rbac/... RUN_PARALLEL=false make test
+	TEST_SUITES=security/rbac/... make run-sequential
 
 .PHONY: verify-system-metrics
 verify-system-metrics:
-	TEST_SUITES=metrics/syscomponents/... RUN_PARALLEL=false make test
+	TEST_SUITES=metrics/syscomponents/... make run-sequential
 
 verify-console: export DUMP_DIRECTORY ?= ${DUMP_ROOT_DIRECTORY}/console
 PHONY: verify-console
 verify-console:
 	${CI_SCRIPTS_DIR}/run_console_tests.sh
+
