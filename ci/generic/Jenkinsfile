@@ -203,6 +203,15 @@ def getPipelineDescriptorPath() {
     return "${WORKSPACE}/${params.PIPELINE_DESCRIPTOR}"
 }
 
+def buildTargetClosure(targetName, targetToInvoke) {
+    echo "Building closure for ${targetToInvoke}"
+    return [ (targetName) : {
+            echo "Running target: ${targetToInvoke}"
+            runMakeCommand(targetToInvoke)
+        }
+    ]
+}
+
 def runDynamicStages(pipelineDescriptor) {
     script {
         data = readYaml file: pipelineDescriptor
