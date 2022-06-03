@@ -35,7 +35,7 @@ func (u ACMECertManagerModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 var (
-	t                           = framework.NewTestFramework("update cm (let's encrypt)")
+	t                           = framework.NewTestFramework("Update Let's Encrypt CM")
 	testAcmeEmailAddress string = "emailAddress@domain.com"
 	testAcmeEnvironment  string = "staging"
 

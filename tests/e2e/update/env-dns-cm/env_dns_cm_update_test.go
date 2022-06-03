@@ -55,7 +55,7 @@ func (u CustomCACertificateModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 var (
-	t                              = framework.NewTestFramework("update env-dns-cm")
+	t                              = framework.NewTestFramework("Update env-dns-cm")
 	testEnvironmentName     string = "test-env"
 	testDNSDomain           string = "sslip.io"
 	testCertName            string = "test-ca"

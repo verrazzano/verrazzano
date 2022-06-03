@@ -9,5 +9,5 @@ import (
 
 func TestLetsEncryptCM(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Let's encrypt CM update Suite")
+	RunSpecs(t, "Let's Encrypt CM update Suite")
 }

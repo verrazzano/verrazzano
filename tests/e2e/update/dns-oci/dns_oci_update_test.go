@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package ocidns
+package dnsoci
 
 import (
 	"log"
@@ -31,14 +31,8 @@ type OCIPublicDNSModifier struct {
 }
 
 func (u OCIPublicDNSModifier) ModifyCR(cr *vzapi.Verrazzano) {
-	if cr.Spec.Components.DNS == nil {
-		cr.Spec.Components.DNS = &vzapi.DNSComponent{}
-	}
-	if cr.Spec.Components.DNS.OCI == nil {
-		cr.Spec.Components.DNS.OCI = &vzapi.OCI{}
-	}
-	cr.Spec.Components.DNS.Wildcard = nil
-	cr.Spec.Components.DNS.External = nil
+	cr.Spec.Components.DNS = &vzapi.DNSComponent{}
+	cr.Spec.Components.DNS.OCI = &vzapi.OCI{}
 	cr.Spec.Components.DNS.OCI.DNSZoneName = u.DNSZoneName
 	cr.Spec.Components.DNS.OCI.DNSZoneOCID = u.DNSZoneOCID
 	cr.Spec.Components.DNS.OCI.DNSZoneCompartmentOCID = u.DNSZoneCompartmentOCID
@@ -46,7 +40,7 @@ func (u OCIPublicDNSModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 var (
-	t                                 = framework.NewTestFramework("update dns")
+	t                                 = framework.NewTestFramework("Update OCI DNS")
 	testDNSZoneName            string = os.Getenv("OCI_DNS_ZONE_NAME")
 	testDNSZoneOCID            string = os.Getenv("OCI_DNS_ZONE_OCID")
 	testDNSZoneCompartmentOCID string = os.Getenv("OCI_DNS_COMPARTMENT_OCID")
@@ -58,7 +52,7 @@ var (
 )
 
 var _ = t.Describe("Test DNS updates", func() {
-	t.It("Verify the current environment name and dns domain", func() {
+	t.It("Verify the current environment name and DNS domain", func() {
 		cr := update.GetCR()
 		currentEnvironmentName = cr.Spec.EnvironmentName
 		currentDNSDomain = cr.Spec.Components.DNS.Wildcard.Domain
@@ -66,7 +60,7 @@ var _ = t.Describe("Test DNS updates", func() {
 		validateVirtualServiceList(currentDNSDomain)
 	})
 
-	t.It("Update and verify dns domain", func() {
+	t.It("Update and verify DNS domain", func() {
 		m := OCIPublicDNSModifier{testDNSZoneName, testDNSZoneOCID, testDNSZoneCompartmentOCID, testOCIConfigSecret, testDNSScope}
 		err := update.UpdateCR(m)
 		if err != nil {
