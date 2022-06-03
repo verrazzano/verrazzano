@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/kustomize/kyaml/sliceutil"
 	"strconv"
 
 	vmoconst "github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
@@ -20,15 +22,19 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
 	deploymentName  = "prometheus-operator-kube-p-operator"
 	istioVolumeName = "istio-certs-dir"
+	serviceAccount  = "cluster.local/ns/verrazzano-monitoring/sa/prometheus-operator-kube-p-prometheus"
 )
 
 // isPrometheusOperatorReady checks if the Prometheus operator deployment is ready
@@ -161,7 +167,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	}
 
 	// Add a label to Prometheus Operator resources to distinguish Verrazzano resources
-	kvs = append(kvs, bom.KeyValue{Key: "commonLabels.verrazzano-component", Value: "prometheus-operator"})
+	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("commonLabels.%s", constants.VerrazzanoComponentLabelKey), Value: ComponentName})
 
 	return kvs, nil
 }
@@ -293,4 +299,50 @@ func applySystemMonitors(ctx spi.ComponentContext) error {
 	dir := path.Join(config.GetThirdPartyManifestsDir(), "prometheus-operator")
 	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
 	return yamlApplier.ApplyDT(dir, args)
+}
+
+func updateApplicationAuthorizationPolicies(ctx spi.ComponentContext) error {
+	// Get the Application namespaces by filtering the label verrazzano-managed=true
+	nsList := corev1.NamespaceList{}
+	err := ctx.Client().List(context.TODO(), &nsList, &client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{constants.VerrazzanoManagedLabelKey: "true"})})
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to list namespaces with the label %s=true: %v", constants.VerrazzanoManagedLabelKey, err)
+	}
+
+	// For each namespace, if an authorization policy exists, add the prometheus operator service account as a principal
+	for _, ns := range nsList.Items {
+		authpolicyList := istioclisec.AuthorizationPolicyList{}
+		err = ctx.Client().List(context.TODO(), &authpolicyList, &client.ListOptions{Namespace: ns.Name})
+		if err != nil {
+			return ctx.Log().ErrorfNewErr("Failed to list Authorization Policies in namespace %s: %v", ns.Name, err)
+		}
+		// Parse the authorization policy list for the Verrazzano Istio label and apply the service account to the first rule
+		for _, authpolicy := range authpolicyList.Items {
+			if _, ok := authpolicy.Labels[constants.IstioAppLabel]; ok {
+				_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), &authpolicy, func() error {
+					rules := authpolicy.Spec.Rules
+					if len(rules) > 0 && rules[0] != nil {
+						targetRule := rules[0]
+						if len(targetRule.From) > 0 && targetRule.From[0] != nil {
+							targetFrom := targetRule.From[0]
+							if targetFrom.Source != nil {
+								// Update the object principal with the Prometheus Operator service account if not found
+								if !sliceutil.Contains(targetFrom.Source.Principals, serviceAccount) {
+									authpolicy.Spec.Rules[0].From[0].Source.Principals = append(
+										targetFrom.Source.Principals,
+										serviceAccount)
+								}
+							}
+						}
+					}
+					return nil
+				})
+				if err != nil {
+					return ctx.Log().ErrorfNewErr("Failed to update the Authorization Policy %s in namespace %s: %v", authpolicy.Name, ns.Name, err)
+				}
+			}
+		}
+
+	}
+	return nil
 }

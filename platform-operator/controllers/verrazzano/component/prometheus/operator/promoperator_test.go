@@ -6,15 +6,19 @@ package operator
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	asserts "github.com/stretchr/testify/assert"
 	vmoconst "github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	istioclisecv1beta1 "istio.io/api/security/v1beta1"
+	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -361,4 +366,225 @@ func TestApplySystemMonitors(t *testing.T) {
 	err = client.List(context.TODO(), monitors)
 	assert.NoError(t, err)
 	assert.Len(t, monitors.Items, 1)
+}
+
+// TestValidatePrometheusOperator tests the validation of the Prometheus Operator installation and the Verrazzano CR
+func TestUpdateApplicationAuthorizationPolicies(t *testing.T) {
+	assert := asserts.New(t)
+	scheme := k8scheme.Scheme
+	_ = vzapi.AddToScheme(scheme)
+	_ = istioclisec.AddToScheme(scheme)
+
+	testNsName := "test-ns"
+	testAuthPolicyName := "test-authpolicy"
+	principal := "cluster.local/ns/verrazzano-monitoring/sa/prometheus-operator-kube-p-prometheus"
+	namespace := v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   testNsName,
+			Labels: map[string]string{constants.VerrazzanoManagedLabelKey: "true"},
+		},
+	}
+
+	tests := []struct {
+		name               string
+		objects            []client.Object
+		expectedPrincipals *[]string
+	}{
+		{
+			name:               "test no namespaces",
+			objects:            []client.Object{},
+			expectedPrincipals: nil,
+		},
+		{
+			name: "test no authpolicy",
+			objects: []client.Object{
+				&namespace,
+			},
+			expectedPrincipals: nil,
+		},
+		{
+			name: "test no rules",
+			objects: []client.Object{
+				&namespace,
+				&istioclisec.AuthorizationPolicy{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: testNsName,
+						Name:      testAuthPolicyName,
+						Labels:    map[string]string{constants.IstioAppLabel: testAuthPolicyName},
+					},
+				},
+			},
+			expectedPrincipals: nil,
+		},
+		{
+			name: "test nil rule",
+			objects: []client.Object{
+				&namespace,
+				&istioclisec.AuthorizationPolicy{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: testNsName,
+						Name:      testAuthPolicyName,
+						Labels:    map[string]string{constants.IstioAppLabel: testAuthPolicyName},
+					},
+					Spec: istioclisecv1beta1.AuthorizationPolicy{
+						Rules: []*istioclisecv1beta1.Rule{
+							nil,
+						},
+					},
+				},
+			},
+			expectedPrincipals: nil,
+		},
+		{
+			name: "test nil from",
+			objects: []client.Object{
+				&namespace,
+				&istioclisec.AuthorizationPolicy{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: testNsName,
+						Name:      testAuthPolicyName,
+						Labels:    map[string]string{constants.IstioAppLabel: testAuthPolicyName},
+					},
+					Spec: istioclisecv1beta1.AuthorizationPolicy{
+						Rules: []*istioclisecv1beta1.Rule{
+							{
+								From: []*istioclisecv1beta1.Rule_From{
+									nil,
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedPrincipals: nil,
+		},
+		{
+			name: "test nil source",
+			objects: []client.Object{
+				&namespace,
+				&istioclisec.AuthorizationPolicy{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: testNsName,
+						Name:      testAuthPolicyName,
+						Labels:    map[string]string{constants.IstioAppLabel: testAuthPolicyName},
+					},
+					Spec: istioclisecv1beta1.AuthorizationPolicy{
+						Rules: []*istioclisecv1beta1.Rule{
+							{
+								From: []*istioclisecv1beta1.Rule_From{
+									{
+										Source: nil,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedPrincipals: nil,
+		},
+		{
+			name: "test empty principals",
+			objects: []client.Object{
+				&namespace,
+				&istioclisec.AuthorizationPolicy{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: testNsName,
+						Name:      testAuthPolicyName,
+						Labels:    map[string]string{constants.IstioAppLabel: testAuthPolicyName},
+					},
+					Spec: istioclisecv1beta1.AuthorizationPolicy{
+						Rules: []*istioclisecv1beta1.Rule{
+							{
+								From: []*istioclisecv1beta1.Rule_From{
+									{
+										Source: &istioclisecv1beta1.Source{Principals: []string{}},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedPrincipals: &[]string{principal},
+		},
+		{
+			name: "test non-empty principals",
+			objects: []client.Object{
+				&namespace,
+				&istioclisec.AuthorizationPolicy{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: testNsName,
+						Name:      testAuthPolicyName,
+						Labels:    map[string]string{constants.IstioAppLabel: testAuthPolicyName},
+					},
+					Spec: istioclisecv1beta1.AuthorizationPolicy{
+						Rules: []*istioclisecv1beta1.Rule{
+							{
+								From: []*istioclisecv1beta1.Rule_From{
+									{
+										Source: &istioclisecv1beta1.Source{Principals: []string{
+											"p1", "p2", "p3",
+										}},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedPrincipals: &[]string{"p1", "p2", "p3", principal},
+		},
+		{
+			name: "test multiple authpolicies",
+			objects: []client.Object{
+				&namespace,
+				&istioclisec.AuthorizationPolicy{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: testNsName,
+						Name:      testAuthPolicyName,
+						Labels:    map[string]string{constants.IstioAppLabel: testAuthPolicyName},
+					},
+					Spec: istioclisecv1beta1.AuthorizationPolicy{
+						Rules: []*istioclisecv1beta1.Rule{
+							{
+								From: []*istioclisecv1beta1.Rule_From{
+									{
+										Source: &istioclisecv1beta1.Source{Principals: []string{
+											"p1", "p2", "p3",
+										}},
+									},
+								},
+							},
+						},
+					},
+				},
+				&istioclisec.AuthorizationPolicy{},
+			},
+			expectedPrincipals: &[]string{"p1", "p2", "p3", principal},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakes := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.objects...).Build()
+			ctx := spi.NewFakeContext(fakes, &vzapi.Verrazzano{}, false)
+			err := updateApplicationAuthorizationPolicies(ctx)
+			assert.NoError(err)
+			if tt.expectedPrincipals != nil {
+				nsList := v1.NamespaceList{}
+				err = fakes.List(context.TODO(), &nsList)
+				assert.NoError(err)
+				for _, ns := range nsList.Items {
+					authPolicyList := istioclisec.AuthorizationPolicyList{}
+					err = fakes.List(context.TODO(), &authPolicyList, &client.ListOptions{Namespace: ns.Name})
+					assert.NoError(err)
+					for _, authPolicy := range authPolicyList.Items {
+						for _, principal := range *tt.expectedPrincipals {
+							assert.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, principal)
+						}
+					}
+				}
+			}
+		})
+	}
 }
