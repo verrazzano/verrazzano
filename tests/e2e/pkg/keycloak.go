@@ -119,7 +119,7 @@ func (c *KeycloakRESTClient) GetRealm(realm string) (map[string]interface{}, err
 }
 
 // GetRealm gets a bearer token from a realm.
-func (c *KeycloakRESTClient) GetTokenMap(realm string, username string, password string, clientid string) (map[string]interface{}, error) {
+func (c *KeycloakRESTClient) GetToken(realm string, username string, password string, clientid string) (string, error) {
 	form := url.Values{}
 	form.Add("username", username)
 	form.Add("password", password)
@@ -127,34 +127,22 @@ func (c *KeycloakRESTClient) GetTokenMap(realm string, username string, password
 	form.Add("client_id", "clientid")
 
 	requestURL := fmt.Sprintf("https://%s/auth/realms/%s/protocol/openid-connect/token", c.keycloakIngressHost, realm)
-	request, err := retryablehttp.NewRequest("POST", requestURL, strings.NewReader(form.Encode()))
-	if err != nil {
-		return nil, err
-	}
-	request.Host = c.keycloakIngressHost
-	request.Header.Add("Authorization", fmt.Sprintf("Bearer %v", c.adminAccessToken))
-	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	response, err := c.httpClient.Do(request)
-	if err != nil {
-		return nil, err
-	}
-	if response == nil {
-		return nil, fmt.Errorf("invalid response")
-	}
-	defer response.Body.Close()
+	response, err := PostWithHostHeader(requestURL, "application/x-www-form-urlencoded", c.keycloakIngressHost, strings.NewReader(form.Encode()))
 	if response.StatusCode != 200 {
-		return nil, fmt.Errorf("invalid response status: %d", response.StatusCode)
+		return "", fmt.Errorf("invalid response status: %d", response.StatusCode)
 	}
-	responseBody, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	jsonMap := make(map[string]interface{})
-	err = json.Unmarshal(responseBody, &jsonMap)
-	if err != nil {
-		return nil, err
+	if response.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to access token endpoint")
 	}
-	return jsonMap, nil
+	token := JTq(string(response.Body), "access_token").(string)
+	if token == "" {
+		return "", fmt.Errorf("failed to obtain valid access token")
+	}
+
+	return token, nil
 }
 
 // CreateUser creates a user in Keycloak

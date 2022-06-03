@@ -124,13 +124,11 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 			// check for realm
 			_, err = kc.GetRealm(realmName)
 			Expect(err).To(BeNil())
-			tokenMap, err := kc.GetTokenMap(realmName, "testuser", password, "appsclient")
-			t.Logs.Infof("Obtained token map: %v", tokenMap)
+			token, err := kc.GetToken(realmName, "testuser", password, "appsclient")
+			t.Logs.Infof("Obtained token: %v", token)
 			url := fmt.Sprintf("https://%s/greet", host)
-			tokenObj, found := tokenMap["access_token"]
-			Expect(found).To(BeTrue())
 			Eventually(func() bool {
-				return appEndpointAccess(url, host, tokenObj.(string), true)
+				return appEndpointAccess(url, host, token, true)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 	})
