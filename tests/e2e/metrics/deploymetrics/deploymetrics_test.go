@@ -20,17 +20,15 @@ import (
 )
 
 const (
+	promConfigJobName     = "deploymetrics-appconf_deploymetrics"
 	deploymetricsCompYaml = "testdata/deploymetrics/deploymetrics-comp.yaml"
-	deploymetricsCompName = "deploymetrics-deployment"
 	deploymetricsAppYaml  = "testdata/deploymetrics/deploymetrics-app.yaml"
-	deployMetricsAppName  = "deploymetrics-appconf"
 	skipVerifications     = "Skip Verifications"
 )
 
 var (
 	expectedPodsDeploymetricsApp = []string{"deploymetrics-workload"}
 	generatedNamespace           = pkg.GenerateNamespace("deploymetrics")
-	promConfigJobName            = fmt.Sprintf("%s_default_%s_%s", deployMetricsAppName, generatedNamespace, deploymetricsCompName)
 
 	waitTimeout              = 10 * time.Minute
 	pollingInterval          = 30 * time.Second
@@ -149,10 +147,7 @@ func undeployMetricsApplication() {
 var _ = t.Describe("DeployMetrics Application test", Label("f:app-lcm.oam"), func() {
 
 	t.Context("for Prometheus Config.", Label("f:observability.monitoring.prom"), func() {
-		t.It("Verify that Prometheus Config Data contains deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment", func() {
-			if skipVerify {
-				Skip(skipVerifications)
-			}
+		t.It("Verify that Prometheus Config Data contains deploymetrics-appconf_deploymetrics", func() {
 			Eventually(func() bool {
 				return pkg.IsAppInPromConfig(promConfigJobName)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find App in Prometheus Config")
