@@ -250,7 +250,7 @@ pipeline {
                     }
                     echo "[INFO] SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
                 }
-                
+
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
                     chmod 600 $HOME/.netrc
@@ -524,7 +524,7 @@ pipeline {
                 OCI_CONFIG_SECRET = "oci"
             }
             steps {
-                runGinkgo('update/ocidns', "${TEST_DUMP_ROOT}/cm-dns-update")
+                runGinkgo('update/dns-oci', "${TEST_DUMP_ROOT}/cm-dns-update")
                 runGinkgo('update/cm-lets-encrypt', "${TEST_DUMP_ROOT}/cm-dns-update")
             }
             post {
