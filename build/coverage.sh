@@ -3,7 +3,7 @@
 # Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
-# Code coverage generation
+
 # Excludes test utility packages and the test directory
 go test -coverpkg=./... -coverprofile ./coverage.raw.cov $(go list ./... | \
   grep -Ev github.com/verrazzano/verrazzano/application-operator/test/integ | \
@@ -17,6 +17,7 @@ go test -coverpkg=./... -coverprofile ./coverage.raw.cov $(go list ./... | \
   grep -Ev github.com/verrazzano/verrazzano/tools/eventually-checker | \
   grep -Ev github.com/verrazzano/verrazzano/tools/fix-copyright | \
   grep -Ev github.com/verrazzano/verrazzano/tests | \
+  ## this is another test
   grep -Ev github.com/verrazzano/verrazzano/pkg/test/framework)
 
 TEST_STATUS=$?

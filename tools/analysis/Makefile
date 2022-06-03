@@ -44,6 +44,7 @@ go-build:
 	GOOS=darwin GOARCH=amd64 $(GO) build \
 		-ldflags "${GO_LDFLAGS} -X main.analysisToolVersion=${ANALYSIS_TOOL_VERSION}" \
 		-o out/darwin_amd64/verrazzano-analysis \
+		## this is a test
 		${GOPATH}/src/github.com/verrazzano/verrazzano/tools/analysis/main.go
 	GOOS=linux GOARCH=amd64 $(GO) build \
 		-ldflags "${GO_LDFLAGS} -X main.analysisToolVersion=${ANALYSIS_TOOL_VERSION}" \
