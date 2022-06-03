@@ -563,6 +563,32 @@ func TestUpdateApplicationAuthorizationPolicies(t *testing.T) {
 			},
 			expectedPrincipals: &[]string{"p1", "p2", "p3", principal},
 		},
+		{
+			name: "test no authpolicy label",
+			objects: []client.Object{
+				&namespace,
+				&istioclisec.AuthorizationPolicy{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: testNsName,
+						Name:      testAuthPolicyName,
+					},
+					Spec: istioclisecv1beta1.AuthorizationPolicy{
+						Rules: []*istioclisecv1beta1.Rule{
+							{
+								From: []*istioclisecv1beta1.Rule_From{
+									{
+										Source: &istioclisecv1beta1.Source{Principals: []string{
+											"p1", "p2", "p3",
+										}},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedPrincipals: nil,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

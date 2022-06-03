@@ -7,8 +7,6 @@ import (
 	"context"
 	"fmt"
 	"path"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/kustomize/kyaml/sliceutil"
 	"strconv"
 
 	vmoconst "github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
@@ -29,6 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/kustomize/kyaml/sliceutil"
 )
 
 const (
@@ -342,7 +342,6 @@ func updateApplicationAuthorizationPolicies(ctx spi.ComponentContext) error {
 				}
 			}
 		}
-
 	}
 	return nil
 }
