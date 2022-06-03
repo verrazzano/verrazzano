@@ -47,6 +47,7 @@ type IngressSecurity struct {
 type IngressPath struct {
 	Path     string `json:"path,omitempty"`
 	PathType string `json:"pathType,omitempty"`
+	Policy   *AuthorizationPolicy `json:"authorizationPolicy,omitempty"`
 }
 
 // IngressDestination specifies a specific destination host and port for the ingress paths.
