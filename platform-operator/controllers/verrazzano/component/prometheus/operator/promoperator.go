@@ -317,10 +317,10 @@ func updateApplicationAuthorizationPolicies(ctx spi.ComponentContext) error {
 			return ctx.Log().ErrorfNewErr("Failed to list Authorization Policies in namespace %s: %v", ns.Name, err)
 		}
 		// Parse the authorization policy list for the Verrazzano Istio label and apply the service account to the first rule
-		for _, authpolicy := range authpolicyList.Items {
-			if _, ok := authpolicy.Labels[constants.IstioAppLabel]; ok {
-				_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), &authpolicy, func() error {
-					rules := authpolicy.Spec.Rules
+		for i, authPolicy := range authpolicyList.Items {
+			if _, ok := authPolicy.Labels[constants.IstioAppLabel]; ok {
+				_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), &authpolicyList.Items[i], func() error {
+					rules := authPolicy.Spec.Rules
 					if len(rules) > 0 && rules[0] != nil {
 						targetRule := rules[0]
 						if len(targetRule.From) > 0 && targetRule.From[0] != nil {
@@ -328,7 +328,7 @@ func updateApplicationAuthorizationPolicies(ctx spi.ComponentContext) error {
 							if targetFrom.Source != nil {
 								// Update the object principal with the Prometheus Operator service account if not found
 								if !sliceutil.Contains(targetFrom.Source.Principals, serviceAccount) {
-									authpolicy.Spec.Rules[0].From[0].Source.Principals = append(
+									authPolicy.Spec.Rules[0].From[0].Source.Principals = append(
 										targetFrom.Source.Principals,
 										serviceAccount)
 								}
@@ -338,7 +338,7 @@ func updateApplicationAuthorizationPolicies(ctx spi.ComponentContext) error {
 					return nil
 				})
 				if err != nil {
-					return ctx.Log().ErrorfNewErr("Failed to update the Authorization Policy %s in namespace %s: %v", authpolicy.Name, ns.Name, err)
+					return ctx.Log().ErrorfNewErr("Failed to update the Authorization Policy %s in namespace %s: %v", authPolicy.Name, ns.Name, err)
 				}
 			}
 		}
