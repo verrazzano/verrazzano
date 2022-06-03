@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/semver"
@@ -39,6 +40,17 @@ func FindVerrazzanoResource(client client.Client) (*vzapi.Verrazzano, error) {
 		return nil, fmt.Errorf("Expected to only find one Verrazzano resource, but found %d", len(vzList.Items))
 	}
 	return &vzList.Items[0], nil
+}
+
+// GetVerrazzanoResource - get a Verrazzano resource
+func GetVerrazzanoResource(client client.Client, namespacedName types.NamespacedName) (*vzapi.Verrazzano, error) {
+
+	vz := &vzapi.Verrazzano{}
+	err := client.Get(context.TODO(), namespacedName, vz)
+	if err != nil {
+		return nil, err
+	}
+	return vz, nil
 }
 
 // GetLatestReleaseVersion - get the version of the latest release of Verrazzano

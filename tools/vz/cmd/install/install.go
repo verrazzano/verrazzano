@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os/exec"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -97,7 +96,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Wait for the platform operator to be ready before we create the Verrazzano resource.
-	podName, err := waitForPlatformOperator(client, vzHelper)
+	vpoPodName, err := waitForPlatformOperator(client, vzHelper)
 	if err != nil {
 		return err
 	}
@@ -116,7 +115,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Wait for the Verrazzano install to complete
-	return waitForInstallToComplete(kubeClient, cmd, vzHelper, podName)
+	return waitForInstallToComplete(client, kubeClient, vzHelper, vpoPodName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name})
 }
 
 // applyPlatformOperatorYaml applies a given version of the platform operator yaml file
@@ -210,10 +209,10 @@ func waitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper) (s
 
 // waitForInstallToComplete waits for the Verrazzano install to complete and shows the logs of
 // the ongoing Verrazzano install.
-func waitForInstallToComplete(kubeClient *kubernetes.Clientset, cmd *cobra.Command, vzHelper helpers.VZHelper, podName string) error {
-	// Tail the log messages starting at the current time.
+func waitForInstallToComplete(client clipkg.Client, kubeClient *kubernetes.Clientset, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName) error {
+	// Tail the log messages from the verrazzano-platform-operator starting at the current time.
 	sinceTime := metav1.Now()
-	rc, err := kubeClient.CoreV1().Pods(vzconstants.VerrazzanoInstallNamespace).GetLogs(podName, &corev1.PodLogOptions{
+	rc, err := kubeClient.CoreV1().Pods(vzconstants.VerrazzanoInstallNamespace).GetLogs(vpoPodName, &corev1.PodLogOptions{
 		Container: verrazzanoPlatformOperator,
 		Follow:    true,
 		SinceTime: &sinceTime,
@@ -235,9 +234,16 @@ func waitForInstallToComplete(kubeClient *kubernetes.Clientset, cmd *cobra.Comma
 			// Print each log message in the form "timestamp level message".
 			// For example, "2022-06-03T00:05:10.042Z info Component keycloak successfully installed"
 			fmt.Fprintln(vzHelper.GetOutputStream(), fmt.Sprintf("%s %s %s", res[0][2], res[0][1], res[0][4]))
+
 			// Return when the Verrazzano install has completed
-			if strings.Compare(res[0][4], "Successfully installed Verrazzano") == 0 {
-				return nil
+			vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
+			if err != nil {
+				return err
+			}
+			for _, condition := range vz.Status.Conditions {
+				if condition.Type == vzapi.CondInstallComplete {
+					return nil
+				}
 			}
 		}
 	}
