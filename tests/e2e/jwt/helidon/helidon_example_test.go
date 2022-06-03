@@ -98,10 +98,11 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 			kc, err := pkg.NewKeycloakAdminRESTClient()
 			Expect(err).To(BeNil())
 			password := pkg.GetRequiredEnvVarOrFail("REALM_USER_PASSWORD")
+			realmName := pkg.GetRequiredEnvVarOrFail("REALM_NAME")
 			// check for realm
-			_, err = kc.GetRealm("test-realm")
+			_, err = kc.GetRealm(realmName)
 			Expect(err).To(BeNil())
-			token, err = kc.GetToken("test-realm", "testuser", password, "appsclient")
+			token, err = kc.GetToken(realmName, "testuser", password, "appsclient")
 			return host, token, err
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 	})

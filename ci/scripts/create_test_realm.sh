@@ -4,9 +4,9 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
-KEYCLOAK_PASSWORD=##KEYCLOAK_PWD##
+userpass="${REALM_USER_PASSWORD:-testuserpass}"
 
-REALM_NAME=test-realm
+realmName="${REALM_NAME:-test-realm}"
 
 # login
 /opt/jboss/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user keycloakadmin --password ${KEYCLOAK_PASSWORD}
