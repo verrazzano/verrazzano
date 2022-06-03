@@ -311,15 +311,16 @@ func updateApplicationAuthorizationPolicies(ctx spi.ComponentContext) error {
 
 	// For each namespace, if an authorization policy exists, add the prometheus operator service account as a principal
 	for _, ns := range nsList.Items {
-		authpolicyList := istioclisec.AuthorizationPolicyList{}
-		err = ctx.Client().List(context.TODO(), &authpolicyList, &client.ListOptions{Namespace: ns.Name})
+		authPolicyList := istioclisec.AuthorizationPolicyList{}
+		err = ctx.Client().List(context.TODO(), &authPolicyList, &client.ListOptions{Namespace: ns.Name})
 		if err != nil {
 			return ctx.Log().ErrorfNewErr("Failed to list Authorization Policies in namespace %s: %v", ns.Name, err)
 		}
 		// Parse the authorization policy list for the Verrazzano Istio label and apply the service account to the first rule
-		for i, authPolicy := range authpolicyList.Items {
+		for i := range authPolicyList.Items {
+			authPolicy := authPolicyList.Items[i]
 			if _, ok := authPolicy.Labels[constants.IstioAppLabel]; ok {
-				_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), &authpolicyList.Items[i], func() error {
+				_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), &authPolicy, func() error {
 					rules := authPolicy.Spec.Rules
 					if len(rules) > 0 && rules[0] != nil {
 						targetRule := rules[0]
