@@ -141,6 +141,10 @@ pipeline {
                 PIPELINE_CONFIG=getPipelineDescriptorPath()
             }
             steps {
+                sh """
+                find ${GO_REPO_PATH}/verrazzano/ci -type f
+                find ${WORKSPACE} -type f
+                """
                 echo "Executing pipeline configuration ${env.PIPELINE_CONFIG}"
                 runDynamicStages(env.PIPELINE_CONFIG)
             }
