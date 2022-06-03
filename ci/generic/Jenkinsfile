@@ -122,73 +122,7 @@ pipeline {
     stages {
         stage('Clean workspace and checkout') {
             steps {
-                sh """
-                    echo "${NODE_LABELS}"
-                """
-
-                script {
-                    EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
-                    if (params.GIT_COMMIT_TO_USE == "NONE") {
-                        echo "Specific GIT commit was not specified, use current head"
-                        def scmInfo = checkout scm
-                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
-                    } else {
-                        echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
-                        def scmInfo = checkout([
-                            $class: 'GitSCM',
-                            branches: [[name: params.GIT_COMMIT_TO_USE]],
-                            doGenerateSubmoduleConfigurations: false,
-                            extensions: [],
-                            submoduleCfg: [],
-                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
-                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
-                        // If the commit we were handed is not what the SCM says we are using, fail
-                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
-                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
-                            exit 1
-                        }
-                    }
-                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
-                }
-
-                sh """
-                    cp -f "${NETRC_FILE}" $HOME/.netrc
-                    chmod 600 $HOME/.netrc
-                """
-
-                script {
-                    try {
-                    sh """
-                        echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                    """
-                    } catch(error) {
-                        echo "docker login failed, retrying after sleep"
-                        retry(4) {
-                            sleep(30)
-                            sh """
-                                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                            """
-                        }
-                    }
-                }
-                sh """
-                    rm -rf ${GO_REPO_PATH}/verrazzano
-                    mkdir -p ${GO_REPO_PATH}/verrazzano
-                    tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
-                """
-
-                script {
-                    def props = readProperties file: '.verrazzano-development-version'
-                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
-                    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
-                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-                    DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
-                    // update the description with some meaningful info
-                    setDisplayName()
-                    currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
-                }
+                pipelineSetup()
             }
         }
 
@@ -220,13 +154,39 @@ pipeline {
                     }
                 }
 
-                stage('Run Acceptance Tests') {
+                stage('Verify Install') {
                     steps {
-                        runMakeCommand("verify-all")
+                        runMakeCommand("verify-install")
                     }
                     post {
                         always {
                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+                stage('Run Acceptance Tests Infra') {
+                    steps {
+                        script {
+                            parallel getVerifyInstallTestTargets()
+                        }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+                stage('Run Acceptance Tests Deployments') {
+                    steps {
+                        script {
+                            parallel getDeploymentTestTargets()
+                        }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
@@ -300,6 +260,110 @@ def runMakeCommand(makeTarget) {
        cd ${GO_REPO_PATH}/verrazzano/ci/generic
        make ${makeTarget}
     """
+}
+
+def getDeploymentTestTargets() {
+    targets = [
+        "opensearch-topology": { runMakeCommand("verify-opensearch-topology") },
+        "istio authorization policy": { runMakeCommand("verify-istio-authz") },
+        "k8s deployment workload metrics": { runMakeCommand("verify-deployment-workload-metrics") },
+        "system logging": { runMakeCommand("verify-system-logging") },
+        "opensearch logging": { runMakeCommand("verify-opensearch-logging") },
+        "examples logging helidon": { runMakeCommand("verify-helidon-logging") },
+        "examples helidon-metrics": { runMakeCommand("verify-helidon-metrics") },
+        "examples helidon": { runMakeCommand("verify-examples-helidon") },
+        "workloads": { runMakeCommand("verify-workloads") },
+        "console ingress": { runMakeCommand("verify-console-ingress") },
+        "logging trait WebLogic workload": { runMakeCommand("verify-wls-loggingtraits") },
+        "poko metricsbinding": { runMakeCommand("verify-poko-metricsbinding") },
+        ]
+    if (params.CREATE_CLUSTER_USE_CALICO == true) {
+        targets = targets + [
+            "security network policies": { runMakeCommand("verify-security-netpol") },
+         ]
+    }
+    return targets
+}
+
+def getVerifyInstallTestTargets() {
+    return [
+        //"verify-install": { runMakeCommand("verify-install") },
+        "verify-scripts": { runMakeCommand("verify-scripts") },
+        "verify-infra": { runMakeCommand("verify-infra") },
+        "security role based access": { runMakeCommand("verify-security-rbac") },
+        "system component metrics": { runMakeCommand("verify-system-metrics") },
+        "console": { runMakeCommand("verify-console") },
+        ]
+}
+
+def pipelineSetup() {
+    sh """
+        echo "${NODE_LABELS}"
+    """
+
+    script {
+        EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
+        if (params.GIT_COMMIT_TO_USE == "NONE") {
+            echo "Specific GIT commit was not specified, use current head"
+            def scmInfo = checkout scm
+            env.GIT_COMMIT = scmInfo.GIT_COMMIT
+            env.GIT_BRANCH = scmInfo.GIT_BRANCH
+        } else {
+            echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
+            def scmInfo = checkout([
+                $class: 'GitSCM',
+                branches: [[name: params.GIT_COMMIT_TO_USE]],
+                doGenerateSubmoduleConfigurations: false,
+                extensions: [],
+                submoduleCfg: [],
+                userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+            env.GIT_COMMIT = scmInfo.GIT_COMMIT
+            env.GIT_BRANCH = scmInfo.GIT_BRANCH
+            // If the commit we were handed is not what the SCM says we are using, fail
+            if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
+                echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
+                exit 1
+            }
+        }
+        echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+    }
+
+    sh """
+        cp -f "${NETRC_FILE}" $HOME/.netrc
+        chmod 600 $HOME/.netrc
+    """
+
+    script {
+        try {
+        sh """
+            echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+        """
+        } catch(error) {
+            echo "docker login failed, retrying after sleep"
+            retry(4) {
+                sleep(30)
+                sh """
+                    echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                """
+            }
+        }
+    }
+    sh """
+        rm -rf ${GO_REPO_PATH}/verrazzano
+        mkdir -p ${GO_REPO_PATH}/verrazzano
+        tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
+    """
+
+    script {
+        def props = readProperties file: '.verrazzano-development-version'
+        VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+        TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+        SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+        DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
+        // update the description with some meaningful info
+        setDisplayName()
+        currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+    }
 }
 
 def postFailureProcessing() {
@@ -439,63 +503,4 @@ def emitJobMetrics() {
 //    """
 //}
 
-//                stage('Run Acceptance Tests Infra') {
-//                    steps {
-//                        script {
-//                            parallel getVerifyInstallTestTargets()
-//                        }
-//                    }
-//                    post {
-//                        always {
-//                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-//                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-//                        }
-//                    }
-//                }
-//                stage('Run Acceptance Tests Deployments') {
-//                    steps {
-//                        script {
-//                            parallel getDeploymentTestTargets()
-//                        }
-//                    }
-//                    post {
-//                        always {
-//                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
-//                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-//                        }
-//                    }
-//                }
 
-//def getDeploymentTestTargets() {
-//    targets = [
-//        "opensearch-topology": { runMakeCommand("verify-opensearch-topology") },
-//        "istio authorization policy": { runMakeCommand("verify-istio-authz") },
-//        "k8s deployment workload metrics": { runMakeCommand("verify-deployment-workload-metrics") },
-//        "system logging": { runMakeCommand("verify-system-logging") },
-//        "opensearch logging": { runMakeCommand("verify-opensearch-logging") },
-//        "examples logging helidon": { runMakeCommand("verify-helidon-logging") },
-//        "examples helidon-metrics": { runMakeCommand("verify-helidon-metrics") },
-//        "examples helidon": { runMakeCommand("verify-examples-helidon") },
-//        "workloads": { runMakeCommand("verify-workloads") },
-//        "console ingress": { runMakeCommand("verify-console-ingress") },
-//        "logging trait WebLogic workload": { runMakeCommand("verify-wls-loggingtraits") },
-//        "poko metricsbinding": { runMakeCommand("verify-poko-metricsbinding") },
-//        ]
-//    if (params.CREATE_CLUSTER_USE_CALICO == true) {
-//        targets = targets + [
-//            "security network policies": { runMakeCommand("verify-security-netpol") },
-//         ]
-//    }
-//    return targets
-//}
-
-//def getVerifyInstallTestTargets() {
-//    return [
-//        //"verify-install": { runMakeCommand("verify-install") },
-//        "verify-scripts": { runMakeCommand("verify-scripts") },
-//        "verify-infra": { runMakeCommand("verify-infra") },
-//        "security role based access": { runMakeCommand("verify-security-rbac") },
-//        "system component metrics": { runMakeCommand("verify-system-metrics") },
-//        "console": { runMakeCommand("verify-console") },
-//        ]
-//}
