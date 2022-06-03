@@ -131,7 +131,7 @@ func (c *KeycloakRESTClient) GetToken(realm string, username string, password st
 		return "", err
 	}
 
-	requestURL := fmt.Sprintf("https://%s/auth/admin/realms/%s/protocol/openid-connect/token", c.keycloakIngressHost, realm)
+	requestURL := fmt.Sprintf("https://%s/auth/realms/%s/protocol/openid-connect/token", c.keycloakIngressHost, realm)
 	request, err := retryablehttp.NewRequest("POST", requestURL, requestBody)
 	if err != nil {
 		return "", err
