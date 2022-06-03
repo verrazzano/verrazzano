@@ -22,10 +22,7 @@ func init() {
 
 func isUsingCalico() bool {
 	usingCalico := os.Getenv("CREATE_CLUSTER_USE_CALICO")
-	if usingCalico != "true" {
-		return true
-	}
-	return false
+	return usingCalico == "true"
 }
 
 func TestSecurityNetworkPolicies(t *testing.T) {
