@@ -133,6 +133,7 @@ func (c *KeycloakRESTClient) GetTokenMap(realm string, username string, password
 	}
 	request.Host = c.keycloakIngressHost
 	request.Header.Add("Authorization", fmt.Sprintf("Bearer %v", c.adminAccessToken))
+	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	response, err := c.httpClient.Do(request)
 	if err != nil {
 		return nil, err
