@@ -125,7 +125,7 @@ func (c *KeycloakRESTClient) GetToken(realm string, username string, password st
 	form.Add("username", username)
 	form.Add("password", password)
 	form.Add("grant_type", "password")
-	form.Add("client_id", "clientid")
+	form.Add("client_id", clientid)
 
 	requestURL := fmt.Sprintf("https://%s/auth/realms/%s/protocol/openid-connect/token", c.keycloakIngressHost, realm)
 	response, err := PostWithHostHeader(requestURL, "application/x-www-form-urlencoded", c.keycloakIngressHost, strings.NewReader(form.Encode()))
