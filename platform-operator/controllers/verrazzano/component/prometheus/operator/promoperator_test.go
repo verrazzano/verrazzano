@@ -589,6 +589,32 @@ func TestUpdateApplicationAuthorizationPolicies(t *testing.T) {
 			},
 			expectedPrincipals: nil,
 		},
+		{
+			name: "test existing principal",
+			objects: []client.Object{
+				&namespace,
+				&istioclisec.AuthorizationPolicy{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: testNsName,
+						Name:      testAuthPolicyName,
+					},
+					Spec: istioclisecv1beta1.AuthorizationPolicy{
+						Rules: []*istioclisecv1beta1.Rule{
+							{
+								From: []*istioclisecv1beta1.Rule_From{
+									{
+										Source: &istioclisecv1beta1.Source{Principals: []string{
+											"p1", "p2", "p3", principal,
+										}},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedPrincipals: &[]string{"p1", "p2", "p3", principal},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -605,8 +631,11 @@ func TestUpdateApplicationAuthorizationPolicies(t *testing.T) {
 					err = fakes.List(context.TODO(), &authPolicyList, &client.ListOptions{Namespace: ns.Name})
 					assert.NoError(err)
 					for _, authPolicy := range authPolicyList.Items {
-						for _, principal := range *tt.expectedPrincipals {
-							assert.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, principal)
+						foundPrincipals := []string{}
+						for _, principal := range authPolicy.Spec.Rules[0].From[0].Source.Principals {
+							assert.NotContains(foundPrincipals, principal)
+							assert.Contains(*tt.expectedPrincipals, principal)
+							foundPrincipals = append(foundPrincipals, principal)
 						}
 					}
 				}
