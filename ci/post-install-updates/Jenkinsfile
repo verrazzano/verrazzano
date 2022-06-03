@@ -13,9 +13,6 @@
 // -> Uninstall Verrazzano
 // -> Cleanup resources
 
-// Load the utils file in this variable
-def utils
-
 // Test environment vars
 def testEnvironments = ["oke", "kind"]
 def agentLabel = env.JOB_NAME.contains('-post-install-') ? "" : env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
@@ -190,7 +187,6 @@ pipeline {
         TEST_CONFIG_FILE = "${HOME}/testConfigOke.yaml"
         KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
         VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
-        UTILS_FILE = "${WORKSPACE}/ci/utils.groovy"
         INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
 
         // used for cluster dump
@@ -254,19 +250,7 @@ pipeline {
                     }
                     echo "[INFO] SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
                 }
-
-                // Load the utils file
-                // script {
-                    // utils = load("${UTILS_FILE}")
-                    // status = utils.testUtilsFile()
-                    // if (status == "success") {
-                    //     echo "[INFO] utils.groovy loaded successfully"
-                    // } else {
-                    //     echo "[INFO] Error in loading utils.groovy"
-                    //     exit 1
-                    // }
-                // }
-
+                
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
                     chmod 600 $HOME/.netrc
