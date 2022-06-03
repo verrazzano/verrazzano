@@ -7,9 +7,6 @@ namespace: verrazzano-system
 global:
   imagePullSecrets: []
 
-metricsImageName: ghcr.io/nginxinc/nginx-prometheus-exporter
-metricsImageVersion: 0.10.0
-
 replicas:
 # NOTE: The AuthProxy deployment runs the nginx-ingress-controller image.  The nginx-ingress-controller image
 # is obtained from the bill of materials file (verrazzano-bom.json).

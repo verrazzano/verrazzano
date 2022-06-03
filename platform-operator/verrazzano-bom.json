@@ -206,6 +206,12 @@
               "tag": "1.1.1-20220413170248-b60724ed1",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
+            },
+            {
+              "image": "nginx-prometheus-exporter",
+              "tag": "0.10.0",
+              "helmFullImageKey": "api.metricsImageName",
+              "helmTagKey": "api.metricsImageVersion"
             }
           ]
         }
