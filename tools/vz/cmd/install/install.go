@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os/exec"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -24,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	ctrl "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -78,8 +78,14 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
+	// Get the kubernetes clientset.  This will validate that the kubeconfig and context are valid.
+	kubeClient, err := vzHelper.GetKubeClient(cmd)
+	if err != nil {
+		return err
+	}
+
 	// Apply the Verrazzano operator.yaml.
-	err := applyPlatfornOperatorYaml(cmd, vzHelper)
+	err = applyPlatformOperatorYaml(cmd, vzHelper)
 	if err != nil {
 		return err
 	}
@@ -90,7 +96,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		return err
 	}
 
-	// Wait for the platform operator to be ready before we create the verrazzano resource.
+	// Wait for the platform operator to be ready before we create the Verrazzano resource.
 	podName, err := waitForPlatformOperator(client, vzHelper)
 	if err != nil {
 		return err
@@ -109,42 +115,12 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		return err
 	}
 
-	config, err := ctrl.GetConfig()
-	if err != nil {
-		return fmt.Errorf("Failed to get kubeconfig: %v", err)
-	}
-
-	kubeClient, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return fmt.Errorf("Failed to get clientset: %v", err)
-	}
-
-	sinceTime := metav1.Now()
-	rc, err := kubeClient.CoreV1().Pods(vzconstants.VerrazzanoInstallNamespace).GetLogs(podName, &corev1.PodLogOptions{
-		Container: verrazzanoPlatformOperator,
-		Follow:    true,
-		SinceTime: &sinceTime,
-	}).Stream(context.TODO())
-	if err != nil {
-		return fmt.Errorf("Failed to get logs stream: %v", err)
-	}
-	defer rc.Close()
-
-	sc := bufio.NewScanner(rc)
-	sc.Split(bufio.ScanLines)
-	for sc.Scan() {
-		re := regexp.MustCompile(`"level":"(.*?)","@timestamp":"(.*?)","caller":"(.*?)","message":"(.*?)"`)
-		res := re.FindAllStringSubmatch(sc.Text(), -1)
-		if res != nil {
-			fmt.Fprintln(vzHelper.GetOutputStream(), fmt.Sprintf("%s %s %s", res[0][2], res[0][1], res[0][4]))
-		}
-	}
-
-	return nil
+	// Wait for the Verrazzano install to complete
+	return waitForInstallToComplete(kubeClient, cmd, vzHelper, podName)
 }
 
-// applyPlatfornOperatorYaml applies a given version of the platform operator yaml file
-func applyPlatfornOperatorYaml(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+// applyPlatformOperatorYaml applies a given version of the platform operator yaml file
+func applyPlatformOperatorYaml(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	// Get the version from the command line
 	version, err := cmd.PersistentFlags().GetString(constants.VersionFlag)
 	if err != nil {
@@ -230,4 +206,41 @@ func waitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper) (s
 		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("\rWaiting for verrazzano-platform-operator to be ready - %d seconds", seconds))
 	}
 	return pod.Name, nil
+}
+
+// waitForInstallToComplete waits for the Verrazzano install to complete and shows the logs of
+// the ongoing Verrazzano install.
+func waitForInstallToComplete(kubeClient *kubernetes.Clientset, cmd *cobra.Command, vzHelper helpers.VZHelper, podName string) error {
+	// Tail the log messages starting at the current time.
+	sinceTime := metav1.Now()
+	rc, err := kubeClient.CoreV1().Pods(vzconstants.VerrazzanoInstallNamespace).GetLogs(podName, &corev1.PodLogOptions{
+		Container: verrazzanoPlatformOperator,
+		Follow:    true,
+		SinceTime: &sinceTime,
+	}).Stream(context.TODO())
+	if err != nil {
+		return fmt.Errorf("Failed to get logs stream: %v", err)
+	}
+	defer rc.Close()
+
+	sc := bufio.NewScanner(rc)
+	sc.Split(bufio.ScanLines)
+	for sc.Scan() {
+		re := regexp.MustCompile(`"level":"(.*?)","@timestamp":"(.*?)","caller":"(.*?)","message":"(.*?)",`)
+		res := re.FindAllStringSubmatch(sc.Text(), -1)
+		// res[0][2] is the timestamp
+		// res[0][1] is the level
+		// res[0][4] is the message
+		if res != nil {
+			// Print each log message in the form "timestamp level message".
+			// For example, "2022-06-03T00:05:10.042Z info Component keycloak successfully installed"
+			fmt.Fprintln(vzHelper.GetOutputStream(), fmt.Sprintf("%s %s %s", res[0][2], res[0][1], res[0][4]))
+			// Return when the Verrazzano install has completed
+			if strings.Compare(res[0][4], "Successfully installed Verrazzano") == 0 {
+				return nil
+			}
+		}
+	}
+
+	return nil
 }

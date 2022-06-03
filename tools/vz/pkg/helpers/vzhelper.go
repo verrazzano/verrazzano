@@ -12,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/github"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -20,6 +21,7 @@ type VZHelper interface {
 	GetErrorStream() io.Writer
 	GetInputStream() io.Reader
 	GetClient(cmd *cobra.Command) (client.Client, error)
+	GetKubeClient(cmd *cobra.Command) (*kubernetes.Clientset, error)
 }
 
 // FindVerrazzanoResource - find the single Verrazzano resource

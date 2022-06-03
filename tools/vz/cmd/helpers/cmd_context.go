@@ -16,6 +16,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -38,7 +39,7 @@ func (rc *RootCmdContext) GetInputStream() io.Reader {
 	return rc.IOStreams.In
 }
 
-// GetClient - return a kubernetes client that supports the schemes used by the CLI
+// GetClient - return a Kubernetes controller runtime client that supports the schemes used by the CLI
 func (rc *RootCmdContext) GetClient(cmd *cobra.Command) (client.Client, error) {
 	// Get command line value of kubeConfig location
 	kubeConfigLoc, err := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
@@ -65,6 +66,28 @@ func (rc *RootCmdContext) GetClient(cmd *cobra.Command) (client.Client, error) {
 	_ = corev1.SchemeBuilder.AddToScheme(scheme)
 
 	return client.New(config, client.Options{Scheme: scheme})
+}
+
+// GetKubeClient - return a Kubernetes clientset for use with the go-client
+func (rc *RootCmdContext) GetKubeClient(cmd *cobra.Command) (*kubernetes.Clientset, error) {
+	// Get command line value of kubeConfig location
+	kubeConfigLoc, err := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get command line value of kubeContext
+	context, err := cmd.Flags().GetString(constants.GlobalFlagContext)
+	if err != nil {
+		return nil, err
+	}
+
+	config, err := k8sutil.GetKubeConfigGivenPathAndContext(kubeConfigLoc, context)
+	if err != nil {
+		return nil, err
+	}
+
+	return kubernetes.NewForConfig(config)
 }
 
 // NewRootCmdContext - create the root command context object
