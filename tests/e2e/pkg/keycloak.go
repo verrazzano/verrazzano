@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"io/ioutil"
@@ -119,27 +120,19 @@ func (c *KeycloakRESTClient) GetRealm(realm string) (map[string]interface{}, err
 
 // GetRealm gets a bearer token from a realm.
 func (c *KeycloakRESTClient) GetTokenMap(realm string, username string, password string, clientid string) (map[string]interface{}, error) {
-	requestData := map[string]interface{}{
-		"username":  username,
-		"password": password,
-		"grant_type":  "password",
-
-		"client_id": clientid,
-	}
-	requestBody, err := json.Marshal(requestData)
-	if err != nil {
-		fmt.Printf("marshal request failed: %v\n", err)
-		return nil, err
-	}
+	form := url.Values{}
+	form.Add("username", username)
+	form.Add("password", password)
+	form.Add("grant_type", "password")
+	form.Add("client_id", "clientid")
 
 	requestURL := fmt.Sprintf("https://%s/auth/realms/%s/protocol/openid-connect/token", c.keycloakIngressHost, realm)
-	request, err := retryablehttp.NewRequest("POST", requestURL, requestBody)
+	request, err := retryablehttp.NewRequest("POST", requestURL, strings.NewReader(form.Encode()))
 	if err != nil {
 		return nil, err
 	}
 	request.Host = c.keycloakIngressHost
 	request.Header.Add("Authorization", fmt.Sprintf("Bearer %v", c.adminAccessToken))
-	request.Header.Add("Content-Type", "application/json")
 	response, err := c.httpClient.Do(request)
 	if err != nil {
 		return nil, err
