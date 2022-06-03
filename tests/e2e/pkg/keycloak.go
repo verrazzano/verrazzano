@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"go.uber.org/zap"
 	"net/http"
 	"net/url"
 	"strings"
@@ -119,7 +120,7 @@ func (c *KeycloakRESTClient) GetRealm(realm string) (map[string]interface{}, err
 }
 
 // GetRealm gets a bearer token from a realm.
-func (c *KeycloakRESTClient) GetToken(realm string, username string, password string, clientid string) (string, error) {
+func (c *KeycloakRESTClient) GetToken(realm string, username string, password string, clientid string, log *zap.SugaredLogger) (string, error) {
 	form := url.Values{}
 	form.Add("username", username)
 	form.Add("password", password)
@@ -128,6 +129,7 @@ func (c *KeycloakRESTClient) GetToken(realm string, username string, password st
 
 	requestURL := fmt.Sprintf("https://%s/auth/realms/%s/protocol/openid-connect/token", c.keycloakIngressHost, realm)
 	response, err := PostWithHostHeader(requestURL, "application/x-www-form-urlencoded", c.keycloakIngressHost, strings.NewReader(form.Encode()))
+	log.Infof("response: %v", response.Body)
 	if response.StatusCode != 200 {
 		return "", fmt.Errorf("invalid response status: %d", response.StatusCode)
 	}
