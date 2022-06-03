@@ -118,48 +118,49 @@ func (c *KeycloakRESTClient) GetRealm(realm string) (map[string]interface{}, err
 }
 
 // GetRealm gets a bearer token from a realm.
-func (c *KeycloakRESTClient) GetToken(realm string, username string, password string, clientid string) (string, error) {
+func (c *KeycloakRESTClient) GetTokenMap(realm string, username string, password string, clientid string) (map[string]interface{}, error) {
 	requestData := map[string]interface{}{
 		"username":  username,
 		"password": password,
 		"grant_type":  "password",
+
 		"client_id": clientid,
 	}
 	requestBody, err := json.Marshal(requestData)
 	if err != nil {
 		fmt.Printf("marshal request failed: %v\n", err)
-		return "", err
+		return nil, err
 	}
 
 	requestURL := fmt.Sprintf("https://%s/auth/realms/%s/protocol/openid-connect/token", c.keycloakIngressHost, realm)
 	request, err := retryablehttp.NewRequest("POST", requestURL, requestBody)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	request.Host = c.keycloakIngressHost
 	request.Header.Add("Authorization", fmt.Sprintf("Bearer %v", c.adminAccessToken))
 	request.Header.Add("Content-Type", "application/json")
 	response, err := c.httpClient.Do(request)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if response == nil {
-		return "", fmt.Errorf("invalid response")
+		return nil, fmt.Errorf("invalid response")
 	}
 	defer response.Body.Close()
 	if response.StatusCode != 200 {
-		return "", fmt.Errorf("invalid response status: %d", response.StatusCode)
+		return nil, fmt.Errorf("invalid response status: %d", response.StatusCode)
 	}
 	responseBody, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	jsonMap := make(map[string]interface{})
 	err = json.Unmarshal(responseBody, &jsonMap)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return jsonMap["access_token"].(string), nil
+	return jsonMap, nil
 }
 
 // CreateUser creates a user in Keycloak

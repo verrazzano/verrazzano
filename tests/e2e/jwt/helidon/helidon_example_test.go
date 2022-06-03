@@ -85,7 +85,6 @@ var _ = t.AfterSuite(func() {
 var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	"f:app-lcm.helidon-workload"), func() {
 	var host = ""
-	var token = ""
 	var err error
 	// Get the host from the Istio gateway resource.
 	// GIVEN the Istio gateway for the hello-helidon namespace
@@ -125,11 +124,13 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 			// check for realm
 			_, err = kc.GetRealm(realmName)
 			Expect(err).To(BeNil())
-			token, err = kc.GetToken(realmName, "testuser", password, "appsclient")
-			t.Logs.Infof("Obtained token: %s", token)
+			tokenMap, err := kc.GetTokenMap(realmName, "testuser", password, "appsclient")
+			t.Logs.Infof("Obtained token map: %v", tokenMap)
 			url := fmt.Sprintf("https://%s/greet", host)
+			tokenObj, found := tokenMap["access_token"]
+			Expect(found).To(BeTrue())
 			Eventually(func() bool {
-				return appEndpointAccess(url, host, token, true)
+				return appEndpointAccess(url, host, tokenObj.(string), true)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 	})
