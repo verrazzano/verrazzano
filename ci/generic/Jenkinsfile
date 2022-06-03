@@ -31,6 +31,10 @@ pipeline {
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
                         trim: true)
+        string (name: 'PIPELINE_DESCRIPTOR',
+                        defaultValue: 'ci/generic/kind-acceptance-tests.yaml',
+                        description: 'Pipeline descriptor file location, relative to base of Verrazzano repo',
+                        trim: true)
         string (name: 'VERRAZZANO_OPERATOR_IMAGE', // FIXME: default this back to NONE before merging
                         defaultValue: 'ghcr.io/verrazzano/verrazzano-platform-operator-jenkins:1.4.0-20220531145624-8b776357',
                         description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the operator.yaml from Verrazzano repo will be used to create Verrazzano platform operator',
@@ -70,6 +74,9 @@ pipeline {
         DOCKER_EMAIL = credentials('github-packages-email')
         DOCKER_REPO = 'ghcr.io'
         DOCKER_NAMESPACE = 'verrazzano'
+
+        PIPELINE_CONFIG="${GO_REPO_PATH}/${params.PIPELINE_DESCRIPTOR}"
+
         NETRC_FILE = credentials('netrc')
         CLUSTER_NAME = 'verrazzano'
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
@@ -127,70 +134,16 @@ pipeline {
         }
 
         stage('Acceptance Tests') {
-            stages {
-                stage('Setup and Install') {
-                    environment {
-                        KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
-                        OCI_CLI_AUTH="instance_principal"
-                        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                        OCI_OS_BUCKET="verrazzano-builds"
-                        OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
-                    }
-                    steps {
-                        runMakeCommand("setup")
-                        runMakeCommand("install")
-                    }
-                    post {
-                        failure {
-                            archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
-                        }
-                        always {
-                            archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
-                            script {
-                                VZ_TEST_METRIC = metricJobName('')
-                                metricTimerStart("${VZ_TEST_METRIC}")
-                            }
-                        }
-                    }
-                }
-
-                stage('Verify Install') {
-                    steps {
-                        runMakeCommand("verify-install")
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                    }
-                }
-                stage('Run Acceptance Tests Infra') {
-                    steps {
-                        script {
-                            parallel getVerifyInstallTestTargets()
-                        }
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                    }
-                }
-                stage('Run Acceptance Tests Deployments') {
-                    steps {
-                        script {
-                            parallel getDeploymentTestTargets()
-                        }
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                    }
-                }
+            environment {
+                KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
+                OCI_CLI_AUTH="instance_principal"
+                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                OCI_OS_BUCKET="verrazzano-builds"
+                OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+            }
+            steps {
+                echo "Executing pipeline configuration ${env.PIPELINE_CONFIG}"
+                runDynamicStages(env.PIPELINE_CONFIG)
             }
             post {
                 failure {
@@ -239,6 +192,47 @@ pipeline {
             metricBuildDuration()
             emitJobMetrics()
             deleteDir()
+        }
+    }
+}
+
+def getPipelineDescriptorPath() {
+    return "${GO_REPO_PATH}/verrazzano/${params.PIPELINE_DESCRIPTOR}"
+}
+
+def runDynamicStages(pipelineDescriptor) {
+    script {
+        data = readYaml file: pipelineDescriptor
+        println data
+        print "Name: " + data.metadata.name
+        print "Agent label: " + data.metadata.agent["label"]
+        print "Stages: " + data.stages
+        stages = data.stages
+        for (int i = 0; i < stages.size(); i++) {
+            stage = stages.get(i)
+            print "Stage: " + stage
+            stageName = stage.name
+            stageMap = [:]
+            print "Stage Map start: " + stageMap
+            targets = stage.targets
+            for (target in targets) {
+                targetName = target.name
+                targetToInvoke = target.target
+                print "Target name: ${targetName}"
+                print "Target to invoke: ${targetToInvoke}"
+                stageMap.putAll(buildTargetClosure(targetName, targetToInvoke))
+                print "Stage Map current: " + stageMap
+            }
+            print "Stage Map to use: " + stageMap
+            stage("Test ${stageName}") {
+                try {
+                    echo "Executing stage ${stageName}"
+                    parallel stageMap
+                } finally {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
         }
     }
 }
