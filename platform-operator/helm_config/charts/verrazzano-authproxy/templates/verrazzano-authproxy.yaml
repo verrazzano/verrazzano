@@ -115,6 +115,14 @@ spec:
           timeoutSeconds: 1
           tcpSocket:
             port: {{ .Values.port }}
+        readinessProbe:
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          successThreshold: 1
+          failureThreshold: 1
+          timeoutSeconds: 1
+          tcpSocket:
+            port: {{ .Values.port }}
         volumeMounts:
         - mountPath: /api-config
           name: api-config
