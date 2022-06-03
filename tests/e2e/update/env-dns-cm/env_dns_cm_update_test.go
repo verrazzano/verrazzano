@@ -41,19 +41,15 @@ func (u EnvironmentNameModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 func (u WildcardDNSModifier) ModifyCR(cr *vzapi.Verrazzano) {
-	if cr.Spec.Components.DNS == nil {
-		cr.Spec.Components.DNS = &vzapi.DNSComponent{}
-	}
-	if cr.Spec.Components.DNS.Wildcard == nil {
-		cr.Spec.Components.DNS.Wildcard = &vzapi.Wildcard{}
-	}
+	cr.Spec.Components.DNS = &vzapi.DNSComponent{}
+	cr.Spec.Components.DNS.Wildcard = &vzapi.Wildcard{}
 	cr.Spec.Components.DNS.Wildcard.Domain = u.Domain
 }
 
 func (u CustomCACertificateModifier) ModifyCR(cr *vzapi.Verrazzano) {
-	if cr.Spec.Components.CertManager == nil {
-		cr.Spec.Components.CertManager = &vzapi.CertManagerComponent{}
-	}
+	var b bool = true
+	cr.Spec.Components.CertManager = &vzapi.CertManagerComponent{}
+	cr.Spec.Components.CertManager.Enabled = &b
 	cr.Spec.Components.CertManager.Certificate.CA.ClusterResourceNamespace = u.ClusterResourceNamespace
 	cr.Spec.Components.CertManager.Certificate.CA.SecretName = u.SecretName
 }
