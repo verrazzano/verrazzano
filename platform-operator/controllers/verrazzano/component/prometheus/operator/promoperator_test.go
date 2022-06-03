@@ -9,10 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	vmoconst "github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
-	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -20,7 +18,9 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -124,6 +124,9 @@ func TestAppendOverrides(t *testing.T) {
 				CertManager: &vzapi.CertManagerComponent{
 					Enabled: &trueValue,
 				},
+				Keycloak: &vzapi.KeycloakComponent{
+					Enabled: &falseValue,
+				},
 			},
 		},
 	}
@@ -133,7 +136,7 @@ func TestAppendOverrides(t *testing.T) {
 	var err error
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 22)
+	assert.Len(t, kvs, 26)
 
 	assert.Equal(t, "ghcr.io/verrazzano/prometheus-config-reloader", bom.FindKV(kvs, "prometheusOperator.prometheusConfigReloader.image.repository"))
 	assert.NotEmpty(t, bom.FindKV(kvs, "prometheusOperator.prometheusConfigReloader.image.tag"))
@@ -156,6 +159,9 @@ func TestAppendOverrides(t *testing.T) {
 				CertManager: &vzapi.CertManagerComponent{
 					Enabled: &falseValue,
 				},
+				Keycloak: &vzapi.KeycloakComponent{
+					Enabled: &falseValue,
+				},
 			},
 		},
 	}
@@ -165,7 +171,7 @@ func TestAppendOverrides(t *testing.T) {
 
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 22)
+	assert.Len(t, kvs, 26)
 
 	assert.Equal(t, "false", bom.FindKV(kvs, "prometheusOperator.admissionWebhooks.certManager.enabled"))
 }
@@ -199,8 +205,8 @@ func TestAppendIstioOverrides(t *testing.T) {
 			name: "test expect overrides",
 			expectOverrides: []bom.KeyValue{
 				{
-					Key:   fmt.Sprintf(`%s.traffic\.sidecar\.istio\.io/includeOutboundIPRanges`, annotationKey),
-					Value: "0.0.0.0/32",
+					Key:   fmt.Sprintf(`%s.traffic\.sidecar\.istio\.io/excludeOutboundIPRanges`, annotationKey),
+					Value: "0.0.0.0/0",
 				},
 				{
 					Key:   fmt.Sprintf(`%s.proxy\.istio\.io/config`, annotationKey),
@@ -229,18 +235,9 @@ func TestAppendIstioOverrides(t *testing.T) {
 			},
 		},
 	}
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).DoAndReturn(
-		func(ctx context.Context, name types.NamespacedName, service *v1.Service) error {
-			service.Spec.ClusterIP = "0.0.0.0"
-			return nil
-		})
-	vz := vzapi.Verrazzano{}
-	ctx := spi.NewFakeContext(mock, &vz, false)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			kvs, err := appendIstioOverrides(ctx, annotationKey, volumeMountKey, volumeKey, []bom.KeyValue{})
+			kvs, err := appendIstioOverrides(annotationKey, volumeMountKey, volumeKey, []bom.KeyValue{})
 
 			assert.Equal(t, len(tt.expectOverrides), len(kvs))
 
@@ -331,4 +328,37 @@ func TestValidatePrometheusOperator(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestApplySystemMonitors tests the applySystemMonitors function
+func TestApplySystemMonitors(t *testing.T) {
+	// GIVEN the Prometheus Operator is being installed or upgraded
+	// WHEN we call the applySystemMonitors function
+	// THEN ServiceMonitor and PodMonitor resources are applied so that
+	// Verrazzano system components will have their metrics collected
+	oldConfig := config.Get()
+	defer config.Set(oldConfig)
+	config.Set(config.OperatorConfig{
+		VerrazzanoRootDir: "../../../../../..",
+	})
+
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+
+	err := applySystemMonitors(ctx)
+	assert.NoError(t, err)
+
+	// expect that 3 PodMonitors are created
+	monitors := &unstructured.UnstructuredList{}
+	monitors.SetGroupVersionKind(schema.GroupVersionKind{Group: "monitoring.coreos.com", Version: "v1", Kind: "PodMonitor"})
+	err = client.List(context.TODO(), monitors)
+	assert.NoError(t, err)
+	assert.Len(t, monitors.Items, 3)
+
+	// expect that 1 ServiceMonitor is created
+	monitors = &unstructured.UnstructuredList{}
+	monitors.SetGroupVersionKind(schema.GroupVersionKind{Group: "monitoring.coreos.com", Version: "v1", Kind: "ServiceMonitor"})
+	err = client.List(context.TODO(), monitors)
+	assert.NoError(t, err)
+	assert.Len(t, monitors.Items, 1)
 }

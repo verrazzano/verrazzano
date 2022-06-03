@@ -6,10 +6,12 @@ package operator
 import (
 	"context"
 	"fmt"
+	"path"
 	"strconv"
 
 	vmoconst "github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -19,7 +21,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
@@ -136,14 +137,20 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	}
 
 	// Append the Istio Annotations for Prometheus
-	kvs, err = appendIstioOverrides(ctx,
-		"prometheus.prometheusSpec.podMetadata.annotations",
+	kvs, err = appendIstioOverrides("prometheus.prometheusSpec.podMetadata.annotations",
 		"prometheus.prometheusSpec.volumeMounts",
 		"prometheus.prometheusSpec.volumes",
 		kvs)
 	if err != nil {
 		return kvs, ctx.Log().ErrorfNewErr("Failed applying the Istio Overrides for Prometheus")
 	}
+
+	// Disable HTTP2 to allow mTLS communication with the application Istio sidecars
+	kvs = append(kvs, []bom.KeyValue{
+		{Key: "prometheus.prometheusSpec.containers[0].name", Value: "prometheus"},
+		{Key: "prometheus.prometheusSpec.containers[0].env[0].name", Value: "PROMETHEUS_COMMON_DISABLE_HTTP2"},
+		{Key: "prometheus.prometheusSpec.containers[0].env[0].value", Value: `"1"`},
+	}...)
 
 	kvs, err = appendAdditionalVolumeOverrides(ctx,
 		"prometheus.prometheusSpec.volumeMounts",
@@ -152,6 +159,10 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	if err != nil {
 		return kvs, ctx.Log().ErrorfNewErr("Failed applying additional volume overrides for Prometheus")
 	}
+
+	// Add a label to Prometheus Operator resources to distinguish Verrazzano resources
+	kvs = append(kvs, bom.KeyValue{Key: "commonLabels.verrazzano-component", Value: "prometheus-operator"})
+
 	return kvs, nil
 }
 
@@ -209,29 +220,15 @@ func (c prometheusComponent) validatePrometheusOperator(vz *vzapi.Verrazzano) er
 
 // appendIstioOverrides appends Istio annotations necessary for Prometheus in Istio
 // Istio is required on the Prometheus for mTLS between it and Verrazzano applications
-func appendIstioOverrides(ctx spi.ComponentContext, annotationsKey, volumeMountKey, volumeKey string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	// Set the Istio annotation on Prometheus to exclude Keycloak HTTP Service IP address.
-	// The includeOutboundIPRanges implies all others are excluded.
-	// This is done by adding the traffic.sidecar.istio.io/includeOutboundIPRanges=<Keycloak IP>/32 annotation.
-	svc := corev1.Service{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: "keycloak-http", Namespace: constants.KeycloakNamespace}, &svc)
-	if err != nil {
-		if !errors.IsNotFound(err) {
-			return kvs, ctx.Log().ErrorfNewErr("Failed to get keycloak-http service: %v", err)
-		}
-	}
-	outboundIP := fmt.Sprintf("%s/32", svc.Spec.ClusterIP)
-	if svc.Spec.ClusterIP == "" {
-		outboundIP = "0.0.0.0/0"
-	}
-
+func appendIstioOverrides(annotationsKey, volumeMountKey, volumeKey string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Istio annotations that will copy the volume mount for the Istio certs to the envoy sidecar
 	// The last annotation allows envoy to intercept only requests from the Keycloak Service IP
 	annotations := map[string]string{
 		`proxy\.istio\.io/config`:                             `{"proxyMetadata":{ "OUTPUT_CERTS": "/etc/istio-output-certs"}}`,
 		`sidecar\.istio\.io/userVolumeMount`:                  `[{"name": "istio-certs-dir", "mountPath": "/etc/istio-output-certs"}]`,
-		`traffic\.sidecar\.istio\.io/includeOutboundIPRanges`: outboundIP,
+		`traffic\.sidecar\.istio\.io/excludeOutboundIPRanges`: "0.0.0.0/0",
 	}
+
 	for key, value := range annotations {
 		kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s.%s", annotationsKey, key), Value: value})
 	}
@@ -280,4 +277,20 @@ func appendAdditionalVolumeOverrides(ctx spi.ComponentContext, volumeMountKey, v
 	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[1].secret.optional", volumeKey), Value: "true"})
 
 	return kvs, nil
+}
+
+// applySystemMonitors applies templatized PodMonitor and ServiceMonitor custom resources for Verrazzano system
+// components to the cluster
+func applySystemMonitors(ctx spi.ComponentContext) error {
+	// create template key/value map
+	args := make(map[string]interface{})
+	args["systemNamespace"] = constants.VerrazzanoSystemNamespace
+	args["monitoringNamespace"] = constants.VerrazzanoMonitoringNamespace
+	args["nginxNamespace"] = constants.IngressNginxNamespace
+	args["istioNamespace"] = constants.IstioSystemNamespace
+
+	// substitute template values to all files in the directory and apply the resulting YAML
+	dir := path.Join(config.GetThirdPartyManifestsDir(), "prometheus-operator")
+	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
+	return yamlApplier.ApplyDT(dir, args)
 }
