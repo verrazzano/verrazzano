@@ -64,7 +64,7 @@ verify-istio-authz:
 
 .PHONY: verify-deployment-workload-metrics
 verify-deployment-workload-metrics:
-	TEST_SUITES=metrics/deploymetrics/... make test
+	TEST_SUITES=metrics/deploymetrics/... make run-sequential
 
 .PHONY: verify-system-logging
 verify-system-logging:
