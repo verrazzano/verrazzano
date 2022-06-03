@@ -200,7 +200,7 @@ pipeline {
 }
 
 def getPipelineDescriptorPath() {
-    return "${GO_REPO_PATH}/verrazzano/${params.PIPELINE_DESCRIPTOR}"
+    return "${WORKSPACE}/${params.PIPELINE_DESCRIPTOR}"
 }
 
 def runDynamicStages(pipelineDescriptor) {
