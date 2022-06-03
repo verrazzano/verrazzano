@@ -20,12 +20,12 @@ const (
 	pollingInterval = 10 * time.Second
 )
 
-type ACMECertificateModifier struct {
+type ACMECertManagerModifier struct {
 	EmailAddress string
 	Environment  string
 }
 
-func (u ACMECertificateModifier) ModifyCR(cr *vzapi.Verrazzano) {
+func (u ACMECertManagerModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	var b bool = true
 	cr.Spec.Components.CertManager = &vzapi.CertManagerComponent{}
 	cr.Spec.Components.CertManager.Enabled = &b
@@ -38,34 +38,43 @@ var (
 	t                           = framework.NewTestFramework("update cm (let's encrypt)")
 	testAcmeEmailAddress string = "emailAddress@domain.com"
 	testAcmeEnvironment  string = "staging"
+
+	clusterIssuerName           string = "verrazzano-cluster-issuer"
+	clusterIssuerPrivateKeyName string = "verrazzano-cert-acme-secret"
 )
 
 var _ = t.Describe("Test updates cert-manager CA certificates", func() {
 	t.It("Update and verify CA certificate", func() {
-		m := ACMECertificateModifier{testAcmeEmailAddress, testAcmeEnvironment}
+		m := ACMECertManagerModifier{testAcmeEmailAddress, testAcmeEnvironment}
 		err := update.UpdateCR(m)
 		if err != nil {
-			log.Fatalf("Error in updating CA certificate - %s", err)
+			log.Fatalf("Error in updating CA - %s", err)
 		}
-		validateCACertificateIssuer("lets-encrypt")
+		validateClusterIssuerUpdate()
 	})
 })
 
-func validateCACertificateIssuer(certIssuer string) {
+func validateClusterIssuerUpdate() {
+	log.Printf("Validating updates to the ClusterIssuer")
 	Eventually(func() bool {
-		// Fetch the certificates for the deployed applications
-		certificateList, err := pkg.GetCertificateList("")
+		// Fetch the cluster issuers
+		clusterIssuer, err := pkg.GetClusterIssuer(clusterIssuerName)
 		if err != nil {
-			log.Fatalf("Error while fetching CertificateList\n%s", err)
+			log.Fatalf("Error while fetching ClusterIssuers\n%s", err)
 		}
-		// Verify that the certificate is issued by the right cluster issuer
-		for _, certificate := range certificateList.Items {
-			currIssuer := certificate.Spec.IssuerRef.Name
-			if currIssuer != certIssuer {
-				log.Printf("Issuer for the certificate %s in namespace %s is %s; expected is %s\n", certificate.Name, certificate.Namespace, currIssuer, certIssuer)
-				return false
-			}
+		// Verify that the cluster issuer has been updated
+		if clusterIssuer.Spec.ACME == nil {
+			log.Printf("ClusterIssuer %s does not contain ACME section\n", clusterIssuerName)
+			return false
+		}
+		if clusterIssuer.Spec.ACME.Email != testAcmeEmailAddress {
+			log.Printf("ClusterIssuer ACME section contains the email %s, instead of the email %s\n", clusterIssuer.Spec.ACME.Email, testAcmeEmailAddress)
+			return false
+		}
+		if clusterIssuer.Spec.ACME.PrivateKey.Name != clusterIssuerPrivateKeyName {
+			log.Printf("ClusterIssuer ACME section contains the private key %s, instead of the private key %s\n", clusterIssuer.Spec.ACME.PrivateKey.Name, clusterIssuerPrivateKeyName)
+			return false
 		}
 		return true
-	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected that the certificates have a valid issuer")
+	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected that the cluster issuer should be updated")
 }
