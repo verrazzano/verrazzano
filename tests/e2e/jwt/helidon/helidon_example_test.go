@@ -92,18 +92,10 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
 	t.BeforeEach(func() {
-		Eventually(func() (string, string, error) {
+		Eventually(func() (string, error) {
 			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 			Expect(err).To(BeNil())
-			kc, err := pkg.NewKeycloakAdminRESTClient()
-			Expect(err).To(BeNil())
-			password := pkg.GetRequiredEnvVarOrFail("REALM_USER_PASSWORD")
-			realmName := pkg.GetRequiredEnvVarOrFail("REALM_NAME")
-			// check for realm
-			_, err = kc.GetRealm(realmName)
-			Expect(err).To(BeNil())
-			token, err = kc.GetToken(realmName, "testuser", password, "appsclient")
-			return host, token, err
+			return host, err
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 	})
 
@@ -126,6 +118,14 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 			if skipVerify {
 				Skip(skipVerifications)
 			}
+			kc, err := pkg.NewKeycloakAdminRESTClient()
+			Expect(err).To(BeNil())
+			password := pkg.GetRequiredEnvVarOrFail("REALM_USER_PASSWORD")
+			realmName := pkg.GetRequiredEnvVarOrFail("REALM_NAME")
+			// check for realm
+			_, err = kc.GetRealm(realmName)
+			Expect(err).To(BeNil())
+			token, err = kc.GetToken(realmName, "testuser", password, "appsclient")
 			url := fmt.Sprintf("https://%s/greet", host)
 			Eventually(func() bool {
 				return appEndpointAccess(url, host, token, true)
