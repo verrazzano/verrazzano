@@ -75,8 +75,6 @@ pipeline {
         DOCKER_REPO = 'ghcr.io'
         DOCKER_NAMESPACE = 'verrazzano'
 
-        PIPELINE_CONFIG="${GO_REPO_PATH}/${params.PIPELINE_DESCRIPTOR}"
-
         NETRC_FILE = credentials('netrc')
         CLUSTER_NAME = 'verrazzano'
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
@@ -140,6 +138,7 @@ pipeline {
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
                 OCI_OS_BUCKET="verrazzano-builds"
                 OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                PIPELINE_CONFIG=getPipelineDescriptorPath()
             }
             steps {
                 echo "Executing pipeline configuration ${env.PIPELINE_CONFIG}"
