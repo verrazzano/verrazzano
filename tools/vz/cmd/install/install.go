@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math"
 	"os/exec"
 	"regexp"
 	"time"
@@ -107,6 +108,9 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
 			Name:      "verrazzano",
+		},
+		Spec: vzapi.VerrazzanoSpec{
+			Profile: vzapi.Prod,
 		},
 	}
 	err = client.Create(context.TODO(), vz)
@@ -222,30 +226,40 @@ func waitForInstallToComplete(client clipkg.Client, kubeClient *kubernetes.Clien
 	}
 	defer rc.Close()
 
-	sc := bufio.NewScanner(rc)
-	sc.Split(bufio.ScanLines)
-	for sc.Scan() {
-		re := regexp.MustCompile(`"level":"(.*?)","@timestamp":"(.*?)","caller":"(.*?)","message":"(.*?)",`)
-		res := re.FindAllStringSubmatch(sc.Text(), -1)
-		// res[0][2] is the timestamp
-		// res[0][1] is the level
-		// res[0][4] is the message
-		if res != nil {
-			// Print each log message in the form "timestamp level message".
-			// For example, "2022-06-03T00:05:10.042Z info Component keycloak successfully installed"
-			fmt.Fprintln(vzHelper.GetOutputStream(), fmt.Sprintf("%s %s %s", res[0][2], res[0][1], res[0][4]))
+	resChan := make(chan error, 1)
+	go func() {
+		sc := bufio.NewScanner(rc)
+		sc.Split(bufio.ScanLines)
+		for sc.Scan() {
+			re := regexp.MustCompile(`"level":"(.*?)","@timestamp":"(.*?)","caller":"(.*?)","message":"(.*?)",`)
+			res := re.FindAllStringSubmatch(sc.Text(), -1)
+			// res[0][2] is the timestamp
+			// res[0][1] is the level
+			// res[0][4] is the message
+			if res != nil {
+				// Print each log message in the form "timestamp level message".
+				// For example, "2022-06-03T00:05:10.042Z info Component keycloak successfully installed"
+				fmt.Fprintln(vzHelper.GetOutputStream(), fmt.Sprintf("%s %s %s", res[0][2], res[0][1], res[0][4]))
 
-			// Return when the Verrazzano install has completed
-			vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
-			if err != nil {
-				return err
-			}
-			for _, condition := range vz.Status.Conditions {
-				if condition.Type == vzapi.CondInstallComplete {
-					return nil
+				// Return when the Verrazzano install has completed
+				vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
+				if err != nil {
+					resChan <- err
+				}
+				for _, condition := range vz.Status.Conditions {
+					if condition.Type == vzapi.CondInstallComplete {
+						resChan <- nil
+					}
 				}
 			}
 		}
+	}()
+
+	select {
+	case result := <-resChan:
+		return result
+	case <-time.After(time.Duration(math.MaxInt64)):
+		fmt.Println(vzHelper.GetOutputStream(), "Timeout exceeded waiting for install to complete")
 	}
 
 	return nil
