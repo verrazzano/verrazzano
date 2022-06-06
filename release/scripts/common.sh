@@ -15,10 +15,10 @@ declare -a releaseArtifacts=("operator.yaml"
                              "verrazzano-analysis-darwin-amd64.tar.gz.sha256"
                              "verrazzano-analysis-linux-amd64.tar.gz"
                              "verrazzano-analysis-linux-amd64.tar.gz.sha256"
-                             "verrazzano-cli-darwin-amd64.tar.gz"
-                             "verrazzano-cli-darwin-amd64.tar.gz.sha256"
-                             "verrazzano-cli-linux-amd64.tar.gz"
-                             "verrazzano-cli-linux-amd64.tar.gz.sha256")
+                             "vz-darwin-amd64.tar.gz"
+                             "vz-darwin-amd64.tar.gz.sha256"
+                             "vz-linux-amd64.tar.gz"
+                             "vz-linux-amd64.tar.gz.sha256")
 
 # Validates whether OCI CLI is installed
 function validate_oci_cli() {

@@ -37,7 +37,7 @@ pipeline {
         booleanParam (description: 'Whether to trigger full testing after a successful run. Off by default. This is always done for successful master and release* builds, this setting only is used to enable the trigger for other branches', name: 'TRIGGER_FULL_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to generate the analysis tool', name: 'GENERATE_TOOL', defaultValue: false)
         booleanParam (description: 'Whether to generate a tarball', name: 'GENERATE_TARBALL', defaultValue: false)
-        booleanParam (description: 'Whether to generate the verrazzano cli', name: 'GENERATE_CLI', defaultValue: false)
+        booleanParam (description: 'Whether to generate the Verrazzano CLI', name: 'GENERATE_CLI', defaultValue: false)
         booleanParam (description: 'Whether to push images to OCIR', name: 'PUSH_TO_OCIR', defaultValue: false)
         booleanParam (description: 'Whether to fail the Integration Tests to test failure handling', name: 'SIMULATE_FAILURE', defaultValue: false)
         booleanParam (description: 'Whether to perform a scan of the built images', name: 'PERFORM_SCAN', defaultValue: false)
@@ -650,7 +650,7 @@ def buildAnalysisTool(dockerImageTag) {
     """
 }
 
-// Called in Stage Analysis Tool steps
+// Called in Stage CLI steps
 def buildVerrazzanoCLI(dockerImageTag) {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/tools/vz

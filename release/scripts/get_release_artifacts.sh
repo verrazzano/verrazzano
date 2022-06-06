@@ -10,7 +10,7 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
 usage() {
     cat <<EOM
-  Downloads the operator.yaml and the zip file containing the analysis tool.
+  Downloads the operator.yaml, the zip file containing the analysis tool, and the zip file containing the Verrazzno CLI.
 
   Usage:
     $(basename $0) <release branch> <short hash of commit to release> <directory where the release artifacts need to be downloaded, defaults to the current directory>
