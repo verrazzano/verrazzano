@@ -25,7 +25,7 @@ vz upgrade
 vz upgrade --version v1.3.0 --timeout 20m`
 )
 
-var logsEnum = cmdhelpers.LogsFormatSimple
+var logsEnum = cmdhelpers.LogFormatSimple
 
 func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
