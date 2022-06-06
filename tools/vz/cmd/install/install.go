@@ -244,7 +244,7 @@ func waitForInstallToComplete(client clipkg.Client, kubeClient *kubernetes.Clien
 			if res != nil {
 				// Print each log message in the form "timestamp level message".
 				// For example, "2022-06-03T00:05:10.042Z info Component keycloak successfully installed"
-				fmt.Fprint(vzHelper.GetOutputStream(), fmt.Sprintf("%s %s %s\n", res[0][2], res[0][1], res[0][4]))
+				fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("%s %s %s\n", res[0][2], res[0][1], res[0][4]))
 
 				// Return when the Verrazzano install has completed
 				vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
@@ -265,7 +265,7 @@ func waitForInstallToComplete(client clipkg.Client, kubeClient *kubernetes.Clien
 		return result
 	case <-time.After(timeout):
 		if timeout.Nanoseconds() != 0 {
-			fmt.Fprintln(vzHelper.GetOutputStream(), fmt.Sprintf("Timeout %v exceeded waiting for install to complete\n", timeout.String()))
+			fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Timeout %v exceeded waiting for install to complete\n", timeout.String()))
 		}
 	}
 
