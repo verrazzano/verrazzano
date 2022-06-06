@@ -5,11 +5,14 @@ package nginxistio
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
 	"text/template"
 	"time"
+
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 
@@ -544,7 +547,7 @@ func validateServiceNodePortAndExternalIP(expectedSystemExternalIP, expectedAppl
 		}
 
 		// validate Verrazzano Ingress URL
-		err = validateVerrazzanoIngressURL(expectedSystemExternalIP)
+		err = validateVerrazzanoIngressHost(expectedSystemExternalIP)
 		if err != nil {
 			return err
 		}
@@ -595,7 +598,7 @@ func validateServiceLoadBalancer() {
 		}
 
 		// validate Verrazzano Ingress URL
-		err = validateVerrazzanoIngressURL(nginxLBIP)
+		err = validateVerrazzanoIngressHost(nginxLBIP)
 		if err != nil {
 			return err
 		}
@@ -610,33 +613,36 @@ func validateServiceLoadBalancer() {
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "expect to get LoadBalancer type and loadBalancer IP from nginx and istio services")
 }
 
-func validateVerrazzanoIngressURL(expectedIP string) error {
+func validateVerrazzanoIngressHost(expectedIP string) error {
 	kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		return err
 	}
-	api, err := pkg.GetAPIEndpoint(kubeConfigPath)
-	if err != nil {
-		t.Logs.Errorf("Error getting API endpoint: %v", err)
-		return err
-	}
-	vzURL, err := api.GetVerrazzanoIngressURL()
+	clientset, err := pkg.GetKubernetesClientsetForCluster(kubeConfigPath)
 	if err != nil {
 		return err
 	}
-	if !strings.Contains(vzURL, expectedIP) {
-		return fmt.Errorf("expect Verrazzano URL %s to contain IP %s", vzURL, expectedIP)
+	ingress, err := clientset.NetworkingV1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-ingress", v1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	if len(ingress.Spec.Rules) == 0 {
+		return fmt.Errorf("expect Verrazzano Ingress to have at least one host")
+	}
+	host := ingress.Spec.Rules[0].Host
+	if !strings.Contains(host, expectedIP) {
+		return fmt.Errorf("expect Verrazzano Ingress Host %s to contain IP %s", host, expectedIP)
 	}
 	return nil
 }
 
 func validateHelloHelidonHost(expectedIP string) error {
-	helloHost, err := k8sutil.GetHostnameFromGateway("hello-helidon", "")
+	host, err := k8sutil.GetHostnameFromGateway("hello-helidon", "")
 	if err != nil {
 		return err
 	}
-	if !strings.Contains(helloHost, expectedIP) {
-		return fmt.Errorf("expect hello-helidon HOST %s to contain IP %s", helloHost, expectedIP)
+	if !strings.Contains(host, expectedIP) {
+		return fmt.Errorf("expect hello-helidon HOST %s to contain IP %s", host, expectedIP)
 	}
 	return nil
 }
