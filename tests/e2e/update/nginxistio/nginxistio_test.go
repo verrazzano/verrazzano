@@ -94,9 +94,6 @@ type NginxIstioNodePortModifier struct {
 type NginxIstioLoadBalancerModifier struct {
 }
 
-type NginxIstioServicePortsModifier struct {
-}
-
 type NginxIstioIngressServiceAnnotationModifier struct {
 	nginxLBShape string
 	istioLBShape string
@@ -237,20 +234,6 @@ func (u NginxIstioLoadBalancerModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Istio.IstioInstallArgs = istioInstallArgs
 }
 
-func (u NginxIstioServicePortsModifier) ModifyCR(cr *vzapi.Verrazzano) {
-	if cr.Spec.Components.Ingress == nil {
-		cr.Spec.Components.Ingress = &vzapi.IngressNginxComponent{}
-	}
-	cr.Spec.Components.Ingress.Ports = testNginxIngressPorts
-	if cr.Spec.Components.Istio == nil {
-		cr.Spec.Components.Istio = &vzapi.IstioComponent{}
-	}
-	if cr.Spec.Components.Istio.Ingress == nil {
-		cr.Spec.Components.Istio.Ingress = &vzapi.IstioIngressSection{}
-	}
-	cr.Spec.Components.Istio.Ingress.Ports = testIstioIngressPorts
-}
-
 func (u NginxIstioIngressServiceAnnotationModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.Ingress == nil {
 		cr.Spec.Components.Ingress = &vzapi.IngressNginxComponent{}
@@ -333,18 +316,6 @@ var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.
 			update.ValidatePods(nginxLabelValue, nginxLabelKey, constants.IngressNamespace, nodeCount, false)
 			update.ValidatePods(istioIngressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, istioCount, false)
 			update.ValidatePods(istioEgressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, istioCount, false)
-		})
-	})
-
-	t.Describe("verrazzano-nginx-istio update service ports", Label("f:platform-lcm.nginx-istio-update-ports"), func() {
-		t.It("nginx-istio update service ports", func() {
-			m := NginxIstioServicePortsModifier{}
-			err := update.UpdateCR(m)
-			if err != nil {
-				Fail(err.Error())
-			}
-
-			validateServicePorts()
 		})
 	})
 
@@ -512,27 +483,6 @@ func validateServiceAnnotations(m NginxIstioIngressServiceAnnotationModifier) {
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "expect to get correct ports setting from nginx and istio services")
 }
 
-func validateServicePorts() {
-	gomega.Eventually(func() error {
-		var err error
-		nginxIngress, err := pkg.GetService(constants.IngressNamespace, nginxIngressServiceName)
-		if err != nil {
-			return err
-		}
-		if !reflect.DeepEqual(testNginxIngressPorts, nginxIngress.Spec.Ports) {
-			return fmt.Errorf("expect nginx ingress with ports %v, but got %v", testNginxIngressPorts, nginxIngress.Spec.Ports)
-		}
-		istioIngress, err := pkg.GetService(constants.IstioSystemNamespace, istioIngressServiceName)
-		if err != nil {
-			return err
-		}
-		if !reflect.DeepEqual(testIstioIngressPorts, istioIngress.Spec.Ports) {
-			return fmt.Errorf("expect istio ingress with ports %v, but got %v", testNginxIngressPorts, istioIngress.Spec.Ports)
-		}
-		return nil
-	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "expect to get correct ports setting from nginx and istio services")
-}
-
 func validateServiceNodePortAndExternalIP(expectedSystemExternalIP, expectedApplicationExternalIP string) {
 	gomega.Eventually(func() error {
 		// validate Nginx Ingress service
@@ -543,6 +493,9 @@ func validateServiceNodePortAndExternalIP(expectedSystemExternalIP, expectedAppl
 		}
 		if nginxIngress.Spec.Type != corev1.ServiceTypeNodePort {
 			return fmt.Errorf("expect nginx ingress with type NodePort, but got %v", nginxIngress.Spec.Type)
+		}
+		if !reflect.DeepEqual(testNginxIngressPorts, nginxIngress.Spec.Ports) {
+			return fmt.Errorf("expect nginx ingress with ports %v, but got %v", testNginxIngressPorts, nginxIngress.Spec.Ports)
 		}
 		expectedSysIPs := []string{expectedSystemExternalIP}
 		if !reflect.DeepEqual(expectedSysIPs, nginxIngress.Spec.ExternalIPs) {
@@ -556,6 +509,9 @@ func validateServiceNodePortAndExternalIP(expectedSystemExternalIP, expectedAppl
 		}
 		if istioIngress.Spec.Type != corev1.ServiceTypeNodePort {
 			return fmt.Errorf("expect istio ingress with type NodePort, but got %v", istioIngress.Spec.Type)
+		}
+		if !reflect.DeepEqual(testIstioIngressPorts, istioIngress.Spec.Ports) {
+			return fmt.Errorf("expect istio ingress with ports %v, but got %v", testNginxIngressPorts, istioIngress.Spec.Ports)
 		}
 		expectedAppIPs := []string{expectedApplicationExternalIP}
 		if !reflect.DeepEqual(expectedAppIPs, istioIngress.Spec.ExternalIPs) {
