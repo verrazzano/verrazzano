@@ -84,6 +84,8 @@ function delete_oam_operator {
   # Delete the additional cluster roles we created during install
   log "Deleting additional OAM cluster roles"
   kubectl delete clusterrole oam-kubernetes-runtime-pvc --ignore-not-found
+  kubectl delete clusterrole oam-kubernetes-runtime-istio --ignore-not-found
+  kubectl delete clusterrole oam-kubernetes-runtime-certificate --ignore-not-found
 }
 
 function delete_application_operator {

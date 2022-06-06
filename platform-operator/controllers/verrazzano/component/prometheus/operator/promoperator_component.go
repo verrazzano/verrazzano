@@ -87,12 +87,18 @@ func (c prometheusComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := applySystemMonitors(ctx); err != nil {
 		return err
 	}
+	if err := updateApplicationAuthorizationPolicies(ctx); err != nil {
+		return err
+	}
 	return c.HelmComponent.PostInstall(ctx)
 }
 
 // PostUpgrade applies monitor resources for Verrazzano system components
 func (c prometheusComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := applySystemMonitors(ctx); err != nil {
+		return err
+	}
+	if err := updateApplicationAuthorizationPolicies(ctx); err != nil {
 		return err
 	}
 	return c.HelmComponent.PostUpgrade(ctx)

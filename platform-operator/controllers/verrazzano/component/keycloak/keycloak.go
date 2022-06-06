@@ -9,21 +9,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"k8s.io/apimachinery/pkg/labels"
 	"os/exec"
 	"path/filepath"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"strings"
 	"text/template"
 
+	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
+	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
@@ -37,6 +37,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -464,7 +465,7 @@ func updatePrometheusAnnotations(ctx spi.ComponentContext) error {
 	promList := promoperapi.PrometheusList{}
 	err := ctx.Client().List(context.TODO(), &promList, &client.ListOptions{
 		Namespace:     operator.ComponentNamespace,
-		LabelSelector: labels.SelectorFromSet(labels.Set{"verrazzano-component": "prometheus-operator"}),
+		LabelSelector: labels.SelectorFromSet(labels.Set{constants.VerrazzanoComponentLabelKey: promoperator.ComponentName}),
 	})
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to list Prometheus in the %s namespace: %v", operator.ComponentNamespace, err)

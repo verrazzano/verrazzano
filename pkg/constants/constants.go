@@ -116,3 +116,6 @@ const TestPrometheusScrapeJob = "test_job"
 
 // Default Opensearch URL
 const DefaultOpensearchURL = "http://verrazzano-authproxy-elasticsearch:8775"
+
+// VerrazzanoManagedLabelKey is a constant for a Kubernetes label that is applied to Verrazzano application namespaces
+const VerrazzanoManagedLabelKey = "verrazzano-managed"

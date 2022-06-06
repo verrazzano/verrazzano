@@ -10,6 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vzConstants "github.com/verrazzano/verrazzano/pkg/constants"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	log2 "github.com/verrazzano/verrazzano/pkg/log"
 	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
@@ -223,7 +224,7 @@ func (r *Reconciler) mutateNamespace(nsTemplate clustersv1alpha1.NamespaceTempla
 	}
 
 	// Apply the standard Verrazzano labels
-	namespace.Labels[constants.LabelVerrazzanoManaged] = constants.LabelVerrazzanoManagedDefault
+	namespace.Labels[vzconst.VerrazzanoManagedLabelKey] = constants.LabelVerrazzanoManagedDefault
 	namespace.Labels[constants.LabelIstioInjection] = istioInjection
 
 	// Apply user specified labels, which may override standard Verrazzano labels
