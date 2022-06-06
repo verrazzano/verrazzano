@@ -23,6 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -42,16 +43,16 @@ func isPrometheusOperatorReady(ctx spi.ComponentContext) bool {
 	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
-// PreInstall implementation for the Prometheus Operator Component
-func preInstall(ctx spi.ComponentContext) error {
+// preInstallUpgrade handles pre-install and pre-upgrade processing for the Prometheus Operator Component
+func preInstallUpgrade(ctx spi.ComponentContext) error {
 	// Do nothing if dry run
 	if ctx.IsDryRun() {
-		ctx.Log().Debug("Prometheus Operator PreInstall dry run")
+		ctx.Log().Debug("Prometheus Operator preInstallUpgrade dry run")
 		return nil
 	}
 
 	// Create the verrazzano-monitoring namespace
-	ctx.Log().Debugf("Creating namespace %s for the Prometheus Operator", ComponentNamespace)
+	ctx.Log().Debugf("Creating/updating namespace %s for the Prometheus Operator", ComponentNamespace)
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), prometheus.GetVerrazzanoMonitoringNamespace(), func() error {
 		return nil
 	}); err != nil {
@@ -59,7 +60,24 @@ func preInstall(ctx spi.ComponentContext) error {
 	}
 
 	// Create an empty secret for the additional scrape configs - this secret gets populated with scrape jobs for managed clusters
-	return ensureAdditionalScrapeConfigsSecret(ctx)
+	if err := ensureAdditionalScrapeConfigsSecret(ctx); err != nil {
+		return err
+	}
+
+	// Remove any existing volume claims from old VMO-managed Prometheus persistent volumes
+	return removeOldClaimFromPrometheusVolume(ctx)
+}
+
+// postInstallUpgrade handles post-install and post-upgrade processing for the Prometheus Operator Component
+func postInstallUpgrade(ctx spi.ComponentContext) error {
+	if ctx.IsDryRun() {
+		ctx.Log().Debug("Prometheus Operator postInstallUpgrade dry run")
+		return nil
+	}
+
+	// if there is a persistent volume that was migrated from the VMO-managed Prometheus, make sure the reclaim policy is set
+	// back to its original value
+	return resetVolumeReclaimPolicy(ctx)
 }
 
 // ensureAdditionalScrapeConfigsSecret creates an empty secret for additional scrape configurations loaded by Prometheus, if the secret
@@ -83,6 +101,77 @@ func ensureAdditionalScrapeConfigsSecret(ctx spi.ComponentContext) error {
 		return nil
 	}); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to create or update the %s secret: %v", constants.PromAdditionalScrapeConfigsSecretName, err)
+	}
+	return nil
+}
+
+// removeOldClaimFromPrometheusVolume removes a persistent volume claim from the Prometheus persistent volume if the
+// claim was from the VMO-managed Prometheus and the status is "released". This allows the new Prometheus instance to
+// bind to the existing volume.
+func removeOldClaimFromPrometheusVolume(ctx spi.ComponentContext) error {
+	ctx.Log().Info("Removing old claim from Prometheus persistent volume if a volume exists")
+
+	pvList, err := getPrometheusPersistentVolumes(ctx)
+	if err != nil {
+		return err
+	}
+
+	// find a volume that has been released but still has a claim for the old VMO-managed Prometheus
+	for _, pv := range pvList.Items {
+		if pv.Status.Phase == corev1.VolumeReleased {
+			if pv.Spec.ClaimRef != nil && pv.Spec.ClaimRef.Namespace == constants.VerrazzanoSystemNamespace && pv.Spec.ClaimRef.Name == "vmi-system-prometheus" {
+				ctx.Log().Infof("Found volume, removing old claim from Prometheus persistent volume %s", pv.Name)
+				pv.Spec.ClaimRef = nil
+				if err := ctx.Client().Update(context.TODO(), &pv); err != nil {
+					return ctx.Log().ErrorfNewErr("Failed removing claim from persistent volume %s: %v", pv.Name, err)
+				}
+				break
+			}
+		}
+	}
+	return nil
+}
+
+// getPrometheusPersistentVolumes returns a volume list containing a Prometheus persistent volume created by
+// an older VMO installation
+func getPrometheusPersistentVolumes(ctx spi.ComponentContext) (*corev1.PersistentVolumeList, error) {
+	pvList := &corev1.PersistentVolumeList{}
+	if err := ctx.Client().List(context.TODO(), pvList, client.MatchingLabels{"verrazzano.io/storage-for": "prometheus"}); err != nil {
+		return nil, ctx.Log().ErrorfNewErr("Failed listing persistent volumes: %v", err)
+	}
+	return pvList, nil
+}
+
+// resetVolumeReclaimPolicy resets the reclaim policy on a Prometheus storage volume to its original value. The volume
+// would have been created by the VMO for Prometheus and prior to upgrading the VMO, we set the reclaim policy to
+// "retain" so that we can migrate it to the new Prometheus. Now that it has been migrated, we reset the reclaim policy
+// to its original value.
+func resetVolumeReclaimPolicy(ctx spi.ComponentContext) error {
+	ctx.Log().Info("Resetting reclaim policy on Prometheus persistent volume if a volume exists")
+
+	pvList, err := getPrometheusPersistentVolumes(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, pv := range pvList.Items {
+		if pv.Status.Phase == corev1.VolumeBound {
+			if pv.Labels != nil {
+				oldPolicy := pv.Labels["verrazzano.io/old-reclaim-policy"]
+
+				if len(oldPolicy) > 0 {
+					// found a bound volume that still has an old reclaim policy label, so reset the reclaim policy and remove the label
+					ctx.Log().Infof("Found volume, resetting reclaim policy on Prometheus persistent volume %s to %s", pv.Name, oldPolicy)
+					pv.Spec.PersistentVolumeReclaimPolicy = corev1.PersistentVolumeReclaimPolicy(oldPolicy)
+					delete(pv.Labels, "verrazzano.io/old-reclaim-policy")
+
+					if err := ctx.Client().Update(context.TODO(), &pv); err != nil {
+						return ctx.Log().ErrorfNewErr("Failed resetting reclaim policy on persistent volume %s: %v", pv.Name, err)
+					}
+					break
+				}
+			}
+		}
 	}
 	return nil
 }
@@ -115,24 +204,16 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		Value: strconv.FormatBool(vzconfig.IsCertManagerEnabled(ctx.EffectiveCR())),
 	})
 
-	// If we specify a storage or the prod is used, create a PVC for Prometheus
+	// If storage overrides are specified, set helm overrides
 	resourceRequest, err := common.FindStorageOverride(ctx.EffectiveCR())
 	if err != nil {
 		return kvs, err
 	}
 	if resourceRequest != nil {
-		storage := resourceRequest.Storage
-		memory := resourceRequest.Memory
-		kvs = append(kvs, []bom.KeyValue{
-			{
-				Key:   "prometheusOperator.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName.resources.requests.storage",
-				Value: storage,
-			},
-			{
-				Key:   "prometheusOperator.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName.resources.requests.memory",
-				Value: memory,
-			},
-		}...)
+		kvs, err = appendResourceRequestOverrides(ctx, resourceRequest, kvs)
+		if err != nil {
+			return kvs, err
+		}
 	}
 
 	// Append the Istio Annotations for Prometheus
@@ -152,6 +233,50 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	if err != nil {
 		return kvs, ctx.Log().ErrorfNewErr("Failed applying additional volume overrides for Prometheus")
 	}
+	return kvs, nil
+}
+
+// appendResourceRequestOverrides adds overrides for persistent storage and memory
+func appendResourceRequestOverrides(ctx spi.ComponentContext, resourceRequest *common.ResourceRequestValues, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	storage := resourceRequest.Storage
+	memory := resourceRequest.Memory
+
+	if len(storage) > 0 {
+		kvs = append(kvs, []bom.KeyValue{
+			{
+				Key:   "prometheus.prometheusSpec.storageSpec.disableMountSubPath",
+				Value: "true",
+			},
+			{
+				Key:   "prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage",
+				Value: storage,
+			},
+		}...)
+
+		// if there's an existing persistent volume, set it in the volumeClaimTemplate
+		pvList, err := getPrometheusPersistentVolumes(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if len(pvList.Items) > 0 {
+			ctx.Log().Debug("Found existing Prometheus volume, setting Prometheus storageSpec to mount the volume")
+			kvs = append(kvs, []bom.KeyValue{
+				{
+					Key:   `prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.selector.matchLabels.verrazzano\.io/storage-for`,
+					Value: "prometheus",
+				},
+			}...)
+		}
+	}
+	if len(memory) > 0 {
+		kvs = append(kvs, []bom.KeyValue{
+			{
+				Key:   "prometheus.prometheusSpec.resources.requests.memory",
+				Value: memory,
+			},
+		}...)
+	}
+
 	return kvs, nil
 }
 

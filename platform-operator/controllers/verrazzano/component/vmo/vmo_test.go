@@ -4,6 +4,7 @@
 package vmo
 
 import (
+	"context"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -14,8 +15,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -184,4 +189,109 @@ func TestAppendVmoOverridesOidcAuthDisabled(t *testing.T) {
 		Key:   "monitoringOperator.oidcAuthEnabled",
 		Value: "false",
 	})
+}
+
+// erroringFakeClient wraps a k8s client and returns an error when Update is called
+type erroringFakeClient struct {
+	client.Client
+}
+
+// Update always returns an error - used to simulate an error updating a resource
+func (e *erroringFakeClient) Update(_ context.Context, _ client.Object, _ ...client.UpdateOption) error {
+	return errors.NewConflict(schema.GroupResource{}, "", nil)
+}
+
+// TestRetainPrometheusPersistentVolume tests the retainPrometheusPersistentVolume function
+func TestRetainPrometheusPersistentVolume(t *testing.T) {
+	a := assert.New(t)
+
+	const (
+		volumeName    = "pvc-5ab58a05-71f9-4f09-8911-a5c029f6305f"
+		reclaimPolicy = corev1.PersistentVolumeReclaimDelete
+	)
+
+	// GIVEN a vmi-system-prometheus pvc and associated persistent volume
+	//  WHEN we call retainPrometheusPersistentVolume
+	//  THEN the persistent volume reclaim policy is set to "retain"
+	//   AND the persistent volume has the expected labels
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&corev1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      "vmi-system-prometheus",
+			},
+			Spec: corev1.PersistentVolumeClaimSpec{
+				VolumeName: volumeName,
+			},
+		},
+		&corev1.PersistentVolume{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: volumeName,
+			},
+			Spec: corev1.PersistentVolumeSpec{
+				PersistentVolumeReclaimPolicy: reclaimPolicy,
+			},
+		}).Build()
+
+	err := retainPrometheusPersistentVolume(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false))
+	a.NoError(err)
+
+	pv := &corev1.PersistentVolume{}
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: volumeName}, pv)
+	a.NoError(err)
+
+	// validate that the expected labels are set and the reclaim policy is set to "retain"
+	a.Equal("prometheus", pv.Labels["verrazzano.io/storage-for"])
+	a.Equal(string(reclaimPolicy), pv.Labels["verrazzano.io/old-reclaim-policy"])
+	a.Equal(corev1.PersistentVolumeReclaimRetain, pv.Spec.PersistentVolumeReclaimPolicy)
+
+	// GIVEN no vmi-system-prometheus pvc
+	//  WHEN we call retainPrometheusPersistentVolume
+	//  THEN no resources are changed and no error occurs
+	fakeClient = fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	err = retainPrometheusPersistentVolume(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false))
+	a.NoError(err)
+
+	// GIVEN a vmi-system-prometheus pvc and no associated persistent volume
+	//  WHEN we call retainPrometheusPersistentVolume
+	//  THEN an error is returned
+	fakeClient = fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&corev1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      "vmi-system-prometheus",
+			},
+			Spec: corev1.PersistentVolumeClaimSpec{
+				VolumeName: volumeName,
+			},
+		}).Build()
+
+	err = retainPrometheusPersistentVolume(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false))
+	a.ErrorContains(err, "Failed fetching persistent volume")
+
+	// GIVEN a vmi-system-prometheus pvc and associated persistent volume
+	//  WHEN we call retainPrometheusPersistentVolume and an error occurs updating the persistent volume
+	//  THEN an error is returned
+	fakeClient = fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&corev1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      "vmi-system-prometheus",
+			},
+			Spec: corev1.PersistentVolumeClaimSpec{
+				VolumeName: volumeName,
+			},
+		},
+		&corev1.PersistentVolume{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: volumeName,
+			},
+			Spec: corev1.PersistentVolumeSpec{
+				PersistentVolumeReclaimPolicy: reclaimPolicy,
+			},
+		}).Build()
+
+	erroringClient := &erroringFakeClient{Client: fakeClient}
+	err = retainPrometheusPersistentVolume(spi.NewFakeContext(erroringClient, &vzapi.Verrazzano{}, false))
+	a.ErrorContains(err, "Failed updating persistent volume")
 }

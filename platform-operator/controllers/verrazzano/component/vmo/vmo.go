@@ -4,6 +4,7 @@
 package vmo
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -12,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -75,4 +77,42 @@ func appendInitImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 
 	kvs = append(kvs, imageOverrides...)
 	return kvs, nil
+}
+
+// retainPrometheusPersistentVolume locates the persistent volume associated with the Prometheus persistent volume claim
+// and sets the reclaim policy to "retain" so that it can be migrated to the new Prometheus Operator-managed Prometheus.
+// When the VMO is upgraded, it will remove the existing Prometheus deployment and persistent volume claim, so we need
+// to retain the volume so it can be migrated.
+func retainPrometheusPersistentVolume(ctx spi.ComponentContext) error {
+	pvc := &corev1.PersistentVolumeClaim{}
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: "vmi-system-prometheus", Namespace: ComponentNamespace}, pvc); err != nil {
+		// no pvc so just log it and there's nothing left to do
+		ctx.Log().Debugf("Did not find pvc vmi-system-prometheus, skipping volume migration: %v", err)
+		return nil
+	}
+
+	ctx.Log().Info("Updating persistent volume associated with pvc vmi-system-prometheus so that the volume can be migrated")
+
+	pvName := pvc.Spec.VolumeName
+	pv := &corev1.PersistentVolume{}
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: pvName}, pv); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed fetching persistent volume associated with pvc vmi-system-prometheus: %v", err)
+	}
+
+	// set the reclaim policy on the pv to retain so that it does not get deleted when the VMO-managed Prometheus is removed
+	oldReclaimPolicy := pv.Spec.PersistentVolumeReclaimPolicy
+	pv.Spec.PersistentVolumeReclaimPolicy = corev1.PersistentVolumeReclaimRetain
+
+	// add labels to the pv - one that allows the new Prometheus to select the volume and another that captures
+	// the old reclaim policy so we can set it back once the volume is bound
+	if pv.Labels == nil {
+		pv.Labels = make(map[string]string)
+	}
+	pv.Labels["verrazzano.io/storage-for"] = "prometheus"
+	pv.Labels["verrazzano.io/old-reclaim-policy"] = string(oldReclaimPolicy)
+
+	if err := ctx.Client().Update(context.TODO(), pv); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed updating persistent volume associated with pvc vmi-system-prometheus: %v", err)
+	}
+	return nil
 }
