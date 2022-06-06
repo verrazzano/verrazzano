@@ -7,6 +7,8 @@ import (
 	"os"
 )
 
+var fileLength = 0
+
 func ConvertToLogMessage(path string) []LogMessage {
 	readFile, err := os.Open(path)
 	if err != nil {
@@ -21,6 +23,7 @@ func ConvertToLogMessage(path string) []LogMessage {
 		fileLines = append(fileLines, fileScanner.Text())
 	}
 	readFile.Close()
+	fileLength = len(fileLines)
 
 	var eachPayload LogMessage
 	var totalPayload []LogMessage
