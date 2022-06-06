@@ -16,7 +16,7 @@ import (
 
 const (
 	// ComponentName is the name of the component
-	ComponentName = "fluentd"
+	ComponentName = "verrazzano-fluentd"
 
 	// ComponentNamespace is the namespace of the component
 	ComponentNamespace = vzconst.VerrazzanoSystemNamespace
