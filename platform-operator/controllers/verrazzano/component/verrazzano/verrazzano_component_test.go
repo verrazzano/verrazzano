@@ -4,6 +4,7 @@ package verrazzano
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"os/exec"
 	"testing"
 
@@ -20,7 +21,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -500,20 +500,6 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 			},
 			wantErr: false,
 		},
-		{
-			name: "invalid-fluentd-extravolume",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
-							ExtraVolumeMounts: []vzapi.VolumeMount{{Source: "/root/.oci"}},
-						},
-					},
-				},
-			},
-			wantErr: true,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -521,64 +507,6 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 			err := c.ValidateUpdate(tt.old, tt.new)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestValidateFluentd(t *testing.T) {
-	varlog := "/var/log"
-	homevar := "/home/var_log"
-	tests := []struct {
-		name    string
-		vz      *vzapi.Verrazzano
-		wantErr bool
-	}{{
-		name:    "default",
-		vz:      &vzapi.Verrazzano{},
-		wantErr: false,
-	}, {
-		name: varlog,
-		vz: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						ExtraVolumeMounts: []vzapi.VolumeMount{{Source: varlog}},
-					},
-				},
-			},
-		},
-		wantErr: true,
-	}, {
-		name: homevar,
-		vz: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						ExtraVolumeMounts: []vzapi.VolumeMount{{Source: varlog, Destination: homevar}},
-					},
-				},
-			},
-		},
-		wantErr: false,
-	}, {
-		name: "oci and ext-es",
-		vz: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						OCI:              &vzapi.OciLoggingConfiguration{},
-						ElasticsearchURL: "https://url",
-					},
-				},
-			},
-		},
-		wantErr: true,
-	}}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := validateFluentd(tt.vz); (err != nil) != tt.wantErr {
-				t.Errorf("validateFluentd() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -599,53 +527,6 @@ func fakeSec(secName string) corev1.Secret {
 		return fake.NewClientBuilder().WithScheme(newScheme()).WithRuntimeObjects(&sec).Build(), nil
 	}
 	return sec
-}
-
-func TestValidateExternalES(t *testing.T) {
-	secName := "TestValidateExternalES-sec"
-	fakeSec(secName)
-	missing := "missing"
-	defer func() { getControllerRuntimeClient = getClient }()
-	tests := []struct {
-		name    string
-		vz      *vzapi.Verrazzano
-		wantErr bool
-	}{{
-		name:    "default",
-		vz:      &vzapi.Verrazzano{},
-		wantErr: false,
-	}, {
-		name: missing,
-		vz: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						ElasticsearchSecret: missing,
-					},
-				},
-			},
-		},
-		wantErr: true,
-	}, {
-		name: secName,
-		vz: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						ElasticsearchSecret: secName,
-					},
-				},
-			},
-		},
-		wantErr: false,
-	}}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := validateFluentd(tt.vz); (err != nil) != tt.wantErr {
-				t.Errorf("validateFluentd() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
 }
 
 func fakeComponent(t *testing.T, certConditions []certv1.CertificateCondition) (spi.ComponentContext, spi.Component) {

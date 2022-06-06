@@ -5,10 +5,13 @@ package fluentd
 
 import (
 	"context"
+	"fmt"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -17,6 +20,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	fluentDaemonset = "fluentd"
 )
 
 // loggingPreInstall copies logging secrets from the verrazzano-install namespace to the verrazzano-system namespace
@@ -76,6 +83,25 @@ func copySecret(ctx spi.ComponentContext, secretName string, logMsg string) erro
 	}
 
 	return nil
+}
+
+// isFluentdReady Fluentd component ready-check
+func isFluentdReady(ctx spi.ComponentContext) bool {
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+
+	// Check daemonsets
+	var daemonsets []types.NamespacedName
+	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) && getProfile(ctx.EffectiveCR()) != vzapi.ManagedCluster {
+		daemonsets = append(daemonsets,
+			types.NamespacedName{
+				Name:      fluentDaemonset,
+				Namespace: ComponentNamespace,
+			})
+		if !status.DaemonSetsAreReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {
+			return false
+		}
+	}
+	return true
 }
 
 // FluentdPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano Fluentd helm chart
@@ -161,4 +187,13 @@ func fixupFluentdDaemonset(log vzlog.VerrazzanoLogger, client clipkg.Client, nam
 	log.Debug("Updating fluentd daemonset to use valueFrom instead of Value for CLUSTER_NAME and ELASTICSEARCH_URL environment variables")
 	err = client.Update(context.TODO(), &daemonSet)
 	return err
+}
+
+// GetProfile Returns the configured profile name, or "prod" if not specified in the configuration
+func getProfile(vz *vzapi.Verrazzano) vzapi.ProfileType {
+	profile := vz.Spec.Profile
+	if len(profile) == 0 {
+		profile = vzapi.Prod
+	}
+	return profile
 }
