@@ -38,6 +38,8 @@ const (
 	istioEgressLabelValue    = "istio-egressgateway"
 	nginxIngressServiceName  = "ingress-controller-ingress-nginx-controller"
 	istioIngressServiceName  = "istio-ingressgateway"
+	nginxExternalIPArg       = "controller.service.externalIPs"
+	istioExternalIPArg       = "gateways.istio-ingressgateway.externalIPs"
 	waitTimeout              = 5 * time.Minute
 	pollingInterval          = 5 * time.Second
 	ociLBShapeAnnotation     = "service.beta.kubernetes.io/oci-load-balancer-shape"
@@ -192,7 +194,7 @@ func (u NginxIstioNodePortModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Ingress.Ports = testNginxIngressPorts
 	cr.Spec.Components.Ingress.Type = vzapi.NodePort
 	nginxInstallArgs := cr.Spec.Components.Ingress.NGINXInstallArgs
-	nginxInstallArgs = append(nginxInstallArgs, vzapi.InstallArgs{Name: "controller.service.externalIPs", ValueList: []string{u.systemExternalLBIP}})
+	nginxInstallArgs = append(nginxInstallArgs, vzapi.InstallArgs{Name: nginxExternalIPArg, ValueList: []string{u.systemExternalLBIP}})
 	cr.Spec.Components.Ingress.NGINXInstallArgs = nginxInstallArgs
 	if cr.Spec.Components.Istio == nil {
 		cr.Spec.Components.Istio = &vzapi.IstioComponent{}
@@ -203,7 +205,7 @@ func (u NginxIstioNodePortModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Istio.Ingress.Ports = testIstioIngressPorts
 	cr.Spec.Components.Istio.Ingress.Type = vzapi.NodePort
 	istioInstallArgs := cr.Spec.Components.Istio.IstioInstallArgs
-	istioInstallArgs = append(istioInstallArgs, vzapi.InstallArgs{Name: "gateways.istio-ingressgateway.externalIPs", ValueList: []string{u.applicationExternalLBIP}})
+	istioInstallArgs = append(istioInstallArgs, vzapi.InstallArgs{Name: istioExternalIPArg, ValueList: []string{u.applicationExternalLBIP}})
 	cr.Spec.Components.Istio.IstioInstallArgs = istioInstallArgs
 }
 
@@ -212,6 +214,13 @@ func (u NginxIstioLoadBalancerModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		cr.Spec.Components.Ingress = &vzapi.IngressNginxComponent{}
 	}
 	cr.Spec.Components.Ingress.Type = vzapi.LoadBalancer
+	var nginxInstallArgs []vzapi.InstallArgs
+	for _, arg := range cr.Spec.Components.Ingress.NGINXInstallArgs {
+		if arg.Name != nginxExternalIPArg {
+			nginxInstallArgs = append(nginxInstallArgs, arg)
+		}
+	}
+	cr.Spec.Components.Ingress.NGINXInstallArgs = nginxInstallArgs
 	if cr.Spec.Components.Istio == nil {
 		cr.Spec.Components.Istio = &vzapi.IstioComponent{}
 	}
@@ -219,6 +228,13 @@ func (u NginxIstioLoadBalancerModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		cr.Spec.Components.Istio.Ingress = &vzapi.IstioIngressSection{}
 	}
 	cr.Spec.Components.Istio.Ingress.Type = vzapi.LoadBalancer
+	var istioInstallArgs []vzapi.InstallArgs
+	for _, arg := range cr.Spec.Components.Istio.IstioInstallArgs {
+		if arg.Name != istioExternalIPArg {
+			istioInstallArgs = append(istioInstallArgs, arg)
+		}
+	}
+	cr.Spec.Components.Istio.IstioInstallArgs = istioInstallArgs
 }
 
 func (u NginxIstioServicePortsModifier) ModifyCR(cr *vzapi.Verrazzano) {
