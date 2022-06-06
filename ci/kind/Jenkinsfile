@@ -201,13 +201,17 @@ pipeline {
                         OCI_OS_BUCKET="verrazzano-builds"
                         OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
                         REALM_USER_PASSWORD = credentials('todo-mysql-password')
+                        REALM_NAME = "test-realm"
                     }
                     steps {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
                             ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
                             # setup test realm for JWT testing scenarios
-                            export KEYCLOAK_PASSWORD=\$(kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo)
+                            keycloakPassword=\$(kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo)
+                            sed -i "s|##KEYCLOAK_PASSWORD##|\$keycloakPassword|g" ci/scripts/create_test_realm.sh
+                            sed -i "s|##REALM_USER_PASSWORD##|${env.REALM_USER_PASSWORD}|g" ci/scripts/create_test_realm.sh
+                            sed -i "s|##REALM_NAME##|${env.REALM_NAME}|g" ci/scripts/create_test_realm.sh
                             kubectl exec keycloak-0 -n keycloak -- /bin/sh -c "`cat ci/scripts/create_test_realm.sh`"
                             # setup request authentication policy
                             keycloakURI=\$(kubectl get ingress -n keycloak keycloak -o jsonpath="{.spec.rules[0].host}")
@@ -417,6 +421,13 @@ pipeline {
                                 REALM_NAME="test-realm"
                             }
                             steps {
+                                sh """
+                                    cd ${GO_REPO_PATH}/verrazzano
+                                    keycloakPassword=\$(kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo)
+                                    sed -i "s|##KEYCLOAK_PASSWORD##|\$keycloakPassword|g" ci/scripts/create_test_realm.sh
+                                    sed -i "s|##REALM_USER_PASSWORD##|${env.REALM_USER_PASSWORD}|g" ci/scripts/create_test_realm.sh
+                                    sed -i "s|##REALM_NAME##|${env.REALM_NAME}|g" ci/scripts/create_test_realm.sh
+                                """
                                 runGinkgo('jwt/helidon')
                             }
                         }
