@@ -377,7 +377,7 @@ func TestRemoveOldClaimFromPrometheusVolume(t *testing.T) {
 			},
 			Spec: corev1.PersistentVolumeSpec{
 				ClaimRef: &corev1.ObjectReference{
-					Name:      "vmi-system-prometheus",
+					Name:      constants.VMISystemPrometheusVolumeClaim,
 					Namespace: constants.VerrazzanoSystemNamespace,
 				},
 			},
@@ -423,7 +423,7 @@ func TestRemoveOldClaimFromPrometheusVolume(t *testing.T) {
 			},
 			Spec: corev1.PersistentVolumeSpec{
 				ClaimRef: &corev1.ObjectReference{
-					Name:      "vmi-system-prometheus",
+					Name:      constants.VMISystemPrometheusVolumeClaim,
 					Namespace: constants.VerrazzanoSystemNamespace,
 				},
 			},
@@ -455,7 +455,7 @@ func TestRemoveOldClaimFromPrometheusVolume(t *testing.T) {
 			},
 			Spec: corev1.PersistentVolumeSpec{
 				ClaimRef: &corev1.ObjectReference{
-					Name:      "vmi-system-prometheus",
+					Name:      constants.VMISystemPrometheusVolumeClaim,
 					Namespace: constants.VerrazzanoSystemNamespace,
 				},
 			},

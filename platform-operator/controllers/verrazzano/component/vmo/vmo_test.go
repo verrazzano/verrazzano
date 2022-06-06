@@ -219,7 +219,7 @@ func TestRetainPrometheusPersistentVolume(t *testing.T) {
 		&corev1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      "vmi-system-prometheus",
+				Name:      constants.VMISystemPrometheusVolumeClaim,
 			},
 			Spec: corev1.PersistentVolumeClaimSpec{
 				VolumeName: volumeName,
@@ -260,7 +260,7 @@ func TestRetainPrometheusPersistentVolume(t *testing.T) {
 		&corev1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      "vmi-system-prometheus",
+				Name:      constants.VMISystemPrometheusVolumeClaim,
 			},
 			Spec: corev1.PersistentVolumeClaimSpec{
 				VolumeName: volumeName,
@@ -277,7 +277,7 @@ func TestRetainPrometheusPersistentVolume(t *testing.T) {
 		&corev1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      "vmi-system-prometheus",
+				Name:      constants.VMISystemPrometheusVolumeClaim,
 			},
 			Spec: corev1.PersistentVolumeClaimSpec{
 				VolumeName: volumeName,

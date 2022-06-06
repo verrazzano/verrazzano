@@ -86,18 +86,18 @@ func appendInitImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 // to retain the volume so it can be migrated.
 func retainPrometheusPersistentVolume(ctx spi.ComponentContext) error {
 	pvc := &corev1.PersistentVolumeClaim{}
-	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: "vmi-system-prometheus", Namespace: ComponentNamespace}, pvc); err != nil {
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: constants.VMISystemPrometheusVolumeClaim, Namespace: ComponentNamespace}, pvc); err != nil {
 		// no pvc so just log it and there's nothing left to do
-		ctx.Log().Debugf("Did not find pvc vmi-system-prometheus, skipping volume migration: %v", err)
+		ctx.Log().Debugf("Did not find pvc %s, skipping volume migration: %v", constants.VMISystemPrometheusVolumeClaim, err)
 		return nil
 	}
 
-	ctx.Log().Info("Updating persistent volume associated with pvc vmi-system-prometheus so that the volume can be migrated")
+	ctx.Log().Infof("Updating persistent volume associated with pvc %s so that the volume can be migrated", constants.VMISystemPrometheusVolumeClaim)
 
 	pvName := pvc.Spec.VolumeName
 	pv := &corev1.PersistentVolume{}
 	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: pvName}, pv); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed fetching persistent volume associated with pvc vmi-system-prometheus: %v", err)
+		return ctx.Log().ErrorfNewErr("Failed fetching persistent volume associated with pvc %s: %v", constants.VMISystemPrometheusVolumeClaim, err)
 	}
 
 	// set the reclaim policy on the pv to retain so that it does not get deleted when the VMO-managed Prometheus is removed
@@ -113,7 +113,7 @@ func retainPrometheusPersistentVolume(ctx spi.ComponentContext) error {
 	pv.Labels[constants.OldReclaimPolicyLabel] = string(oldReclaimPolicy)
 
 	if err := ctx.Client().Update(context.TODO(), pv); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed updating persistent volume associated with pvc vmi-system-prometheus: %v", err)
+		return ctx.Log().ErrorfNewErr("Failed updating persistent volume associated with pvc %s: %v", constants.VMISystemPrometheusVolumeClaim, err)
 	}
 	return nil
 }

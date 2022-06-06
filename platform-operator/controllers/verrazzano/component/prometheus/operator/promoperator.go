@@ -122,7 +122,7 @@ func removeOldClaimFromPrometheusVolume(ctx spi.ComponentContext) error {
 		if pv.Status.Phase != corev1.VolumeReleased {
 			continue
 		}
-		if pv.Spec.ClaimRef != nil && pv.Spec.ClaimRef.Namespace == constants.VerrazzanoSystemNamespace && pv.Spec.ClaimRef.Name == "vmi-system-prometheus" {
+		if pv.Spec.ClaimRef != nil && pv.Spec.ClaimRef.Namespace == constants.VerrazzanoSystemNamespace && pv.Spec.ClaimRef.Name == constants.VMISystemPrometheusVolumeClaim {
 			ctx.Log().Infof("Found volume, removing old claim from Prometheus persistent volume %s", pv.Name)
 			pv.Spec.ClaimRef = nil
 			if err := ctx.Client().Update(context.TODO(), &pv); err != nil {

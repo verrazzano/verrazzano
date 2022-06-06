@@ -200,3 +200,6 @@ const StorageForLabel = "verrazzano.io/storage-for"
 
 // PrometheusStorageLabelValue is the label value for Prometheus storage
 const PrometheusStorageLabelValue = "prometheus"
+
+// VMISystemPrometheusVolumeClaim is the name of the VMO-managed Prometheus persistent volume claim
+const VMISystemPrometheusVolumeClaim = "vmi-system-prometheus"
