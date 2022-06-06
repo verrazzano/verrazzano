@@ -16,14 +16,14 @@ import (
 const (
 	CommandName  = "uninstall"
 	crdsFlag     = "crds"
-	crdsFlagHelp = "Completely remove all CRDs that were installed by Verrazzano."
+	crdsFlagHelp = "Completely remove all CRDs that were installed by Verrazzano"
 	helpShort    = "Uninstall Verrazzano"
-	helpLong     = `Uninstall the Verrazzano Platform Operator and all of the currently installed components.`
+	helpLong     = `Uninstall the Verrazzano Platform Operator and all of the currently installed components`
 	helpExample  = `
 # Uninstall Verrazzano except for CRDs and stream the logs to the console.  Stream the logs to the console until the uninstall completes.
 vz uninstall
 
-# Uninstall Verrazzano including the CRDs and wait for the command to complete.
+# Uninstall Verrazzano including the CRDs and wait for the command to complete
 vz uninstall --crds`
 )
 
