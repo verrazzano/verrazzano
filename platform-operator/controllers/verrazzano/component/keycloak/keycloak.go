@@ -9,8 +9,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
+	"k8s.io/apimachinery/pkg/labels"
 	"os/exec"
 	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"strings"
 	"text/template"
 
@@ -453,6 +457,42 @@ func updateKeycloakIngress(ctx spi.ComponentContext) error {
 	})
 	ctx.Log().Debugf("updateKeycloakIngress: Keycloak ingress operation result: %v", err)
 	return err
+}
+
+func updatePrometheusAnnotations(ctx spi.ComponentContext) error {
+	// Get a list of Prometheus in the verrazzano-monitoring namespace
+	promList := promoperapi.PrometheusList{}
+	err := ctx.Client().List(context.TODO(), &promList, &client.ListOptions{
+		Namespace:     operator.ComponentNamespace,
+		LabelSelector: labels.SelectorFromSet(labels.Set{"verrazzano-component": "prometheus-operator"}),
+	})
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to list Prometheus in the %s namespace: %v", operator.ComponentNamespace, err)
+	}
+
+	// Get the Keycloak service to retrieve the cluster IP for the Prometheus annotation
+	svc := corev1.Service{}
+	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Name: "keycloak-http", Namespace: constants.KeycloakNamespace}, &svc)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to get keycloak-http service: %v", err)
+	}
+
+	// If the ClusterIP is not empty, update the Prometheus annotation
+	// The includeOutboundIPRanges implies all others are excluded.
+	// This is done by adding the traffic.sidecar.istio.io/includeOutboundIPRanges=<Keycloak IP>/32 annotation.
+	if svc.Spec.ClusterIP != "" {
+		for _, prom := range promList.Items {
+			_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), prom, func() error {
+				delete(prom.Spec.PodMetadata.Annotations, "traffic.sidecar.istio.io/excludeOutboundIPRanges")
+				prom.Spec.PodMetadata.Annotations["traffic.sidecar.istio.io/includeOutboundIPRanges"] = fmt.Sprintf("%s/32", svc.Spec.ClusterIP)
+				return nil
+			})
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // updateKeycloakUris calls a bash script to update the Keycloak rewrite and weborigin uris
