@@ -19,6 +19,8 @@ import (
 
 const (
 	pvcClusterRoleName         = "oam-kubernetes-runtime-pvc"
+	istioClusterRoleName       = "oam-kubernetes-runtime-istio"
+	certClusterRoleName        = "oam-kubernetes-runtime-certificate"
 	aggregateToControllerLabel = "rbac.oam.dev/aggregate-to-controller"
 )
 
@@ -62,6 +64,69 @@ func ensureClusterRoles(ctx spi.ComponentContext) error {
 		}
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+
+	// add a cluster role that allows the OAM operator to manage istio resources
+	istioClusterRole := rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: istioClusterRoleName}}
+
+	_, err = controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &istioClusterRole, func() error {
+		if istioClusterRole.Labels == nil {
+			istioClusterRole.Labels = make(map[string]string)
+		}
+		// this label triggers cluster role aggregation into the oam-kubernetes-runtime cluster role
+		istioClusterRole.Labels[aggregateToControllerLabel] = "true"
+		istioClusterRole.Rules = []rbacv1.PolicyRule{
+			{
+				APIGroups: []string{"networking.istio.io", "install.istio.io", "security.istio.io", "telemetry.istio.io"},
+				Resources: []string{"*"},
+				Verbs: []string{
+					"create",
+					"delete",
+					"get",
+					"list",
+					"patch",
+					"update",
+					"watch",
+					"deletecollection",
+				},
+			},
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	// add a cluster role that allows the OAM operator to manage secret resources
+	certClusterRole := rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: certClusterRoleName}}
+
+	_, err = controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &certClusterRole, func() error {
+		if certClusterRole.Labels == nil {
+			certClusterRole.Labels = make(map[string]string)
+		}
+		// this label triggers cluster role aggregation into the oam-kubernetes-runtime cluster role
+		certClusterRole.Labels[aggregateToControllerLabel] = "true"
+		certClusterRole.Rules = []rbacv1.PolicyRule{
+			{
+				APIGroups: []string{"cert-manager.io"},
+				Resources: []string{"*"},
+				Verbs: []string{
+					"create",
+					"delete",
+					"get",
+					"list",
+					"patch",
+					"update",
+					"watch",
+					"deletecollection",
+				},
+			},
+		}
+		return nil
+	})
+
 	return err
 }
 
