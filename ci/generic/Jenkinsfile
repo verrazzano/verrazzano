@@ -5,6 +5,11 @@ def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 
+targetsKey = "targets"
+displayNameKey = "displayname"
+unknownTargetName = "UNKNOWN"
+testGroupsKey = "testGroups"
+
 pipeline {
     options {
         timeout(time: 1, unit: 'HOURS')
@@ -86,7 +91,7 @@ pipeline {
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
-        TEST_ROOT = "${GO_REPO_PATH}/verrazzano/tests/e2e"
+        TEST_ROOT = "${WORKSPACE}/tests/e2e"
         TEST_SCRIPTS_DIR = "${TEST_ROOT}/config/scripts"
         INSTALL_CONFIG_FILE_KIND = "${TEST_SCRIPTS_DIR}/install-verrazzano-kind.yaml"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
@@ -131,7 +136,7 @@ pipeline {
             }
         }
 
-        stage('Acceptance Tests') {
+        stage('Run Acceptance Tests') {
             environment {
                 KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_CLI_AUTH="instance_principal"
@@ -202,6 +207,91 @@ def getPipelineDescriptorPath() {
     return "${WORKSPACE}/${params.PIPELINE_DESCRIPTOR}"
 }
 
+def getPipelineName() {
+    data = readYaml file: getPipelineDescriptorPath()
+    return data.metadata.name
+}
+
+def runDynamicStages(pipelineDescriptor) {
+    script {
+        data = readYaml file: pipelineDescriptor
+        println data
+        print "Name: " + data.metadata.name
+        print "Agent label: " + data.metadata.agent["label"]
+
+        testGroups = [:]
+        if (data.containsKey(testGroupsKey)) {
+            testGroups = processTestGroups(data[testGroupsKey])
+        }
+        print "Test groups: " + testGroups
+
+        print "Stages: " + data.stages
+        stages = data.stages
+        for (stageDescriptor in stages) {
+            stageName = stageDescriptor.name
+            print "Stage: " + stageName
+            targetsMap = [:]
+            if (stageDescriptor.containsKey(targetsKey)) {
+                targetsMap.putAll(processTargets(stageDescriptor[targetsKey]))
+            }
+            if (stageDescriptor.containsKey(testGroupsKey)) {
+                groupNames = stageDescriptor[testGroupsKey]
+                targetsMap.putAll(addTestGroups(testGroups, groupNames))
+            }
+            print "Stage Map to use: " + targetsMap
+            stage(stageName) {
+                try {
+                    echo "Executing stage ${stageName}, targets " + targetsMap.keySet()
+                    parallel targetsMap
+                } finally {
+                    echo "Archiving artifacts"
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
+    }
+}
+
+// Returns an map of all targets keyed by display name
+def processTargets(targets) {
+    targetMap = [:]
+    for (target in targets) {
+        targetName = target.name
+        if (target.containsKey(displayNameKey)) {
+            targetName = target[displayNameKey]
+        }
+        if (targetName.length() == 0) {
+            targetName = unknownTargetName
+        }
+        targetMap.putAll(buildTargetClosure(targetName, target.target))
+    }
+    return targetMap
+}
+
+// Returns an aggregate Map of all targets associated with the list of test groups provided
+def addTestGroups(testGroups, groupNames) {
+    targetsMap = [:]
+    for (groupName in groupNames) {
+        if (!testGroups.containsKey(groupName)) {
+            println("Group ${group} not found in groups map!")
+            continue
+        }
+        targets = testGroups[groupName]
+        targetsMap.putAll(processTargets(targets))
+    }
+    return targetsMap
+}
+
+def processTestGroups(testGroups) {
+    groupsMap = [:]
+    testGroups = stage.testGroups
+    for (group in testGroups) {
+        groupsMap.put(group.name, group.targets)
+    }
+    return groupsMap
+}
+
 def buildTargetClosure(targetName, targetToInvoke) {
     echo "Building closure for ${targetToInvoke}"
     return [ (targetName) : {
@@ -211,42 +301,13 @@ def buildTargetClosure(targetName, targetToInvoke) {
     ]
 }
 
-def runDynamicStages(pipelineDescriptor) {
-    script {
-        data = readYaml file: pipelineDescriptor
-        println data
-        print "Name: " + data.metadata.name
-        print "Agent label: " + data.metadata.agent["label"]
-        print "Stages: " + data.stages
-        stages = data.stages
-        for (int i = 0; i < stages.size(); i++) {
-            stage = stages.get(i)
-            print "Stage: " + stage
-            stageName = stage.name
-            stageMap = [:]
-            print "Stage Map start: " + stageMap
-            targets = stage.targets
-            for (target in targets) {
-                targetName = target.name
-                targetToInvoke = target.target
-                print "Target name: ${targetName}"
-                print "Target to invoke: ${targetToInvoke}"
-                stageMap.putAll(buildTargetClosure(targetName, targetToInvoke))
-                print "Stage Map current: " + stageMap
-            }
-            print "Stage Map to use: " + stageMap
-            stage("Test ${stageName}") {
-                try {
-                    echo "Executing stage ${stageName}"
-                    parallel stageMap
-                } finally {
-                    echo "Archiving artifacts"
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-            }
-        }
-    }
+def getVerifyInstallTestTargets() {
+    return [
+        //"verify-install": { runTest("verify-install") },
+        "verify-scripts": { runTest("scripts") },
+        "security-rbac": { runTest("security/rbac", "false") },
+        "metrics-syscomp": { runTest("metrics/syscomponents") },
+        ]
 }
 
 def runTest(testSuitePath, runParallel = "true", randomize = "true") {
