@@ -4,7 +4,11 @@
 def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
-def userPassword = (('A'..'Z') + ('0'..'9')).shuffled().take(10).join()
+def pool = ['a'..'z','A'..'Z',0..9,'_'].flatten()
+Random rand = new Random(System.currentTimeMillis())
+
+def passChars = (0..10).collect { pool[rand.nextInt(pool.size())] }
+def userPassword = passChars.join()
 
 pipeline {
     options {
