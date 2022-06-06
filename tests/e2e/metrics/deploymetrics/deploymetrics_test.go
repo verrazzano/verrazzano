@@ -23,14 +23,13 @@ const (
 	deploymetricsCompYaml = "testdata/deploymetrics/deploymetrics-comp.yaml"
 	deploymetricsCompName = "deploymetrics-deployment"
 	deploymetricsAppYaml  = "testdata/deploymetrics/deploymetrics-app.yaml"
-	deployMetricsAppName  = "deploymetrics-appconf"
+	deploymetricsAppName  = "deploymetrics-appconf"
 	skipVerifications     = "Skip Verifications"
 )
 
 var (
 	expectedPodsDeploymetricsApp = []string{"deploymetrics-workload"}
 	generatedNamespace           = pkg.GenerateNamespace("deploymetrics")
-	promConfigJobName            = fmt.Sprintf("%s_default_%s_%s", deployMetricsAppName, generatedNamespace, deploymetricsCompName)
 
 	waitTimeout              = 10 * time.Minute
 	pollingInterval          = 30 * time.Second
@@ -41,8 +40,9 @@ var (
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
 
-	adminKubeConfig string
-	label           string
+	adminKubeConfig   string
+	promConfigJobName string
+	clusterNameLabel  string
 
 	t = framework.NewTestFramework("deploymetrics")
 )
@@ -53,12 +53,13 @@ var _ = clusterDump.BeforeSuite(func() {
 		deployMetricsApplication()
 	}
 	var err error
-	label, err = pkg.GetClusterNameMetricLabel(getDefaultKubeConfigPath())
+	clusterNameLabel, err = pkg.GetClusterNameMetricLabel(getDefaultKubeConfigPath())
 	if err != nil {
 		pkg.Log(pkg.Error, err.Error())
 		Fail(err.Error())
 	}
 	initKubeConfigPath()
+	initPromConfigJobName()
 })
 var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
 var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
@@ -149,7 +150,7 @@ func undeployMetricsApplication() {
 var _ = t.Describe("DeployMetrics Application test", Label("f:app-lcm.oam"), func() {
 
 	t.Context("for Prometheus Config.", Label("f:observability.monitoring.prom"), func() {
-		t.It("Verify that Prometheus Config Data contains deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment", func() {
+		t.It(fmt.Sprintf("Verify that Prometheus Config Data contains %s", promConfigJobName), func() {
 			if skipVerify {
 				Skip(skipVerifications)
 			}
@@ -166,7 +167,7 @@ var _ = t.Describe("DeployMetrics Application test", Label("f:app-lcm.oam"), fun
 			}
 			metricLabels := map[string]string{
 				"app_oam_dev_name": "deploymetrics-appconf",
-				label:              getClusterNameForPromQuery(),
+				clusterNameLabel:   getClusterNameForPromQuery(),
 			}
 			Eventually(func() bool {
 				return pkg.MetricsExistInCluster("http_server_requests_seconds_count", metricLabels, adminKubeConfig)
@@ -178,7 +179,7 @@ var _ = t.Describe("DeployMetrics Application test", Label("f:app-lcm.oam"), fun
 			}
 			metricLabels := map[string]string{
 				"app_oam_dev_component": "deploymetrics-deployment",
-				label:                   getClusterNameForPromQuery(),
+				clusterNameLabel:        getClusterNameForPromQuery(),
 			}
 			Eventually(func() bool {
 				return pkg.MetricsExistInCluster("tomcat_sessions_created_sessions_total", metricLabels, adminKubeConfig)
@@ -226,4 +227,22 @@ func initKubeConfigPath() {
 		adminKubeConfig = getDefaultKubeConfigPath()
 	}
 	pkg.Log(pkg.Info, "Initialized kube config path - "+adminKubeConfig)
+}
+
+func initPromConfigJobName() {
+	isPromJobNameInNewFmt, err := pkg.IsVerrazzanoMinVersion("1.4.0", adminKubeConfig)
+	if err != nil {
+		pkg.Log(pkg.Error, err.Error())
+		Fail(err.Error())
+	}
+	if isPromJobNameInNewFmt {
+		// For VZ versions starting from 1.4.0, the job name in prometheus scrape config is of the format
+		// <app_name>_<app_namespace>
+		promConfigJobName = fmt.Sprintf("%s_%s", deploymetricsAppName, namespace)
+	} else {
+		// For VZ versions prior to 1.4.0, the job name in prometheus scrape config was of the old format
+		// <app_name>_default_<app_namespace>_<app_component_name>
+		promConfigJobName =
+			fmt.Sprintf("%s_default_%s_%s", deploymetricsAppName, generatedNamespace, deploymetricsCompName)
+	}
 }
