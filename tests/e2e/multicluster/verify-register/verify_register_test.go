@@ -6,7 +6,6 @@ package register_test
 import (
 	"context"
 	"fmt"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"os"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
