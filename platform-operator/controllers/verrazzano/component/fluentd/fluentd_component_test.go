@@ -4,9 +4,34 @@
 package fluentd
 
 import (
+	"github.com/stretchr/testify/assert"
+	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"os/exec"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 )
+
+var (
+	testScheme = runtime.NewScheme()
+)
+
+const (
+	testBomFilePath = "../../testdata/test_bom.json"
+)
+
+func init() {
+	_ = vzapi.AddToScheme(testScheme)
+	_ = clientgoscheme.AddToScheme(testScheme)
+	// +kubebuilder:scaffold:testScheme
+}
 
 func Test_FluentdComponent_ValidateUpdate(t *testing.T) {
 	disabled := false
@@ -146,4 +171,119 @@ func Test_FluentdComponent_ValidateUpdate(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestPostUpgrade tests the Fluentd PostUpgrade call; simple wrapper exercise, more detailed testing is done elsewhere
+// GIVEN a Verrazzano component upgrading from 1.1.0 to 1.4.0
+//  WHEN I call PostUpgrade
+//  THEN no error is returned
+func TestPostUpgrade(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Version: "v1.4.0",
+			Components: vzapi.ComponentSpec{
+				Fluentd: &vzapi.FluentdComponent{ElasticsearchSecret: vzapi.OciConfigSecretFile},
+			},
+		},
+		Status: vzapi.VerrazzanoStatus{Version: "1.1.0"},
+	}, false)
+	err := NewComponent().PostUpgrade(ctx)
+	assert.NoError(t, err)
+}
+
+// TestPreInstall tests the Fluentd PreInstall call
+// GIVEN a Verrazzano component
+//  WHEN I call PreInstall when dependencies are met
+//  THEN no error is returned
+func TestPreInstall(t *testing.T) {
+	c := createPreInstallTestClient()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
+	err := NewComponent().PreInstall(ctx)
+	assert.NoError(t, err)
+}
+
+func createPreInstallTestClient(extraObjs ...client.Object) client.Client {
+	objs := []client.Object{}
+	objs = append(objs, extraObjs...)
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(objs...).Build()
+	return c
+}
+
+// TestInstall tests the Verrazzano Install call
+// GIVEN a Verrazzano component
+//  WHEN I call Install when dependencies are met
+//  THEN no error is returned
+func TestInstall(t *testing.T) {
+	c := createPreInstallTestClient()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Fluentd: &vzapi.FluentdComponent{ElasticsearchSecret: vzapi.OciConfigSecretFile},
+			},
+		},
+	}, false)
+	config.SetDefaultBomFilePath(testBomFilePath)
+	helm.SetUpgradeFunc(fakeUpgrade)
+	defer helm.SetDefaultUpgradeFunc()
+	helmcli.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
+		return helmcli.ChartStatusDeployed, nil
+	})
+	defer helmcli.SetDefaultChartStateFunction()
+	err := NewComponent().Install(ctx)
+	assert.NoError(t, err)
+}
+
+// fakeUpgrade override the upgrade function during unit tests
+func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+	return []byte("success"), []byte(""), nil
+}
+
+// TestPreUpgrade tests the Verrazzano PreUpgrade call
+// GIVEN a Verrazzano component
+//  WHEN I call PreUpgrade with defaults
+//  THEN no error is returned
+func TestPreUpgrade(t *testing.T) {
+	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
+	// for the Component interface hook
+	config.TestHelmConfigDir = "../../../../helm_config"
+	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vzapi.Verrazzano{}, false))
+	assert.NoError(t, err)
+}
+
+// TestUpgrade tests the Fluentd Upgrade call; simple wrapper exercise, more detailed testing is done elsewhere
+// GIVEN a Fluentd component upgrading from 1.1.0 to 1.4.0
+//  WHEN I call Upgrade
+//  THEN no error is returned
+func TestUpgrade(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Version: "v1.4.0",
+			Components: vzapi.ComponentSpec{
+				Fluentd: &vzapi.FluentdComponent{ElasticsearchSecret: vzapi.OciConfigSecretFile},
+			},
+		},
+		Status: vzapi.VerrazzanoStatus{Version: "1.1.0"},
+	}, false)
+	config.SetDefaultBomFilePath(testBomFilePath)
+	helmcli.SetCmdRunner(genericTestRunner{})
+	defer helmcli.SetDefaultRunner()
+	helm.SetUpgradeFunc(fakeUpgrade)
+	defer helm.SetDefaultUpgradeFunc()
+	helmcli.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
+		return helmcli.ChartStatusDeployed, nil
+	})
+	defer helmcli.SetDefaultChartStateFunction()
+	err := NewComponent().Upgrade(ctx)
+	assert.NoError(t, err)
+}
+
+// genericTestRunner is used to run generic OS commands with expected results
+type genericTestRunner struct {
+}
+
+// Run genericTestRunner executor
+func (r genericTestRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+	return nil, nil, nil
 }
