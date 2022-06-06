@@ -10,9 +10,10 @@ import (
 
 	"github.com/Jeffail/gabs/v2"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vztemplate "github.com/verrazzano/verrazzano/application-operator/controllers/template"
-	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
@@ -51,7 +52,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req k8scontroller.Request) (
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
-	if req.Namespace == constants.KubeSystem {
+	if req.Namespace == vzconst.KubeSystem {
 		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
 		log.Infof("Metrics binding resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
 		return reconcile.Result{}, nil
@@ -117,7 +118,19 @@ func (r *Reconciler) reconcileBindingDelete(ctx context.Context, metricsBinding 
 func (r *Reconciler) reconcileBindingCreateOrUpdate(ctx context.Context, metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) (k8scontroller.Result, error) {
 	log.Debugw("Reconcile for created or updated object", "resource", metricsBinding.GetName())
 
-	// Mutate the MetricsBinding before the scrape config
+	// Handle the case where the workload uses the default metrics template
+	if isLegacyDefaultMetricsTemplate(metricsBinding.Spec.MetricsTemplate) {
+		if err := r.handleDefaultMetricsTemplate(metricsBinding, log); err != nil {
+			return k8scontroller.Result{Requeue: true}, err
+		}
+	}
+
+	// Handle the case where the workloaded uses a custom metrics template
+	if err := r.handleCustomMetricsTemplate(metricsBinding, log); err != nil {
+		return k8scontroller.Result{Requeue: true}, err
+	}
+
+	// TODO POKO promoper ?? Mutate the MetricsBinding before the scrape config
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, metricsBinding, func() error {
 		return r.updateMetricsBinding(metricsBinding, log)
 	})
@@ -367,3 +380,44 @@ func (r *Reconciler) getWorkloadObject(metricsBinding *vzapi.MetricsBinding) (*u
 	}
 	return &workloadObject, nil
 }
+
+// isLegacyDefaultMetricsTemplate determines whether the given template name corresponds to the
+// "default" metrics template used pre-Verrazzano 1.4
+func isLegacyDefaultMetricsTemplate(templateName vzapi.NamespaceName) bool {
+	return templateName.Namespace == constants.LegacyDefaultMetricsTemplateNamespace &&
+		templateName.Name == constants.LegacyDefaultMetricsTemplateName
+}
+
+// handleDefaultMetricsTemplate handles pre-Verrazzano 1.4 metrics bindings that use the default
+// metrics template, by creating/updating a service monitor that does the same work as the default
+// template.
+func (r *Reconciler) handleDefaultMetricsTemplate(metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) error {
+	log.Infof("Default metrics template used by metrics binding %s/%s, service monitor time!", metricsBinding.Namespace, metricsBinding.Name)
+	// serviceMonitor, err := r.createOrUpdateServiceMonitor(metricsBinding) // update because it may exist from prior reconcile where we failed to delete metricsbinding
+	// if err != nil {
+	// 	log.Errorf("Failed to create/update ServiceMonitor for MetricsBinding: %v", err)
+	// 	return err
+	// }
+	return nil
+	// if create service monitor succeeded, our conversion of legacy MetricsBinding is
+	// done. Keep the MetricsBinding in the custom metrics template use case so we know this is a "legacy" app, update it with the
+	// additionalScrapeConfig config map instead of the promConfigMap name
+	// metricsBinding.Spec.ServiceMonitor = serviceMonitor.Name
+	// err := a.Client.Update(ctx, metricsBinding)
+	// if err != nil {
+	// 	log.Errorf("Failed to update MetricsBinding with service monitor information: %v", err)
+	// 	return admission.Errored(http.StatusInternalServerError, err)
+	// }
+}
+
+// handleCustomMetricsTemplate handles pre-Verrazzano 1.4 metrics bindings that use a custom
+// metrics template, by updating the additionalScrapeConfigs secret for the Prometheus CR to collect
+// metrics as specified by the custom template.
+func (r *Reconciler) handleCustomMetricsTemplate(metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) error {
+	log.Infof("Custom metrics template used by metrics binding %s/%s, additionalScrapeConfigs time!", metricsBinding.Namespace, metricsBinding.Name)
+	return nil
+}
+
+// func (r *Reconciler) createOrUpdateServiceMonitor(metricsBinding vzapi.MetricsBinding) (*ServiceMonitor, error) {
+//
+// }

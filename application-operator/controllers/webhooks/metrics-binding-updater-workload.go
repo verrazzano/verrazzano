@@ -76,7 +76,24 @@ func (a *GeneratorWorkloadWebhook) handleWorkloadResource(ctx context.Context, r
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
-	// If "none" is specified for annotation "app.verrazzano.io/metrics" then this workload has opted out of metrics.
+	// Handle legacy metrics annotations only for _existing_ workloads i.e. if a MetricsBinding
+	// already exists
+	existingMetricsBinding, err := a.GetLegacyMetricsBinding(ctx, unst)
+	if err != nil {
+		log.Errorf("Failed trying to retrieve legacy MetricsBinding for %s workload %s/%s: %v", unst.GetKind(), unst.GetNamespace(), unst.GetName(), err)
+		return admission.Errored(http.StatusInternalServerError, err)
+	}
+
+	if existingMetricsBinding == nil {
+		// TODO POKO promop for newer apps we don't support annotations anymore - check and deny?
+		// No MetricsBinding exists to be migrated - this is likely a newer app that has not been
+		// processed by Verrazzano versions earlier than 1.4
+		return admission.Allowed(constants.StatusReasonSuccess)
+	}
+
+	// If we got here, this is a pre-Verrazzano 1.4 application - process the annotations and
+	// update the existing metrics binding accordingly as before
+	// If "none" is specified on workload for annotation "app.verrazzano.io/metrics" then this workload has opted out of metrics.
 	if metricsTemplateAnnotation, ok := unst.GetAnnotations()[MetricsAnnotation]; ok {
 		if strings.ToLower(metricsTemplateAnnotation) == "none" {
 			log.Infof("%s is set to none in the workload - opting out of metrics", MetricsAnnotation)
@@ -84,7 +101,7 @@ func (a *GeneratorWorkloadWebhook) handleWorkloadResource(ctx context.Context, r
 		}
 	}
 
-	// If "none" is specified for annotation "app.verrazzano.io/metrics" then this namespace has opted out of metrics.
+	// If "none" is specified on namespace for annotation "app.verrazzano.io/metrics" then this namespace has opted out of metrics.
 	if metricsTemplateAnnotation, ok := workloadNamespace.GetAnnotations()[MetricsAnnotation]; ok {
 		if strings.ToLower(metricsTemplateAnnotation) == "none" {
 			log.Infof("%s is set to none in the namespace - opting out of metrics", MetricsAnnotation)
@@ -98,21 +115,13 @@ func (a *GeneratorWorkloadWebhook) handleWorkloadResource(ctx context.Context, r
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
-	// Workload resource specifies a valid metrics template.
-	// We use that metrics template and create/update a metrics binding resource.
-	if metricsTemplate != nil {
-		err = a.createOrUpdateMetricBinding(ctx, unst, metricsTemplate, log)
-		if err != nil {
-			return admission.Errored(http.StatusInternalServerError, err)
-		}
-	} else {
+	if metricsTemplate == nil {
 		// Workload resource does not specify a metrics template.
 		// Look for a matching metrics template workload whose workload selector matches.
 		// First, check the namespace of the workload resource and then check the verrazzano-system namespace
 		// NOTE: use the first match for now
-		var metricsTemplate *vzapp.MetricsTemplate
-		found := true
-		metricsTemplate, err := a.findMatchingTemplate(ctx, unst, unst.GetNamespace(), log)
+		// var metricsTemplate *vzapp.MetricsTemplate
+		metricsTemplate, err = a.findMatchingTemplate(ctx, unst, unst.GetNamespace(), log)
 		if err != nil {
 			return admission.Errored(http.StatusInternalServerError, err)
 		}
@@ -121,18 +130,17 @@ func (a *GeneratorWorkloadWebhook) handleWorkloadResource(ctx context.Context, r
 			if err != nil {
 				return admission.Errored(http.StatusInternalServerError, err)
 			}
-			if template == nil {
-				found = false
-			}
 			metricsTemplate = template
 		}
+	}
 
-		// We found a matching metrics template. Create/update a metrics binding.
-		if found {
-			err = a.createOrUpdateMetricBinding(ctx, unst, metricsTemplate, log)
-			if err != nil {
-				return admission.Errored(http.StatusInternalServerError, err)
-			}
+	// Workload resource specifies a valid metrics template or we found one above
+	// We use that metrics template to update the existing metrics binding resource. We no longer
+	// create new MetricsBindings as of Verrazzano 1.4 but we will honor settings for existing apps
+	if metricsTemplate != nil {
+		err = a.createOrUpdateMetricBinding(ctx, unst, metricsTemplate, log)
+		if err != nil {
+			return admission.Errored(http.StatusInternalServerError, err)
 		}
 	}
 
@@ -142,6 +150,19 @@ func (a *GeneratorWorkloadWebhook) handleWorkloadResource(ctx context.Context, r
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 	return admission.PatchResponseFromRaw(req.Object.Raw, marshaledWorkloadResource)
+}
+
+// GetLegacyMetricsBinding returns the existing MetricsBinding (legacy resource) for the given
+// workload - nil if it does not exist.
+func (a *GeneratorWorkloadWebhook) GetLegacyMetricsBinding(ctx context.Context, unst *unstructured.Unstructured) (*vzapp.MetricsBinding, error) {
+	metricsBindingName := generateMetricsBindingName(unst.GetName(), unst.GetAPIVersion(), unst.GetKind())
+	metricsBindingKey := types.NamespacedName{Namespace: unst.GetNamespace(), Name: metricsBindingName}
+	metricsBinding := vzapp.MetricsBinding{}
+	err := a.Client.Get(ctx, metricsBindingKey, &metricsBinding)
+	if apierrors.IsNotFound(err) {
+		return nil, nil
+	}
+	return &metricsBinding, err
 }
 
 // processMetricsAnnotation checks the workload resource for the "app.verrazzano.io/metrics" annotation and returns the
