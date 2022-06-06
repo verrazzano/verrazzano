@@ -28,11 +28,10 @@ const (
 	shortWaitTimeout         = 5 * time.Minute
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
-	skipVerifications	     = "Skip Verifications"
+	skipVerifications        = "Skip Verifications"
 )
 
 const (
-
 	helidonComponentYaml = "../../../examples/hello-helidon/hello-helidon-comp.yaml"
 	helidonAppYaml       = "testdata/jwt/helidon/hello-helidon-app.yaml"
 )
@@ -124,7 +123,9 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 			// check for realm
 			_, err = kc.GetRealm(realmName)
 			Expect(err).To(BeNil())
-			token, err := kc.GetToken(realmName, "testuser", password, "appsclient", t.Logs)
+			var token string
+			token, err = kc.GetToken(realmName, "testuser", password, "appsclient", t.Logs)
+			Expect(err).To(BeNil())
 			t.Logs.Debugf("Obtained token: %v", token)
 			url := fmt.Sprintf("https://%s/greet", host)
 			Eventually(func() bool {

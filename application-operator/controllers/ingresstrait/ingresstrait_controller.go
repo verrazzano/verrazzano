@@ -74,7 +74,7 @@ const (
 	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
 	destinationRuleKind       = "DestinationRule"
 	authzPolicyAPIVersion     = "security.istio.io/v1beta1"
-	authzPolicyKind            = "AuthorizationPolicy"
+	authzPolicyKind           = "AuthorizationPolicy"
 	controllerName            = "ingresstrait"
 	httpsProtocol             = "HTTPS"
 	istioIngressGateway       = "istio-ingressgateway"
@@ -768,7 +768,7 @@ func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, ru
 			pathSuffix := strings.Replace(path.Path, "/", "", -1)
 			policyName := fmt.Sprintf("%s-%s", namePrefix, pathSuffix)
 			authzPolicy := &clisecurity.AuthorizationPolicy{
-				TypeMeta:   metav1.TypeMeta{
+				TypeMeta: metav1.TypeMeta{
 					Kind:       authzPolicyKind,
 					APIVersion: authzPolicyAPIVersion,
 				},
@@ -825,12 +825,12 @@ func createAuthorizationPolicyRule(rule *vzapi.AuthorizationRule, path string) (
 		Paths: []string{path},
 	}
 	authzRule := v1beta1.Rule{
-		From: []*v1beta1.Rule_From {
+		From: []*v1beta1.Rule_From{
 			{
 				Source: source,
 			},
 		},
-		To:   []*v1beta1.Rule_To {
+		To: []*v1beta1.Rule_To{
 			{
 				Operation: paths,
 			},

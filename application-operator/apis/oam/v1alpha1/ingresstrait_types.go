@@ -45,8 +45,8 @@ type IngressSecurity struct {
 
 // IngressPath specifies a specific path to be exposed for an ingress trait.
 type IngressPath struct {
-	Path     string `json:"path,omitempty"`
-	PathType string `json:"pathType,omitempty"`
+	Path     string               `json:"path,omitempty"`
+	PathType string               `json:"pathType,omitempty"`
 	Policy   *AuthorizationPolicy `json:"authorizationPolicy,omitempty"`
 }
 
