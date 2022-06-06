@@ -4,6 +4,7 @@
 def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
+def userPassword = (('A'..'Z') + ('0'..'9')).shuffled().take(10).join()
 
 pipeline {
     options {
@@ -207,7 +208,7 @@ pipeline {
                             ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
                             # setup test realm for JWT testing scenarios
                             export KEYCLOAK_PASSWORD=\$(kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo)
-                            export REALM_USER_PASSWORD=\$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c\${1:-12};echo;)
+                            export REALM_USER_PASSWORD=${userPassword}
                             kubectl exec keycloak-0 -n keycloak -- /bin/sh -c "`cat ci/scripts/create_test_realm.sh`"
                             # setup request authentication policy
                             keycloakURI=\$(kubectl get ingress -n keycloak keycloak -o jsonpath="{.spec.rules[0].host}")
@@ -413,6 +414,8 @@ pipeline {
                         stage('jwt helidon') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jwt-helidon"
+                                REALM_USER_PASSWORD="${userPassword}"
+                                REALM_NAME="test-realm"
                             }
                             steps {
                                 runGinkgo('jwt/helidon')
