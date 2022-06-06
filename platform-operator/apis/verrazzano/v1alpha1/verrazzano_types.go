@@ -252,9 +252,12 @@ const (
 	// CompStateDisabled is the state for when a component is not currently installed
 	CompStateDisabled CompStateType = "Disabled"
 
-	// CompStatePreInstalling is the state when an install is about to be started
+	// CompStatePreInstalling is the state when a pre-install is about to be started
 	CompStatePreInstalling CompStateType = "PreInstalling"
 
+	// CompStateInstallStarted is the state when pre-install is completed and install is about to be started
+	CompStateInstallStarted CompStateType = "InstallStarted"
+	
 	// CompStateInstalling is the state when an install is in progress
 	CompStateInstalling CompStateType = "Installing"
 

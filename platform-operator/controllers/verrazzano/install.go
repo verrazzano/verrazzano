@@ -117,6 +117,12 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 				requeue = true
 				continue
 			}
+			if err := r.updateComponentStatus(compContext, "Install started", vzapi.CondInstallStarted); err != nil {
+				return ctrl.Result{Requeue: true}, err
+			}
+			requeue = true
+
+		case vzapi.CompStateInstallStarted:
 			// If component is not installed,install it
 			compLog.Oncef("Component %s install started ", compName)
 			if err := comp.Install(compContext); err != nil {
