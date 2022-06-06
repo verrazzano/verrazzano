@@ -93,7 +93,7 @@ func (f fluentdComponent) PostInstall(ctx spi.ComponentContext) error {
 	return f.HelmComponent.PostInstall(ctx)
 }
 
-// PostUpgrade Verrazzano-Fluentd-post-upgrade processing
+// PostUpgrade Fluentd component post-upgrade processing
 func (f fluentdComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Verrazzano Fluentd component post-upgrade")
 	cleanTempFiles(ctx)
@@ -114,4 +114,9 @@ func (f fluentdComponent) PreInstall(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed copying logging secrets for Verrazzano: %v", err)
 	}
 	return nil
+}
+
+// PreUpgrade Fluentd component pre-upgrade processing
+func (f fluentdComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	return fluentdPreUpgrade(ctx, ComponentNamespace)
 }
