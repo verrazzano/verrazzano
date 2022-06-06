@@ -4,11 +4,6 @@
 def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
-def pool = ['a'..'z','A'..'Z',0..9,'_'].flatten()
-Random rand = new Random(System.currentTimeMillis())
-
-def passChars = (0..10).collect { pool[rand.nextInt(pool.size())] }
-def userPassword = passChars.join()
 
 pipeline {
     options {
@@ -205,6 +200,7 @@ pipeline {
                         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
                         OCI_OS_BUCKET="verrazzano-builds"
                         OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                        REALM_USER_PASSWORD = credentials('todo-mysql-password')
                     }
                     steps {
                         sh """
@@ -212,7 +208,6 @@ pipeline {
                             ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
                             # setup test realm for JWT testing scenarios
                             export KEYCLOAK_PASSWORD=\$(kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo)
-                            export REALM_USER_PASSWORD=${userPassword}
                             kubectl exec keycloak-0 -n keycloak -- /bin/sh -c "`cat ci/scripts/create_test_realm.sh`"
                             # setup request authentication policy
                             keycloakURI=\$(kubectl get ingress -n keycloak keycloak -o jsonpath="{.spec.rules[0].host}")
@@ -418,7 +413,7 @@ pipeline {
                         stage('jwt helidon') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jwt-helidon"
-                                REALM_USER_PASSWORD="${userPassword}"
+                                REALM_USER_PASSWORD = credentials('todo-mysql-password')
                                 REALM_NAME="test-realm"
                             }
                             steps {
