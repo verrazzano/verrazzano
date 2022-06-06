@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 )
 
+// help text for uninstall command
 const (
 	CommandName  = "uninstall"
 	crdsFlag     = "crds"

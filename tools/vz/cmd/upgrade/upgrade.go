@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 )
 
+// help text for upgrade command
 const (
 	CommandName = "upgrade"
 	helpShort   = "Upgrade Verrazzano"

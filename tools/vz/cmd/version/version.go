@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 )
 
+// help text for version command
 const (
 	CommandName = "version"
 	helpShort   = "Verrazzano version information"

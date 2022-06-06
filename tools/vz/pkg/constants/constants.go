@@ -3,6 +3,8 @@
 
 package constants
 
+// global help text or user visible strings
+
 // GlobalFlagKubeConfig - global flag for specifying the location of the kube config
 const GlobalFlagKubeConfig = "kubeconfig"
 const GlobalFlagKubeConfigHelp = "Path to the kubeconfig file to use."
