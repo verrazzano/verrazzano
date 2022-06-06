@@ -18,11 +18,10 @@ import (
 var kubeconfig string
 var context string
 
-// help text for root command
 const (
 	CommandName = "vz"
-	helpShort   = "The vz tool is a command line utility that allows Verrazzano operators to query and manage a Verrazzano environment."
-	helpLong    = "The vz tool is a command line utility that allows Verrazzano operators to query and manage a Verrazzano environment."
+	helpShort   = "The vz tool is a command-line utility that allows Verrazzano operators to query and manage a Verrazzano environment."
+	helpLong    = "The vz tool is a command-line utility that allows Verrazzano operators to query and manage a Verrazzano environment."
 )
 
 // NewRootCmd - create the root cobra command

@@ -14,10 +14,9 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/templates"
 )
 
-// help text for status command
 const (
 	CommandName = "status"
-	helpShort   = "Status of the Verrazzano install and access endpoints"
+	helpShort   = "Status of the Verrazzano installation and access endpoints"
 	helpLong    = `The command 'status' returns summary information about a Verrazzano installation.`
 	helpExample = `
 vz status

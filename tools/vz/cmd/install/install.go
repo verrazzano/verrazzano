@@ -27,7 +27,6 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// help test for install command
 const (
 	CommandName = "install"
 	helpShort   = "Install Verrazzano"
