@@ -17,7 +17,7 @@ import (
 const (
 	CommandName = "status"
 	helpShort   = "Status of the Verrazzano installation and access endpoints"
-	helpLong    = `The command 'status' returns summary information about a Verrazzano installation.`
+	helpLong    = `The command 'status' returns summary information about a Verrazzano installation`
 	helpExample = `
 vz status
 vz status --context minikube

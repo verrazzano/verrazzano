@@ -3,8 +3,6 @@
 
 package constants
 
-// global help text or user visible strings
-
 // GlobalFlagKubeConfig - global flag for specifying the location of the kube config
 const GlobalFlagKubeConfig = "kubeconfig"
 const GlobalFlagKubeConfigHelp = "Path to the kubeconfig file to use."
@@ -23,11 +21,11 @@ const (
 	WaitFlagDefault = true
 
 	TimeoutFlag     = "timeout"
-	TimeoutFlagHelp = "Limits the amount of time a command will wait to complete."
+	TimeoutFlagHelp = "Limits the amount of time a command will wait to complete"
 
 	VersionFlag        = "version"
 	VersionFlagDefault = "latest"
-	VersionFlagHelp    = "The version of Verrazzano to install or upgrade."
+	VersionFlagHelp    = "The version of Verrazzano to install or upgrade"
 
 	DryRunFlag = "dry-run"
 

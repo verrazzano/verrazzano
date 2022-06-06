@@ -30,15 +30,15 @@ import (
 const (
 	CommandName = "install"
 	helpShort   = "Install Verrazzano"
-	helpLong    = `Install the Verrazzano Platform Operator and install the Verrazzano components specified by the Verrazzano CR provided on the command line.`
+	helpLong    = `Install the Verrazzano Platform Operator and install the Verrazzano components specified by the Verrazzano CR provided on the command line`
 	helpExample = `
 # Install the latest version of Verrazzano using the prod profile. Stream the logs to the console until the install completes.
 vz install
 
-# Install version 1.3.0 using a dev profile, timeout the command after 20 minutes.
+# Install version 1.3.0 using a dev profile, timeout the command after 20 minutes
 vz install --version v1.3.0 --set profile=dev --timeout 20m
 
-# Install version 1.3.0 using a dev profile with elasticsearch disabled and wait for the install to complete.
+# Install version 1.3.0 using a dev profile with elasticsearch disabled and wait for the install to complete
 vz install --version v1.3.0 --set profile=dev --set components.elasticsearch.enabled=false
 
 # Install the latest version of Verrazzano using CR overlays and explicit value sets.  Output the logs in json format.
