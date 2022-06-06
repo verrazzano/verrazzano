@@ -191,3 +191,9 @@ const PromAdditionalScrapeConfigsSecretKey = "jobs"
 // PromManagedClusterCACertsSecretName is the name of the secret that contains managed cluster CA certificates. The secret is mounted
 // as a volume in the Prometheus pod.
 const PromManagedClusterCACertsSecretName = "managed-cluster-ca-certs"
+
+// VerrazzanoComponentLabelKey is the key for the verrazzano component label to distinguish verrazzano component resources
+const VerrazzanoComponentLabelKey = "verrazzano-component"
+
+// IstioAppLabel is the label used for Verrazzano Istio components
+const IstioAppLabel = "verrazzano.io/istio"
