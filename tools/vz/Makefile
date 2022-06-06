@@ -47,7 +47,7 @@ go-build:
 
 .PHONY: cli
 cli: ## build the CLI
-	$(GO) install ./...
+	$(GO) install -ldflags "${CLI_GO_LDFLAGS} -X main.cliVersion=${CLI_VERSION}" ./...
 
 .PHONY: unit-test
 unit-test: cli
