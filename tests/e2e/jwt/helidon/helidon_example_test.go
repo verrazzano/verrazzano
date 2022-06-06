@@ -125,7 +125,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 			_, err = kc.GetRealm(realmName)
 			Expect(err).To(BeNil())
 			token, err := kc.GetToken(realmName, "testuser", password, "appsclient", t.Logs)
-			t.Logs.Infof("Obtained token: %v", token)
+			t.Logs.Debugf("Obtained token: %v", token)
 			url := fmt.Sprintf("https://%s/greet", host)
 			Eventually(func() bool {
 				return appEndpointAccess(url, host, token, true)

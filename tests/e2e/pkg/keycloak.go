@@ -129,7 +129,7 @@ func (c *KeycloakRESTClient) GetToken(realm string, username string, password st
 
 	requestURL := fmt.Sprintf("https://%s/auth/realms/%s/protocol/openid-connect/token", c.keycloakIngressHost, realm)
 	response, err := PostWithHostHeader(requestURL, "application/x-www-form-urlencoded", c.keycloakIngressHost, strings.NewReader(form.Encode()))
-	log.Infof("response: %s", response.Body)
+	log.Debugf("response: %s", response.Body)
 	if response.StatusCode != 200 {
 		return "", fmt.Errorf("invalid response status: %d", response.StatusCode)
 	}
