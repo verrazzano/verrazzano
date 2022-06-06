@@ -304,13 +304,13 @@ func TestSuccessfullyCreateNewIngressWithAuthorizationPolicy(t *testing.T) {
 				Hosts: []string{"test-host"},
 				Paths: []vzapi.IngressPath{
 					{
-						Path:   "/test-path",
+						Path: "/test-path",
 						Policy: &vzapi.AuthorizationPolicy{
-							Rules: []*vzapi.AuthorizationRule {
+							Rules: []*vzapi.AuthorizationRule{
 								{
 									From: &vzapi.AuthorizationRuleFrom{RequestPrincipals: []string{"*"}},
 									When: &vzapi.AuthorizationRuleCondition{
-										Key: "testKey",
+										Key:    "testKey",
 										Values: []string{"testValue"},
 									},
 								},
@@ -411,20 +411,20 @@ func TestSuccessfullyCreateNewIngressWithAuthorizationPolicyMultipleRules(t *tes
 				Hosts: []string{"test-host"},
 				Paths: []vzapi.IngressPath{
 					{
-						Path:   "/test-path",
+						Path: "/test-path",
 						Policy: &vzapi.AuthorizationPolicy{
-							Rules: []*vzapi.AuthorizationRule {
+							Rules: []*vzapi.AuthorizationRule{
 								{
 									From: &vzapi.AuthorizationRuleFrom{RequestPrincipals: []string{"*"}},
 									When: &vzapi.AuthorizationRuleCondition{
-										Key: "testKey",
+										Key:    "testKey",
 										Values: []string{"testValue"},
 									},
 								},
 								{
 									From: &vzapi.AuthorizationRuleFrom{RequestPrincipals: []string{"*"}},
 									When: &vzapi.AuthorizationRuleCondition{
-										Key: "testKey2",
+										Key:    "testKey2",
 										Values: []string{"testValue2"},
 									},
 								},
@@ -525,12 +525,12 @@ func TestFailureCreateNewIngressWithAuthorizationPolicyNoFromClause(t *testing.T
 				Hosts: []string{"test-host"},
 				Paths: []vzapi.IngressPath{
 					{
-						Path:   "/test-path",
+						Path: "/test-path",
 						Policy: &vzapi.AuthorizationPolicy{
-							Rules: []*vzapi.AuthorizationRule {
+							Rules: []*vzapi.AuthorizationRule{
 								{
 									When: &vzapi.AuthorizationRuleCondition{
-										Key: "testKey",
+										Key:    "testKey",
 										Values: []string{"testValue"},
 									},
 								},
@@ -3837,7 +3837,6 @@ func createAuthzPolicySuccessExpectations(mock *mocks.MockClient, assert *assert
 			return nil
 		})
 }
-
 
 func traitAuthzPolicyNotFoundExpectation(mock *mocks.MockClient) {
 	// Expect a call to get the authorization policy resource related to the ingress trait and return that it is not found.

@@ -92,7 +92,6 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	t.BeforeEach(func() {
 		Eventually(func() (string, error) {
 			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
-			Expect(err).To(BeNil())
 			return host, err
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 	})
