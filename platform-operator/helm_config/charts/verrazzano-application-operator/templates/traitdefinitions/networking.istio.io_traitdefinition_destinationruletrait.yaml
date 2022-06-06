@@ -16,4 +16,3 @@ spec:
     - apps/v1.DaemonSet
   definitionRef:
     name: networking.istio.io/v1beta1.DestinationRule
-  workloadRefPath: spec.workloadRef
