@@ -7,8 +7,11 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"strings"
 	"text/template"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -511,8 +514,9 @@ func validateServicePorts() {
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "expect to get correct ports setting from nginx and istio services")
 }
 
-func validateServiceNodePortAndExternalIP(sysIP, appIP string) {
+func validateServiceNodePortAndExternalIP(expectedSystemExternalIP, expectedApplicationExternalIP string) {
 	gomega.Eventually(func() error {
+		// validate Nginx Ingress service
 		var err error
 		nginxIngress, err := pkg.GetService(constants.IngressNamespace, nginxIngressServiceName)
 		if err != nil {
@@ -521,10 +525,12 @@ func validateServiceNodePortAndExternalIP(sysIP, appIP string) {
 		if nginxIngress.Spec.Type != corev1.ServiceTypeNodePort {
 			return fmt.Errorf("expect nginx ingress with type NodePort, but got %v", nginxIngress.Spec.Type)
 		}
-		expectedSysIPs := []string{sysIP}
+		expectedSysIPs := []string{expectedSystemExternalIP}
 		if !reflect.DeepEqual(expectedSysIPs, nginxIngress.Spec.ExternalIPs) {
 			return fmt.Errorf("expect nginx ingress with externalIPs %v, but got %v", expectedSysIPs, nginxIngress.Spec.ExternalIPs)
 		}
+
+		// validate Istion Ingress Service
 		istioIngress, err := pkg.GetService(constants.IstioSystemNamespace, istioIngressServiceName)
 		if err != nil {
 			return err
@@ -532,16 +538,30 @@ func validateServiceNodePortAndExternalIP(sysIP, appIP string) {
 		if istioIngress.Spec.Type != corev1.ServiceTypeNodePort {
 			return fmt.Errorf("expect istio ingress with type NodePort, but got %v", istioIngress.Spec.Type)
 		}
-		expectedAppIPs := []string{appIP}
+		expectedAppIPs := []string{expectedApplicationExternalIP}
 		if !reflect.DeepEqual(expectedAppIPs, istioIngress.Spec.ExternalIPs) {
 			return fmt.Errorf("expect nginx ingress with externalIPs %v, but got %v", expectedAppIPs, istioIngress.Spec.ExternalIPs)
 		}
+
+		// validate Verrazzano Ingress URL
+		err = validateVerrazzanoIngressURL(expectedSystemExternalIP)
+		if err != nil {
+			return err
+		}
+
+		// validate hello-helidon HOSTS
+		err = validateHelloHelidonHost(expectedApplicationExternalIP)
+		if err != nil {
+			return err
+		}
+
 		return nil
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "expect to get NodePort type and externalIPs from nginx and istio services")
 }
 
 func validateServiceLoadBalancer() {
 	gomega.Eventually(func() error {
+		// validate Nginx Ingress service
 		var err error
 		nginxIngress, err := pkg.GetService(constants.IngressNamespace, nginxIngressServiceName)
 		if err != nil {
@@ -557,6 +577,8 @@ func validateServiceLoadBalancer() {
 		if len(nginxLBIP) == 0 {
 			return fmt.Errorf("invalid loadBalancer IP %s for nginx", nginxLBIP)
 		}
+
+		// validate Istion Ingress Service
 		istioIngress, err := pkg.GetService(constants.IstioSystemNamespace, istioIngressServiceName)
 		if err != nil {
 			return err
@@ -571,6 +593,50 @@ func validateServiceLoadBalancer() {
 		if len(istioLBIP) == 0 {
 			return fmt.Errorf("invalid loadBalancer IP %s for istio", istioLBIP)
 		}
+
+		// validate Verrazzano Ingress URL
+		err = validateVerrazzanoIngressURL(nginxLBIP)
+		if err != nil {
+			return err
+		}
+
+		// validate hello-helidon HOSTS
+		err = validateHelloHelidonHost(istioLBIP)
+		if err != nil {
+			return err
+		}
+
 		return nil
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "expect to get LoadBalancer type and loadBalancer IP from nginx and istio services")
+}
+
+func validateVerrazzanoIngressURL(expectedIP string) error {
+	kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		return err
+	}
+	api, err := pkg.GetAPIEndpoint(kubeConfigPath)
+	if err != nil {
+		t.Logs.Errorf("Error getting API endpoint: %v", err)
+		return err
+	}
+	vzURL, err := api.GetVerrazzanoIngressURL()
+	if err != nil {
+		return err
+	}
+	if !strings.Contains(vzURL, expectedIP) {
+		return fmt.Errorf("expect Verrazzano URL %s to contain IP %s", vzURL, expectedIP)
+	}
+	return nil
+}
+
+func validateHelloHelidonHost(expectedIP string) error {
+	helloHost, err := k8sutil.GetHostnameFromGateway("hello-helidon", "")
+	if err != nil {
+		return err
+	}
+	if !strings.Contains(helloHost, expectedIP) {
+		return fmt.Errorf("expect hello-helidon HOST %s to contain IP %s", helloHost, expectedIP)
+	}
+	return nil
 }
