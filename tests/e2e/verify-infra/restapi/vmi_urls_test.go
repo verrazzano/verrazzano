@@ -26,7 +26,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm",
 
 	t.Context("urls test to", func() {
 
-		t.It("Access VMI endpoints", func() {
+		t.It("Access VMI endpoints", FlakeAttempts(5), Label("f:ui.api"), func() {
 			isManagedClusterProfile := pkg.IsManagedClusterProfile()
 			var isEsEnabled = false
 			var isKibanaEnabled = false
