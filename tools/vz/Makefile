@@ -19,8 +19,6 @@ ifndef RELEASE_BRANCH
 endif
 
 DIST_DIR:=dist
-EXTRA_PARAMS=
-INTEG_RUN_ID=
 ENV_NAME=vz
 GO = GO111MODULE=on GOPRIVATE=github.com/verrazzano/* go
 CLI_GO_LDFLAGS ?= -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
