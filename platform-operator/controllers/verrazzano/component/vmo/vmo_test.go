@@ -9,6 +9,7 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
@@ -241,8 +242,8 @@ func TestRetainPrometheusPersistentVolume(t *testing.T) {
 	a.NoError(err)
 
 	// validate that the expected labels are set and the reclaim policy is set to "retain"
-	a.Equal("prometheus", pv.Labels["verrazzano.io/storage-for"])
-	a.Equal(string(reclaimPolicy), pv.Labels["verrazzano.io/old-reclaim-policy"])
+	a.Equal(constants.PrometheusStorageLabelValue, pv.Labels[constants.StorageForLabel])
+	a.Equal(string(reclaimPolicy), pv.Labels[constants.OldReclaimPolicyLabel])
 	a.Equal(corev1.PersistentVolumeReclaimRetain, pv.Spec.PersistentVolumeReclaimPolicy)
 
 	// GIVEN no vmi-system-prometheus pvc

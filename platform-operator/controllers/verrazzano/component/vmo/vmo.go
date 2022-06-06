@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
@@ -108,8 +109,8 @@ func retainPrometheusPersistentVolume(ctx spi.ComponentContext) error {
 	if pv.Labels == nil {
 		pv.Labels = make(map[string]string)
 	}
-	pv.Labels["verrazzano.io/storage-for"] = "prometheus"
-	pv.Labels["verrazzano.io/old-reclaim-policy"] = string(oldReclaimPolicy)
+	pv.Labels[constants.StorageForLabel] = constants.PrometheusStorageLabelValue
+	pv.Labels[constants.OldReclaimPolicyLabel] = string(oldReclaimPolicy)
 
 	if err := ctx.Client().Update(context.TODO(), pv); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed updating persistent volume associated with pvc vmi-system-prometheus: %v", err)

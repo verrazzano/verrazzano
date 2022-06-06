@@ -117,16 +117,18 @@ func removeOldClaimFromPrometheusVolume(ctx spi.ComponentContext) error {
 	}
 
 	// find a volume that has been released but still has a claim for the old VMO-managed Prometheus
-	for _, pv := range pvList.Items {
-		if pv.Status.Phase == corev1.VolumeReleased {
-			if pv.Spec.ClaimRef != nil && pv.Spec.ClaimRef.Namespace == constants.VerrazzanoSystemNamespace && pv.Spec.ClaimRef.Name == "vmi-system-prometheus" {
-				ctx.Log().Infof("Found volume, removing old claim from Prometheus persistent volume %s", pv.Name)
-				pv.Spec.ClaimRef = nil
-				if err := ctx.Client().Update(context.TODO(), &pv); err != nil {
-					return ctx.Log().ErrorfNewErr("Failed removing claim from persistent volume %s: %v", pv.Name, err)
-				}
-				break
+	for i := range pvList.Items {
+		pv := pvList.Items[i] // avoids "Implicit memory aliasing in for loop" linter complaint
+		if pv.Status.Phase != corev1.VolumeReleased {
+			continue
+		}
+		if pv.Spec.ClaimRef != nil && pv.Spec.ClaimRef.Namespace == constants.VerrazzanoSystemNamespace && pv.Spec.ClaimRef.Name == "vmi-system-prometheus" {
+			ctx.Log().Infof("Found volume, removing old claim from Prometheus persistent volume %s", pv.Name)
+			pv.Spec.ClaimRef = nil
+			if err := ctx.Client().Update(context.TODO(), &pv); err != nil {
+				return ctx.Log().ErrorfNewErr("Failed removing claim from persistent volume %s: %v", pv.Name, err)
 			}
+			break
 		}
 	}
 	return nil
@@ -136,7 +138,7 @@ func removeOldClaimFromPrometheusVolume(ctx spi.ComponentContext) error {
 // an older VMO installation
 func getPrometheusPersistentVolumes(ctx spi.ComponentContext) (*corev1.PersistentVolumeList, error) {
 	pvList := &corev1.PersistentVolumeList{}
-	if err := ctx.Client().List(context.TODO(), pvList, client.MatchingLabels{"verrazzano.io/storage-for": "prometheus"}); err != nil {
+	if err := ctx.Client().List(context.TODO(), pvList, client.MatchingLabels{constants.StorageForLabel: constants.PrometheusStorageLabelValue}); err != nil {
 		return nil, ctx.Log().ErrorfNewErr("Failed listing persistent volumes: %v", err)
 	}
 	return pvList, nil
@@ -154,23 +156,26 @@ func resetVolumeReclaimPolicy(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	for _, pv := range pvList.Items {
-		if pv.Status.Phase == corev1.VolumeBound {
-			if pv.Labels != nil {
-				oldPolicy := pv.Labels["verrazzano.io/old-reclaim-policy"]
+	for i := range pvList.Items {
+		pv := pvList.Items[i] // avoids "Implicit memory aliasing in for loop" linter complaint
+		if pv.Status.Phase != corev1.VolumeBound {
+			continue
+		}
+		if pv.Labels == nil {
+			continue
+		}
+		oldPolicy := pv.Labels[constants.OldReclaimPolicyLabel]
 
-				if len(oldPolicy) > 0 {
-					// found a bound volume that still has an old reclaim policy label, so reset the reclaim policy and remove the label
-					ctx.Log().Infof("Found volume, resetting reclaim policy on Prometheus persistent volume %s to %s", pv.Name, oldPolicy)
-					pv.Spec.PersistentVolumeReclaimPolicy = corev1.PersistentVolumeReclaimPolicy(oldPolicy)
-					delete(pv.Labels, "verrazzano.io/old-reclaim-policy")
+		if len(oldPolicy) > 0 {
+			// found a bound volume that still has an old reclaim policy label, so reset the reclaim policy and remove the label
+			ctx.Log().Infof("Found volume, resetting reclaim policy on Prometheus persistent volume %s to %s", pv.Name, oldPolicy)
+			pv.Spec.PersistentVolumeReclaimPolicy = corev1.PersistentVolumeReclaimPolicy(oldPolicy)
+			delete(pv.Labels, constants.OldReclaimPolicyLabel)
 
-					if err := ctx.Client().Update(context.TODO(), &pv); err != nil {
-						return ctx.Log().ErrorfNewErr("Failed resetting reclaim policy on persistent volume %s: %v", pv.Name, err)
-					}
-					break
-				}
+			if err := ctx.Client().Update(context.TODO(), &pv); err != nil {
+				return ctx.Log().ErrorfNewErr("Failed resetting reclaim policy on persistent volume %s: %v", pv.Name, err)
 			}
+			break
 		}
 	}
 	return nil

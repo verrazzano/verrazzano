@@ -191,3 +191,12 @@ const PromAdditionalScrapeConfigsSecretKey = "jobs"
 // PromManagedClusterCACertsSecretName is the name of the secret that contains managed cluster CA certificates. The secret is mounted
 // as a volume in the Prometheus pod.
 const PromManagedClusterCACertsSecretName = "managed-cluster-ca-certs"
+
+// OldReclaimPolicyLabel is the name of the label used to store the old reclaim policy of a persistent volume before it is migrated
+const OldReclaimPolicyLabel = "verrazzano.io/old-reclaim-policy"
+
+// StorageForLabel is the name of the label applied to a persistent volume so storage can be selected by a pod
+const StorageForLabel = "verrazzano.io/storage-for"
+
+// PrometheusStorageLabelValue is the label value for Prometheus storage
+const PrometheusStorageLabelValue = "prometheus"
