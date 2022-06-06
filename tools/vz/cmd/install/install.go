@@ -60,20 +60,6 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-
-	// Get the version from the command line
-	version, err := cmd.PersistentFlags().GetString(constants.VersionFlag)
-	if err != nil {
-		return err
-	}
-	if version == constants.VersionFlagDefault {
-		// Find the latest release version of Verrazzano
-		version, err = helpers.GetLatestReleaseVersion()
-		if err != nil {
-			return err
-		}
-	}
-
 	fmt.Fprintf(vzHelper.GetOutputStream(), "Not implemented yet\n")
 	return nil
 }
