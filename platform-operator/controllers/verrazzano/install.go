@@ -51,7 +51,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 			continue
 		}
 		if checkConfigUpdated(spiCtx, componentStatus, compName) && comp.IsEnabled(compContext.EffectiveCR()) {
-			if !comp.MonitorOverrides(compContext) {
+			if !comp.MonitorOverrides(compContext) && comp.IsEnabled(spiCtx.EffectiveCR()) {
 				compLog.Oncef("Skipping update for component %s, monitorChanges set to false", comp.Name())
 			} else {
 				oldState := componentStatus.State
