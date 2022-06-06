@@ -204,6 +204,7 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 		if err != nil {
 			return newRequeueWithDelay(), err
 		}
+		// if the spec version field is set and the SemVer spec field doesn't equal the SemVer status field
 		if len(actualCR.Spec.Version) > 0 && specVersion.CompareTo(statusVersion) != 0 {
 			// Transition to upgrade state
 			r.updateVzState(log, actualCR, installv1alpha1.VzStateUpgrading)
