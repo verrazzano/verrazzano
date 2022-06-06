@@ -40,7 +40,7 @@ const (
 	istioIngressServiceName  = "istio-ingressgateway"
 	nginxExternalIPArg       = "controller.service.externalIPs"
 	istioExternalIPArg       = "gateways.istio-ingressgateway.externalIPs"
-	waitTimeout              = 5 * time.Minute
+	waitTimeout              = 10 * time.Minute
 	pollingInterval          = 5 * time.Second
 	ociLBShapeAnnotation     = "service.beta.kubernetes.io/oci-load-balancer-shape"
 	nginxLBShapeArg          = "controller.service.annotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\""
