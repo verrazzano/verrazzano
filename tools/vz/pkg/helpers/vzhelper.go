@@ -6,12 +6,16 @@ package helpers
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"io"
+	"k8s.io/apimachinery/pkg/types"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/github"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -20,6 +24,7 @@ type VZHelper interface {
 	GetErrorStream() io.Writer
 	GetInputStream() io.Reader
 	GetClient(cmd *cobra.Command) (client.Client, error)
+	GetKubeClient(cmd *cobra.Command) (*kubernetes.Clientset, error)
 }
 
 // FindVerrazzanoResource - find the single Verrazzano resource
@@ -37,6 +42,17 @@ func FindVerrazzanoResource(client client.Client) (*vzapi.Verrazzano, error) {
 		return nil, fmt.Errorf("Expected to only find one Verrazzano resource, but found %d", len(vzList.Items))
 	}
 	return &vzList.Items[0], nil
+}
+
+// GetVerrazzanoResource - get a Verrazzano resource
+func GetVerrazzanoResource(client client.Client, namespacedName types.NamespacedName) (*vzapi.Verrazzano, error) {
+
+	vz := &vzapi.Verrazzano{}
+	err := client.Get(context.TODO(), namespacedName, vz)
+	if err != nil {
+		return nil, err
+	}
+	return vz, nil
 }
 
 // GetLatestReleaseVersion - get the version of the latest release of Verrazzano
@@ -68,4 +84,23 @@ func getLatestReleaseVersion(releases []string) (string, error) {
 		}
 	}
 	return fmt.Sprintf("v%s", latestRelease.ToString()), nil
+}
+
+// GetWaitTimeout returns the time to wait for a command to complete
+func GetWaitTimeout(cmd *cobra.Command) (time.Duration, error) {
+	// Get the wait value from the command line
+	wait, err := cmd.PersistentFlags().GetBool(constants.WaitFlag)
+	if err != nil {
+		return time.Duration(0), err
+	}
+	if wait {
+		timeout, err := cmd.PersistentFlags().GetDuration(constants.TimeoutFlag)
+		if err != nil {
+			return time.Duration(0), err
+		}
+		return timeout, nil
+	}
+
+	// Return duration of zero since --wait=false was specified
+	return time.Duration(0), nil
 }

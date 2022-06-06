@@ -5,6 +5,7 @@ package helpers
 
 import (
 	"io"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -12,7 +13,8 @@ import (
 )
 
 type FakeRootCmdContext struct {
-	client client.Client
+	client     client.Client
+	kubeClient *kubernetes.Clientset
 	genericclioptions.IOStreams
 }
 
@@ -31,9 +33,14 @@ func (rc *FakeRootCmdContext) GetInputStream() io.Reader {
 	return rc.IOStreams.In
 }
 
-// GetClient - return a kubernetes client that supports the schemes used by the CLI
+// GetClient - return a controller runtime client that supports the schemes used by the CLI
 func (rc *FakeRootCmdContext) GetClient(cmd *cobra.Command) (client.Client, error) {
 	return rc.client, nil
+}
+
+// GetKubeClient - return a Kubernetes clientset for use with the go-client
+func (rc *FakeRootCmdContext) GetKubeClient(cmd *cobra.Command) (*kubernetes.Clientset, error) {
+	return rc.kubeClient, nil
 }
 
 // SetClient - set the client
