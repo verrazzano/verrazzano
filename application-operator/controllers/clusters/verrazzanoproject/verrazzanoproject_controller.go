@@ -7,8 +7,9 @@ import (
 	"context"
 	"fmt"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/constants"
+	vaoconst "github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzConstants "github.com/verrazzano/verrazzano/pkg/constants"
 	log2 "github.com/verrazzano/verrazzano/pkg/log"
 	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -223,7 +224,7 @@ func (r *Reconciler) mutateNamespace(nsTemplate clustersv1alpha1.NamespaceTempla
 	}
 
 	// Apply the standard Verrazzano labels
-	namespace.Labels[constants.LabelVerrazzanoManaged] = constants.LabelVerrazzanoManagedDefault
+	namespace.Labels[constants.VerrazzanoManagedLabelKey] = vaoconst.LabelVerrazzanoManagedDefault
 	namespace.Labels[constants.LabelIstioInjection] = istioInjection
 
 	// Apply user specified labels, which may override standard Verrazzano labels
@@ -274,7 +275,7 @@ func (r *Reconciler) createOrUpdateRoleBindings(ctx context.Context, namespace s
 
 	// create role binding for each managed cluster to limit resource access to admin cluster
 	for _, cluster := range vp.Spec.Placement.Clusters {
-		if cluster.Name != constants.DefaultClusterName {
+		if cluster.Name != vaoconst.DefaultClusterName {
 			rb := newRoleBindingManagedCluster(namespace, cluster.Name)
 			if err := r.createOrUpdateRoleBinding(ctx, rb, log); err != nil {
 				return err

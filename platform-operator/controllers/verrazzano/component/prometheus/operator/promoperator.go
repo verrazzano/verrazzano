@@ -11,6 +11,7 @@ import (
 
 	vmoconst "github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -304,9 +305,9 @@ func applySystemMonitors(ctx spi.ComponentContext) error {
 func updateApplicationAuthorizationPolicies(ctx spi.ComponentContext) error {
 	// Get the Application namespaces by filtering the label verrazzano-managed=true
 	nsList := corev1.NamespaceList{}
-	err := ctx.Client().List(context.TODO(), &nsList, &client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{constants.VerrazzanoManagedLabelKey: "true"})})
+	err := ctx.Client().List(context.TODO(), &nsList, &client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{vzconst.VerrazzanoManagedLabelKey: "true"})})
 	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to list namespaces with the label %s=true: %v", constants.VerrazzanoManagedLabelKey, err)
+		return ctx.Log().ErrorfNewErr("Failed to list namespaces with the label %s=true: %v", vzconst.VerrazzanoManagedLabelKey, err)
 	}
 
 	// For each namespace, if an authorization policy exists, add the prometheus operator service account as a principal
@@ -319,28 +320,30 @@ func updateApplicationAuthorizationPolicies(ctx spi.ComponentContext) error {
 		// Parse the authorization policy list for the Verrazzano Istio label and apply the service account to the first rule
 		for i := range authPolicyList.Items {
 			authPolicy := authPolicyList.Items[i]
-			if _, ok := authPolicy.Labels[constants.IstioAppLabel]; ok {
-				_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), &authPolicy, func() error {
-					rules := authPolicy.Spec.Rules
-					if len(rules) > 0 && rules[0] != nil {
-						targetRule := rules[0]
-						if len(targetRule.From) > 0 && targetRule.From[0] != nil {
-							targetFrom := targetRule.From[0]
-							if targetFrom.Source != nil {
-								// Update the object principal with the Prometheus Operator service account if not found
-								if !sliceutil.Contains(targetFrom.Source.Principals, serviceAccount) {
-									authPolicy.Spec.Rules[0].From[0].Source.Principals = append(
-										targetFrom.Source.Principals,
-										serviceAccount)
-								}
-							}
-						}
-					}
+			if _, ok := authPolicy.Labels[constants.IstioAppLabel]; !ok {
+				return nil
+			}
+			_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), &authPolicy, func() error {
+				rules := authPolicy.Spec.Rules
+				if len(rules) <= 0 || rules[0] == nil {
 					return nil
-				})
-				if err != nil {
-					return ctx.Log().ErrorfNewErr("Failed to update the Authorization Policy %s in namespace %s: %v", authPolicy.Name, ns.Name, err)
 				}
+				targetRule := rules[0]
+				if len(targetRule.From) <= 0 || targetRule.From[0] == nil {
+					return nil
+				}
+				targetFrom := targetRule.From[0]
+				if targetFrom.Source == nil {
+					return nil
+				}
+				// Update the object principal with the Prometheus Operator service account if not found
+				if !sliceutil.Contains(targetFrom.Source.Principals, serviceAccount) {
+					authPolicy.Spec.Rules[0].From[0].Source.Principals = append(targetFrom.Source.Principals, serviceAccount)
+				}
+				return nil
+			})
+			if err != nil {
+				return ctx.Log().ErrorfNewErr("Failed to update the Authorization Policy %s in namespace %s: %v", authPolicy.Name, ns.Name, err)
 			}
 		}
 	}

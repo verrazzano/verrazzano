@@ -195,8 +195,5 @@ const PromManagedClusterCACertsSecretName = "managed-cluster-ca-certs"
 // VerrazzanoComponentLabelKey is the key for the verrazzano component label to distinguish verrazzano component resources
 const VerrazzanoComponentLabelKey = "verrazzano-component"
 
-// VerrazzanoManagedLabelKey is a constant for a Kubernetes label that is applied to Verrazzano application namespaces
-const VerrazzanoManagedLabelKey = "verrazzano-managed"
-
 // IstioAppLabel is the label used for Verrazzano Istio components
 const IstioAppLabel = "verrazzano.io/istio"

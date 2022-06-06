@@ -13,6 +13,7 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	vmoconst "github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -381,7 +382,7 @@ func TestUpdateApplicationAuthorizationPolicies(t *testing.T) {
 	namespace := v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   testNsName,
-			Labels: map[string]string{constants.VerrazzanoManagedLabelKey: "true"},
+			Labels: map[string]string{vzconst.VerrazzanoManagedLabelKey: "true"},
 		},
 	}
 

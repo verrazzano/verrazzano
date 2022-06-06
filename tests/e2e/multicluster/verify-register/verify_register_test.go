@@ -6,6 +6,7 @@ package register_test
 import (
 	"context"
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"os"
 	"time"
 
@@ -363,8 +364,8 @@ func findNamespace(namespace string) bool {
 		return false
 	}
 	labels := ns.GetObjectMeta().GetLabels()
-	if labels[constants.LabelVerrazzanoManaged] != constants.LabelVerrazzanoManagedDefault {
-		pkg.Log(pkg.Info, fmt.Sprintf("The namespace %q label %q is set to wrong value of %q", namespace, constants.LabelVerrazzanoManaged, labels[constants.LabelVerrazzanoManaged]))
+	if labels[vzconst.VerrazzanoManagedLabelKey] != constants.LabelVerrazzanoManagedDefault {
+		pkg.Log(pkg.Info, fmt.Sprintf("The namespace %q label %q is set to wrong value of %q", namespace, vzconst.VerrazzanoManagedLabelKey, labels[vzconst.VerrazzanoManagedLabelKey]))
 		return false
 	}
 	if labels[constants.LabelIstioInjection] != constants.LabelIstioInjectionDefault {

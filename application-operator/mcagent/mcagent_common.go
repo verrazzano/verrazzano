@@ -13,6 +13,7 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -79,7 +80,7 @@ func (s *Syncer) processStatusUpdates() {
 
 // getVerrazzanoManagedNamespaces - return the list of namespaces that have the Verrazzano managed label set to true
 func (s *Syncer) getManagedNamespaces() ([]string, error) {
-	nsListSelector, err := labels.Parse(fmt.Sprintf("%s=%s", constants.LabelVerrazzanoManaged, constants.LabelVerrazzanoManagedDefault))
+	nsListSelector, err := labels.Parse(fmt.Sprintf("%s=%s", vzconst.VerrazzanoManagedLabelKey, constants.LabelVerrazzanoManagedDefault))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create list selector on local cluster: %v", err)
 	}
