@@ -559,7 +559,7 @@ func validateServiceNodePortAndExternalIP(expectedSystemExternalIP, expectedAppl
 		}
 		expectedAppIPs := []string{expectedApplicationExternalIP}
 		if !reflect.DeepEqual(expectedAppIPs, istioIngress.Spec.ExternalIPs) {
-			return fmt.Errorf("expect nginx ingress with externalIPs %v, but got %v", expectedAppIPs, istioIngress.Spec.ExternalIPs)
+			return fmt.Errorf("expect istio ingress with externalIPs %v, but got %v", expectedAppIPs, istioIngress.Spec.ExternalIPs)
 		}
 
 		// validate Verrazzano Ingress URL
