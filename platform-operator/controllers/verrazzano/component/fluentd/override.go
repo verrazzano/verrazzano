@@ -17,6 +17,13 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+const (
+	tmpFilePrefix        = "verrazzano-fluentd-overrides-"
+	tmpSuffix            = "yaml"
+	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
+	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
+)
+
 type fluentdComponentValues struct {
 	Logging *loggingValues `json:"logging,omitempty"`
 	Fluentd *fluentdValues `json:"fluentd,omitempty"`

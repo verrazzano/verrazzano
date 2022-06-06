@@ -29,11 +29,6 @@ const (
 
 	// vzImagePullSecretKeyName is the Helm key name for the VZ chart image pull secret
 	vzImagePullSecretKeyName = "global.imagePullSecrets[0]"
-
-	tmpFilePrefix        = "verrazzano-fluentd-overrides-"
-	tmpSuffix            = "yaml"
-	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
-	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
 )
 
 var (
