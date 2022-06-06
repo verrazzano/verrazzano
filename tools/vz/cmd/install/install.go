@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"math"
 	"os/exec"
 	"regexp"
 	"time"
@@ -78,6 +77,25 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
+	// Get the version from the command line
+	version, err := cmd.PersistentFlags().GetString(constants.VersionFlag)
+	if err != nil {
+		return err
+	}
+	if version == constants.VersionFlagDefault {
+		// Find the latest release version of Verrazzano
+		version, err = helpers.GetLatestReleaseVersion()
+		if err != nil {
+			return err
+		}
+	}
+
+	// Get the timeout value for the install command
+	timeout, err := helpers.GetWaitTimeout(cmd)
+	if err != nil {
+		return err
+	}
+
 	// Get the kubernetes clientset.  This will validate that the kubeconfig and context are valid.
 	kubeClient, err := vzHelper.GetKubeClient(cmd)
 	if err != nil {
@@ -85,7 +103,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Apply the Verrazzano operator.yaml.
-	err = applyPlatformOperatorYaml(cmd, vzHelper)
+	err = applyPlatformOperatorYaml(vzHelper, version)
 	if err != nil {
 		return err
 	}
@@ -119,24 +137,11 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Wait for the Verrazzano install to complete
-	return waitForInstallToComplete(client, kubeClient, vzHelper, vpoPodName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name})
+	return waitForInstallToComplete(client, kubeClient, vzHelper, vpoPodName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout)
 }
 
 // applyPlatformOperatorYaml applies a given version of the platform operator yaml file
-func applyPlatformOperatorYaml(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
-	// Get the version from the command line
-	version, err := cmd.PersistentFlags().GetString(constants.VersionFlag)
-	if err != nil {
-		return err
-	}
-	if version == constants.VersionFlagDefault {
-		// Find the latest release version of Verrazzano
-		version, err = helpers.GetLatestReleaseVersion()
-		if err != nil {
-			return err
-		}
-	}
-
+func applyPlatformOperatorYaml(vzHelper helpers.VZHelper, version string) error {
 	// Apply the Verrazzano operator.yaml. A valid version must be specified for this to succeed.
 	kubectl := exec.Command("kubectl", "apply", "-f", fmt.Sprintf("https://github.com/verrazzano/verrazzano/releases/download/%s/operator.yaml", version))
 	var stdout bytes.Buffer
@@ -206,14 +211,14 @@ func waitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper) (s
 
 		time.Sleep(verrazzanoPlatformOperatorWait * time.Second)
 		seconds += verrazzanoPlatformOperatorWait
-		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("\rWaiting for verrazzano-platform-operator to be ready - %d seconds", seconds))
+		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("\rWaiting for verrazzano-platform-operator to be ready before starting install - %d seconds", seconds))
 	}
 	return pod.Name, nil
 }
 
 // waitForInstallToComplete waits for the Verrazzano install to complete and shows the logs of
 // the ongoing Verrazzano install.
-func waitForInstallToComplete(client clipkg.Client, kubeClient *kubernetes.Clientset, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName) error {
+func waitForInstallToComplete(client clipkg.Client, kubeClient *kubernetes.Clientset, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration) error {
 	// Tail the log messages from the verrazzano-platform-operator starting at the current time.
 	sinceTime := metav1.Now()
 	rc, err := kubeClient.CoreV1().Pods(vzconstants.VerrazzanoInstallNamespace).GetLogs(vpoPodName, &corev1.PodLogOptions{
@@ -258,8 +263,10 @@ func waitForInstallToComplete(client clipkg.Client, kubeClient *kubernetes.Clien
 	select {
 	case result := <-resChan:
 		return result
-	case <-time.After(time.Duration(math.MaxInt64)):
-		fmt.Println(vzHelper.GetOutputStream(), "Timeout exceeded waiting for install to complete")
+	case <-time.After(timeout):
+		if timeout.Nanoseconds() != 0 {
+			fmt.Fprintln(vzHelper.GetOutputStream(), fmt.Sprintf("Timeout %v exceeded waiting for install to complete", timeout.String()))
+		}
 	}
 
 	return nil

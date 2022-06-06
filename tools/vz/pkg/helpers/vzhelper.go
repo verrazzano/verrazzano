@@ -6,8 +6,10 @@ package helpers
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"io"
 	"k8s.io/apimachinery/pkg/types"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/semver"
@@ -82,4 +84,23 @@ func getLatestReleaseVersion(releases []string) (string, error) {
 		}
 	}
 	return fmt.Sprintf("v%s", latestRelease.ToString()), nil
+}
+
+// GetWaitTimeout returns the time to wait for a command to complete
+func GetWaitTimeout(cmd *cobra.Command) (time.Duration, error) {
+	// Get the wait value from the command line
+	wait, err := cmd.PersistentFlags().GetBool(constants.WaitFlag)
+	if err != nil {
+		return time.Duration(0), err
+	}
+	if wait {
+		timeout, err := cmd.PersistentFlags().GetDuration(constants.TimeoutFlag)
+		if err != nil {
+			return time.Duration(0), err
+		}
+		return timeout, nil
+	}
+
+	// Return duration of zero since --wait=false was specified
+	return time.Duration(0), nil
 }
