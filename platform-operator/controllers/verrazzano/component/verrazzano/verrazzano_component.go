@@ -94,9 +94,6 @@ func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := createAndLabelNamespaces(ctx); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed creating/labeling namespaces for Verrazzano: %v", err)
 	}
-	if err := loggingPreInstall(ctx); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed copying logging secrets for Verrazzano: %v", err)
-	}
 	return nil
 }
 

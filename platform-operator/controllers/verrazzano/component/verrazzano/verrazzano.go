@@ -257,29 +257,6 @@ func LabelKubeSystemNamespace(client clipkg.Client) error {
 	return nil
 }
 
-// loggingPreInstall copies logging secrets from the verrazzano-install namespace to the verrazzano-system namespace
-func loggingPreInstall(ctx spi.ComponentContext) error {
-	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) {
-		// If fluentd is enabled, copy any custom secrets
-		fluentdConfig := ctx.EffectiveCR().Spec.Components.Fluentd
-		if fluentdConfig != nil {
-			// Copy the internal Elasticsearch secret
-			if len(fluentdConfig.ElasticsearchURL) > 0 && fluentdConfig.ElasticsearchSecret != globalconst.VerrazzanoESInternal {
-				if err := copySecret(ctx, fluentdConfig.ElasticsearchSecret, "custom Elasticsearch"); err != nil {
-					return err
-				}
-			}
-			// Copy the OCI API secret
-			if fluentdConfig.OCI != nil && len(fluentdConfig.OCI.APISecret) > 0 {
-				if err := copySecret(ctx, fluentdConfig.OCI.APISecret, "OCI API"); err != nil {
-					return err
-				}
-			}
-		}
-	}
-	return nil
-}
-
 // copySecret copies a secret from the verrazzano-install namespace to the verrazzano-system namespace. If
 // the target secret already exists, then it will be updated if necessary.
 func copySecret(ctx spi.ComponentContext, secretName string, logMsg string) error {
