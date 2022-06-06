@@ -40,6 +40,10 @@ pipeline {
                         defaultValue: 'ci/generic/kind-acceptance-tests.yaml',
                         description: 'Pipeline descriptor file location, relative to base of Verrazzano repo',
                         trim: true)
+        choice (name: 'CLUSTER_COUNT',
+                description: 'Number of clusters to create',
+                // 1st choice is the default value
+                choices: [ "1", "2" ])
         string (name: 'VERRAZZANO_OPERATOR_IMAGE', // FIXME: default this back to NONE before merging
                         defaultValue: 'ghcr.io/verrazzano/verrazzano-platform-operator-jenkins:1.4.0-20220531145624-8b776357',
                         description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the operator.yaml from Verrazzano repo will be used to create Verrazzano platform operator',
@@ -84,8 +88,9 @@ pipeline {
         CLUSTER_NAME = 'verrazzano'
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
         TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
+        KUBECONFIG_ROOT="${WORKSPACE}/kubeconfigs"
         KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
-        VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
+        //VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
@@ -126,7 +131,7 @@ pipeline {
 
         // used to generate Ginkgo test reports
         TEST_REPORT = "test-report.xml"
-        TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
+        TEST_REPORT_DIR = "${WORKSPACE}/tests"
     }
 
     stages {
@@ -151,8 +156,8 @@ pipeline {
             }
             post {
                 always {
-                    archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
-                    junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
+                    archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/Screenshot*.png,**/ConsoleLog*.log,**/*${TEST_REPORT}", allowEmptyArchive: true
+                    junit testResults: "**/*${TEST_REPORT}", allowEmptyResults: true
                 }
                 failure {
                     script {
@@ -175,8 +180,8 @@ pipeline {
     }
     post {
         always {
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
-            junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/Screenshot*.png,**/ConsoleLog*.log,**/*${TEST_REPORT}", allowEmptyArchive: true
+            junit testResults: "**/*${TEST_REPORT}", allowEmptyResults: true
 
             script {
                 runMakeCommand("cleanup")

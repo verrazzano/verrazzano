@@ -10,6 +10,8 @@ export CI_SCRIPTS_DIR ?= ${CI_ROOT}/scripts
 
 export WORKSPACE ?= ${CURDIR}/workspace
 export KUBECONFIG ?= ${WORKSPACE}/test_kubeconfig
+export KUBECONFIG_ROOT ?= ${WORKSPACE}/kubeconfig
+export CLUSTER_COUNT ?= 1
 
 export IMAGE_PULL_SECRET ?= verrazzano-container-registry
 export DOCKER_REPO ?= 'ghcr.io'

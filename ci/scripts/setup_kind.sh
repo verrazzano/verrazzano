@@ -8,8 +8,6 @@
 
 set -o pipefail
 
-#set -xv
-
 if [ -z "$GO_REPO_PATH" ] ; then
   echo "GO_REPO_PATH must be set"
   exit 1
@@ -26,12 +24,8 @@ if [ -z "$TEST_SCRIPTS_DIR" ]; then
   echo "TEST_SCRIPTS_DIR must be set to the E2E test script directory location"
   exit 1
 fi
-if [ -z "${KIND_KUBERNETES_CLUSTER_VERSION}" ]; then
-  echo "KIND_KUBERNETES_CLUSTER_VERSION must be set"
-  exit 1
-fi
-if [ -z "${KUBECONFIG}" ]; then
-  echo "KUBECONFIG must be set"
+if [ -z "${KUBERNETES_CLUSTER_VERSION}" ]; then
+  echo "KUBERNETES_CLUSTER_VERSION must be set"
   exit 1
 fi
 
@@ -54,9 +48,12 @@ fi
 OCI=oci
 
 INSTALL_CALICO=${1:-false}
-CLUSTER_NAME=${CLUSTER_NAME:="kind"}
-KIND_NODE_COUNT=${KIND_NODE_COUNT:-1}
+CLUSTER_NAME_PREFIX=${CLUSTER_NAME_PREFIX:-"kind"}
+CLUSTER_COUNT=${CLUSTER_COUNT:-1}
+CLUSTER_COUNT_NODE_COUNT=${CLUSTER_COUNT_NODE_COUNT:-1}
 VERRAZZANO_OPERATOR_IMAGE=${VERRAZZANO_OPERATOR_IMAGE:-"NONE"}
+KIND_CACHING=${KIND_CACHING:="false"}
+CLEANUP_KIND_CONTAINERS=${CLEANUP_KIND_CONTAINERS:-"false"}
 
 BRANCH_NAME=${BRANCH_NAME:-$(git branch --show-current)}
 SHORT_COMMIT_HASH=${SHORT_COMMIT_HASH:-$(git rev-parse --short=8 HEAD)}
@@ -65,99 +62,123 @@ OCI_OS_LOCATION=${OCI_OS_LOCATION:-${BRANCH_NAME}/${SHORT_COMMIT_HASH}}
 TEST_OVERRIDE_CONFIGMAP_FILE="${TEST_SCRIPTS_DIR}/pre-install-overrides/test-overrides-configmap.yaml"
 TEST_OVERRIDE_SECRET_FILE="${TEST_SCRIPTS_DIR}/pre-install-overrides/test-overrides-secret.yaml"
 
-KIND_CACHING=${KIND_CACHING:="false"}
-KIND_NODE_COUNT=${KIND_NODE_COUNT:-1}
-
 mkdir -p $WORKSPACE || true
 
-#cd ${GO_REPO_PATH}/verrazzano
 echo "tests will execute" > ${TESTS_EXECUTED_FILE}
-echo "Create Kind cluster"
-#cd ${TEST_SCRIPTS_DIR}
-${scriptHome}/create_kind_clusters.sh "${CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" "${KIND_KUBERNETES_CLUSTER_VERSION}" true ${CONNECT_JENKINS_RUNNER_TO_NETWORK} true $INSTALL_CALICO "NONE" ${KIND_NODE_COUNT}
-if [ $? -ne 0 ]; then
-    mkdir -p $WORKSPACE/kind-logs``
-    kind export logs $WORKSPACE/kind-logs
-    echo "Kind cluster creation failed"
-    exit 1
-fi
 
-if [ $INSTALL_CALICO == true ]; then
-    echo "Install Calico"
-    #cd ${GO_REPO_PATH}/verrazzano
-    ${scriptHome}/install_calico.sh "${CLUSTER_NAME}"
-fi
+addressRanges=("172.18.0.231-172.18.0.238" "172.18.0.239-172.18.0.246" "172.18.0.247-172.18.0.254")
+count=1
+while [ ${count}  -le ${CLUSTER_COUNT} ]; do
+  echo "Create Kind cluster ${count} with ${CLUSTER_COUNT_NODE_COUNT} nodes"
 
-# With the Calico configuration to set disableDefaultCNI to true in the KIND configuration, the control plane node will
-# be ready only after applying calico.yaml. So wait for the KIND control plane node to be ready, before proceeding further,
-# with maximum wait period of 5 minutes.
-kubectl  wait --for=condition=ready nodes/${CLUSTER_NAME}-control-plane --timeout=5m --all
-kubectl wait --for=condition=ready pods/kube-controller-manager-${CLUSTER_NAME}-control-plane -n kube-system --timeout=5m
-echo "Listing pods in kube-system namespace ..."
-kubectl get pods -n kube-system
+  echo "Using KUBECONFIG location ${KUBECONFIG_DIR}/$count"
+  mkdir -p ${KUBECONFIG_ROOT}/$count
+  export KUBECONFIG=${KUBECONFIG_ROOT}/$count/kube_config
 
-echo "Install metallb"
-#cd ${GO_REPO_PATH}/verrazzano
-${TEST_SCRIPTS_DIR}/install-metallb.sh
+  CLUSTER_NAME="${CLUSTER_NAME_PREFIX}-${count}"
+  KIND_AT_CACHE_NAME="NONE"
+  KIND_CACHE_ENABLED=${KIND_CACHE_ENABLED:-false}
+  METALLB_ADDRESS_RANGE=${addressRanges[${count}-1]}
+  echo "MetalLB address range: ${METALLB_ADDRESS_RANGE}"
 
-echo "Create Image Pull Secrets"
-#cd ${GO_REPO_PATH}/verrazzano
-${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
+  case "${count}" in
+      1)
+          KIND_AT_CACHE_NAME="vpo_integ"
+          ;;
+      2)
+          KIND_AT_CACHE_NAME="apo_integ"
+          ;;
+      *)
+          KIND_CACHE_ENABLED=false
+  esac
 
-if ! kubectl get cm test-overrides 2>&1 > /dev/null; then
-  echo "Creating Override ConfigMap"
-  kubectl create cm test-overrides --from-file=${TEST_OVERRIDE_CONFIGMAP_FILE}
+  ${scriptHome}/create_kind_clusters.sh "${CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" \
+      "${KUBERNETES_CLUSTER_VERSION}" ${CLEANUP_KIND_CONTAINERS} ${CONNECT_JENKINS_RUNNER_TO_NETWORK} ${KIND_CACHE_ENABLED} \
+      $INSTALL_CALICO ${KIND_AT_CACHE_NAME} ${CLUSTER_COUNT_NODE_COUNT}
+
   if [ $? -ne 0 ]; then
-    echo "Could not create Override ConfigMap"
-    exit 1
+      mkdir -p $WORKSPACE/kind-logs``
+      kind export logs $WORKSPACE/kind-logs
+      echo "Kind cluster creation failed"
+      exit 1
   fi
-fi
 
-if ! kubectl get secret test-overrides 2>&1 > /dev/null; then
-  echo "Creating Override Secret"
-  kubectl create secret generic test-overrides --from-file=${TEST_OVERRIDE_SECRET_FILE}
-  if [ $? -ne 0 ]; then
-    echo "Could not create Override Secret"
-    exit 1
+  if [ $INSTALL_CALICO == true ]; then
+      echo "Install Calico"
+      ${scriptHome}/install_calico.sh "${CLUSTER_NAME}"
   fi
-fi
 
-# optionally create a cluster dump snapshot for verifying uninstalls
-if [ -n "${CLUSTER_DUMP_DIR}" ]; then
-  ${TEST_SCRIPTS_DIR}/looping-test/dump_cluster.sh ${CLUSTER_DUMP_DIR}
-fi
+  # With the Calico configuration to set disableDefaultCNI to true in the KIND configuration, the control plane node will
+  # be ready only after applying calico.yaml. So wait for the KIND control plane node to be ready, before proceeding further,
+  # with maximum wait period of 5 minutes.
+  kubectl wait --for=condition=ready nodes/${CLUSTER_NAME}-control-plane --timeout=5m --all
+  kubectl wait --for=condition=ready pods/kube-controller-manager-${CLUSTER_NAME}-control-plane -n kube-system --timeout=5m
+  echo "Listing pods in kube-system namespace ..."
+  kubectl get pods -n kube-system
 
-echo "Install Platform Operator"
-if [ -z "$OPERATOR_YAML" ] && [ "" = "${OPERATOR_YAML}" ]; then
-  # Derive the name of the operator.yaml file, copy or generate the file, then install
-  if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
-      echo "Using operator.yaml from object storage location ${OCI_OS_LOCATION}"
-      ${OCI} --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${OCI_OS_LOCATION}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
-      cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
+  echo "Install metallb"
+  #cd ${GO_REPO_PATH}/verrazzano
+  ${TEST_SCRIPTS_DIR}/install-metallb.sh
+
+  echo "Create Image Pull Secrets"
+  ${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+  ${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+  ${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
+
+  if ! kubectl get cm test-overrides 2>&1 > /dev/null; then
+    echo "Creating Override ConfigMap"
+    kubectl create cm test-overrides --from-file=${TEST_OVERRIDE_CONFIGMAP_FILE}
+    if [ $? -ne 0 ]; then
+      echo "Could not create Override ConfigMap"
+      exit 1
+    fi
+  fi
+
+  if ! kubectl get secret test-overrides 2>&1 > /dev/null; then
+    echo "Creating Override Secret"
+    kubectl create secret generic test-overrides --from-file=${TEST_OVERRIDE_SECRET_FILE}
+    if [ $? -ne 0 ]; then
+      echo "Could not create Override Secret"
+      exit 1
+    fi
+  fi
+
+  ## optionally create a cluster dump snapshot for verifying uninstalls
+  #if [ -n "${CLUSTER_DUMP_DIR}" ]; then
+  #  ${TEST_SCRIPTS_DIR}/looping-test/dump_cluster.sh ${CLUSTER_DUMP_DIR}
+  #fi
+
+  echo "Install Platform Operator"
+  if [ -z "$OPERATOR_YAML" ] && [ "" = "${OPERATOR_YAML}" ]; then
+    # Derive the name of the operator.yaml file, copy or generate the file, then install
+    if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
+        echo "Using operator.yaml from object storage location ${OCI_OS_LOCATION}"
+        ${OCI} --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${OCI_OS_LOCATION}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+        cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
+    else
+        echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
+        env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ${VZ_ROOT}/tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
+    fi
+    kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
   else
-      echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
-      env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ${VZ_ROOT}/tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
+    # The operator.yaml filename was provided, install using that file.
+    echo "Using provided operator.yaml file: " ${OPERATOR_YAML}
+    kubectl apply -f ${OPERATOR_YAML}
   fi
-  kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
-else
-  # The operator.yaml filename was provided, install using that file.
-  echo "Using provided operator.yaml file: " ${OPERATOR_YAML}
-  kubectl apply -f ${OPERATOR_YAML}
-fi
 
-# make sure ns exists
-${TEST_SCRIPTS_DIR}/check_verrazzano_ns_exists.sh verrazzano-install
+  # make sure ns exists
+  ${TEST_SCRIPTS_DIR}/check_verrazzano_ns_exists.sh verrazzano-install
 
-# create secret in verrazzano-install ns
-${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
+  # create secret in verrazzano-install ns
+  ${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
 
-echo "Wait for Operator to be ready"
-kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-if [ $? -ne 0 ]; then
-  echo "Operator is not ready"
-  exit 1
-fi
+  echo "Wait for Operator to be ready"
+  kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+  if [ $? -ne 0 ]; then
+    echo "Operator is not ready"
+    exit 1
+  fi
+  let count=count+1
+done
 
 exit 0
