@@ -285,7 +285,6 @@ def addTestGroups(testGroups, groupNames) {
 
 def processTestGroups(testGroups) {
     groupsMap = [:]
-    testGroups = stage.testGroups
     for (group in testGroups) {
         groupsMap.put(group.name, group.targets)
     }
