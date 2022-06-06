@@ -321,7 +321,7 @@ func updateApplicationAuthorizationPolicies(ctx spi.ComponentContext) error {
 		for i := range authPolicyList.Items {
 			authPolicy := authPolicyList.Items[i]
 			if _, ok := authPolicy.Labels[constants.IstioAppLabel]; !ok {
-				return nil
+				continue
 			}
 			_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), &authPolicy, func() error {
 				rules := authPolicy.Spec.Rules
