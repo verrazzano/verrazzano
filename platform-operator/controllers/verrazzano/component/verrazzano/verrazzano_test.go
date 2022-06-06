@@ -633,60 +633,6 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 			},
 			expectedYAML: "testdata/vzOverridesProdWithAdminAndMonitorRoleOverrides.yaml",
 		},
-		{
-			name:        "ProdWithFluentdEmptyExtraVolumeMountsOverrides",
-			description: "Test prod with a fluentd override with an empty extra volume mounts field",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Profile: vzapi.Prod,
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
-							ExtraVolumeMounts: []vzapi.VolumeMount{},
-						},
-					},
-				},
-			},
-			expectedYAML: "testdata/vzOverridesProdWithFluentdEmptyExtraVolumeMountsOverrides.yaml",
-		},
-		{
-			name:        "ProdWithFluentdOverrides",
-			description: "Test prod with fluentd overrides",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Profile: vzapi.Prod,
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
-							ExtraVolumeMounts: []vzapi.VolumeMount{
-								{Source: "mysourceDefaults"},
-								{Source: "mysourceRO", ReadOnly: &trueValue},
-								{Source: "mysourceCustomDestRW", Destination: "mydest", ReadOnly: &falseValue},
-							},
-							ElasticsearchURL:    "http://myes.mydomain.com:9200",
-							ElasticsearchSecret: "custom-elasticsearch-secret",
-						},
-					},
-				},
-			},
-			expectedYAML: "testdata/vzOverridesProdWithFluentdOverrides.yaml",
-		},
-		{
-			name:        "ProdWithFluentdOCILoggingOverrides",
-			description: "Test prod with fluentd OCI Logging overrides",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Profile: vzapi.Prod,
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
-							OCI: &vzapi.OciLoggingConfiguration{
-								SystemLogID:     "ocid1.log.oc1.iad.system-log-ocid",
-								DefaultAppLogID: "ocid1.log.oc1.iad.default-app-log-ocid",
-							},
-						},
-					},
-				},
-			},
-			expectedYAML: "testdata/vzOverridesProdWithFluentdOCILoggingOverrides.yaml",
-		},
 	}
 	defer resetWriteFileFunc()
 	for _, test := range tests {
@@ -722,7 +668,6 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 				err = yaml.Unmarshal(expectedData, &expectedValues)
 
 				a.NoError(err)
-				a.Equal(expectedValues.Logging.ConfigHash, HashSum(fakeContext.EffectiveCR().Spec.Components.Fluentd))
 				// Compare the actual and expected values objects
 				a.Equal(expectedValues, actualValues)
 				a.Equal(HashSum(expectedValues), HashSum(actualValues))
