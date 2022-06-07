@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
 	"io/ioutil"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -296,6 +297,25 @@ func importToHelmChart(cli clipkg.Client) error {
 //exportFromHelmChart annotates any existing objects that should be managed by another helm component, e.g.
 // the resources associated with the authproxy which historically were associated with the Verrazzano chart.
 func exportFromHelmChart(cli clipkg.Client) error {
+	err := associateAuthProxyResources(cli)
+	if err != nil {
+		return err
+	}
+
+	err = associateFluentdResources(cli)
+	if err != nil {
+		return err
+	}
+
+	err = associateConsoleResources(cli)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func associateAuthProxyResources(cli clipkg.Client) error {
 	// The authproxy resources can not be managed by the authproxy component since the upgrade path may be from a
 	// version that does not define the authproxy as a top level component and therefore PreUpgrade is not invoked
 	// on the authproxy component (in that case the authproxy upgrade is skipped)
@@ -333,7 +353,42 @@ func exportFromHelmChart(cli clipkg.Client) error {
 			return err
 		}
 	}
+	return nil
+}
 
+func associateFluentdResources(cli clipkg.Client) error {
+	fluentdReleaseName := types.NamespacedName{Name: fluentd.ComponentName, Namespace: fluentd.ComponentNamespace}
+	namespacedName := fluentdReleaseName
+	name := types.NamespacedName{Name: fluentd.ComponentName}
+	objects := []clipkg.Object{
+		&corev1.ServiceAccount{},
+		&corev1.Service{},
+		&appsv1.DaemonSet{},
+	}
+
+	noNamespaceObjects := []clipkg.Object{
+		&rbacv1.ClusterRole{},
+		&rbacv1.ClusterRoleBinding{},
+	}
+
+	// namespaced resources
+	for _, obj := range objects {
+		if _, err := common.AssociateHelmObject(cli, obj, fluentdReleaseName, namespacedName, true); err != nil {
+			return err
+		}
+	}
+
+	// cluster resources
+	for _, obj := range noNamespaceObjects {
+		if _, err := common.AssociateHelmObject(cli, obj, fluentdReleaseName, name, true); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func associateConsoleResources(cli clipkg.Client) error {
 	// Associate console objects
 	consoleReleaseName := types.NamespacedName{Name: console.ComponentName, Namespace: console.ComponentNamespace}
 	consoleObjects := []clipkg.Object{
@@ -346,7 +401,6 @@ func exportFromHelmChart(cli clipkg.Client) error {
 			return err
 		}
 	}
-
 	return nil
 }
 

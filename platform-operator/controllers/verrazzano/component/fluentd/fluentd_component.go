@@ -120,6 +120,9 @@ func (f fluentdComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := loggingPreInstall(ctx); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed copying logging secrets for Verrazzano: %v", err)
 	}
+	if err := fluentdPreHelmOps(ctx); err != nil {
+		return err
+	}
 	return nil
 }
 

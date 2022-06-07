@@ -10,16 +10,19 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -187,6 +190,46 @@ func fixupFluentdDaemonset(log vzlog.VerrazzanoLogger, client clipkg.Client, nam
 	log.Debug("Updating fluentd daemonset to use valueFrom instead of Value for CLUSTER_NAME and ELASTICSEARCH_URL environment variables")
 	err = client.Update(context.TODO(), &daemonSet)
 	return err
+}
+
+// fluentdPreHelmOps ensures the fluentd associated resources are managed its helm install/upgrade executions by
+// ensuring the resource policy of "keep" is removed (if it remains then helm is unable to delete these resources and
+// they will become orphaned)
+func fluentdPreHelmOps(ctx spi.ComponentContext) error {
+	return reassociateResources(ctx.Client())
+}
+
+// reassociateResources updates the resources to ensure they are managed by this release/component.  The resource policy
+// annotation is removed to ensure that helm manages the lifecycle of the resources (the resource policy annotation is
+// added to ensure the resources are disassociated from the VZ chart which used to manage these resources)
+func reassociateResources(cli clipkg.Client) error {
+	namespacedName := types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}
+	name := types.NamespacedName{Name: ComponentName}
+	objects := []controllerutil.Object{
+		&corev1.ServiceAccount{},
+		&corev1.Service{},
+		&appsv1.DaemonSet{},
+	}
+
+	noNamespaceObjects := []controllerutil.Object{
+		&rbacv1.ClusterRole{},
+		&rbacv1.ClusterRoleBinding{},
+	}
+
+	// namespaced resources
+	for _, obj := range objects {
+		if _, err := common.RemoveResourcePolicyAnnotation(cli, obj, namespacedName); err != nil {
+			return err
+		}
+	}
+
+	// cluster resources
+	for _, obj := range noNamespaceObjects {
+		if _, err := common.RemoveResourcePolicyAnnotation(cli, obj, name); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // GetProfile Returns the configured profile name, or "prod" if not specified in the configuration
