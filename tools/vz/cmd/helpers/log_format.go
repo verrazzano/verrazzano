@@ -5,31 +5,31 @@ package helpers
 
 import "fmt"
 
-type LogsFormat string
+type LogFormat string
 
 const (
-	LogsFormatSimple LogsFormat = "simple"
-	LogsFormatJSON   LogsFormat = "json"
+	LogFormatSimple LogFormat = "simple"
+	LogFormatJSON   LogFormat = "json"
 )
 
 // Implement the pflag.Value interface to support validating the logs format options
 
-func (lf *LogsFormat) String() string {
+func (lf *LogFormat) String() string {
 	return string(*lf)
 }
 
 // Type is only used in help text
-func (lf *LogsFormat) Type() string {
+func (lf *LogFormat) Type() string {
 	return "format"
 }
 
 // Set must have pointer receiver so it doesn't change the value of a copy
-func (lf *LogsFormat) Set(value string) error {
+func (lf *LogFormat) Set(value string) error {
 	switch value {
-	case string(LogsFormatJSON), string(LogsFormatSimple):
-		*lf = LogsFormat(value)
+	case string(LogFormatJSON), string(LogFormatSimple):
+		*lf = LogFormat(value)
 		return nil
 	default:
-		return fmt.Errorf("allowed values are %q and %q", string(LogsFormatSimple), string(LogsFormatJSON))
+		return fmt.Errorf("allowed values are %q and %q", string(LogFormatSimple), string(LogFormatJSON))
 	}
 }

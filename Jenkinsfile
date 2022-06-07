@@ -37,6 +37,7 @@ pipeline {
         booleanParam (description: 'Whether to trigger full testing after a successful run. Off by default. This is always done for successful master and release* builds, this setting only is used to enable the trigger for other branches', name: 'TRIGGER_FULL_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to generate the analysis tool', name: 'GENERATE_TOOL', defaultValue: false)
         booleanParam (description: 'Whether to generate a tarball', name: 'GENERATE_TARBALL', defaultValue: false)
+        booleanParam (description: 'Whether to generate the Verrazzano CLI', name: 'GENERATE_CLI', defaultValue: false)
         booleanParam (description: 'Whether to push images to OCIR', name: 'PUSH_TO_OCIR', defaultValue: false)
         booleanParam (description: 'Whether to fail the Integration Tests to test failure handling', name: 'SIMULATE_FAILURE', defaultValue: false)
         booleanParam (description: 'Whether to perform a scan of the built images', name: 'PERFORM_SCAN', defaultValue: false)
@@ -198,6 +199,32 @@ pipeline {
                 }
             }
         }
+
+        stage('Verrazzano CLI') {
+                    when {
+                        allOf {
+                            not { buildingTag() }
+                            anyOf {
+                                branch 'master';
+                                branch 'release-*';
+                                expression {params.GENERATE_CLI == true};
+                            }
+                        }
+                    }
+                    steps {
+                        buildVerrazzanoCLI("${DOCKER_IMAGE_TAG}")
+                    }
+                    post {
+                        failure {
+                            script {
+                                SKIP_TRIGGERED_TESTS = true
+                            }
+                        }
+                        always {
+                            archiveArtifacts artifacts: '**/*.tar.gz*', allowEmptyArchive: true
+                        }
+                    }
+                }
 
         stage('BOM Validator Tool') {
             steps {
@@ -618,6 +645,15 @@ def moveContentToGoRepoPath() {
 def buildAnalysisTool(dockerImageTag) {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/tools/analysis
+        make go-build DOCKER_IMAGE_TAG=${dockerImageTag}
+        ${GO_REPO_PATH}/verrazzano/ci/scripts/save_tooling.sh ${env.BRANCH_NAME} ${SHORT_COMMIT_HASH}
+    """
+}
+
+// Called in Stage CLI steps
+def buildVerrazzanoCLI(dockerImageTag) {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano/tools/vz
         make go-build DOCKER_IMAGE_TAG=${dockerImageTag}
         ${GO_REPO_PATH}/verrazzano/ci/scripts/save_tooling.sh ${env.BRANCH_NAME} ${SHORT_COMMIT_HASH}
     """
