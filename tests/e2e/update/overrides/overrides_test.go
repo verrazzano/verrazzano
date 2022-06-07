@@ -41,6 +41,7 @@ var (
 )
 
 var inlineData string
+var monitorChanges bool
 
 var failed = false
 var _ = t.AfterEach(func() {
@@ -95,7 +96,7 @@ func (o PrometheusOperatorOverridesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		},
 	}
 	cr.Spec.Components.PrometheusOperator.Enabled = &trueVal
-	cr.Spec.Components.PrometheusOperator.MonitorChanges = &trueVal
+	cr.Spec.Components.PrometheusOperator.MonitorChanges = &monitorChanges
 	cr.Spec.Components.PrometheusOperator.ValueOverrides = overrides
 }
 
@@ -121,12 +122,15 @@ func (o PrometheusOperatorValuesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 			},
 		},
 	}
+	cr.Spec.Components.PrometheusOperator.Enabled = &trueVal
+	cr.Spec.Components.PrometheusOperator.MonitorChanges = &monitorChanges
 	cr.Spec.Components.PrometheusOperator.ValueOverrides = overrides
 }
 
 var _ = t.BeforeSuite(func() {
 	m := PrometheusOperatorOverridesModifier{}
 	inlineData = oldInlineData
+	monitorChanges = true
 	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 	_ = update.GetCR()
 })
@@ -175,12 +179,13 @@ var _ = t.Describe("Post Install Overrides", func() {
 		})
 	})
 
-	t.Context("Test overrides update", func() {
-		// Update the overrides resources listed in Verrazzano and verify
-		// that the new values have been applied to promtheus-operator
+	t.Context("Test no update with monitorChanges false", func() {
+		// Update the overrides resources listed in Verrazzano and set monitorChanges to false and verify
+		// that the new values have not been applied to Prometheus Operator
 		t.Context("Update Overrides", func() {
 			t.It("Update Inline Data", func() {
 				inlineData = newInlineData
+				monitorChanges = false
 				m := PrometheusOperatorOverridesModifier{}
 				update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 				_ = update.GetCR()
@@ -198,6 +203,33 @@ var _ = t.Describe("Post Install Overrides", func() {
 				gomega.Eventually(func() error {
 					return pkg.UpdateSecret(&testSecret)
 				}, waitTimeout, pollingInterval).Should(gomega.BeNil())
+			})
+		})
+
+		t.It("Verify override values are applied", func() {
+			gomega.Eventually(func() bool {
+				return checkValues(overrideOldValue)
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		})
+
+		// Verify that re-install succeeds
+		t.It("Verify Verrazzano re-install is successful", func() {
+			gomega.Eventually(func() error {
+				return vzReady()
+			}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
+		})
+	})
+
+	t.Context("Test overrides update", func() {
+		// Change monitorChanges to true in Verrazzano and verify
+		// that the new values have been applied to promtheus-operator
+		t.Context("Update Overrides", func() {
+			t.It("Update Inline Data", func() {
+				inlineData = newInlineData
+				monitorChanges = true
+				m := PrometheusOperatorOverridesModifier{}
+				update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+				_ = update.GetCR()
 			})
 		})
 

@@ -16,18 +16,9 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"os"
-	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 )
-
-func fakeExecCommand(command string, args ...string) *exec.Cmd {
-	cs := []string{"-test.run=TestHelperProcess", "--", command}
-	cs = append(cs, args...)
-	firstArg := os.Args[0]
-	cmd := exec.Command(firstArg, cs...)
-	return cmd
-}
 
 // TestInstallCmdDefaultNoWait
 // GIVEN a CLI install command with all defaults and --wait==false
@@ -70,7 +61,6 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 
-	execCommand = fakeExecCommand
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
@@ -104,7 +94,6 @@ func TestInstallCmdDefaultTimeout(t *testing.T) {
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2s")
 
-	execCommand = fakeExecCommand
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
@@ -128,7 +117,6 @@ func TestInstallCmdDefaultNoVPO(t *testing.T) {
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 
-	execCommand = fakeExecCommand
 	// Run install command
 	err := cmd.Execute()
 	assert.Error(t, err)
@@ -172,7 +160,6 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 
-	execCommand = fakeExecCommand
 	// Run install command
 	err := cmd.Execute()
 	assert.Error(t, err)
@@ -208,7 +195,6 @@ func TestInstallCmdJsonLogFormat(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "json")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 
-	execCommand = fakeExecCommand
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
