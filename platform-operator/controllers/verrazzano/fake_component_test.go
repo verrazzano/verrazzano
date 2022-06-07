@@ -31,7 +31,6 @@ type fakeComponent struct {
 	installed       string `default:"true"`
 	ready           string `default:"true"`
 	enabled         string `default:"true"`
-	monitorChanges  string `default:"true"`
 	minVersion      string
 }
 
@@ -110,10 +109,6 @@ func (f fakeComponent) GetMinVerrazzanoVersion() string {
 		return f.minVersion
 	}
 	return constants.VerrazzanoVersion1_0_0
-}
-
-func (f fakeComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
-	return getBool(f.monitorChanges, "monitorChanges")
 }
 
 // getBool implements defaults for boolean fields
