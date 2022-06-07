@@ -426,6 +426,13 @@ pipeline {
                         upgradeVerrazzano()
                     }
                 }
+                post {
+                    failure {
+                        script {
+                            dumpK8sCluster("${WORKSPACE}/multicluster-upgrade-cluster-dump")
+                        }
+                    }
+                }
             }
             post {
                 failure {
