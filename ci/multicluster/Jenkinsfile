@@ -416,6 +416,19 @@ pipeline {
                         runGinkgoRandomize('metrics/syscomponents')
                     }
                 }
+            }
+            post {
+                failure {
+                    script {
+                        dumpK8sCluster("${WORKSPACE}/multicluster-install-cluster-dump")
+                    }
+                }
+            }
+        }
+
+        stage('Upgrade Verrazzano') {
+            // Upgrade Verrazzano
+            stages {
                 stage("upgrade-platform-operator") {
                     steps {
                         upgradePlatformOperator()
@@ -426,18 +439,11 @@ pipeline {
                         upgradeVerrazzano()
                     }
                 }
-                post {
-                    failure {
-                        script {
-                            dumpK8sCluster("${WORKSPACE}/multicluster-upgrade-cluster-dump")
-                        }
-                    }
-                }
             }
             post {
                 failure {
                     script {
-                        dumpK8sCluster("${WORKSPACE}/multicluster-install-cluster-dump")
+                        dumpK8sCluster("${WORKSPACE}/multicluster-upgrade-cluster-dump")
                     }
                 }
             }
