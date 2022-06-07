@@ -58,6 +58,7 @@ pipeline {
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
+        booleanParam (description: 'Whether to run JWT tests', name: 'ENABLE_JWT_TESTING', defaultValue: false)
     }
 
     environment {
@@ -415,7 +416,12 @@ pipeline {
                             }
                         }
                         stage('jwt helidon') {
-                            environment {
+                           when {
+                                allOf {
+                                    expression {params.ENABLE_JWT_TESTING == true}
+                                }
+                           }
+                           environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jwt-helidon"
                                 REALM_USER_PASSWORD = credentials('todo-mysql-password')
                                 REALM_NAME="test-realm"
