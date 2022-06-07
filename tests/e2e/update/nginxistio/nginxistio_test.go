@@ -321,7 +321,7 @@ var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.
 
 	t.Describe("verrazzano-nginx-istio update nodeport", Label("f:platform-lcm.nginx-istio-update-nodeport"), func() {
 		t.It("nginx-istio update ingress type to nodeport", func() {
-			t.Logs.Infof("Update nginx/istio ingresses to use NodePort with external load balancers: %s and %s", systemExternalIP, applicationExternalIP)
+			t.Logs.Infof("Update nginx/istio ingresses to use NodePort type with external load balancers: %s and %s", systemExternalIP, applicationExternalIP)
 			m := NginxIstioNodePortModifier{systemExternalLBIP: systemExternalIP, applicationExternalLBIP: applicationExternalIP}
 			err := update.UpdateCR(m)
 			if err != nil {
@@ -335,6 +335,7 @@ var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.
 
 	t.Describe("verrazzano-nginx-istio update loadbalancer", Label("f:platform-lcm.nginx-istio-update-loadbalancer"), func() {
 		t.It("nginx-istio update ingress type to loadbalancer", func() {
+			t.Logs.Infof("Update nginx/istio ingresses to use LoadBalancer type")
 			m := NginxIstioLoadBalancerModifier{}
 			err := update.UpdateCR(m)
 			if err != nil {
@@ -348,7 +349,7 @@ var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.
 
 	t.Describe("verrazzano-nginx-istio update nodeport 2", Label("f:platform-lcm.nginx-istio-update-nodeport-2"), func() {
 		t.It("nginx-istio update ingress type to nodeport 2", func() {
-			t.Logs.Infof("Update nginx/istio ingresses to use NodePort with external load balancers: %s and %s", systemExternalIP, applicationExternalIP)
+			t.Logs.Infof("Update nginx/istio ingresses to use NodePort type with external load balancers: %s and %s", systemExternalIP, applicationExternalIP)
 			m := NginxIstioNodePortModifier{systemExternalLBIP: systemExternalIP, applicationExternalLBIP: applicationExternalIP}
 			err := update.UpdateCR(m)
 			if err != nil {
@@ -502,7 +503,7 @@ func validateServiceNodePortAndExternalIP(expectedSystemExternalIP, expectedAppl
 			return fmt.Errorf("expect nginx ingress with externalIPs %v, but got %v", expectedSysIPs, nginxIngress.Spec.ExternalIPs)
 		}
 
-		// validate Istion Ingress Service
+		// validate Istio Ingress Service
 		istioIngress, err := pkg.GetService(constants.IstioSystemNamespace, istioIngressServiceName)
 		if err != nil {
 			return err
@@ -553,7 +554,7 @@ func validateServiceLoadBalancer() {
 			return fmt.Errorf("invalid loadBalancer IP %s for nginx", nginxLBIP)
 		}
 
-		// validate Istion Ingress Service
+		// validate Istio Ingress Service
 		istioIngress, err := pkg.GetService(constants.IstioSystemNamespace, istioIngressServiceName)
 		if err != nil {
 			return err
