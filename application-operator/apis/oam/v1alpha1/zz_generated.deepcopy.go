@@ -49,8 +49,14 @@ func (in *AuthorizationRule) DeepCopyInto(out *AuthorizationRule) {
 	}
 	if in.When != nil {
 		in, out := &in.When, &out.When
-		*out = new(AuthorizationRuleCondition)
-		(*in).DeepCopyInto(*out)
+		*out = make([]*AuthorizationRuleCondition, len(*in))
+		for i := range *in {
+			if (*in)[i] != nil {
+				in, out := &(*in)[i], &(*out)[i]
+				*out = new(AuthorizationRuleCondition)
+				(*in).DeepCopyInto(*out)
+			}
+		}
 	}
 }
 

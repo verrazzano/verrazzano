@@ -18,7 +18,7 @@ type AuthorizationRuleCondition struct {
 // list of conditions.
 type AuthorizationRule struct {
 	From *AuthorizationRuleFrom      `json:"from,omitempty"`
-	When *AuthorizationRuleCondition `json:"when,omitempty"`
+	When []*AuthorizationRuleCondition `json:"when,omitempty"`
 }
 
 // AuthorizationPolicy defines the set of rules for authorizing a request.
