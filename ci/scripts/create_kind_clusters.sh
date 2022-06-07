@@ -69,9 +69,9 @@ create_kind_cluster() {
     if [ ${KIND_AT_CACHE_NAME} != "NONE" ]; then
       # If a cache name was specified, replace the at_test cache name with the one specified (this is used only
       # for multi-cluster tests at the moment)
-      SOURCE_KIND_CONFIG_FILE=${TEST_SCRIPTS_DIR}/${KIND_CONFIG_FILE_NAME}
       KIND_CONFIG_FILE_NAME=kind-config-ci${CALICO_SUFFIX}_${KIND_AT_CACHE_NAME}.yaml
       KIND_CONFIG_FILE=${WORKSPACE}/${KIND_CONFIG_FILE_NAME}
+      SOURCE_KIND_CONFIG_FILE=${TEST_SCRIPTS_DIR}/${KIND_CONFIG_FILE_NAME}
       sed "s;v8o_cache/at_tests;v8o_cache/${KIND_AT_CACHE_NAME};g" ${SOURCE_KIND_CONFIG_FILE} > ${KIND_CONFIG_FILE}
     else
       # If no cache name specified use at_tests cache

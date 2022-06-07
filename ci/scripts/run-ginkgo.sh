@@ -12,7 +12,6 @@ fi
 
 TEST_DUMP_ROOT=${TEST_DUMP_ROOT:-"."}
 SEQUENTIAL_SUITES=${SEQUENTIAL_SUITES:-false}
-KUBECONFIG_ROOT=${KUBECONFIG_ROOT:-${WORKSPACE}/kubeconfigs}
 
 GINGKO_ARGS=${GINGKO_ARGS:-"-v --keep-going --no-color"}
 if [ "${RUN_PARALLEL}" == "true" ]; then
@@ -30,9 +29,6 @@ fi
 if [ -n "${EXCLUDED_TESTS}" ]; then
   GINGKO_ARGS="${GINGKO_ARGS} --skip-file=${EXCLUDED_TESTS}"
 fi
-if [ -n "${DRY_RUN}" ]; then
-  GINGKO_ARGS="${GINGKO_ARGS} --dry-run"
-fi
 if [ -n "${SKIP_DEPLOY}" ]; then
   TEST_ARGS="${TEST_ARGS} --skip-deploy=${SKIP_DEPLOY}"
 fi
@@ -45,19 +41,29 @@ if [ -n "${TEST_ARGS}" ]; then
   TEST_ARGS="-- ${TEST_ARGS}"
 fi
 
-CLUSTER_COUNT=${CLUSTER_COUNT:-1}
-count=1
-while [ ${count}  -le ${CLUSTER_COUNT} ]; do
-  echo "Using KUBECONFIG location ${KUBECONFIG_DIR}/$count"
-  mkdir -p ${KUBECONFIG_ROOT}/$count
-  export KUBECONFIG=${KUBECONFIG_ROOT}/$count/kube_config
-  export DUMP_KUBECONFIG="${KUBECONFIG}"
-  export TEST_REPORT_DIR="${WORKSPACE}/tests/${count}"
-  export TEST_REPORT_ARGS="--output-dir ${TEST_REPORT_DIR}"
-
-  cd ${TEST_ROOT}
-  mkdir -p "${TEST_REPORT_DIR}"
-  ginkgo ${GINGKO_ARGS} ${TEST_REPORT_ARGS} ${TEST_SUITES} ${TEST_ARGS}
-
-  let count=count+1
-done
+cd ${TEST_ROOT}
+ginkgo ${GINGKO_ARGS} ${TEST_SUITES} ${TEST_ARGS}
+#for suite in ${TEST_SUITES}; do
+#  DUMP_DIRECTORY=${TEST_DUMP_ROOT}/${suite}
+#  if [ "${SEQUENTIAL_SUITES}" == "true" ]; then
+#    echo "Executing test suite ${suite}"
+#    ginkgo ${GINGKO_ARGS} ${suite}/... -- ${TEST_ARGS}
+#  else
+#    echo "Executing test suite ${suite} in parallel"
+#    ginkgo ${GINGKO_ARGS} ${suite}/... -- ${TEST_ARGS} &
+#  fi
+#done
+#
+## wait for all pids
+#FAILED=0
+#for testJob in $(jobs -p); do
+#  echo "Waiting for Ginkgo job $testJob"
+#  wait $testJob || let "FAILED+=1"
+#done
+#
+#if [ "$FAILED" != "0" ]; then
+#  echo "${0}: ${FAILED} suites failed"
+#  exit 1
+#fi
+#
+#echo "${0}: All test suites passed"
