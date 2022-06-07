@@ -78,6 +78,30 @@ spec:
                         description: IngressPath specifies a specific path to be exposed
                           for an ingress trait.
                         properties:
+                          authorizationPolicy:
+                            properties:
+                              rules:
+                                items:
+                                  properties:
+                                    from:
+                                      properties:
+                                        requestPrincipals:
+                                          items:
+                                            type: string
+                                          type: array
+                                      type: object
+                                    when:
+                                      properties:
+                                        key:
+                                          type: string
+                                        values:
+                                          items:
+                                            type: string
+                                          type: array
+                                      type: object
+                                  type: object
+                                type: array
+                            type: object
                           path:
                             type: string
                           pathType:

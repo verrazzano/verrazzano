@@ -37,6 +37,7 @@ import (
 	vmcclient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned/scheme"
 	"go.uber.org/zap"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
 	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
 	k8sapiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -65,6 +66,7 @@ func init() {
 	_ = vzapp.AddToScheme(scheme)
 	_ = istioclinet.AddToScheme(scheme)
 	_ = wls.AddToScheme(scheme)
+	_ = clisecurity.AddToScheme(scheme)
 
 	_ = clustersv1alpha1.AddToScheme(scheme)
 	_ = certapiv1.AddToScheme(scheme)
