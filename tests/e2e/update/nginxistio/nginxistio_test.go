@@ -40,7 +40,7 @@ const (
 	istioIngressServiceName  = "istio-ingressgateway"
 	nginxExternalIPArg       = "controller.service.externalIPs"
 	istioExternalIPArg       = "gateways.istio-ingressgateway.externalIPs"
-	waitTimeout              = 10 * time.Minute
+	waitTimeout              = 5 * time.Minute
 	pollingInterval          = 5 * time.Second
 	ociLBShapeAnnotation     = "service.beta.kubernetes.io/oci-load-balancer-shape"
 	nginxLBShapeArg          = "controller.service.annotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\""
@@ -518,13 +518,13 @@ func validateServiceNodePortAndExternalIP(expectedSystemExternalIP, expectedAppl
 			return fmt.Errorf("expect istio ingress with externalIPs %v, but got %v", expectedAppIPs, istioIngress.Spec.ExternalIPs)
 		}
 
-		// validate Verrazzano Ingress URL
-		err = validateVerrazzanoIngressHost(expectedSystemExternalIP)
+		// validate Ingress Host
+		err = validateKeycloakIngressHost(expectedSystemExternalIP)
 		if err != nil {
 			return err
 		}
 
-		// validate hello-helidon HOSTS
+		// validate application HOSTS
 		err = validateHelloHelidonHost(expectedApplicationExternalIP)
 		if err != nil {
 			return err
@@ -569,13 +569,13 @@ func validateServiceLoadBalancer() {
 			return fmt.Errorf("invalid loadBalancer IP %s for istio", istioLBIP)
 		}
 
-		// validate Verrazzano Ingress URL
-		err = validateVerrazzanoIngressHost(nginxLBIP)
+		// validate Ingress Host
+		err = validateKeycloakIngressHost(nginxLBIP)
 		if err != nil {
 			return err
 		}
 
-		// validate hello-helidon HOSTS
+		// validate application HOSTS
 		err = validateHelloHelidonHost(istioLBIP)
 		if err != nil {
 			return err
@@ -585,7 +585,7 @@ func validateServiceLoadBalancer() {
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "expect to get LoadBalancer type and loadBalancer IP from nginx and istio services")
 }
 
-func validateVerrazzanoIngressHost(expectedIP string) error {
+func validateKeycloakIngressHost(expectedIP string) error {
 	kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		return err
@@ -594,7 +594,7 @@ func validateVerrazzanoIngressHost(expectedIP string) error {
 	if err != nil {
 		return err
 	}
-	ingress, err := clientset.NetworkingV1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-ingress", v1.GetOptions{})
+	ingress, err := clientset.NetworkingV1().Ingresses("keycloak").Get(context.TODO(), "keycloak", v1.GetOptions{})
 	if err != nil {
 		return err
 	}
