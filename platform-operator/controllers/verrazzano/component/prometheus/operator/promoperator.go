@@ -74,10 +74,10 @@ func preInstall(ctx spi.ComponentContext) error {
 // does not already exist. Initially this secret is empty but when managed clusters are created, the federated scrape configuration
 // is added to this secret.
 func ensureAdditionalScrapeConfigsSecret(ctx spi.ComponentContext) error {
-	ctx.Log().Debugf("Creating or updating secret %s for Prometheus additional scrape configs", constants.PromAdditionalScrapeConfigsSecretName)
+	ctx.Log().Debugf("Creating or updating secret %s for Prometheus additional scrape configs", vzconst.PromAdditionalScrapeConfigsSecretName)
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.PromAdditionalScrapeConfigsSecretName,
+			Name:      vzconst.PromAdditionalScrapeConfigsSecretName,
 			Namespace: ComponentNamespace,
 		},
 	}
@@ -85,12 +85,12 @@ func ensureAdditionalScrapeConfigsSecret(ctx spi.ComponentContext) error {
 		if secret.Data == nil {
 			secret.Data = make(map[string][]byte)
 		}
-		if _, exists := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]; !exists {
-			secret.Data[constants.PromAdditionalScrapeConfigsSecretKey] = []byte{}
+		if _, exists := secret.Data[vzconst.PromAdditionalScrapeConfigsSecretKey]; !exists {
+			secret.Data[vzconst.PromAdditionalScrapeConfigsSecretKey] = []byte{}
 		}
 		return nil
 	}); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to create or update the %s secret: %v", constants.PromAdditionalScrapeConfigsSecretName, err)
+		return ctx.Log().ErrorfNewErr("Failed to create or update the %s secret: %v", vzconst.PromAdditionalScrapeConfigsSecretName, err)
 	}
 	return nil
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/Jeffail/gabs/v2"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
+	"github.com/verrazzano/verrazzano/pkg/scrapeconfigutils"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
@@ -195,7 +196,7 @@ func (r *VerrazzanoManagedClusterReconciler) newScrapeConfig(cacrtSecret *v1.Sec
 		configTemplate = strings.ReplaceAll(configTemplate, key, value)
 	}
 
-	newScrapeConfig, err = parseScrapeConfig(configTemplate)
+	newScrapeConfig, err = scrapeconfigutils.ParseScrapeConfig(configTemplate)
 	if err != nil {
 		return nil, err
 	}
@@ -238,16 +239,6 @@ func (r *VerrazzanoManagedClusterReconciler) deleteClusterPrometheusConfiguratio
 	return nil
 }
 
-// parseScrapeConfig returns an editable representation of the prometheus scrape configuration
-func parseScrapeConfig(scrapeConfigStr string) (*gabs.Container, error) {
-	scrapeConfigJSON, _ := yaml.YAMLToJSON([]byte(scrapeConfigStr))
-	newScrapeConfig, err := gabs.ParseJSON(scrapeConfigJSON)
-	if err != nil {
-		return nil, err
-	}
-	return newScrapeConfig, nil
-}
-
 // parsePrometheusConfig returns an editable representation of the prometheus configuration
 func parsePrometheusConfig(promConfigStr string) (*gabs.Container, error) {
 	jsonConfig, err := yaml.YAMLToJSON([]byte(promConfigStr))
@@ -270,19 +261,13 @@ func getCAKey(vmc *clustersv1alpha1.VerrazzanoManagedCluster) string {
 // in this secret to the scrape config it generates from PodMonitor and ServiceMonitor resources.
 func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, cacrtSecret *v1.Secret) error {
 	// get the existing additional scrape config, if the secret doesn't exist we will create it
-	secret, err := r.getSecret(vpoconst.VerrazzanoMonitoringNamespace, vpoconst.PromAdditionalScrapeConfigsSecretName, false)
+	secret, err := r.getSecret(vpoconst.VerrazzanoMonitoringNamespace, constants.PromAdditionalScrapeConfigsSecretName, false)
 	if err != nil && !errors.IsNotFound(err) {
 		return err
 	}
-	var jobs string
+	var jobsStr string
 	if secret.Data != nil {
-		jobs = string(secret.Data[vpoconst.PromAdditionalScrapeConfigsSecretKey])
-	}
-
-	// parse the scrape config so we can manipulate it
-	scrapeConfigs, err := parseScrapeConfig(jobs)
-	if err != nil {
-		return err
+		jobsStr = string(secret.Data[constants.PromAdditionalScrapeConfigsSecretKey])
 	}
 
 	// create the scrape config for the new managed cluster
@@ -293,23 +278,16 @@ func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx c
 	// TODO: Set this in the newScrapeConfig function when we remove the "old" Prometheus code
 	newScrapeConfig.Set(managedCertsBasePath+getCAKey(vmc), "tls_config", "ca_file")
 
-	found := false
-	for index, scrapeConfig := range scrapeConfigs.Children() {
-		scrapeJobName := scrapeConfig.Search(jobNameKey).Data()
-		if vmc.Name == scrapeJobName {
-			// found an existing scrape config, either remove it or replace it
-			found = true
-			if newScrapeConfig == nil {
-				scrapeConfigs.ArrayRemove(index)
-			} else {
-				scrapeConfigs.SetIndex(newScrapeConfig.Data(), index)
-			}
-			break
-		}
+	editScrapeJobName := vmc.Name
+
+	// parse the scrape config so we can manipulate it
+	jobs, err := scrapeconfigutils.ParseScrapeConfig(jobsStr)
+	if err != nil {
+		return err
 	}
-	if !found && newScrapeConfig != nil {
-		// if we didn't find an existing scrape config and we are not removing it, append it to the existing scrape config
-		scrapeConfigs.ArrayAppend(newScrapeConfig.Data())
+	scrapeConfigs, err := scrapeconfigutils.EditScrapeJob(jobs, editScrapeJobName, newScrapeConfig)
+	if err != nil {
+		return err
 	}
 
 	bytes, err := yaml.JSONToYAML(scrapeConfigs.Bytes())
@@ -320,13 +298,13 @@ func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx c
 	// update the secret with the updated scrape config
 	secret = corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      vpoconst.PromAdditionalScrapeConfigsSecretName,
+			Name:      constants.PromAdditionalScrapeConfigsSecretName,
 			Namespace: vpoconst.VerrazzanoMonitoringNamespace,
 		},
 		Data: map[string][]byte{},
 	}
 	if _, err := controllerruntime.CreateOrUpdate(ctx, r.Client, &secret, func() error {
-		secret.Data[vpoconst.PromAdditionalScrapeConfigsSecretKey] = bytes
+		secret.Data[constants.PromAdditionalScrapeConfigsSecretKey] = bytes
 		return nil
 	}); err != nil {
 		return err
