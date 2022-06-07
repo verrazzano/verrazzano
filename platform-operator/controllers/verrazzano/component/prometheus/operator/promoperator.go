@@ -170,6 +170,9 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	// Add a label to Prometheus Operator resources to distinguish Verrazzano resources
 	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("commonLabels.%s", constants.VerrazzanoComponentLabelKey), Value: ComponentName})
 
+	// Add label to the Prometheus Operator pod to avoid a sidecar injection
+	kvs = append(kvs, bom.KeyValue{Key: `prometheusOperator.podAnnotations.sidecar\.istio\.io/inject`, Value: "false"})
+
 	return kvs, nil
 }
 
