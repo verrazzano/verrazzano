@@ -27,7 +27,7 @@ vz uninstall
 vz uninstall --crds`
 )
 
-var logsEnum = cmdhelpers.LogsFormatSimple
+var logsEnum = cmdhelpers.LogFormatSimple
 
 func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
