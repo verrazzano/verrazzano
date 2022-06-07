@@ -423,9 +423,7 @@ pipeline {
                         }
                         stage('jwt helidon') {
                            when {
-                                allOf {
-                                    expression {params.ENABLE_JWT_TESTING == true}
-                                }
+                                expression {params.ENABLE_JWT_TESTING == true}
                            }
                            environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jwt-helidon"
