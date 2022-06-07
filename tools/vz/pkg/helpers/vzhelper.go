@@ -24,7 +24,7 @@ type VZHelper interface {
 	GetErrorStream() io.Writer
 	GetInputStream() io.Reader
 	GetClient(cmd *cobra.Command) (client.Client, error)
-	GetKubeClient(cmd *cobra.Command) (*kubernetes.Clientset, error)
+	GetKubeClient(cmd *cobra.Command) (kubernetes.Interface, error)
 }
 
 // FindVerrazzanoResource - find the single Verrazzano resource

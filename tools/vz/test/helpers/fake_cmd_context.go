@@ -6,6 +6,7 @@ package helpers
 import (
 	"io"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -14,7 +15,7 @@ import (
 
 type FakeRootCmdContext struct {
 	client     client.Client
-	kubeClient *kubernetes.Clientset
+	kubeClient kubernetes.Interface
 	genericclioptions.IOStreams
 }
 
@@ -38,8 +39,8 @@ func (rc *FakeRootCmdContext) GetClient(cmd *cobra.Command) (client.Client, erro
 	return rc.client, nil
 }
 
-// GetKubeClient - return a Kubernetes clientset for use with the go-client
-func (rc *FakeRootCmdContext) GetKubeClient(cmd *cobra.Command) (*kubernetes.Clientset, error) {
+// GetKubeClient - return a Kubernetes clientset for use with the fake go-client
+func (rc *FakeRootCmdContext) GetKubeClient(cmd *cobra.Command) (kubernetes.Interface, error) {
 	return rc.kubeClient, nil
 }
 
@@ -50,6 +51,7 @@ func (rc *FakeRootCmdContext) SetClient(client client.Client) {
 
 func NewFakeRootCmdContext(streams genericclioptions.IOStreams) *FakeRootCmdContext {
 	return &FakeRootCmdContext{
-		IOStreams: streams,
+		IOStreams:  streams,
+		kubeClient: fake.NewSimpleClientset(),
 	}
 }

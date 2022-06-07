@@ -218,7 +218,7 @@ func waitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper) (s
 
 // waitForInstallToComplete waits for the Verrazzano install to complete and shows the logs of
 // the ongoing Verrazzano install.
-func waitForInstallToComplete(client clipkg.Client, kubeClient *kubernetes.Clientset, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration) error {
+func waitForInstallToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration) error {
 	// Tail the log messages from the verrazzano-platform-operator starting at the current time.
 	sinceTime := metav1.Now()
 	rc, err := kubeClient.CoreV1().Pods(vzconstants.VerrazzanoInstallNamespace).GetLogs(vpoPodName, &corev1.PodLogOptions{
@@ -236,7 +236,7 @@ func waitForInstallToComplete(client clipkg.Client, kubeClient *kubernetes.Clien
 		sc := bufio.NewScanner(rc)
 		sc.Split(bufio.ScanLines)
 		for sc.Scan() {
-			re := regexp.MustCompile(`"level":"(.*?)","@timestamp":"(.*?)","caller":"(.*?)","message":"(.*?)",`)
+			re := regexp.MustCompile(`"level":"(.*?)","@timestamp":"(.*?)",(.*?)"message":"(.*?)",`)
 			res := re.FindAllStringSubmatch(sc.Text(), -1)
 			// res[0][2] is the timestamp
 			// res[0][1] is the level
