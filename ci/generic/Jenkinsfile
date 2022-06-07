@@ -244,8 +244,8 @@ def runDynamicStages(pipelineDescriptor) {
                     echo "Executing stage ${stageName}, targets " + targetsMap.keySet()
                     parallel targetsMap
                 } finally {
-                    echo "Archiving artifacts"
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    echo "Archiving artifacts for stage ${stageName}"
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/${TEST_REPORT},*/Screenshot*.png,**/ConsoleLog*.log,**/*cluster-dump*/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
             }
@@ -300,16 +300,7 @@ def buildTargetClosure(targetName, targetToInvoke) {
     ]
 }
 
-def getVerifyInstallTestTargets() {
-    return [
-        //"verify-install": { runTest("verify-install") },
-        "verify-scripts": { runTest("scripts") },
-        "security-rbac": { runTest("security/rbac", "false") },
-        "metrics-syscomp": { runTest("metrics/syscomponents") },
-        ]
-}
-
-def runTest(testSuitePath, runParallel = "true", randomize = "true") {
+def runTestTarget(testSuitePath, runParallel = "true", randomize = "true") {
     return script {
         sh """
            export TEST_SUITES="${testSuitePath}/..."
@@ -521,7 +512,7 @@ def emitJobMetrics() {
     long timeInMillis = "${currentBuild.timeInMillis}" as long;
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
     env.TIME_WAITING = startTimeInMillis-timeInMillis
-    runTest('jobmetrics')
+    runTestTarget('jobmetrics')
 }
 
 
