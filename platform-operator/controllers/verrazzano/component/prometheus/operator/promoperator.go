@@ -11,6 +11,7 @@ import (
 
 	vmoconst "github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -20,15 +21,21 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/kustomize/kyaml/sliceutil"
 )
 
 const (
 	deploymentName  = "prometheus-operator-kube-p-operator"
 	istioVolumeName = "istio-certs-dir"
+	serviceAccount  = "cluster.local/ns/verrazzano-monitoring/sa/prometheus-operator-kube-p-prometheus"
 )
 
 // isPrometheusOperatorReady checks if the Prometheus operator deployment is ready
@@ -161,7 +168,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	}
 
 	// Add a label to Prometheus Operator resources to distinguish Verrazzano resources
-	kvs = append(kvs, bom.KeyValue{Key: "commonLabels.verrazzano-component", Value: "prometheus-operator"})
+	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("commonLabels.%s", constants.VerrazzanoComponentLabelKey), Value: ComponentName})
 
 	return kvs, nil
 }
@@ -293,4 +300,52 @@ func applySystemMonitors(ctx spi.ComponentContext) error {
 	dir := path.Join(config.GetThirdPartyManifestsDir(), "prometheus-operator")
 	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
 	return yamlApplier.ApplyDT(dir, args)
+}
+
+func updateApplicationAuthorizationPolicies(ctx spi.ComponentContext) error {
+	// Get the Application namespaces by filtering the label verrazzano-managed=true
+	nsList := corev1.NamespaceList{}
+	err := ctx.Client().List(context.TODO(), &nsList, &client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{vzconst.VerrazzanoManagedLabelKey: "true"})})
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to list namespaces with the label %s=true: %v", vzconst.VerrazzanoManagedLabelKey, err)
+	}
+
+	// For each namespace, if an authorization policy exists, add the prometheus operator service account as a principal
+	for _, ns := range nsList.Items {
+		authPolicyList := istioclisec.AuthorizationPolicyList{}
+		err = ctx.Client().List(context.TODO(), &authPolicyList, &client.ListOptions{Namespace: ns.Name})
+		if err != nil {
+			return ctx.Log().ErrorfNewErr("Failed to list Authorization Policies in namespace %s: %v", ns.Name, err)
+		}
+		// Parse the authorization policy list for the Verrazzano Istio label and apply the service account to the first rule
+		for i := range authPolicyList.Items {
+			authPolicy := authPolicyList.Items[i]
+			if _, ok := authPolicy.Labels[constants.IstioAppLabel]; !ok {
+				continue
+			}
+			_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), &authPolicy, func() error {
+				rules := authPolicy.Spec.Rules
+				if len(rules) <= 0 || rules[0] == nil {
+					return nil
+				}
+				targetRule := rules[0]
+				if len(targetRule.From) <= 0 || targetRule.From[0] == nil {
+					return nil
+				}
+				targetFrom := targetRule.From[0]
+				if targetFrom.Source == nil {
+					return nil
+				}
+				// Update the object principal with the Prometheus Operator service account if not found
+				if !sliceutil.Contains(targetFrom.Source.Principals, serviceAccount) {
+					authPolicy.Spec.Rules[0].From[0].Source.Principals = append(targetFrom.Source.Principals, serviceAccount)
+				}
+				return nil
+			})
+			if err != nil {
+				return ctx.Log().ErrorfNewErr("Failed to update the Authorization Policy %s in namespace %s: %v", authPolicy.Name, ns.Name, err)
+			}
+		}
+	}
+	return nil
 }

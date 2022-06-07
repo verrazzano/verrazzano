@@ -1,4 +1,4 @@
-// Copyright (C) 2021, Oracle and/or its affiliates.
+// Copyright (C) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package integ_test
@@ -14,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"github.com/verrazzano/verrazzano/application-operator/test/integ/util"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 )
 
 const (
@@ -162,7 +163,7 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject namespace generation", func()
 			namespace, err := K8sClient.GetNamespace("test-namespace-1")
 			if err == nil {
 				return namespace.Labels[constants.LabelIstioInjection] == constants.LabelIstioInjectionDefault &&
-					namespace.Labels[constants.LabelVerrazzanoManaged] == constants.LabelVerrazzanoManagedDefault &&
+					namespace.Labels[vzconst.VerrazzanoManagedLabelKey] == constants.LabelVerrazzanoManagedDefault &&
 					namespace.Labels["label1"] == "test1" &&
 					len(namespace.Labels) == 3
 			}
@@ -172,7 +173,7 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject namespace generation", func()
 			namespace, err := K8sClient.GetNamespace("test-namespace-2")
 			if err == nil {
 				return namespace.Labels[constants.LabelIstioInjection] == constants.LabelIstioInjectionDefault &&
-					namespace.Labels[constants.LabelVerrazzanoManaged] == constants.LabelVerrazzanoManagedDefault &&
+					namespace.Labels[vzconst.VerrazzanoManagedLabelKey] == constants.LabelVerrazzanoManagedDefault &&
 					namespace.Labels["label2"] == "test2" &&
 					len(namespace.Labels) == 3
 			}
@@ -190,7 +191,7 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject namespace generation", func()
 			namespace, err := K8sClient.GetNamespace("test-namespace-11")
 			if err == nil {
 				return namespace.Labels[constants.LabelIstioInjection] == "disabled" &&
-					namespace.Labels[constants.LabelVerrazzanoManaged] == "false" &&
+					namespace.Labels[vzconst.VerrazzanoManagedLabelKey] == "false" &&
 					namespace.Labels["label1"] == "test1" &&
 					len(namespace.Labels) == 3
 			}
@@ -200,7 +201,7 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject namespace generation", func()
 			namespace, err := K8sClient.GetNamespace("test-namespace-12")
 			if err == nil {
 				return namespace.Labels[constants.LabelIstioInjection] == constants.LabelIstioInjectionDefault &&
-					namespace.Labels[constants.LabelVerrazzanoManaged] == constants.LabelVerrazzanoManagedDefault &&
+					namespace.Labels[vzconst.VerrazzanoManagedLabelKey] == constants.LabelVerrazzanoManagedDefault &&
 					namespace.Labels["label2"] == "test2" &&
 					len(namespace.Labels) == 3
 			}
@@ -218,7 +219,7 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject namespace generation", func()
 			namespace, err := K8sClient.GetNamespace(existingNamespace)
 			if err == nil {
 				return namespace.Labels[constants.LabelIstioInjection] == constants.LabelIstioInjectionDefault &&
-					namespace.Labels[constants.LabelVerrazzanoManaged] == constants.LabelVerrazzanoManagedDefault &&
+					namespace.Labels[vzconst.VerrazzanoManagedLabelKey] == constants.LabelVerrazzanoManagedDefault &&
 					namespace.Labels["label1"] == "test1" &&
 					len(namespace.Labels) == 3
 			}

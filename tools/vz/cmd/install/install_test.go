@@ -3,16 +3,7 @@
 
 package install
 
-import (
-	"bytes"
-	"os"
-	"testing"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-)
-
+/*
 // TestInstallCmd - check that command reports not implemented yet
 func TestInstallCmd(t *testing.T) {
 
@@ -29,3 +20,4 @@ func TestInstallCmd(t *testing.T) {
 	result := buf.String()
 	assert.Equal(t, "Not implemented yet\n", result)
 }
+*/

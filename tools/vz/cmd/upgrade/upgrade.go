@@ -16,12 +16,12 @@ import (
 const (
 	CommandName = "upgrade"
 	helpShort   = "Upgrade Verrazzano"
-	helpLong    = `Upgrade the Verrazzano Platform Operator to the specified version and update all of the currently installed components.`
+	helpLong    = `Upgrade the Verrazzano Platform Operator to the specified version and update all of the currently installed components`
 	helpExample = `
 # Upgrade to the latest version of Verrazzano and wait for the command to complete.  Stream the logs to the console until the upgrade completes.
 vz upgrade
 
-# Upgrade to Verrazzano v1.3.0, stream the logs to the console and timeout after 20m.
+# Upgrade to Verrazzano v1.3.0, stream the logs to the console and timeout after 20m
 vz upgrade --version v1.3.0 --timeout 20m`
 )
 
@@ -36,7 +36,7 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 
 	cmd.PersistentFlags().Bool(constants.WaitFlag, constants.WaitFlagDefault, constants.WaitFlagHelp)
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*30, constants.TimeoutFlagHelp)
-	cmd.PersistentFlags().String(constants.VersionFlag, "latest", constants.VersionFlagHelp)
+	cmd.PersistentFlags().String(constants.VersionFlag, constants.VersionFlagDefault, constants.VersionFlagHelp)
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
 
 	// Initially the operator-file flag may be for internal use, hide from help until
