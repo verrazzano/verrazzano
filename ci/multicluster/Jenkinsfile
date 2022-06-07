@@ -932,6 +932,8 @@ def upgradeVerrazzano() {
                 echo "Following is the verrazzano CR file with the new version:"
                 cat ${v8oUpgradeFile}
                 kubectl apply -f ${v8oUpgradeFile}
+                sleep 30
+                kubectl get vz -o yaml
                 # wait for the upgrade to complete
                 kubectl wait --timeout=25m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
