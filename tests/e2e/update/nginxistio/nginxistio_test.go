@@ -520,7 +520,11 @@ func validateServiceNodePortAndExternalIP(expectedSystemExternalIP, expectedAppl
 		}
 
 		// validate Ingress Host
-		err = validateIngressHost(expectedSystemExternalIP)
+		err = validateIngressHost(expectedSystemExternalIP, "keycloak", "keycloak")
+		if err != nil {
+			return err
+		}
+		err = validateIngressHost(expectedSystemExternalIP, "verrazzano-ingress", "verrazzano-system")
 		if err != nil {
 			return err
 		}
@@ -571,7 +575,11 @@ func validateServiceLoadBalancer() {
 		}
 
 		// validate Ingress Host
-		err = validateIngressHost(nginxLBIP)
+		err = validateIngressHost(nginxLBIP, "keycloak", "keycloak")
+		if err != nil {
+			return err
+		}
+		err = validateIngressHost(nginxLBIP, "verrazzano-ingress", "verrazzano-system")
 		if err != nil {
 			return err
 		}
@@ -586,7 +594,7 @@ func validateServiceLoadBalancer() {
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "expect to get LoadBalancer type and loadBalancer IP from nginx and istio services")
 }
 
-func validateIngressHost(expectedIP string) error {
+func validateIngressHost(expectedIP, ingressName, ns string) error {
 	kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		return err
@@ -595,16 +603,16 @@ func validateIngressHost(expectedIP string) error {
 	if err != nil {
 		return err
 	}
-	ingress, err := clientset.NetworkingV1().Ingresses("keycloak").Get(context.TODO(), "keycloak", v1.GetOptions{})
+	ingress, err := clientset.NetworkingV1().Ingresses(ns).Get(context.TODO(), ingressName, v1.GetOptions{})
 	if err != nil {
 		return err
 	}
 	if len(ingress.Spec.Rules) == 0 {
-		return fmt.Errorf("expect Verrazzano Ingress to have at least one host")
+		return fmt.Errorf("expect Ingress %s/%s to have at least one host", ns, ingressName)
 	}
 	host := ingress.Spec.Rules[0].Host
 	if !strings.Contains(host, expectedIP) {
-		return fmt.Errorf("expect Verrazzano Ingress Host %s to contain IP %s", host, expectedIP)
+		return fmt.Errorf("expect Ingress %s/%s Host %s to contain IP %s", ns, ingressName, host, expectedIP)
 	}
 	return nil
 }

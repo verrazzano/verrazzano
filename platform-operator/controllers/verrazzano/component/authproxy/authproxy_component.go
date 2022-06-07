@@ -5,6 +5,7 @@ package authproxy
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -46,6 +47,7 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
 			GetInstallOverridesFunc: GetOverrides,
+			Dependencies:            []string{nginx.ComponentName},
 		},
 	}
 }
