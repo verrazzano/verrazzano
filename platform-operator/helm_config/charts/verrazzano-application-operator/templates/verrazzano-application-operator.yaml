@@ -273,6 +273,19 @@ rules:
       - patch
       - update
       - watch
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - servicemonitors
+    verbs:
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -440,7 +453,7 @@ webhooks:
     namespaceSelector:
       matchExpressions:
           - {key: istio-injection, operator: In, values: [enabled]}
-          - {key: verrazzano.io/namespace, operator: NotIn, values: [verrazzano-system, kube-system]}
+          - {key: verrazzano.io/namespace, operator: NotIn, values: [verrazzano-system, kube-system, verrazzano-monitoring]}
     clientConfig:
       service:
         name: {{ .Values.name }}

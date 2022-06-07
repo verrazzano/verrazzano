@@ -7,6 +7,7 @@ import (
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -225,9 +226,6 @@ type Condition struct {
 type VzStateType string
 
 const (
-	// VzStateInstalling is the state when an install is in progress
-	VzStateInstalling VzStateType = "Installing"
-
 	// VzStateUninstalling is the state when an uninstall is in progress
 	VzStateUninstalling VzStateType = "Uninstalling"
 
@@ -242,6 +240,9 @@ const (
 
 	// VzStateFailed is the state when an install/uninstall/upgrade has failed
 	VzStateFailed VzStateType = "Failed"
+
+	// VzStateReconciling is the state when a resource is in progress reconciling
+	VzStateReconciling VzStateType = "Reconciling"
 )
 
 // CompStateType identifies the state of a component
@@ -413,7 +414,8 @@ type KibanaComponent struct {
 // KubeStateMetricsComponent specifies the kube-state-metrics configuration.
 type KubeStateMetricsComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // GrafanaComponent specifies the Grafana configuration.
@@ -431,26 +433,29 @@ type PrometheusComponent struct {
 // PrometheusAdapterComponent specifies the Prometheus Adapter configuration.
 type PrometheusAdapterComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // PrometheusNodeExporterComponent specifies the Prometheus Node Exporter configuration.
 type PrometheusNodeExporterComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // PrometheusOperatorComponent specifies the Prometheus Operator configuration
 type PrometheusOperatorComponent struct {
 	// +optional
-	Enabled            *bool `json:"enabled,omitempty"`
-	HelmValueOverrides `json:",inline"`
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // PrometheusPushgatewayComponent specifies the Prometheus Pushgateway configuration.
 type PrometheusPushgatewayComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // CertManagerComponent specifies the core CertManagerComponent config.
@@ -460,19 +465,22 @@ type CertManagerComponent struct {
 	// +patchStrategy=replace
 	Certificate Certificate `json:"certificate,omitempty" patchStrategy:"replace"`
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // CoherenceOperatorComponent specifies the Coherence Operator configuration
 type CoherenceOperatorComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // ApplicationOperatorComponent specifies the Application Operator configuration
 type ApplicationOperatorComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // AuthProxyKubernetesSection specifies the Kubernetes resources that can be customized for AuthProxy.
@@ -485,13 +493,15 @@ type AuthProxyComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 	// +optional
-	Kubernetes *AuthProxyKubernetesSection `json:"kubernetes,omitempty"`
+	Kubernetes       *AuthProxyKubernetesSection `json:"kubernetes,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // OAMComponent specifies the OAM configuration
 type OAMComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // VerrazzanoComponent specifies the Verrazzano configuration
@@ -503,13 +513,15 @@ type VerrazzanoComponent struct {
 	// +optional
 	// +patchMergeKey=name
 	// +patchStrategy=merge,retainKeys
-	InstallArgs []InstallArgs `json:"installArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
+	InstallArgs      []InstallArgs `json:"installArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
+	InstallOverrides `json:",inline"`
 }
 
 // KialiComponent specifies the Kiali configuration
 type KialiComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // ConsoleComponent specifies the Console UI configuration
@@ -528,7 +540,8 @@ type DNSComponent struct {
 	OCI *OCI `json:"oci,omitempty"`
 	// DNS type of external. For example, OLCNE uses this type.
 	// +optional
-	External *External `json:"external,omitempty"`
+	External         *External `json:"external,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // IngressNginxComponent specifies the ingress-nginx configuration
@@ -545,7 +558,8 @@ type IngressNginxComponent struct {
 	// +optional
 	Ports []corev1.ServicePort `json:"ports,omitempty"`
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // IstioIngressSection specifies the specific config options available for the Istio Ingress Gateways.
@@ -578,6 +592,8 @@ type IstioComponent struct {
 	// +patchMergeKey=name
 	// +patchStrategy=merge,retainKeys
 	IstioInstallArgs []InstallArgs `json:"istioInstallArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
+	// +optional
+	InstallOverrides `json:",inline"`
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 	// +optional
@@ -613,7 +629,8 @@ type KeycloakComponent struct {
 	// +optional
 	MySQL MySQLComponent `json:"mysql,omitempty"`
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // MySQLComponent specifies the MySQL configuration
@@ -628,13 +645,15 @@ type MySQLComponent struct {
 	// is used, it must reference a VolumeClaimSpecTemplate in the VolumeClaimSpecTemplates section.
 	// +optional
 	// +patchStrategy=replace
-	VolumeSource *corev1.VolumeSource `json:"volumeSource,omitempty" patchStrategy:"replace"`
+	VolumeSource     *corev1.VolumeSource `json:"volumeSource,omitempty" patchStrategy:"replace"`
+	InstallOverrides `json:",inline"`
 }
 
 // RancherComponent specifies the Rancher configuration
 type RancherComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // FluentdComponent specifies the Fluentd DaemonSet configuration
@@ -658,7 +677,8 @@ type FluentdComponent struct {
 // WebLogicOperatorComponent specifies the WebLogic Operator configuration
 type WebLogicOperatorComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // InstallArgs identifies a name/value or name/value list needed for install.
@@ -770,12 +790,15 @@ type OciLoggingConfiguration struct {
 	APISecret       string `json:"apiSecret,omitempty"`
 }
 
-type HelmValueOverrides struct {
+// InstallOverrides are used to pass install overrides to components
+type InstallOverrides struct {
 	MonitorChanges *bool       `json:"monitorChanges,omitempty"`
 	ValueOverrides []Overrides `json:"overrides,omitempty"`
 }
 
+// Overrides stores the specified overrides
 type Overrides struct {
 	ConfigMapRef *corev1.ConfigMapKeySelector `json:"configMapRef,omitempty"`
 	SecretRef    *corev1.SecretKeySelector    `json:"secretRef,omitempty"`
+	Values       *apiextensionsv1.JSON        `json:"values,omitempty"`
 }

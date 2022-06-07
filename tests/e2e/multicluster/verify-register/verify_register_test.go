@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
@@ -363,8 +364,8 @@ func findNamespace(namespace string) bool {
 		return false
 	}
 	labels := ns.GetObjectMeta().GetLabels()
-	if labels[constants.LabelVerrazzanoManaged] != constants.LabelVerrazzanoManagedDefault {
-		pkg.Log(pkg.Info, fmt.Sprintf("The namespace %q label %q is set to wrong value of %q", namespace, constants.LabelVerrazzanoManaged, labels[constants.LabelVerrazzanoManaged]))
+	if labels[vzconst.VerrazzanoManagedLabelKey] != constants.LabelVerrazzanoManagedDefault {
+		pkg.Log(pkg.Info, fmt.Sprintf("The namespace %q label %q is set to wrong value of %q", namespace, vzconst.VerrazzanoManagedLabelKey, labels[vzconst.VerrazzanoManagedLabelKey]))
 		return false
 	}
 	if labels[constants.LabelIstioInjection] != constants.LabelIstioInjectionDefault {

@@ -122,12 +122,3 @@ check-eventually: check-eventually-test ## check for correct use of Gomega Event
 .PHONY: check-eventually-test
 check-eventually-test: ## run tests for Gomega Eventually checker
 	(cd tools/eventually-checker; go test .)
-
-#
-# CLI
-#
-
-##@ CLI
-
-cli: ## build the CLI
-	(cd tools/cli/vz; go install)

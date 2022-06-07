@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-logr/logr"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"testing"
 	"time"
 
@@ -18,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vmcclient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned/scheme"
 	"go.uber.org/zap"
@@ -284,8 +284,8 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 							Update(gomock.Any(), gomock.Any(), gomock.Any()).
 							DoAndReturn(func(ctx context.Context, namespace *corev1.Namespace, opts ...client.UpdateOption) error {
 								assert.Equal(tt.fields.nsList[0].Metadata.Name, namespace.Name, "namespace name did not match")
-								_, labelExists := namespace.Labels[constants.LabelVerrazzanoManaged]
-								assert.True(labelExists, fmt.Sprintf("the label %s does not exist", constants.LabelVerrazzanoManaged))
+								_, labelExists := namespace.Labels[vzconst.VerrazzanoManagedLabelKey]
+								assert.True(labelExists, fmt.Sprintf("the label %s does not exist", vzconst.VerrazzanoManagedLabelKey))
 								_, labelExists = namespace.Labels[constants.LabelIstioInjection]
 								assert.True(labelExists, fmt.Sprintf("the label %s does not exist", constants.LabelIstioInjection))
 								return nil

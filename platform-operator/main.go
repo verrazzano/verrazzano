@@ -5,29 +5,29 @@ package main
 
 import (
 	"flag"
-
-	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
+	"os"
+	"sync"
 
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	clusterscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
+	configmapcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps"
 	secretscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
 	vzcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
 	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/netpolicy"
 	"go.uber.org/zap"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
-
-	"os"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -54,7 +54,10 @@ func init() {
 	_ = vzapp.AddToScheme(scheme)
 
 	// Add cert-manager components to the scheme
-	cmapiv1.AddToScheme(scheme)
+	_ = cmapiv1.AddToScheme(scheme)
+
+	// Add the Prometheus Operator resources to the scheme
+	_ = promoperapi.AddToScheme(scheme)
 
 	// +kubebuilder:scaffold:scheme
 }
@@ -162,9 +165,11 @@ func main() {
 
 	// Setup the reconciler
 	reconciler := vzcontroller.Reconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		DryRun: config.DryRun,
+		Client:            mgr.GetClient(),
+		Scheme:            mgr.GetScheme(),
+		DryRun:            config.DryRun,
+		WatchedComponents: map[string]bool{},
+		WatchMutex:        &sync.RWMutex{},
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		log.Error(err, "Failed to setup controller", vzlog.FieldController, "Verrazzano")
@@ -206,6 +211,15 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoSecrets")
+		os.Exit(1)
+	}
+
+	// Setup configMaps reconciler
+	if err = (&configmapcontroller.VerrazzanoConfigMapsReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoConfigMaps")
 		os.Exit(1)
 	}
 

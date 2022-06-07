@@ -322,6 +322,18 @@ func ListNodes() (*corev1.NodeList, error) {
 	return nodes, nil
 }
 
+// GetNodeCount returns the number of nodes for the cluster
+func GetNodeCount() (uint32, error) {
+	nodes, err := ListNodes()
+	if err != nil {
+		return 0, err
+	}
+	if len(nodes.Items) < 1 {
+		return 0, fmt.Errorf("can not find node in the cluster")
+	}
+	return uint32(len(nodes.Items)), nil
+}
+
 // GetPodsFromSelector returns a collection of pods for the given namespace and selector
 func GetPodsFromSelector(selector *metav1.LabelSelector, namespace string) ([]corev1.Pod, error) {
 	var pods *corev1.PodList
@@ -641,12 +653,25 @@ func IsPrometheusOperatorEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
-		return false
+		return true
 	}
 	if vz.Spec.Components.PrometheusOperator == nil || vz.Spec.Components.PrometheusOperator.Enabled == nil {
-		return false
+		return true
 	}
 	return *vz.Spec.Components.PrometheusOperator.Enabled
+}
+
+// IsPrometheusEnabled returns true if the Prometheus component is not set and the Prometheus Operator is enabled, or the value of its Enabled field otherwise
+func IsPrometheusEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
+		return false
+	}
+	if vz.Spec.Components.Prometheus == nil || vz.Spec.Components.Prometheus.Enabled == nil {
+		return true
+	}
+	return *vz.Spec.Components.Prometheus.Enabled
 }
 
 // IsKubeStateMetricsEnabled returns false if the Kube State Metrics component is not set, or the value of its Enabled field otherwise
@@ -712,6 +737,20 @@ func IsJaegerOperatorEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	return *vz.Spec.Components.JaegerOperator.Enabled
+}
+
+// IsGrafanaEnabled returns false if the Grafana component is not set, or the value of its Enabled field otherwise
+func IsGrafanaEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.Grafana == nil || vz.Spec.Components.Grafana.Enabled == nil {
+		// Grafana component is enabled by default
+		return true
+	}
+	return *vz.Spec.Components.Grafana.Enabled
 }
 
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
@@ -1369,36 +1408,33 @@ func UpdateConfigMap(configMap *corev1.ConfigMap) error {
 	return nil
 }
 
-// ContainerHasExpectedEnv returns true if each of the envs matches a substring of one of the env found in the deployment
-func ContainerHasExpectedEnv(namespace string, deploymentName string, containerName string, envMap map[string]string) (bool, error) {
+// GetContainerEnv returns an array of environment variables in the specified container for the specified deployment
+func GetContainerEnv(namespace string, deploymentName string, containerName string) ([]corev1.EnvVar, error) {
 	deployment, err := GetDeployment(namespace, deploymentName)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Deployment %v is not found in the namespace: %v, error: %v", deploymentName, namespace, err))
-		return false, nil
+		return nil, fmt.Errorf("deployment %s not found in the namespace: %s, error: %v", deploymentName, namespace, err)
 	}
 	for _, container := range deployment.Spec.Template.Spec.Containers {
 		if container.Name == containerName {
-			for env, val := range envMap {
-				found := false
-				for _, containerEnv := range container.Env {
-					if containerEnv.Name == env {
-						if containerEnv.Value != val {
-							Log(Error, fmt.Sprintf("The value %v of the env %v for the container %v is not set as expected: %v",
-								containerEnv.Value, containerEnv.Name, containerName, val))
-							return false, nil
-						}
-						found = true
-					}
-				}
-				if !found {
-					Log(Error, fmt.Sprintf("The env %v not set for the container %v", env, containerName))
-					return false, nil
-				}
-			}
-			return true, nil
+			return container.Env, nil
 		}
 	}
-	return false, nil
+	return nil, fmt.Errorf("container %s not found in the namespace: %s", containerName, namespace)
+}
+
+// GetContainerImage returns the image used by the specified container for the specified deployment
+func GetContainerImage(namespace string, deploymentName string, containerName string) (string, error) {
+	deployment, err := GetDeployment(namespace, deploymentName)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Deployment %v not found in the namespace: %v, error: %v", deploymentName, namespace, err))
+		return "", nil
+	}
+	for _, container := range deployment.Spec.Template.Spec.Containers {
+		if container.Name == containerName {
+			return container.Image, nil
+		}
+	}
+	return "", fmt.Errorf("container %v not found in the namespace: %v", containerName, namespace)
 }
 
 // WaitForVZCondition waits till the VZ CR reaches the given condition
@@ -1417,4 +1453,26 @@ func WaitForVZCondition(conditionType v1alpha1.ConditionType, pollingInterval, t
 		}
 		return false
 	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(gomega.BeTrue())
+}
+
+// DeleteConfigMap to delete the ConfigMap with the given name and namespace
+func DeleteConfigMap(namespace string, name string) error {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return err
+	}
+	return clientset.CoreV1().ConfigMaps(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+}
+
+// CreateConfigMap creates the ConfigMap
+func CreateConfigMap(configMap *corev1.ConfigMap) error {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return err
+	}
+	_, err = clientset.CoreV1().ConfigMaps(configMap.Namespace).Create(context.TODO(), configMap, metav1.CreateOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
 }

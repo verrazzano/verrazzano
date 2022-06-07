@@ -6,8 +6,11 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
@@ -46,9 +49,11 @@ import (
 // Reconciler reconciles a Verrazzano object
 type Reconciler struct {
 	client.Client
-	Scheme     *runtime.Scheme
-	Controller controller.Controller
-	DryRun     bool
+	Scheme            *runtime.Scheme
+	Controller        controller.Controller
+	DryRun            bool
+	WatchedComponents map[string]bool
+	WatchMutex        *sync.RWMutex
 }
 
 // Name of finalizer
@@ -153,7 +158,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger
 	switch vz.Status.State {
 	case installv1alpha1.VzStateFailed:
 		return r.ProcFailedState(vzctx)
-	case installv1alpha1.VzStateInstalling:
+	case installv1alpha1.VzStateReconciling:
 		return r.ProcInstallingState(vzctx)
 	case installv1alpha1.VzStateReady:
 		return r.ProcReadyState(vzctx)
@@ -191,11 +196,23 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 
 	// If Verrazzano is installed see if upgrade is needed
 	if isInstalled(actualCR.Status) {
-		if len(actualCR.Spec.Version) > 0 && actualCR.Spec.Version != actualCR.Status.Version {
-			// Transition to upgrade state
-			r.updateVzState(log, actualCR, installv1alpha1.VzStateUpgrading)
-			return newRequeueWithDelay(), err
+		if len(actualCR.Spec.Version) > 0 {
+			specVersion, err := semver.NewSemVersion(actualCR.Spec.Version)
+			if err != nil {
+				return newRequeueWithDelay(), err
+			}
+			statusVersion, err := semver.NewSemVersion(actualCR.Status.Version)
+			if err != nil {
+				return newRequeueWithDelay(), err
+			}
+			// if the spec version field is set and the SemVer spec field doesn't equal the SemVer status field
+			if specVersion.CompareTo(statusVersion) != 0 {
+				// Transition to upgrade state
+				r.updateVzState(log, actualCR, installv1alpha1.VzStateUpgrading)
+				return newRequeueWithDelay(), err
+			}
 		}
+
 		// Keep retrying to reconcile components until it completes
 		if result, err := r.reconcileComponents(vzctx); err != nil {
 			return newRequeueWithDelay(), err
@@ -755,7 +772,7 @@ func checkCondtitionType(currentCondition installv1alpha1.ConditionType) install
 func conditionToVzState(currentCondition installv1alpha1.ConditionType) installv1alpha1.VzStateType {
 	switch currentCondition {
 	case installv1alpha1.CondInstallStarted:
-		return installv1alpha1.VzStateInstalling
+		return installv1alpha1.VzStateReconciling
 	case installv1alpha1.CondUninstallStarted:
 		return installv1alpha1.VzStateUninstalling
 	case installv1alpha1.CondUpgradeStarted:
@@ -1211,6 +1228,7 @@ func (r *Reconciler) watchPods(namespace string, name string, log vzlog.Verrazza
 				return false
 			}
 			log.Debugf("Pod %s in namespace %s created", pod.Name, pod.Namespace)
+			r.AddWatch(keycloak.ComponentJSONName)
 			return true
 		}))
 }
@@ -1226,6 +1244,7 @@ func (r *Reconciler) watchJaegerService(namespace string, name string, log vzlog
 			service := e.Object.(*corev1.Service)
 			if service.Labels[vzconst.KubernetesAppLabel] == vzconst.JaegerCollectorService {
 				log.Debugf("Jaeger service %s/%s created", service.Namespace, service.Name)
+				r.AddWatch(istio.ComponentJSONName)
 				return true
 			}
 			return false
@@ -1333,4 +1352,24 @@ func (r *Reconciler) updateVerrazzanoStatus(log vzlog.VerrazzanoLogger, vz *inst
 	}
 	// Return error so that reconcile gets called again
 	return err
+}
+
+//AddWatch adds a component to the watched set
+func (r *Reconciler) AddWatch(name string) {
+	r.WatchMutex.Lock()
+	defer r.WatchMutex.Unlock()
+	r.WatchedComponents[name] = true
+}
+
+func (r *Reconciler) ClearWatch(name string) {
+	r.WatchMutex.Lock()
+	defer r.WatchMutex.Unlock()
+	delete(r.WatchedComponents, name)
+}
+
+//IsWatchedComponent checks if a component is watched or not
+func (r *Reconciler) IsWatchedComponent(compName string) bool {
+	r.WatchMutex.RLock()
+	defer r.WatchMutex.RUnlock()
+	return r.WatchedComponents[compName]
 }

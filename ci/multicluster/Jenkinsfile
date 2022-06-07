@@ -18,6 +18,7 @@ installerFileName = "install-verrazzano.yaml"
 
 pipeline {
     options {
+        timeout(time: 2, unit: 'HOURS')
         skipDefaultCheckout true
         timestamps ()
     }
@@ -34,6 +35,7 @@ pipeline {
 
     parameters {
         booleanParam (description: 'Whether to use External Elasticsearch', name: 'EXTERNAL_ELASTICSEARCH', defaultValue: false)
+        booleanParam (description: 'Whether to upgrade Verrazzano', name: 'UPGRADE_VERRAZZANO', defaultValue: false)
         choice (description: 'Number of Cluster', name: 'TOTAL_CLUSTERS', choices: ["2", "1", "3"])
         choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
                 choices: ["KIND", "magicdns_oke", "ocidns_oke"])
@@ -417,11 +419,13 @@ pipeline {
                     }
                 }
                 stage("upgrade-platform-operator") {
+                    when { expression { return params.UPGRADE_VERRAZZANO == true } }
                     steps {
                         upgradePlatformOperator()
                     }
                 }
                 stage("upgrade-verrazzano") {
+                    when { expression { return params.UPGRADE_VERRAZZANO == true } }
                     steps {
                         upgradeVerrazzano()
                     }
@@ -437,22 +441,11 @@ pipeline {
         }
 
         stage('Verify Upgrade') {
+            when { expression { return params.UPGRADE_VERRAZZANO == true } }
             // Rerun some stages to verify the upgrade
-            parallel {
-                stage ('Verify Register') {
-                    steps {
-                        verifyRegisterManagedClusters()
-                    }
-                }
-                stage ('Verify Managed Cluster Permissions') {
-                    steps {
-                        verifyManagedClusterPermissions()
-                    }
-                }
-                stage ('Verify Metrics') {
-                    steps {
-                        runGinkgoRandomize('metrics/syscomponents')
-                    }
+            steps {
+                script {
+                    parallel verifyUpgrade()
                 }
             }
             post {
@@ -466,12 +459,23 @@ pipeline {
 
         stage ('Verify Install') {
             stages {
+                stage("verify-fluentd-update") {
+                    steps {
+                        runGinkgoAdmin('update/fluentdextes')
+                    }
+                }
+                stage("verify-cert-manager-update") {
+                    steps {
+                        script {
+                            parallel verifyCertManagerUpdate()
+                        }
+                    }
+                }
                 stage('verify-install') {
                     steps {
                         runGinkgoRandomize('verify-install')
                     }
                 }
-
                 stage ('multicluster/verify-install') {
                     steps {
                         runGinkgoRandomize('multicluster/verify-install')
@@ -481,28 +485,9 @@ pipeline {
         }
 
         stage ('Verify Infra') {
-            // NOTE: The stages are executed in parallel, however the tests themselves are executed against
-            //       each cluster in sequence. If possible, we should parallelize that as well.
-            parallel {
-                stage('verify-scripts') {
-                    steps {
-                        runGinkgoRandomize('scripts')
-                    }
-                }
-                stage('verify-infra restapi') {
-                    steps {
-                        runGinkgoRandomize('verify-infra/restapi')
-                    }
-                }
-                stage('verify-infra oam') {
-                    steps {
-                        runGinkgoRandomize('verify-infra/oam')
-                    }
-                }
-                stage('verify-infra vmi') {
-                    steps {
-                        runGinkgoRandomize('verify-infra/vmi')
-                    }
+            steps {
+                script {
+                    parallel verifyInfra()
                 }
             }
             post {
@@ -516,33 +501,9 @@ pipeline {
         stage('Acceptance Tests') {
             stages {
                 stage ('Example apps') {
-                    parallel {
-                        stage ('Examples Helidon') {
-                            steps {
-                                runGinkgo("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload")
-                            }
-                        }
-                        stage ('Examples Helidon Deprecated') {
-                            steps {
-                                runGinkgo("multicluster/examples/helidon-deprecated", "${TEST_DUMP_ROOT}/helidon-deprecated")
-                            }
-                        }
-                        stage ('Delete Deployed App NS') {
-                            steps {
-                                script {
-                                    runHelidonNsOpsTest()
-                                }
-                            }
-                        }
-                        stage ('WebLogic Workload') {
-                            steps {
-                                runGinkgo("multicluster/workloads/mcweblogic", "${TEST_DUMP_ROOT}/weblogic-workload")
-                            }
-                        }
-                        stage ('Coherence Workload') {
-                            steps {
-                                runGinkgo("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload")
-                            }
+                    steps {
+                        script {
+                            parallel verifyExamples()
                         }
                     }
                 }
@@ -552,7 +513,7 @@ pipeline {
                     }
                     post {
                         always {
-                            sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_screenshots.sh"
+                            sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
                         }
                     }
                 }
@@ -624,7 +585,7 @@ pipeline {
             sh """
                 curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
             """
-            archiveArtifacts artifacts: '**/build-console-output.log,**/Screenshot*.png', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/build-console-output.log,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
             // Ignore failures in any of the following actions so that the "always" post step that cleans up clusters is executed
             sh """
                 curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip || true
@@ -695,28 +656,6 @@ pipeline {
                         """
                     }
                 }
-
-                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                if (env.TEST_ENV == "KIND") {
-                    for(int count=1; count<=clusterCount; count++) {
-                        sh """
-                            if [ "${env.TEST_ENV}" == "KIND" ]
-                            then
-                                kind delete cluster --name ${CLUSTER_NAME_PREFIX}-$count
-                            fi
-                        """
-                    }
-                } else {
-                    sh """
-                        mkdir -p ${KUBECONFIG_DIR}
-                        if [ "${TEST_ENV}" == "ocidns_oke" ]; then
-                          cd ${GO_REPO_PATH}/verrazzano
-                          ./tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
-                        fi
-                        cd ${TEST_SCRIPTS_DIR}
-                        TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./delete_oke_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}" || true
-                    """
-                }
                 sh """
                     if [ -f ${POST_DUMP_FAILED_FILE} ]; then
                         echo "Failures seen during dumping of artifacts, treat post as failed"
@@ -726,9 +665,43 @@ pipeline {
             }
         }
         cleanup {
+            // Delete clusters as the very first thing in cleanup to reclaim cluster resources especially OKE resources
+            deleteClusters()
             metricBuildDuration()
             emitJobMetrics()
             deleteDir()
+        }
+    }
+}
+
+def deleteOkeClusters() {
+    script {
+        sh """
+            mkdir -p ${KUBECONFIG_DIR}
+            if [ "${TEST_ENV}" == "ocidns_oke" ]; then
+              cd ${GO_REPO_PATH}/verrazzano
+              ./tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
+            fi
+            cd ${TEST_SCRIPTS_DIR}
+            TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./delete_oke_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}" || true
+        """
+    }
+}
+
+def deleteClusters() {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        if (env.TEST_ENV == "KIND") {
+            for(int count=1; count<=clusterCount; count++) {
+                sh """
+                    if [ "${env.TEST_ENV}" == "KIND" ]
+                    then
+                        kind delete cluster --name ${CLUSTER_NAME_PREFIX}-$count
+                    fi
+                """
+            }
+        } else {
+            deleteOkeClusters()
         }
     }
 }
@@ -786,7 +759,7 @@ def getVerrazzanoOperatorYaml() {
         echo "Platform Operator Configuration"
         cd ${GO_REPO_PATH}/verrazzano
         if [ "NONE" == "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
-            if [ "true" == "${params.EXTERNAL_ELASTICSEARCH}" ]; then
+            if [ "true" == "${params.EXTERNAL_ELASTICSEARCH}" ] || [ "false" == "${params.UPGRADE_VERRAZZANO}" ] ; then
                 echo "Using the latest branch operator.yaml from object storage because external ES is not supported in versions prior to v1.1"
                 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                 cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
@@ -917,7 +890,7 @@ def upgradeVerrazzano() {
                 cat ${v8oUpgradeFile}
                 kubectl apply -f ${v8oUpgradeFile}
                 # wait for the upgrade to complete
-                kubectl wait --timeout=25m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                kubectl wait --timeout=30m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
                 # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
                 kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
@@ -1086,6 +1059,16 @@ def runGinkgoRandomizeAdmin(testSuitePath) {
         export CLUSTER_NAME="admin"
         cd ${GO_REPO_PATH}/verrazzano/tests/e2e
         ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+    """
+}
+
+// Run a test suite against just the admin cluster
+def runGinkgoAdmin(testSuitePath) {
+    sh """
+        export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+        export CLUSTER_NAME="admin"
+        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+        ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
     """
 }
 
@@ -1532,4 +1515,68 @@ def emitJobMetrics() {
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
     env.TIME_WAITING = startTimeInMillis-timeInMillis
     runGinkgoRandomizeAdmin('jobmetrics')
+}
+
+def verifyUpgrade() {
+    return [
+        "Verify Register": {
+            verifyRegisterManagedClusters()
+        },
+        "Verify Managed Cluster Permissions": {
+            verifyManagedClusterPermissions()
+        },
+        "Verify Metrics": {
+            runGinkgoRandomize('metrics/syscomponents')
+        },
+    ]
+}
+
+def verifyCertManagerUpdate() {
+    return [
+        "verify-admin-cluster-cert-manager-update": {
+            runGinkgoAdmin('update/certac')
+        },
+        "verify-managed-cluster-cert-manager-update": {
+            runGinkgoAdmin('update/certmc')
+        },
+    ]
+}
+
+// NOTE: The stages are executed in parallel, however the tests themselves are executed against
+//       each cluster in sequence. If possible, we should parallelize that as well.
+def verifyInfra() {
+    return [
+        "verify-scripts": {
+            runGinkgoRandomize('scripts')
+        },
+        "verify-infra restapi": {
+            runGinkgoRandomize('verify-infra/restapi')
+        },
+        "verify-infra oam": {
+            runGinkgoRandomize('verify-infra/oam')
+        },
+        "verify-infra vmi": {
+            runGinkgoRandomize('verify-infra/vmi')
+        },
+    ]
+}
+
+def verifyExamples() {
+    return [
+        "Examples Helidon": {
+            runGinkgo("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload")
+        },
+        "Examples Helidon Deprecated": {
+            runGinkgo("multicluster/examples/helidon-deprecated", "${TEST_DUMP_ROOT}/helidon-deprecated")
+        },
+        "Delete Deployed App NS": {
+            runHelidonNsOpsTest()
+        },
+        "WebLogic Workload": {
+            runGinkgo("multicluster/workloads/mcweblogic", "${TEST_DUMP_ROOT}/weblogic-workload")
+        },
+        "Coherence Workload": {
+            runGinkgo("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload")
+        },
+    ]
 }

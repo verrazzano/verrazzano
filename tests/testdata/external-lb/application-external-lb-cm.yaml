@@ -1,0 +1,48 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: application-external-lb-cm
+  namespace: external-lb
+  labels:
+    app: application-external-lb
+data:
+  nginx.conf: |
+    error_log  /var/log/nginx/error.log info;
+    pid        logs/nginx.pid;
+
+    events {
+        worker_connections  1024;
+    }
+
+    stream {
+        upstream istio_ingress {
+           least_conn;
+{{.ServerList}}
+        }
+
+        server {
+           listen       8777;
+           proxy_pass istio_ingress;
+        }
+    }
+  startup.sh: |
+    #!/bin/bash
+    startupDir=$(dirname $0)
+    cd $startupDir
+    cp $startupDir/nginx.conf /etc/nginx/nginx.conf
+
+    mkdir -p /etc/nginx/logs
+
+    /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx -t
+    /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx
+
+    while [ $? -ne 0 ]; do
+      sleep 20
+      echo "retry nginx startup ..."
+      /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx
+    done
+
+    tail -f /var/log/nginx/error.log

@@ -4,10 +4,12 @@
 package operator
 
 import (
+	"fmt"
 	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -39,10 +41,10 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall: true,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0].name",
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-values.yaml"),
-			Dependencies:            []string{},
+			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-operator-values.yaml"),
+			Dependencies:            []string{certmanager.ComponentName},
 			AppendOverridesFunc:     AppendOverrides,
-			GetHelmValueOverrides:   GetHelmOverrides,
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
@@ -52,7 +54,7 @@ func NewComponent() spi.Component {
 func (c prometheusComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	comp := effectiveCR.Spec.Components.PrometheusOperator
 	if comp == nil || comp.Enabled == nil {
-		return false
+		return true
 	}
 	return *comp.Enabled
 }
@@ -65,23 +67,53 @@ func (c prometheusComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
+// MonitorOverrides checks whether monitoring is enabled for install overrides sources
+func (c prometheusComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.PrometheusOperator == nil {
+		return false
+	}
+	if ctx.EffectiveCR().Spec.Components.PrometheusOperator.MonitorChanges != nil {
+		return *ctx.EffectiveCR().Spec.Components.PrometheusOperator.MonitorChanges
+	}
+	return true
+}
+
 // PreInstall updates resources necessary for the Prometheus Operator Component installation
 func (c prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preInstall(ctx)
 }
 
-// ValidateInstall verifies the installation of the Verrazzano object
-func (c prometheusComponent) ValidateInstall(effectiveCR *vzapi.Verrazzano) error {
-	if effectiveCR.Spec.Components.PrometheusOperator != nil {
-		return vzapi.ValidateHelmValueOverrides(effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides)
+// PostInstall applies monitor resources for Verrazzano system components
+func (c prometheusComponent) PostInstall(ctx spi.ComponentContext) error {
+	if err := applySystemMonitors(ctx); err != nil {
+		return err
 	}
-	return nil
+	if err := updateApplicationAuthorizationPolicies(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PostInstall(ctx)
+}
+
+// PostUpgrade applies monitor resources for Verrazzano system components
+func (c prometheusComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	if err := applySystemMonitors(ctx); err != nil {
+		return err
+	}
+	if err := updateApplicationAuthorizationPolicies(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PostUpgrade(ctx)
+}
+
+// ValidateInstall verifies the installation of the Verrazzano object
+func (c prometheusComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return c.validatePrometheusOperator(vz)
 }
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
-func (c prometheusComponent) ValidateUpgrade(effectiveCR *vzapi.Verrazzano) error {
-	if effectiveCR.Spec.Components.PrometheusOperator != nil {
-		return vzapi.ValidateHelmValueOverrides(effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides)
+func (c prometheusComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	return nil
+	return c.validatePrometheusOperator(new)
 }

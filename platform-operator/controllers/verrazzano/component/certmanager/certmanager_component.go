@@ -53,6 +53,7 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:     AppendOverrides,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_0_0,
 			Dependencies:            []string{},
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
@@ -79,7 +80,7 @@ func (c certManagerComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.V
 	if _, err := validateConfiguration(new); err != nil {
 		return err
 	}
-	return nil
+	return c.HelmComponent.ValidateUpdate(old, new)
 }
 
 // ValidateInstall checks if the specified new Verrazzano CR is valid for this component to be installed
@@ -89,7 +90,7 @@ func (c certManagerComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 		_, err := validateConfiguration(vz)
 		return err
 	}
-	return nil
+	return c.HelmComponent.ValidateInstall(vz)
 }
 
 // PreInstall runs before cert-manager components are installed
@@ -184,4 +185,15 @@ func (c certManagerComponent) createOrUpdateClusterIssuer(compContext spi.Compon
 		return err
 	}
 	return nil
+}
+
+// MonitorOverrides checks whether monitoring of install overrides is enabled or not
+func (c certManagerComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.CertManager != nil {
+		if ctx.EffectiveCR().Spec.Components.CertManager.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.CertManager.MonitorChanges
+		}
+		return true
+	}
+	return false
 }

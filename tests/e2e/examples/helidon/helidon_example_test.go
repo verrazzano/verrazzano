@@ -5,11 +5,12 @@ package helidon
 
 import (
 	"fmt"
-	"github.com/hashicorp/go-retryablehttp"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/go-retryablehttp"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
@@ -27,7 +28,7 @@ const (
 	shortWaitTimeout         = 5 * time.Minute
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
-	skipVerifications	     = "Skip Verifications"
+	skipVerifications        = "Skip Verifications"
 )
 
 var (
@@ -42,11 +43,12 @@ var _ = t.BeforeSuite(func() {
 		start := time.Now()
 		pkg.DeployHelloHelidonApplication(namespace, "", istioInjection)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
+
+		Eventually(func() bool {
+			return pkg.ContainerImagePullWait(namespace, expectedPodsHelloHelidon)
+		}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	}
 
-	Eventually(func() bool {
-		return pkg.ContainerImagePullWait(namespace, expectedPodsHelloHelidon)
-	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	// Verify hello-helidon-deployment pod is running
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig are created
@@ -187,31 +189,41 @@ func helloHelidonPodsRunning() bool {
 func appEndpointAccessible(url string, hostname string) bool {
 	req, err := retryablehttp.NewRequest("GET", url, nil)
 	if err != nil {
-		t.Logs.Errorf("Unexpected error=%v", err)
+		t.Logs.Errorf("Unexpected error while creating new request=%v", err)
 		return false
 	}
 
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		t.Logs.Errorf("Unexpected error=%v", err)
+		t.Logs.Errorf("Unexpected error while getting kubeconfig location=%v", err)
 		return false
 	}
 
 	httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
-		t.Logs.Errorf("Unexpected error=%v", err)
+		t.Logs.Errorf("Unexpected error while getting new httpClient=%v", err)
 		return false
 	}
 	req.Host = hostname
+	req.Close = true
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		t.Logs.Errorf("Unexpected error=%v", err)
+		t.Logs.Errorf("Unexpected error while making http request=%v", err)
+		bodyRaw, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Logs.Errorf("Unexpected error while marshallling error response=%v", err)
+			return false
+		}
+
+		t.Logs.Errorf("Error Response=%v", string(bodyRaw))
+		resp.Body.Close()
 		return false
 	}
+
 	bodyRaw, err := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
-		t.Logs.Errorf("Unexpected error=%v", err)
+		t.Logs.Errorf("Unexpected error marshallling response=%v", err)
 		return false
 	}
 	if resp.StatusCode != http.StatusOK {

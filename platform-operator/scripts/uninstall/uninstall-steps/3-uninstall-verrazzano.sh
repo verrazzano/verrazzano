@@ -84,6 +84,8 @@ function delete_oam_operator {
   # Delete the additional cluster roles we created during install
   log "Deleting additional OAM cluster roles"
   kubectl delete clusterrole oam-kubernetes-runtime-pvc --ignore-not-found
+  kubectl delete clusterrole oam-kubernetes-runtime-istio --ignore-not-found
+  kubectl delete clusterrole oam-kubernetes-runtime-certificate --ignore-not-found
 }
 
 function delete_application_operator {
@@ -212,6 +214,16 @@ function delete_jaeger_operator {
   rm -f jaeger.yaml
 }
 
+function delete_verrazzano_console {
+  log "Uninstall the Verrazzano Console"
+  if helm status verrazzano-console --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
+    if ! helm uninstall verrazzano-console --namespace "${VERRAZZANO_NS}" ; then
+      error "Failed to uninstall the Verrazzano Console."
+    fi
+  fi
+}
+
+action "Deleting Verrazzano Console" delete_verrazzano_console || exit 1
 action "Deleting Prometheus Pushgateway " delete_prometheus_pushgateway || exit 1
 action "Deleting Jaeger operator " delete_jaeger_operator || exit 1
 action "Deleting Prometheus adapter " delete_prometheus_adapter || exit 1

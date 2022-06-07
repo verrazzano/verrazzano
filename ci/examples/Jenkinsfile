@@ -8,6 +8,7 @@ def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 pipeline {
     options {
         skipDefaultCheckout true
+        copyArtifactPermission('*');
         timestamps ()
     }
 
@@ -383,6 +384,9 @@ pipeline {
                 ${WORKSPACE}/tests/e2e/config/scripts/get_examples_image.sh ${WORKSPACE}/examples/springboot-app/springboot-comp.yaml ${IMG_LIST_FILE}
                 ${WORKSPACE}/tests/e2e/config/scripts/get_examples_image.sh ${WORKSPACE}/examples/hello-helidon/hello-helidon-comp.yaml ${IMG_LIST_FILE}
                 ${WORKSPACE}/tests/e2e/config/scripts/get_examples_image.sh ${WORKSPACE}/examples/bobs-books/bobs-books-comp.yaml ${IMG_LIST_FILE}
+
+                # Rename example-bobs-books-order-manager to example-bobs-bookstore-order-manager to match existing image repository
+                sed -i 's/example-bobs-books-order-manager/example-bobs-bookstore-order-manager/' ${IMG_LIST_FILE}
 
                 echo "sorting the images file prior to archiving"
                 if [ -f ${IMG_LIST_FILE} ];

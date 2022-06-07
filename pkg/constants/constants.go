@@ -41,6 +41,9 @@ const StatefulSetWorkloadKind = "StatefulSet"
 // DaemonSetWorkloadKind - the DaemonSet workload resource kind
 const DaemonSetWorkloadKind = "DaemonSet"
 
+// VerrazzanoInstallNamespace is the namespace for installing the verrazzano-platform-operator
+const VerrazzanoInstallNamespace = "verrazzano-install"
+
 // VerrazzanoSystemNamespace is the system namespace for Verrazzano
 const VerrazzanoSystemNamespace = "verrazzano-system"
 
@@ -113,3 +116,6 @@ const TestPrometheusScrapeJob = "test_job"
 
 // Default Opensearch URL
 const DefaultOpensearchURL = "http://verrazzano-authproxy-elasticsearch:8775"
+
+// VerrazzanoManagedLabelKey is a constant for a Kubernetes label that is applied to Verrazzano application namespaces
+const VerrazzanoManagedLabelKey = "verrazzano-managed"

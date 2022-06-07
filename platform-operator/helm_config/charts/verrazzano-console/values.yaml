@@ -1,0 +1,18 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+name: verrazzano-console
+imageName:
+imageTag:
+
+global:
+  imagePullSecrets: []
+
+replicas: 1
+# NOTE: The AuthProxy deployment runs the nginx-ingress-controller image.  The nginx-ingress-controller image
+# is obtained from the bill of materials file (verrazzano-bom.json).
+pullPolicy: IfNotPresent
+
+config:
+  envName:
+  dnsSuffix:

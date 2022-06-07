@@ -92,12 +92,11 @@ func stopDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, appCon
 	}
 
 	// Check if any pods contain the old Istio proxy image
-	found, oldImage := doesPodContainOldIstioSidecar(podList, istioProxyImage)
+	found := DoesPodContainOldIstioSidecar(log, podList, "OAM WebLogic Domain", wlName, istioProxyImage)
 	if !found {
 		return nil
 	}
 
-	log.Oncef("Restarting OAM WebLogic Domain %s which has a pod with an old Istio proxy %s", wlName, oldImage)
 	return stopDomain(client, appConfig.Namespace, wlName)
 }
 
@@ -203,12 +202,10 @@ func restartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVer
 		}
 
 		// Check if any pods contain the old Istio proxy image
-		found, oldImage := doesPodContainOldIstioSidecar(podList, istioProxyImage)
+		found := DoesPodContainOldIstioSidecar(log, podList, "OAM Application", appConfig.Name, istioProxyImage)
 		if !found {
 			continue
 		}
-
-		log.Oncef("Restarting OAM Application %s which has a pod with an old Istio proxy sidecar %s", appConfig.Name, oldImage)
 
 		// Set the update the restart version
 		var ac oam.ApplicationConfiguration

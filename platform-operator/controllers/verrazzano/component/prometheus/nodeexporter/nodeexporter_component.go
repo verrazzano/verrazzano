@@ -47,6 +47,7 @@ func NewComponent() spi.Component {
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), valuesFile),
 			Dependencies:            []string{},
 			AppendOverridesFunc:     AppendOverrides,
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
@@ -74,7 +75,7 @@ func (c prometheusNodeExporterComponent) PreInstall(ctx spi.ComponentContext) er
 	return preInstall(ctx)
 }
 
-// AppendOverrides appends Helm value overrides for the Prometheus Node Exporter component's Helm chart
+// AppendOverrides appends install overrides for the Prometheus Node Exporter component's Helm chart
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Only enable the node exporter's ServiceMonitor if Prometheus Operator is enabled in this install
 	ctx.Log().Debug("Appending service monitor override for the Prometheus Node Exporter component")
@@ -84,4 +85,15 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		})
 	}
 	return kvs, nil
+}
+
+// MonitorOverrides checks whether monitoring of install overrides is enabled or not
+func (c prometheusNodeExporterComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.PrometheusNodeExporter != nil {
+		if ctx.EffectiveCR().Spec.Components.PrometheusNodeExporter.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.PrometheusNodeExporter.MonitorChanges
+		}
+		return true
+	}
+	return false
 }

@@ -230,7 +230,7 @@ func verifyKeycloakRealmPasswordPolicyIsCorrect(realm string) bool {
 	userID := path.Base(userURL)
 	defer func() {
 		err = kc.DeleteUser(realm, userID)
-		if err == nil {
+		if err != nil {
 			t.Logs.Info(fmt.Printf("Failed to delete user %s/%s: %v\n", realm, userID, err))
 		}
 	}()

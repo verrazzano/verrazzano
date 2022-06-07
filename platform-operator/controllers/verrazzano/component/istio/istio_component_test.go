@@ -39,6 +39,11 @@ import (
 type fakeRunner struct {
 }
 
+var (
+	falseValue = false
+	trueValue  = true
+)
+
 const profilesRelativePath = "../../../../manifests/profiles"
 
 var testExternalIP = ip.RandomIP()
@@ -241,7 +246,7 @@ func fakeUpgrade(log vzlog.VerrazzanoLogger, imageOverridesString string, overri
 	if overridesFiles[0] != "test-values-file.yaml" {
 		return []byte("error"), []byte(""), fmt.Errorf("invalid values file")
 	}
-	if !strings.Contains(overridesFiles[1], "values-") || !strings.Contains(overridesFiles[1], ".yaml") {
+	if !strings.Contains(overridesFiles[1], "istio-") || !strings.Contains(overridesFiles[1], ".yaml") {
 		return []byte("error"), []byte(""), fmt.Errorf("incorrect install args overrides file")
 	}
 	installArgsFromFile, err := ioutil.ReadFile(overridesFiles[1])
@@ -784,4 +789,27 @@ func Test_istioComponent_ValidateInstall(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestValidateUpdate tests the istio ValidateUpdate function
+func TestValidateUpdate(t *testing.T) {
+	oldVZ := vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Istio: &vzapi.IstioComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	newVZ := vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Istio: &vzapi.IstioComponent{
+					Enabled: &falseValue,
+				},
+			},
+		},
+	}
+	assert.Error(t, NewComponent().ValidateUpdate(&oldVZ, &newVZ))
 }

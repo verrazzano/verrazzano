@@ -866,6 +866,7 @@ data:
       @id out_systemd
       @log_level info
       log_es_400_reason true
+      suppress_type_name true
 
       data_stream_name verrazzano-system
       data_stream_template_name verrazzano-data-stream
@@ -906,6 +907,7 @@ data:
       @id out_all
       @log_level info
       log_es_400_reason true
+      suppress_type_name true
 
       data_stream_name verrazzano-application-${$.kubernetes.namespace_name}
       data_stream_template_name verrazzano-data-stream

@@ -28,6 +28,10 @@ kubernetes_config:
 external_services:
   prometheus:
     url: http://vmi-system-prometheus:9090
+  grafana:
+    enabled: false
+  tracing:
+    enabled: false
 
 server:
   web_root: ""

@@ -199,7 +199,6 @@ function dump_extra_details_per_namespace() {
         kubectl --insecure-skip-tls-verify get Coherence -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/coherence.json || true
         kubectl --insecure-skip-tls-verify get gateway -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/gateways.json || true
         kubectl --insecure-skip-tls-verify get virtualservice -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/virtualservices.json || true
-        kubectl --insecure-skip-tls-verify describe verrazzano -n $NAMESPACE 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/verrazzano_resources.json || true
         kubectl --insecure-skip-tls-verify get rolebindings -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/role-bindings.json || true
         kubectl --insecure-skip-tls-verify get clusterrolebindings -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/cluster-role-bindings.json || true
         kubectl --insecure-skip-tls-verify get clusterroles -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/cluster-roles.json || true
@@ -237,6 +236,10 @@ function full_k8s_cluster_dump() {
   echo "Full capture of kubernetes cluster"
   # Get general cluster-info dump, this contains quite a bit but not everything, it also sets up the directory structure
   kubectl --insecure-skip-tls-verify cluster-info dump --all-namespaces --output-directory=$CAPTURE_DIR/cluster-dump >/dev/null 2>&1
+
+  # Get the Verrazzano resource at the root level. The Verrazzano custom resource can define the namespace, so use all the namespaces in the command
+  kubectl --insecure-skip-tls-verify get verrazzano --all-namespaces -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/verrazzano_resources.json || true
+
   if [ $? -eq 0 ]; then
     kubectl --insecure-skip-tls-verify version -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/kubectl-version.json || true
     kubectl --insecure-skip-tls-verify get crd -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/crd.json || true
