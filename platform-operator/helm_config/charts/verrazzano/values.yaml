@@ -43,6 +43,9 @@ nodeExporter:
 monitoringOperator:
   name: verrazzano-monitoring-operator
 
+logging:
+  name: fluentd
+
 keycloak:
   enabled: true
   
