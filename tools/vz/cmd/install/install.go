@@ -5,15 +5,17 @@ package install
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"fmt"
-	"os/exec"
+	"io/ioutil"
+	"net/http"
+	"os"
 	"regexp"
 	"time"
 
 	"github.com/spf13/cobra"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
@@ -24,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -89,6 +92,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			return err
 		}
 	}
+	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Installing Verrazzano version %s\n", version))
 
 	// Get the timeout value for the install command
 	timeout, err := cmdhelpers.GetWaitTimeout(cmd)
@@ -108,14 +112,14 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		return err
 	}
 
-	// Apply the Verrazzano operator.yaml.
-	err = applyPlatformOperatorYaml(vzHelper, version)
+	// Get the controller runtime client
+	client, err := vzHelper.GetClient(cmd)
 	if err != nil {
 		return err
 	}
 
-	// Get the controller runtime client
-	client, err := vzHelper.GetClient(cmd)
+	// Apply the Verrazzano operator.yaml.
+	err = applyPlatformOperatorYaml(client, vzHelper, version)
 	if err != nil {
 		return err
 	}
@@ -147,19 +151,32 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 }
 
 // applyPlatformOperatorYaml applies a given version of the platform operator yaml file
-func applyPlatformOperatorYaml(vzHelper helpers.VZHelper, version string) error {
-	// Apply the Verrazzano operator.yaml. A valid version must be specified for this to succeed.
-	kubectl := exec.Command("kubectl", "apply", "-f", fmt.Sprintf("https://github.com/verrazzano/verrazzano/releases/download/%s/operator.yaml", version)) //nolint:gosec //#nosec G204
-	var stdout bytes.Buffer
-	kubectl.Stdout = &stdout
-	var stderr bytes.Buffer
-	kubectl.Stderr = &stderr
-	cmdErr := kubectl.Run()
-	if cmdErr != nil {
-		return fmt.Errorf("Failed to download operator.yaml: %s", stderr.String())
+func applyPlatformOperatorYaml(client client.Client, vzHelper helpers.VZHelper, version string) error {
+	// Get the Verrazzano operator.yaml - use a string constant for the URL to avoid security warnings
+	resp, err := http.Get(fmt.Sprintf(constants.VerrazzanoOperatorURL, version))
+	if err != nil {
+		return fmt.Errorf("Failed to access the Verrazzano operator.yaml file: %s", err.Error())
 	}
-	fmt.Fprintf(vzHelper.GetOutputStream(), stdout.String())
 
+	// Store response in a temporary file
+	tmpFile, err := ioutil.TempFile("", "vz")
+	if err != nil {
+		return fmt.Errorf("Failed to install the Verrazzano operator.yaml file: %s", err.Error())
+	}
+	defer os.Remove(tmpFile.Name())
+	_, err = tmpFile.ReadFrom(resp.Body)
+	if err != nil {
+		return fmt.Errorf("Failed to install the Verrazzano operator.yaml file: %s", err.Error())
+	}
+
+	// Apply the Verrazzano operator.yaml. A valid version must be specified for this to succeed.
+	url := fmt.Sprintf(constants.VerrazzanoOperatorURL, version)
+	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Applying the file %s\n", url))
+	yamlApplier := k8sutil.NewYAMLApplier(client, "")
+	err = yamlApplier.ApplyF(tmpFile.Name())
+	if err != nil {
+		return fmt.Errorf("Failed to apply the Verrazzano operator.yaml file: %s", err.Error())
+	}
 	return nil
 }
 
@@ -191,6 +208,10 @@ func waitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper) (s
 	pod := &corev1.Pod{}
 	seconds := 0
 	for {
+		time.Sleep(verrazzanoPlatformOperatorWait * time.Second)
+		seconds += verrazzanoPlatformOperatorWait
+		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("\rWaiting for verrazzano-platform-operator to be ready before starting install - %d seconds", seconds))
+
 		err := client.Get(context.TODO(), types.NamespacedName{Namespace: podList.Items[0].Namespace, Name: podList.Items[0].Name}, pod)
 		if err != nil {
 			return "", err
@@ -214,10 +235,6 @@ func waitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper) (s
 			fmt.Fprintf(vzHelper.GetOutputStream(), "\n")
 			break
 		}
-
-		time.Sleep(verrazzanoPlatformOperatorWait * time.Second)
-		seconds += verrazzanoPlatformOperatorWait
-		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("\rWaiting for verrazzano-platform-operator to be ready before starting install - %d seconds", seconds))
 	}
 	return pod.Name, nil
 }
