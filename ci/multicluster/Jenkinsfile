@@ -443,6 +443,9 @@ pipeline {
             post {
                 failure {
                     script {
+                        sh """
+                            kubectl get vz -o yaml
+                        """
                         dumpK8sCluster("${WORKSPACE}/multicluster-upgrade-cluster-dump")
                     }
                 }
