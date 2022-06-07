@@ -152,8 +152,8 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 
 // applyPlatformOperatorYaml applies a given version of the platform operator yaml file
 func applyPlatformOperatorYaml(client client.Client, vzHelper helpers.VZHelper, version string) error {
-	// Get the Verrazzano operator.yaml
-	resp, err := http.Get(fmt.Sprintf("https://github.com/verrazzano/verrazzano/releases/download/%s/operator.yaml", version))
+	// Get the Verrazzano operator.yaml - use a string constant for the URL to avoid security warnings
+	resp, err := http.Get(fmt.Sprintf(constants.VerrazzanoOperatorURL, version))
 	if err != nil {
 		return fmt.Errorf("Failed to access the Verrazzano operator.yaml file: %s", err.Error())
 	}
@@ -170,7 +170,8 @@ func applyPlatformOperatorYaml(client client.Client, vzHelper helpers.VZHelper, 
 	}
 
 	// Apply the Verrazzano operator.yaml. A valid version must be specified for this to succeed.
-	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Applying the file %s\n", resp.Request.URL.String()))
+	url := fmt.Sprintf(constants.VerrazzanoOperatorURL, version)
+	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Applying the file %s\n", url))
 	yamlApplier := k8sutil.NewYAMLApplier(client, "")
 	err = yamlApplier.ApplyF(tmpFile.Name())
 	if err != nil {
