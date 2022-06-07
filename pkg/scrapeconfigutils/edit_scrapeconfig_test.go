@@ -65,8 +65,12 @@ func TestEditScrapeJob(t *testing.T) {
 			}
 
 			scrapejobs, err := ParseScrapeConfig(string(scrapejobsBytes))
+			if err != nil {
+				t.Errorf("Failed to parse the scrape jobs from test data: %v", err)
+			}
 			origNumScrapeJobs := len(scrapejobs.Children())
 			updatedScrapeJobs, err := EditScrapeJob(scrapejobs, tt.editJobName, newScrapeConfig)
+			assert.Nil(t, err)
 			foundJobIndex := findScrapeJob(updatedScrapeJobs, tt.editJobName)
 			if tt.expectAdd {
 				// should have been added as a new job
