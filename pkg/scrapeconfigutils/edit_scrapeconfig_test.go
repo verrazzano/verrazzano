@@ -71,17 +71,17 @@ func TestEditScrapeJob(t *testing.T) {
 			} else if tt.expectRemove {
 				// should have been removed
 				assert.Equal(t, origNumScrapeJobs-1, len(updatedScrapeJobs.Children()))
+				assert.Less(t, foundJobIndex, 0)
+				// nothing more to assert for remove case
+				return
 			} else {
 				// should have edited an existing job
 				assert.Equal(t, origNumScrapeJobs, len(updatedScrapeJobs.Children()))
 			}
-			if tt.expectRemove {
-				assert.Less(t, foundJobIndex, 0)
-			} else {
-				// scrape config job should exist and be equal to the updated value
-				assert.GreaterOrEqual(t, foundJobIndex, 0)
-				assert.Equal(t, newScrapeConfig, updatedScrapeJobs.Children()[foundJobIndex])
-			}
+			// for cases other than removal, scrape config job should exist and be equal to the updated value
+			assert.GreaterOrEqual(t, foundJobIndex, 0)
+			assert.Equal(t, newScrapeConfig, updatedScrapeJobs.Children()[foundJobIndex])
+
 		})
 	}
 }
