@@ -21,9 +21,6 @@ import (
 	"testing"
 )
 
-var fakeExecScenarioNames = []string{}
-var fakeExecScenarioIndex = 0
-
 func fakeExecCommand(command string, args ...string) *exec.Cmd {
 	cs := []string{"-test.run=TestHelperProcess", "--", command}
 	cs = append(cs, args...)
