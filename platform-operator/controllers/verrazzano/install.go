@@ -51,20 +51,24 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 			continue
 		}
 		if checkConfigUpdated(spiCtx, componentStatus, compName) && comp.IsEnabled(compContext.EffectiveCR()) {
-			oldState := componentStatus.State
-			oldGen := componentStatus.ReconcilingGeneration
-			componentStatus.ReconcilingGeneration = 0
-			if err := r.updateComponentStatus(compContext, "PreInstall started", vzapi.CondPreInstall); err != nil {
-				return ctrl.Result{Requeue: true}, err
-			}
-			compLog.Oncef("CR.generation: %v reset component %s state: %v generation: %v to state: %v generation: %v ",
-				spiCtx.ActualCR().Generation, compName, oldState, oldGen, componentStatus.State, componentStatus.ReconcilingGeneration)
-			if spiCtx.ActualCR().Status.State == vzapi.VzStateReady {
-				err = r.setInstallingState(vzctx.Log, spiCtx.ActualCR())
-				compLog.Oncef("Reset Verrazzano state to %v for generation %v", spiCtx.ActualCR().Status.State, spiCtx.ActualCR().Generation)
-				if err != nil {
-					spiCtx.Log().Errorf("Failed to reset state: %v", err)
-					return newRequeueWithDelay(), err
+			if !comp.MonitorOverrides(compContext) && comp.IsEnabled(spiCtx.EffectiveCR()) {
+				compLog.Oncef("Skipping update for component %s, monitorChanges set to false", comp.Name())
+			} else {
+				oldState := componentStatus.State
+				oldGen := componentStatus.ReconcilingGeneration
+				componentStatus.ReconcilingGeneration = 0
+				if err := r.updateComponentStatus(compContext, "PreInstall started", vzapi.CondPreInstall); err != nil {
+					return ctrl.Result{Requeue: true}, err
+				}
+				compLog.Oncef("CR.generation: %v reset component %s state: %v generation: %v to state: %v generation: %v ",
+					spiCtx.ActualCR().Generation, compName, oldState, oldGen, componentStatus.State, componentStatus.ReconcilingGeneration)
+				if spiCtx.ActualCR().Status.State == vzapi.VzStateReady {
+					err = r.setInstallingState(vzctx.Log, spiCtx.ActualCR())
+					compLog.Oncef("Reset Verrazzano state to %v for generation %v", spiCtx.ActualCR().Status.State, spiCtx.ActualCR().Generation)
+					if err != nil {
+						spiCtx.Log().Errorf("Failed to reset state: %v", err)
+						return newRequeueWithDelay(), err
+					}
 				}
 			}
 		}
