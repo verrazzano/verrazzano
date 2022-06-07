@@ -48,7 +48,7 @@ vz install -f base.yaml -f custom.yaml --set profile=prod --log-format json`
 	verrazzanoPlatformOperatorWait = 1
 )
 
-var logsEnum = cmdhelpers.LogsFormatSimple
+var logsEnum = cmdhelpers.LogFormatSimple
 
 func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
@@ -91,7 +91,13 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Get the timeout value for the install command
-	timeout, err := helpers.GetWaitTimeout(cmd)
+	timeout, err := cmdhelpers.GetWaitTimeout(cmd)
+	if err != nil {
+		return err
+	}
+
+	// Get the log format value
+	logFormat, err := cmdhelpers.GetLogFormat(cmd)
 	if err != nil {
 		return err
 	}
@@ -137,7 +143,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Wait for the Verrazzano install to complete
-	return waitForInstallToComplete(client, kubeClient, vzHelper, vpoPodName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout)
+	return waitForInstallToComplete(client, kubeClient, vzHelper, vpoPodName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, logFormat)
 }
 
 // applyPlatformOperatorYaml applies a given version of the platform operator yaml file
@@ -218,7 +224,7 @@ func waitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper) (s
 
 // waitForInstallToComplete waits for the Verrazzano install to complete and shows the logs of
 // the ongoing Verrazzano install.
-func waitForInstallToComplete(client clipkg.Client, kubeClient *kubernetes.Clientset, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration) error {
+func waitForInstallToComplete(client clipkg.Client, kubeClient *kubernetes.Clientset, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration, logFormat cmdhelpers.LogFormat) error {
 	// Tail the log messages from the verrazzano-platform-operator starting at the current time.
 	sinceTime := metav1.Now()
 	rc, err := kubeClient.CoreV1().Pods(vzconstants.VerrazzanoInstallNamespace).GetLogs(vpoPodName, &corev1.PodLogOptions{
@@ -236,25 +242,29 @@ func waitForInstallToComplete(client clipkg.Client, kubeClient *kubernetes.Clien
 		sc := bufio.NewScanner(rc)
 		sc.Split(bufio.ScanLines)
 		for sc.Scan() {
-			re := regexp.MustCompile(`"level":"(.*?)","@timestamp":"(.*?)","caller":"(.*?)","message":"(.*?)",`)
-			res := re.FindAllStringSubmatch(sc.Text(), -1)
-			// res[0][2] is the timestamp
-			// res[0][1] is the level
-			// res[0][4] is the message
-			if res != nil {
-				// Print each log message in the form "timestamp level message".
-				// For example, "2022-06-03T00:05:10.042Z info Component keycloak successfully installed"
-				fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("%s %s %s\n", res[0][2], res[0][1], res[0][4]))
-
-				// Return when the Verrazzano install has completed
-				vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
-				if err != nil {
-					resChan <- err
+			if logFormat == cmdhelpers.LogFormatSimple {
+				re := regexp.MustCompile(`"level":"(.*?)","@timestamp":"(.*?)",(.*?)"message":"(.*?)",`)
+				res := re.FindAllStringSubmatch(sc.Text(), -1)
+				// res[0][2] is the timestamp
+				// res[0][1] is the level
+				// res[0][4] is the message
+				if res != nil {
+					// Print each log message in the form "timestamp level message".
+					// For example, "2022-06-03T00:05:10.042Z info Component keycloak successfully installed"
+					fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("%s %s %s\n", res[0][2], res[0][1], res[0][4]))
 				}
-				for _, condition := range vz.Status.Conditions {
-					if condition.Type == vzapi.CondInstallComplete {
-						resChan <- nil
-					}
+			} else if logFormat == cmdhelpers.LogFormatJSON {
+				fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("%s\n", sc.Text()))
+			}
+
+			// Return when the Verrazzano install has completed
+			vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
+			if err != nil {
+				resChan <- err
+			}
+			for _, condition := range vz.Status.Conditions {
+				if condition.Type == vzapi.CondInstallComplete {
+					resChan <- nil
 				}
 			}
 		}
