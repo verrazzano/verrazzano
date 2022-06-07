@@ -519,13 +519,13 @@ func validateServiceNodePortAndExternalIP(expectedSystemExternalIP, expectedAppl
 		}
 
 		// validate Ingress Host
-		err = validateKeycloakIngressHost(expectedSystemExternalIP)
+		err = validateIngressHost(expectedSystemExternalIP)
 		if err != nil {
 			return err
 		}
 
-		// validate application HOSTS
-		err = validateHelloHelidonHost(expectedApplicationExternalIP)
+		// validate application Host
+		err = validateApplicationHost(expectedApplicationExternalIP)
 		if err != nil {
 			return err
 		}
@@ -570,13 +570,13 @@ func validateServiceLoadBalancer() {
 		}
 
 		// validate Ingress Host
-		err = validateKeycloakIngressHost(nginxLBIP)
+		err = validateIngressHost(nginxLBIP)
 		if err != nil {
 			return err
 		}
 
-		// validate application HOSTS
-		err = validateHelloHelidonHost(istioLBIP)
+		// validate application Host
+		err = validateApplicationHost(istioLBIP)
 		if err != nil {
 			return err
 		}
@@ -585,7 +585,7 @@ func validateServiceLoadBalancer() {
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "expect to get LoadBalancer type and loadBalancer IP from nginx and istio services")
 }
 
-func validateKeycloakIngressHost(expectedIP string) error {
+func validateIngressHost(expectedIP string) error {
 	kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		return err
@@ -608,7 +608,7 @@ func validateKeycloakIngressHost(expectedIP string) error {
 	return nil
 }
 
-func validateHelloHelidonHost(expectedIP string) error {
+func validateApplicationHost(expectedIP string) error {
 	host, err := k8sutil.GetHostnameFromGateway("hello-helidon", "")
 	if err != nil {
 		return err
