@@ -17,6 +17,8 @@ declare -a releaseArtifacts=("operator.yaml"
                              "verrazzano-analysis-linux-amd64.tar.gz.sha256"
                              "vz-darwin-amd64.tar.gz"
                              "vz-darwin-amd64.tar.gz.sha256"
+                             "vz-darwin-arm64.tar.gz"
+                             "vz-darwin-arm64.tar.gz.sha256"
                              "vz-linux-amd64.tar.gz"
                              "vz-linux-amd64.tar.gz.sha256")
 
