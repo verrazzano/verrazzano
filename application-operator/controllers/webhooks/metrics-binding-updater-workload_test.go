@@ -270,7 +270,7 @@ func TestHandleInvalidMetricsTemplate(t *testing.T) {
 				existingMetricsBinding := vzapp.MetricsBinding{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "test",
-						Name:      "testDeployment-apps-v1-deployment",
+						Name:      generateMetricsBindingName(testDeployment.Name, testDeployment.APIVersion, testDeployment.Kind),
 					},
 				}
 				assert.NoError(t, v.Client.Create(context.TODO(), &existingMetricsBinding))
@@ -329,7 +329,7 @@ func TestHandleMetricsTemplateWorkloadNamespace(t *testing.T) {
 			if tt.metricsBindingExists {
 				existingMetricsBinding := vzapp.MetricsBinding{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "testDeployment-apps-v1-deployment",
+						Name:      generateMetricsBindingName(testDeployment.Name, testDeployment.APIVersion, testDeployment.Kind),
 						Namespace: "test",
 					},
 				}
@@ -420,7 +420,7 @@ func TestHandleMetricsTemplateSystemNamespace(t *testing.T) {
 			if tt.metricsBindingExists {
 				existingMetricsBinding := vzapp.MetricsBinding{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "testDeployment-apps-v1-deployment",
+						Name:      generateMetricsBindingName(testDeployment.Name, testDeployment.APIVersion, testDeployment.Kind),
 						Namespace: "test",
 					},
 				}
@@ -467,44 +467,78 @@ func TestHandleMetricsTemplateSystemNamespace(t *testing.T) {
 //  template found with Prometheus config map that does not exist
 // GIVEN a call to the webhook Handle function
 // WHEN the workload resource has an invalid Prometheus config map reference
-// THEN the Handle function should fail and return an error
+// THEN the Handle function should
+//    fail and return an error for a pre-VZ 1.4 app with existing metrics binding
+//    Allow the workload for an app with no existing metrics binding
+
 func TestHandleMetricsTemplateConfigMapNotFound(t *testing.T) {
-	v := newGeneratorWorkloadWebhook()
-
-	// Test data
-	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"}, nil)
-	testDeployment := appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test",
-			Namespace: "test",
-			UID:       "11",
-			Annotations: map[string]string{
-				"app.verrazzano.io/metrics": "testTemplateWorkloadNamespace",
-			},
-		},
+	tests := []struct {
+		name                      string
+		metricsBindingExists      bool
+		expectAllowed             bool
+		expectMetricsBindingError bool
+	}{
+		{"legacy app with existing MetricsBinding", true, false, true},
+		{"new app with no MetricsBinding present", false, true, false},
 	}
-	assert.NoError(t, v.Client.Create(context.TODO(), &testDeployment))
-	testTemplate := vzapp.MetricsTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "test",
-			Name:      "testTemplateWorkloadNamespace",
-		},
-		Spec: vzapp.MetricsTemplateSpec{
-			WorkloadSelector: vzapp.WorkloadSelector{},
-			PrometheusConfig: vzapp.PrometheusConfig{
-				TargetConfigMap: vzapp.TargetConfigMap{
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			v := newGeneratorWorkloadWebhook()
+
+			// Test data
+			v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"}, nil)
+			testDeployment := appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
 					Namespace: "test",
-					Name:      "testPromConfigMap",
+					UID:       "11",
+					Annotations: map[string]string{
+						"app.verrazzano.io/metrics": "testTemplateWorkloadNamespace",
+					},
 				},
-			},
-		},
-	}
-	assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Deployment",
+					APIVersion: "apps/v1",
+				},
+			}
+			assert.NoError(t, v.Client.Create(context.TODO(), &testDeployment))
 
-	req := newGeneratorWorkloadRequest(admissionv1.Create, "Deployment", testDeployment)
-	res := v.Handle(context.TODO(), req)
-	assert.False(t, res.Allowed)
-	assert.Equal(t, "configmaps \"testPromConfigMap\" not found", res.Result.Message)
+			if tt.metricsBindingExists {
+				existingMetricsBinding := vzapp.MetricsBinding{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      generateMetricsBindingName(testDeployment.Name, testDeployment.APIVersion, testDeployment.Kind),
+						Namespace: "test",
+					},
+				}
+				assert.NoError(t, v.Client.Create(context.TODO(), &existingMetricsBinding))
+			}
+
+			testTemplate := vzapp.MetricsTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "test",
+					Name:      "testTemplateWorkloadNamespace",
+				},
+				Spec: vzapp.MetricsTemplateSpec{
+					WorkloadSelector: vzapp.WorkloadSelector{},
+					PrometheusConfig: vzapp.PrometheusConfig{
+						TargetConfigMap: vzapp.TargetConfigMap{
+							Namespace: "test",
+							Name:      "testPromConfigMap",
+						},
+					},
+				},
+			}
+			assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
+
+			req := newGeneratorWorkloadRequest(admissionv1.Create, "Deployment", testDeployment)
+			res := v.Handle(context.TODO(), req)
+			assert.Equal(t, tt.expectAllowed, res.Allowed)
+			if tt.expectMetricsBindingError {
+				assert.Equal(t, "configmaps \"testPromConfigMap\" not found", res.Result.Message)
+			}
+		})
+	}
 }
 
 // TestHandleMatchWorkloadNamespace tests the handling of a workload resource with no metrics template specified
@@ -604,63 +638,95 @@ func TestHandleMatchWorkloadNamespace(t *testing.T) {
 //  but matches a template found in the verrazzano-system namespace
 // GIVEN a call to the webhook Handle function
 // WHEN the workload resource has no metrics template reference
-// THEN the Handle function should succeed and the metricsBinding is created
+// THEN the Handle function should succeed
+//    AND for a pre-VZ 1.4 app, the existing legacy MetricsBinding is updated
+//    BUT for an app with no existing MetricsBinding, no action is taken. It's up to user to create a monitor resource.
 func TestHandleMatchSystemNamespace(t *testing.T) {
-	v := newGeneratorWorkloadWebhook()
-
-	// Test data
-	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"}, nil)
-	v.createNamespace(t, "verrazzano-system", nil, nil)
-	v.createConfigMap(t, "test", "testPromConfigMap")
-	testDeployment := appsv1.Deployment{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Deployment",
-			APIVersion: "apps/v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testDeployment",
-			Namespace: "test",
-			UID:       "11",
-		},
+	tests := []struct {
+		name                       string
+		metricsBindingExists       bool
+		expectAllowed              bool
+		expectMetricsBindingUpdate bool
+	}{
+		{"legacy app with existing MetricsBinding", true, true, true},
+		{"new app with no MetricsBinding present", false, true, false},
 	}
-	assert.NoError(t, v.Client.Create(context.TODO(), &testDeployment))
-	testTemplate := vzapp.MetricsTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "verrazzano-system",
-			Name:      "testTemplateSystemNamespace",
-		},
-		Spec: vzapp.MetricsTemplateSpec{
-			WorkloadSelector: vzapp.WorkloadSelector{
-				APIGroups: []string{
-					"apps",
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			v := newGeneratorWorkloadWebhook()
+
+			// Test data
+			v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"}, nil)
+			v.createNamespace(t, "verrazzano-system", nil, nil)
+			v.createConfigMap(t, "test", "testPromConfigMap")
+			testDeployment := appsv1.Deployment{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Deployment",
+					APIVersion: "apps/v1",
 				},
-				APIVersions: []string{
-					"v1",
-				},
-				Resources: []string{
-					"deployment",
-				},
-			},
-			PrometheusConfig: vzapp.PrometheusConfig{
-				TargetConfigMap: vzapp.TargetConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "testDeployment",
 					Namespace: "test",
-					Name:      "testPromConfigMap",
+					UID:       "11",
 				},
-			},
-		},
+			}
+			assert.NoError(t, v.Client.Create(context.TODO(), &testDeployment))
+
+			if tt.metricsBindingExists {
+				existingMetricsBinding := vzapp.MetricsBinding{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      generateMetricsBindingName(testDeployment.Name, testDeployment.APIVersion, testDeployment.Kind),
+						Namespace: "test",
+					},
+				}
+				assert.NoError(t, v.Client.Create(context.TODO(), &existingMetricsBinding))
+			}
+
+			testTemplate := vzapp.MetricsTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "verrazzano-system",
+					Name:      "testTemplateSystemNamespace",
+				},
+				Spec: vzapp.MetricsTemplateSpec{
+					WorkloadSelector: vzapp.WorkloadSelector{
+						APIGroups: []string{
+							"apps",
+						},
+						APIVersions: []string{
+							"v1",
+						},
+						Resources: []string{
+							"deployment",
+						},
+					},
+					PrometheusConfig: vzapp.PrometheusConfig{
+						TargetConfigMap: vzapp.TargetConfigMap{
+							Namespace: "test",
+							Name:      "testPromConfigMap",
+						},
+					},
+				},
+			}
+			assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
+
+			req := newGeneratorWorkloadRequest(admissionv1.Create, "Deployment", testDeployment)
+			res := v.Handle(context.TODO(), req)
+			assert.Equal(t, tt.expectAllowed, res.Allowed)
+			if tt.expectMetricsBindingUpdate {
+				assert.Len(t, res.Patches, 1)
+				assert.Equal(t, "add", res.Patches[0].Operation)
+				assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
+				assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
+
+				// validate that metrics binding was updated as expected
+				v.validateMetricsBinding(t, "verrazzano-system", "testTemplateSystemNamespace")
+			} else {
+				assert.Len(t, res.Patches, 0)
+				v.validateNoMetricsBinding(t)
+			}
+		})
 	}
-	assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
-
-	req := newGeneratorWorkloadRequest(admissionv1.Create, "Deployment", testDeployment)
-	res := v.Handle(context.TODO(), req)
-	assert.True(t, res.Allowed)
-	assert.Len(t, res.Patches, 1)
-	assert.Equal(t, "add", res.Patches[0].Operation)
-	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
-	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
-
-	// validate that metrics binding was created as expected
-	v.validateMetricsBinding(t, "verrazzano-system", "testTemplateSystemNamespace")
 }
 
 // TestHandleMatchNotFound tests the handling of a workload resource with no metrics template specified
@@ -821,66 +887,95 @@ func TestHandleNoConfigMap(t *testing.T) {
 // WHEN the namespace has a metrics template reference
 // THEN the Handle function should succeed and a metricsBinding is created
 func TestHandleNamespaceAnnotation(t *testing.T) {
-	v := newGeneratorWorkloadWebhook()
-
-	// Test data
-	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"}, map[string]string{"app.verrazzano.io/metrics": "testTemplateDifferentNamespace"})
-	v.createNamespace(t, constants.VerrazzanoSystemNamespace, nil, nil)
-	v.createConfigMap(t, "test", "testPromConfigMap")
-	testDeployment := appsv1.Deployment{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Deployment",
-			APIVersion: "apps/v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testDeployment",
-			Namespace: "test",
-		},
+	tests := []struct {
+		name                       string
+		metricsBindingExists       bool
+		expectAllowed              bool
+		expectMetricsBindingUpdate bool
+	}{
+		{"legacy app with existing MetricsBinding", true, true, true},
+		{"new app with no MetricsBinding present", false, true, false},
 	}
-	assert.NoError(t, v.Client.Create(context.TODO(), &testDeployment))
-	testTemplate := vzapp.MetricsTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      "testTemplateDifferentNamespace",
-		},
-		Spec: vzapp.MetricsTemplateSpec{
-			WorkloadSelector: vzapp.WorkloadSelector{},
-			PrometheusConfig: vzapp.PrometheusConfig{
-				TargetConfigMap: vzapp.TargetConfigMap{
-					Namespace: "test",
-					Name:      "testPromConfigMap",
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v := newGeneratorWorkloadWebhook()
+
+			// Test data
+			v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"}, map[string]string{"app.verrazzano.io/metrics": "testTemplateDifferentNamespace"})
+			v.createNamespace(t, constants.VerrazzanoSystemNamespace, nil, nil)
+			v.createConfigMap(t, "test", "testPromConfigMap")
+			testDeployment := appsv1.Deployment{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Deployment",
+					APIVersion: "apps/v1",
 				},
-			},
-		},
-	}
-	extraTemplate := vzapp.MetricsTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      "testWrongTemplate",
-		},
-		Spec: vzapp.MetricsTemplateSpec{
-			WorkloadSelector: vzapp.WorkloadSelector{},
-			PrometheusConfig: vzapp.PrometheusConfig{
-				TargetConfigMap: vzapp.TargetConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "testDeployment",
 					Namespace: "test",
-					Name:      "testPromConfigMap",
 				},
-			},
-		},
+			}
+			assert.NoError(t, v.Client.Create(context.TODO(), &testDeployment))
+
+			if tt.metricsBindingExists {
+				existingMetricsBinding := vzapp.MetricsBinding{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      generateMetricsBindingName(testDeployment.Name, testDeployment.APIVersion, testDeployment.Kind),
+						Namespace: "test",
+					},
+				}
+				assert.NoError(t, v.Client.Create(context.TODO(), &existingMetricsBinding))
+			}
+
+			testTemplate := vzapp.MetricsTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: constants.VerrazzanoSystemNamespace,
+					Name:      "testTemplateDifferentNamespace",
+				},
+				Spec: vzapp.MetricsTemplateSpec{
+					WorkloadSelector: vzapp.WorkloadSelector{},
+					PrometheusConfig: vzapp.PrometheusConfig{
+						TargetConfigMap: vzapp.TargetConfigMap{
+							Namespace: "test",
+							Name:      "testPromConfigMap",
+						},
+					},
+				},
+			}
+			extraTemplate := vzapp.MetricsTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: constants.VerrazzanoSystemNamespace,
+					Name:      "testWrongTemplate",
+				},
+				Spec: vzapp.MetricsTemplateSpec{
+					WorkloadSelector: vzapp.WorkloadSelector{},
+					PrometheusConfig: vzapp.PrometheusConfig{
+						TargetConfigMap: vzapp.TargetConfigMap{
+							Namespace: "test",
+							Name:      "testPromConfigMap",
+						},
+					},
+				},
+			}
+			assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
+			assert.NoError(t, v.Client.Create(context.TODO(), &extraTemplate))
+
+			req := newGeneratorWorkloadRequest(admissionv1.Create, "Deployment", testDeployment)
+			res := v.Handle(context.TODO(), req)
+			assert.Equal(t, tt.expectAllowed, res.Allowed)
+			if tt.expectMetricsBindingUpdate {
+				assert.Len(t, res.Patches, 1)
+				assert.Equal(t, "add", res.Patches[0].Operation)
+				assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
+				assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
+
+				// validate that metrics binding was created as expected
+				v.validateMetricsBinding(t, "verrazzano-system", "testTemplateDifferentNamespace")
+			} else {
+				assert.Len(t, res.Patches, 0)
+				v.validateNoMetricsBinding(t)
+			}
+		})
 	}
-	assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
-	assert.NoError(t, v.Client.Create(context.TODO(), &extraTemplate))
-
-	req := newGeneratorWorkloadRequest(admissionv1.Create, "Deployment", testDeployment)
-	res := v.Handle(context.TODO(), req)
-	assert.True(t, res.Allowed)
-	assert.Len(t, res.Patches, 1)
-	assert.Equal(t, "add", res.Patches[0].Operation)
-	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
-	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
-
-	// validate that metrics binding was created as expected
-	v.validateMetricsBinding(t, "verrazzano-system", "testTemplateDifferentNamespace")
 }
 
 func (v *GeneratorWorkloadWebhook) createNamespace(t *testing.T, name string, labels map[string]string, annotations map[string]string) {
