@@ -7,10 +7,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const NEW_JOB_NAME = "newjob"
-const EXISTING_JOB_NAME = "prometheus"
-const NEW_SCRAPE_JOB = `
-job_name: ` + NEW_JOB_NAME + `
+const newJobName = "newjob"
+const existingJobName = "prometheus"
+const newScrapeJob = `
+job_name: ` + newJobName + `
 kubernetes_sd_configs:
 - role: endpoints
 relabel_configs:
@@ -22,8 +22,8 @@ scrape_interval: 20s
 scrape_timeout: 15s
 `
 
-const REPLACE_EXISTING_SCRAPE_JOB = `
-job_name: ` + EXISTING_JOB_NAME + `
+const replaceExistingScrapeJob = `
+job_name: ` + existingJobName + `
 scrape_interval: 20s
 scrape_timeout: 15s
 static_configs:
@@ -45,9 +45,9 @@ func TestEditScrapeJob(t *testing.T) {
 		expectAdd      bool // true if new job should be added, false if it's an existing job
 		expectRemove   bool // true if existing job should be removed
 	}{
-		{"add new job", NEW_JOB_NAME, NEW_SCRAPE_JOB, true, false},
-		{"edit existing job", EXISTING_JOB_NAME, REPLACE_EXISTING_SCRAPE_JOB, false, false},
-		{"remove job", EXISTING_JOB_NAME, "", false, true},
+		{"add new job", newJobName, newScrapeJob, true, false},
+		{"edit existing job", existingJobName, replaceExistingScrapeJob, false, false},
+		{"remove job", existingJobName, "", false, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
