@@ -837,11 +837,15 @@ func createAuthorizationPolicyRule(rule *vzapi.AuthorizationRule, path string) (
 		},
 	}
 	if rule.When != nil {
-		condition := &v1beta1.Condition{
-			Key:    rule.When.Key,
-			Values: rule.When.Values,
+		conditions := []*v1beta1.Condition{}
+		for _, vzCondition := range rule.When {
+			condition := &v1beta1.Condition{
+				Key:    vzCondition.Key,
+				Values: vzCondition.Values,
+			}
+			conditions = append(conditions, condition)
 		}
-		authzRule.When = []*v1beta1.Condition{condition}
+		authzRule.When = conditions
 	}
 
 	return &authzRule, nil

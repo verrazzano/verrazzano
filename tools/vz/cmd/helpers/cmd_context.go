@@ -69,7 +69,7 @@ func (rc *RootCmdContext) GetClient(cmd *cobra.Command) (client.Client, error) {
 }
 
 // GetKubeClient - return a Kubernetes clientset for use with the go-client
-func (rc *RootCmdContext) GetKubeClient(cmd *cobra.Command) (*kubernetes.Clientset, error) {
+func (rc *RootCmdContext) GetKubeClient(cmd *cobra.Command) (kubernetes.Interface, error) {
 	// Get command line value of --kubeconfig
 	kubeConfigLoc, err := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
 	if err != nil {
