@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	oamapi "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -37,9 +38,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	gofake "k8s.io/client-go/kubernetes/fake"
@@ -91,10 +90,7 @@ func TestUpgradeNoVersion(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  namespace,
-				Name:       name,
-				Finalizers: []string{finalizerName}},
+			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 			Spec: vzapi.VerrazzanoSpec{
 				Components: vzapi.ComponentSpec{
 					Keycloak: &vzapi.KeycloakComponent{
@@ -162,6 +158,16 @@ func TestUpgradeNoVersion(t *testing.T) {
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &verrazzano)
 	asserts.NoError(err)
 	asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
+
+	// check for upgrade started condition not true
+	found := false
+	for _, condition := range verrazzano.Status.Conditions {
+		if condition.Type == vzapi.CondUpgradeStarted {
+			found = true
+			break
+		}
+	}
+	asserts.False(found, "expected upgrade started to be false")
 }
 
 // TestUpgradeSameVersion tests the reconcileUpgrade method for the following use case
@@ -182,10 +188,7 @@ func TestUpgradeSameVersion(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  namespace,
-				Name:       name,
-				Finalizers: []string{finalizerName}},
+			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 			Spec: vzapi.VerrazzanoSpec{
 				Version: "1.2.0",
 				Components: vzapi.ComponentSpec{
@@ -255,6 +258,16 @@ func TestUpgradeSameVersion(t *testing.T) {
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &verrazzano)
 	asserts.NoError(err)
 	asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
+
+	// check for upgrade started condition not true
+	found := false
+	for _, condition := range verrazzano.Status.Conditions {
+		if condition.Type == vzapi.CondUpgradeStarted {
+			found = true
+			break
+		}
+	}
+	asserts.False(found, "expected upgrade started to be false")
 }
 
 // TestUpgradeInitComponents tests the reconcileUpgrade method for the following use case
@@ -279,10 +292,7 @@ func TestUpgradeInitComponents(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  namespace,
-				Name:       name,
-				Finalizers: []string{finalizerName}},
+			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 			Spec: vzapi.VerrazzanoSpec{
 				Version: "1.1.0"},
 			Status: vzapi.VerrazzanoStatus{
@@ -316,7 +326,7 @@ func TestUpgradeInitComponents(t *testing.T) {
 // TestUpgradeStarted tests the reconcileUpgrade method for the following use case
 // GIVEN a request to reconcile a verrazzano resource after install is completed
 // WHEN upgrade has not been started and spec.version doesn't match status.version
-// THEN ensure a condition with type UpgradeStarted is added
+// THEN ensure status state is updated to upgrading
 func TestUpgradeStarted(t *testing.T) {
 	initUnitTesing()
 	namespace := "verrazzano"
@@ -332,10 +342,7 @@ func TestUpgradeStarted(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  namespace,
-				Name:       name,
-				Finalizers: []string{finalizerName}},
+			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 			Spec: vzapi.VerrazzanoSpec{
 				Version: "0.2.0"},
 			Status: vzapi.VerrazzanoStatus{
@@ -346,6 +353,7 @@ func TestUpgradeStarted(t *testing.T) {
 					},
 				},
 				Components: makeVerrazzanoComponentStatusMap(),
+				Version:    "0.1.0",
 			},
 		},
 		rbac.NewServiceAccount(namespace, name, []string{}, nil),
@@ -382,30 +390,21 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 
 	config.SetDefaultBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
-	// Expect a call to get the verrazzano resource.  Return resource with version
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-			verrazzano.TypeMeta = metav1.TypeMeta{
-				APIVersion: "install.verrazzano.io/v1alpha1",
-				Kind:       "Verrazzano"}
-			verrazzano.ObjectMeta = metav1.ObjectMeta{
-				Name:              name.Name,
-				Namespace:         name.Namespace,
-				DeletionTimestamp: &metav1.Time{Time: time.Now()},
-				Finalizers:        []string{finalizerName},
-			}
-			verrazzano.Spec = vzapi.VerrazzanoSpec{
-				Version: "0.2.0"}
-			verrazzano.Status = vzapi.VerrazzanoStatus{
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&vzapi.Verrazzano{
+			ObjectMeta: func() metav1.ObjectMeta {
+				om := createObjectMeta(namespace, name, []string{finalizerName})
+				om.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+				return om
+			}(),
+			Spec: vzapi.VerrazzanoSpec{
+				Version: "0.2.0"},
+			Status: vzapi.VerrazzanoStatus{
 				State: vzapi.VzStateUpgrading,
 				Conditions: []vzapi.Condition{
 					{
@@ -415,56 +414,42 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 						Type: vzapi.CondUpgradeStarted,
 					},
 				},
-				Components: makeVerrazzanoComponentStatusMap(),
-			}
-			return nil
-		})
-
-	// Expect a call to get the service account
-	expectGetServiceAccountExists(mock, name, nil)
-
-	// Expect a call to get the ClusterRoleBinding
-	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
-
-	// Expect a call to get the status writer and return a mock.
-	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
-
-	// Expect a call to get the uninstall Job - return that it does not exist
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors2.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Job"}, buildUninstallJobName(name)))
-
-	// Expect a call to create the uninstall Job - return success
-	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, job *batchv1.Job, opts ...client.CreateOption) error {
-			asserts.Equalf(getInstallNamespace(), job.Namespace, "Job namespace did not match")
-			asserts.Equalf(buildUninstallJobName(name), job.Name, "Job name did not match")
-			return nil
-		})
-
-	// Expect a call to update the job - return success
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-
-	// Expect a status update on the job
-	mockStatus.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
-
-	// Expect a call to get the status writer and return a mock.
-	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+				Components: makeVerrazzanoComponentStatusMap()},
+		},
+		rbac.NewServiceAccount(namespace, name, []string{}, nil),
+		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
+	).Build()
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
-	reconciler := newVerrazzanoReconciler(mock)
+	reconciler := newVerrazzanoReconciler(c)
 	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
-	mocker.Finish()
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
 	asserts.Equal(time.Duration(2)*time.Second, result.RequeueAfter)
+
+	// check that an uninstall job was created
+	uninstallJob := batchv1.Job{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, &uninstallJob)
+	asserts.NoError(err)
+
+	// check for uninstall started condition
+	verrazzano := vzapi.Verrazzano{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &verrazzano)
+	asserts.NoError(err)
+	found := false
+	for _, condition := range verrazzano.Status.Conditions {
+		if condition.Type == vzapi.CondUninstallStarted {
+			found = true
+			break
+		}
+	}
+	asserts.True(found, "expected uninstall started to be true")
 }
 
 // TestUpgradeStartedWhenPrevFailures tests the reconcileUpgrade method for the following use case
@@ -479,29 +464,22 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 
 	config.SetDefaultBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
-	// Expect a call to get the verrazzano resource.  Return resource with version
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-			verrazzano.TypeMeta = metav1.TypeMeta{
-				APIVersion: "install.verrazzano.io/v1alpha1",
-				Kind:       "Verrazzano"}
-			verrazzano.ObjectMeta = metav1.ObjectMeta{
-				Namespace:  name.Namespace,
-				Name:       name.Name,
-				Generation: 2,
-				Finalizers: []string{finalizerName}}
-			verrazzano.Spec = vzapi.VerrazzanoSpec{
-				Version: "0.2.0"}
-			verrazzano.Status = vzapi.VerrazzanoStatus{
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&vzapi.Verrazzano{
+			ObjectMeta: func() metav1.ObjectMeta {
+				om := createObjectMeta(namespace, name, []string{finalizerName})
+				om.Generation = 2
+				return om
+			}(),
+			Spec: vzapi.VerrazzanoSpec{
+				Version: "0.2.0"},
+			Status: vzapi.VerrazzanoStatus{
+				Version:    "0.1.0",
 				State:      vzapi.VzStateReady,
 				Components: makeVerrazzanoComponentStatusMap(),
 				Conditions: []vzapi.Condition{
@@ -532,44 +510,32 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 						Message: "Upgrade failed generation:2",
 					},
 				},
-			}
-			return nil
-		})
-
-	// Expect a call to get the service account
-	expectGetServiceAccountExists(mock, name, nil)
-
-	// Expect a call to get the ClusterRoleBinding
-	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
-
-	// Expect a call to get the status writer and return a mock.
-	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
-
-	// Expect a call to update the status of the Verrazzano resource
-	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			asserts.Equal(verrazzano.Status.State, vzapi.VzStateUpgrading)
-			return nil
-		})
+			},
+		},
+		rbac.NewServiceAccount(namespace, name, []string{}, nil),
+		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
+	).Build()
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
-	reconciler := newVerrazzanoReconciler(mock)
+	reconciler := newVerrazzanoReconciler(c)
 	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
-	mocker.Finish()
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
 	asserts.True(result.RequeueAfter.Seconds() <= 3)
+	verrazzano := vzapi.Verrazzano{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &verrazzano)
+	asserts.NoError(err)
+	asserts.Equal(verrazzano.Status.State, vzapi.VzStateUpgrading)
 }
 
 // TestUpgradeCompleted tests the reconcileUpgrade method for the following use case
-// GIVEN a request to reconcile an verrazzano resource after install is completed
+// GIVEN a request to reconcile a verrazzano resource after install is completed
 // WHEN spec.version doesn't match status.version
 // THEN ensure a condition with type UpgradeCompleted is added
 func TestUpgradeCompleted(t *testing.T) {
@@ -581,10 +547,6 @@ func TestUpgradeCompleted(t *testing.T) {
 	fname, _ := filepath.Abs(unitTestBomFile)
 	config.SetDefaultBomFilePath(fname)
 	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
 	// Setup fake client to provide workloads for restart platform testing
 	goClient, err := initFakeClient()
@@ -601,20 +563,14 @@ func TestUpgradeCompleted(t *testing.T) {
 	})
 	defer registry.ResetGetComponentsFn()
 
-	// Expect a call to get the verrazzano resource.  Return resource with version
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-			verrazzano.TypeMeta = metav1.TypeMeta{
-				APIVersion: "install.verrazzano.io/v1alpha1",
-				Kind:       "Verrazzano"}
-			verrazzano.ObjectMeta = metav1.ObjectMeta{
-				Namespace:  name.Namespace,
-				Name:       name.Name,
-				Finalizers: []string{finalizerName}}
-			verrazzano.Spec = vzapi.VerrazzanoSpec{
-				Version: "1.2.0"}
-			verrazzano.Status = vzapi.VerrazzanoStatus{
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	_ = oamcore.AddToScheme(k8scheme.Scheme)
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&vzapi.Verrazzano{
+			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
+			Spec: vzapi.VerrazzanoSpec{
+				Version: "1.2.0"},
+			Status: vzapi.VerrazzanoStatus{
 				State:      vzapi.VzStateUpgrading,
 				Components: makeVerrazzanoComponentStatusMap(),
 				Conditions: []vzapi.Condition{
@@ -625,49 +581,40 @@ func TestUpgradeCompleted(t *testing.T) {
 						Type: vzapi.CondUpgradeStarted,
 					},
 				},
-			}
-			return nil
-		}).AnyTimes()
-
-	// Expect a call to get the service account
-	expectGetServiceAccountExists(mock, name, nil)
-
-	// Expect a call to get the ClusterRoleBinding
-	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
-
-	// Expect a call to get the status writer and return a mock.
-	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *oamapi.ApplicationConfigurationList, opts ...client.ListOption) error {
-			return nil
-		}).AnyTimes()
-
-	// Expect a call to update the status of the Verrazzano resource
-	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			return nil
-		}).AnyTimes()
+			}},
+		rbac.NewServiceAccount(namespace, name, []string{}, nil),
+		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
+	).Build()
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
-	reconciler := newVerrazzanoReconciler(mock)
+	reconciler := newVerrazzanoReconciler(c)
 	result, err := reconcileLoop(reconciler, request)
 
 	// Validate the results
-	mocker.Finish()
 	asserts.NoError(err)
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
+
+	// check for upgrade completed condition
+	verrazzano := vzapi.Verrazzano{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &verrazzano)
+	asserts.NoError(err)
+	found := false
+	for _, condition := range verrazzano.Status.Conditions {
+		if condition.Type == vzapi.CondUpgradeComplete {
+			found = true
+			break
+		}
+	}
+	asserts.True(found, "expected upgrade completed to be true")
 }
 
 // TestUpgradeCompletedMultipleReconcile tests the reconcileUpgrade method for the following use case
-// GIVEN a request to reconcile an verrazzano resource after install is completed
+// GIVEN a request to reconcile a verrazzano resource after install is completed
 // WHEN spec.version doesn't match status.version and reconcile is called multiple times
 // THEN ensure a condition with type UpgradeCompleted is added
 func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
@@ -679,10 +626,6 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 	fname, _ := filepath.Abs(unitTestBomFile)
 	config.SetDefaultBomFilePath(fname)
 	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
@@ -703,20 +646,14 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 	})
 	defer registry.ResetGetComponentsFn()
 
-	// Expect a call to get the verrazzano resource.  Return resource with version
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-			verrazzano.TypeMeta = metav1.TypeMeta{
-				APIVersion: "install.verrazzano.io/v1alpha1",
-				Kind:       "Verrazzano"}
-			verrazzano.ObjectMeta = metav1.ObjectMeta{
-				Namespace:  name.Namespace,
-				Name:       name.Name,
-				Finalizers: []string{finalizerName}}
-			verrazzano.Spec = vzapi.VerrazzanoSpec{
-				Version: "1.2.0"}
-			verrazzano.Status = vzapi.VerrazzanoStatus{
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	_ = oamcore.AddToScheme(k8scheme.Scheme)
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&vzapi.Verrazzano{
+			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
+			Spec: vzapi.VerrazzanoSpec{
+				Version: "1.2.0"},
+			Status: vzapi.VerrazzanoStatus{
 				State:      vzapi.VzStateUpgrading,
 				Components: makeVerrazzanoComponentStatusMap(),
 				Conditions: []vzapi.Condition{
@@ -727,46 +664,36 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 						Type: vzapi.CondUpgradeStarted,
 					},
 				},
-			}
-			return nil
-		}).AnyTimes()
-
-	// Expect 2 calls to get the service account
-	expectGetServiceAccountExists(mock, name, nil)
-
-	// Expect 2 calls to get the ClusterRoleBinding
-	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
-
-	// Expect calls to get the status writer and return a mock.
-	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *oamapi.ApplicationConfigurationList, opts ...client.ListOption) error {
-			return nil
-		}).AnyTimes()
-
-	// Expect a call to update the status of the Verrazzano resource
-	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			return nil
-		}).AnyTimes()
+			}},
+		rbac.NewServiceAccount(namespace, name, []string{}, nil),
+		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
+	).Build()
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
-	reconciler := newVerrazzanoReconciler(mock)
+	reconciler := newVerrazzanoReconciler(c)
 	result, err := reconcileLoop(reconciler, request)
 
 	// Validate the results
-	mocker.Finish()
 	asserts.NoError(err)
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
-	asserts.Len(upgradeTrackerMap, 0, "Expect upgradeTrackerMap to be empty")
+
+	// check for upgrade completed condition
+	verrazzano := vzapi.Verrazzano{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &verrazzano)
+	asserts.NoError(err)
+	found := false
+	for _, condition := range verrazzano.Status.Conditions {
+		if condition.Type == vzapi.CondUpgradeComplete {
+			found = true
+			break
+		}
+	}
+	asserts.True(found, "expected upgrade completed to be true")
 }
 
 // TestUpgradeCompletedStatusReturnsError tests the reconcileUpgrade method for the following use case
@@ -867,9 +794,9 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 }
 
 // TestUpgradeHelmError tests the reconcileUpgrade method for the following use case
-// GIVEN a request to reconcile an verrazzano resource after install is completed
+// GIVEN a request to reconcile a verrazzano resource after install is completed
 // WHEN spec.version doesn't match status.version
-// THEN ensure a condition with type UpgradeCompleted is added
+// THEN ensure a condition with type UpgradePaused is added
 func TestUpgradeHelmError(t *testing.T) {
 	initUnitTesing()
 	namespace := "verrazzano"
@@ -900,15 +827,13 @@ func TestUpgradeHelmError(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  namespace,
-				Name:       name,
-				Generation: 1,
-				Finalizers: []string{finalizerName},
-			},
+			ObjectMeta: func() metav1.ObjectMeta {
+				om := createObjectMeta(namespace, name, []string{finalizerName})
+				om.Generation = 1
+				return om
+			}(),
 			Spec: vzapi.VerrazzanoSpec{
-				Version: "0.2.0",
-			},
+				Version: "0.2.0"},
 			Status: vzapi.VerrazzanoStatus{
 				State:      vzapi.VzStateUpgrading,
 				Components: makeVerrazzanoComponentStatusMap(),
@@ -935,6 +860,19 @@ func TestUpgradeHelmError(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
 	asserts.GreaterOrEqual(result.RequeueAfter.Seconds(), time.Duration(30).Seconds())
+
+	// check for upgrade paused condition
+	verrazzano := vzapi.Verrazzano{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &verrazzano)
+	asserts.NoError(err)
+	found := false
+	for _, condition := range verrazzano.Status.Conditions {
+		if condition.Type == vzapi.CondUpgradePaused {
+			found = true
+			break
+		}
+	}
+	asserts.True(found, "expected upgrade paused to be true")
 }
 
 // TestUpgradeIsCompInstalledFailure tests the reconcileUpgrade method for the following use case
@@ -953,14 +891,9 @@ func TestUpgradeIsCompInstalledFailure(t *testing.T) {
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
 	vz := vzapi.Verrazzano{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:  namespace,
-			Name:       name,
-			Finalizers: []string{finalizerName},
-		},
+		ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 		Spec: vzapi.VerrazzanoSpec{
-			Version: "0.2.0",
-		},
+			Version: "0.2.0"},
 		Status: vzapi.VerrazzanoStatus{
 			State:      vzapi.VzStateReady,
 			Components: makeVerrazzanoComponentStatusMap(),
@@ -1024,11 +957,7 @@ func TestUpgradeComponent(t *testing.T) {
 	vz.TypeMeta = metav1.TypeMeta{
 		APIVersion: "install.verrazzano.io/v1alpha1",
 		Kind:       "Verrazzano"}
-	vz.ObjectMeta = metav1.ObjectMeta{
-		Namespace:  namespace,
-		Name:       name,
-		Finalizers: []string{finalizerName},
-	}
+	vz.ObjectMeta = createObjectMeta(namespace, name, []string{finalizerName})
 	vz.Spec = vzapi.VerrazzanoSpec{
 		Version: "1.2.0"}
 	vz.Status = vzapi.VerrazzanoStatus{
@@ -1120,11 +1049,7 @@ func TestUpgradeComponentWithBlockingStatus(t *testing.T) {
 	vz.TypeMeta = metav1.TypeMeta{
 		APIVersion: "install.verrazzano.io/v1alpha1",
 		Kind:       "Verrazzano"}
-	vz.ObjectMeta = metav1.ObjectMeta{
-		Namespace:  namespace,
-		Name:       name,
-		Finalizers: []string{finalizerName},
-	}
+	vz.ObjectMeta = createObjectMeta(namespace, name, []string{finalizerName})
 	vz.Spec = vzapi.VerrazzanoSpec{
 		Version: "0.2.0"}
 	vz.Status = vzapi.VerrazzanoStatus{
@@ -1214,11 +1139,7 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	vz.TypeMeta = metav1.TypeMeta{
 		APIVersion: "install.verrazzano.io/v1alpha1",
 		Kind:       "Verrazzano"}
-	vz.ObjectMeta = metav1.ObjectMeta{
-		Namespace:  namespace,
-		Name:       name,
-		Finalizers: []string{finalizerName},
-	}
+	vz.ObjectMeta = createObjectMeta(namespace, name, []string{finalizerName})
 	vz.Spec = vzapi.VerrazzanoSpec{
 		Version: "1.2.0"}
 	vz.Status = vzapi.VerrazzanoStatus{
@@ -1303,17 +1224,13 @@ func TestRetryUpgrade(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  namespace,
-				Name:       name,
-				Finalizers: []string{finalizerName},
-				Annotations: map[string]string{
-					constants.UpgradeRetryVersion: "a",
-				},
-			},
+			ObjectMeta: func() metav1.ObjectMeta {
+				om := createObjectMeta(namespace, name, []string{finalizerName})
+				om.Annotations = map[string]string{constants.UpgradeRetryVersion: "a"}
+				return om
+			}(),
 			Spec: vzapi.VerrazzanoSpec{
-				Version: "0.2.0",
-			},
+				Version: "0.2.0"},
 			Status: vzapi.VerrazzanoStatus{
 				State: vzapi.VzStateFailed,
 				Conditions: []vzapi.Condition{
@@ -1369,14 +1286,9 @@ func TestTransitionToPausedUpgradeFromFailed(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  namespace,
-				Name:       name,
-				Finalizers: []string{finalizerName},
-			},
+			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 			Spec: vzapi.VerrazzanoSpec{
-				Version: "1.0.0",
-			},
+				Version: "1.0.0"},
 			Status: vzapi.VerrazzanoStatus{
 				State: vzapi.VzStateFailed,
 				Conditions: []vzapi.Condition{
@@ -1431,14 +1343,9 @@ func TestTransitionToPausedUpgradeFromStarted(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  namespace,
-				Name:       name,
-				Finalizers: []string{finalizerName},
-			},
+			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 			Spec: vzapi.VerrazzanoSpec{
-				Version: "1.0.0",
-			},
+				Version: "1.0.0"},
 			Status: vzapi.VerrazzanoStatus{
 				State: vzapi.VzStateUpgrading,
 				Conditions: []vzapi.Condition{
@@ -1489,14 +1396,9 @@ func TestTransitionFromPausedUpgrade(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  namespace,
-				Name:       name,
-				Finalizers: []string{finalizerName},
-			},
+			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 			Spec: vzapi.VerrazzanoSpec{
-				Version: "1.0.1",
-			},
+				Version: "1.0.1"},
 			Status: vzapi.VerrazzanoStatus{
 				State: vzapi.VzStatePaused,
 				Conditions: []vzapi.Condition{
@@ -1536,7 +1438,6 @@ func TestTransitionFromPausedUpgrade(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Len(vz.Status.Conditions, 1, "Incorrect number of conditions")
 	asserts.Equal(vz.Status.State, vzapi.VzStateReady, "Incorrect State")
-
 }
 
 // TestDontRetryUpgrade tests the retryUpgrade method for the following use case
@@ -1552,18 +1453,13 @@ func TestDontRetryUpgrade(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  namespace,
-				Name:       name,
-				Finalizers: []string{finalizerName},
-				Annotations: map[string]string{
-					constants.UpgradeRetryVersion:         "b",
-					constants.ObservedUpgradeRetryVersion: "b",
-				},
-			},
+			ObjectMeta: func() metav1.ObjectMeta {
+				om := createObjectMeta(namespace, name, []string{finalizerName})
+				om.Annotations = map[string]string{constants.UpgradeRetryVersion: "b", constants.ObservedUpgradeRetryVersion: "b"}
+				return om
+			}(),
 			Spec: vzapi.VerrazzanoSpec{
-				Version: "1.1.0",
-			},
+				Version: "1.1.0"},
 			Status: vzapi.VerrazzanoStatus{
 				State: vzapi.VzStateFailed,
 				Conditions: []vzapi.Condition{
@@ -1665,11 +1561,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 
 	keycloakEnabled := false
 	verrazzanoToUse := vzapi.Verrazzano{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:  namespace,
-			Name:       name,
-			Finalizers: []string{finalizerName},
-		},
+		ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Keycloak: &vzapi.KeycloakComponent{
@@ -1847,11 +1739,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  name,
-				Name:       namespace,
-				Finalizers: []string{finalizerName},
-			},
+			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
 			Spec: vzapi.VerrazzanoSpec{
 				Components: vzapi.ComponentSpec{
 					Keycloak: &vzapi.KeycloakComponent{
@@ -2100,4 +1988,12 @@ func initFakeClient() (kubernetes.Interface, error) {
 	}
 	clientSet := gofake.NewSimpleClientset(dep, pod)
 	return clientSet, nil
+}
+
+func createObjectMeta(namespace string, name string, finalizers []string) metav1.ObjectMeta {
+	return metav1.ObjectMeta{
+		Namespace:  namespace,
+		Name:       name,
+		Finalizers: finalizers,
+	}
 }
