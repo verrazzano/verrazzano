@@ -107,7 +107,7 @@ func isFluentdReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
-// FluentdPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano Fluentd helm chart
+// fluentdPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano Fluentd helm chart
 func fluentdPreUpgrade(ctx spi.ComponentContext, namespace string) error {
 	return fixupFluentdDaemonset(ctx.Log(), ctx.Client(), namespace)
 }
