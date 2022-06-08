@@ -49,9 +49,6 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
 			GetInstallOverridesFunc: GetOverrides,
 			Dependencies:            []string{nginx.ComponentName},
-			Certificates: []types.NamespacedName{
-				{Name: constants.VerrazzanoIngressSecret, Namespace: ComponentNamespace},
-			},
 			IngressNames: []types.NamespacedName{
 				{
 					Namespace: ComponentNamespace,

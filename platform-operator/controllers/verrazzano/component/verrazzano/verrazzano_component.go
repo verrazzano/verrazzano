@@ -256,6 +256,11 @@ func (c verrazzanoComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 func (c verrazzanoComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var certificateNames []types.NamespacedName
 
+	certificateNames = append(certificateNames, types.NamespacedName{
+		Namespace: ComponentNamespace,
+		Name:      constants.VerrazzanoIngressSecret,
+	})
+
 	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
 		certificateNames = append(certificateNames, types.NamespacedName{
 			Namespace: ComponentNamespace,
