@@ -29,7 +29,7 @@ var lbServiceLimitReachedRe = regexp.MustCompile(`.*The following service limits
 
 const logLevelError = "error"
 const verrazzanoResource = "verrazzano_resources.json"
-const installErrorNotFound = "No component specific error found in the Verrazzano Platform Operator"
+const installErrorNotFound = "No component specific error found in the Verrazzano install log"
 const installErrorMessage = "One or more components listed below did not reach Ready state:"
 
 // The structure of the log message from platform operator
@@ -63,7 +63,7 @@ var dispatchFunctions = map[string]func(log *zap.SugaredLogger, clusterRoot stri
 }
 
 func AnalyzeVerrazzanoResource(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) (err error) {
-	compsNotReady, err := getComponentsNoReady(log, clusterRoot)
+	compsNotReady, err := getComponentsNotReady(log, clusterRoot)
 	if err != nil {
 		return err
 	}
@@ -231,7 +231,7 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 }
 
 // Read the Verrazzano resource and return the list of components which did not reach Ready state
-func getComponentsNoReady(log *zap.SugaredLogger, clusterRoot string) ([]string, error) {
+func getComponentsNotReady(log *zap.SugaredLogger, clusterRoot string) ([]string, error) {
 	var compsNotReady = make([]string, 0)
 	vzResourcesPath := files.FindFileInClusterRoot(clusterRoot, verrazzanoResource)
 	fileInfo, e := os.Stat(vzResourcesPath)
