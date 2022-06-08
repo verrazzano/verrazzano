@@ -19,11 +19,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-const (
-	domainN = "nip.io"
-	domainS = "sslip.io"
-)
-
 var (
 	t               = framework.NewTestFramework("update dns")
 	adminCluster    *multicluster.Cluster
@@ -83,24 +78,18 @@ func updateAdminClusterDNS() string {
 	adminVZ := adminCluster.GetCR(true)
 	var oldDNS = adminVZ.Spec.Components.DNS
 	var newDNS *vzapi.DNSComponent = nil
-	var domainOld, domainNew = domainN, domainS
+	var domainOld, domainNew = pkg.NipDomain, pkg.SslipDomain
 	oldEsIng := pkg.GetSystemOpenSearchIngressURL(adminCluster.KubeConfigPath)
-	if isDefaultDNS(oldDNS) {
-		newDNS = &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: domainS}}
+	if pkg.IsDefaultDNS(oldDNS) {
+		newDNS = &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: pkg.SslipDomain}}
 	} else {
-		domainOld, domainNew = domainS, domainN
+		domainOld, domainNew = pkg.SslipDomain, pkg.NipDomain
 	}
 	m := &DNSModifier{DNS: newDNS}
 	gomega.Expect(strings.Contains(oldEsIng, domainOld)).Should(gomega.BeTrue())
 	gomega.Expect(strings.Contains(oldEsIng, domainNew)).Should(gomega.BeFalse())
 	update.RetryUpdate(m, adminCluster.KubeConfigPath, false, pollingInterval, fiveMinutes)
 	return oldEsIng
-}
-
-func isDefaultDNS(dns *vzapi.DNSComponent) bool {
-	return dns == nil ||
-		reflect.DeepEqual(*dns, vzapi.DNSComponent{}) ||
-		reflect.DeepEqual(*dns, vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: domainN}})
 }
 
 func systemOpenSearch() bool {

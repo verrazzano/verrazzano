@@ -5,7 +5,6 @@ package dnsmc
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
@@ -16,11 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/multicluster"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/update"
-)
-
-const (
-	domainN = "nip.io"
-	domainS = "sslip.io"
 )
 
 var (
@@ -69,21 +63,14 @@ func updateManagedClusterDNS() {
 	for _, managedCluster := range managedClusters {
 		var oldDNS = managedCluster.GetCR(true).Spec.Components.DNS
 		var newDNS *vzapi.DNSComponent = nil
-		if isDefaultDNS(oldDNS) {
-			newDNS = &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: domainS}}
+		if pkg.IsDefaultDNS(oldDNS) {
+			newDNS = &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: pkg.SslipDomain}}
 		}
 		oldPromIngs[managedCluster.Name] = managedCluster.GetPrometheusIngress()
 		m := &DNSModifier{DNS: newDNS}
 		update.RetryUpdate(m, managedCluster.KubeConfigPath, false, pollingInterval, tenMinutes)
 	}
 }
-
-func isDefaultDNS(dns *vzapi.DNSComponent) bool {
-	return dns == nil ||
-		reflect.DeepEqual(*dns, vzapi.DNSComponent{}) ||
-		reflect.DeepEqual(*dns, vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: domainN}})
-}
-
 func verifyPrometheusIngress() {
 	start := time.Now()
 	for _, managedCluster := range managedClusters {
