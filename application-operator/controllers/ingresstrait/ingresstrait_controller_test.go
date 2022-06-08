@@ -309,9 +309,11 @@ func TestSuccessfullyCreateNewIngressWithAuthorizationPolicy(t *testing.T) {
 							Rules: []*vzapi.AuthorizationRule{
 								{
 									From: &vzapi.AuthorizationRuleFrom{RequestPrincipals: []string{"*"}},
-									When: &vzapi.AuthorizationRuleCondition{
-										Key:    "testKey",
-										Values: []string{"testValue"},
+									When: []*vzapi.AuthorizationRuleCondition{
+										{
+											Key:    "testKey",
+											Values: []string{"testValue"},
+										},
 									},
 								},
 							},
@@ -364,7 +366,7 @@ func TestSuccessfullyCreateNewIngressWithAuthorizationPolicy(t *testing.T) {
 	traitVSNotFoundExpectation(mock)
 	createVSSuccessExpectations(mock)
 	traitAuthzPolicyNotFoundExpectation(mock)
-	createAuthzPolicySuccessExpectations(mock, assert, 1)
+	createAuthzPolicySuccessExpectations(mock, assert, 1, 1)
 	getMockStatusWriterExpectations(mock, mockStatus)
 
 	mockStatus.EXPECT().
@@ -416,16 +418,20 @@ func TestSuccessfullyCreateNewIngressWithAuthorizationPolicyMultipleRules(t *tes
 							Rules: []*vzapi.AuthorizationRule{
 								{
 									From: &vzapi.AuthorizationRuleFrom{RequestPrincipals: []string{"*"}},
-									When: &vzapi.AuthorizationRuleCondition{
-										Key:    "testKey",
-										Values: []string{"testValue"},
+									When: []*vzapi.AuthorizationRuleCondition{
+										{
+											Key:    "testKey",
+											Values: []string{"testValue"},
+										},
 									},
 								},
 								{
 									From: &vzapi.AuthorizationRuleFrom{RequestPrincipals: []string{"*"}},
-									When: &vzapi.AuthorizationRuleCondition{
-										Key:    "testKey2",
-										Values: []string{"testValue2"},
+									When: []*vzapi.AuthorizationRuleCondition{
+										{
+											Key:    "testKey2",
+											Values: []string{"testValue2"},
+										},
 									},
 								},
 							},
@@ -478,7 +484,7 @@ func TestSuccessfullyCreateNewIngressWithAuthorizationPolicyMultipleRules(t *tes
 	traitVSNotFoundExpectation(mock)
 	createVSSuccessExpectations(mock)
 	traitAuthzPolicyNotFoundExpectation(mock)
-	createAuthzPolicySuccessExpectations(mock, assert, 2)
+	createAuthzPolicySuccessExpectations(mock, assert, 2, 1)
 	getMockStatusWriterExpectations(mock, mockStatus)
 
 	mockStatus.EXPECT().
@@ -529,9 +535,11 @@ func TestFailureCreateNewIngressWithAuthorizationPolicyNoFromClause(t *testing.T
 						Policy: &vzapi.AuthorizationPolicy{
 							Rules: []*vzapi.AuthorizationRule{
 								{
-									When: &vzapi.AuthorizationRuleCondition{
-										Key:    "testKey",
-										Values: []string{"testValue"},
+									When: []*vzapi.AuthorizationRuleCondition{
+										{
+											Key:    "testKey",
+											Values: []string{"testValue"},
+										},
 									},
 								},
 							},
@@ -3826,7 +3834,7 @@ func traitVSNotFoundExpectation(mock *mocks.MockClient) {
 		Return(k8serrors.NewNotFound(schema.GroupResource{Group: testNamespace, Resource: "VirtualService"}, expectedTraitVSName))
 }
 
-func createAuthzPolicySuccessExpectations(mock *mocks.MockClient, assert *asserts.Assertions, numRules int) {
+func createAuthzPolicySuccessExpectations(mock *mocks.MockClient, assert *asserts.Assertions, numRules int, numCondtions int) {
 	// Expect a call to create the authorization policy resource and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
@@ -3834,6 +3842,9 @@ func createAuthzPolicySuccessExpectations(mock *mocks.MockClient, assert *assert
 			assert.Equal(expectedAuthzPolicyName, authorizationPolicy.Name, "wrong name")
 			assert.Equal(istioSystemNamespace, authorizationPolicy.Namespace, "wrong namespace")
 			assert.Len(authorizationPolicy.Spec.Rules, numRules, "wrong number of rules")
+			for _, rule := range authorizationPolicy.Spec.Rules {
+				assert.Len(rule.When, numCondtions, "wrong number of conditions")
+			}
 			return nil
 		})
 }
