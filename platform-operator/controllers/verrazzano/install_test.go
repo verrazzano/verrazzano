@@ -77,7 +77,7 @@ func TestUpdateWithUpgrade(t *testing.T) {
 	lastReconciledGeneration := int64(2)
 	reconcilingGen := int64(0)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t, lastReconciledGeneration+1, reconcilingGen, lastReconciledGeneration,
-		"1.3.0", "1.2.0", namespace, name, nil, 2)
+		"1.3.0", "1.2.0", namespace, name, nil, 1)
 	defer reset()
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateUpgrading, vz.Status.State)
@@ -172,6 +172,7 @@ func testUpdate(t *testing.T,
 		status.LastReconciledGeneration = lastReconciledGeneration
 	}
 	var vz *vzapi.Verrazzano
+	var vzStatus = vzapi.VzStateReady
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
@@ -188,7 +189,7 @@ func testUpdate(t *testing.T,
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: specVer}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State:   vzapi.VzStateReady,
+				State:   vzStatus,
 				Version: statusVer,
 				Conditions: []vzapi.Condition{
 					{
@@ -243,8 +244,10 @@ func testUpdate(t *testing.T,
 		result, err = reconciler.Reconcile(nil, request)
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
-			requeue = false
+			break
 		}
+		// Set the status to Reconciling before calling the next reconcile
+		vzStatus = vzapi.VzStateReconciling
 		requeue = result.Requeue
 	}
 	mocker.Finish()
