@@ -100,11 +100,11 @@ func isFluentdReady(ctx spi.ComponentContext) bool {
 				Name:      fluentDaemonset,
 				Namespace: ComponentNamespace,
 			})
-		if !status.DaemonSetsAreReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {
-			return false
+		if status.DaemonSetsAreReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {
+			return true
 		}
 	}
-	return true
+	return false
 }
 
 // FluentdPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano Fluentd helm chart
