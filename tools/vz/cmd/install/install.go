@@ -187,26 +187,40 @@ func waitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper) (s
 	labelSelector := labels.NewSelector()
 	labelSelector = labelSelector.Add(*appLabel)
 	podList := corev1.PodList{}
-	err := client.List(
-		context.TODO(),
-		&podList,
-		&clipkg.ListOptions{
-			Namespace:     vzconstants.VerrazzanoInstallNamespace,
-			LabelSelector: labelSelector,
-		})
-	if err != nil {
-		return "", fmt.Errorf("Failed to list pods %v", err)
-	}
-	if len(podList.Items) == 0 {
-		return "", fmt.Errorf("%s pod not found in namespace %s", verrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
-	}
-	if len(podList.Items) > 1 {
-		return "", fmt.Errorf("More than one %s pod was found in namespace %s", verrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
+
+	// Wait for the verrazzano-platform-operator pod to be found
+	seconds := 0
+	retryCount := 0
+	for {
+		retryCount++
+		if retryCount > 60 {
+			return "", fmt.Errorf("Failed to find a Verrazzano platform-operator pod running")
+		}
+		time.Sleep(verrazzanoPlatformOperatorWait * time.Second)
+		seconds += verrazzanoPlatformOperatorWait
+
+		err := client.List(
+			context.TODO(),
+			&podList,
+			&clipkg.ListOptions{
+				Namespace:     vzconstants.VerrazzanoInstallNamespace,
+				LabelSelector: labelSelector,
+			})
+		if err != nil {
+			continue
+		}
+		if len(podList.Items) == 0 {
+			return "", fmt.Errorf("%s pod not found in namespace %s", verrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
+		}
+		if len(podList.Items) > 1 {
+			return "", fmt.Errorf("More than one %s pod was found in namespace %s", verrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
+		}
+		break
 	}
 
 	// We found the verrazzano-platform-operator pod. Wait until it's containers are ready.
 	pod := &corev1.Pod{}
-	seconds := 0
+	seconds = 0
 	for {
 		time.Sleep(verrazzanoPlatformOperatorWait * time.Second)
 		seconds += verrazzanoPlatformOperatorWait
