@@ -9,7 +9,3 @@ install-verrazzano: export INSTALL_CONFIG_FILE_KIND ?= ${TEST_SCRIPTS_DIR}/insta
 install-verrazzano:
 	@echo "Running KIND install"
 	${CI_SCRIPTS_DIR}/install_verrazzano.sh ${WILDCARD_DNS_DOMAIN}
-
-.PHONY: clean-kind-clusters
-	kind delete clusters --all
-

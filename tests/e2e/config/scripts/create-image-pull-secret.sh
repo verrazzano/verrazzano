@@ -22,6 +22,7 @@ if kubectl get secret -n ${NAMESPACE} ${NAME} 2>&1 > /dev/null; then
   exit 0
 fi
 
+set +x # always disable shell debug for this
 kubectl create secret docker-registry ${NAME} \
                             --docker-server=${DOCKER_SERVER} \
                             --docker-username=${USERNAME} \

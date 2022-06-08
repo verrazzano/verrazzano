@@ -8,7 +8,7 @@ export VZ_ROOT := ${GO_REPO_PATH}/verrazzano
 export CI_ROOT ?= ${VZ_ROOT}/ci
 export CI_SCRIPTS_DIR ?= ${CI_ROOT}/scripts
 
-export WORKSPACE ?= ${CURDIR}/workspace
+export WORKSPACE ?= ${HOME}/verrazzano-workspace
 export KUBECONFIG ?= ${WORKSPACE}/test_kubeconfig
 
 export IMAGE_PULL_SECRET ?= verrazzano-container-registry

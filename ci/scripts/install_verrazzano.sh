@@ -13,7 +13,6 @@
 #
 # INSTALL_PROFILE - Verrazzano profile, defaults to "dev"
 # VZ_ENVIRONMENT_NAME - environmentName default
-# DNS_WILDCARD_DOMAIN - wildcard DNS domain to use
 # EXTERNAL_ELASTICSEARCH - if "true" && VZ_ENVIRONMENT_NAME=="admin", sets Fluentd configuration to point to EXTERNAL_ES_SECRET and EXTERNAL_ES_URL
 # SYSTEM_LOG_ID - configures Verrazzano for OCI logging using the specified OCI logging ID
 # ENABLE_API_ENVOY_LOGGING - enables debug in the Istio Envoy containers
@@ -55,7 +54,7 @@ WILDCARD_DNS_DOMAIN=${WILDCARD_DNS_DOMAIN:-""}
 ENABLE_API_ENVOY_LOGGING=${ENABLE_API_ENVOY_LOGGING:-"false"}
 
 INSTALL_PROFILE=${INSTALL_PROFILE:-"dev"}
-VERRAZZANO_INSTALL_LOGS_DIR=${VERRAZZANO_INSTALL_LOGS_DIR:-${WORKSPACE}/logs}
+VERRAZZANO_INSTALL_LOGS_DIR=${VERRAZZANO_INSTALL_LOGS_DIR:-${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs}
 
 # Configure the custom resource to install Verrazzano on Kind
 ${TEST_SCRIPTS_DIR}/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}

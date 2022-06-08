@@ -26,14 +26,6 @@ if [ -z "$TEST_SCRIPTS_DIR" ]; then
   echo "TEST_SCRIPTS_DIR must be set to the E2E test script directory location"
   exit 1
 fi
-if [ -z "${KIND_KUBERNETES_CLUSTER_VERSION}" ]; then
-  echo "KIND_KUBERNETES_CLUSTER_VERSION must be set"
-  exit 1
-fi
-if [ -z "${KUBECONFIG}" ]; then
-  echo "KUBECONFIG must be set"
-  exit 1
-fi
 
 scriptHome=$(dirname ${BASH_SOURCE[0]})
 
@@ -43,15 +35,14 @@ if [ -n "${VZ_TEST_DEBUG}" ]; then
   set -xv
 fi
 
-export KUBECONFIG=$KUBECONFIG
+export KUBECONFIG=${KUBECONFIG:-"${WORKSPACE}/test_kubeconfig"}
+export KUBERNETES_CLUSTER_VERSION=${KUBERNETES_CLUSTER_VERSION:-"1.22"}
 
 CONNECT_JENKINS_RUNNER_TO_NETWORK=false
 if [ -n "${JENKINS_URL}" ]; then
   echo "Running in Jenkins, URL=${JENKINS_URL}"
   CONNECT_JENKINS_RUNNER_TO_NETWORK=true
 fi
-
-OCI=oci
 
 INSTALL_CALICO=${1:-false}
 CLUSTER_NAME=${CLUSTER_NAME:="kind"}
@@ -70,11 +61,9 @@ KIND_NODE_COUNT=${KIND_NODE_COUNT:-1}
 
 mkdir -p $WORKSPACE || true
 
-#cd ${GO_REPO_PATH}/verrazzano
 echo "tests will execute" > ${TESTS_EXECUTED_FILE}
 echo "Create Kind cluster"
-#cd ${TEST_SCRIPTS_DIR}
-${scriptHome}/create_kind_clusters.sh "${CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" "${KIND_KUBERNETES_CLUSTER_VERSION}" true ${CONNECT_JENKINS_RUNNER_TO_NETWORK} true $INSTALL_CALICO "NONE" ${KIND_NODE_COUNT}
+${scriptHome}/create_kind_clusters.sh "${CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" "${KUBERNETES_CLUSTER_VERSION}" true ${CONNECT_JENKINS_RUNNER_TO_NETWORK} true $INSTALL_CALICO "NONE" ${KIND_NODE_COUNT}
 if [ $? -ne 0 ]; then
     mkdir -p $WORKSPACE/kind-logs``
     kind export logs $WORKSPACE/kind-logs
@@ -101,10 +90,13 @@ echo "Install metallb"
 ${TEST_SCRIPTS_DIR}/install-metallb.sh
 
 echo "Create Image Pull Secrets"
-#cd ${GO_REPO_PATH}/verrazzano
 ${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+# REVIEW: Do we need github-packages still?
 ${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
+if [ -n "${OCR_REPO}" ] && [ -n "${OCR_CREDS_USR}" ] && [ -n "${OCR_CREDS_PSW}" ]; then
+  echo "Creating Oracle Container Registry pull secret"
+  ${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
+fi
 
 if ! kubectl get cm test-overrides 2>&1 > /dev/null; then
   echo "Creating Override ConfigMap"
@@ -134,7 +126,7 @@ if [ -z "$OPERATOR_YAML" ] && [ "" = "${OPERATOR_YAML}" ]; then
   # Derive the name of the operator.yaml file, copy or generate the file, then install
   if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
       echo "Using operator.yaml from object storage location ${OCI_OS_LOCATION}"
-      ${OCI} --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${OCI_OS_LOCATION}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+      curl -s -L https://objectstorage.us-phoenix-1.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_BUCKET}/o/${OCI_OS_LOCATION}/operator.yaml > ${WORKSPACE}/downloaded-operator.yaml
       cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
   else
       echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
