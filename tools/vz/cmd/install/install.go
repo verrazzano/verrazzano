@@ -241,7 +241,7 @@ func waitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper) (s
 
 // waitForInstallToComplete waits for the Verrazzano install to complete and shows the logs of
 // the ongoing Verrazzano install.
-func waitForInstallToComplete(client clipkg.Client, kubeClient *kubernetes.Clientset, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration, logFormat cmdhelpers.LogFormat) error {
+func waitForInstallToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration, logFormat cmdhelpers.LogFormat) error {
 	// Tail the log messages from the verrazzano-platform-operator starting at the current time.
 	sinceTime := metav1.Now()
 	rc, err := kubeClient.CoreV1().Pods(vzconstants.VerrazzanoInstallNamespace).GetLogs(vpoPodName, &corev1.PodLogOptions{
