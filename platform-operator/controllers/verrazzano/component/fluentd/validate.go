@@ -24,7 +24,7 @@ const (
 	esPasswordKey = "password"
 )
 
-// existing Fluentd mount paths can be found at platform-operator/helm_config/charts/verrazzano/templates/verrazzano-fluentd-logging.yaml
+// existing Fluentd mount paths can be found at platform-operator/helm_config/charts/verrazzano/templates/daemonset.yaml
 var existingFluentdMountPaths = [7]string{
 	"/fluentd/cacerts", "/fluentd/secret", "/fluentd/etc",
 	"/root/.oci", "/var/log", "/var/lib", "/run/log/journal"}
