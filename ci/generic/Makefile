@@ -16,14 +16,18 @@ all: setup install test upgrade uninstall cleanup
 # - LoadBalancer resources
 # - DNS zones
 .PHONY: setup
-setup: setup-kind
+setup:
 	@echo "Running test setup"
+	make setup-kind
 
 # Peforms an install of Verrazzano to the target system
 .PHONY: install
-install: install-verrazzano
+install:
+	@echo "Installing Verrazzano"
+	make install-verrazzano
 
 # Executes test suite(s) against the target Verrazzano install
+test: export TEST_SUITES ?= verify-install/...
 .PHONY: test
 test:
 	@echo "Running tests ${TEST_SUITES}"
@@ -32,17 +36,17 @@ test:
 # Executes an upgrade to a new Verrazzano version from the initially installed version
 .PHONY: upgrade
 upgrade:
-	@echo "Running Verrazzano upgrade"
+	@echo "Upgrade not implemented"
 
 # Executes an update to the configuration of an installed Verrazzano instance
 .PHONY: update
 update:
-	@echo "Running Verrazzano update"
+	@echo "Update not implemented"
 
 # Performs an uninstall of the Verrazzano instance from the cluster
 .PHONY: uninstall
 uninstall:
-	@echo "Running Verrazzano uninstall"
+	@echo "Uninstall not implemented"
 
 # Executes an upgrade to a new Verrazzano version from the initially installed version
 .PHONY: cleanup
