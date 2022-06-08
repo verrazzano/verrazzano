@@ -194,7 +194,7 @@ func waitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper) (s
 	for {
 		retryCount++
 		if retryCount > 60 {
-			return "", fmt.Errorf("Failed to find a Verrazzano platform-operator pod running")
+			return "", fmt.Errorf("%s pod not found in namespace %s", verrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
 		}
 		time.Sleep(verrazzanoPlatformOperatorWait * time.Second)
 		seconds += verrazzanoPlatformOperatorWait
@@ -207,10 +207,10 @@ func waitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper) (s
 				LabelSelector: labelSelector,
 			})
 		if err != nil {
-			continue
+			return "", fmt.Errorf("Failed to list pods %v", err)
 		}
 		if len(podList.Items) == 0 {
-			return "", fmt.Errorf("%s pod not found in namespace %s", verrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
+			continue
 		}
 		if len(podList.Items) > 1 {
 			return "", fmt.Errorf("More than one %s pod was found in namespace %s", verrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
