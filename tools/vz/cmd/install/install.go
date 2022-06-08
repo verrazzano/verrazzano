@@ -80,19 +80,12 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-	// Get the version from the command line
-	version, err := cmd.PersistentFlags().GetString(constants.VersionFlag)
+	filenames, err := cmd.PersistentFlags().GetStringSlice(constants.FilenameFlag)
 	if err != nil {
 		return err
 	}
-	if version == constants.VersionFlagDefault {
-		// Find the latest release version of Verrazzano
-		version, err = helpers.GetLatestReleaseVersion()
-		if err != nil {
-			return err
-		}
-	}
-	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Installing Verrazzano version %s\n", version))
+	overlayYAML, err := cmdhelpers.ParseYAMLFiles(filenames)
+	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Merged YAML: %v", overlayYAML))
 
 	// Get the timeout value for the install command
 	timeout, err := cmdhelpers.GetWaitTimeout(cmd)
@@ -117,6 +110,20 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	if err != nil {
 		return err
 	}
+
+	// Get the version from the command line
+	version, err := cmd.PersistentFlags().GetString(constants.VersionFlag)
+	if err != nil {
+		return err
+	}
+	if version == constants.VersionFlagDefault {
+		// Find the latest release version of Verrazzano
+		version, err = helpers.GetLatestReleaseVersion()
+		if err != nil {
+			return err
+		}
+	}
+	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Installing Verrazzano version %s\n", version))
 
 	// Apply the Verrazzano operator.yaml.
 	err = applyPlatformOperatorYaml(client, vzHelper, version)
