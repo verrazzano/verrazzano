@@ -759,7 +759,7 @@ def getVerrazzanoOperatorYaml() {
         echo "Platform Operator Configuration"
         cd ${GO_REPO_PATH}/verrazzano
         if [ "NONE" == "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
-            if[ "false" == "${params.UPGRADE_VERRAZZANO}" ] ; then
+            if [ "false" == "${params.UPGRADE_VERRAZZANO}" ] ; then
                 echo "Using the latest branch operator.yaml from object storage because upgrade is disabled for this job"
                 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                 cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
