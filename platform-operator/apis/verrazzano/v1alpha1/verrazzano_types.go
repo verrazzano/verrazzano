@@ -261,8 +261,6 @@ const (
 	// CompStateInstallStarted is the state when pre-install is completed and install is about to be started
 	CompStateInstallStarted CompStateType = "InstallStarted"
 
-	CompStatePreInstallComplete CompStateType = "PreInstallComplete"
-
 	// CompStateInstalling is the state when an install is in progress
 	CompStateInstalling CompStateType = "Installing"
 

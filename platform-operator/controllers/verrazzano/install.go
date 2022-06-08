@@ -68,14 +68,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 				}
 			}
 		}
-		if componentStatus.State == vzapi.CompStatePreInstallComplete {
-			err = r.setInstallingState(vzctx.Log, spiCtx.ActualCR())
-			compLog.Oncef("Reset Verrazzano state to %v for generation %v", spiCtx.ActualCR().Status.State, spiCtx.ActualCR().Generation)
-			if err != nil {
-				spiCtx.Log().Errorf("Failed to reset state: %v", err)
-				return newRequeueWithDelay(), err
-			}
-		}
+
 		switch componentStatus.State {
 		case vzapi.CompStateReady:
 			// Don't reconcile (updates) during install
@@ -125,12 +118,12 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 				requeue = true
 				continue
 			}
-			if err := r.updateComponentStatus(compContext, "Install started", vzapi.CondPreInstallComplete); err != nil {
+			if err := r.updateComponentStatus(compContext, "PreInstall Completed", vzapi.CondPreInstallComplete); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
 			requeue = true
 
-		case vzapi.CompStatePreInstallComplete:
+		case vzapi.CompStateInstallStarted:
 			// If component is not installed,install it
 			compLog.Oncef("Component %s install started ", compName)
 			if err := comp.Install(compContext); err != nil {
@@ -142,6 +135,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 			}
 			// Install started requeue to check status
 			requeue = true
+
 		case vzapi.CompStateInstalling:
 			// For delete, we should look at the VZ resource delete timestamp and shift into Quiescing/Uninstalling state
 			// If component is enabled -- need to replicate scripts' config merging logic here
