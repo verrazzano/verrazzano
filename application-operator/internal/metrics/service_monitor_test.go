@@ -4,19 +4,15 @@
 package metrics
 
 import (
-	asserts "github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"testing"
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	asserts "github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func TestPopulateServiceMonitor(t *testing.T) {
-	workload := unstructured.Unstructured{}
-	workload.SetName("test-workload")
-	workload.SetNamespace("test-namespace")
 	trueVal := true
 	falseVal := false
 
@@ -28,21 +24,11 @@ func TestPopulateServiceMonitor(t *testing.T) {
 		{
 			name:        "empty info",
 			info:        ScrapeInfo{},
-			expectError: true,
-		},
-		{
-			name: "only workload info",
-			info: ScrapeInfo{
-				Name:     "test-scrape",
-				Workload: &workload,
-			},
 			expectError: false,
 		},
 		{
 			name: "true value test",
 			info: ScrapeInfo{
-				Name:               "test-scrape",
-				Workload:           &workload,
 				Ports:              5,
 				BasicAuthSecret:    &corev1.Secret{},
 				IstioEnabled:       &trueVal,
@@ -54,8 +40,6 @@ func TestPopulateServiceMonitor(t *testing.T) {
 		{
 			name: "false value test",
 			info: ScrapeInfo{
-				Name:               "test-scrape",
-				Workload:           &workload,
 				Ports:              3,
 				BasicAuthSecret:    &corev1.Secret{},
 				IstioEnabled:       &falseVal,
@@ -73,8 +57,6 @@ func TestPopulateServiceMonitor(t *testing.T) {
 				asserts.Error(t, err)
 			} else {
 				asserts.NoError(t, err)
-				asserts.Equal(t, tt.info.Name, serviceMonitor.Name)
-				asserts.Equal(t, tt.info.Workload.GetNamespace(), serviceMonitor.Namespace)
 				asserts.Equal(t, tt.info.Ports, len(serviceMonitor.Spec.Endpoints))
 				if len(serviceMonitor.Spec.Endpoints) == 0 {
 					return

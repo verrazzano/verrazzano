@@ -5,10 +5,10 @@ package metrics
 
 import (
 	"fmt"
+
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 const (
@@ -17,8 +17,6 @@ const (
 
 // ScrapeInfo captures the information needed to construct the service monitor for a generic workload
 type ScrapeInfo struct {
-	// The name of the scrapeConfig
-	Name string
 	// The path by which Prometheus should scrape metrics
 	Path *string
 	// The number of ports located for the workload
@@ -32,27 +30,18 @@ type ScrapeInfo struct {
 	// The map to generate keep labels
 	// This matches the expected pod labels to the scrape config
 	KeepLabels map[string]string
-	// The workload for which the service monitor is constructed
-	Workload *unstructured.Unstructured
 }
 
 // PopulateServiceMonitor populates the Service Monitor to prepare for a create or update
 // the Service Monitor reflects the specifications defined in the ScrapeInfo object
 func PopulateServiceMonitor(info ScrapeInfo, serviceMonitor *promoperapi.ServiceMonitor, log vzlog.VerrazzanoLogger) error {
-	// Create the Service Monitor name from the info if the label exists
-	serviceMonitor.SetName(info.Name)
-	if info.Workload == nil {
-		return log.ErrorfNewErr("Workload object for Service Monitor %s is empty", info.Name)
-	}
-	serviceMonitor.SetNamespace(info.Workload.GetNamespace())
-
 	// Create the Service Monitor selector from the info label if it exists
 	if serviceMonitor.ObjectMeta.Labels == nil {
 		serviceMonitor.ObjectMeta.Labels = make(map[string]string)
 	}
 	serviceMonitor.Labels["release"] = "prometheus-operator"
 	serviceMonitor.Spec.NamespaceSelector = promoperapi.NamespaceSelector{
-		MatchNames: []string{info.Workload.GetNamespace()},
+		MatchNames: []string{serviceMonitor.Namespace},
 	}
 
 	// Clear the existing endpoints to avoid duplications

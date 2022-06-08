@@ -5,13 +5,14 @@ package metricstrait
 
 import (
 	"context"
+	"strings"
+
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/internal/metrics"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"strings"
 )
 
 // updateServiceMonitor creates or updates a service monitor given the trait and workload parameters
@@ -52,12 +53,10 @@ func (r *Reconciler) updateServiceMonitor(ctx context.Context, trait *vzapi.Metr
 
 	log.Debugf("Creating or updating the Service Monitor for workload %s/%s", workload.GetNamespace(), workload.GetName())
 	scrapeInfo := metrics.ScrapeInfo{
-		Name:               pmName,
 		Ports:              len(getPortSpecs(trait, traitDefaults)),
 		BasicAuthSecret:    secret,
 		IstioEnabled:       &useHTTPS,
 		VZPrometheusLabels: &vzPromLabels,
-		Workload:           workload,
 	}
 
 	// Fill in the scrape info if it is populated in the trait
@@ -72,6 +71,8 @@ func (r *Reconciler) updateServiceMonitor(ctx context.Context, trait *vzapi.Metr
 	}
 
 	serviceMonitor := promoperapi.ServiceMonitor{}
+	serviceMonitor.SetName(pmName)
+	serviceMonitor.SetNamespace(workload.GetNamespace())
 	result, err := controllerutil.CreateOrUpdate(ctx, r.Client, &serviceMonitor, func() error {
 		return metrics.PopulateServiceMonitor(scrapeInfo, &serviceMonitor, log)
 	})
