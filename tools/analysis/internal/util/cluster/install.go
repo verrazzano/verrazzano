@@ -15,7 +15,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"os"
 	"regexp"
-	"strings"
 )
 
 // Compiled Regular expressions
@@ -28,6 +27,7 @@ var installFailedRe = regexp.MustCompile(`Install.*\[FAILED\]`)
 var ephemeralIPLimitReachedRe = regexp.MustCompile(`.*Limit for non-ephemeral regional public IP per tenant of .* has been already reached`)
 var lbServiceLimitReachedRe = regexp.MustCompile(`.*The following service limits were exceeded: lb-.*`)
 
+const logLevelError = "error"
 const verrazzanoResource = "verrazzano_resources.json"
 const installErrorNotFound = "No component specific error found in the Verrazzano Platform Operator"
 const installErrorMessage = "One or more components listed below did not reach Ready state:"
@@ -71,7 +71,7 @@ func AnalyzeVerrazzanoResource(log *zap.SugaredLogger, clusterRoot string, issue
 	}
 
 	if len(compsNotReady) > 0 {
-		reportInstallError(log, clusterRoot, compsNotReady, issueReporter)
+		reportInstallIssue(log, clusterRoot, compsNotReady, issueReporter)
 	}
 	return nil
 }
@@ -232,6 +232,7 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 	return nil
 }
 
+// Read the Verrazzano resource and return the list of components which did not reach Ready state
 func getComponentsNoReady(log *zap.SugaredLogger, clusterRoot string) ([]string, error) {
 	var compsNotReady = make([]string, 0)
 	vzResourcesPath := files.FindFileInClusterRoot(clusterRoot, verrazzanoResource)
@@ -283,7 +284,8 @@ func getComponentsNoReady(log *zap.SugaredLogger, clusterRoot string) ([]string,
 	return compsNotReady, nil
 }
 
-func reportInstallError(log *zap.SugaredLogger, clusterRoot string, compsNotReady []string, issueReporter *report.IssueReporter) error {
+// Read the platform operator log, report the errors found for the list of components which fail to reach Ready state
+func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotReady []string, issueReporter *report.IssueReporter) error {
 	vpologRegExp := regexp.MustCompile(`verrazzano-install/verrazzano-platform-operator-.*/logs.txt`)
 	allPodFiles, err := files.GetMatchingFiles(log, clusterRoot, vpologRegExp)
 	if err != nil {
@@ -294,27 +296,21 @@ func reportInstallError(log *zap.SugaredLogger, clusterRoot string, compsNotRead
 	vpoLog := allPodFiles[0]
 	messages := make(StringSlice, 1)
 	messages[0] = installErrorMessage
+
 	// Go through all the components which did not reach Ready state
+	allMessages, _ := files.ConvertToLogMessage(vpoLog)
 	for _, comp := range compsNotReady {
-		regExpStr := strings.Replace(componentErrorPattern, "vzcomponent", comp, 1)
-		componentErrorMatcher := regexp.MustCompile(regExpStr)
-		logMatches, err := files.SearchFile(log, vpoLog, componentErrorMatcher, nil)
+		var allErrors []files.LogMessage
+		var logMessages []files.LogMessage
+		logMessages, err := files.FilterLogsByLevelComponent(logLevelError, comp, allMessages)
 		if err != nil {
-			log.Infof("There is an error searching the file %s for a regular expression: %s", vpoLog, err)
+			log.Infof("There is an error: %s reading install log: %s", err, vpoLog)
 		}
-		var allErrors []VPOLogMessage
-		var logMessage VPOLogMessage
-		for _, matched := range logMatches {
-			fileBytes := []byte(matched.MatchedText)
-			err = encjson.Unmarshal(fileBytes, &logMessage)
-			if err != nil {
-				log.Error("Error unmarshalling the json")
-				return err
-			}
+		for _, logMessage := range logMessages {
 			allErrors = append(allErrors, logMessage)
 		}
 		errorMessage := installErrorNotFound
-		// For now, display only the last error for the component in the platform operator log
+		// Display only the last error for the component from the install log.
 		// Need a better way to handle distinct errors for a component, however some of the errors during the initial
 		// stage of the install might indicate any real issue, as reconcile takes care of healing those errors.
 		if len(allErrors) > 2 {
@@ -324,6 +320,7 @@ func reportInstallError(log *zap.SugaredLogger, clusterRoot string, compsNotRead
 			errorMessage = allErrors[0].Message
 		}
 		messages = append(messages, "\t "+comp+": "+errorMessage)
+
 	}
 	var files []string
 	files = append(files, clusterRoot+"/"+verrazzanoResource)
