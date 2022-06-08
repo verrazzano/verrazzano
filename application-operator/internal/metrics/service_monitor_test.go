@@ -34,6 +34,7 @@ func TestPopulateServiceMonitor(t *testing.T) {
 				IstioEnabled:       &trueVal,
 				VZPrometheusLabels: &trueVal,
 				KeepLabels:         map[string]string{"test": "label"},
+				ClusterName:        "local1",
 			},
 			expectError: false,
 		},
@@ -45,6 +46,7 @@ func TestPopulateServiceMonitor(t *testing.T) {
 				IstioEnabled:       &falseVal,
 				VZPrometheusLabels: &falseVal,
 				KeepLabels:         map[string]string{"test": "label"},
+				ClusterName:        "local2",
 			},
 			expectError: false,
 		},
@@ -61,6 +63,7 @@ func TestPopulateServiceMonitor(t *testing.T) {
 				if len(serviceMonitor.Spec.Endpoints) == 0 {
 					return
 				}
+				asserts.Equal(t, serviceMonitor.Spec.Endpoints[0].RelabelConfigs[0].Replacement, tt.info.ClusterName)
 				asserts.Equal(t, 9, len(serviceMonitor.Spec.Endpoints[0].RelabelConfigs))
 				if tt.info.BasicAuthSecret != nil {
 					asserts.NotNil(t, serviceMonitor.Spec.Endpoints[0].BasicAuth)

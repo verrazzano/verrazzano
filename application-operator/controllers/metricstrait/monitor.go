@@ -5,6 +5,7 @@ package metricstrait
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"strings"
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -57,6 +58,7 @@ func (r *Reconciler) updateServiceMonitor(ctx context.Context, trait *vzapi.Metr
 		BasicAuthSecret:    secret,
 		IstioEnabled:       &useHTTPS,
 		VZPrometheusLabels: &vzPromLabels,
+		ClusterName:        clusters.GetClusterName(ctx, r.Client),
 	}
 
 	// Fill in the scrape info if it is populated in the trait

@@ -30,6 +30,8 @@ type ScrapeInfo struct {
 	// The map to generate keep labels
 	// This matches the expected pod labels to the scrape config
 	KeepLabels map[string]string
+	// The name of the cluster for the selected workload
+	ClusterName string
 }
 
 // PopulateServiceMonitor populates the Service Monitor to prepare for a create or update
@@ -119,7 +121,7 @@ func createServiceMonitorEndpoint(info ScrapeInfo, portIncrement int) (promopera
 	// Relabel the cluster name
 	endpoint.RelabelConfigs = append(endpoint.RelabelConfigs, &promoperapi.RelabelConfig{
 		Action:      "replace",
-		Replacement: "local",
+		Replacement: info.ClusterName,
 		TargetLabel: prometheusClusterNameLabel,
 	})
 
