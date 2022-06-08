@@ -90,13 +90,6 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 				Namespace: globalconst.VerrazzanoMonitoringNamespace,
 			})
 	}
-	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) && getProfile(ctx.EffectiveCR()) != vzapi.ManagedCluster {
-		daemonsets = append(daemonsets,
-			types.NamespacedName{
-				Name:      fluentDaemonset,
-				Namespace: ComponentNamespace,
-			})
-	}
 	if !status.DaemonSetsAreReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {
 		return false
 	}

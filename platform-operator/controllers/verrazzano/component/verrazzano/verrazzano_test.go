@@ -701,16 +701,6 @@ func TestIsReadySecretNotReady(t *testing.T) {
 		},
 		&appsv1.DaemonSet{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: globalconst.VerrazzanoSystemNamespace,
-				Name:      fluentDaemonset,
-			},
-			Status: appsv1.DaemonSetStatus{
-				UpdatedNumberScheduled: 1,
-				NumberAvailable:        1,
-			},
-		},
-		&appsv1.DaemonSet{
-			ObjectMeta: metav1.ObjectMeta{
 				Namespace: globalconst.VerrazzanoMonitoringNamespace,
 				Name:      nodeExporterDaemonset,
 			},
@@ -750,16 +740,6 @@ func TestIsReady(t *testing.T) {
 				AvailableReplicas: 1,
 				Replicas:          1,
 				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.DaemonSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: globalconst.VerrazzanoSystemNamespace,
-				Name:      fluentDaemonset,
-			},
-			Status: appsv1.DaemonSetStatus{
-				UpdatedNumberScheduled: 1,
-				NumberAvailable:        1,
 			},
 		},
 		&appsv1.DaemonSet{
