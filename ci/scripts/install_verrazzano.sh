@@ -82,11 +82,18 @@ echo "------------------------------------------"
 # wait for Verrazzano install to complete
 ${TEST_SCRIPTS_DIR}/wait-for-verrazzano-install.sh
 result=$?
-echo "Generating post-install cluster-dump..."
-${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/post-vz-install-cluster-dump -r ${WORKSPACE}/post-vz-install-cluster-dump/analysis.report
-if [[ $result -ne 0 ]]; then
-  echo "Post-install cluster dump failed"
-  exit 1
+
+if [ "${POST_INSTALL_DUMP}" == "true" ]; then
+  echo "Generating post-install cluster-dump..."
+  if [ -e ${WORKSPACE}/post-vz-install-cluster-dump ]; then
+    echo "Removing exising post-install cluster dump"
+    rm -rf ${WORKSPACE}/post-vz-install-cluster-dump
+  fi
+  ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/post-vz-install-cluster-dump -r ${WORKSPACE}/post-vz-install-cluster-dump/analysis.report
+  if [[ $result -ne 0 ]]; then
+    echo "Post-install cluster dump failed"
+    exit 1
+  fi
 fi
 
 if [ "install_failed" == "true" ]; then
