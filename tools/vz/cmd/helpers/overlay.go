@@ -33,32 +33,32 @@ func MergeYAMLFiles(filenames []string) (string, error) {
 }
 
 // overlayVerrazzano overlays over base using JSON strategic merge.
-func overlayVerrazzano(baseYaml string, overlayYaml string) (string, error) {
-	if strings.TrimSpace(baseYaml) == "" {
-		return overlayYaml, nil
+func overlayVerrazzano(baseYAML string, overlayYAML string) (string, error) {
+	if strings.TrimSpace(baseYAML) == "" {
+		return overlayYAML, nil
 	}
-	if strings.TrimSpace(overlayYaml) == "" {
-		return baseYaml, nil
+	if strings.TrimSpace(overlayYAML) == "" {
+		return baseYAML, nil
 	}
-	baseJson, err := yaml.YAMLToJSON([]byte(baseYaml))
+	baseJSON, err := yaml.YAMLToJSON([]byte(baseYAML))
 	if err != nil {
-		return "", fmt.Errorf("YAMLToJSON error in base: %s\n%s", err, baseJson)
+		return "", fmt.Errorf("YAMLToJSON error in base: %s\n%s", err, baseJSON)
 	}
-	overlayJson, err := yaml.YAMLToJSON([]byte(overlayYaml))
+	overlayJSON, err := yaml.YAMLToJSON([]byte(overlayYAML))
 	if err != nil {
-		return "", fmt.Errorf("YAMLToJSON error in overlay: %s\n%s", err, overlayJson)
+		return "", fmt.Errorf("YAMLToJSON error in overlay: %s\n%s", err, overlayJSON)
 	}
 
 	// Merge the two json representations
-	mergedJson, err := strategicpatch.StrategicMergePatch(baseJson, overlayJson, &vzMergeStruct)
+	mergedJSON, err := strategicpatch.StrategicMergePatch(baseJSON, overlayJSON, &vzMergeStruct)
 	if err != nil {
-		return "", fmt.Errorf("json merge error (%v) for base object: \n%s\n override object: \n%s", err, baseJson, overlayJson)
+		return "", fmt.Errorf("json merge error (%v) for base object: \n%s\n override object: \n%s", err, baseJSON, overlayJSON)
 	}
 
-	mergedYaml, err := yaml.JSONToYAML(mergedJson)
+	mergedYAML, err := yaml.JSONToYAML(mergedJSON)
 	if err != nil {
-		return "", fmt.Errorf("JSONToYAML error (%v) for merged object: \n%s", err, mergedJson)
+		return "", fmt.Errorf("JSONToYAML error (%v) for merged object: \n%s", err, mergedJSON)
 	}
 
-	return string(mergedYaml), nil
+	return string(mergedYAML), nil
 }
