@@ -51,4 +51,3 @@ func FilterLogsByLevelComponent(level string, component string, allMessages []Lo
 	}
 	return filteredLogs, nil
 }
-

@@ -32,8 +32,6 @@ const verrazzanoResource = "verrazzano_resources.json"
 const installErrorNotFound = "No component specific error found in the Verrazzano Platform Operator"
 const installErrorMessage = "One or more components listed below did not reach Ready state:"
 
-var componentErrorPattern = `\"level\":\"error\".*\"component\":\"vzcomponent\"`
-
 // The structure of the log message from platform operator
 type VPOLogMessage struct {
 	Level             string `json:"level"`
@@ -301,13 +299,9 @@ func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotRead
 	allMessages, _ := files.ConvertToLogMessage(vpoLog)
 	for _, comp := range compsNotReady {
 		var allErrors []files.LogMessage
-		var logMessages []files.LogMessage
-		logMessages, err := files.FilterLogsByLevelComponent(logLevelError, comp, allMessages)
+		allErrors, err := files.FilterLogsByLevelComponent(logLevelError, comp, allMessages)
 		if err != nil {
 			log.Infof("There is an error: %s reading install log: %s", err, vpoLog)
-		}
-		for _, logMessage := range logMessages {
-			allErrors = append(allErrors, logMessage)
 		}
 		errorMessage := installErrorNotFound
 		// Display only the last error for the component from the install log.
