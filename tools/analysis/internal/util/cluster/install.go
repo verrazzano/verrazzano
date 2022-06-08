@@ -1,16 +1,21 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package cluster handles cluster analysis
 package cluster
 
 import (
+	encjson "encoding/json"
 	"fmt"
+	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/report"
 	"go.uber.org/zap"
+	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
+	"os"
 	"regexp"
+	"strings"
 )
 
 // Compiled Regular expressions
@@ -22,6 +27,26 @@ var installFailedRe = regexp.MustCompile(`Install.*\[FAILED\]`)
 // if we need a more precise match
 var ephemeralIPLimitReachedRe = regexp.MustCompile(`.*Limit for non-ephemeral regional public IP per tenant of .* has been already reached`)
 var lbServiceLimitReachedRe = regexp.MustCompile(`.*The following service limits were exceeded: lb-.*`)
+
+const verrazzanoResource = "verrazzano_resources.json"
+const installErrorNotFound = "No component specific error found in the Verrazzano Platform Operator"
+const installErrorMessage = "One or more components listed below did not reach Ready state:"
+
+var componentErrorPattern = `\"level\":\"error\".*\"component\":\"vzcomponent\"`
+
+// The structure of the log message from platform operator
+type VPOLogMessage struct {
+	Level             string `json:"level"`
+	Timestamp         string `json:"@timestamp,omitempty"`
+	Caller            string `json:"caller,omitempty"`
+	Message           string `json:"message"`
+	ResourceNameSpace string `json:"resource_namespace,omitempty"`
+	ResourceName      string `json:"resource_name,omitempty"`
+	Controller        string `json:"controller,omitempty"`
+	Component         string `json:"component,omitempty"`
+	Operation         string `json:"operation,omitempty"`
+	Stacktrace        string `json:"stacktrace,omitempty"`
+}
 
 const (
 	// Service name
@@ -37,6 +62,18 @@ var dispatchMatchMap = map[string]*regexp.Regexp{
 
 var dispatchFunctions = map[string]func(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error){
 	nginxIngressControllerFailed: analyzeNGINXIngressController,
+}
+
+func AnalyzeVerrazzanoResource(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) (err error) {
+	compsNotReady, err := getComponentsNoReady(log, clusterRoot)
+	if err != nil {
+		return err
+	}
+
+	if len(compsNotReady) > 0 {
+		reportInstallError(log, clusterRoot, compsNotReady, issueReporter)
+	}
+	return nil
 }
 
 // AnalyzeVerrazzanoInstallIssue is called when we have reason to believe that the installation has failed
@@ -192,5 +229,105 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 		return nil
 	}
 
+	return nil
+}
+
+func getComponentsNoReady(log *zap.SugaredLogger, clusterRoot string) ([]string, error) {
+	var compsNotReady = make([]string, 0)
+	vzResourcesPath := files.FindFileInClusterRoot(clusterRoot, verrazzanoResource)
+	fileInfo, e := os.Stat(vzResourcesPath)
+	if e != nil || fileInfo.Size() == 0 {
+		log.Infof("Verrazzano resource file %s is either empty or there is an issue in getting the file info about it", vzResourcesPath)
+		return compsNotReady, e
+	}
+
+	file, err := os.Open(vzResourcesPath)
+	if err != nil {
+		log.Infof("file %s not found", vzResourcesPath)
+		return compsNotReady, err
+	}
+	defer file.Close()
+	fileBytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		log.Infof("Failed reading Json file %s", vzResourcesPath)
+		return compsNotReady, err
+	}
+
+	var vzResourceList installv1alpha1.VerrazzanoList
+	err = encjson.Unmarshal(fileBytes, &vzResourceList)
+	if err != nil {
+		log.Infof("Failed to unmarshal Verrazzano resource at %s", vzResourcesPath)
+		return compsNotReady, err
+	}
+
+	if len(vzResourceList.Items) > 0 {
+		// There should be only one Verrazzano resource, so the first item from the list should be good enough
+		for _, vzRes := range vzResourceList.Items {
+			if vzRes.Status.State != installv1alpha1.VzStateReady {
+				log.Debugf("Installation is not good, installation state %s", vzRes.Status.State)
+
+				// Verrazzano installation is not complete, find out the list of components which are not ready
+				for _, compStatusDetail := range vzRes.Status.Components {
+					if compStatusDetail.State != installv1alpha1.CompStateReady {
+						if compStatusDetail.State == installv1alpha1.CompStateDisabled {
+							continue
+						}
+						log.Debugf("Component %s is not in ready state, state is %s", compStatusDetail.Name, vzRes.Status.State)
+						compsNotReady = append(compsNotReady, compStatusDetail.Name)
+					}
+				}
+				return compsNotReady, nil
+			}
+		}
+	}
+	return compsNotReady, nil
+}
+
+func reportInstallError(log *zap.SugaredLogger, clusterRoot string, compsNotReady []string, issueReporter *report.IssueReporter) error {
+	vpologRegExp := regexp.MustCompile(`verrazzano-install/verrazzano-platform-operator-.*/logs.txt`)
+	allPodFiles, err := files.GetMatchingFiles(log, clusterRoot, vpologRegExp)
+	if err != nil {
+		return err
+	}
+
+	// We should get only one pod file, use the first element rather than going through the slice
+	vpoLog := allPodFiles[0]
+	messages := make(StringSlice, 1)
+	messages[0] = installErrorMessage
+	// Go through all the components which did not reach Ready state
+	for _, comp := range compsNotReady {
+		regExpStr := strings.Replace(componentErrorPattern, "vzcomponent", comp, 1)
+		componentErrorMatcher := regexp.MustCompile(regExpStr)
+		logMatches, err := files.SearchFile(log, vpoLog, componentErrorMatcher, nil)
+		if err != nil {
+			log.Infof("There is an error searching the file %s for a regular expression: %s", vpoLog, err)
+		}
+		var allErrors []VPOLogMessage
+		var logMessage VPOLogMessage
+		for _, matched := range logMatches {
+			fileBytes := []byte(matched.MatchedText)
+			err = encjson.Unmarshal(fileBytes, &logMessage)
+			if err != nil {
+				log.Error("Error unmarshalling the json")
+				return err
+			}
+			allErrors = append(allErrors, logMessage)
+		}
+		errorMessage := installErrorNotFound
+		// For now, display only the last error for the component in the platform operator log
+		// Need a better way to handle distinct errors for a component, however some of the errors during the initial
+		// stage of the install might indicate any real issue, as reconcile takes care of healing those errors.
+		if len(allErrors) > 2 {
+			errorMessage = allErrors[len(allErrors)-1].Message
+		}
+		if len(allErrors) == 1 {
+			errorMessage = allErrors[0].Message
+		}
+		messages = append(messages, "\t "+comp+": "+errorMessage)
+	}
+	var files []string
+	files = append(files, clusterRoot+"/"+verrazzanoResource)
+	files = append(files, vpoLog)
+	issueReporter.AddKnownIssueMessagesFiles(report.CompNotReady, clusterRoot, messages, files)
 	return nil
 }
