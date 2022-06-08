@@ -177,6 +177,9 @@ const (
 	// CondPreInstall means an install about to start.
 	CondPreInstall ConditionType = "PreInstall"
 
+	// CondPreInstallComplete means an install about to start.
+	CondPreInstallComplete ConditionType = "PreInstallComplete"
+
 	// CondInstallStarted means an install is in progress.
 	CondInstallStarted ConditionType = "InstallStarted"
 
@@ -257,7 +260,9 @@ const (
 
 	// CompStateInstallStarted is the state when pre-install is completed and install is about to be started
 	CompStateInstallStarted CompStateType = "InstallStarted"
-	
+
+	CompStatePreInstallComplete CompStateType = "PreInstallComplete"
+
 	// CompStateInstalling is the state when an install is in progress
 	CompStateInstalling CompStateType = "Installing"
 

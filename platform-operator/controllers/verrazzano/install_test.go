@@ -5,6 +5,9 @@ package verrazzano
 
 import (
 	"context"
+	"fmt"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -36,7 +39,7 @@ func TestUpdate(t *testing.T) {
 	reconcilingGen := int64(0)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t,
 		lastReconciledGeneration+1, reconcilingGen, lastReconciledGeneration,
-		"1.3.0", "1.3.0", namespace, name)
+		"1.3.0", "1.3.0", namespace, name, nil, 2)
 	defer reset()
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateReconciling, vz.Status.State)
@@ -55,7 +58,7 @@ func TestNoUpdateSameGeneration(t *testing.T) {
 	lastReconciledGeneration := int64(2)
 	reconcilingGen := int64(0)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t, lastReconciledGeneration, reconcilingGen, lastReconciledGeneration,
-		"1.3.1", "1.3.1", namespace, name)
+		"1.3.1", "1.3.1", namespace, name, nil, 2)
 	defer reset()
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateReady, vz.Status.State)
@@ -74,7 +77,7 @@ func TestUpdateWithUpgrade(t *testing.T) {
 	lastReconciledGeneration := int64(2)
 	reconcilingGen := int64(0)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t, lastReconciledGeneration+1, reconcilingGen, lastReconciledGeneration,
-		"1.3.0", "1.2.0", namespace, name)
+		"1.3.0", "1.2.0", namespace, name, nil, 2)
 	defer reset()
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateUpgrading, vz.Status.State)
@@ -94,11 +97,29 @@ func TestUpdateOnUpdate(t *testing.T) {
 	reconcilingGen := int64(3)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t,
 		reconcilingGen+1, reconcilingGen, lastReconciledGeneration,
-		"1.3.3", "1.3.3", namespace, name)
+		"1.3.3", "1.3.3", namespace, name, nil, 2)
 	defer reset()
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateReconciling, vz.Status.State)
 	asserts.True(*fakeCompUpdated)
+	asserts.True(result.Requeue)
+}
+
+func TestErrorDuringInstall(t *testing.T) {
+	initUnitTesing()
+	namespace := "verrazzano"
+	name := "test"
+	lastReconciledGeneration := int64(2)
+	reconcilingGen := int64(3)
+	installFunc := func(ctx spi.ComponentContext) error {
+		return fmt.Errorf("Dummy error during installation")
+	}
+	asserts, vz, result, _, err := testUpdate(t,
+		reconcilingGen+1, reconcilingGen, lastReconciledGeneration,
+		"1.3.3", "1.3.3", namespace, name, installFunc, 2)
+	defer reset()
+	asserts.NoError(err)
+	asserts.Equal(vzapi.VzStateReconciling, vz.Status.State)
 	asserts.True(result.Requeue)
 }
 
@@ -115,7 +136,9 @@ func testUpdate(t *testing.T,
 	//mocker *gomock.Controller, mock *mocks.MockClient,
 	vzCrGen, reconcilingGen, lastReconciledGeneration int64,
 	//mockStatus *mocks.MockStatusWriter,
-	specVer, statusVer, namespace, name string) (*assert.Assertions, *vzapi.Verrazzano, ctrl.Result, *bool, error) {
+	specVer, statusVer, namespace, name string,
+	installFunc func(componentContext spi.ComponentContext) error,
+	reconcileLoopCount int) (*assert.Assertions, *vzapi.Verrazzano, ctrl.Result, *bool, error) {
 	asserts := assert.New(t)
 
 	config.SetDefaultBomFilePath(testBomFile)
@@ -128,10 +151,15 @@ func testUpdate(t *testing.T,
 	fakeComp.ReleaseName = "verrazzano-authproxy"
 	fakeComp.SupportsOperatorInstall = true
 	var fakeCompUpdated *bool
-	fakeComp.installFunc = func(ctx spi.ComponentContext) error {
-		update := true
-		fakeCompUpdated = &update
-		return nil
+	if installFunc == nil {
+		var defaultInstallFn = func(ctx spi.ComponentContext) error {
+			update := true
+			fakeCompUpdated = &update
+			return nil
+		}
+		fakeComp.installFunc = defaultInstallFn
+	} else {
+		fakeComp.installFunc = installFunc
 	}
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
@@ -170,7 +198,7 @@ func testUpdate(t *testing.T,
 			}
 			verrazzano.Status.Components = compStatusMap
 			return nil
-		})
+		}).AnyTimes()
 	// The mocks are added to accomodate the expected calls to List instance when component is Ready
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil())).
@@ -208,7 +236,17 @@ func testUpdate(t *testing.T,
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
+	var result reconcile.Result
+	var err error
+	var requeue = true
+	for i := 0; i < reconcileLoopCount && requeue; i++ {
+		result, err = reconciler.Reconcile(nil, request)
+		if err != nil {
+			pkg.Log(pkg.Error, err.Error())
+			requeue = false
+		}
+		requeue = result.Requeue
+	}
 	mocker.Finish()
 	return asserts, vz, result, fakeCompUpdated, err
 }

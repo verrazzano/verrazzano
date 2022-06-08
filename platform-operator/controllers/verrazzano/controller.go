@@ -739,6 +739,8 @@ func checkCondtitionType(currentCondition installv1alpha1.ConditionType) install
 	switch currentCondition {
 	case installv1alpha1.CondPreInstall:
 		return installv1alpha1.CompStatePreInstalling
+	case installv1alpha1.CondPreInstallComplete:
+		return installv1alpha1.CompStatePreInstallComplete
 	case installv1alpha1.CondInstallStarted:
 		return installv1alpha1.CompStateInstalling
 	case installv1alpha1.CondUninstallStarted:
