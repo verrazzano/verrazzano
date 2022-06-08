@@ -180,7 +180,10 @@ func getVerrazzanoYAML(cmd *cobra.Command) (vz *vzapi.Verrazzano, err error) {
 func applyPlatformOperatorYaml(client client.Client, vzHelper helpers.VZHelper, version string) error {
 	// Get the Verrazzano operator.yaml - use a string constant for the URL to avoid security warnings
 	url := fmt.Sprintf(constants.VerrazzanoOperatorURL, version)
-	resp, err := http.Get(url)
+	httpClient := &http.Client{
+		Timeout: time.Second * 30,
+	}
+	resp, err := httpClient.Get(url)
 	if err != nil {
 		return fmt.Errorf("Failed to access the Verrazzano operator.yaml file: %s", err.Error())
 	}
