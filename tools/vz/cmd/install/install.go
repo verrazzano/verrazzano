@@ -28,6 +28,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -80,12 +81,11 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-	filenames, err := cmd.PersistentFlags().GetStringSlice(constants.FilenameFlag)
+	// Get the verrazzano install resource to be created
+	vz, err := getVerrazzanoYAML(cmd)
 	if err != nil {
 		return err
 	}
-	overlayYAML, err := cmdhelpers.ParseYAMLFiles(filenames)
-	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Merged YAML: %v", overlayYAML))
 
 	// Get the timeout value for the install command
 	timeout, err := cmdhelpers.GetWaitTimeout(cmd)
@@ -138,16 +138,6 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Create the Verrazzano install resource.
-	vz := &vzapi.Verrazzano{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "default",
-			Name:      "verrazzano",
-		},
-		Spec: vzapi.VerrazzanoSpec{
-			Profile: vzapi.Prod,
-		},
-	}
 	err = client.Create(context.TODO(), vz)
 	if err != nil {
 		return err
@@ -155,6 +145,38 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 
 	// Wait for the Verrazzano install to complete
 	return waitForInstallToComplete(client, kubeClient, vzHelper, vpoPodName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, logFormat)
+}
+
+// getVerrazzanoYAML returns the verrazzano install resource to be created
+func getVerrazzanoYAML(cmd *cobra.Command) (vz *vzapi.Verrazzano, err error) {
+	filenames, err := cmd.PersistentFlags().GetStringSlice(constants.FilenameFlag)
+	if err != nil {
+		return nil, err
+	}
+
+	// If no yamls files were passed on the command line then return a minimal verrazzano
+	// resource.  The minimal resource will be used to create a resource called verrazzano
+	// in the default namespace using the prod profile.
+	if len(filenames) == 0 {
+		vz = &vzapi.Verrazzano{
+			TypeMeta: metav1.TypeMeta{},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      "verrazzano",
+			},
+		}
+		return vz, nil
+	}
+
+	// Merge the yaml files passed on the command line and return the merged verrazzano resource
+	// to be created.
+	overlayYAML, err := cmdhelpers.MergeYAMLFiles(filenames)
+	vz = &vzapi.Verrazzano{}
+	err = yaml.Unmarshal([]byte(overlayYAML), &vz)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to unmarshal yaml into a verrazzano resource: %s", err.Error())
+	}
+	return vz, nil
 }
 
 // applyPlatformOperatorYaml applies a given version of the platform operator yaml file

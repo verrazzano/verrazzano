@@ -5,18 +5,19 @@ package helpers
 
 import (
 	"fmt"
+	"os"
+	"strings"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
-	"os"
 	"sigs.k8s.io/yaml"
-	"strings"
 )
 
 var vzMergeStruct vzapi.Verrazzano
 
-// ParseYAMLFiles parses the given slice of filenames containing yaml and
+// MergeYAMLFiles parses the given slice of filenames containing yaml and
 // merges them into a single verrazzano yaml which is returned as a string.
-func ParseYAMLFiles(filenames []string) (string, error) {
+func MergeYAMLFiles(filenames []string) (string, error) {
 	if filenames == nil {
 		return "", nil
 	}
