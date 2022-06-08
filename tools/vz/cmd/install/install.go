@@ -171,11 +171,18 @@ func getVerrazzanoYAML(cmd *cobra.Command) (vz *vzapi.Verrazzano, err error) {
 	// Merge the yaml files passed on the command line and return the merged verrazzano resource
 	// to be created.
 	overlayYAML, err := cmdhelpers.MergeYAMLFiles(filenames)
+	if err != nil {
+		return nil, err
+	}
 	vz = &vzapi.Verrazzano{}
 	err = yaml.Unmarshal([]byte(overlayYAML), &vz)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to unmarshal yaml into a verrazzano resource: %s", err.Error())
 	}
+	if vz.Namespace == "" {
+		vz.Namespace = "default"
+	}
+
 	return vz, nil
 }
 

@@ -18,10 +18,6 @@ var vzMergeStruct vzapi.Verrazzano
 // MergeYAMLFiles parses the given slice of filenames containing yaml and
 // merges them into a single verrazzano yaml which is returned as a string.
 func MergeYAMLFiles(filenames []string) (string, error) {
-	if filenames == nil {
-		return "", nil
-	}
-
 	var vzYaml string
 	for _, filename := range filenames {
 		readBytes, err := os.ReadFile(strings.TrimSpace(filename))
@@ -53,6 +49,7 @@ func overlayVerrazzano(baseYaml string, overlayYaml string) (string, error) {
 		return "", fmt.Errorf("YAMLToJSON error in overlay: %s\n%s", err, overlayJson)
 	}
 
+	// Merge the two json representations
 	mergedJson, err := strategicpatch.StrategicMergePatch(baseJson, overlayJson, &vzMergeStruct)
 	if err != nil {
 		return "", fmt.Errorf("json merge error (%v) for base object: \n%s\n override object: \n%s", err, baseJson, overlayJson)
