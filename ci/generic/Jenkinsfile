@@ -134,6 +134,15 @@ pipeline {
             steps {
                 pipelineSetup()
             }
+            post {
+                always {
+                    script {
+                        // TODO: need to capture the metrics after the initial install?
+                        VZ_TEST_METRIC = metricJobName('')
+                        metricTimerStart("${VZ_TEST_METRIC}")
+                    }
+                }
+            }
         }
 
         stage('Run Acceptance Tests') {
