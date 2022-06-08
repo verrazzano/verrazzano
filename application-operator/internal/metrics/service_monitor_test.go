@@ -62,10 +62,9 @@ func TestPopulateServiceMonitor(t *testing.T) {
 					return
 				}
 				asserts.Equal(t, 9, len(serviceMonitor.Spec.Endpoints[0].RelabelConfigs))
-				if tt.info.BasicAuthSecret == nil {
-					return
+				if tt.info.BasicAuthSecret != nil {
+					asserts.NotNil(t, serviceMonitor.Spec.Endpoints[0].BasicAuth)
 				}
-				asserts.NotNil(t, serviceMonitor.Spec.Endpoints[0].BasicAuth)
 				if tt.info.IstioEnabled == nil || tt.info.IstioEnabled == &falseVal {
 					asserts.Equal(t, "http", serviceMonitor.Spec.Endpoints[0].Scheme)
 				} else {
@@ -79,8 +78,10 @@ func TestPopulateServiceMonitor(t *testing.T) {
 				} else {
 					asserts.Contains(t, serviceMonitor.Spec.Endpoints[0].RelabelConfigs[1].SourceLabels,
 						promoperapi.LabelName("__meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled"))
-					asserts.Contains(t, serviceMonitor.Spec.Endpoints[1].RelabelConfigs[1].SourceLabels,
-						promoperapi.LabelName("__meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled_1"))
+					if len(serviceMonitor.Spec.Endpoints) >= 1 {
+						asserts.Contains(t, serviceMonitor.Spec.Endpoints[1].RelabelConfigs[1].SourceLabels,
+							promoperapi.LabelName("__meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled_1"))
+					}
 					asserts.Contains(t, serviceMonitor.Spec.Endpoints[0].RelabelConfigs[1].SourceLabels,
 						promoperapi.LabelName("test"))
 				}
