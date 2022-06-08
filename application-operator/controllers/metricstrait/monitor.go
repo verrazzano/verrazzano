@@ -46,11 +46,11 @@ func (r *Reconciler) updateServiceMonitor(ctx context.Context, trait *vzapi.Metr
 
 	wlsWorkload, err := isWLSWorkload(workload)
 	if err != nil {
-		return rel, controllerutil.OperationResultNone, log.ErrorfNewErr("Failed to determine if workload was of type WLS: %v", err)
+		return rel, controllerutil.OperationResultNone, log.ErrorfNewErr("Failed to determine if workload %s/&s was of type WLS: %v", workload.GetNamespace(), workload.GetName(), err)
 	}
 	vzPromLabels := !wlsWorkload
 
-	log.Debugf("Creating or updating the Service Monitor for workload %s/%s", workload.GetName(), workload.GetNamespace())
+	log.Debugf("Creating or updating the Service Monitor for workload %s/%s", workload.GetNamespace(), workload.GetName())
 	scrapeInfo := metrics.ScrapeInfo{
 		Name:               pmName,
 		Ports:              len(getPortSpecs(trait, traitDefaults)),
@@ -71,9 +71,12 @@ func (r *Reconciler) updateServiceMonitor(ctx context.Context, trait *vzapi.Metr
 		"__meta_kubernetes_pod_label_app_oam_dev_component": trait.Labels[compObjectMetaLabel],
 	}
 
-	result, serviceMonitor, err := metrics.CreateOrUpdateServiceMonitor(ctx, r.Client, scrapeInfo, log)
+	serviceMonitor := promoperapi.ServiceMonitor{}
+	result, err := controllerutil.CreateOrUpdate(ctx, r.Client, &serviceMonitor, func() error {
+		return metrics.PopulateServiceMonitor(scrapeInfo, &serviceMonitor, log)
+	})
 	if err != nil {
-		return rel, controllerutil.OperationResultNone, log.ErrorfNewErr("Failed to create or update the service monitor for workload %s/%s: %v", workload.GetName(), workload.GetNamespace(), err)
+		return rel, controllerutil.OperationResultNone, log.ErrorfNewErr("Failed to create or update the service monitor for workload %s/%s: %v", workload.GetNamespace(), workload.GetName(), err)
 	}
 
 	rel = vzapi.QualifiedResourceRelation{APIVersion: promoperapi.SchemeGroupVersion.String(), Kind: promoperapi.ServiceMonitorsKind, Namespace: serviceMonitor.Namespace, Name: serviceMonitor.Name, Role: scraperRole}

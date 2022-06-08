@@ -4,14 +4,11 @@
 package metrics
 
 import (
-	"context"
 	"fmt"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -39,21 +36,17 @@ type ScrapeInfo struct {
 	Workload *unstructured.Unstructured
 }
 
-func CreateOrUpdateServiceMonitor(ctx context.Context, client client.Client, info ScrapeInfo, log vzlog.VerrazzanoLogger) (controllerutil.OperationResult, promoperapi.ServiceMonitor, error) {
-	serviceMonitor := promoperapi.ServiceMonitor{}
+// PopulateServiceMonitor populates the Service Monitor to prepare for a create or update
+// the Service Monitor reflects the specifications defined in the ScrapeInfo object
+func PopulateServiceMonitor(info ScrapeInfo, serviceMonitor *promoperapi.ServiceMonitor, log vzlog.VerrazzanoLogger) error {
+	// Create the Service Monitor name from the info if the label exists
 	serviceMonitor.SetName(info.Name)
+	if info.Workload == nil {
+		return log.ErrorfNewErr("Workload object for Service Monitor %s is empty", info.Name)
+	}
 	serviceMonitor.SetNamespace(info.Workload.GetNamespace())
-	result, err := controllerutil.CreateOrUpdate(ctx, client, &serviceMonitor, func() error {
-		return mutateServiceMonitor(ctx, &serviceMonitor, info, log)
-	})
-	return result, serviceMonitor, err
-}
 
-// mutateServiceMonitorFromTrait mutates the Service Monitor to prepare for a create or update
-// the Service Monitor reflects the specifications of the trait and the trait defaults
-func mutateServiceMonitor(ctx context.Context, serviceMonitor *promoperapi.ServiceMonitor, info ScrapeInfo, log vzlog.VerrazzanoLogger) error {
-	// Create the Service Monitor name from the trait if the label exists
-	// Create the Service Monitor selector from the trait label if it exists
+	// Create the Service Monitor selector from the info label if it exists
 	if serviceMonitor.ObjectMeta.Labels == nil {
 		serviceMonitor.ObjectMeta.Labels = make(map[string]string)
 	}
@@ -65,21 +58,20 @@ func mutateServiceMonitor(ctx context.Context, serviceMonitor *promoperapi.Servi
 	// Clear the existing endpoints to avoid duplications
 	serviceMonitor.Spec.Endpoints = nil
 
-	// Loop through ports in the trait and create scrape targets for each
+	// Loop through ports in the info and create scrape targets for each
 	for i := 0; i < info.Ports; i++ {
-		endpoint, err := createServiceMonitorEndpoint(ctx, info, i)
+		endpoint, err := createServiceMonitorEndpoint(info, i)
 		if err != nil {
 			return log.ErrorfNewErr("Failed to create an endpoint for the Service Monitor: %v", err)
 		}
 		serviceMonitor.Spec.Endpoints = append(serviceMonitor.Spec.Endpoints, endpoint)
 	}
-
 	return nil
 }
 
-// createServiceMonitorEndpoint creates an endpoint for a given port and trait
-// this function effectively creates a scrape config for the trait target through the Service Monitor API
-func createServiceMonitorEndpoint(ctx context.Context, info ScrapeInfo, portIncrement int) (promoperapi.Endpoint, error) {
+// createServiceMonitorEndpoint creates an endpoint for a given port increment and info
+// this function effectively creates a scrape config for the workload target through the Service Monitor API
+func createServiceMonitorEndpoint(info ScrapeInfo, portIncrement int) (promoperapi.Endpoint, error) {
 	var endpoint promoperapi.Endpoint
 
 	// Add the secret username and password if basic auth is required for this endpoint
