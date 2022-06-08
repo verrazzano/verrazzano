@@ -119,3 +119,9 @@ const DefaultOpensearchURL = "http://verrazzano-authproxy-elasticsearch:8775"
 
 // VerrazzanoManagedLabelKey is a constant for a Kubernetes label that is applied to Verrazzano application namespaces
 const VerrazzanoManagedLabelKey = "verrazzano-managed"
+
+// PromAdditionalScrapeConfigsSecretName is the name of the secret that contains the additional scrape configurations loaded by Prometheus
+const PromAdditionalScrapeConfigsSecretName = "additional-scrape-configs"
+
+// PromAdditionalScrapeConfigsSecretKey is the name of the key in the additional scrape configurations secret that contains the scrape config YAML
+const PromAdditionalScrapeConfigsSecretKey = "jobs"
