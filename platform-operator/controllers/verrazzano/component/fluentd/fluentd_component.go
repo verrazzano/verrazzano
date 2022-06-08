@@ -8,7 +8,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"io/ioutil"
@@ -57,8 +56,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  vzImagePullSecretKeyName,
 			AppendOverridesFunc:     appendOverrides,
-			// Dependency on keycloak component due to "verrazzano-es-internal" secret created by keycloak
-			Dependencies: []string{keycloak.ComponentName},
+			Dependencies:            []string{},
 		},
 	}
 }
