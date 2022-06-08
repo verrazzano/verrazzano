@@ -50,7 +50,7 @@ func NewComponent() spi.Component {
 			GetInstallOverridesFunc: GetOverrides,
 			Dependencies:            []string{nginx.ComponentName},
 			Certificates: []types.NamespacedName{
-				{Name: "verrazzano-tls", Namespace: ComponentNamespace},
+				{Name: constants.VerrazzanoIngressSecret, Namespace: ComponentNamespace},
 			},
 			IngressNames: []types.NamespacedName{
 				{
