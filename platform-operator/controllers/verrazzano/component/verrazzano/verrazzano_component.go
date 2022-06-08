@@ -40,8 +40,6 @@ const (
 	vzImagePullSecretKeyName = "global.imagePullSecrets[0]"
 
 	// Certificate names
-	verrazzanoCertificateName = "verrazzano-tls"
-
 	prometheusCertificateName = "system-tls-prometheus"
 
 	// ES secret keys
@@ -257,11 +255,6 @@ func (c verrazzanoComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 // GetCertificateNames - gets the names of the ingresses associated with this component
 func (c verrazzanoComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var certificateNames []types.NamespacedName
-
-	certificateNames = append(certificateNames, types.NamespacedName{
-		Namespace: ComponentNamespace,
-		Name:      verrazzanoCertificateName,
-	})
 
 	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
 		certificateNames = append(certificateNames, types.NamespacedName{

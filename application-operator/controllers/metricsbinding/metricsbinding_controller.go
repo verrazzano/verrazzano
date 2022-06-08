@@ -202,7 +202,7 @@ func (r *Reconciler) deleteScrapeConfig(metricsBinding *vzapi.MetricsBinding, co
 	// Delete scrape config with job name matching resource
 	scrapeConfigs := promConfig.Search(prometheusScrapeConfigsLabel).Children()
 	for index, scrapeConfig := range scrapeConfigs {
-		existingJobName := scrapeConfig.Search(prometheusJobNameLabel).Data()
+		existingJobName := scrapeConfig.Search(constants.PrometheusJobNameKey).Data()
 		createdJobName := createJobName(metricsBinding)
 		if existingJobName == createdJobName {
 			err = promConfig.ArrayRemoveP(index, prometheusScrapeConfigsLabel)
@@ -288,7 +288,7 @@ func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBin
 	existingUpdated := false
 	scrapeConfigs := promConfig.Search(prometheusScrapeConfigsLabel).Children()
 	for index, scrapeConfig := range scrapeConfigs {
-		existingJobName := scrapeConfig.Search(prometheusJobNameLabel).Data()
+		existingJobName := scrapeConfig.Search(constants.PrometheusJobNameKey).Data()
 		if existingJobName == createdJobName {
 			// Remove and recreate scrape config
 			err = promConfig.ArrayRemoveP(index, prometheusScrapeConfigsLabel)

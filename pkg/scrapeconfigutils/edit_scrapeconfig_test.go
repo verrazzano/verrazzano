@@ -8,12 +8,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 )
 
 const newJobName = "newjob"
 const existingJobName = "prometheus"
-const newScrapeJob = `
-job_name: ` + newJobName + `
+const newScrapeJob = constants.PrometheusJobNameKey + `: ` + newJobName + `
 kubernetes_sd_configs:
 - role: endpoints
 relabel_configs:
@@ -25,8 +25,7 @@ scrape_interval: 20s
 scrape_timeout: 15s
 `
 
-const replaceExistingScrapeJob = `
-job_name: ` + existingJobName + `
+const replaceExistingScrapeJob = constants.PrometheusJobNameKey + `: ` + existingJobName + `
 scrape_interval: 20s
 scrape_timeout: 15s
 static_configs:
