@@ -351,7 +351,7 @@ func TestCreateVMCNoCACert(t *testing.T) {
 // THEN ensure all the objects are created
 func TestCreateVMCWithExistingScrapeConfiguration(t *testing.T) {
 	namespace := "verrazzano-mc"
-	jobs := `  - job_name: cluster1
+	jobs := `  - ` + constants.PrometheusJobNameKey + `: cluster1
     scrape_interval: 20s
     scrape_timeout: 15s
     scheme: http`
@@ -432,7 +432,7 @@ scrape_configs:
 // THEN ensure all the objects are created (existing configuration is replaced)
 func TestReplaceExistingScrapeConfiguration(t *testing.T) {
 	namespace := "verrazzano-mc"
-	jobs := `  - job_name: test
+	jobs := `  - ` + constants.PrometheusJobNameKey + `: test
     scrape_interval: 20s
     scrape_timeout: 15s
     scheme: http`
@@ -678,11 +678,11 @@ func TestDeleteVMC(t *testing.T) {
 			return nil
 		})
 
-	jobs := `  - job_name: test
+	jobs := `  - ` + constants.PrometheusJobNameKey + `: test
     scrape_interval: 20s
     scrape_timeout: 15s
     scheme: http
-  - job_name: test2
+  - ` + constants.PrometheusJobNameKey + `: test2
     scrape_interval: 20s
     scrape_timeout: 15s
     scheme: http`
@@ -727,7 +727,7 @@ scrape_configs:
 
 			asserts.NotNil(prometheusYaml, "No prometheus config yaml found")
 			asserts.NotNil(scrapeConfig, "No scrape configs found")
-			asserts.Equal("test2", scrapeConfig.Path("job_name").Data(), "Expected scrape config not found")
+			asserts.Equal("test2", scrapeConfig.Path(constants.PrometheusJobNameKey).Data(), "Expected scrape config not found")
 
 			return nil
 		})
@@ -762,7 +762,7 @@ scrape_configs:
 				return err
 			}
 			asserts.Len(scrapeConfigs.Children(), 1, "Expected only one scrape config")
-			scrapeJobName := scrapeConfigs.Children()[0].Search(jobNameKey).Data()
+			scrapeJobName := scrapeConfigs.Children()[0].Search(constants.PrometheusJobNameKey).Data()
 			asserts.Equal("test2", scrapeJobName)
 			return nil
 		})
@@ -1954,7 +1954,7 @@ func getScrapeConfig(prometheusYaml string, name string) (*gabs.Container, error
 func getJob(scrapeConfigs []*gabs.Container, name string) *gabs.Container {
 	var job *gabs.Container
 	for _, scrapeConfig := range scrapeConfigs {
-		jobName := scrapeConfig.Search(jobNameKey).Data()
+		jobName := scrapeConfig.Search(constants.PrometheusJobNameKey).Data()
 		if jobName == name {
 			job = scrapeConfig
 			break

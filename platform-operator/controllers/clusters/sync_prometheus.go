@@ -27,12 +27,11 @@ const (
 	prometheusConfigMapName  = "vmi-system-prometheus-config"
 	prometheusYamlKey        = "prometheus.yml"
 	scrapeConfigsKey         = "scrape_configs"
-	jobNameKey               = "job_name"
 	prometheusConfigBasePath = "/etc/prometheus/config/"
 	managedCertsBasePath     = "/etc/prometheus/managed-cluster-ca-certs/"
 	configMapKind            = "ConfigMap"
 	configMapVersion         = "v1"
-	scrapeConfigTemplate     = `job_name: ##JOB_NAME##
+	scrapeConfigTemplate     = constants.PrometheusJobNameKey + `: ##JOB_NAME##
 scrape_interval: 20s
 scrape_timeout: 15s
 scheme: https
@@ -141,7 +140,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutatePrometheusConfigMap(vmc *clus
 	}
 	existingReplaced := false
 	for _, oldScrapeConfig := range oldScrapeConfigs {
-		oldScrapeJob := oldScrapeConfig.Search(jobNameKey).Data()
+		oldScrapeJob := oldScrapeConfig.Search(constants.PrometheusJobNameKey).Data()
 		if vmc.Name == oldScrapeJob {
 			if vmc.DeletionTimestamp == nil || vmc.DeletionTimestamp.IsZero() {
 				// need to replace existing entry for this vmc

@@ -59,7 +59,6 @@ const (
 	// Markers used during the processing of Prometheus scrape configurations
 	prometheusConfigKey          = "prometheus.yml"
 	prometheusScrapeConfigsLabel = "scrape_configs"
-	prometheusJobNameLabel       = "job_name"
 	prometheusClusterNameLabel   = "verrazzano_cluster"
 
 	// Annotation names for metrics read by the controller
@@ -109,7 +108,7 @@ tls_config:
 
 // prometheusScrapeConfigTemplate configuration for general Prometheus scrape target template
 // Used to add new scrape config to a Prometheus configmap
-const prometheusScrapeConfigTemplate = `job_name: ##JOB_NAME##
+const prometheusScrapeConfigTemplate = vzconst.PrometheusJobNameKey + `: ##JOB_NAME##
 ##SSL_PROTOCOL##
 kubernetes_sd_configs:
 - role: pod
@@ -154,7 +153,7 @@ relabel_configs:
 
 // prometheusWLSScrapeConfigTemplate configuration for WebLogic Prometheus scrape target template
 // Used to add new WebLogic scrape config to a Prometheus configmap
-const prometheusWLSScrapeConfigTemplate = `job_name: ##JOB_NAME##
+const prometheusWLSScrapeConfigTemplate = vzconst.PrometheusJobNameKey + `: ##JOB_NAME##
 ##SSL_PROTOCOL##
 kubernetes_sd_configs:
 - role: pod
@@ -652,7 +651,7 @@ func mutatePrometheusScrapeConfig(ctx context.Context, trait *vzapi.MetricsTrait
 		}
 		existingReplaced := false
 		for _, oldScrapeConfig := range oldScrapeConfigs {
-			oldScrapeJob := oldScrapeConfig.Search(prometheusJobNameLabel).Data()
+			oldScrapeJob := oldScrapeConfig.Search(vzconst.PrometheusJobNameKey).Data()
 			if newScrapeJob == oldScrapeJob {
 				// If the scrape config should be removed then skip adding it to the result slice.
 				// This will occur in three situations.
