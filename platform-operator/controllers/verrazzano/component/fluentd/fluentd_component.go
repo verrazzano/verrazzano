@@ -94,9 +94,6 @@ func (f fluentdComponent) checkEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazz
 // PostInstall - post-install, clean up temp files
 func (f fluentdComponent) PostInstall(ctx spi.ComponentContext) error {
 	cleanTempFiles(ctx)
-	// populate the ingress and certificate names before calling PostInstall on Helm component because those will be needed there
-	//f.HelmComponent.IngressNames = c.GetIngressNames(ctx)
-	//f.HelmComponent.Certificates = c.GetCertificateNames(ctx)
 	return f.HelmComponent.PostInstall(ctx)
 }
 
@@ -104,13 +101,6 @@ func (f fluentdComponent) PostInstall(ctx spi.ComponentContext) error {
 func (f fluentdComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Fluentd component post-upgrade")
 	cleanTempFiles(ctx)
-	/*f.HelmComponent.IngressNames = f.GetIngressNames(ctx)
-	f.HelmComponent.Certificates = f.GetCertificateNames(ctx)
-	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
-		if err := common.ReassociateVMOResources(ctx); err != nil {
-			return err
-		}
-	}*/
 	return f.HelmComponent.PostUpgrade(ctx)
 }
 
