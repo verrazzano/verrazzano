@@ -8,6 +8,8 @@ export GINGKO_ARGS ?= -v --keep-going --no-color --junit-report=test-report.xml 
 
 run-test: export RANDOMIZE_TESTS ?= true
 run-test: export RUN_PARALLEL ?= true
+run-test: export TEST_REPORT ?= "test-report.xml"
+run-test: export TEST_REPORT_DIR ?= "${WORKSPACE}/tests/e2e"
 .PHONY: run-test
 run-test:
 	${CI_SCRIPTS_DIR}/run-ginkgo.sh
@@ -26,6 +28,10 @@ verify-infra-all: verify-install verify-scripts verify-infra verify-security-rba
 .PHONY: verify-install
 verify-install:
 	TEST_SUITES=verify-install/... make test
+
+.PHONY: jobmetrics
+jobmetrics:
+	TEST_SUITES=jobmetrics/... make test
 
 .PHONY: verify-scripts
 verify-scripts:
