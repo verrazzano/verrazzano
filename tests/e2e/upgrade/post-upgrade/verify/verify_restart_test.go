@@ -310,12 +310,12 @@ var _ = t.Describe("Verify prometheus configmap reconciliation,", Label("f:platf
 			for _, nsc := range scrapeConfigs {
 				scrapeConfig := nsc.(map[interface{}]interface{})
 				// Check that interval is updated
-				if scrapeConfig["job_name"] == "prometheus" {
+				if scrapeConfig[vzconst.PrometheusJobNameKey] == "prometheus" {
 					intervalUpdated = (scrapeConfig["scrape_interval"].(string) != vzconst.TestPrometheusJobScrapeInterval)
 				}
 
 				// Check that test scrape config is not removed
-				if scrapeConfig["job_name"] == vzconst.TestPrometheusScrapeJob {
+				if scrapeConfig[vzconst.PrometheusJobNameKey] == vzconst.TestPrometheusScrapeJob {
 					testJobFound = true
 				}
 			}
