@@ -15,6 +15,7 @@ def branchSpecificSchedule = getCronSchedule()
 def verrazzanoImagesJobProjectName = "verrazzano-examples"
 def verrazzanoImagesFile = "verrazzano_images.txt"
 def verrazzanoImagesBuildNumber = 0 // will be set to actual build number when the job is run
+def periodicsUpToDate = false // If true, indicates that the periodics already passed at the latest commit
 
 pipeline {
     options {
@@ -68,6 +69,12 @@ pipeline {
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
         RELEASABLE_IMAGES_OBJECT_STORE = "releasable-verrazzano-images.txt"
+
+        STABLE_COMMIT_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-stable-commit.txt"
+        CLEAN_PERIODIC_OS_LOCATION = "${CLEAN_BRANCH_NAME}-last-clean-periodic-test/verrazzano_periodic-commit.txt"
+
+        STABLE_COMMIT_LOCATION = "${WORKSPACE}/last-stable-commit.txt"
+        CLEAN_PERIODIC_LOCATION = "${WORKSPACE}/last-clean-periodic-commit.txt"
     }
 
     // This job runs against the latest stable master commit. That is defined as the last clean master build and test run whose
@@ -76,16 +83,38 @@ pipeline {
     // need to run those against your branch individually.
 
     stages {
-        stage('Clean workspace and checkout') {
+        stage('Check last clean periodic') {
             steps {
                 sh """
-                    echo "${NODE_LABELS}"
-                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/last-stable-commit.txt --file ${WORKSPACE}/last-stable-commit.txt
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${STABLE_COMMIT_OS_LOCATION} --file ${STABLE_COMMIT_LOCATION}
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_PERIODIC_OS_LOCATION} --file ${CLEAN_PERIODIC_LOCATION}
                 """
 
                 script {
-                    def props = readProperties file: "${WORKSPACE}/last-stable-commit.txt"
-                    GIT_COMMIT_TO_USE = props['git-commit']
+                    // Get the last stable commit ID to pass the triggered tests
+                    def stableCommitProps = readProperties file: "${STABLE_COMMIT_LOCATION}"
+                    GIT_COMMIT_TO_USE = stableCommitProps['git-commit']
+
+                    // Get the commit ID for the last known clean pass of the Periodic tests
+                    def cleanPeriodicsCommitProps = readProperties file: "${CLEAN_PERIODIC_LOCATION}"
+                    LAST_CLEAN_PERIODIC_COMMIT = cleanPeriodicsCommitProps['git-commit']
+
+                    if (LAST_CLEAN_PERIODIC_COMMIT == GIT_COMMIT_TO_USE) {
+                        echo "Last stable commit matches last clean periodics run, skipping pipeline execution"
+                        periodicsUpToDate = true
+                    }
+                }
+            }
+        }
+        stage('Clean workspace and checkout') {
+            when {
+                allOf {
+                    expression { ! periodicsUpToDate }
+                }
+            }
+            steps {
+                script {
+                    echo "${NODE_LABELS}"
                     echo "SCM checkout of ${GIT_COMMIT_TO_USE}"
                     def scmInfo = checkout([
                         $class: 'GitSCM',
@@ -134,6 +163,7 @@ pipeline {
         stage ('Periodic Test Suites') {
             when {
                 allOf {
+                    expression { ! periodicsUpToDate }
                     expression {params.SKIP_TO_PRIVATE_REGISTRY == false}
                 }
             }
@@ -452,6 +482,7 @@ pipeline {
         stage("Private Registry") {
             when {
                 allOf {
+                    expression { ! periodicsUpToDate }
                     expression {TESTS_FAILED == false}
                 }
             }
