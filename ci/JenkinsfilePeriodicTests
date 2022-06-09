@@ -16,6 +16,7 @@ def verrazzanoImagesJobProjectName = "verrazzano-examples"
 def verrazzanoImagesFile = "verrazzano_images.txt"
 def verrazzanoImagesBuildNumber = 0 // will be set to actual build number when the job is run
 def periodicsUpToDate = false // If true, indicates that the periodics already passed at the latest commit
+def dryRun = true // for testing
 
 pipeline {
     options {
@@ -94,14 +95,22 @@ pipeline {
                     // Get the last stable commit ID to pass the triggered tests
                     def stableCommitProps = readProperties file: "${STABLE_COMMIT_LOCATION}"
                     GIT_COMMIT_TO_USE = stableCommitProps['git-commit']
+                    echo "Last stable commit: ${GIT_COMMIT_TO_USE}"
 
                     // Get the commit ID for the last known clean pass of the Periodic tests
                     def cleanPeriodicsCommitProps = readProperties file: "${CLEAN_PERIODIC_LOCATION}"
                     LAST_CLEAN_PERIODIC_COMMIT = cleanPeriodicsCommitProps['git-commit']
+                    echo "Last stable commit: ${LAST_CLEAN_PERIODIC_COMMIT}"
 
                     if (LAST_CLEAN_PERIODIC_COMMIT == GIT_COMMIT_TO_USE) {
                         echo "Last stable commit matches last clean periodics run, skipping pipeline execution"
                         periodicsUpToDate = true
+                    } else {
+                        echo "Executing periodic tests for commit ${GIT_COMMIT_TO_USE}"
+                    }
+
+                    if (dryRun) {
+                        echo "Dry run, skipping test execution"
                     }
                 }
             }
@@ -109,6 +118,7 @@ pipeline {
         stage('Clean workspace and checkout') {
             when {
                 allOf {
+                    expression { ! dryRun }
                     expression { ! periodicsUpToDate }
                 }
             }
@@ -164,6 +174,7 @@ pipeline {
             when {
                 allOf {
                     expression { ! periodicsUpToDate }
+                    expression { ! dryRun }
                     expression {params.SKIP_TO_PRIVATE_REGISTRY == false}
                 }
             }
@@ -482,6 +493,7 @@ pipeline {
         stage("Private Registry") {
             when {
                 allOf {
+                    expression { ! dryRun }
                     expression { ! periodicsUpToDate }
                     expression {TESTS_FAILED == false}
                 }
