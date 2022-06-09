@@ -93,10 +93,7 @@ func (c authProxyComponent) PreInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debug("AuthProxy pre-install")
 
 	err := authproxyPreHelmOps(ctx)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 // PreUpgrade performs any required pre upgrade operations

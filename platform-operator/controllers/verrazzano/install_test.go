@@ -179,13 +179,19 @@ func TestUpdateFalseMonitorChanges(t *testing.T) {
 	asserts.False(result.Requeue)
 }
 
-func TestInstall_isVersionOk(t *testing.T) {
+func TestIsVersionOk(t *testing.T) {
 	tests := []struct {
 		name             string
 		componentVersion string
 		vzVersion        string
 		expectTrue       bool
 	}{
+		{
+			name:             "Return true when VZ version is empty string",
+			componentVersion: "1.1.0",
+			vzVersion:        "",
+			expectTrue:       true,
+		},
 		{
 			name:             "Return true when VZ version is higher than min component version",
 			componentVersion: "1.1.0",
@@ -222,7 +228,7 @@ func TestInstall_isVersionOk(t *testing.T) {
 	}
 }
 
-func TestInstall_checkConfigUpdated(t *testing.T) {
+func TestCheckIfConfigUpdated(t *testing.T) {
 	tests := []struct {
 		name                   string
 		actualCR               vzapi.Verrazzano

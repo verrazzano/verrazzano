@@ -68,11 +68,11 @@ func TestGetIngressNames(t *testing.T) {
 	assert.Equal(t, ComponentNamespace, ingressNames[0].Namespace)
 }
 
-// Test_authProxyComponent_ValidateUpdate tests the AuthProxy GetIngressNames call
+// TestAuthProxyComponentValidateUpdate tests the AuthProxy GetIngressNames call
 // GIVEN a AuthProxy component
 //  WHEN I call ValidateUpdate,
 //  THEN it should return an error only when the update disables a previously enabled auth proxy component.
-func Test_authProxyComponent_ValidateUpdate(t *testing.T) {
+func TestAuthProxyComponentValidateUpdate(t *testing.T) {
 	disabled := false
 	tests := []struct {
 		name    string
@@ -125,11 +125,11 @@ func Test_authProxyComponent_ValidateUpdate(t *testing.T) {
 	}
 }
 
-// TestAuthProxyComponent_IsReady tests the AuthProxy IsReady call
+// TestAuthProxyComponentIsReady tests the AuthProxy IsReady call
 // GIVEN a AuthProxy component
 //  WHEN I call IsReady,
 //  THEN it should return false since none of the replicas of the authproxy deployment is ready by default.
-func TestAuthProxyComponent_IsReady(t *testing.T) {
+func TestAuthProxyComponentIsReady(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	trueValue := true
 	vz := &vzapi.Verrazzano{
@@ -148,11 +148,11 @@ func TestAuthProxyComponent_IsReady(t *testing.T) {
 	assert.False(t, isReady, "When dry run flag is disabled, IsReady should return false")
 }
 
-// TestAuthProxyComponent_PreInstall tests the AuthProxy PreInstall call
+// TestAuthProxyComponentPreInstall tests the AuthProxy PreInstall call
 // GIVEN a AuthProxy component
 // WHEN I call PreUpgrade,
 // THEN it should not return any error.
-func TestAuthProxyComponent_PreInstall(t *testing.T) {
+func TestAuthProxyComponentPreInstall(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	trueValue := true
 	vz := &vzapi.Verrazzano{
@@ -170,11 +170,11 @@ func TestAuthProxyComponent_PreInstall(t *testing.T) {
 	assert.Nilf(t, err, "There should not be any error when pre install is invoked")
 }
 
-// TestAuthProxyComponent_PreUpgrade tests the AuthProxy PreUpgrade call
+// TestAuthProxyComponentPreUpgrade tests the AuthProxy PreUpgrade call
 // GIVEN a AuthProxy component
 // WHEN I call PreUpgrade,
 // THEN it should not return any error.
-func TestAuthProxyComponent_PreUpgrade(t *testing.T) {
+func TestAuthProxyComponentPreUpgrade(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	trueValue := true
 	vz := &vzapi.Verrazzano{
@@ -192,12 +192,12 @@ func TestAuthProxyComponent_PreUpgrade(t *testing.T) {
 	assert.Nilf(t, err, "There should not be any error when pre upgrade is invoked")
 }
 
-// TestAuthProxyComponent_MonitorOverrides tests the AuthProxy MonitorOverrides call
+// TestAuthProxyComponentMonitorOverrides tests the AuthProxy MonitorOverrides call
 // GIVEN a AuthProxy component
 //  WHEN I call IsReady,
 //  THEN it should return false if no authproxy component is defined in VZ CR or if explicitly disabled
 //       and return true otherwise.
-func TestAuthProxyComponent_MonitorOverrides(t *testing.T) {
+func TestAuthProxyComponentMonitorOverrides(t *testing.T) {
 	trueValue := true
 	falseValue := false
 	tests := []struct {
