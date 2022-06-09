@@ -1,17 +1,5 @@
 {
   "backendSets": {
-    "http": {
-      "backends": [],
-      "healthChecker": {
-        "intervalInMillis": 10000,
-        "port": 0,
-        "protocol": "TCP",
-        "retries": 3,
-        "timeoutInMillis": 3000,
-        "urlPath": "/health"
-      },
-      "policy": "ROUND_ROBIN"
-    },
     "https": {
       "backends": [],
       "healthChecker": {
@@ -30,11 +18,6 @@
   "ipMode": "IPV4",
   "isPrivate": true,
   "listeners": {
-    "http": {
-      "defaultBackendSetName": "http",
-      "port": 80,
-      "protocol": "TCP"
-    },
     "https": {
       "defaultBackendSetName": "https",
       "port": 443,

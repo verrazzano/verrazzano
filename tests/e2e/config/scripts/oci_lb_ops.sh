@@ -6,37 +6,24 @@
 
 function usage {
     echo
-    echo "usage: $0 -c compartment_ocid -s subnet_ocid -n lb_name -b backend_ip [OPTIONS]"
+    echo "usage: $0 [OPTIONS]"
     echo "  -o operation              Operation to perform - 'create' or 'delete'."
     echo "  -c compartment_ocid       Compartment OCID for creating the load balancer."
     echo "  -n lb_name                Display name for the load balancer."
-    echo "  -s subnet_ocid            Subnet OCID for creating the load balancer. Required by 'create' operation."
-    echo "  -b backend_ip             Space separated string of backend IPs. Required by 'create' operation."
+    echo "  -l lb_shape               Shape for the load balancer to be created. Defaults to '10Mbps'."
+    echo "  -s subnet_ocid            Subnet OCID for creating the load balancer."
+    echo "  -i backend_ip             Space separated string of backend IPs."
     echo "                            Example - \"1.1.1.1 2.2.2.2 3.3.3.3\""
-    echo "  -p backend_ports          Space separated string of backend ports ('http' followed by 'https'). Required by 'create' operation."
-    echo "                            Example - \"30080 30443\""
-    echo "  -f template_file_path     Path to the json template file for creating load balancer. Used by 'create' operation."
-    echo "  -l lb_shape               Shape for the load balancer to be created. Defaults to '10Mbps'. Used by 'create' operation."
-    echo "                            To check the available shapes in the compartment, run the following command -"
-    echo "                            oci lb shapes list --compartment-id <COMPARTMENT_OCID>"
-    echo "  -e enable_public_ip       Provide a public IP to the load balancer. Defaults to 'false'. Used by 'create' operation." 
-    echo "                            The subnet specififed for the load balancer MUST be a public subnet."
+    echo "  -p backend_port           Port used by backends."
+    echo "  -f template_file_path     Path to the json template file for creating load balancer."
+    echo "  -e enable_public_ip       Provide a public IP to the load balancer. Defaults to 'false'." 
+    echo "                            To have a public IP, LB must be in a public subnet."
     echo "  -h                        Display this help message."
     echo
     exit 1
 }
 
-OPERATION=""
-COMPARTMENT_OCID=""
-SUBNET_OCID=""
-LB_NAME=""
-LB_SHAPE="10Mbps"
-BACKEND_IP=""
-BACKEND_PORTS=""
-TEMPLATE_FILE_PATH=""
-ENABLE_PUBLIC_IP="false"
-
-log () {
+function log () {
     echo "$(date '+[%Y-%m-%d %I:%M:%S %p]') : $1"
 }
 
@@ -47,15 +34,10 @@ function createLoadBalancer() {
     jq --arg lb_name "$LB_NAME" '.displayName = $lb_name' lb.json > "tmp" && mv "tmp" lb.json
     jq --arg lb_shape "$LB_SHAPE" '.shapeName = $lb_shape' lb.json > "tmp" && mv "tmp" lb.json
     jq --arg subnet_ocid "$SUBNET_OCID" '.subnetIds[0] = $subnet_ocid' lb.json > "tmp" && mv "tmp" lb.json
-    read -a ports <<< $BACKEND_PORTS
-    http_port=${ports[0]}
-    https_port=${ports[1]}
     for ip in ${BACKEND_IP}; do
-      jq --argjson http_port $http_port --arg ip "$ip" '.backendSets.http.backends += [{"ipAddress": $ip, "port": $http_port, "weight": 1}]' lb.json > "tmp" && mv "tmp" lb.json
-      jq --argjson https_port $https_port --arg ip "$ip" '.backendSets.https.backends += [{"ipAddress": $ip, "port": $https_port, "weight": 1}]' lb.json > "tmp" && mv "tmp" lb.json
+      jq --argjson port $BACKEND_PORT --arg ip "$ip" '.backendSets.https.backends += [{"ipAddress": $ip, "port": $port, "weight": 1}]' lb.json > "tmp" && mv "tmp" lb.json
     done
-    jq --argjson http_port $http_port '.backendSets.http.healthChecker.port = $http_port' lb.json > "tmp" && mv "tmp" lb.json
-    jq --argjson https_port $https_port '.backendSets.https.healthChecker.port = $https_port' lb.json > "tmp" && mv "tmp" lb.json
+    jq --argjson port $BACKEND_PORT '.backendSets.https.healthChecker.port = $port' lb.json > "tmp" && mv "tmp" lb.json
     if [ "$ENABLE_PUBLIC_IP" == "true" ]; then
       jq '.isPrivate = "false"' lb.json > "tmp" && mv "tmp" lb.json
     fi
@@ -65,28 +47,41 @@ function createLoadBalancer() {
         log "Failed to create the load balancer: $LB_NAME"
         exit 1
     fi
-    LB_OCID=$(oci lb load-balancer list --compartment-id $COMPARTMENT_OCID --display-name $LB_NAME | jq -r '.data[0].id')
+    LB_INFO=$(oci lb load-balancer list --compartment-id $COMPARTMENT_OCID --display-name $LB_NAME --lifecycle-state ACTIVE)
+    LB_OCID=$($LB_INFO | jq -r '.data[0].id')
+    LB_IP=$($LB_INFO | jq -r '.data[0].ip-addresses[0].ip-address')
     log "Successfully created the load balancer: $LB_NAME"
     log "Load balancer OCID: $LB_OCID"
+    log "Load balancer IP: $LB_IP"
 }
 
 function deleteLoadBalancer() {
     log "Deleting the load balancer: $LB_NAME"
-    LB_OCID=$(oci lb load-balancer list --compartment-id $COMPARTMENT_OCID --display-name $LB_NAME | jq -r '.data[0].id')
+    LB_OCID=$(oci lb load-balancer list --compartment-id $COMPARTMENT_OCID --display-name $LB_NAME --lifecycle-state ACTIVE | jq -r '.data[0].id')
     if [ $? -ne 0 ]; then
-        log "Error while fetching load balancer: $LB_NAME."
+        log "Error while fetching the load balancer: $LB_NAME."
         exit 1
     fi
     log "Load balancer OCID: $LB_OCID"
     oci lb load-balancer delete --load-balancer-id $LB_OCID --force --wait-for-state SUCCEEDED
     if [ $? -ne 0 ]; then
-        log "Error while deleting load balancer: $LB_NAME."
+        log "Error while deleting the load balancer: $LB_NAME."
         exit 1
     fi
     log "Successfully deleted the load balancer: $LB_NAME"
 }
 
-while getopts o:c:s:n:l:b:p:f:e:h flag
+OPERATION=""
+COMPARTMENT_OCID=""
+SUBNET_OCID=""
+LB_NAME=""
+LB_SHAPE="10Mbps"
+BACKEND_IP=""
+BACKEND_PORT=""
+TEMPLATE_FILE_PATH=""
+ENABLE_PUBLIC_IP="false"
+
+while getopts o:c:s:n:l:i:p:f:e:h flag
 do
     case "$flag" in
         o) OPERATION=$OPTARG;;
@@ -94,8 +89,8 @@ do
         s) SUBNET_OCID=$OPTARG;;
         n) LB_NAME=$OPTARG;;
         l) LB_SHAPE=$OPTARG;;
-        b) BACKEND_IP=$OPTARG;;
-        p) BACKEND_PORTS=$OPTARG;;
+        i) BACKEND_IP=$OPTARG;;
+        p) BACKEND_PORT=$OPTARG;;
         f) TEMPLATE_FILE_PATH=$OPTARG;;
         e) ENABLE_PUBLIC_IP=$OPTARG;;
         h) usage;;
@@ -124,8 +119,8 @@ if [ $OPERATION == "create" ]; then
         log "Backend IPs must be specified."
         exit 1
     fi
-    if [ -z "$BACKEND_PORTS" ] ; then
-        log "Backend ports must be specified."
+    if [ -z "$BACKEND_PORT" ] ; then
+        log "Backend port must be specified."
         exit 1
     fi
     if [ -z "$TEMPLATE_FILE_PATH" ] ; then
