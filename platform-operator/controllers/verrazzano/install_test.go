@@ -39,7 +39,7 @@ func TestUpdate(t *testing.T) {
 	reconcilingGen := int64(0)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t,
 		lastReconciledGeneration+1, reconcilingGen, lastReconciledGeneration,
-		"1.3.0", "1.3.0", namespace, name, nil, 2)
+		"1.3.0", "1.3.0", namespace, name, nil, nil, 2)
 	defer reset()
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateReconciling, vz.Status.State)
@@ -58,7 +58,7 @@ func TestNoUpdateSameGeneration(t *testing.T) {
 	lastReconciledGeneration := int64(2)
 	reconcilingGen := int64(0)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t, lastReconciledGeneration, reconcilingGen, lastReconciledGeneration,
-		"1.3.1", "1.3.1", namespace, name, nil, 2)
+		"1.3.1", "1.3.1", namespace, name, nil, nil, 2)
 	defer reset()
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateReady, vz.Status.State)
@@ -77,7 +77,7 @@ func TestUpdateWithUpgrade(t *testing.T) {
 	lastReconciledGeneration := int64(2)
 	reconcilingGen := int64(0)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t, lastReconciledGeneration+1, reconcilingGen, lastReconciledGeneration,
-		"1.3.0", "1.2.0", namespace, name, nil, 1)
+		"1.3.0", "1.2.0", namespace, name, nil, nil, 1)
 	defer reset()
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateUpgrading, vz.Status.State)
@@ -97,7 +97,7 @@ func TestUpdateOnUpdate(t *testing.T) {
 	reconcilingGen := int64(3)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t,
 		reconcilingGen+1, reconcilingGen, lastReconciledGeneration,
-		"1.3.3", "1.3.3", namespace, name, nil, 2)
+		"1.3.3", "1.3.3", namespace, name, nil, nil, 2)
 	defer reset()
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateReconciling, vz.Status.State)
@@ -105,19 +105,53 @@ func TestUpdateOnUpdate(t *testing.T) {
 	asserts.True(result.Requeue)
 }
 
-func TestErrorDuringInstall(t *testing.T) {
+// TestPostInstall tests the reconcile func invokes pre-install, install and post-install
+// GIVEN a request to install verrazzano component
+// WHEN reconcile func is called three times,
+// THEN ensure that pre-install, install and post-install gets invoked and the component comes to ready state.
+func TestPostInstall(t *testing.T) {
 	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
 	lastReconciledGeneration := int64(2)
 	reconcilingGen := int64(3)
+	asserts, vz, result, fakeCompUpdated, err := testUpdate(t,
+		reconcilingGen+1, reconcilingGen, lastReconciledGeneration,
+		"1.3.3", "1.3.3", namespace, name, nil, nil, 3)
+	defer reset()
+	asserts.NoError(err)
+	asserts.Equal(vzapi.VzStateReady, vz.Status.State)
+	asserts.True(*fakeCompUpdated)
+	asserts.False(result.Requeue)
+}
+
+// TestErrorDuringComponentInstall tests reconcile func when install func encounters an error
+// GIVEN, a request to install verrazzano component,
+// WHEN, there is an error during the install of a component,
+// THEN, ensure that the pre-install function is not called again and subsequent reconcile retries,
+//       starts at install phase
+func TestErrorDuringComponentInstall(t *testing.T) {
+	initUnitTesing()
+	namespace := "verrazzano"
+	name := "test"
+	lastReconciledGeneration := int64(2)
+	reconcilingGen := int64(3)
+	preInstallCalls := 0
+	installCalls := 0
+	preInstallFunc := func(ctx spi.ComponentContext, releaseName string, namespace string, chartDir string) error {
+		preInstallCalls++
+		return nil
+	}
 	installFunc := func(ctx spi.ComponentContext) error {
+		installCalls++
 		return fmt.Errorf("Dummy error during installation")
 	}
 	asserts, vz, result, _, err := testUpdate(t,
 		reconcilingGen+1, reconcilingGen, lastReconciledGeneration,
-		"1.3.3", "1.3.3", namespace, name, installFunc, 2)
+		"1.3.3", "1.3.3", namespace, name, preInstallFunc, installFunc, 3)
 	defer reset()
+	asserts.Equal(1, preInstallCalls)
+	asserts.Equal(2, installCalls)
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateReconciling, vz.Status.State)
 	asserts.True(result.Requeue)
@@ -133,10 +167,10 @@ func reset() {
 }
 
 func testUpdate(t *testing.T,
-	//mocker *gomock.Controller, mock *mocks.MockClient,
 	vzCrGen, reconcilingGen, lastReconciledGeneration int64,
-	//mockStatus *mocks.MockStatusWriter,
-	specVer, statusVer, namespace, name string,
+	specVer, statusVer,
+	namespace, name string,
+	preInstallFunc func(ctx spi.ComponentContext, releaseName string, namespace string, chartDir string) error,
 	installFunc func(componentContext spi.ComponentContext) error,
 	reconcileLoopCount int) (*assert.Assertions, *vzapi.Verrazzano, ctrl.Result, *bool, error) {
 	asserts := assert.New(t)
@@ -150,7 +184,9 @@ func testUpdate(t *testing.T,
 	fakeComp := fakeComponent{}
 	fakeComp.ReleaseName = "verrazzano-authproxy"
 	fakeComp.SupportsOperatorInstall = true
+	fakeComp.MinVerrazzanoVersion = "1.1.0"
 	var fakeCompUpdated *bool
+	fakeComp.PreInstallFunc = preInstallFunc
 	if installFunc == nil {
 		var defaultInstallFn = func(ctx spi.ComponentContext) error {
 			update := true
