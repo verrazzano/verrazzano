@@ -304,7 +304,7 @@ func getFakeClient(scheduled int32) clipkg.Client {
 		&appsv1.DaemonSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: globalconst.VerrazzanoSystemNamespace,
-				Name:      fluentDaemonset,
+				Name:      DaemonsetName,
 			},
 			Status: appsv1.DaemonSetStatus{
 				UpdatedNumberScheduled: scheduled,

@@ -25,10 +25,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-const (
-	fluentDaemonset = "fluentd"
-)
-
 // loggingPreInstall copies logging secrets from the verrazzano-install namespace to the verrazzano-system namespace
 func loggingPreInstall(ctx spi.ComponentContext) error {
 	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) {
@@ -97,7 +93,7 @@ func isFluentdReady(ctx spi.ComponentContext) bool {
 	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) && getProfile(ctx.EffectiveCR()) != vzapi.ManagedCluster {
 		daemonsets = append(daemonsets,
 			types.NamespacedName{
-				Name:      fluentDaemonset,
+				Name:      DaemonsetName,
 				Namespace: ComponentNamespace,
 			})
 		if status.DaemonSetsAreReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {
