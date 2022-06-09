@@ -5,18 +5,18 @@ package version
 
 import (
 	"fmt"
-
 	"github.com/spf13/cobra"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 )
 
+var gitCommit = "MOOSE"
+
 const (
 	CommandName = "version"
 	helpShort   = "Verrazzano version information"
 	helpLong    = `The command 'version' reports information about the version of the vz tool being run`
-	helpExample = `
-vz version`
+	helpExample = `vz version`
 )
 
 func NewCmdVersion(vzHelper helpers.VZHelper) *cobra.Command {
@@ -31,5 +31,6 @@ func NewCmdVersion(vzHelper helpers.VZHelper) *cobra.Command {
 
 func runCmdVersion(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
 	fmt.Fprintf(vzHelper.GetOutputStream(), "Not implemented yet\n")
+	fmt.Fprintf(vzHelper.GetOutputStream(), "testing %s value \n", gitCommit)
 	return nil
 }
