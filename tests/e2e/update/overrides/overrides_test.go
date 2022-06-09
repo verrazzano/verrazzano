@@ -5,11 +5,12 @@ package overrides
 
 import (
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/verrazzano/verrazzano/tests/e2e/update"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"strings"
-	"time"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -24,16 +25,15 @@ import (
 )
 
 const (
-	waitTimeout                          = 5 * time.Minute
-	pollingInterval                      = 5 * time.Second
-	overrideConfigMapSecretName   string = "test-overrides-1"
-	verrazzanoMonitoringNamespace string = "verrazzano-monitoring"
-	dataKey                       string = "values.yaml"
-	overrideKey                   string = "override"
-	inlineOverrideKey             string = "inlineOverride"
-	overrideOldValue              string = "true"
-	overrideNewValue              string = "false"
-	deploymentName                string = "prometheus-operator-kube-p-operator"
+	waitTimeout                        = 5 * time.Minute
+	pollingInterval                    = 5 * time.Second
+	overrideConfigMapSecretName string = "test-overrides-1"
+	dataKey                     string = "values.yaml"
+	overrideKey                 string = "override"
+	inlineOverrideKey           string = "inlineOverride"
+	overrideOldValue            string = "true"
+	overrideNewValue            string = "false"
+	deploymentName              string = "prometheus-operator-kube-p-operator"
 )
 
 var (
@@ -313,9 +313,9 @@ func checkValues(overrideValue string) bool {
 	labelMatch := map[string]string{overrideKey: overrideValue}
 	pods, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{
 		MatchLabels: labelMatch,
-	}, verrazzanoMonitoringNamespace)
+	}, constants.VerrazzanoMonitoringNamespace)
 	if err != nil {
-		ginkgo.AbortSuite(fmt.Sprintf("Label override not found for the Prometheus Operator pod in namespace %s: %v", verrazzanoMonitoringNamespace, err))
+		ginkgo.AbortSuite(fmt.Sprintf("Label override not found for the Prometheus Operator pod in namespace %s: %v", constants.VerrazzanoMonitoringNamespace, err))
 	}
 	foundAnnotation := false
 	for _, pod := range pods {

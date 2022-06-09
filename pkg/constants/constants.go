@@ -68,6 +68,10 @@ const IstioSystemNamespace = "istio-system"
 // IngressNamespace - the NGINX ingress namespace
 const IngressNamespace = "ingress-nginx"
 
+// PrometheusOperatorNamespace - the namespace where Verrazzano installs Prometheus Operator
+// and its related components.
+const PrometheusOperatorNamespace = "verrazzano-monitoring"
+
 // LabelIstioInjection - constant for a Kubernetes label that is applied by Verrazzano
 const LabelIstioInjection = "istio-injection"
 
@@ -107,6 +111,8 @@ const DefaultVerrazzanoCASecretName = "verrazzano-ca-certificate-secret"
 
 // VmiPromConfigName - The name of the prometheus config map
 const VmiPromConfigName string = "vmi-system-prometheus-config"
+
+const PrometheusJobNameKey = "job_name"
 
 // TestPrometheusJobScrapeInterval - The string 0s representing a test only prometheus config scrape interval
 const TestPrometheusJobScrapeInterval = "0s"

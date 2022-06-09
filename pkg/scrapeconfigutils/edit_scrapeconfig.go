@@ -5,12 +5,11 @@ package scrapeconfigutils
 
 import (
 	"github.com/Jeffail/gabs/v2"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"sigs.k8s.io/yaml"
 )
 
-const jobNameKey = "job_name"
-
-// EditScrapeJob edits a scrape config that and adds or replaces the specified job with the new scrape
+// EditScrapeJob edits a scrape config and adds or replaces the specified job with the new scrape
 // config for that job.
 func EditScrapeJob(scrapeConfigs *gabs.Container, editScrapeJobName string, newScrapeConfig *gabs.Container) (*gabs.Container, error) {
 	scrapeJobIndex := findScrapeJob(scrapeConfigs, editScrapeJobName)
@@ -35,7 +34,7 @@ func EditScrapeJob(scrapeConfigs *gabs.Container, editScrapeJobName string, newS
 // findScrapeJob returns the index of the given job name in the scrapeConfigs list, -1 if not found.
 func findScrapeJob(scrapeConfigs *gabs.Container, jobNameToFind string) int {
 	for index, scrapeConfig := range scrapeConfigs.Children() {
-		scrapeJobName := scrapeConfig.Search(jobNameKey).Data()
+		scrapeJobName := scrapeConfig.Search(constants.PrometheusJobNameKey).Data()
 		if jobNameToFind == scrapeJobName {
 			return index
 		}

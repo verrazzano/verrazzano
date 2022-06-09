@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -46,6 +48,16 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
 			GetInstallOverridesFunc: GetOverrides,
+			Dependencies:            []string{nginx.ComponentName},
+			Certificates: []types.NamespacedName{
+				{Name: constants.VerrazzanoIngressSecret, Namespace: ComponentNamespace},
+			},
+			IngressNames: []types.NamespacedName{
+				{
+					Namespace: ComponentNamespace,
+					Name:      constants.VzConsoleIngress,
+				},
+			},
 		},
 	}
 }
@@ -74,17 +86,6 @@ func (c authProxyComponent) IsReady(ctx spi.ComponentContext) bool {
 		return isAuthProxyReady(ctx)
 	}
 	return false
-}
-
-// GetIngressNames - gets the names of the ingresses associated with this component
-func (c authProxyComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
-	ingressNames := []types.NamespacedName{
-		{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      constants.VzConsoleIngress,
-		},
-	}
-	return ingressNames
 }
 
 // PreInstall - actions to perform prior to installing this component
