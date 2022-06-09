@@ -14,7 +14,7 @@ import (
 const (
 	CommandName = "version"
 	helpShort   = "Verrazzano version information"
-	helpLong    = `The command 'version' reports information about the version of the vz tool being run.`
+	helpLong    = `The command 'version' reports information about the version of the vz tool being run`
 	helpExample = `
 vz version`
 )

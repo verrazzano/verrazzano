@@ -541,7 +541,7 @@ spec:
 	return caname
 }
 
-func (c *Cluster) findFluentdPod() *corev1.Pod {
+func (c *Cluster) FindFluentdPod() *corev1.Pod {
 	list, _ := c.kubeClient.CoreV1().Pods(constants.VerrazzanoSystemNamespace).List(context.TODO(), metav1.ListOptions{})
 	if list != nil {
 		for _, pod := range list.Items {
@@ -557,7 +557,7 @@ const errMsg = "Error: %v"
 
 // FluentdLogs gets fluentd logs if the fluentd pod has been restarted sinc the time specified
 func (c *Cluster) FluentdLogs(lines int64, restartedAfter time.Time) string {
-	pod := c.findFluentdPod()
+	pod := c.FindFluentdPod()
 	if pod == nil {
 		return fmt.Sprintf(errMsg, "cannot find fluentd pod")
 	}
@@ -587,6 +587,10 @@ func (c *Cluster) PodLogs(ns, podName, container string, lines int64) string {
 		return buf.String()
 	}
 	return ""
+}
+
+func (c *Cluster) GetPrometheusIngress() string {
+	return pkg.GetPrometheusIngressHost(c.KubeConfigPath)
 }
 
 func newCluster(name, kubeCfgPath string) *Cluster {

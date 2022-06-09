@@ -39,7 +39,8 @@ func TestUpdate(t *testing.T) {
 	reconcilingGen := int64(0)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t,
 		lastReconciledGeneration+1, reconcilingGen, lastReconciledGeneration,
-		"1.3.0", "1.3.0", namespace, name, nil, nil, 2)
+		"1.3.0", "1.3.0", namespace, name, "true", nil, nil, 2)
+
 	defer reset()
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateReconciling, vz.Status.State)
@@ -58,7 +59,7 @@ func TestNoUpdateSameGeneration(t *testing.T) {
 	lastReconciledGeneration := int64(2)
 	reconcilingGen := int64(0)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t, lastReconciledGeneration, reconcilingGen, lastReconciledGeneration,
-		"1.3.1", "1.3.1", namespace, name, nil, nil, 2)
+		"1.3.1", "1.3.1", namespace, name, "true", nil, nil, 2)
 	defer reset()
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateReady, vz.Status.State)
@@ -77,7 +78,7 @@ func TestUpdateWithUpgrade(t *testing.T) {
 	lastReconciledGeneration := int64(2)
 	reconcilingGen := int64(0)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t, lastReconciledGeneration+1, reconcilingGen, lastReconciledGeneration,
-		"1.3.0", "1.2.0", namespace, name, nil, nil, 1)
+		"1.3.0", "1.2.0", namespace, name, "true", nil, nil, 1)
 	defer reset()
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateUpgrading, vz.Status.State)
@@ -97,7 +98,7 @@ func TestUpdateOnUpdate(t *testing.T) {
 	reconcilingGen := int64(3)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t,
 		reconcilingGen+1, reconcilingGen, lastReconciledGeneration,
-		"1.3.3", "1.3.3", namespace, name, nil, nil, 2)
+		"1.3.3", "1.3.3", namespace, name, "true", nil, nil, 2)
 	defer reset()
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateReconciling, vz.Status.State)
@@ -117,7 +118,7 @@ func TestPostInstall(t *testing.T) {
 	reconcilingGen := int64(3)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t,
 		reconcilingGen+1, reconcilingGen, lastReconciledGeneration,
-		"1.3.3", "1.3.3", namespace, name, nil, nil, 3)
+		"1.3.3", "1.3.3", namespace, name, "true", nil, nil, 3)
 	defer reset()
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateReady, vz.Status.State)
@@ -148,13 +149,33 @@ func TestErrorDuringComponentInstall(t *testing.T) {
 	}
 	asserts, vz, result, _, err := testUpdate(t,
 		reconcilingGen+1, reconcilingGen, lastReconciledGeneration,
-		"1.3.3", "1.3.3", namespace, name, preInstallFunc, installFunc, 3)
+		"1.3.3", "1.3.3", namespace, name, "true", preInstallFunc, installFunc, 3)
 	defer reset()
 	asserts.Equal(1, preInstallCalls)
 	asserts.Equal(2, installCalls)
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateReconciling, vz.Status.State)
 	asserts.True(result.Requeue)
+}
+
+// TestUpdateFalseMonitorChanges tests the reconcile func with updated generation
+// GIVEN a request to reconcile an verrazzano resource after install is completed
+// WHEN all components have the smaller LastReconciledGeneration but MonitorOverrides returns false
+// THEN ensure a condition with type InstallStarted is not added
+func TestUpdateFalseMonitorChanges(t *testing.T) {
+	initUnitTesing()
+	namespace := "verrazzano"
+	name := "TestUpdate"
+	lastReconciledGeneration := int64(2)
+	reconcilingGen := int64(0)
+	asserts, vz, result, fakeCompUpdated, err := testUpdate(t,
+		lastReconciledGeneration+1, reconcilingGen, lastReconciledGeneration,
+		"1.3.0", "1.3.0", namespace, name, "false", nil, nil, 2)
+	defer reset()
+	asserts.NoError(err)
+	asserts.Equal(vzapi.VzStateReady, vz.Status.State)
+	asserts.Nil(fakeCompUpdated)
+	asserts.False(result.Requeue)
 }
 
 func reset() {
@@ -169,7 +190,7 @@ func reset() {
 func testUpdate(t *testing.T,
 	vzCrGen, reconcilingGen, lastReconciledGeneration int64,
 	specVer, statusVer,
-	namespace, name string,
+	namespace, name, monitorChanges string,
 	preInstallFunc func(ctx spi.ComponentContext, releaseName string, namespace string, chartDir string) error,
 	installFunc func(componentContext spi.ComponentContext) error,
 	reconcileLoopCount int) (*assert.Assertions, *vzapi.Verrazzano, ctrl.Result, *bool, error) {
@@ -185,6 +206,7 @@ func testUpdate(t *testing.T,
 	fakeComp.ReleaseName = "verrazzano-authproxy"
 	fakeComp.SupportsOperatorInstall = true
 	fakeComp.MinVerrazzanoVersion = "1.1.0"
+	fakeComp.monitorChanges = monitorChanges
 	var fakeCompUpdated *bool
 	fakeComp.PreInstallFunc = preInstallFunc
 	if installFunc == nil {

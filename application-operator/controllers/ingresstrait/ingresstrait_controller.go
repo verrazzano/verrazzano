@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"istio.io/api/security/v1beta1"
+	v1beta12 "istio.io/api/type/v1beta1"
 	"reflect"
 	"strings"
 	"time"
@@ -38,6 +40,7 @@ import (
 	"go.uber.org/zap"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8net "k8s.io/api/networking/v1"
@@ -70,6 +73,8 @@ const (
 	wlProxySSLHeaderVal       = "true"
 	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
 	destinationRuleKind       = "DestinationRule"
+	authzPolicyAPIVersion     = "security.istio.io/v1beta1"
+	authzPolicyKind           = "AuthorizationPolicy"
 	controllerName            = "ingresstrait"
 	httpsProtocol             = "HTTPS"
 	istioIngressGateway       = "istio-ingressgateway"
@@ -253,8 +258,10 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 
 				vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, index)
 				drName := fmt.Sprintf("%s-rule-%d-dr", trait.Name, index)
+				authzPolicyName := fmt.Sprintf("%s-rule-%d-authz", trait.Name, index)
 				r.createOrUpdateVirtualService(ctx, trait, rule, allHostsForTrait, vsName, services, gateway, &status, log)
 				r.createOrUpdateDestinationRule(ctx, trait, rule, drName, &status, log, services)
+				r.createOrUpdateAuthorizationPolicies(ctx, rule, authzPolicyName, &status, log)
 			}
 		}
 	}
@@ -752,6 +759,96 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 	}
 
 	return controllerutil.SetControllerReference(trait, destinationRule, r.Scheme)
+}
+
+//createOrUpdateAuthorizationPolicies creates or updates the authorization policies associated with the paths defined in the ingress rule.
+func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, rule vzapi.IngressRule, namePrefix string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) {
+	for _, path := range rule.Paths {
+		if path.Policy != nil {
+			pathSuffix := strings.Replace(path.Path, "/", "", -1)
+			policyName := fmt.Sprintf("%s-%s", namePrefix, pathSuffix)
+			authzPolicy := &clisecurity.AuthorizationPolicy{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       authzPolicyKind,
+					APIVersion: authzPolicyAPIVersion,
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      policyName,
+					Namespace: constants.IstioSystemNamespace,
+				},
+			}
+			res, err := controllerutil.CreateOrUpdate(ctx, r.Client, authzPolicy, func() error {
+				return r.mutateAuthorizationPolicy(authzPolicy, path.Policy, path.Path)
+			})
+
+			ref := vzapi.QualifiedResourceRelation{APIVersion: authzPolicyAPIVersion, Kind: authzPolicyKind, Name: namePrefix, Role: "authorizationpolicy"}
+			status.Relations = append(status.Relations, ref)
+			status.Results = append(status.Results, res)
+			status.Errors = append(status.Errors, err)
+
+			if err != nil {
+				log.Errorf("Failed to create or update authorization policy: %v", err)
+			}
+		}
+	}
+}
+
+// mutateDestinationRule changes the destination rule based upon a traits configuration
+func (r *Reconciler) mutateAuthorizationPolicy(authzPolicy *clisecurity.AuthorizationPolicy, vzPolicy *vzapi.AuthorizationPolicy, path string) error {
+	policyRules := make([]*v1beta1.Rule, len(vzPolicy.Rules))
+	var err error
+	for i, authzRule := range vzPolicy.Rules {
+		policyRules[i], err = createAuthorizationPolicyRule(authzRule, path)
+		if err != nil {
+			return err
+		}
+	}
+	authzPolicy.Spec = v1beta1.AuthorizationPolicy{
+		Selector: &v1beta12.WorkloadSelector{
+			MatchLabels: map[string]string{"istio": "ingressgateway"},
+		},
+		Rules: policyRules,
+	}
+
+	return nil
+}
+
+// createAuthorizationPolicyRule uses the provided information to create an istio authorization policy rule
+func createAuthorizationPolicyRule(rule *vzapi.AuthorizationRule, path string) (*v1beta1.Rule, error) {
+	if rule.From == nil {
+		return nil, fmt.Errorf("Authorization Policy requires 'From' clause")
+	}
+	source := &v1beta1.Source{
+		RequestPrincipals: rule.From.RequestPrincipals,
+	}
+	paths := &v1beta1.Operation{
+		Paths: []string{path},
+	}
+	authzRule := v1beta1.Rule{
+		From: []*v1beta1.Rule_From{
+			{
+				Source: source,
+			},
+		},
+		To: []*v1beta1.Rule_To{
+			{
+				Operation: paths,
+			},
+		},
+	}
+	if rule.When != nil {
+		conditions := []*v1beta1.Condition{}
+		for _, vzCondition := range rule.When {
+			condition := &v1beta1.Condition{
+				Key:    vzCondition.Key,
+				Values: vzCondition.Values,
+			}
+			conditions = append(conditions, condition)
+		}
+		authzRule.When = conditions
+	}
+
+	return &authzRule, nil
 }
 
 // setupWatches Sets up watches for the IngressTrait controller

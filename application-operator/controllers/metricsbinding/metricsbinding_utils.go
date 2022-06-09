@@ -9,6 +9,7 @@ import (
 
 	"github.com/Jeffail/gabs/v2"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -18,7 +19,6 @@ import (
 const (
 	prometheusConfigKey          = "prometheus.yml"
 	prometheusScrapeConfigsLabel = "scrape_configs"
-	prometheusJobNameLabel       = "job_name"
 
 	configMapKind       = "ConfigMap"
 	configMapAPIVersion = "v1"
@@ -57,5 +57,5 @@ func getConfigData(configMap *v1.ConfigMap) (*gabs.Container, error) {
 
 // Formats job name as specified by the Prometheus config
 func formatJobName(jobName string) string {
-	return "job_name: " + jobName + "\n"
+	return fmt.Sprintf("%s: %s\n", constants.PrometheusJobNameKey, jobName)
 }

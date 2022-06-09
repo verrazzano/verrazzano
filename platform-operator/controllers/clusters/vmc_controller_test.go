@@ -20,6 +20,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
+	"github.com/verrazzano/verrazzano/pkg/scrapeconfigutils"
 	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -110,8 +111,8 @@ func TestCreateVMC(t *testing.T) {
 		validateScrapeConfig(t, scrapeConfig, prometheusConfigBasePath, true)
 		return nil
 	}, func(secret *corev1.Secret) error {
-		scrapeConfigYaml := secret.Data[vpoconstants.PromAdditionalScrapeConfigsSecretKey]
-		scrapeConfigs, err := parseScrapeConfig(string(scrapeConfigYaml))
+		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
+		scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(scrapeConfigYaml))
 		if err != nil {
 			asserts.Fail("failed due to error %v", err)
 		}
@@ -179,8 +180,8 @@ func TestCreateVMCWithExternalES(t *testing.T) {
 		validateScrapeConfig(t, scrapeConfig, prometheusConfigBasePath, true)
 		return nil
 	}, func(secret *corev1.Secret) error {
-		scrapeConfigYaml := secret.Data[vpoconstants.PromAdditionalScrapeConfigsSecretKey]
-		scrapeConfigs, err := parseScrapeConfig(string(scrapeConfigYaml))
+		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
+		scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(scrapeConfigYaml))
 		if err != nil {
 			asserts.Fail("failed due to error %v", err)
 		}
@@ -248,8 +249,8 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 		validateScrapeConfig(t, scrapeConfig, prometheusConfigBasePath, false)
 		return nil
 	}, func(secret *corev1.Secret) error {
-		scrapeConfigYaml := secret.Data[vpoconstants.PromAdditionalScrapeConfigsSecretKey]
-		scrapeConfigs, err := parseScrapeConfig(string(scrapeConfigYaml))
+		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
+		scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(scrapeConfigYaml))
 		if err != nil {
 			asserts.Fail("failed due to error %v", err)
 		}
@@ -316,8 +317,8 @@ func TestCreateVMCNoCACert(t *testing.T) {
 		validateScrapeConfig(t, scrapeConfig, prometheusConfigBasePath, false)
 		return nil
 	}, func(secret *corev1.Secret) error {
-		scrapeConfigYaml := secret.Data[vpoconstants.PromAdditionalScrapeConfigsSecretKey]
-		scrapeConfigs, err := parseScrapeConfig(string(scrapeConfigYaml))
+		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
+		scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(scrapeConfigYaml))
 		if err != nil {
 			asserts.Fail("failed due to error %v", err)
 		}
@@ -350,7 +351,7 @@ func TestCreateVMCNoCACert(t *testing.T) {
 // THEN ensure all the objects are created
 func TestCreateVMCWithExistingScrapeConfiguration(t *testing.T) {
 	namespace := "verrazzano-mc"
-	jobs := `  - job_name: cluster1
+	jobs := `  - ` + constants.PrometheusJobNameKey + `: cluster1
     scrape_interval: 20s
     scrape_timeout: 15s
     scheme: http`
@@ -397,8 +398,8 @@ scrape_configs:
 		validateScrapeConfig(t, scrapeConfig, prometheusConfigBasePath, true)
 		return nil
 	}, func(secret *corev1.Secret) error {
-		scrapeConfigYaml := secret.Data[vpoconstants.PromAdditionalScrapeConfigsSecretKey]
-		scrapeConfigs, err := parseScrapeConfig(string(scrapeConfigYaml))
+		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
+		scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(scrapeConfigYaml))
 		if err != nil {
 			asserts.Fail("failed due to error %v", err)
 		}
@@ -431,7 +432,7 @@ scrape_configs:
 // THEN ensure all the objects are created (existing configuration is replaced)
 func TestReplaceExistingScrapeConfiguration(t *testing.T) {
 	namespace := "verrazzano-mc"
-	jobs := `  - job_name: test
+	jobs := `  - ` + constants.PrometheusJobNameKey + `: test
     scrape_interval: 20s
     scrape_timeout: 15s
     scheme: http`
@@ -477,8 +478,8 @@ scrape_configs:
 		validateScrapeConfig(t, scrapeConfig, prometheusConfigBasePath, true)
 		return nil
 	}, func(secret *corev1.Secret) error {
-		scrapeConfigYaml := secret.Data[vpoconstants.PromAdditionalScrapeConfigsSecretKey]
-		scrapeConfigs, err := parseScrapeConfig(string(scrapeConfigYaml))
+		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
+		scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(scrapeConfigYaml))
 		if err != nil {
 			asserts.Fail("failed due to error %v", err)
 		}
@@ -547,8 +548,8 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 		validateScrapeConfig(t, scrapeConfig, prometheusConfigBasePath, true)
 		return nil
 	}, func(secret *corev1.Secret) error {
-		scrapeConfigYaml := secret.Data[vpoconstants.PromAdditionalScrapeConfigsSecretKey]
-		scrapeConfigs, err := parseScrapeConfig(string(scrapeConfigYaml))
+		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
+		scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(scrapeConfigYaml))
 		if err != nil {
 			asserts.Fail("failed due to error %v", err)
 		}
@@ -677,11 +678,11 @@ func TestDeleteVMC(t *testing.T) {
 			return nil
 		})
 
-	jobs := `  - job_name: test
+	jobs := `  - ` + constants.PrometheusJobNameKey + `: test
     scrape_interval: 20s
     scrape_timeout: 15s
     scheme: http
-  - job_name: test2
+  - ` + constants.PrometheusJobNameKey + `: test2
     scrape_interval: 20s
     scrape_timeout: 15s
     scheme: http`
@@ -726,27 +727,27 @@ scrape_configs:
 
 			asserts.NotNil(prometheusYaml, "No prometheus config yaml found")
 			asserts.NotNil(scrapeConfig, "No scrape configs found")
-			asserts.Equal("test2", scrapeConfig.Path("job_name").Data(), "Expected scrape config not found")
+			asserts.Equal("test2", scrapeConfig.Path(constants.PrometheusJobNameKey).Data(), "Expected scrape config not found")
 
 			return nil
 		})
 
 	// Expect a call to get the additional scrape config secret - return it configured with the two scrape jobs
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: vpoconstants.PromAdditionalScrapeConfigsSecretName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: constants.PromAdditionalScrapeConfigsSecretName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
-				vpoconstants.PromAdditionalScrapeConfigsSecretKey: []byte(jobs),
+				constants.PromAdditionalScrapeConfigsSecretKey: []byte(jobs),
 			}
 			return nil
 		})
 
 	// Expect a call to get the additional scrape config secret (we call controllerruntime.CreateOrUpdate so it fetches again) - return it
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: vpoconstants.PromAdditionalScrapeConfigsSecretName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: constants.PromAdditionalScrapeConfigsSecretName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
-				vpoconstants.PromAdditionalScrapeConfigsSecretKey: []byte(jobs),
+				constants.PromAdditionalScrapeConfigsSecretKey: []byte(jobs),
 			}
 			return nil
 		})
@@ -756,12 +757,12 @@ scrape_configs:
 		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.UpdateOption) error {
 			// validate that the scrape config for the managed cluster is no longer present
-			scrapeConfigs, err := parseScrapeConfig(string(secret.Data[vpoconstants.PromAdditionalScrapeConfigsSecretKey]))
+			scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]))
 			if err != nil {
 				return err
 			}
 			asserts.Len(scrapeConfigs.Children(), 1, "Expected only one scrape config")
-			scrapeJobName := scrapeConfigs.Children()[0].Search(jobNameKey).Data()
+			scrapeJobName := scrapeConfigs.Children()[0].Search(constants.PrometheusJobNameKey).Data()
 			asserts.Equal("test2", scrapeJobName)
 			return nil
 		})
@@ -1271,8 +1272,8 @@ func TestRegisterClusterWithRancherOverrideRegistry(t *testing.T) {
 		validateScrapeConfig(t, scrapeConfig, prometheusConfigBasePath, true)
 		return nil
 	}, func(secret *corev1.Secret) error {
-		scrapeConfigYaml := secret.Data[vpoconstants.PromAdditionalScrapeConfigsSecretKey]
-		scrapeConfigs, err := parseScrapeConfig(string(scrapeConfigYaml))
+		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
+		scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(scrapeConfigYaml))
 		if err != nil {
 			asserts.Fail("failed due to error %v", err)
 		}
@@ -1732,10 +1733,10 @@ func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometh
 
 	// Expect a call to get the additional scrape config secret - return it
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: vpoconstants.PromAdditionalScrapeConfigsSecretName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: constants.PromAdditionalScrapeConfigsSecretName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
-				vpoconstants.PromAdditionalScrapeConfigsSecretKey: []byte(jobs),
+				constants.PromAdditionalScrapeConfigsSecretKey: []byte(jobs),
 			}
 			return nil
 		})
@@ -1752,10 +1753,10 @@ func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometh
 
 	// Expect a call to get the additional scrape config secret (we call controllerruntime.CreateOrUpdate so it fetches again) - return it
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: vpoconstants.PromAdditionalScrapeConfigsSecretName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: constants.PromAdditionalScrapeConfigsSecretName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
-				vpoconstants.PromAdditionalScrapeConfigsSecretKey: []byte(jobs),
+				constants.PromAdditionalScrapeConfigsSecretKey: []byte(jobs),
 			}
 			return nil
 		})
@@ -1953,7 +1954,7 @@ func getScrapeConfig(prometheusYaml string, name string) (*gabs.Container, error
 func getJob(scrapeConfigs []*gabs.Container, name string) *gabs.Container {
 	var job *gabs.Container
 	for _, scrapeConfig := range scrapeConfigs {
-		jobName := scrapeConfig.Search(jobNameKey).Data()
+		jobName := scrapeConfig.Search(constants.PrometheusJobNameKey).Data()
 		if jobName == name {
 			job = scrapeConfig
 			break
