@@ -419,9 +419,7 @@ pipeline {
                     }
                     post {
                         always {
-                            script {
-                                performDescribeVerrazzanoResource()
-                            }
+                            performDescribeVerrazzanoResource()
                         }
                     }
                 }
