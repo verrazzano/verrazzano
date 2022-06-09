@@ -46,6 +46,15 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
 			GetInstallOverridesFunc: GetOverrides,
+			Certificates: []types.NamespacedName{
+				{Name: constants.VerrazzanoIngressSecret, Namespace: ComponentNamespace},
+			},
+			IngressNames: []types.NamespacedName{
+				{
+					Namespace: ComponentNamespace,
+					Name:      constants.VzConsoleIngress,
+				},
+			},
 		},
 	}
 }
@@ -74,17 +83,6 @@ func (c authProxyComponent) IsReady(ctx spi.ComponentContext) bool {
 		return isAuthProxyReady(ctx)
 	}
 	return false
-}
-
-// GetIngressNames - gets the names of the ingresses associated with this component
-func (c authProxyComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
-	ingressNames := []types.NamespacedName{
-		{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      constants.VzConsoleIngress,
-		},
-	}
-	return ingressNames
 }
 
 // PreInstall - actions to perform prior to installing this component

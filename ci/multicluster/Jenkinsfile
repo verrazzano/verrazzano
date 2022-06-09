@@ -464,6 +464,13 @@ pipeline {
                         runGinkgoAdmin('update/fluentdextes')
                     }
                 }
+                stage("verify-dns-update") {
+                    steps {
+                        script {
+                            parallel verifyDNSUpdate()
+                        }
+                    }
+                }
                 stage("verify-cert-manager-update") {
                     steps {
                         script {
@@ -1527,6 +1534,17 @@ def verifyUpgrade() {
         },
         "Verify Metrics": {
             runGinkgoRandomize('metrics/syscomponents')
+        },
+    ]
+}
+
+def verifyDNSUpdate() {
+    return [
+        "verify-admin-cluster-dns-update": {
+            runGinkgoAdmin('update/dnsac')
+        },
+        "verify-managed-cluster-dns-update": {
+            runGinkgoAdmin('update/dnsmc')
         },
     ]
 }
