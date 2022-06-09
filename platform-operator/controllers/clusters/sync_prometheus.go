@@ -11,7 +11,7 @@ import (
 	"github.com/Jeffail/gabs/v2"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
-	"github.com/verrazzano/verrazzano/pkg/scrapeconfigutils"
+	"github.com/verrazzano/verrazzano/pkg/metricsutils"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
@@ -195,7 +195,7 @@ func (r *VerrazzanoManagedClusterReconciler) newScrapeConfig(cacrtSecret *v1.Sec
 		configTemplate = strings.ReplaceAll(configTemplate, key, value)
 	}
 
-	newScrapeConfig, err = scrapeconfigutils.ParseScrapeConfig(configTemplate)
+	newScrapeConfig, err = metricsutils.ParseScrapeConfig(configTemplate)
 	if err != nil {
 		return nil, err
 	}
@@ -280,11 +280,11 @@ func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx c
 	editScrapeJobName := vmc.Name
 
 	// parse the scrape config so we can manipulate it
-	jobs, err := scrapeconfigutils.ParseScrapeConfig(jobsStr)
+	jobs, err := metricsutils.ParseScrapeConfig(jobsStr)
 	if err != nil {
 		return err
 	}
-	scrapeConfigs, err := scrapeconfigutils.EditScrapeJob(jobs, editScrapeJobName, newScrapeConfig)
+	scrapeConfigs, err := metricsutils.EditScrapeJob(jobs, editScrapeJobName, newScrapeConfig)
 	if err != nil {
 		return err
 	}

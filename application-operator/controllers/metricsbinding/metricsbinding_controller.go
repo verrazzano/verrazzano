@@ -16,6 +16,7 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/metricsutils"
 	"go.uber.org/zap"
 	k8scorev1 "k8s.io/api/core/v1"
 	k8smetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -120,13 +121,13 @@ func (r *Reconciler) reconcileBindingCreateOrUpdate(ctx context.Context, metrics
 
 	// Handle the case where the workload uses the default metrics template
 	if isLegacyDefaultMetricsTemplate(metricsBinding.Spec.MetricsTemplate) {
-		if err := r.handleDefaultMetricsTemplate(metricsBinding, log); err != nil {
+		if err := metricsutils.HandleDefaultMetricsTemplate(ctx, r.Client, metricsBinding, log); err != nil {
 			return k8scontroller.Result{Requeue: true}, err
 		}
 	}
 
 	// Handle the case where the workloaded uses a custom metrics template
-	if err := r.handleCustomMetricsTemplate(metricsBinding, log); err != nil {
+	if err := metricsutils.HandleCustomMetricsTemplate(ctx, r.Client, metricsBinding, log); err != nil {
 		return k8scontroller.Result{Requeue: true}, err
 	}
 
@@ -215,7 +216,7 @@ func (r *Reconciler) deleteScrapeConfig(metricsBinding *vzapi.MetricsBinding, co
 	// Delete scrape config with job name matching resource
 	scrapeConfigs := promConfig.Search(prometheusScrapeConfigsLabel).Children()
 	for index, scrapeConfig := range scrapeConfigs {
-		existingJobName := scrapeConfig.Search(constants.PrometheusJobNameKey).Data()
+		existingJobName := scrapeConfig.Search(vzconst.PrometheusJobNameKey).Data()
 		createdJobName := createJobName(metricsBinding)
 		if existingJobName == createdJobName {
 			err = promConfig.ArrayRemoveP(index, prometheusScrapeConfigsLabel)
@@ -301,7 +302,7 @@ func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBin
 	existingUpdated := false
 	scrapeConfigs := promConfig.Search(prometheusScrapeConfigsLabel).Children()
 	for index, scrapeConfig := range scrapeConfigs {
-		existingJobName := scrapeConfig.Search(constants.PrometheusJobNameKey).Data()
+		existingJobName := scrapeConfig.Search(vzconst.PrometheusJobNameKey).Data()
 		if existingJobName == createdJobName {
 			// Remove and recreate scrape config
 			err = promConfig.ArrayRemoveP(index, prometheusScrapeConfigsLabel)
@@ -387,37 +388,3 @@ func isLegacyDefaultMetricsTemplate(templateName vzapi.NamespaceName) bool {
 	return templateName.Namespace == constants.LegacyDefaultMetricsTemplateNamespace &&
 		templateName.Name == constants.LegacyDefaultMetricsTemplateName
 }
-
-// handleDefaultMetricsTemplate handles pre-Verrazzano 1.4 metrics bindings that use the default
-// metrics template, by creating/updating a service monitor that does the same work as the default
-// template.
-func (r *Reconciler) handleDefaultMetricsTemplate(metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) error {
-	log.Infof("Default metrics template used by metrics binding %s/%s, service monitor time!", metricsBinding.Namespace, metricsBinding.Name)
-	// serviceMonitor, err := r.createOrUpdateServiceMonitor(metricsBinding) // update because it may exist from prior reconcile where we failed to delete metricsbinding
-	// if err != nil {
-	// 	log.Errorf("Failed to create/update ServiceMonitor for MetricsBinding: %v", err)
-	// 	return err
-	// }
-	return nil
-	// if create service monitor succeeded, our conversion of legacy MetricsBinding is
-	// done. Keep the MetricsBinding in the custom metrics template use case so we know this is a "legacy" app, update it with the
-	// additionalScrapeConfig config map instead of the promConfigMap name
-	// metricsBinding.Spec.ServiceMonitor = serviceMonitor.Name
-	// err := a.Client.Update(ctx, metricsBinding)
-	// if err != nil {
-	// 	log.Errorf("Failed to update MetricsBinding with service monitor information: %v", err)
-	// 	return admission.Errored(http.StatusInternalServerError, err)
-	// }
-}
-
-// handleCustomMetricsTemplate handles pre-Verrazzano 1.4 metrics bindings that use a custom
-// metrics template, by updating the additionalScrapeConfigs secret for the Prometheus CR to collect
-// metrics as specified by the custom template.
-func (r *Reconciler) handleCustomMetricsTemplate(metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) error {
-	log.Infof("Custom metrics template used by metrics binding %s/%s, additionalScrapeConfigs time!", metricsBinding.Namespace, metricsBinding.Name)
-	return nil
-}
-
-// func (r *Reconciler) createOrUpdateServiceMonitor(metricsBinding vzapi.MetricsBinding) (*ServiceMonitor, error) {
-//
-// }
