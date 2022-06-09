@@ -4,6 +4,7 @@
 package authproxy
 
 import (
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -67,6 +68,10 @@ func TestGetIngressNames(t *testing.T) {
 	assert.Equal(t, ComponentNamespace, ingressNames[0].Namespace)
 }
 
+// Test_authProxyComponent_ValidateUpdate tests the AuthProxy GetIngressNames call
+// GIVEN a AuthProxy component
+//  WHEN I call ValidateUpdate,
+//  THEN it should return an error only when the update disables a previously enabled auth proxy component.
 func Test_authProxyComponent_ValidateUpdate(t *testing.T) {
 	disabled := false
 	tests := []struct {
@@ -116,6 +121,144 @@ func Test_authProxyComponent_ValidateUpdate(t *testing.T) {
 			if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 			}
+		})
+	}
+}
+
+// TestAuthProxyComponent_IsReady tests the AuthProxy IsReady call
+// GIVEN a AuthProxy component
+//  WHEN I call IsReady,
+//  THEN it should return false since none of the replicas of the authproxy deployment is ready by default.
+func TestAuthProxyComponent_IsReady(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	trueValue := true
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				AuthProxy: &vzapi.AuthProxyComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	authProxy := NewComponent()
+	isReady := authProxy.IsReady(spi.NewFakeContext(client, vz, true))
+	assert.False(t, isReady, "When dry run flag is enabled, IsReady should return false")
+	isReady = authProxy.IsReady(spi.NewFakeContext(client, vz, false))
+	assert.False(t, isReady, "When dry run flag is disabled, IsReady should return false")
+}
+
+// TestAuthProxyComponent_PreInstall tests the AuthProxy PreInstall call
+// GIVEN a AuthProxy component
+// WHEN I call PreUpgrade,
+// THEN it should not return any error.
+func TestAuthProxyComponent_PreInstall(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	trueValue := true
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				AuthProxy: &vzapi.AuthProxyComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, false)
+	authProxy := NewComponent()
+	err := authProxy.PreInstall(ctx)
+	assert.Nilf(t, err, "There should not be any error when pre install is invoked")
+}
+
+// TestAuthProxyComponent_PreUpgrade tests the AuthProxy PreUpgrade call
+// GIVEN a AuthProxy component
+// WHEN I call PreUpgrade,
+// THEN it should not return any error.
+func TestAuthProxyComponent_PreUpgrade(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	trueValue := true
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				AuthProxy: &vzapi.AuthProxyComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, false)
+	authProxy := NewComponent()
+	err := authProxy.PreUpgrade(ctx)
+	assert.Nilf(t, err, "There should not be any error when pre upgrade is invoked")
+}
+
+// TestAuthProxyComponent_MonitorOverrides tests the AuthProxy MonitorOverrides call
+// GIVEN a AuthProxy component
+//  WHEN I call IsReady,
+//  THEN it should return false if no authproxy component is defined in VZ CR or if explicitly disabled
+//       and return true otherwise.
+func TestAuthProxyComponent_MonitorOverrides(t *testing.T) {
+	trueValue := true
+	falseValue := false
+	tests := []struct {
+		name              string
+		actualCR          vzapi.Verrazzano
+		expectMonitorFlag bool
+	}{
+		{
+			name:              "Test MonitorOverrides return false when no custom authproxy spec is set",
+			actualCR:          vzapi.Verrazzano{},
+			expectMonitorFlag: false,
+		},
+		{
+			name: "Test MonitorOverrides return true when authproxy spec does not define MonitorOverrides flag",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						AuthProxy: &vzapi.AuthProxyComponent{},
+					},
+				},
+			},
+			expectMonitorFlag: true,
+		},
+		{
+			name: "Test MonitorOverrides return true when authproxy spec does not define MonitorOverrides flag",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						AuthProxy: &vzapi.AuthProxyComponent{
+							InstallOverrides: vzapi.InstallOverrides{
+								MonitorChanges: &trueValue,
+							},
+						},
+					},
+				},
+			},
+			expectMonitorFlag: true,
+		},
+		{
+			name: "Test MonitorOverrides returns false when authproxy spec explicitly defines MonitorOverrides flag",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						AuthProxy: &vzapi.AuthProxyComponent{
+							InstallOverrides: vzapi.InstallOverrides{
+								MonitorChanges: &falseValue,
+							},
+						},
+					},
+				},
+			},
+			expectMonitorFlag: false,
+		},
+	}
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(client, &tt.actualCR, false)
+			c := NewComponent()
+			monitorFlag := c.MonitorOverrides(ctx)
+			assert.Equal(t, tt.expectMonitorFlag, monitorFlag)
 		})
 	}
 }
