@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -176,6 +177,49 @@ func TestUpdateFalseMonitorChanges(t *testing.T) {
 	asserts.Equal(vzapi.VzStateReady, vz.Status.State)
 	asserts.Nil(fakeCompUpdated)
 	asserts.False(result.Requeue)
+}
+
+func TestInstall_IsVersionOk(t *testing.T) {
+	tests := []struct {
+		name             string
+		componentVersion string
+		vzVersion        string
+		expectTrue       bool
+	}{
+		{
+			name:             "Return true when VZ version is higher than min component version",
+			componentVersion: "1.1.0",
+			vzVersion:        "1.3.0",
+			expectTrue:       true,
+		},
+		{
+			name:             "Return false when VZ version is lesser than min component version",
+			componentVersion: "1.3.0",
+			vzVersion:        "1.1.0",
+			expectTrue:       false,
+		},
+		{
+			name:             "Return false when min component version is in invalid semvar format",
+			componentVersion: "1..1.0",
+			vzVersion:        "1.3.0",
+			expectTrue:       false,
+		},
+		{
+			name:             "Return false when VZ version is in invalid semvar format",
+			componentVersion: "1.1.0",
+			vzVersion:        "1..3.0",
+			expectTrue:       false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.expectTrue {
+				assert.True(t, isVersionOk(vzlog.DefaultLogger(), tt.componentVersion, tt.vzVersion))
+			} else {
+				assert.False(t, isVersionOk(vzlog.DefaultLogger(), tt.componentVersion, tt.vzVersion))
+			}
+		})
+	}
 }
 
 func reset() {
