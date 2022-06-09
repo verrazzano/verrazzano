@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	"io/ioutil"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"net/http"
 	"strings"
 	"time"
@@ -76,7 +77,7 @@ var _ = t.AfterSuite(func() {
 	}
 	if !skipUndeploy {
 		start := time.Now()
-		pkg.UndeployHelloHelidonApplication(namespace)
+		undeployHelloHelidonApplication(namespace)
 		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
@@ -231,6 +232,44 @@ func deployHelloHelidonApplication(namespace string, ociLogID string, istioInjec
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(helidonAppYaml, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon application resource")
+}
+
+// undeployHelloHelidonApplication undeploys the Hello Helidon example application.
+func undeployHelloHelidonApplication(namespace string) {
+	pkg.Log(pkg.Info, "Undeploy Hello Helidon Application")
+	if exists, _ := pkg.DoesNamespaceExist(namespace); exists {
+		pkg.Log(pkg.Info, "Delete Hello Helidon application")
+		Eventually(func() error {
+			return pkg.DeleteResourceFromFileInGeneratedNamespace(helidonAppYaml, namespace)
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon application resource")
+
+		pkg.Log(pkg.Info, "Delete Hello Helidon components")
+		Eventually(func() error {
+			return pkg.DeleteResourceFromFileInGeneratedNamespace(helidonComponentYaml, namespace)
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon component resource")
+
+		pkg.Log(pkg.Info, "Wait for application pods to terminate")
+		Eventually(func() bool {
+			podsTerminated, _ := pkg.PodsNotRunning(namespace, expectedPodsHelloHelidon)
+			return podsTerminated
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+
+		pkg.Log(pkg.Info, fmt.Sprintf("Delete namespace %s", namespace))
+		Eventually(func() error {
+			return pkg.DeleteNamespace(namespace)
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), fmt.Sprintf("Failed to deleted namespace %s", namespace))
+
+		pkg.Log(pkg.Info, "Wait for namespace finalizer to be removed")
+		Eventually(func() bool {
+			return pkg.CheckNamespaceFinalizerRemoved(namespace)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+
+		pkg.Log(pkg.Info, "Wait for namespace to be deleted")
+		Eventually(func() bool {
+			_, err := pkg.GetNamespace(namespace)
+			return err != nil && errors.IsNotFound(err)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+	}
 }
 
 func helloHelidonPodsRunning() bool {
