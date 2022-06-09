@@ -405,11 +405,11 @@
       "subcomponents": [
         {
           "repository": "verrazzano",
-          "name": "keycloak",
+          "name": "keycloak-jenkins",
           "images": [
             {
-              "image": "keycloak",
-              "tag": "15.0.2-20220510113519-620b97bc83",
+              "image": "keycloak-jenkins",
+              "tag": "15.0.2-20220609100924-85cb87a5d3",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
