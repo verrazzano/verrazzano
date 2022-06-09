@@ -150,12 +150,12 @@ func (f fluentdComponent) IsReady(ctx spi.ComponentContext) bool {
 // IsInstalled component check
 func (f fluentdComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	daemonSet := &appsv1.DaemonSet{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, daemonSet)
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: "fluentd"}, daemonSet)
 	if errors.IsNotFound(err) {
 		return false, nil
 	}
 	if err != nil {
-		ctx.Log().Errorf("Failed to get %s/%s daemonSet: %v", ComponentNamespace, ComponentName, err)
+		ctx.Log().Errorf("Failed to get %s/%s daemonSet: %v", ComponentNamespace, "fluentd", err)
 		return false, err
 	}
 	return true, nil
