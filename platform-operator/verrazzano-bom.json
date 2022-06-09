@@ -405,7 +405,7 @@
       "subcomponents": [
         {
           "repository": "verrazzano",
-          "name": "keycloak-jenkins",
+          "name": "keycloak",
           "images": [
             {
               "image": "keycloak-jenkins",
