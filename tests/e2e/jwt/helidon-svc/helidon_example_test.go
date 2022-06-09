@@ -187,14 +187,14 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 			}
 			Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"kubernetes.labels.app_oam_dev\\/name": "hello-helidon-appconf",
+					"kubernetes.labels.app_oam_dev\\/name": "hello-helidon-svc-application",
 					"kubernetes.container_name":            "hello-helidon-container",
 				})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
 			Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"kubernetes.labels.app_oam_dev\\/component": "hello-helidon-component",
-					"kubernetes.labels.app_oam_dev\\/name":      "hello-helidon-appconf",
+					"kubernetes.labels.app_oam_dev\\/component": "hello-helidon-deploy-component",
+					"kubernetes.labels.app_oam_dev\\/name":      "hello-helidon-svc-application",
 					"kubernetes.container_name":                 "hello-helidon-container",
 				})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
@@ -303,15 +303,15 @@ func appEndpointAccess(url string, hostname string, token string, requestShouldS
 }
 
 func appMetricsExists() bool {
-	return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "hello-helidon")
+	return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "hello-helidon-svc-application")
 }
 
 func appComponentMetricsExists() bool {
-	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", "hello-helidon-appconf")
+	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", "hello-helidon-svc-application")
 }
 
 func appConfigMetricsExists() bool {
-	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "hello-helidon-component")
+	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "hello-helidon-deploy-component")
 }
 
 func nodeExporterProcsRunning() bool {
