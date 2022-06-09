@@ -29,6 +29,9 @@ const (
 
 	// vzImagePullSecretKeyName is the Helm key name for the VZ chart image pull secret
 	vzImagePullSecretKeyName = "global.imagePullSecrets[0]"
+
+	// ServiceAccountName is the service account of the component
+	ServiceAccountName = "fluentd"
 )
 
 var (

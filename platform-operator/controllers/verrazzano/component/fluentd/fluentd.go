@@ -223,6 +223,14 @@ func reassociateResources(cli clipkg.Client) error {
 		}
 	}
 
+	// additional namespaced resources managed by this helm chart
+	fluentdProxyResources := GetHelmManagedResources()
+	for _, managedResoure := range fluentdProxyResources {
+		if _, err := common.RemoveResourcePolicyAnnotation(cli, managedResoure.Obj, managedResoure.NamespacedName); err != nil {
+			return err
+		}
+	}
+
 	// cluster resources
 	for _, obj := range noNamespaceObjects {
 		if _, err := common.RemoveResourcePolicyAnnotation(cli, obj, name); err != nil {
@@ -230,6 +238,17 @@ func reassociateResources(cli clipkg.Client) error {
 		}
 	}
 	return nil
+}
+
+// GetHelmManagedResources returns a list of extra resource types and their namespaced names that are managed by the
+// verrazzano-fluentd helm chart
+func GetHelmManagedResources() []common.HelmManagedResource {
+	return []common.HelmManagedResource{
+		{Obj: &corev1.ServiceAccount{}, NamespacedName: types.NamespacedName{Name: ServiceAccountName, Namespace: ComponentNamespace}},
+		/*{Obj: &corev1.Secret{}, NamespacedName: types.NamespacedName{Name: "verrazzano-authproxy-secret", Namespace: ComponentNamespace}},
+		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "verrazzano-authproxy-config", Namespace: ComponentNamespace}},
+		{Obj: &v1.Ingress{}, NamespacedName: types.NamespacedName{Name: "verrazzano-ingress", Namespace: ComponentNamespace}},*/
+	}
 }
 
 // GetProfile Returns the configured profile name, or "prod" if not specified in the configuration
