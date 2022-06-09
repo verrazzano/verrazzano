@@ -6,9 +6,9 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -179,7 +179,7 @@ func TestUpdateFalseMonitorChanges(t *testing.T) {
 	asserts.False(result.Requeue)
 }
 
-func TestInstall_IsVersionOk(t *testing.T) {
+func TestInstall_isVersionOk(t *testing.T) {
 	tests := []struct {
 		name             string
 		componentVersion string
@@ -217,6 +217,112 @@ func TestInstall_IsVersionOk(t *testing.T) {
 				assert.True(t, isVersionOk(vzlog.DefaultLogger(), tt.componentVersion, tt.vzVersion))
 			} else {
 				assert.False(t, isVersionOk(vzlog.DefaultLogger(), tt.componentVersion, tt.vzVersion))
+			}
+		})
+	}
+}
+
+func TestInstall_checkConfigUpdated(t *testing.T) {
+	tests := []struct {
+		name                   string
+		actualCR               vzapi.Verrazzano
+		componentStatusDetails vzapi.ComponentStatusDetails
+		expectTrue             bool
+	}{
+		{
+			name: "Return false when VZ status is in upgrading state",
+			actualCR: vzapi.Verrazzano{
+				Status: vzapi.VerrazzanoStatus{
+					State: vzapi.VzStateUpgrading,
+				},
+			},
+			componentStatusDetails: vzapi.ComponentStatusDetails{},
+			expectTrue:             false,
+		},
+		{
+			name: "Return false when VZ status is in paused state",
+			actualCR: vzapi.Verrazzano{
+				Status: vzapi.VerrazzanoStatus{
+					State: vzapi.VzStatePaused,
+				},
+			},
+			componentStatusDetails: vzapi.ComponentStatusDetails{},
+			expectTrue:             false,
+		},
+		{
+			name: "Return false when current generation is less than reconciling generation",
+			actualCR: vzapi.Verrazzano{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: int64(1),
+				},
+			},
+			componentStatusDetails: vzapi.ComponentStatusDetails{
+				ReconcilingGeneration: int64(2),
+			},
+			expectTrue: false,
+		},
+		{
+			name: "Return true when current generation is more than reconciling generation",
+			actualCR: vzapi.Verrazzano{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: int64(3),
+				},
+			},
+			componentStatusDetails: vzapi.ComponentStatusDetails{
+				ReconcilingGeneration: int64(2),
+			},
+			expectTrue: true,
+		},
+		{
+			name: "Return false when current generation is less than component last reconciling generation and component state is ready",
+			actualCR: vzapi.Verrazzano{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: int64(0),
+				},
+			},
+			componentStatusDetails: vzapi.ComponentStatusDetails{
+				State:                    vzapi.CompStateReady,
+				ReconcilingGeneration:    int64(0),
+				LastReconciledGeneration: int64(1),
+			},
+			expectTrue: false,
+		},
+		{
+			name: "Return true when current generation is more than component last reconciling generation and component state is ready",
+			actualCR: vzapi.Verrazzano{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: int64(2),
+				},
+			},
+			componentStatusDetails: vzapi.ComponentStatusDetails{
+				State:                    vzapi.CompStateReady,
+				ReconcilingGeneration:    int64(0),
+				LastReconciledGeneration: int64(1),
+			},
+			expectTrue: true,
+		},
+		{
+			name: "Return false when current generation is more than component last reconciling generation and component state is not ready",
+			actualCR: vzapi.Verrazzano{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: int64(2),
+				},
+			},
+			componentStatusDetails: vzapi.ComponentStatusDetails{
+				State:                    vzapi.CompStateInstalling,
+				ReconcilingGeneration:    int64(0),
+				LastReconciledGeneration: int64(1),
+			},
+			expectTrue: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(nil, &tt.actualCR, false)
+			if tt.expectTrue {
+				assert.True(t, checkConfigUpdated(ctx, &tt.componentStatusDetails, tt.name))
+			} else {
+				assert.False(t, checkConfigUpdated(ctx, &tt.componentStatusDetails, tt.name))
 			}
 		})
 	}
