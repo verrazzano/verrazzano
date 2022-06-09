@@ -21,7 +21,7 @@ const (
 	TestNamespace         = "hello-helidon" // currently only used for placement tests
 	multiclusterNamespace = "verrazzano-mc"
 	projectName           = "hello-helidon"
-	appConfigName         = "hello-helidon-appconf"
+	appConfigName         = "hello-helidon"
 	componentName         = "hello-helidon-component"
 	workloadName          = "hello-helidon-workload"
 )
