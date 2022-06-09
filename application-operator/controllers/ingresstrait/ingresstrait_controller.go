@@ -384,7 +384,8 @@ func (r *Reconciler) fetchWorkloadChildren(ctx context.Context, workload *unstru
 			return nil, err
 		}
 		return children, nil
-	} else if workload.GetAPIVersion() == appsv1.SchemeGroupVersion.String() {
+	} else if workload.GetAPIVersion() == appsv1.SchemeGroupVersion.String() ||
+		workload.GetAPIVersion() == corev1.SchemeGroupVersion.String() {
 		// Else if this is a native resource then use the workload itself as the child
 		log.Debug("Found native workload")
 		return []*unstructured.Unstructured{workload}, nil
