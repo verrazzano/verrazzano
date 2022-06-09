@@ -524,10 +524,11 @@ func validateServiceNodePortAndExternalIP(expectedSystemExternalIP, expectedAppl
 		if err != nil {
 			return err
 		}
-		err = validateIngressHost(expectedSystemExternalIP, "verrazzano-ingress", "verrazzano-system")
-		if err != nil {
-			return err
-		}
+		// uncomment this once nginx is a dependence of authproxy
+		//err = validateIngressHost(expectedSystemExternalIP, "verrazzano-ingress", "verrazzano-system")
+		//if err != nil {
+		//	return err
+		//}
 
 		// validate application Host
 		err = validateApplicationHost(expectedApplicationExternalIP)
@@ -579,10 +580,11 @@ func validateServiceLoadBalancer() {
 		if err != nil {
 			return err
 		}
-		err = validateIngressHost(nginxLBIP, "verrazzano-ingress", "verrazzano-system")
-		if err != nil {
-			return err
-		}
+		// uncomment this once nginx is a dependence of authproxy
+		//err = validateIngressHost(nginxLBIP, "verrazzano-ingress", "verrazzano-system")
+		//if err != nil {
+		//	return err
+		//}
 
 		// validate application Host
 		err = validateApplicationHost(istioLBIP)
