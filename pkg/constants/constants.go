@@ -68,6 +68,10 @@ const IstioSystemNamespace = "istio-system"
 // IngressNamespace - the NGINX ingress namespace
 const IngressNamespace = "ingress-nginx"
 
+// PrometheusOperatorNamespace - the namespace where Verrazzano installs Prometheus Operator
+// and its related components.
+const PrometheusOperatorNamespace = "verrazzano-monitoring"
+
 // LabelIstioInjection - constant for a Kubernetes label that is applied by Verrazzano
 const LabelIstioInjection = "istio-injection"
 
@@ -108,6 +112,8 @@ const DefaultVerrazzanoCASecretName = "verrazzano-ca-certificate-secret"
 // VmiPromConfigName - The name of the prometheus config map
 const VmiPromConfigName string = "vmi-system-prometheus-config"
 
+const PrometheusJobNameKey = "job_name"
+
 // TestPrometheusJobScrapeInterval - The string 0s representing a test only prometheus config scrape interval
 const TestPrometheusJobScrapeInterval = "0s"
 
@@ -119,3 +125,9 @@ const DefaultOpensearchURL = "http://verrazzano-authproxy-elasticsearch:8775"
 
 // VerrazzanoManagedLabelKey is a constant for a Kubernetes label that is applied to Verrazzano application namespaces
 const VerrazzanoManagedLabelKey = "verrazzano-managed"
+
+// PromAdditionalScrapeConfigsSecretName is the name of the secret that contains the additional scrape configurations loaded by Prometheus
+const PromAdditionalScrapeConfigsSecretName = "additional-scrape-configs"
+
+// PromAdditionalScrapeConfigsSecretKey is the name of the key in the additional scrape configurations secret that contains the scrape config YAML
+const PromAdditionalScrapeConfigsSecretKey = "jobs"

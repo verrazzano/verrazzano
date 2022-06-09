@@ -5,11 +5,11 @@ package constants
 
 // GlobalFlagKubeConfig - global flag for specifying the location of the kube config
 const GlobalFlagKubeConfig = "kubeconfig"
-const GlobalFlagKubeConfigHelp = "Path to the kubeconfig file to use."
+const GlobalFlagKubeConfigHelp = "Path to the kubeconfig file to use"
 
 // GlobalFlagContext - global flag for specifying which kube config context to use
 const GlobalFlagContext = "context"
-const GlobalFlagContextHelp = "The name of the kubeconfig context to use."
+const GlobalFlagContextHelp = "The name of the kubeconfig context to use"
 
 // GlobalFlagHelp - global help flag
 const GlobalFlagHelp = "help"
@@ -21,11 +21,11 @@ const (
 	WaitFlagDefault = true
 
 	TimeoutFlag     = "timeout"
-	TimeoutFlagHelp = "Limits the amount of time a command will wait to complete."
+	TimeoutFlagHelp = "Limits the amount of time a command will wait to complete"
 
 	VersionFlag        = "version"
 	VersionFlagDefault = "latest"
-	VersionFlagHelp    = "The version of Verrazzano to install or upgrade."
+	VersionFlagHelp    = "The version of Verrazzano to install or upgrade"
 
 	DryRunFlag = "dry-run"
 
@@ -46,3 +46,6 @@ const (
 
 // VerrazzanoReleaseList - API for getting the list of Verrazzano releases
 const VerrazzanoReleaseList = "https://api.github.com/repos/verrazzano/verrazzano/releases"
+
+// VerrazzanoOperatorURL - URL for downloading Verrazzano releases
+const VerrazzanoOperatorURL = "https://github.com/verrazzano/verrazzano/releases/download/%s/operator.yaml"

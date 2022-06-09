@@ -221,6 +221,7 @@ pipeline {
                                         booleanParam(name: 'WAIT_FOR_TRIGGERED', value: true),
                                         booleanParam(name: 'GENERATE_TARBALL', value: true),
                                         booleanParam(name: 'GENERATE_TOOL', value: true),
+                                        booleanParam(name: 'GENERATE_CLI', value: true),
                                         booleanParam(name: 'PUSH_TO_OCIR', value: true)
                                     ], wait: true
                             }
