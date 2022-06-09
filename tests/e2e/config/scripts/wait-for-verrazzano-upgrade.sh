@@ -27,6 +27,8 @@ done
 
 if [ $retval_failed -eq 0 ]; then
     echo "Upgrade Failed"
+    kubectl get ${resPath} -o yaml
+    kubectl describe ${resPath} -o yaml
     exit 1
 fi
 

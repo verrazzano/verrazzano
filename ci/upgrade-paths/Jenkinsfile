@@ -417,6 +417,13 @@ pipeline {
                     steps {
                         upgradeVerrazzano()
                     }
+                    post {
+                        always {
+                            script {
+                                performDescribeVerrazzanoResource()
+                            }
+                        }
+                    }
                 }
             }
             post {
@@ -2066,5 +2073,19 @@ def pipelinePostFailure() {
             oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip || true
             rm archive.zip || true
         """
+    }
+}
+
+def performDescribeVerrazzanoResource() {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for(int count=1; count<=clusterCount; count++) {
+            sh """
+                echo "Performing describe on Verrazzano resource on cluster ${count}"
+                export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                cd ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts
+                ./wait-for-verrazzano-upgrade.sh
+            """
+        }
     }
 }
