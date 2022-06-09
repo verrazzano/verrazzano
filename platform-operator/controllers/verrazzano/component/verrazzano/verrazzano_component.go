@@ -161,6 +161,12 @@ func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 			return err
 		}
 	}
+	// TODO: reassociate fluentd
+	/*if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) {
+		if err := associateFluentdResources(ctx.Client()); err != nil {
+			return err
+		}
+	}*/
 	return c.HelmComponent.PostUpgrade(ctx)
 }
 

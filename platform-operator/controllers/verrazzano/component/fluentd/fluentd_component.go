@@ -4,6 +4,7 @@
 package fluentd
 
 import (
+	"context"
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -11,6 +12,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"io/ioutil"
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 )
 
@@ -111,9 +115,9 @@ func (f fluentdComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := loggingPreInstall(ctx); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed copying logging secrets for Verrazzano: %v", err)
 	}
-	if err := fluentdPreHelmOps(ctx); err != nil {
+	/*if err := fluentdPreHelmOps(ctx); err != nil {
 		return err
-	}
+	}*/
 	return nil
 }
 
@@ -132,10 +136,7 @@ func (f fluentdComponent) PreUpgrade(ctx spi.ComponentContext) error {
 
 // Upgrade Fluentd component upgrade processing
 func (f fluentdComponent) Upgrade(ctx spi.ComponentContext) error {
-	if err := f.HelmComponent.Upgrade(ctx); err != nil {
-		return err
-	}
-	return nil
+	return f.HelmComponent.Install(ctx) // see if this works
 }
 
 // IsReady component check
@@ -148,8 +149,16 @@ func (f fluentdComponent) IsReady(ctx spi.ComponentContext) bool {
 
 // IsInstalled component check
 func (f fluentdComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
-	installed, err := f.HelmComponent.IsInstalled(ctx)
-	return installed, err
+	daemonSet := &appsv1.DaemonSet{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, daemonSet)
+	if errors.IsNotFound(err) {
+		return false, nil
+	}
+	if err != nil {
+		ctx.Log().Errorf("Failed to get %s/%s daemonSet: %v", ComponentNamespace, ComponentName, err)
+		return false, err
+	}
+	return true, nil
 }
 
 // IsEnabled fluentd-specific enabled check for installation
