@@ -14,6 +14,7 @@ import (
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/workloadselector"
+	"github.com/verrazzano/verrazzano/application-operator/internal/metrics"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -23,7 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -134,11 +134,23 @@ func (a *GeneratorWorkloadWebhook) handleWorkloadResource(ctx context.Context, r
 		}
 	}
 
+	// Default metrics template handling
+	if metricsTemplate.GetName() == constants.LegacyDefaultMetricsTemplateName &&
+		metricsTemplate.GetNamespace() == constants.LegacyDefaultMetricsTemplateNamespace {
+		err = metrics.HandleDefaultMetricsTemplate(ctx, a.Client, existingMetricsBinding, log)
+		if err != nil {
+			return admission.Errored(http.StatusInternalServerError, err)
+		}
+		return admission.Allowed(constants.StatusReasonSuccess)
+	}
+
+	// Custom metrics template handling - update the metrics binding as needed
+
 	// Workload resource specifies a valid metrics template or we found one above
-	// We use that metrics template to update the existing metrics binding resource. We no longer
+	// We use that metrics template to update the existing metrics binding resource. We won't
 	// create new MetricsBindings as of Verrazzano 1.4 but we will honor settings for existing apps
 	if metricsTemplate != nil {
-		err = a.createOrUpdateMetricBinding(ctx, unst, metricsTemplate, log)
+		err = a.updateMetricBinding(ctx, unst, metricsTemplate, existingMetricsBinding, log)
 		if err != nil {
 			return admission.Errored(http.StatusInternalServerError, err)
 		}
@@ -203,9 +215,9 @@ func (a *GeneratorWorkloadWebhook) processMetricsAnnotation(unst *unstructured.U
 	return template, nil
 }
 
-// createOrUpdateMetricBinding creates/updates a metricsBinding resource and
+// updateMetricBinding updates an existing metricsBinding resource and
 // adds the apps.verrazzano.io/workload label to the workload resource
-func (a *GeneratorWorkloadWebhook) createOrUpdateMetricBinding(ctx context.Context, unst *unstructured.Unstructured, template *vzapp.MetricsTemplate, log *zap.SugaredLogger) error {
+func (a *GeneratorWorkloadWebhook) updateMetricBinding(ctx context.Context, unst *unstructured.Unstructured, template *vzapp.MetricsTemplate, metricsBinding *vzapp.MetricsBinding, log *zap.SugaredLogger) error {
 	// When the Prometheus target config map was not specified in the metrics template then there is nothing to do.
 	if reflect.DeepEqual(template.Spec.PrometheusConfig.TargetConfigMap, vzapp.TargetConfigMap{}) {
 		log.Infof("Prometheus target config map %s/%s not specified", template.Namespace, template.Name)
@@ -221,7 +233,7 @@ func (a *GeneratorWorkloadWebhook) createOrUpdateMetricBinding(ctx context.Conte
 	// Generate the metricBindings name
 	metricsBindingName := generateMetricsBindingName(unst.GetName(), unst.GetAPIVersion(), unst.GetKind())
 
-	metricsBinding := &vzapp.MetricsBinding{
+	/*	metricsBinding := &vzapp.MetricsBinding{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "app.verrazzno.io/v1alpha1",
 			Kind:       "metricsBinding"},
@@ -229,13 +241,14 @@ func (a *GeneratorWorkloadWebhook) createOrUpdateMetricBinding(ctx context.Conte
 			Namespace: unst.GetNamespace(),
 			Name:      metricsBindingName,
 		},
-	}
-	_, err = controllerutil.CreateOrUpdate(ctx, a.Client, metricsBinding, func() error {
-		return a.mutateMetricsBinding(metricsBinding, template, unst)
-	})
+	}*/
+
+	a.mutateMetricsBinding(metricsBinding, template, unst)
+
+	err = a.Client.Update(ctx, metricsBinding)
 
 	if err != nil {
-		log.Errorf("Failed creating/updating metricsBinding resource: %v", err)
+		log.Errorf("Failed updating metricsBinding resource: %v", err)
 		return err
 	}
 

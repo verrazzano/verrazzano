@@ -5,10 +5,11 @@ package metricsbinding
 
 import (
 	"context"
-	"github.com/go-logr/logr"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/go-logr/logr"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 
@@ -54,31 +55,6 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	err := reconciler.SetupWithManager(manager)
 	assert.NoError(err, "Expected no error when setting up reconciler")
 	mocker.Finish()
-}
-
-// TestGetMetricsTemplate tests the retrieval process of the metrics template
-// GIVEN a metrics binding
-// WHEN the function receives the binding
-// THEN return the metrics template without error
-func TestGetMetricsTemplate(t *testing.T) {
-	assert := asserts.New(t)
-
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	reconciler := newReconciler(mock)
-
-	localMetricsBinding := metricsBinding.DeepCopy()
-
-	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testMetricsTemplateNamespace, Name: testMetricsTemplateName}), gomock.Not(gomock.Nil())).DoAndReturn(
-		func(ctx context.Context, key client.ObjectKey, template *vzapi.MetricsTemplate) error {
-			template.SetNamespace(metricsTemplate.Namespace)
-			return nil
-		})
-
-	log := vzlog.DefaultLogger()
-	template, err := reconciler.getMetricsTemplate(localMetricsBinding, log)
-	assert.NoError(err, "Expected no error getting the MetricsTemplate from the MetricsBinding")
-	assert.NotNil(template)
 }
 
 // TestGetPromConfigMap tests the retrieval process of the Prometheus ConfigMap
@@ -499,7 +475,7 @@ func TestCreateDeployment(t *testing.T) {
 // newScheme creates a new scheme that includes this package's object to use for testing
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	//_ = clientgoscheme.AddToScheme(scheme)
+	// _ = clientgoscheme.AddToScheme(scheme)
 	k8sapps.AddToScheme(scheme)
 	//	vzapi.AddToScheme(scheme)
 	k8score.AddToScheme(scheme)

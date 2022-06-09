@@ -13,10 +13,10 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vztemplate "github.com/verrazzano/verrazzano/application-operator/controllers/template"
+	"github.com/verrazzano/verrazzano/application-operator/internal/metrics"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/metricsutils"
 	"go.uber.org/zap"
 	k8scorev1 "k8s.io/api/core/v1"
 	k8smetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -121,13 +121,13 @@ func (r *Reconciler) reconcileBindingCreateOrUpdate(ctx context.Context, metrics
 
 	// Handle the case where the workload uses the default metrics template
 	if isLegacyDefaultMetricsTemplate(metricsBinding.Spec.MetricsTemplate) {
-		if err := metricsutils.HandleDefaultMetricsTemplate(ctx, r.Client, metricsBinding, log); err != nil {
+		if err := metrics.HandleDefaultMetricsTemplate(ctx, r.Client, metricsBinding, log.GetZapLogger()); err != nil {
 			return k8scontroller.Result{Requeue: true}, err
 		}
 	}
 
 	// Handle the case where the workloaded uses a custom metrics template
-	if err := metricsutils.HandleCustomMetricsTemplate(ctx, r.Client, metricsBinding, log); err != nil {
+	if err := metrics.HandleCustomMetricsTemplate(ctx, r.Client, metricsBinding, log.GetZapLogger()); err != nil {
 		return k8scontroller.Result{Requeue: true}, err
 	}
 
@@ -240,7 +240,7 @@ func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBin
 	log.Debugw("Scrape Config is being created or update in the Prometheus config", "resource", metricsBinding.GetName())
 
 	// Get the MetricsTemplate from the MetricsBinding
-	template, err := r.getMetricsTemplate(metricsBinding, log)
+	template, err := metrics.GetMetricsTemplate(context.Background(), r.Client, metricsBinding, log.GetZapLogger())
 	if err != nil {
 		return err
 	}
@@ -331,25 +331,6 @@ func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBin
 	}
 	configMap.Data[prometheusConfigKey] = string(newPromConfigData)
 	return nil
-}
-
-// getMetricsTemplate returns the MetricsTemplate given in the MetricsBinding
-func (r *Reconciler) getMetricsTemplate(metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) (*vzapi.MetricsTemplate, error) {
-	template := vzapi.MetricsTemplate{
-		TypeMeta: k8smetav1.TypeMeta{
-			Kind:       metricsTemplateKind,
-			APIVersion: metricsTemplateAPIVersion,
-		},
-	}
-
-	templateSpec := metricsBinding.Spec.MetricsTemplate
-	namespacedName := types.NamespacedName{Name: templateSpec.Name, Namespace: templateSpec.Namespace}
-	err := r.Client.Get(context.Background(), namespacedName, &template)
-	if err != nil {
-		return nil, log.ErrorfNewErr("Failed to get the MetricsTemplate %s: %v", templateSpec.Name, err)
-	}
-
-	return &template, nil
 }
 
 // getPromConfigMap returns the Prometheus ConfigMap given in the MetricsBinding

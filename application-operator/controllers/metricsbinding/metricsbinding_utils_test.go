@@ -10,6 +10,7 @@ import (
 
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	k8sapps "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -58,8 +59,8 @@ var metricsBinding = v1alpha1.MetricsBinding{
 
 var metricsTemplate = v1alpha1.MetricsTemplate{
 	TypeMeta: metav1.TypeMeta{
-		Kind:       metricsTemplateKind,
-		APIVersion: metricsTemplateAPIVersion,
+		Kind:       vzconst.MetricsTemplateKind,
+		APIVersion: vzconst.MetricsTemplateAPIVersion,
 	},
 	ObjectMeta: metav1.ObjectMeta{
 		Namespace: testMetricsTemplateNamespace,
