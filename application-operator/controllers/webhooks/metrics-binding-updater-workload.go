@@ -14,7 +14,7 @@ import (
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/workloadselector"
-	"github.com/verrazzano/verrazzano/application-operator/internal/metrics"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -32,29 +32,29 @@ const (
 	MetricsBindingGeneratorWorkloadPath = "/metrics-binding-generator-workload"
 )
 
-// GeneratorWorkloadWebhook type for the mutating webhook
-type GeneratorWorkloadWebhook struct {
+// WorkloadWebhook type for the mutating webhook
+type WorkloadWebhook struct {
 	client.Client
 	Decoder    *admission.Decoder
 	KubeClient kubernetes.Interface
 }
 
 // Handle - handler for the mutating webhook
-func (a *GeneratorWorkloadWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
+func (a *WorkloadWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
 	log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, "metrics-binding-generator-workload")
 	log.Debugf("group: %s, version: %s, kind: %s", req.Kind.Group, req.Kind.Version, req.Kind.Kind)
 	return a.handleWorkloadResource(ctx, req, log)
 }
 
 // InjectDecoder injects the decoder.
-func (a *GeneratorWorkloadWebhook) InjectDecoder(d *admission.Decoder) error {
+func (a *WorkloadWebhook) InjectDecoder(d *admission.Decoder) error {
 	a.Decoder = d
 	return nil
 }
 
 // handleWorkloadResource decodes the admission request for a workload resource into an unstructured
 // and then processes workload resource
-func (a *GeneratorWorkloadWebhook) handleWorkloadResource(ctx context.Context, req admission.Request, log *zap.SugaredLogger) admission.Response {
+func (a *WorkloadWebhook) handleWorkloadResource(ctx context.Context, req admission.Request, log *zap.SugaredLogger) admission.Response {
 	unst := &unstructured.Unstructured{}
 	err := a.Decoder.Decode(req, unst)
 	if err != nil {
@@ -66,14 +66,6 @@ func (a *GeneratorWorkloadWebhook) handleWorkloadResource(ctx context.Context, r
 	// NOTE: this will be revisited.
 	if len(unst.GetOwnerReferences()) != 0 {
 		return admission.Allowed(constants.StatusReasonSuccess)
-	}
-
-	// Get the workload Namespace for annotation processing
-	workloadNamespace := &corev1.Namespace{}
-	err = a.Client.Get(context.TODO(), types.NamespacedName{Name: unst.GetNamespace()}, workloadNamespace)
-	if err != nil {
-		log.Errorf("Failed getting workload namespace %s: %v", unst.GetNamespace(), err)
-		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
 	// Handle legacy metrics annotations only for _existing_ workloads i.e. if a MetricsBinding
@@ -99,6 +91,14 @@ func (a *GeneratorWorkloadWebhook) handleWorkloadResource(ctx context.Context, r
 			log.Infof("%s is set to none in the workload - opting out of metrics", MetricsAnnotation)
 			return admission.Allowed(constants.StatusReasonSuccess)
 		}
+	}
+
+	// Get the workload Namespace for annotation processing
+	workloadNamespace := &corev1.Namespace{}
+	err = a.Client.Get(context.TODO(), types.NamespacedName{Name: unst.GetNamespace()}, workloadNamespace)
+	if err != nil {
+		log.Errorf("Failed getting workload namespace %s: %v", unst.GetNamespace(), err)
+		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
 	// If "none" is specified on namespace for annotation "app.verrazzano.io/metrics" then this namespace has opted out of metrics.
@@ -134,17 +134,7 @@ func (a *GeneratorWorkloadWebhook) handleWorkloadResource(ctx context.Context, r
 		}
 	}
 
-	// Default metrics template handling
-	if metricsTemplate.GetName() == constants.LegacyDefaultMetricsTemplateName &&
-		metricsTemplate.GetNamespace() == constants.LegacyDefaultMetricsTemplateNamespace {
-		err = metrics.HandleDefaultMetricsTemplate(ctx, a.Client, existingMetricsBinding, log)
-		if err != nil {
-			return admission.Errored(http.StatusInternalServerError, err)
-		}
-		return admission.Allowed(constants.StatusReasonSuccess)
-	}
-
-	// Custom metrics template handling - update the metrics binding as needed
+	// Metrics template handling - update the metrics binding as needed
 
 	// Workload resource specifies a valid metrics template or we found one above
 	// We use that metrics template to update the existing metrics binding resource. We won't
@@ -166,7 +156,7 @@ func (a *GeneratorWorkloadWebhook) handleWorkloadResource(ctx context.Context, r
 
 // GetLegacyMetricsBinding returns the existing MetricsBinding (legacy resource) for the given
 // workload - nil if it does not exist.
-func (a *GeneratorWorkloadWebhook) GetLegacyMetricsBinding(ctx context.Context, unst *unstructured.Unstructured) (*vzapp.MetricsBinding, error) {
+func (a *WorkloadWebhook) GetLegacyMetricsBinding(ctx context.Context, unst *unstructured.Unstructured) (*vzapp.MetricsBinding, error) {
 	metricsBindingName := generateMetricsBindingName(unst.GetName(), unst.GetAPIVersion(), unst.GetKind())
 	metricsBindingKey := types.NamespacedName{Namespace: unst.GetNamespace(), Name: metricsBindingName}
 	metricsBinding := vzapp.MetricsBinding{}
@@ -179,7 +169,7 @@ func (a *GeneratorWorkloadWebhook) GetLegacyMetricsBinding(ctx context.Context, 
 
 // processMetricsAnnotation checks the workload resource for the "app.verrazzano.io/metrics" annotation and returns the
 // metrics template referenced in the annotation
-func (a *GeneratorWorkloadWebhook) processMetricsAnnotation(unst *unstructured.Unstructured, workloadNamespace *corev1.Namespace, log *zap.SugaredLogger) (*vzapp.MetricsTemplate, error) {
+func (a *WorkloadWebhook) processMetricsAnnotation(unst *unstructured.Unstructured, workloadNamespace *corev1.Namespace, log *zap.SugaredLogger) (*vzapp.MetricsTemplate, error) {
 	// Check workload, then namespace for annotation
 	metricsTemplate, ok := unst.GetAnnotations()[MetricsAnnotation]
 	if !ok {
@@ -217,35 +207,27 @@ func (a *GeneratorWorkloadWebhook) processMetricsAnnotation(unst *unstructured.U
 
 // updateMetricBinding updates an existing metricsBinding resource and
 // adds the apps.verrazzano.io/workload label to the workload resource
-func (a *GeneratorWorkloadWebhook) updateMetricBinding(ctx context.Context, unst *unstructured.Unstructured, template *vzapp.MetricsTemplate, metricsBinding *vzapp.MetricsBinding, log *zap.SugaredLogger) error {
+func (a *WorkloadWebhook) updateMetricBinding(ctx context.Context, unst *unstructured.Unstructured, template *vzapp.MetricsTemplate, metricsBinding *vzapp.MetricsBinding, log *zap.SugaredLogger) error {
 	// When the Prometheus target config map was not specified in the metrics template then there is nothing to do.
 	if reflect.DeepEqual(template.Spec.PrometheusConfig.TargetConfigMap, vzapp.TargetConfigMap{}) {
 		log.Infof("Prometheus target config map %s/%s not specified", template.Namespace, template.Name)
 		return nil
 	}
 
-	_, err := a.KubeClient.CoreV1().ConfigMaps(template.Spec.PrometheusConfig.TargetConfigMap.Namespace).Get(ctx, template.Spec.PrometheusConfig.TargetConfigMap.Name, metav1.GetOptions{})
-	if err != nil {
-		log.Errorf("Failed getting Prometheus target config map %s/%s: %v", template.Namespace, template.Name, err)
-		return err
+	// Only look for the config map if it's not the legacy one. The legacy VMI config map will no longer exist, and be replaced
+	// with the additional scrape configs secret in the MetricsBinding, so don't look for it.
+	if !isLegacyVmiPrometheusConfigMapName(vzapp.NamespaceName{
+		Namespace: template.Spec.PrometheusConfig.TargetConfigMap.Namespace, Name: template.Spec.PrometheusConfig.TargetConfigMap.Name}) {
+		_, err := a.KubeClient.CoreV1().ConfigMaps(template.Spec.PrometheusConfig.TargetConfigMap.Namespace).Get(ctx, template.Spec.PrometheusConfig.TargetConfigMap.Name, metav1.GetOptions{})
+		if err != nil {
+			log.Errorf("Failed getting Prometheus target config map %s/%s: %v", template.Namespace, template.Name, err)
+			return err
+		}
 	}
-
-	// Generate the metricBindings name
-	metricsBindingName := generateMetricsBindingName(unst.GetName(), unst.GetAPIVersion(), unst.GetKind())
-
-	/*	metricsBinding := &vzapp.MetricsBinding{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "app.verrazzno.io/v1alpha1",
-			Kind:       "metricsBinding"},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: unst.GetNamespace(),
-			Name:      metricsBindingName,
-		},
-	}*/
 
 	a.mutateMetricsBinding(metricsBinding, template, unst)
 
-	err = a.Client.Update(ctx, metricsBinding)
+	err := a.Client.Update(ctx, metricsBinding)
 
 	if err != nil {
 		log.Errorf("Failed updating metricsBinding resource: %v", err)
@@ -257,25 +239,44 @@ func (a *GeneratorWorkloadWebhook) updateMetricBinding(ctx context.Context, unst
 	if labels == nil {
 		labels = make(map[string]string)
 	}
-	labels[constants.MetricsWorkloadLabel] = metricsBindingName
+	labels[constants.MetricsWorkloadLabel] = metricsBinding.GetName()
 	unst.SetLabels(labels)
 
 	return nil
 }
 
-// function called by controllerutil.createOrUpdate to mutate a metricsBinding resource
-func (a *GeneratorWorkloadWebhook) mutateMetricsBinding(metricsBinding *vzapp.MetricsBinding, template *vzapp.MetricsTemplate, unst *unstructured.Unstructured) error {
+// mutateMetricsBinding mutates a metricsBinding resource based on the metrics template provided
+func (a *WorkloadWebhook) mutateMetricsBinding(metricsBinding *vzapp.MetricsBinding, template *vzapp.MetricsTemplate, unst *unstructured.Unstructured) error {
 	metricsBinding.Spec.MetricsTemplate.Namespace = template.Namespace
 	metricsBinding.Spec.MetricsTemplate.Name = template.Name
 	metricsBinding.Spec.PrometheusConfigMap.Namespace = template.Spec.PrometheusConfig.TargetConfigMap.Namespace
 	metricsBinding.Spec.PrometheusConfigMap.Name = template.Spec.PrometheusConfig.TargetConfigMap.Name
 	metricsBinding.Spec.Workload.Name = unst.GetName()
 	metricsBinding.Spec.Workload.TypeMeta = metav1.TypeMeta{APIVersion: unst.GetAPIVersion(), Kind: unst.GetKind()}
+
+	// If the config map specified is the legacy VMI prometheus config map, modify it to use
+	// the additionalScrapeConfigs config map for the Prometheus Operator
+	if isLegacyVmiPrometheusConfigMapName(metricsBinding.Spec.PrometheusConfigMap) {
+		metricsBinding.Spec.PrometheusConfigMap = vzapp.NamespaceName{}
+		metricsBinding.Spec.PrometheusConfigSecret = vzapp.SecretKey{
+			Namespace: vzconst.PrometheusOperatorNamespace,
+			Name:      vzconst.PromAdditionalScrapeConfigsSecretName,
+			Key:       vzconst.PromAdditionalScrapeConfigsSecretKey,
+		}
+	}
+
 	return nil
 }
 
+// isLegacyVmiPrometheusConfigMapName returns true if the given NamespaceName is that of the legacy
+// vmi system prometheus config map
+func isLegacyVmiPrometheusConfigMapName(configMapName vzapp.NamespaceName) bool {
+	return configMapName.Namespace == constants.VerrazzanoSystemNamespace &&
+		configMapName.Name == vzconst.VmiPromConfigName
+}
+
 // findMatchingTemplate returns a matching template for a given namespace
-func (a *GeneratorWorkloadWebhook) findMatchingTemplate(ctx context.Context, unst *unstructured.Unstructured, namespace string, log *zap.SugaredLogger) (*vzapp.MetricsTemplate, error) {
+func (a *WorkloadWebhook) findMatchingTemplate(ctx context.Context, unst *unstructured.Unstructured, namespace string, log *zap.SugaredLogger) (*vzapp.MetricsTemplate, error) {
 	// Get the list of metrics templates for the given namespace
 	templateList := &vzapp.MetricsTemplateList{}
 	err := a.Client.List(ctx, templateList, &client.ListOptions{Namespace: namespace})
