@@ -10,7 +10,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     metadata:
-      name: hello-helidon-deployment
+      name: hello-helidon-svc-deployment
     spec:
       selector:
         matchLabels:

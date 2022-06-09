@@ -22,7 +22,7 @@ spec:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: IngressTrait
             metadata:
-              name: hello-helido-svc-ingress
+              name: hello-helidon-svc-ingress
             spec:
               rules:
                 - paths:

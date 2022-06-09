@@ -41,7 +41,7 @@ var (
 	t                  = framework.NewTestFramework("helidon")
 	generatedNamespace = pkg.GenerateNamespace("hello-helidon-svc")
 	//yamlApplier              = k8sutil.YAMLApplier{}
-	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
+	expectedPodsHelloHelidon = []string{"hello-helidon-svc-deployment"}
 )
 
 var _ = t.BeforeSuite(func() {
