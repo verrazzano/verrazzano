@@ -2081,7 +2081,7 @@ def performDescribeVerrazzanoResource() {
             sh """
                 echo "Performing describe on Verrazzano resource on cluster ${count}"
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                kubectl get vz -o yaml
+                kubectl --kubeconfig=${KUBECONFIG} get vz -o yaml
             """
         }
     }
