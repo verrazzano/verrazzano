@@ -165,7 +165,8 @@ pipeline {
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                         booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                        string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
+                                        string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH),
+                                        string(name: 'VERSION_FOR_INSTALL', value: 'v1.2.0'),
                                     ], wait: true
                             }
                         }
