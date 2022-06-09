@@ -39,8 +39,7 @@ const (
 	tmpSuffix            = "yaml"
 	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
 	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
-
-	fluentDaemonset       = "fluentd"
+	
 	nodeExporterDaemonset = "node-exporter"
 
 	prometheusDeployment = "vmi-system-prometheus-0"
@@ -317,15 +316,6 @@ func associateConsoleResources(cli clipkg.Client) error {
 //associateHelmObjectToThisRelease annotates an object as being managed by the verrazzano helm chart
 func associateHelmObjectToThisRelease(cli clipkg.Client, obj clipkg.Object, namespacedName types.NamespacedName) (clipkg.Object, error) {
 	return common.AssociateHelmObject(cli, obj, types.NamespacedName{Name: ComponentName, Namespace: globalconst.VerrazzanoSystemNamespace}, namespacedName, false)
-}
-
-// GetProfile Returns the configured profile name, or "prod" if not specified in the configuration
-func getProfile(vz *vzapi.Verrazzano) vzapi.ProfileType {
-	profile := vz.Spec.Profile
-	if len(profile) == 0 {
-		profile = vzapi.Prod
-	}
-	return profile
 }
 
 // HashSum returns the hash sum of the config object
