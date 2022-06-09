@@ -20,8 +20,8 @@ const (
 	prometheusConfigKey          = "prometheus.yml"
 	prometheusScrapeConfigsLabel = "scrape_configs"
 
-	configMapKind       = "ConfigMap"
-	configMapAPIVersion = "v1"
+	configMapKind   = "ConfigMap"
+	k8sV1APIVersion = "v1"
 
 	metricsTemplateKind       = "MetricsTemplate"
 	metricsTemplateAPIVersion = "app.verrazzano.io/v1alpha1"
@@ -44,6 +44,26 @@ func getConfigData(configMap *v1.ConfigMap) (*gabs.Container, error) {
 		}, configMap.Name)
 	}
 	oldPromConfigData := configMap.Data[prometheusConfigKey]
+	promConfigJSON, err := yaml.YAMLToJSON([]byte(oldPromConfigData))
+	if err != nil {
+		return nil, err
+	}
+	promConfig, err := gabs.ParseJSON(promConfigJSON)
+	if err != nil {
+		return nil, err
+	}
+	return promConfig, nil
+}
+
+// returns a container of the Prometheus config data from the given secret
+func getConfigDataFromSecret(secret *v1.Secret, key string) (*gabs.Container, error) {
+	if secret.Data == nil {
+		return nil, errors.NewNotFound(schema.GroupResource{
+			Group:    "default",
+			Resource: secret.Kind,
+		}, secret.Name)
+	}
+	oldPromConfigData := secret.Data[key]
 	promConfigJSON, err := yaml.YAMLToJSON([]byte(oldPromConfigData))
 	if err != nil {
 		return nil, err

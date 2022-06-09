@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/go-logr/logr"
-
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 
 	"github.com/golang/mock/gomock"
@@ -198,12 +197,15 @@ func TestUpdateScrapeConfig(t *testing.T) {
 func TestDeleteScrapeConfig(t *testing.T) {
 	assert := asserts.New(t)
 
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	reconciler := newReconciler(mock)
+	configMap, err := getConfigMapFromTestFile()
+	assert.NoError(err, "Expected no error creating the ConfigMap from the test file")
+
+	scheme := newScheme()
+	vzapi.AddToScheme(scheme)
+	c := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(configMap).Build()
+	reconciler := newReconciler(c)
 
 	localMetricsBinding := metricsBinding.DeepCopy()
-
 	localMetricsBinding.OwnerReferences = []k8smeta.OwnerReference{
 		{
 			Kind:       deploymentKind,
@@ -220,19 +222,12 @@ func TestDeleteScrapeConfig(t *testing.T) {
 	}
 	localMetricsBinding.Namespace = testExistsDeploymentNamespace
 
-	configMap, err := getConfigMapFromTestFile()
-	assert.NoError(err, "Expected no error creating the ConfigMap from the test file")
-
-	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: constants.VerrazzanoSystemNamespace, Name: testConfigMapName}), gomock.Not(gomock.Nil())).DoAndReturn(
-		func(ctx context.Context, key client.ObjectKey, cm *k8score.ConfigMap) error {
-			cm.Data = configMap.Data
-			return nil
-		}).AnyTimes()
-
 	assert.True(strings.Contains(configMap.Data["prometheus.yml"], formatJobName(createJobName(localMetricsBinding))))
 	log := vzlog.DefaultLogger()
-	err = reconciler.deleteScrapeConfig(localMetricsBinding, configMap, log)
+	err = reconciler.mutatePrometheusScrapeConfig(context.TODO(), localMetricsBinding, reconciler.deleteScrapeConfig, log)
 	assert.NoError(err, "Expected no error deleting the scrape config")
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: configMap.Namespace, Name: configMap.Name}, configMap)
+	assert.NoError(err, "Expected no error retrieving the configMap after scrape config deletion")
 	assert.False(strings.Contains(configMap.Data["prometheus.yml"], formatJobName(createJobName(localMetricsBinding))))
 }
 
@@ -286,59 +281,20 @@ func TestMutatePrometheusScrapeConfig(t *testing.T) {
 func TestReconcileBindingCreateOrUpdate(t *testing.T) {
 	assert := asserts.New(t)
 
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	reconciler := newReconciler(mock)
-
-	localMetricsBinding := metricsBinding.DeepCopy()
+	// mocker := gomock.NewController(t)
+	// mock := mocks.NewMockClient(mocker)
+	// reconciler := newReconciler(mock)
 
 	configMap, err := getConfigMapFromTestFile()
 	assert.NoError(err, "Expected no error creating the ConfigMap from the test file")
 
-	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).Return(nil)
-
-	mock.EXPECT().Update(gomock.Any(), localMetricsBinding, gomock.Any()).DoAndReturn(
-		func(ctx context.Context, binding *vzapi.MetricsBinding, opts ...client.UpdateOption) error {
-			binding.Finalizers = append(metricsBinding.GetFinalizers(), finalizerName)
-			return nil
-		}).AnyTimes()
-
-	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testMetricsBindingNamespace, Name: testMetricsBindingName}), gomock.Not(gomock.Nil())).DoAndReturn(
-		func(ctx context.Context, key client.ObjectKey, binding *vzapi.MetricsBinding) error {
-			return nil
-		})
-
-	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testMetricsTemplateNamespace, Name: testMetricsTemplateName}), gomock.Not(gomock.Nil())).DoAndReturn(
-		func(ctx context.Context, key client.ObjectKey, template *vzapi.MetricsTemplate) error {
-			template.SetNamespace(metricsTemplate.Namespace)
-			return nil
-		})
-
-	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: constants.VerrazzanoSystemNamespace, Name: testConfigMapName}), gomock.Not(gomock.Nil())).DoAndReturn(
-		func(ctx context.Context, key client.ObjectKey, cm *k8score.ConfigMap) error {
-			cm.Data = configMap.Data
-			return nil
-		})
-
-	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testDeploymentNamespace, Name: testDeploymentName}), gomock.Not(gomock.Nil())).DoAndReturn(
-		func(ctx context.Context, key client.ObjectKey, dep *unstructured.Unstructured) error {
-			dep.SetUID(testUIDName)
-			return nil
-		})
-
-	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testDeploymentNamespace, Name: testDeploymentName}), gomock.Not(gomock.Nil())).DoAndReturn(
-		func(ctx context.Context, key client.ObjectKey, dep *unstructured.Unstructured) error {
-			return nil
-		})
-
-	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Name: testDeploymentNamespace}), gomock.Not(gomock.Nil())).DoAndReturn(
-		func(ctx context.Context, key client.ObjectKey, namespace *k8score.Namespace) error {
-			namespace.Labels = map[string]string{"istio-injection": "enabled"}
-			namespace.Name = testDeploymentNamespace
-			return nil
-		})
-
-	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).Return(nil)
+	localMetricsBinding := metricsBinding.DeepCopy()
+	localDeployment := deployment.DeepCopy()
+	localDeployment.SetUID(testUIDName)
+	scheme := newScheme()
+	vzapi.AddToScheme(scheme)
+	c := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(configMap, localMetricsBinding, &metricsTemplate, localDeployment).Build()
+	reconciler := newReconciler(c)
 
 	log := vzlog.DefaultLogger()
 	controllerResult, err := reconciler.reconcileBindingCreateOrUpdate(context.TODO(), localMetricsBinding, log)
@@ -402,70 +358,22 @@ func TestReconcileBindingDelete(t *testing.T) {
 func TestCreateDeployment(t *testing.T) {
 	assert := asserts.New(t)
 
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	reconciler := newReconciler(mock)
-
-	localMetricsBinding := metricsBinding.DeepCopy()
-
 	configMap, err := getConfigMapFromTestFile()
 	assert.NoError(err, "Expected no error creating the ConfigMap from the test file")
 
-	mock.EXPECT().Update(gomock.Any(), localMetricsBinding, gomock.Any()).DoAndReturn(
-		func(ctx context.Context, binding *vzapi.MetricsBinding, opts ...client.UpdateOption) error {
-			binding.Finalizers = append(binding.GetFinalizers(), finalizerName)
-			return nil
-		}).AnyTimes()
-
-	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).Return(nil).AnyTimes()
-
-	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testMetricsBindingNamespace, Name: testMetricsBindingName}), gomock.Not(gomock.Nil())).DoAndReturn(
-		func(ctx context.Context, key client.ObjectKey, binding *vzapi.MetricsBinding) error {
-			binding.Spec = localMetricsBinding.Spec
-			binding.OwnerReferences = localMetricsBinding.OwnerReferences
-			binding.ObjectMeta = localMetricsBinding.ObjectMeta
-			return nil
-		})
-
-	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testMetricsBindingNamespace, Name: testMetricsBindingName}), gomock.Not(gomock.Nil())).DoAndReturn(
-		func(ctx context.Context, key client.ObjectKey, binding *vzapi.MetricsBinding) error {
-			return nil
-		})
-
-	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testMetricsTemplateNamespace, Name: testMetricsTemplateName}), gomock.Not(gomock.Nil())).DoAndReturn(
-		func(ctx context.Context, key client.ObjectKey, template *vzapi.MetricsTemplate) error {
-			template.SetNamespace(metricsTemplate.Namespace)
-			return nil
-		})
-
-	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: constants.VerrazzanoSystemNamespace, Name: testConfigMapName}), gomock.Not(gomock.Nil())).DoAndReturn(
-		func(ctx context.Context, key client.ObjectKey, cm *k8score.ConfigMap) error {
-			cm.Data = configMap.Data
-			return nil
-		})
-
-	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testDeploymentNamespace, Name: testDeploymentName}), gomock.Not(gomock.Nil())).DoAndReturn(
-		func(ctx context.Context, key client.ObjectKey, dep *unstructured.Unstructured) error {
-			dep.SetUID(testUIDName)
-			return nil
-		})
-
-	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testDeploymentNamespace, Name: testDeploymentName}), gomock.Not(gomock.Nil())).DoAndReturn(
-		func(ctx context.Context, key client.ObjectKey, dep *unstructured.Unstructured) error {
-			return nil
-		})
-
-	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Name: testDeploymentNamespace}), gomock.Not(gomock.Nil())).DoAndReturn(
-		func(ctx context.Context, key client.ObjectKey, namespace *k8score.Namespace) error {
-			namespace.Labels = map[string]string{"istio-injection": "enabled"}
-			namespace.Name = testDeploymentNamespace
-			return nil
-		})
+	scheme := newScheme()
+	vzapi.AddToScheme(scheme)
+	localMetricsBinding := metricsBinding.DeepCopy()
+	c := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithRuntimeObjects(configMap, localMetricsBinding, &deployment, &metricsTemplate).
+		Build()
+	reconciler := newReconciler(c)
 
 	namespacedName := types.NamespacedName{Namespace: testMetricsBindingNamespace, Name: testMetricsBindingName}
 	request := ctrl.Request{NamespacedName: namespacedName}
 
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	assert.NoError(err)

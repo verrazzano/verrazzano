@@ -17,6 +17,8 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/metricsutils"
+	constants2 "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
 	k8scorev1 "k8s.io/api/core/v1"
 	k8smetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -119,19 +121,28 @@ func (r *Reconciler) reconcileBindingDelete(ctx context.Context, metricsBinding 
 func (r *Reconciler) reconcileBindingCreateOrUpdate(ctx context.Context, metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) (k8scontroller.Result, error) {
 	log.Debugw("Reconcile for created or updated object", "resource", metricsBinding.GetName())
 
-	// Handle the case where the workload uses the default metrics template
-	if isLegacyDefaultMetricsTemplate(metricsBinding.Spec.MetricsTemplate) {
-		if err := metrics.HandleDefaultMetricsTemplate(ctx, r.Client, metricsBinding, log.GetZapLogger()); err != nil {
+	// Requeue with a delay to account for situations where the scrape config
+	// has changed but without the MetricsBinding changing.
+	var seconds = rand.IntnRange(45, 90)
+	var requeueDuration = time.Duration(seconds) * time.Second
+
+	// Handle the case where the workload uses the default metrics template - in this case, we will
+	// delete the metrics binding if processing succeeds, since this is a one-time conversion of
+	// legacy apps using default metrics template, to ServiceMonitor. If it's not using VMI config map,
+	// we treat it like custom metrics setup
+	if isLegacyDefaultMetricsBinding(metricsBinding) {
+		if err := metrics.HandleDefaultMetricsTemplate(ctx, r.Client, metricsBinding, log); err != nil {
 			return k8scontroller.Result{Requeue: true}, err
 		}
+		if err := r.deleteMetricsBinding(metricsBinding, log); err != nil {
+			return k8scontroller.Result{Requeue: true}, err
+		}
+		// Requeue with a delay to account for situations where the scrape config
+		// has changed but without the MetricsBinding changing.
+		return reconcile.Result{Requeue: true, RequeueAfter: requeueDuration}, nil
 	}
 
-	// Handle the case where the workloaded uses a custom metrics template
-	if err := metrics.HandleCustomMetricsTemplate(ctx, r.Client, metricsBinding, log.GetZapLogger()); err != nil {
-		return k8scontroller.Result{Requeue: true}, err
-	}
-
-	// TODO POKO promoper ?? Mutate the MetricsBinding before the scrape config
+	// Update the MetricsBinding to add workload as owner ref
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, metricsBinding, func() error {
 		return r.updateMetricsBinding(metricsBinding, log)
 	})
@@ -139,16 +150,23 @@ func (r *Reconciler) reconcileBindingCreateOrUpdate(ctx context.Context, metrics
 		return k8scontroller.Result{Requeue: true}, err
 	}
 
-	// Mutate the scrape config by adding or updating the job
-	if err := r.mutatePrometheusScrapeConfig(ctx, metricsBinding, r.createOrUpdateScrapeConfig, log); err != nil {
+	// Handle the case where the workloaded uses a custom metrics template
+	if err := metrics.HandleCustomMetricsTemplate(ctx, r.Client, metricsBinding, log.GetZapLogger()); err != nil {
 		return k8scontroller.Result{Requeue: true}, err
 	}
 
+	// Mutate the scrape config by adding or updating the job - NOT NEEDED - will be handled by HandleCustomMetricsTemplate?
+	// if err := r.mutatePrometheusScrapeConfig(ctx, metricsBinding, r.createOrUpdateScrapeConfig, log); err != nil {
+	// 	return k8scontroller.Result{Requeue: true}, err
+	// }
+
 	// Requeue with a delay to account for situations where the scrape config
 	// has changed but without the MetricsBinding changing.
-	var seconds = rand.IntnRange(45, 90)
-	var duration = time.Duration(seconds) * time.Second
-	return reconcile.Result{Requeue: true, RequeueAfter: duration}, nil
+	return reconcile.Result{Requeue: true, RequeueAfter: requeueDuration}, nil
+}
+
+func (r *Reconciler) deleteMetricsBinding(metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) error {
+	return r.Delete(context.Background(), metricsBinding)
 }
 
 func (r *Reconciler) updateMetricsBinding(metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) error {
@@ -184,14 +202,18 @@ func (r *Reconciler) updateMetricsBinding(metricsBinding *vzapi.MetricsBinding, 
 
 // mutatePrometheusScrapeConfig takes the resource and a mutate function that determines the mutations of the scrape config
 // mutations are dependant upon the status of the deletion timestamp
-func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, metricsBinding *vzapi.MetricsBinding, mutateFn func(metricsBinding *vzapi.MetricsBinding, configMap *k8scorev1.ConfigMap, log vzlog.VerrazzanoLogger) error, log vzlog.VerrazzanoLogger) error {
+func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, metricsBinding *vzapi.MetricsBinding, mutateFn func(metricsBinding *vzapi.MetricsBinding, configData *gabs.Container, log vzlog.VerrazzanoLogger) (*gabs.Container, error), log vzlog.VerrazzanoLogger) error {
 	log.Debugw("Mutating the Prometheus Scrape Config", "resource", metricsBinding.GetName())
 
-	var configMap = r.getPromConfigMap(metricsBinding) // Apply the updated configmap
-	log.Debugw("Prometheus target ConfigMap is being altered", "resource", configMap.GetName())
-	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, configMap, func() error {
-		return mutateFn(metricsBinding, configMap, log)
-	})
+	var configMap = r.getPromConfigMap(metricsBinding)
+	var err error
+	if configMap != nil {
+		return r.mutatePrometheusConfigMap(ctx, metricsBinding, configMap, mutateFn, log)
+	} else {
+		// Get data from the config secret
+		secret, key := r.getPromConfigSecret(metricsBinding)
+		return r.mutatePrometheusConfigSecret(ctx, metricsBinding, secret, key, mutateFn, log)
+	}
 	if err != nil {
 		return err
 	}
@@ -199,40 +221,22 @@ func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, metricsBi
 }
 
 // deleteScrapeConfig is a mutation function that deletes the scrape config data from the Prometheus ConfigMap
-func (r *Reconciler) deleteScrapeConfig(metricsBinding *vzapi.MetricsBinding, configMap *k8scorev1.ConfigMap, log vzlog.VerrazzanoLogger) error {
+func (r *Reconciler) deleteScrapeConfig(metricsBinding *vzapi.MetricsBinding, configData *gabs.Container, log vzlog.VerrazzanoLogger) (*gabs.Container, error) {
 	log.Debugw("Scrape Config is being deleted from the Prometheus Config", "resource", metricsBinding.GetName())
-
-	// Get data from the configmap
-	promConfig, err := getConfigData(configMap)
-	if err != nil {
-		return err
-	}
 
 	// Verify the Owner Reference exists
 	if len(metricsBinding.OwnerReferences) < 1 {
-		return fmt.Errorf("No Owner Reference found in the MetricsBinding: %s", metricsBinding.GetName())
+		return nil, fmt.Errorf("No Owner Reference found in the MetricsBinding: %s", metricsBinding.GetName())
 	}
 
 	// Delete scrape config with job name matching resource
-	scrapeConfigs := promConfig.Search(prometheusScrapeConfigsLabel).Children()
-	for index, scrapeConfig := range scrapeConfigs {
-		existingJobName := scrapeConfig.Search(vzconst.PrometheusJobNameKey).Data()
-		createdJobName := createJobName(metricsBinding)
-		if existingJobName == createdJobName {
-			err = promConfig.ArrayRemoveP(index, prometheusScrapeConfigsLabel)
-			if err != nil {
-				return log.ErrorfNewErr("Failed to remove array slice from Prometheus config: %v", err)
-			}
-		}
-	}
-
-	// Repopulate the configmap data
-	newPromConfigData, err := yaml.JSONToYAML(promConfig.Bytes())
+	// parse the scrape config so we can manipulate it
+	jobNameToDelete := createJobName(metricsBinding)
+	updatedScrapeConfigs, err := metricsutils.EditScrapeJob(configData, jobNameToDelete, nil)
 	if err != nil {
-		return log.ErrorfNewErr("Failed to convert Prometheus config data to YAML: %v", err)
+		return nil, err
 	}
-	configMap.Data[prometheusConfigKey] = string(newPromConfigData)
-	return nil
+	return updatedScrapeConfigs, nil
 }
 
 // createOrUpdateScrapeConfig is a mutation function that creates or updates the scrape config data within the given Prometheus ConfigMap
@@ -336,16 +340,37 @@ func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBin
 // getPromConfigMap returns the Prometheus ConfigMap given in the MetricsBinding
 func (r *Reconciler) getPromConfigMap(metricsBinding *vzapi.MetricsBinding) *k8scorev1.ConfigMap {
 	targetConfigMap := metricsBinding.Spec.PrometheusConfigMap
+	if targetConfigMap.Name == "" {
+		return nil
+	}
 	return &k8scorev1.ConfigMap{
 		TypeMeta: k8smetav1.TypeMeta{
 			Kind:       configMapKind,
-			APIVersion: configMapAPIVersion,
+			APIVersion: k8sV1APIVersion,
 		},
 		ObjectMeta: k8smetav1.ObjectMeta{
 			Name:      targetConfigMap.Name,
 			Namespace: targetConfigMap.Namespace,
 		},
 	}
+}
+
+// getPromConfigSecret returns the Prometheus Config Secret given in the MetricsBinding, along with the key
+func (r *Reconciler) getPromConfigSecret(metricsBinding *vzapi.MetricsBinding) (*k8scorev1.Secret, string) {
+	targetSecret := metricsBinding.Spec.PrometheusConfigSecret
+	if targetSecret.Name == "" {
+		return nil, ""
+	}
+	return &k8scorev1.Secret{
+		TypeMeta: k8smetav1.TypeMeta{
+			Kind:       constants2.SecretKind,
+			APIVersion: k8sV1APIVersion,
+		},
+		ObjectMeta: k8smetav1.ObjectMeta{
+			Name:      targetSecret.Name,
+			Namespace: targetSecret.Namespace,
+		},
+	}, targetSecret.Key
 }
 
 // getWorkloadObject returns the workload object based on the definition in the MetricsBinding
@@ -363,9 +388,60 @@ func (r *Reconciler) getWorkloadObject(metricsBinding *vzapi.MetricsBinding) (*u
 	return &workloadObject, nil
 }
 
-// isLegacyDefaultMetricsTemplate determines whether the given template name corresponds to the
-// "default" metrics template used pre-Verrazzano 1.4
-func isLegacyDefaultMetricsTemplate(templateName vzapi.NamespaceName) bool {
+func (r *Reconciler) mutatePrometheusConfigMap(ctx context.Context, metricsBinding *vzapi.MetricsBinding, configMap *k8scorev1.ConfigMap, mutateFn func(metricsBinding *vzapi.MetricsBinding, configData *gabs.Container, log vzlog.VerrazzanoLogger) (*gabs.Container, error), log vzlog.VerrazzanoLogger) error {
+	log.Debugw("Prometheus target ConfigMap is being altered", "resource", configMap.GetName())
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, configMap, func() error {
+		// Get data from the configmap
+		promConfig, err := getConfigData(configMap)
+		if err != nil {
+			return err
+		}
+		scrapeConfigs := promConfig.Search(prometheusScrapeConfigsLabel)
+		updatedScrapeConfigs, err := mutateFn(metricsBinding, scrapeConfigs, log)
+		if err != nil {
+			return err
+		}
+		promConfig.Set(updatedScrapeConfigs, prometheusScrapeConfigsLabel)
+		// scrape configs would have been edited in-place, in the promConfig Container, so serialize
+		// the whole thing for the new data.
+		newPromConfigData, err := yaml.JSONToYAML(promConfig.Bytes())
+		if err != nil {
+			return log.ErrorfNewErr("Failed to convert scrape config JSON to YAML: %v", err)
+		}
+		configMap.Data[prometheusConfigKey] = string(newPromConfigData)
+		return nil
+	})
+	return err
+}
+
+func (r *Reconciler) mutatePrometheusConfigSecret(ctx context.Context, metricsBinding *vzapi.MetricsBinding, secret *k8scorev1.Secret, key string, mutateFn func(metricsBinding *vzapi.MetricsBinding, configData *gabs.Container, log vzlog.VerrazzanoLogger) (*gabs.Container, error), log vzlog.VerrazzanoLogger) error {
+	log.Debugw("Prometheus target config Secret is being altered", "resource", secret.GetName())
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, secret, func() error {
+		promConfig, err := getConfigDataFromSecret(secret, key)
+		if err != nil {
+			return err
+		}
+		updatedScrapeConfigs, err := mutateFn(metricsBinding, promConfig, log)
+		if err != nil {
+			return err
+		}
+		newPromConfigData, err := yaml.JSONToYAML(updatedScrapeConfigs.Bytes())
+		if err != nil {
+			return log.ErrorfNewErr("Failed to convert scrape config JSON to YAML: %v", err)
+		}
+		secret.Data[key] = newPromConfigData
+		return nil
+	})
+	return err
+}
+
+// isLegacyDefaultMetricsBinding determines whether the given binding uses the
+// "default" metrics template used pre-Verrazzano 1.4 AND the legacy VMI system prometheus config map
+func isLegacyDefaultMetricsBinding(metricsBinding *vzapi.MetricsBinding) bool {
+	templateName := metricsBinding.Spec.MetricsTemplate
+	configMapName := metricsBinding.Spec.PrometheusConfigMap
 	return templateName.Namespace == constants.LegacyDefaultMetricsTemplateNamespace &&
-		templateName.Name == constants.LegacyDefaultMetricsTemplateName
+		templateName.Name == constants.LegacyDefaultMetricsTemplateName &&
+		configMapName.Namespace == vzconst.VerrazzanoSystemNamespace &&
+		configMapName.Name == vzconst.VmiPromConfigName
 }
