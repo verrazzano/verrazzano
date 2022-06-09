@@ -161,7 +161,7 @@ func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 			return err
 		}
 	}
-	
+
 	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) {
 		if err := associateFluentdResources(ctx.Client()); err != nil {
 			return err
