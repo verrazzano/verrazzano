@@ -22,7 +22,7 @@
                 "resourceVersion": "4369"
             },
             "reason": "Scheduled",
-            "message": "Successfully assigned ingress-nginx/ingress-controller-ingress-nginx-controller-6b8bb69d6d-htjsm to 10.0.123.14",
+            "message": "Successfully assigned ingress-nginx/ingress-controller-ingress-nginx-controller-6b8bb69d6d-htjsm to REDACTED-IP4-ADDRESS",
             "source": {},
             "firstTimestamp": null,
             "lastTimestamp": null,
@@ -52,7 +52,7 @@
             "message": "MountVolume.SetUp failed for volume \"istiod-ca-cert\" : failed to sync configmap cache: timed out waiting for the condition",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:21Z",
             "lastTimestamp": "2022-05-25T13:19:21Z",
@@ -82,7 +82,7 @@
             "message": "MountVolume.SetUp failed for volume \"custom-400-error\" : failed to sync configmap cache: timed out waiting for the condition",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:21Z",
             "lastTimestamp": "2022-05-25T13:19:21Z",
@@ -113,7 +113,7 @@
             "message": "Container image \"ghcr.io/verrazzano/proxyv2:1.13.2\" already present on machine",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:22Z",
             "lastTimestamp": "2022-05-25T13:19:22Z",
@@ -144,7 +144,7 @@
             "message": "Created container istio-init",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:22Z",
             "lastTimestamp": "2022-05-25T13:19:22Z",
@@ -175,7 +175,7 @@
             "message": "Started container istio-init",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:22Z",
             "lastTimestamp": "2022-05-25T13:19:22Z",
@@ -206,7 +206,7 @@
             "message": "Pulling image \"ghcr.io/verrazzano/nginx-ingress-controller:1.1.1-20220413170248-b60724ed1\"",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:23Z",
             "lastTimestamp": "2022-05-25T13:19:23Z",
@@ -237,7 +237,7 @@
             "message": "Successfully pulled image \"ghcr.io/verrazzano/nginx-ingress-controller:1.1.1-20220413170248-b60724ed1\" in 17.779139133s",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:41Z",
             "lastTimestamp": "2022-05-25T13:19:41Z",
@@ -268,7 +268,7 @@
             "message": "Created container controller",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:41Z",
             "lastTimestamp": "2022-05-25T13:19:41Z",
@@ -299,7 +299,7 @@
             "message": "Started container controller",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:41Z",
             "lastTimestamp": "2022-05-25T13:19:41Z",
@@ -330,7 +330,7 @@
             "message": "Container image \"ghcr.io/verrazzano/proxyv2:1.13.2\" already present on machine",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:41Z",
             "lastTimestamp": "2022-05-25T13:19:41Z",
@@ -361,7 +361,7 @@
             "message": "Created container istio-proxy",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:42Z",
             "lastTimestamp": "2022-05-25T13:19:42Z",
@@ -392,7 +392,7 @@
             "message": "Started container istio-proxy",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:42Z",
             "lastTimestamp": "2022-05-25T13:19:42Z",
@@ -420,10 +420,10 @@
                 "fieldPath": "spec.containers{istio-proxy}"
             },
             "reason": "Unhealthy",
-            "message": "Readiness probe failed: Get \"http://10.244.0.143:15021/healthz/ready\": dial tcp 10.244.0.143:15021: connect: connection refused",
+            "message": "Readiness probe failed: Get \"http://REDACTED-IP4-ADDRESS:15021/healthz/ready\": dial tcp REDACTED-IP4-ADDRESS:15021: connect: connection refused",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:43Z",
             "lastTimestamp": "2022-05-25T13:19:44Z",
@@ -682,7 +682,7 @@
                 "resourceVersion": "4368"
             },
             "reason": "Scheduled",
-            "message": "Successfully assigned ingress-nginx/ingress-controller-ingress-nginx-defaultbackend-56c5fbc6b8xhplj to 10.0.123.14",
+            "message": "Successfully assigned ingress-nginx/ingress-controller-ingress-nginx-defaultbackend-56c5fbc6b8xhplj to REDACTED-IP4-ADDRESS",
             "source": {},
             "firstTimestamp": null,
             "lastTimestamp": null,
@@ -712,7 +712,7 @@
             "message": "MountVolume.SetUp failed for volume \"error-pages\" : failed to sync configmap cache: timed out waiting for the condition",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:21Z",
             "lastTimestamp": "2022-05-25T13:19:21Z",
@@ -742,7 +742,7 @@
             "message": "MountVolume.SetUp failed for volume \"istiod-ca-cert\" : failed to sync configmap cache: timed out waiting for the condition",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:21Z",
             "lastTimestamp": "2022-05-25T13:19:21Z",
@@ -773,7 +773,7 @@
             "message": "Container image \"ghcr.io/verrazzano/proxyv2:1.13.2\" already present on machine",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:23Z",
             "lastTimestamp": "2022-05-25T13:19:23Z",
@@ -804,7 +804,7 @@
             "message": "Created container istio-init",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:23Z",
             "lastTimestamp": "2022-05-25T13:19:23Z",
@@ -835,7 +835,7 @@
             "message": "Started container istio-init",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:23Z",
             "lastTimestamp": "2022-05-25T13:19:23Z",
@@ -866,7 +866,7 @@
             "message": "Pulling image \"ghcr.io/verrazzano/nginx-ingress-default-backend:1.1.1-20220413170248-b60724ed1\"",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:23Z",
             "lastTimestamp": "2022-05-25T13:19:23Z",
@@ -897,7 +897,7 @@
             "message": "Successfully pulled image \"ghcr.io/verrazzano/nginx-ingress-default-backend:1.1.1-20220413170248-b60724ed1\" in 16.0760377s",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:39Z",
             "lastTimestamp": "2022-05-25T13:19:39Z",
@@ -928,7 +928,7 @@
             "message": "Created container ingress-nginx-default-backend",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:41Z",
             "lastTimestamp": "2022-05-25T13:19:41Z",
@@ -959,7 +959,7 @@
             "message": "Started container ingress-nginx-default-backend",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:41Z",
             "lastTimestamp": "2022-05-25T13:19:41Z",
@@ -990,7 +990,7 @@
             "message": "Container image \"ghcr.io/verrazzano/proxyv2:1.13.2\" already present on machine",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:41Z",
             "lastTimestamp": "2022-05-25T13:19:41Z",
@@ -1021,7 +1021,7 @@
             "message": "Created container istio-proxy",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:41Z",
             "lastTimestamp": "2022-05-25T13:19:41Z",
@@ -1052,7 +1052,7 @@
             "message": "Started container istio-proxy",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:42Z",
             "lastTimestamp": "2022-05-25T13:19:42Z",
@@ -1080,10 +1080,10 @@
                 "fieldPath": "spec.containers{istio-proxy}"
             },
             "reason": "Unhealthy",
-            "message": "Readiness probe failed: Get \"http://10.244.0.144:15021/healthz/ready\": dial tcp 10.244.0.144:15021: connect: connection refused",
+            "message": "Readiness probe failed: Get \"http://REDACTED-IP4-ADDRESS:15021/healthz/ready\": dial tcp REDACTED-IP4-ADDRESS:15021: connect: connection refused",
             "source": {
                 "component": "kubelet",
-                "host": "10.0.123.14"
+                "host": "REDACTED-IP4-ADDRESS"
             },
             "firstTimestamp": "2022-05-25T13:19:42Z",
             "lastTimestamp": "2022-05-25T13:19:44Z",

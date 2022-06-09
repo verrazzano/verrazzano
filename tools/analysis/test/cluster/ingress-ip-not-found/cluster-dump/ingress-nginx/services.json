@@ -44,9 +44,9 @@
                     "app.kubernetes.io/instance": "ingress-controller",
                     "app.kubernetes.io/name": "ingress-nginx"
                 },
-                "clusterIP": "10.96.73.73",
+                "clusterIP": "REDACTED-IP4-ADDRESS",
                 "clusterIPs": [
-                    "10.96.73.73"
+                    "REDACTED-IP4-ADDRESS"
                 ],
                 "type": "LoadBalancer",
                 "sessionAffinity": "None",
@@ -96,9 +96,9 @@
                     "app.kubernetes.io/instance": "ingress-controller",
                     "app.kubernetes.io/name": "ingress-nginx"
                 },
-                "clusterIP": "10.96.186.204",
+                "clusterIP": "REDACTED-IP4-ADDRESS",
                 "clusterIPs": [
-                    "10.96.186.204"
+                    "REDACTED-IP4-ADDRESS"
                 ],
                 "type": "ClusterIP",
                 "sessionAffinity": "None",
@@ -147,9 +147,9 @@
                     "app.kubernetes.io/instance": "ingress-controller",
                     "app.kubernetes.io/name": "ingress-nginx"
                 },
-                "clusterIP": "10.96.167.79",
+                "clusterIP": "REDACTED-IP4-ADDRESS",
                 "clusterIPs": [
-                    "10.96.167.79"
+                    "REDACTED-IP4-ADDRESS"
                 ],
                 "type": "ClusterIP",
                 "sessionAffinity": "None",

@@ -58,14 +58,14 @@ EXCLUDE_INTERFACES=
 -A ISTIO_INBOUND -p tcp --dport 15020 -j RETURN
 -A ISTIO_INBOUND -p tcp -j ISTIO_IN_REDIRECT
 -A OUTPUT -p tcp -j ISTIO_OUTPUT
--A ISTIO_OUTPUT -o lo -s 127.0.0.6/32 -j RETURN
--A ISTIO_OUTPUT -o lo ! -d 127.0.0.1/32 -m owner --uid-owner 1337 -j ISTIO_IN_REDIRECT
+-A ISTIO_OUTPUT -o lo -s REDACTED-IP4-ADDRESS/32 -j RETURN
+-A ISTIO_OUTPUT -o lo ! -d REDACTED-IP4-ADDRESS/32 -m owner --uid-owner 1337 -j ISTIO_IN_REDIRECT
 -A ISTIO_OUTPUT -o lo -m owner ! --uid-owner 1337 -j RETURN
 -A ISTIO_OUTPUT -m owner --uid-owner 1337 -j RETURN
--A ISTIO_OUTPUT -o lo ! -d 127.0.0.1/32 -m owner --gid-owner 1337 -j ISTIO_IN_REDIRECT
+-A ISTIO_OUTPUT -o lo ! -d REDACTED-IP4-ADDRESS/32 -m owner --gid-owner 1337 -j ISTIO_IN_REDIRECT
 -A ISTIO_OUTPUT -o lo -m owner ! --gid-owner 1337 -j RETURN
 -A ISTIO_OUTPUT -m owner --gid-owner 1337 -j RETURN
--A ISTIO_OUTPUT -d 127.0.0.1/32 -j RETURN
+-A ISTIO_OUTPUT -d REDACTED-IP4-ADDRESS/32 -j RETURN
 -A ISTIO_OUTPUT -j ISTIO_REDIRECT
 COMMIT
 2022-05-25T13:19:23.337735Z	info	Running command: iptables-restore --noflush /tmp/iptables-rules-1653484763336960697.txt2751679512
@@ -93,14 +93,14 @@ COMMIT
 -A ISTIO_INBOUND -p tcp -m tcp --dport 15020 -j RETURN
 -A ISTIO_INBOUND -p tcp -j ISTIO_IN_REDIRECT
 -A ISTIO_IN_REDIRECT -p tcp -j REDIRECT --to-ports 15006
--A ISTIO_OUTPUT -s 127.0.0.6/32 -o lo -j RETURN
--A ISTIO_OUTPUT ! -d 127.0.0.1/32 -o lo -m owner --uid-owner 1337 -j ISTIO_IN_REDIRECT
+-A ISTIO_OUTPUT -s REDACTED-IP4-ADDRESS/32 -o lo -j RETURN
+-A ISTIO_OUTPUT ! -d REDACTED-IP4-ADDRESS/32 -o lo -m owner --uid-owner 1337 -j ISTIO_IN_REDIRECT
 -A ISTIO_OUTPUT -o lo -m owner ! --uid-owner 1337 -j RETURN
 -A ISTIO_OUTPUT -m owner --uid-owner 1337 -j RETURN
--A ISTIO_OUTPUT ! -d 127.0.0.1/32 -o lo -m owner --gid-owner 1337 -j ISTIO_IN_REDIRECT
+-A ISTIO_OUTPUT ! -d REDACTED-IP4-ADDRESS/32 -o lo -m owner --gid-owner 1337 -j ISTIO_IN_REDIRECT
 -A ISTIO_OUTPUT -o lo -m owner ! --gid-owner 1337 -j RETURN
 -A ISTIO_OUTPUT -m owner --gid-owner 1337 -j RETURN
--A ISTIO_OUTPUT -d 127.0.0.1/32 -j RETURN
+-A ISTIO_OUTPUT -d REDACTED-IP4-ADDRESS/32 -j RETURN
 -A ISTIO_OUTPUT -j ISTIO_REDIRECT
 -A ISTIO_REDIRECT -p tcp -j REDIRECT --to-ports 15001
 COMMIT
@@ -135,7 +135,7 @@ COMMIT
 2022-05-25T13:19:42.044991Z	info	FLAG: --tokenManagerPlugin="GoogleTokenExchange"
 2022-05-25T13:19:42.045012Z	info	FLAG: --vklog="0"
 2022-05-25T13:19:42.045022Z	info	Version 1.13.2-f84f69d1028e874d568f2942c5bab5271fcdeda7-Clean
-2022-05-25T13:19:42.045551Z	info	Proxy role	ips=[10.244.0.144 fe80::a886:44ff:fe4c:89c] type=sidecar id=ingress-controller-ingress-nginx-defaultbackend-56c5fbc6b8xhplj.ingress-nginx domain=ingress-nginx.svc.cluster.local
+2022-05-25T13:19:42.045551Z	info	Proxy role	ips=[REDACTED-IP4-ADDRESS fe80::a886:44ff:fe4c:89c] type=sidecar id=ingress-controller-ingress-nginx-defaultbackend-56c5fbc6b8xhplj.ingress-nginx domain=ingress-nginx.svc.cluster.local
 2022-05-25T13:19:42.045645Z	info	Apply proxy config from env {}
 
 2022-05-25T13:19:42.052524Z	info	Effective config: binaryPath: /usr/local/bin/envoy
@@ -163,7 +163,7 @@ tracing:
 2022-05-25T13:19:42.106339Z	info	sds	SDS server for workload certificates started, listening on "etc/istio/proxy/SDS"
 2022-05-25T13:19:42.106383Z	info	xdsproxy	Initializing with upstream address "istiod.istio-system.svc:15012" and cluster "Kubernetes"
 2022-05-25T13:19:42.109010Z	info	sds	Starting SDS grpc server
-2022-05-25T13:19:42.109168Z	info	starting Http service at 127.0.0.1:15004
+2022-05-25T13:19:42.109168Z	info	starting Http service at REDACTED-IP4-ADDRESS:15004
 2022-05-25T13:19:42.109275Z	info	Pilot SAN: [istiod.istio-system.svc]
 2022-05-25T13:19:42.112174Z	info	Starting proxy agent
 2022-05-25T13:19:42.112236Z	info	Epoch 0 starting

@@ -529,7 +529,7 @@
                 },
                 "serviceAccountName": "ingress-controller-ingress-nginx",
                 "serviceAccount": "ingress-controller-ingress-nginx",
-                "nodeName": "10.0.123.14",
+                "nodeName": "REDACTED-IP4-ADDRESS",
                 "securityContext": {},
                 "imagePullSecrets": [
                     {
@@ -583,11 +583,11 @@
                         "lastTransitionTime": "2022-05-25T13:19:20Z"
                     }
                 ],
-                "hostIP": "10.0.123.14",
-                "podIP": "10.244.0.143",
+                "hostIP": "REDACTED-IP4-ADDRESS",
+                "podIP": "REDACTED-IP4-ADDRESS",
                 "podIPs": [
                     {
-                        "ip": "10.244.0.143"
+                        "ip": "REDACTED-IP4-ADDRESS"
                     }
                 ],
                 "startTime": "2022-05-25T13:19:20Z",
@@ -1414,7 +1414,7 @@
                 },
                 "serviceAccountName": "ingress-controller-ingress-nginx-backend",
                 "serviceAccount": "ingress-controller-ingress-nginx-backend",
-                "nodeName": "10.0.123.14",
+                "nodeName": "REDACTED-IP4-ADDRESS",
                 "securityContext": {},
                 "imagePullSecrets": [
                     {
@@ -1468,11 +1468,11 @@
                         "lastTransitionTime": "2022-05-25T13:19:20Z"
                     }
                 ],
-                "hostIP": "10.0.123.14",
-                "podIP": "10.244.0.144",
+                "hostIP": "REDACTED-IP4-ADDRESS",
+                "podIP": "REDACTED-IP4-ADDRESS",
                 "podIPs": [
                     {
-                        "ip": "10.244.0.144"
+                        "ip": "REDACTED-IP4-ADDRESS"
                     }
                 ],
                 "startTime": "2022-05-25T13:19:20Z",

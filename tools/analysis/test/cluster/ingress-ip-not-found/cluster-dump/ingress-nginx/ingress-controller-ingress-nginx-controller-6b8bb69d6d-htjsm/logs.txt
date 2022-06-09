@@ -52,14 +52,14 @@ EXCLUDE_INTERFACES=
 -A ISTIO_REDIRECT -p tcp -j REDIRECT --to-ports 15001
 -A ISTIO_IN_REDIRECT -p tcp -j REDIRECT --to-ports 15006
 -A OUTPUT -p tcp -j ISTIO_OUTPUT
--A ISTIO_OUTPUT -o lo -s 127.0.0.6/32 -j RETURN
--A ISTIO_OUTPUT -o lo ! -d 127.0.0.1/32 -m owner --uid-owner 1337 -j ISTIO_IN_REDIRECT
+-A ISTIO_OUTPUT -o lo -s REDACTED-IP4-ADDRESS/32 -j RETURN
+-A ISTIO_OUTPUT -o lo ! -d REDACTED-IP4-ADDRESS/32 -m owner --uid-owner 1337 -j ISTIO_IN_REDIRECT
 -A ISTIO_OUTPUT -o lo -m owner ! --uid-owner 1337 -j RETURN
 -A ISTIO_OUTPUT -m owner --uid-owner 1337 -j RETURN
--A ISTIO_OUTPUT -o lo ! -d 127.0.0.1/32 -m owner --gid-owner 1337 -j ISTIO_IN_REDIRECT
+-A ISTIO_OUTPUT -o lo ! -d REDACTED-IP4-ADDRESS/32 -m owner --gid-owner 1337 -j ISTIO_IN_REDIRECT
 -A ISTIO_OUTPUT -o lo -m owner ! --gid-owner 1337 -j RETURN
 -A ISTIO_OUTPUT -m owner --gid-owner 1337 -j RETURN
--A ISTIO_OUTPUT -d 127.0.0.1/32 -j RETURN
+-A ISTIO_OUTPUT -d REDACTED-IP4-ADDRESS/32 -j RETURN
 -A ISTIO_OUTPUT -j ISTIO_REDIRECT
 COMMIT
 2022-05-25T13:19:22.895020Z	info	Running command: iptables-restore --noflush /tmp/iptables-rules-1653484762894693261.txt499019045
@@ -81,14 +81,14 @@ COMMIT
 -A OUTPUT -p tcp -j ISTIO_OUTPUT
 -A ISTIO_INBOUND -p tcp -m tcp --dport 15008 -j RETURN
 -A ISTIO_IN_REDIRECT -p tcp -j REDIRECT --to-ports 15006
--A ISTIO_OUTPUT -s 127.0.0.6/32 -o lo -j RETURN
--A ISTIO_OUTPUT ! -d 127.0.0.1/32 -o lo -m owner --uid-owner 1337 -j ISTIO_IN_REDIRECT
+-A ISTIO_OUTPUT -s REDACTED-IP4-ADDRESS/32 -o lo -j RETURN
+-A ISTIO_OUTPUT ! -d REDACTED-IP4-ADDRESS/32 -o lo -m owner --uid-owner 1337 -j ISTIO_IN_REDIRECT
 -A ISTIO_OUTPUT -o lo -m owner ! --uid-owner 1337 -j RETURN
 -A ISTIO_OUTPUT -m owner --uid-owner 1337 -j RETURN
--A ISTIO_OUTPUT ! -d 127.0.0.1/32 -o lo -m owner --gid-owner 1337 -j ISTIO_IN_REDIRECT
+-A ISTIO_OUTPUT ! -d REDACTED-IP4-ADDRESS/32 -o lo -m owner --gid-owner 1337 -j ISTIO_IN_REDIRECT
 -A ISTIO_OUTPUT -o lo -m owner ! --gid-owner 1337 -j RETURN
 -A ISTIO_OUTPUT -m owner --gid-owner 1337 -j RETURN
--A ISTIO_OUTPUT -d 127.0.0.1/32 -j RETURN
+-A ISTIO_OUTPUT -d REDACTED-IP4-ADDRESS/32 -j RETURN
 -A ISTIO_OUTPUT -j ISTIO_REDIRECT
 -A ISTIO_REDIRECT -p tcp -j REDIRECT --to-ports 15001
 COMMIT
@@ -106,7 +106,7 @@ NGINX Ingress controller
 -------------------------------------------------------------------------------
 
 W0525 13:19:41.861243       8 client_config.go:615] Neither --kubeconfig nor --master was specified.  Using the inClusterConfig.  This might not work.
-I0525 13:19:41.861732       8 main.go:223] "Creating API client" host="https://10.96.0.1:443"
+I0525 13:19:41.861732       8 main.go:223] "Creating API client" host="https://REDACTED-IP4-ADDRESS:443"
 W0525 13:19:46.761902       8 main.go:264] Initial connection to the Kubernetes API server was retried 3 times.
 I0525 13:19:46.762066       8 main.go:267] "Running in Kubernetes cluster" major="1" minor="22" git="v1.22.5" state="clean" commit="c999fea1e6dbf111d64000dfaaff45edaa4c34d2" platform="linux/amd64"
 I0525 13:19:46.773917       8 main.go:86] "Valid default backend" service="ingress-nginx/ingress-controller-ingress-nginx-defaultbackend"
@@ -121,8 +121,8 @@ I0525 13:19:48.502810       8 status.go:84] "New leader elected" identity="ingre
 I0525 13:19:48.576038       8 controller.go:172] "Backend successfully reloaded"
 I0525 13:19:48.576278       8 controller.go:183] "Initial sync, sleeping for 1 second"
 I0525 13:19:48.576823       8 event.go:282] Event(v1.ObjectReference{Kind:"Pod", Namespace:"ingress-nginx", Name:"ingress-controller-ingress-nginx-controller-6b8bb69d6d-htjsm", UID:"cfe794c3-f178-4b6f-a24f-18be0267e3be", APIVersion:"v1", ResourceVersion:"4647", FieldPath:""}): type: 'Normal' reason: 'RELOAD' NGINX reload triggered due to a change in configuration
- { "@timestamp": "2022-05-25T13:27:40+00:00", "req_id": "c3c0b5142a3caa09953914c74afeaf3d", "proxy_upstream_name": "-", "proxy_alternative_upstream_name": "", "upstream_status": "", "upstream_addr": "", "message": "GET _", "http_request": { "requestMethod": "GET", "requestUrl": "_", "status": 400, "requestSize": "0", "responseSize": "", "userAgent": "", "remoteIp": "10.244.0.0", "referer": "", "latency": " s", "protocol":"" } }
- { "@timestamp": "2022-05-25T13:27:40+00:00", "req_id": "c7ae274f4597237b576304ece0a02084", "proxy_upstream_name": "-", "proxy_alternative_upstream_name": "", "upstream_status": "", "upstream_addr": "", "message": "GET _", "http_request": { "requestMethod": "GET", "requestUrl": "_", "status": 400, "requestSize": "0", "responseSize": "", "userAgent": "", "remoteIp": "10.244.0.129", "referer": "", "latency": " s", "protocol":"" } }
+ { "@timestamp": "2022-05-25T13:27:40+00:00", "req_id": "c3c0b5142a3caa09953914c74afeaf3d", "proxy_upstream_name": "-", "proxy_alternative_upstream_name": "", "upstream_status": "", "upstream_addr": "", "message": "GET _", "http_request": { "requestMethod": "GET", "requestUrl": "_", "status": 400, "requestSize": "0", "responseSize": "", "userAgent": "", "remoteIp": "REDACTED-IP4-ADDRESS", "referer": "", "latency": " s", "protocol":"" } }
+ { "@timestamp": "2022-05-25T13:27:40+00:00", "req_id": "c7ae274f4597237b576304ece0a02084", "proxy_upstream_name": "-", "proxy_alternative_upstream_name": "", "upstream_status": "", "upstream_addr": "", "message": "GET _", "http_request": { "requestMethod": "GET", "requestUrl": "_", "status": 400, "requestSize": "0", "responseSize": "", "userAgent": "", "remoteIp": "REDACTED-IP4-ADDRESS", "referer": "", "latency": " s", "protocol":"" } }
 ==== END logs for container controller of pod ingress-nginx/ingress-controller-ingress-nginx-controller-6b8bb69d6d-htjsm ====
 ==== START logs for container istio-proxy of pod ingress-nginx/ingress-controller-ingress-nginx-controller-6b8bb69d6d-htjsm ====
 2022-05-25T13:19:42.377894Z	info	FLAG: --concurrency="2"
@@ -147,7 +147,7 @@ I0525 13:19:48.576823       8 event.go:282] Event(v1.ObjectReference{Kind:"Pod",
 2022-05-25T13:19:42.378745Z	info	FLAG: --tokenManagerPlugin="GoogleTokenExchange"
 2022-05-25T13:19:42.378795Z	info	FLAG: --vklog="0"
 2022-05-25T13:19:42.378828Z	info	Version 1.13.2-f84f69d1028e874d568f2942c5bab5271fcdeda7-Clean
-2022-05-25T13:19:42.379288Z	info	Proxy role	ips=[10.244.0.143 fe80::2048:c4ff:fe9f:1f8c] type=sidecar id=ingress-controller-ingress-nginx-controller-6b8bb69d6d-htjsm.ingress-nginx domain=ingress-nginx.svc.cluster.local
+2022-05-25T13:19:42.379288Z	info	Proxy role	ips=[REDACTED-IP4-ADDRESS fe80::2048:c4ff:fe9f:1f8c] type=sidecar id=ingress-controller-ingress-nginx-controller-6b8bb69d6d-htjsm.ingress-nginx domain=ingress-nginx.svc.cluster.local
 2022-05-25T13:19:42.379434Z	info	Apply proxy config from env {}
 
 2022-05-25T13:19:42.380684Z	info	Effective config: binaryPath: /usr/local/bin/envoy
@@ -177,7 +177,7 @@ tracing:
 2022-05-25T13:19:42.440152Z	info	sds	Starting SDS grpc server
 2022-05-25T13:19:42.443342Z	info	Pilot SAN: [istiod.istio-system.svc]
 2022-05-25T13:19:42.446044Z	info	Starting proxy agent
-2022-05-25T13:19:42.443532Z	info	starting Http service at 127.0.0.1:15004
+2022-05-25T13:19:42.443532Z	info	starting Http service at REDACTED-IP4-ADDRESS:15004
 2022-05-25T13:19:42.446356Z	info	Epoch 0 starting
 2022-05-25T13:19:42.446552Z	info	Envoy command: [-c etc/istio/proxy/envoy-rev0.json --restart-epoch 0 --drain-time-s 45 --drain-strategy immediate --parent-shutdown-time-s 60 --local-address-ip-version v4 --file-flush-interval-msec 1000 --disable-hot-restart --log-format %Y-%m-%dT%T.%fZ	%l	envoy %n	%v -l warning --component-log-level misc:error --concurrency 2]
 2022-05-25T13:19:42.988026Z	info	cache	generated new workload certificate	latency=547.788102ms ttl=23h59m59.011997612s
