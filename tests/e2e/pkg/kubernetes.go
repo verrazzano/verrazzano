@@ -322,6 +322,18 @@ func ListNodes() (*corev1.NodeList, error) {
 	return nodes, nil
 }
 
+// GetNodeCount returns the number of nodes for the cluster
+func GetNodeCount() (uint32, error) {
+	nodes, err := ListNodes()
+	if err != nil {
+		return 0, err
+	}
+	if len(nodes.Items) < 1 {
+		return 0, fmt.Errorf("can not find node in the cluster")
+	}
+	return uint32(len(nodes.Items)), nil
+}
+
 // GetPodsFromSelector returns a collection of pods for the given namespace and selector
 func GetPodsFromSelector(selector *metav1.LabelSelector, namespace string) ([]corev1.Pod, error) {
 	var pods *corev1.PodList

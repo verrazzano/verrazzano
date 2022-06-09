@@ -157,13 +157,13 @@ func TestGetCertificateNames(t *testing.T) {
 	vzComp := NewComponent()
 
 	certNames := vzComp.GetCertificateNames(ctx)
-	assert.Len(t, certNames, 1, "Unexpected number of cert names")
+	assert.Len(t, certNames, 0, "Unexpected number of cert names")
 
 	vmiEnabled = true
 	vz.Spec.Components.Prometheus.Enabled = &vmiEnabled
 
 	certNames = vzComp.GetCertificateNames(ctx)
-	assert.Len(t, certNames, 2, "Unexpected number of cert names")
+	assert.Len(t, certNames, 1, "Unexpected number of cert names")
 }
 
 // TestUpgrade tests the Verrazzano Upgrade call; simple wrapper exercise, more detailed testing is done elsewhere
