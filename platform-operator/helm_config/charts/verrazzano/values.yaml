@@ -21,6 +21,8 @@ prometheus:
   requests:
     memory: 128Mi
     storage: 50Gi
+  namespace: verrazzano-monitoring
+  serviceAccount: prometheus-operator-kube-p-operator
 
 grafana:
   enabled: true
