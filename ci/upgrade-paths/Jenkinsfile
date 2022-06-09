@@ -2083,8 +2083,7 @@ def performDescribeVerrazzanoResource() {
             sh """
                 echo "Performing describe on Verrazzano resource on cluster ${count}"
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                cd ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts
-                ./wait-for-verrazzano-upgrade.sh
+                kubectl get vz -o yaml
             """
         }
     }
