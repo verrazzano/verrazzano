@@ -16,20 +16,36 @@ import (
 var vzMergeStruct vzapi.Verrazzano
 
 // MergeYAMLFiles parses the given slice of filenames containing yaml and
-// merges them into a single verrazzano yaml which is returned as a string.
-func MergeYAMLFiles(filenames []string) (string, error) {
+// merges them into a single verrazzano yaml and then returned as a vz resource.
+func MergeYAMLFiles(filenames []string) (*vzapi.Verrazzano, error) {
+	if len(filenames) == 0 {
+		return nil, fmt.Errorf("Failed to merge files - no files specified")
+	}
 	var vzYaml string
 	for _, filename := range filenames {
 		readBytes, err := os.ReadFile(strings.TrimSpace(filename))
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		vzYaml, err = overlayVerrazzano(vzYaml, string(readBytes))
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 	}
-	return vzYaml, nil
+
+	vz := &vzapi.Verrazzano{}
+	err := yaml.Unmarshal([]byte(vzYaml), &vz)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to unmarshal yaml into a verrazzano resource: %s", err.Error())
+	}
+	if vz.Namespace == "" {
+		vz.Namespace = "default"
+	}
+	if vz.Name == "" {
+		vz.Name = "verrazzano"
+	}
+
+	return vz, nil
 }
 
 // overlayVerrazzano overlays over base using JSON strategic merge.

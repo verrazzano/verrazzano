@@ -28,7 +28,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -52,7 +51,11 @@ vz install -f base.yaml -f custom.yaml --set profile=prod --log-format json`
 	verrazzanoPlatformOperatorWait = 1
 )
 
+var vpoWaitRetries = 60
 var logsEnum = cmdhelpers.LogFormatSimple
+
+// Use with unit testing
+func resetVpoWaitRetries() { vpoWaitRetries = 60 }
 
 func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
@@ -170,20 +173,7 @@ func getVerrazzanoYAML(cmd *cobra.Command) (vz *vzapi.Verrazzano, err error) {
 
 	// Merge the yaml files passed on the command line and return the merged verrazzano resource
 	// to be created.
-	overlayYAML, err := cmdhelpers.MergeYAMLFiles(filenames)
-	if err != nil {
-		return nil, err
-	}
-	vz = &vzapi.Verrazzano{}
-	err = yaml.Unmarshal([]byte(overlayYAML), &vz)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to unmarshal yaml into a verrazzano resource: %s", err.Error())
-	}
-	if vz.Namespace == "" {
-		vz.Namespace = "default"
-	}
-
-	return vz, nil
+	return cmdhelpers.MergeYAMLFiles(filenames)
 }
 
 // applyPlatformOperatorYaml applies a given version of the platform operator yaml file
@@ -229,7 +219,7 @@ func waitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper) (s
 	retryCount := 0
 	for {
 		retryCount++
-		if retryCount > 60 {
+		if retryCount > vpoWaitRetries {
 			return "", fmt.Errorf("%s pod not found in namespace %s", verrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
 		}
 		time.Sleep(verrazzanoPlatformOperatorWait * time.Second)

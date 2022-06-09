@@ -118,7 +118,9 @@ func TestInstallCmdDefaultNoVPO(t *testing.T) {
 	assert.NotNil(t, cmd)
 
 	// Run install command
+	vpoWaitRetries = 1 // override for unit testing
 	err := cmd.Execute()
+	resetVpoWaitRetries()
 	assert.Error(t, err)
 	assert.EqualError(t, err, "verrazzano-platform-operator pod not found in namespace verrazzano-install")
 	assert.Equal(t, errBuf.String(), "Error: verrazzano-platform-operator pod not found in namespace verrazzano-install\n")
@@ -193,6 +195,40 @@ func TestInstallCmdJsonLogFormat(t *testing.T) {
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "json")
+	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+
+	// Run install command
+	err := cmd.Execute()
+	assert.NoError(t, err)
+	assert.Equal(t, "", errBuf.String())
+}
+
+// TestInstallCmdFilenames
+// GIVEN a CLI install command with defaults and --wait=false and --filename specified
+//  WHEN I call cmd.Execute for install
+//  THEN the CLI install command is successful
+func TestInstallCmdFilenames(t *testing.T) {
+	vpo := &corev1.Pod{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      verrazzanoPlatformOperator,
+			Labels: map[string]string{
+				"app": verrazzanoPlatformOperator,
+			},
+		},
+	}
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo).Build()
+
+	// Send stdout stderr to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	cmd := NewCmdInstall(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/dev-profile.yaml")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 
 	// Run install command
