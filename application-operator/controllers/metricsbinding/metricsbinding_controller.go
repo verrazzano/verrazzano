@@ -5,22 +5,16 @@ package metricsbinding
 
 import (
 	"context"
-	"github.com/Jeffail/gabs/v2"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	vztemplate "github.com/verrazzano/verrazzano/application-operator/controllers/template"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
-	k8scorev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	k8scontroller "sigs.k8s.io/controller-runtime"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/yaml"
 )
 
 // Reconciler reconciles a metrics workload object
@@ -84,117 +78,4 @@ func (r *Reconciler) doReconcile(ctx context.Context, metricsBinding vzapi.Metri
 		return r.reconcileBindingCreateOrUpdate(ctx, &metricsBinding, log)
 	}
 	return r.reconcileBindingDelete(ctx, &metricsBinding, log)
-}
-
-// createOrUpdateScrapeConfig is a mutation function that creates or updates the scrape config data within the given Prometheus ConfigMap
-func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBinding, configMap *k8scorev1.ConfigMap, log vzlog.VerrazzanoLogger) error {
-	log.Debugw("Scrape Config is being created or update in the Prometheus config", "resource", metricsBinding.GetName())
-
-	// Get the MetricsTemplate from the MetricsBinding
-	template, err := r.getMetricsTemplate(context.Background(), metricsBinding, log)
-	if err != nil {
-		return err
-	}
-
-	// Get data from the configmap
-	promConfig, err := getConfigData(configMap)
-	if err != nil {
-		return log.ErrorfNewErr("Failed to get Prometheus config map %s: %v", configMap.GetName(), err)
-	}
-
-	// Get the namespace for the metrics binding
-	workloadNamespace := k8scorev1.Namespace{}
-	err = r.Client.Get(context.TODO(), k8sclient.ObjectKey{Name: metricsBinding.GetNamespace()}, &workloadNamespace)
-	if err != nil {
-		return log.ErrorfNewErr("Failed to get metrics binding namespace %s: %v", metricsBinding.GetName(), err)
-	}
-
-	// Create Unstructured Namespace
-	workloadNamespaceUnstructuredMap, err := k8sruntime.DefaultUnstructuredConverter.ToUnstructured(&workloadNamespace)
-	if err != nil {
-		return log.ErrorfNewErr("Failed to get the unstructured for namespace %s: %v", workloadNamespace.GetName(), err)
-	}
-	workloadNamespaceUnstructured := unstructured.Unstructured{Object: workloadNamespaceUnstructuredMap}
-
-	// Get the workload object for the template processor
-	workloadObject, err := r.getWorkloadObject(metricsBinding)
-	if err != nil {
-		return log.ErrorfNewErr("Failed to get the workload object for metrics binding %s: %v", metricsBinding.GetName(), err)
-	}
-
-	// Organize inputs for template processor
-	templateInputs := map[string]interface{}{
-		"workload":  workloadObject.Object,
-		"namespace": workloadNamespaceUnstructured.Object,
-	}
-
-	// Get scrape config from the template processor and process the template inputs
-	templateProcessor := vztemplate.NewProcessor(r.Client, template.Spec.PrometheusConfig.ScrapeConfigTemplate)
-	scrapeConfigString, err := templateProcessor.Process(templateInputs)
-	if err != nil {
-		return log.ErrorfNewErr("Failed to process metrics template %s: %v", template.GetName(), err)
-	}
-
-	// Prepend job name to the scrape config
-	createdJobName := createJobName(metricsBinding)
-	scrapeConfigString = formatJobName(createdJobName) + scrapeConfigString
-
-	// Format scrape config into readable container
-	configYaml, err := yaml.YAMLToJSON([]byte(scrapeConfigString))
-	if err != nil {
-		return log.ErrorfNewErr("Failed to convert scrape config YAML to JSON: %v", err)
-	}
-	newScrapeConfig, err := gabs.ParseJSON(configYaml)
-	if err != nil {
-		return log.ErrorfNewErr("Failed to convert scrape config JSON to container: %v", err)
-	}
-
-	// Create or Update scrape config with job name matching resource
-	existingUpdated := false
-	scrapeConfigs := promConfig.Search(prometheusScrapeConfigsLabel).Children()
-	for index, scrapeConfig := range scrapeConfigs {
-		existingJobName := scrapeConfig.Search(vzconst.PrometheusJobNameKey).Data()
-		if existingJobName == createdJobName {
-			// Remove and recreate scrape config
-			err = promConfig.ArrayRemoveP(index, prometheusScrapeConfigsLabel)
-			if err != nil {
-				return log.ErrorfNewErr("Failed to remove scrape config: %v", err)
-			}
-			err = promConfig.ArrayAppendP(newScrapeConfig.Data(), prometheusScrapeConfigsLabel)
-			if err != nil {
-				return log.ErrorfNewErr("Failed to append scrape config: %v", err)
-			}
-			existingUpdated = true
-			break
-		}
-	}
-	if !existingUpdated {
-		err = promConfig.ArrayAppendP(newScrapeConfig.Data(), prometheusScrapeConfigsLabel)
-		if err != nil {
-			return log.ErrorfNewErr("Failed to append scrape config: %v", err)
-		}
-	}
-
-	// Repopulate the ConfigMap data
-	newPromConfigData, err := yaml.JSONToYAML(promConfig.Bytes())
-	if err != nil {
-		return log.ErrorfNewErr("Failed to convert scrape config JSON to YAML: %v", err)
-	}
-	configMap.Data[prometheusConfigKey] = string(newPromConfigData)
-	return nil
-}
-
-// getWorkloadObject returns the workload object based on the definition in the MetricsBinding
-func (r *Reconciler) getWorkloadObject(metricsBinding *vzapi.MetricsBinding) (*unstructured.Unstructured, error) {
-	// Retrieve the owner from the workload field of the MetricsBinding
-	owner := metricsBinding.Spec.Workload
-	workloadObject := unstructured.Unstructured{}
-	workloadObject.SetKind(owner.TypeMeta.Kind)
-	workloadObject.SetAPIVersion(owner.TypeMeta.APIVersion)
-	workloadName := types.NamespacedName{Namespace: metricsBinding.GetNamespace(), Name: owner.Name}
-	err := r.Client.Get(context.Background(), workloadName, &workloadObject)
-	if err != nil {
-		return nil, err
-	}
-	return &workloadObject, nil
 }

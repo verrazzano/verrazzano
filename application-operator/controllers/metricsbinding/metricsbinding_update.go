@@ -293,6 +293,21 @@ func (r *Reconciler) getMetricsTemplate(ctx context.Context, metricsBinding *vza
 	return &template, nil
 }
 
+// getWorkloadObject returns the workload object based on the definition in the MetricsBinding
+func (r *Reconciler) getWorkloadObject(metricsBinding *vzapi.MetricsBinding) (*unstructured.Unstructured, error) {
+	// Retrieve the owner from the workload field of the MetricsBinding
+	owner := metricsBinding.Spec.Workload
+	workloadObject := unstructured.Unstructured{}
+	workloadObject.SetKind(owner.TypeMeta.Kind)
+	workloadObject.SetAPIVersion(owner.TypeMeta.APIVersion)
+	workloadName := types.NamespacedName{Namespace: metricsBinding.GetNamespace(), Name: owner.Name}
+	err := r.Client.Get(context.Background(), workloadName, &workloadObject)
+	if err != nil {
+		return nil, err
+	}
+	return &workloadObject, nil
+}
+
 // deleteMetricsBinding deletes the Metrics Binding object from the cluster
 func (r *Reconciler) deleteMetricsBinding(metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) error {
 	err := r.Delete(context.Background(), metricsBinding)
