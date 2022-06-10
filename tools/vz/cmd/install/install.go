@@ -201,13 +201,7 @@ func applyPlatformOperatorYaml(cmd *cobra.Command, client client.Client, vzHelpe
 	if len(url) > 0 {
 		userVisibleFilename = url
 		// Get the Verrazzano operator.yaml and store it in a temp file
-<<<<<<< HEAD
 		httpClient := vzHelper.GetHTTPClient()
-=======
-		httpClient := &http.Client{
-			Timeout: time.Second * 30,
-		}
->>>>>>> 395a4c034 (tidy up)
 		resp, err := httpClient.Get(url)
 		if err != nil {
 			return fmt.Errorf("Failed to access the Verrazzano operator.yaml file %s: %s", userVisibleFilename, err.Error())

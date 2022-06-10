@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/semver"
@@ -23,6 +24,7 @@ type VZHelper interface {
 	GetInputStream() io.Reader
 	GetClient(cmd *cobra.Command) (client.Client, error)
 	GetKubeClient(cmd *cobra.Command) (kubernetes.Interface, error)
+	GetHTTPClient() *http.Client
 }
 
 // FindVerrazzanoResource - find the single Verrazzano resource

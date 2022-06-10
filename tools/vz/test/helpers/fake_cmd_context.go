@@ -5,11 +5,13 @@ package helpers
 
 import (
 	"io"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/fake"
+	"net/http"
+	"time"
 
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -47,6 +49,13 @@ func (rc *FakeRootCmdContext) GetKubeClient(cmd *cobra.Command) (kubernetes.Inte
 // SetClient - set the client
 func (rc *FakeRootCmdContext) SetClient(client client.Client) {
 	rc.client = client
+}
+
+// GetHTTPClient - return an HTTP client
+func (rc *FakeRootCmdContext) GetHTTPClient() *http.Client {
+	return &http.Client{
+		Timeout: time.Second * 30,
+	}
 }
 
 func NewFakeRootCmdContext(streams genericclioptions.IOStreams) *FakeRootCmdContext {
