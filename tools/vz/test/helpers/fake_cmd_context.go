@@ -4,9 +4,14 @@
 package helpers
 
 import (
+	"bytes"
+	"encoding/json"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"time"
+
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/github"
 
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -51,10 +56,40 @@ func (rc *FakeRootCmdContext) SetClient(client client.Client) {
 	rc.client = client
 }
 
-// GetHTTPClient - return an HTTP client
+// RoundTripFunc - define the type for the Transport function
+type RoundTripFunc func(req *http.Request) *http.Response
+
+// RoundTrip - define the implementation for the Transport function
+func (f RoundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req), nil
+}
+
+// GetHTTPClient - return an HTTP client for testing that always responds with a 200
+// and a pre-defined list of releases
 func (rc *FakeRootCmdContext) GetHTTPClient() *http.Client {
+	// Predefined response for the list of releases
+	releaseResponse := []github.ReleaseAsset{
+		{
+			TagName: "v1.3.0",
+		},
+		{
+			TagName: "v1.2.0",
+		},
+		{
+			TagName: "v1.3.1",
+		},
+	}
+	jsonResp, _ := json.Marshal(releaseResponse)
+
 	return &http.Client{
 		Timeout: time.Second * 30,
+		Transport: RoundTripFunc(func(req *http.Request) *http.Response {
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       ioutil.NopCloser(bytes.NewBuffer(jsonResp)),
+				Header:     http.Header{"Content-Type": {"application/json"}},
+			}
+		}),
 	}
 }
 
