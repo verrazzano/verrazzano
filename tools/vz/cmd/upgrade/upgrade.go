@@ -36,7 +36,7 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 
 	cmd.PersistentFlags().Bool(constants.WaitFlag, constants.WaitFlagDefault, constants.WaitFlagHelp)
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*30, constants.TimeoutFlagHelp)
-	cmd.PersistentFlags().String(constants.VersionFlag, constants.VersionFlagDefault, constants.VersionFlagHelp)
+	cmd.PersistentFlags().String(constants.VersionFlag, constants.VersionFlagDefault, constants.VersionFlagUpgradeHelp)
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
 
 	// Initially the operator-file flag may be for internal use, hide from help until
@@ -52,6 +52,38 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdUpgrade(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-	fmt.Fprintf(vzHelper.GetOutputStream(), "Not implemented yet\n")
+	// Get the timeout value for the upgrade command
+	_, err := cmdhelpers.GetWaitTimeout(cmd)
+	if err != nil {
+		return err
+	}
+
+	// Get the log format value
+	_, err = cmdhelpers.GetLogFormat(cmd)
+	if err != nil {
+		return err
+	}
+
+	// Get the kubernetes clientset.  This will validate that the kubeconfig and context are valid.
+	_, err = vzHelper.GetKubeClient(cmd)
+	if err != nil {
+		return err
+	}
+
+	// Get the controller runtime client
+	_, err = vzHelper.GetClient(cmd)
+	if err != nil {
+		return err
+	}
+
+	// Get the Verrazzano version we are upgrading to
+	version, err := cmdhelpers.GetVersion(cmd)
+	if err != nil {
+		return err
+	}
+
+	// Show the version of Verrazzano we are upgrading to
+	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Upgrading Verrazzano to version %s\n", version))
+
 	return nil
 }

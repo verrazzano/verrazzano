@@ -58,3 +58,20 @@ func GetLogFormat(cmd *cobra.Command) (LogFormat, error) {
 
 	return LogFormat(logFormat.Value.String()), nil
 }
+
+// GetVersion returns the version of Verrazzano to install/upgrade
+func GetVersion(cmd *cobra.Command) (string, error) {
+	// Get the version from the command line
+	version, err := cmd.PersistentFlags().GetString(constants.VersionFlag)
+	if err != nil {
+		return "", err
+	}
+	if version == constants.VersionFlagDefault {
+		// Find the latest release version of Verrazzano
+		version, err = helpers.GetLatestReleaseVersion()
+		if err != nil {
+			return version, err
+		}
+	}
+	return version, nil
+}

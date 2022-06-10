@@ -23,9 +23,10 @@ const (
 	TimeoutFlag     = "timeout"
 	TimeoutFlagHelp = "Limits the amount of time a command will wait to complete"
 
-	VersionFlag        = "version"
-	VersionFlagDefault = "latest"
-	VersionFlagHelp    = "The version of Verrazzano to install or upgrade"
+	VersionFlag            = "version"
+	VersionFlagDefault     = "latest"
+	VersionFlagInstallHelp = "The version of Verrazzano to install"
+	VersionFlagUpgradeHelp = "The version of Verrazzano to upgrade to"
 
 	DryRunFlag = "dry-run"
 

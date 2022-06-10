@@ -66,7 +66,7 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 
 	cmd.PersistentFlags().Bool(constants.WaitFlag, constants.WaitFlagDefault, constants.WaitFlagHelp)
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*30, constants.TimeoutFlagHelp)
-	cmd.PersistentFlags().String(constants.VersionFlag, constants.VersionFlagDefault, constants.VersionFlagHelp)
+	cmd.PersistentFlags().String(constants.VersionFlag, constants.VersionFlagDefault, constants.VersionFlagInstallHelp)
 	cmd.PersistentFlags().StringSliceP(constants.FilenameFlag, constants.FilenameFlagShorthand, []string{}, constants.FilenameFlagHelp)
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
 	cmd.PersistentFlags().StringArrayP(constants.SetFlag, constants.SetFlagShorthand, []string{}, constants.SetFlagHelp)
@@ -114,18 +114,13 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		return err
 	}
 
-	// Get the version from the command line
-	version, err := cmd.PersistentFlags().GetString(constants.VersionFlag)
+	// Get the Verrazzano version to install
+	version, err := cmdhelpers.GetVersion(cmd)
 	if err != nil {
 		return err
 	}
-	if version == constants.VersionFlagDefault {
-		// Find the latest release version of Verrazzano
-		version, err = helpers.GetLatestReleaseVersion()
-		if err != nil {
-			return err
-		}
-	}
+
+	// Show what version of Verrazzano is being installed
 	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Installing Verrazzano version %s\n", version))
 
 	// Apply the Verrazzano operator.yaml.
@@ -178,10 +173,16 @@ func getVerrazzanoYAML(cmd *cobra.Command) (vz *vzapi.Verrazzano, err error) {
 
 // applyPlatformOperatorYaml applies a given version of the platform operator yaml file
 func applyPlatformOperatorYaml(client client.Client, vzHelper helpers.VZHelper, version string) error {
+	url := fmt.Sprintf(constants.VerrazzanoOperatorURL, version)
+	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Applying the file %s\n", url))
+
 	// Get the Verrazzano operator.yaml - use a string constant for the URL to avoid security warnings
 	resp, err := http.Get(fmt.Sprintf(constants.VerrazzanoOperatorURL, version))
 	if err != nil {
 		return fmt.Errorf("Failed to access the Verrazzano operator.yaml file: %s", err.Error())
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Failed to access the Verrazzano operator.yaml file: %s", resp.Status)
 	}
 
 	// Store response in a temporary file
@@ -196,8 +197,6 @@ func applyPlatformOperatorYaml(client client.Client, vzHelper helpers.VZHelper, 
 	}
 
 	// Apply the Verrazzano operator.yaml. A valid version must be specified for this to succeed.
-	url := fmt.Sprintf(constants.VerrazzanoOperatorURL, version)
-	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Applying the file %s\n", url))
 	yamlApplier := k8sutil.NewYAMLApplier(client, "")
 	err = yamlApplier.ApplyF(tmpFile.Name())
 	if err != nil {
