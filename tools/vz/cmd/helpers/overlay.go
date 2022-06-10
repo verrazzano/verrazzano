@@ -36,7 +36,7 @@ func MergeYAMLFiles(filenames []string) (*vzapi.Verrazzano, error) {
 	vz := &vzapi.Verrazzano{}
 	err := yaml.Unmarshal([]byte(vzYaml), &vz)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to unmarshal yaml into a verrazzano resource: %s", err.Error())
+		return nil, fmt.Errorf("Failed to create a verrazzano install resource: %s", err.Error())
 	}
 	if vz.Namespace == "" {
 		vz.Namespace = "default"
@@ -58,22 +58,22 @@ func overlayVerrazzano(baseYAML string, overlayYAML string) (string, error) {
 	}
 	baseJSON, err := yaml.YAMLToJSON([]byte(baseYAML))
 	if err != nil {
-		return "", fmt.Errorf("YAMLToJSON error in base: %s\n%s", err, baseJSON)
+		return "", fmt.Errorf("Failed to create a verrazzano install resource: %s\n%s", err.Error(), baseYAML)
 	}
 	overlayJSON, err := yaml.YAMLToJSON([]byte(overlayYAML))
 	if err != nil {
-		return "", fmt.Errorf("YAMLToJSON error in overlay: %s\n%s", err, overlayJSON)
+		return "", fmt.Errorf("Failed to create a verrazzano install resource: %s\n%s", err.Error(), overlayYAML)
 	}
 
 	// Merge the two json representations
 	mergedJSON, err := strategicpatch.StrategicMergePatch(baseJSON, overlayJSON, &vzMergeStruct)
 	if err != nil {
-		return "", fmt.Errorf("json merge error (%v) for base object: \n%s\n override object: \n%s", err, baseJSON, overlayJSON)
+		return "", fmt.Errorf("Failed to merge yaml files: %s\n for base object: \n%s\n override object: \n%s", err.Error(), baseJSON, overlayJSON)
 	}
 
 	mergedYAML, err := yaml.JSONToYAML(mergedJSON)
 	if err != nil {
-		return "", fmt.Errorf("JSONToYAML error (%v) for merged object: \n%s", err, mergedJSON)
+		return "", fmt.Errorf("Failed to create a verrazzano install resource: %s\n%s", err.Error(), mergedJSON)
 	}
 
 	return string(mergedYAML), nil
