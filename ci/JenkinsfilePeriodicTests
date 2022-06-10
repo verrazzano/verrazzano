@@ -13,10 +13,10 @@ def branchSpecificSchedule = getCronSchedule()
 // The job name from which the verrazzano_images file is available to be copied to this job
 // We will copy over and make it part of the artifacts of the periodic job, available when we want to release a candidate
 def verrazzanoImagesJobProjectName = "verrazzano-examples"
-def verrazzanoImagesFile = "verrazzano_images.txt"
-def verrazzanoImagesBuildNumber = 0 // will be set to actual build number when the job is run
-def periodicsUpToDate = false // If true, indicates that the periodics already passed at the latest commit
-def dryRun = true // for testing
+def verrazzanoImagesFile           = "verrazzano_images.txt"
+def verrazzanoImagesBuildNumber    = 0                        // will be set to actual build number when the job is run
+def periodicsUpToDate              = false                    // If true, indicates that the periodics already passed at the latest commit
+def dryRun                         = false                    // For debugging pipeline, run without executing tests
 
 pipeline {
     options {
