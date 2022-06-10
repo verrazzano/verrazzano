@@ -47,9 +47,9 @@ if [ "${OCI_DNS_AUTH}" != "instance_principal" ]; then
   OUTPUT_FILE="$TMP_DIR/oci_config"
   KEY_FILE="$TMP_DIR/oci_key"
   echo "[DEFAULT]" > $OUTPUT_FILE
-  echo "#region=someregion.region.com"
-  echo "#tenancy=OCID of the tenancy"
-  echo "#user="
+  echo "#region=someregion.region.com" > $OUTPUT_FILE
+  echo "#tenancy=OCID of the tenancy" > $OUTPUT_FILE
+  echo "#user=" > $OUTPUT_FILE
   echo "region=${OCI_CLI_REGION}" >> $OUTPUT_FILE
   echo "tenancy=${OCI_CLI_TENANCY}" >> $OUTPUT_FILE
   echo "user=${OCI_CLI_USER}" >> $OUTPUT_FILE
