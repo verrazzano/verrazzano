@@ -970,18 +970,6 @@ func TestAssociateHelmObjectAndKeep(t *testing.T) {
 //  THEN false is returned
 func TestIsReadySecretNotReady(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      prometheusDeployment,
-				Labels:    map[string]string{"app": "system-prometheus"},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
 		&appsv1.DaemonSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: globalconst.VerrazzanoSystemNamespace,
@@ -1023,18 +1011,6 @@ func TestIsReadyChartNotInstalled(t *testing.T) {
 //  THEN false is returned
 func TestIsReady(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      prometheusDeployment,
-				Labels:    map[string]string{"app": "system-prometheus"},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
 		&appsv1.DaemonSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: globalconst.VerrazzanoSystemNamespace,
@@ -1109,27 +1085,4 @@ func TestConfigHashSum(t *testing.T) {
 	assert.NotEqual(t, HashSum(f1), HashSum(f2))
 	f2.Enabled = &b
 	assert.Equal(t, HashSum(f1), HashSum(f2))
-}
-
-// TestIsinstalled tests the Verrazzano doesPromExist call
-// GIVEN a Verrazzano component
-//  WHEN I call doesPromExist
-//  THEN true is returned
-func TestIsinstalled(t *testing.T) {
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
-	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      prometheusDeployment,
-				Labels:    map[string]string{"app": "system-prometheus"},
-			},
-		},
-	).Build()
-	vz := &vzapi.Verrazzano{}
-	ctx := spi.NewFakeContext(c, vz, false)
-	assert.True(t, doesPromExist(ctx))
 }

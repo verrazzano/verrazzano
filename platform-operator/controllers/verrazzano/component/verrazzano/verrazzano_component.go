@@ -39,9 +39,6 @@ const (
 	// vzImagePullSecretKeyName is the Helm key name for the VZ chart image pull secret
 	vzImagePullSecretKeyName = "global.imagePullSecrets[0]"
 
-	// Certificate names
-	prometheusCertificateName = "system-tls-prometheus"
-
 	// ES secret keys
 	esUsernameKey = "username"
 	esPasswordKey = "password"
@@ -141,19 +138,12 @@ func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 
 // IsInstalled component check
 func (c verrazzanoComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
-	installed, _ := c.HelmComponent.IsInstalled(ctx)
-	if installed {
-		return doesPromExist(ctx), nil
-	}
-	return false, nil
+	return c.HelmComponent.IsInstalled(ctx)
 }
 
 // PostInstall - post-install, clean up temp files
 func (c verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
 	cleanTempFiles(ctx)
-	// populate the ingress and certificate names before calling PostInstall on Helm component because those will be needed there
-	c.HelmComponent.IngressNames = c.GetIngressNames(ctx)
-	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
 	return c.HelmComponent.PostInstall(ctx)
 }
 
@@ -161,8 +151,6 @@ func (c verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
 func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Verrazzano component post-upgrade")
 	cleanTempFiles(ctx)
-	c.HelmComponent.IngressNames = c.GetIngressNames(ctx)
-	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
 	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
 		if err := common.ReassociateVMOResources(ctx); err != nil {
 			return err
@@ -236,34 +224,6 @@ func (c verrazzanoComponent) checkEnabled(old *vzapi.Verrazzano, new *vzapi.Verr
 		return fmt.Errorf("Disabling component prometheus not allowed")
 	}
 	return nil
-}
-
-// GetIngressNames - gets the names of the ingresses associated with this component
-func (c verrazzanoComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
-	var ingressNames []types.NamespacedName
-
-	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
-		ingressNames = append(ingressNames, types.NamespacedName{
-			Namespace: ComponentNamespace,
-			Name:      constants.PrometheusIngress,
-		})
-	}
-
-	return ingressNames
-}
-
-// GetCertificateNames - gets the names of the ingresses associated with this component
-func (c verrazzanoComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
-	var certificateNames []types.NamespacedName
-
-	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
-		certificateNames = append(certificateNames, types.NamespacedName{
-			Namespace: ComponentNamespace,
-			Name:      prometheusCertificateName,
-		})
-	}
-
-	return certificateNames
 }
 
 // getClient returns a controller runtime client for the Verrazzano resource

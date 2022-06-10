@@ -7,7 +7,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
 	"io/ioutil"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -17,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
@@ -44,8 +44,6 @@ const (
 
 	fluentDaemonset       = "fluentd"
 	nodeExporterDaemonset = "node-exporter"
-
-	prometheusDeployment = "vmi-system-prometheus-0"
 )
 
 var (
@@ -69,29 +67,8 @@ func resolveVerrazzanoNamespace(ns string) string {
 func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 
-	// First, check deployments
-	var deployments []types.NamespacedName
-	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments,
-			types.NamespacedName{
-				Name:      prometheusDeployment,
-				Namespace: ComponentNamespace,
-			})
-	}
-
-	if !status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
-		return false
-	}
-
-	// Finally, check daemonsets
+	// Check daemonsets
 	var daemonsets []types.NamespacedName
-	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
-		daemonsets = append(daemonsets,
-			types.NamespacedName{
-				Name:      nodeExporterDaemonset,
-				Namespace: globalconst.VerrazzanoMonitoringNamespace,
-			})
-	}
 	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) && getProfile(ctx.EffectiveCR()) != vzapi.ManagedCluster {
 		daemonsets = append(daemonsets,
 			types.NamespacedName{
@@ -103,16 +80,6 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 		return false
 	}
 	return common.IsVMISecretReady(ctx)
-}
-
-// doesPromExist is the verrazzano IsInstalled check
-func doesPromExist(ctx spi.ComponentContext) bool {
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	deploy := []types.NamespacedName{{
-		Name:      prometheusDeployment,
-		Namespace: ComponentNamespace,
-	}}
-	return status.DoDeploymentsExist(ctx.Log(), ctx.Client(), deploy, 1, prefix)
 }
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart

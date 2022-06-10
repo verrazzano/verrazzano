@@ -12,6 +12,7 @@ import (
 	vmoconst "github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -21,6 +22,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	securityv1beta1 "istio.io/api/security/v1beta1"
+	istiov1beta1 "istio.io/api/type/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,6 +39,8 @@ const (
 	deploymentName  = "prometheus-operator-kube-p-operator"
 	istioVolumeName = "istio-certs-dir"
 	serviceAccount  = "cluster.local/ns/verrazzano-monitoring/sa/prometheus-operator-kube-p-prometheus"
+
+	prometheusAuthPolicyName = "vmi-system-prometheus-authzpol"
 )
 
 // isPrometheusOperatorReady checks if the Prometheus operator deployment is ready
@@ -351,4 +356,60 @@ func updateApplicationAuthorizationPolicies(ctx spi.ComponentContext) error {
 		}
 	}
 	return nil
+}
+
+// createOrUpdatePrometheusAuthPolicy creates the Istio authorization policy for Prometheus
+func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
+	authPol := istioclisec.AuthorizationPolicy{
+		ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: prometheusAuthPolicyName},
+	}
+	_, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &authPol, func() error {
+		authPol.Spec = securityv1beta1.AuthorizationPolicy{
+			Selector: &istiov1beta1.WorkloadSelector{
+				MatchLabels: map[string]string{
+					"app.kubernetes.io/name": "prometheus",
+				},
+			},
+			Action: securityv1beta1.AuthorizationPolicy_ALLOW,
+			Rules: []*securityv1beta1.Rule{
+				{
+					// allow Auth Proxy, Grafana, and Kiali to access Prometheus
+					From: []*securityv1beta1.Rule_From{{
+						Source: &securityv1beta1.Source{
+							Principals: []string{
+								fmt.Sprintf("cluster.local/ns/%s/sa/verrazzano-authproxy", constants.VerrazzanoSystemNamespace),
+								fmt.Sprintf("cluster.local/ns/%s/sa/verrazzano-monitoring-operator", constants.VerrazzanoSystemNamespace), // Grafana uses VMO SA
+								fmt.Sprintf("cluster.local/ns/%s/sa/vmi-system-kiali", constants.VerrazzanoSystemNamespace),
+							},
+							Namespaces: []string{constants.VerrazzanoSystemNamespace},
+						},
+					}},
+					To: []*securityv1beta1.Rule_To{{
+						Operation: &securityv1beta1.Operation{
+							Ports: []string{"9090"},
+						},
+					}},
+				},
+				{
+					// allow Prometheus to scrape its own Envoy sidecar
+					From: []*securityv1beta1.Rule_From{{
+						Source: &securityv1beta1.Source{
+							Principals: []string{serviceAccount},
+							Namespaces: []string{ComponentNamespace},
+						},
+					}},
+					To: []*securityv1beta1.Rule_To{{
+						Operation: &securityv1beta1.Operation{
+							Ports: []string{"15090"},
+						},
+					}},
+				},
+			},
+		}
+		return nil
+	})
+	if ctrlerrors.ShouldLogKubenetesAPIError(err) {
+		return ctx.Log().ErrorfNewErr("Failed creating/updating Prometheus auth policy: %v", err)
+	}
+	return err
 }

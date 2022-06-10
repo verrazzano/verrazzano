@@ -9,10 +9,15 @@ import (
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // ComponentName is the name of the component
@@ -25,6 +30,11 @@ const ComponentNamespace = constants.VerrazzanoMonitoringNamespace
 const ComponentJSONName = "prometheusOperator"
 
 const chartDir = "prometheus-community/kube-prometheus-stack"
+
+const (
+	prometheusHostName        = "prometheus.vmi.system"
+	prometheusCertificateName = "system-tls-prometheus"
+)
 
 type prometheusComponent struct {
 	helm.HelmComponent
@@ -42,7 +52,7 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0].name",
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-operator-values.yaml"),
-			Dependencies:            []string{certmanager.ComponentName},
+			Dependencies:            []string{nginx.ComponentName, certmanager.ComponentName},
 			AppendOverridesFunc:     AppendOverrides,
 			GetInstallOverridesFunc: GetOverrides,
 		},
@@ -91,6 +101,17 @@ func (c prometheusComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := updateApplicationAuthorizationPolicies(ctx); err != nil {
 		return err
 	}
+	if err := common.CreateOrUpdateSystemComponentIngress(ctx, constants.PrometheusIngress, prometheusHostName, prometheusCertificateName); err != nil {
+		return err
+	}
+	if err := createOrUpdatePrometheusAuthPolicy(ctx); err != nil {
+		return err
+	}
+
+	// these need to be set for helm component post install processing
+	c.IngressNames = c.GetIngressNames(ctx)
+	c.Certificates = c.GetCertificateNames(ctx)
+
 	return c.HelmComponent.PostInstall(ctx)
 }
 
@@ -102,6 +123,13 @@ func (c prometheusComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := updateApplicationAuthorizationPolicies(ctx); err != nil {
 		return err
 	}
+	if err := common.CreateOrUpdateSystemComponentIngress(ctx, constants.PrometheusIngress, prometheusHostName, prometheusCertificateName); err != nil {
+		return err
+	}
+	if err := createOrUpdatePrometheusAuthPolicy(ctx); err != nil {
+		return err
+	}
+
 	return c.HelmComponent.PostUpgrade(ctx)
 }
 
@@ -116,4 +144,40 @@ func (c prometheusComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	return c.validatePrometheusOperator(new)
+}
+
+// getIngressNames - gets the names of the ingresses associated with this component
+func (c prometheusComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
+	var ingressNames []types.NamespacedName
+
+	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
+		ns := ComponentNamespace
+		if vzconfig.IsAuthProxyEnabled(ctx.EffectiveCR()) {
+			ns = authproxy.ComponentNamespace
+		}
+		ingressNames = append(ingressNames, types.NamespacedName{
+			Namespace: ns,
+			Name:      constants.PrometheusIngress,
+		})
+	}
+
+	return ingressNames
+}
+
+// getCertificateNames - gets the names of the TLS ingress certificates associated with this component
+func (c prometheusComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
+	var certificateNames []types.NamespacedName
+
+	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
+		ns := ComponentNamespace
+		if vzconfig.IsAuthProxyEnabled(ctx.EffectiveCR()) {
+			ns = authproxy.ComponentNamespace
+		}
+		certificateNames = append(certificateNames, types.NamespacedName{
+			Namespace: ns,
+			Name:      prometheusCertificateName,
+		})
+	}
+
+	return certificateNames
 }

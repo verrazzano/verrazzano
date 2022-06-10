@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	asserts "github.com/stretchr/testify/assert"
 	vmoconst "github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
@@ -47,6 +48,8 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(testScheme)
 	_ = vzapi.AddToScheme(testScheme)
+	_ = certapiv1.AddToScheme(testScheme)
+	_ = istioclisec.AddToScheme(testScheme)
 }
 
 // TestIsPrometheusOperatorReady tests the isPrometheusOperatorReady function for the Prometheus Operator
@@ -643,4 +646,28 @@ func TestUpdateApplicationAuthorizationPolicies(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestCreateOrUpdatePrometheusAuthPolicy tests the createOrUpdatePrometheusAuthPolicy function
+func TestCreateOrUpdatePrometheusAuthPolicy(t *testing.T) {
+	assert := asserts.New(t)
+
+	// GIVEN Prometheus Operator is being installed or upgraded
+	// WHEN  we call the createOrUpdatePrometheusAuthPolicy function
+	// THEN  the expected Istio authorization policy is created
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+
+	err := createOrUpdatePrometheusAuthPolicy(ctx)
+	assert.NoError(err)
+
+	authPolicy := &istioclisec.AuthorizationPolicy{}
+	err = client.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: prometheusAuthPolicyName}, authPolicy)
+	assert.NoError(err)
+
+	assert.Len(authPolicy.Spec.Rules, 2)
+	assert.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy")
+	assert.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
+	assert.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/vmi-system-kiali")
+	assert.Contains(authPolicy.Spec.Rules[1].From[0].Source.Principals, serviceAccount)
 }

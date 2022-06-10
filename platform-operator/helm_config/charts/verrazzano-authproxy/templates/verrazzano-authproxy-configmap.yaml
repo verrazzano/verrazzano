@@ -489,6 +489,10 @@ data:
         return 'http://vmi-system-'..backend..'.verrazzano-system.svc.cluster.local'..':'..port
     end
 
+    function me.makePrometheusBackendUrl(port)
+        return 'http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring.svc.cluster.local'..':'..port
+    end
+
     function me.getBackendServerUrlFromName(backend)
         local serverUrl = nil
         if backend == 'verrazzano' then
@@ -501,7 +505,7 @@ data:
         elseif backend == 'grafana' then
             serverUrl = me.makeVmiBackendUrl(backend, '3000')
         elseif backend == 'prometheus' then
-            serverUrl = me.makeVmiBackendUrl(backend, '9090')
+            serverUrl = me.makePrometheusBackendUrl('9090')
         elseif backend == 'kibana' then
             serverUrl = me.makeVmiBackendUrl(backend, '5601')
         elseif backend == 'elasticsearch' then

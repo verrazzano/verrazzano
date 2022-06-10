@@ -190,45 +190,6 @@ spec:
 {{- end }}
 
 ---
-{{- if .Values.prometheus.enabled }}
-#
-# Istio AuthorizationPolicy for vmi-system-prometheus
-#
-apiVersion: security.istio.io/v1beta1
-kind: AuthorizationPolicy
-metadata:
-  name: vmi-system-prometheus-authzpol
-  namespace: {{ .Release.Namespace }}
-spec:
-  selector:
-    matchLabels:
-      app: system-prometheus
-  action: ALLOW
-  rules:
-    # vmi-system-prometheus:9090 <- verrazzano-authproxy
-    # vmi-system-prometheus:9090 <- vmi-system-grafana (uses VMO SA)
-    # vmi-system-prometheus:9090 <- kiali (uses Kiali SA)
-    - from:
-        - source:
-            namespaces: ["{{ .Release.Namespace }}"]
-            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.api.name }}",
-                         "cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}",
-                         "cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.kiali.name }}"]
-      to:
-        - operation:
-            ports: ["9090"]
-
-    # vmi-system-prometheus:15090 <- vmi-system-prometheus (uses VMO SA)
-    - from:
-        - source:
-            namespaces: ["{{ .Release.Namespace }}"]
-            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}"]
-      to:
-        - operation:
-            ports: ["15090"]
-{{- end }}
-
----
 {{- if .Values.console.enabled }}
 #
 # Istio AuthorizationPolicy for verrazzano-console
