@@ -100,7 +100,7 @@ pipeline {
                     // Get the commit ID for the last known clean pass of the Periodic tests
                     def cleanPeriodicsCommitProps = readProperties file: "${CLEAN_PERIODIC_LOCATION}"
                     LAST_CLEAN_PERIODIC_COMMIT = cleanPeriodicsCommitProps['git-commit']
-                    echo "Last stable commit: ${LAST_CLEAN_PERIODIC_COMMIT}"
+                    echo "Last clean periodics commit: ${LAST_CLEAN_PERIODIC_COMMIT}"
 
                     if (LAST_CLEAN_PERIODIC_COMMIT == GIT_COMMIT_TO_USE) {
                         echo "Last stable commit matches last clean periodics run, skipping pipeline execution"
