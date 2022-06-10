@@ -121,7 +121,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 	if version == constants.VersionFlagDefault {
 		// Find the latest release version of Verrazzano
-		version, err = helpers.GetLatestReleaseVersion()
+		version, err = helpers.GetLatestReleaseVersion(vzHelper.GetHTTPClient())
 		if err != nil {
 			return err
 		}
