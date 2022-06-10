@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
@@ -442,6 +443,15 @@ func TestDeploymentUpdateError(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Name: "test-namespace"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, ns *k8score.Namespace) error {
+			return nil
+		})
+
+	// Expect a call to the multicluster Secret object
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "verrazzano-cluster-registration"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, secret *k8score.Secret) error {
+			secret.Data = make(map[string][]byte)
+			secret.Data[constants.ClusterNameData] = []byte("local")
 			return nil
 		})
 
