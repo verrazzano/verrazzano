@@ -3,7 +3,7 @@
 apiVersion: clusters.verrazzano.io/v1alpha1
 kind: MultiClusterApplicationConfiguration
 metadata:
-  name: hello-helidon-appconf
+  name: hello-helidon
   namespace: hello-helidon
 spec:
   template:
