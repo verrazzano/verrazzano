@@ -422,7 +422,7 @@ pipeline {
                                 runGinkgo('examples/helidon')
                             }
                         }
-                        stage('jwt tests') {
+                        stage('JWT Workload Component') {
                             when {
                                 expression {params.ENABLE_JWT_TESTING == true}
                             }
@@ -431,17 +431,21 @@ pipeline {
                                 REALM_USER_PASSWORD = credentials('todo-mysql-password')
                                 REALM_NAME="test-realm"
                             }
-                            stages {
-                                stage('Hello Helidon Workload') {
-                                    steps {
-                                        runGinkgo('jwt/helidon')
-                                    }
-                                }
-                                stage('Hello Helidon Service') {
-                                    steps {
-                                        runGinkgo('jwt/helidon-svc')
-                                    }
-                                }
+                            steps {
+                                runGinkgo('jwt/helidon')
+                            }
+                        }
+                        stage('JWT Service Component') {
+                            when {
+                                expression {params.ENABLE_JWT_TESTING == true}
+                            }
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jwt-helidon"
+                                REALM_USER_PASSWORD = credentials('todo-mysql-password')
+                                REALM_NAME="test-realm"
+                            }
+                            steps {
+                                runGinkgo('jwt/helidon-svc')
                             }
                         }
                         stage('weblogic workload') {
