@@ -137,3 +137,6 @@ const MetricsTemplateKind = "MetricsTemplate"
 
 // MetricsTemplateAPIVersion is the APIVersion of the MetricsTemplate custom resource
 const MetricsTemplateAPIVersion = "app.verrazzano.io/v1alpha1"
+
+// SecretKind is the kind for a secret
+const SecretKind = "Secret"

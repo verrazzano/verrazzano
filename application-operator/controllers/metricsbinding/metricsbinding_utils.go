@@ -5,13 +5,15 @@ package metricsbinding
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"strings"
 
 	"github.com/Jeffail/gabs/v2"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
-	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	k8smetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/yaml"
 )
@@ -74,5 +76,52 @@ func getConfigDataFromSecret(secret *v1.Secret, key string) (*gabs.Container, er
 
 // Formats job name as specified by the Prometheus config
 func formatJobName(jobName string) string {
-	return fmt.Sprintf("%s: %s\n", constants.PrometheusJobNameKey, jobName)
+	return fmt.Sprintf("%s: %s\n", vzconst.PrometheusJobNameKey, jobName)
+}
+
+// getPromConfigMap returns the Prometheus ConfigMap given in the MetricsBinding
+func getPromConfigMap(metricsBinding *vzapi.MetricsBinding) *v1.ConfigMap {
+	targetConfigMap := metricsBinding.Spec.PrometheusConfigMap
+	if targetConfigMap.Name == "" {
+		return nil
+	}
+	return &v1.ConfigMap{
+		TypeMeta: k8smetav1.TypeMeta{
+			Kind:       configMapKind,
+			APIVersion: k8sV1APIVersion,
+		},
+		ObjectMeta: k8smetav1.ObjectMeta{
+			Name:      targetConfigMap.Name,
+			Namespace: targetConfigMap.Namespace,
+		},
+	}
+}
+
+// getPromConfigSecret returns the Prometheus Config Secret given in the MetricsBinding, along with the key
+func getPromConfigSecret(metricsBinding *vzapi.MetricsBinding) (*v1.Secret, string) {
+	targetSecret := metricsBinding.Spec.PrometheusConfigSecret
+	if targetSecret.Name == "" {
+		return nil, ""
+	}
+	return &v1.Secret{
+		TypeMeta: k8smetav1.TypeMeta{
+			Kind:       vzconst.SecretKind,
+			APIVersion: k8sV1APIVersion,
+		},
+		ObjectMeta: k8smetav1.ObjectMeta{
+			Name:      targetSecret.Name,
+			Namespace: targetSecret.Namespace,
+		},
+	}, targetSecret.Key
+}
+
+// isLegacyDefaultMetricsBinding determines whether the given binding uses the
+// "default" metrics template used pre-Verrazzano 1.4 AND the legacy VMI system prometheus config map
+func isLegacyDefaultMetricsBinding(metricsBinding *vzapi.MetricsBinding) bool {
+	templateName := metricsBinding.Spec.MetricsTemplate
+	configMapName := metricsBinding.Spec.PrometheusConfigMap
+	return templateName.Namespace == constants.LegacyDefaultMetricsTemplateNamespace &&
+		templateName.Name == constants.LegacyDefaultMetricsTemplateName &&
+		configMapName.Namespace == vzconst.VerrazzanoSystemNamespace &&
+		configMapName.Name == vzconst.VmiPromConfigName
 }

@@ -225,12 +225,15 @@ func (a *WorkloadWebhook) updateMetricBinding(ctx context.Context, unst *unstruc
 		}
 	}
 
-	a.mutateMetricsBinding(metricsBinding, template, unst)
-
-	err := a.Client.Update(ctx, metricsBinding)
-
+	err := a.mutateMetricsBinding(metricsBinding, template, unst)
 	if err != nil {
-		log.Errorf("Failed updating metricsBinding resource: %v", err)
+		log.Errorf("Failed mutating the metricsBinding resource: %v", err)
+		return err
+	}
+
+	err = a.Client.Update(ctx, metricsBinding)
+	if err != nil {
+		log.Errorf("Failed updating the metricsBinding resource: %v", err)
 		return err
 	}
 

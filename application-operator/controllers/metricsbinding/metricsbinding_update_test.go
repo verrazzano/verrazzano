@@ -1,36 +1,21 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
-// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-
-package metrics
+package metricsbinding
 
 import (
 	"context"
 	"testing"
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/types"
-
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-)
-
-const (
-	testConfigMapName            = "test-cm-name"
-	testMetricsTemplateNamespace = "test-namespace"
-	testMetricsTemplateName      = "test-template-name"
-	testMetricsBindingNamespace  = "test-namespace"
-	testMetricsBindingName       = "test-binding-name"
-	testDeploymentName           = "test-deployment"
-	deploymentGroup              = "apps"
-	deploymentVersion            = "v1"
 )
 
 var metricsTemplate = vzapi.MetricsTemplate{
@@ -82,7 +67,8 @@ func TestGetMetricsTemplate(t *testing.T) {
 	localMetricsBinding := metricsBinding.DeepCopy()
 
 	log := vzlog.DefaultLogger()
-	template, err := GetMetricsTemplate(context.Background(), c, localMetricsBinding, log.GetZapLogger())
+	r := newReconciler(c)
+	template, err := r.getMetricsTemplate(context.Background(), localMetricsBinding, log)
 	assert.NoError(err, "Expected no error getting the MetricsTemplate from the MetricsBinding")
 	assert.NotNil(template)
 }
@@ -167,7 +153,8 @@ func TestHandleDefaultMetricsTemplate(t *testing.T) {
 			localMetricsBinding := metricsBinding.DeepCopy()
 
 			log := vzlog.DefaultLogger()
-			err := HandleDefaultMetricsTemplate(context.Background(), c, localMetricsBinding, log)
+			r := newReconciler(c)
+			err := r.handleDefaultMetricsTemplate(context.Background(), localMetricsBinding, log)
 			if tt.expectError {
 				assert.Error(err, "Expected error handling the default MetricsTemplate")
 				return

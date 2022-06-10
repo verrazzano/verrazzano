@@ -9,8 +9,6 @@ import (
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	k8sapps "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -32,41 +30,6 @@ const (
 	deploymentVersion             = "v1"
 	testUIDName                   = "Test-UID"
 )
-
-var metricsBinding = v1alpha1.MetricsBinding{
-	ObjectMeta: metav1.ObjectMeta{
-		Namespace: testMetricsBindingNamespace,
-		Name:      testMetricsBindingName,
-	},
-	Spec: v1alpha1.MetricsBindingSpec{
-		MetricsTemplate: v1alpha1.NamespaceName{
-			Namespace: testMetricsTemplateNamespace,
-			Name:      testMetricsTemplateName,
-		},
-		PrometheusConfigMap: v1alpha1.NamespaceName{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      testConfigMapName,
-		},
-		Workload: v1alpha1.Workload{
-			Name: testDeploymentName,
-			TypeMeta: metav1.TypeMeta{
-				Kind:       deploymentKind,
-				APIVersion: deploymentGroup + "/" + deploymentVersion,
-			},
-		},
-	},
-}
-
-var metricsTemplate = v1alpha1.MetricsTemplate{
-	TypeMeta: metav1.TypeMeta{
-		Kind:       vzconst.MetricsTemplateKind,
-		APIVersion: vzconst.MetricsTemplateAPIVersion,
-	},
-	ObjectMeta: metav1.ObjectMeta{
-		Namespace: testMetricsTemplateNamespace,
-		Name:      testMetricsTemplateName,
-	},
-}
 
 var deployment = k8sapps.Deployment{
 	ObjectMeta: metav1.ObjectMeta{
