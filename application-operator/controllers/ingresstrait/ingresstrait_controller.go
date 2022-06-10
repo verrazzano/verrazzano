@@ -361,10 +361,9 @@ func (r *Reconciler) fetchWorkloadDefinition(ctx context.Context, workload *unst
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
 			return nil, nil
-		} else {
-			log.Errorf("Failed to fetch workload %s definition: %v", workloadName, err)
-			return nil, err
 		}
+		log.Errorf("Failed to fetch workload %s definition: %v", workloadName, err)
+		return nil, err
 	}
 	return &workloadDef, nil
 }
