@@ -5,6 +5,7 @@ package netpol
 
 import (
 	"flag"
+	"os"
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
@@ -19,7 +20,16 @@ func init() {
 	flag.StringVar(&istioInjection, "istioInjection", "enabled", "istioInjection enables the injection of istio side cars")
 }
 
+func isUsingCalico() bool {
+	usingCalico := os.Getenv("CREATE_CLUSTER_USE_CALICO")
+	return usingCalico == "true"
+}
+
 func TestSecurityNetworkPolicies(t *testing.T) {
+	if !isUsingCalico() {
+		t.Skip("Calico not enabled, skipping test")
+		return
+	}
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "Verrazzano Network Policy Suite")
 }

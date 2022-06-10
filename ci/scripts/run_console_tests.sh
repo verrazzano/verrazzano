@@ -4,10 +4,23 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
+# Track starting branch; default to master for Jenkins runs
+CONSOLE_BRANCH=master
+
 if [ -z "$GO_REPO_PATH" ]; then
   echo "This script requires GO_REPO_PATH to be set, and is expected to only be called from Jenkins"
   exit 1
 fi
+
+cleanup() {
+  local ec=$1
+  if [ "${ec}" != "0" ]; then
+    sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
+  fi
+  git checkout ${CONSOLE_BRANCH}
+}
+
+set -e
 
 # Temporarily clone the console repo until it is moved to the Verrazzano repo
 cd ${GO_REPO_PATH}
@@ -31,15 +44,30 @@ echo "Using console commit(-ish) at $console_sha"
 # Do a git clone of the console repo and checkout the commit sha (or branch or tag) provided
 cd ${GO_REPO_PATH}
 echo "Current dir $(pwd)"
-git clone https://github.com/verrazzano/console.git
-cd console
+if [ ! -e console ]; then
+  echo "Cloning console repo from Github"
+  git clone https://github.com/verrazzano/console.git
+  cd console
+else
+  # for local runs typically
+  CONSOLE_BRANCH=$(git branch --show-current)
+  echo "Repo exists, current branch: ${CONSOLE_BRANCH}"
+  cd console
+  git fetch --all
+  git pull
+fi
 git checkout ${console_sha}
 
 # Run the basic UI tests, and if they fail make sure to exit with a fail status
-make run-ui-tests || exit 1
+make run-ui-tests
+ec=$?
 
 # Run the application page UI tests if specified
-if [ "true" == "${RUN_APP_TESTS}" ]; then
+if [ "${ec}" == "0" ] && [ "true" == "${RUN_APP_TESTS}" ]; then
   echo "Running Application Page UI tests"
   make run-app-page-test
+  ec=$?
 fi
+
+cleanup ${ec}
+exit ${ec}
