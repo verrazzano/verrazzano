@@ -199,6 +199,9 @@ func (r *Reconciler) handleCustomMetricsTemplate(ctx context.Context, metricsBin
 			secret.Data[prometheusConfigKey] = newPromConfigData
 			return nil
 		})
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
