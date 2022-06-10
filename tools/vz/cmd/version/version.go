@@ -11,8 +11,8 @@ import (
 )
 
 var gitCommit = "abcde1234"
-var buildDate = "YYYY-MM-DD"
-var cliVersion = "vMajor.Minor.Patch"
+var buildDate = "2022-01-01"
+var cliVersion = "1.2.3"
 
 const (
 	CommandName = "version"

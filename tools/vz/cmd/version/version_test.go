@@ -6,6 +6,7 @@ package version
 import (
 	"bytes"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -27,5 +28,9 @@ func TestVersionCmd(t *testing.T) {
 	err := versionCmd.Execute()
 	assert.NoError(t, err)
 	result := buf.String()
-	assert.Equal(t, "Not implemented yet\n", result)
+	results := strings.Split(result, "\n")
+	version, build, commit := results[0], results[1], results[2]
+	assert.Regexp(t, `^(Version: )?(v)?(\d+\.)?(\d+\.)?(\d+)$`, version)
+	assert.Regexp(t, `^(BuildDate: )?(\d+\-)?(\d+\-)?(\d+)$`, build)
+	assert.Regexp(t, `^(GitCommit: )?(\w{9})$`, commit)
 }
