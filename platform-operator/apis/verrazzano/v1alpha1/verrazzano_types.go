@@ -174,10 +174,10 @@ type ComponentStatusDetails struct {
 type ConditionType string
 
 const (
-	// CondPreInstall means an install about to start.
+	// CondPreInstall means pre-install is in progress.
 	CondPreInstall ConditionType = "PreInstall"
 
-	// CondPreInstallComplete means an install about to start.
+	// CondPreInstallComplete means pre-install has completed.
 	CondPreInstallComplete ConditionType = "PreInstallComplete"
 
 	// CondInstallStarted means an install is in progress.
