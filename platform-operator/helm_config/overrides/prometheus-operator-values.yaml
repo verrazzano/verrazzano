@@ -14,6 +14,13 @@ prometheus:
       enabled: true
       name: additional-scrape-configs
       key: jobs
+    serviceMonitorSelector:
+      matchExpressions:
+      - key: release
+        operator: In
+        values:
+        - prometheus-operator
+        - prometheus-node-exporter
 alertmanager:
   enabled: false
 prometheusOperator:
