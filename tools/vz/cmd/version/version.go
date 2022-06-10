@@ -11,9 +11,9 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/templates"
 )
 
-var cliVersion = "1.2.3"
-var buildDate = "2022-06-10T13:57:03Z"
-var gitCommit = "9dbc916b58ab9781f7b4c25e51748fb31ec940f8"
+var cliVersion string
+var buildDate string
+var gitCommit string
 
 const (
 	CommandName = "version"
