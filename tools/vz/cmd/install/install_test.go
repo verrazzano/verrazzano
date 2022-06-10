@@ -29,9 +29,9 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
-			Name:      verrazzanoPlatformOperator,
+			Name:      constants.VerrazzanoPlatformOperator,
 			Labels: map[string]string{
-				"app": verrazzanoPlatformOperator,
+				"app": constants.VerrazzanoPlatformOperator,
 			},
 		},
 		Status: corev1.PodStatus{
@@ -76,9 +76,9 @@ func TestInstallCmdDefaultTimeout(t *testing.T) {
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
-			Name:      verrazzanoPlatformOperator,
+			Name:      constants.VerrazzanoPlatformOperator,
 			Labels: map[string]string{
-				"app": verrazzanoPlatformOperator,
+				"app": constants.VerrazzanoPlatformOperator,
 			},
 		},
 	}
@@ -118,9 +118,9 @@ func TestInstallCmdDefaultNoVPO(t *testing.T) {
 	assert.NotNil(t, cmd)
 
 	// Run install command
-	vpoWaitRetries = 1 // override for unit testing
+	cmdHelpers.SetVpoWaitRetries(1) // override for unit testing
 	err := cmd.Execute()
-	resetVpoWaitRetries()
+	cmdHelpers.ResetVpoWaitRetries()
 	assert.Error(t, err)
 	assert.EqualError(t, err, "verrazzano-platform-operator pod not found in namespace verrazzano-install")
 	assert.Equal(t, errBuf.String(), "Error: verrazzano-platform-operator pod not found in namespace verrazzano-install\n")
@@ -135,9 +135,9 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
-			Name:      verrazzanoPlatformOperator + "-1",
+			Name:      constants.VerrazzanoPlatformOperator + "-1",
 			Labels: map[string]string{
-				"app": verrazzanoPlatformOperator,
+				"app": constants.VerrazzanoPlatformOperator,
 			},
 		},
 	}
@@ -145,9 +145,9 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
-			Name:      verrazzanoPlatformOperator + "-2",
+			Name:      constants.VerrazzanoPlatformOperator + "-2",
 			Labels: map[string]string{
-				"app": verrazzanoPlatformOperator,
+				"app": constants.VerrazzanoPlatformOperator,
 			},
 		},
 	}
@@ -178,9 +178,9 @@ func TestInstallCmdJsonLogFormat(t *testing.T) {
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
-			Name:      verrazzanoPlatformOperator,
+			Name:      constants.VerrazzanoPlatformOperator,
 			Labels: map[string]string{
-				"app": verrazzanoPlatformOperator,
+				"app": constants.VerrazzanoPlatformOperator,
 			},
 		},
 	}
@@ -212,9 +212,9 @@ func TestInstallCmdFilenames(t *testing.T) {
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
-			Name:      verrazzanoPlatformOperator,
+			Name:      constants.VerrazzanoPlatformOperator,
 			Labels: map[string]string{
-				"app": verrazzanoPlatformOperator,
+				"app": constants.VerrazzanoPlatformOperator,
 			},
 		},
 	}

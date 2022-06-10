@@ -6,12 +6,11 @@ package helpers
 import (
 	"context"
 	"fmt"
-	"io"
-
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/github"
+	"io"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,7 +30,7 @@ func FindVerrazzanoResource(client client.Client) (*vzapi.Verrazzano, error) {
 	vzList := vzapi.VerrazzanoList{}
 	err := client.List(context.TODO(), &vzList)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to find any Verrazzano resources: %s", err.Error())
 	}
 	if len(vzList.Items) == 0 {
 		return nil, fmt.Errorf("Failed to find any Verrazzano resources")

@@ -4,6 +4,7 @@
 package upgrade
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -52,8 +53,20 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdUpgrade(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
+	// Get the controller runtime client
+	client, err := vzHelper.GetClient(cmd)
+	if err != nil {
+		return err
+	}
+
+	// Get the verrazzano resource that needs to updated for the new version
+	vz, err := helpers.FindVerrazzanoResource(client)
+	if err != nil {
+		return err
+	}
+
 	// Get the timeout value for the upgrade command
-	_, err := cmdhelpers.GetWaitTimeout(cmd)
+	_, err = cmdhelpers.GetWaitTimeout(cmd)
 	if err != nil {
 		return err
 	}
@@ -70,12 +83,6 @@ func runCmdUpgrade(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		return err
 	}
 
-	// Get the controller runtime client
-	_, err = vzHelper.GetClient(cmd)
-	if err != nil {
-		return err
-	}
-
 	// Get the Verrazzano version we are upgrading to
 	version, err := cmdhelpers.GetVersion(cmd)
 	if err != nil {
@@ -84,6 +91,25 @@ func runCmdUpgrade(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 
 	// Show the version of Verrazzano we are upgrading to
 	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Upgrading Verrazzano to version %s\n", version))
+
+	// Apply the Verrazzano operator.yaml.
+	err = cmdhelpers.ApplyPlatformOperatorYaml(client, vzHelper, version)
+	if err != nil {
+		return err
+	}
+
+	// Wait for the platform operator to be ready before we create the Verrazzano resource.
+	_, err = cmdhelpers.WaitForPlatformOperator(client, vzHelper)
+	if err != nil {
+		return err
+	}
+
+	// Update the version in verrazzano install resource
+	vz.Spec.Version = version
+	err = client.Update(context.TODO(), vz)
+	if err != nil {
+		return fmt.Errorf("Failed to set upgrade version in verrazzano resource: %s", err.Error())
+	}
 
 	return nil
 }
