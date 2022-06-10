@@ -39,7 +39,7 @@ const (
 	tmpSuffix            = "yaml"
 	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
 	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
-	
+
 	nodeExporterDaemonset = "node-exporter"
 
 	prometheusDeployment = "vmi-system-prometheus-0"
