@@ -8,11 +8,12 @@ import (
 	"github.com/spf13/cobra"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/templates"
 )
 
-var gitCommit = "abcde1234"
-var buildDate = "2022-01-01"
 var cliVersion = "1.2.3"
+var buildDate = "2022-06-10T13:57:03Z"
+var gitCommit = "9dbc916b58ab9781f7b4c25e51748fb31ec940f8"
 
 const (
 	CommandName = "version"
@@ -20,6 +21,13 @@ const (
 	helpLong    = `The command 'version' reports information about the version of the vz tool being run`
 	helpExample = `vz version`
 )
+
+// statusOutputTemplate - template for output of status command
+const versionOutputTemplate = `
+Version: v{{.cli_version}}
+BuildDate: {{.build_date}}
+GitCommit: {{.git_commit}}
+`
 
 func NewCmdVersion(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
@@ -32,8 +40,17 @@ func NewCmdVersion(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdVersion(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), "Version: v%s\n", cliVersion)
-	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), "BuildDate: %s\n", buildDate)
-	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), "GitCommit: %s\n", gitCommit)
+
+	templateValues := map[string]string{
+		"cli_version": cliVersion,
+		"build_date":  buildDate,
+		"git_commit":  gitCommit,
+	}
+
+	result, err := templates.ApplyTemplate(versionOutputTemplate, templateValues)
+	if err != nil {
+		return err
+	}
+	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), result)
 	return nil
 }

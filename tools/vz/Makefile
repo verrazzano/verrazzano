@@ -7,9 +7,9 @@ VERSION_DIR:=${VZ_DIR}/cmd/version
 
 NAME:=vz
 
-GIT_COMMIT:=$(shell git rev-parse --short HEAD)
+GIT_COMMIT:=$(shell git rev-parse HEAD)
 CLI_VERSION:=$(shell grep verrazzano-development-version ${MAKEFILE_DIR}/../../.verrazzano-development-version | cut -d= -f 2)
-BUILD_DATE:=$(shell date '+%Y-%m-%d')
+BUILD_DATE:=$(shell date +"%Y-%m-%dT%H:%M:%SZ")
 
 ifdef RELEASE_VERSION
 	CLI_VERSION=${RELEASE_VERSION}

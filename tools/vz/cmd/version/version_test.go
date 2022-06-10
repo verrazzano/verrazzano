@@ -29,8 +29,8 @@ func TestVersionCmd(t *testing.T) {
 	assert.NoError(t, err)
 	result := buf.String()
 	results := strings.Split(result, "\n")
-	version, build, commit := results[0], results[1], results[2]
+	version, build, commit := results[1], results[2], results[3]
 	assert.Regexp(t, `^(Version: )?(v)?(\d+\.)?(\d+\.)?(\d+)$`, version)
-	assert.Regexp(t, `^(BuildDate: )?(\d+\-)?(\d+\-)?(\d+)$`, build)
-	assert.Regexp(t, `^(GitCommit: )?(\w{9})$`, commit)
+	assert.Regexp(t, `^(BuildDate: )?(\d+\-)?(\d+\-)?(\d+T)?(\d+\:)?(\d+\:)?(\d+Z)$`, build)
+	assert.Regexp(t, `^(GitCommit: )?(\w{40})$`, commit)
 }
