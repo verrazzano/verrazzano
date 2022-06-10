@@ -527,7 +527,8 @@ type KialiComponent struct {
 // ConsoleComponent specifies the Console UI configuration
 type ConsoleComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // DNSComponent specifies the DNS configuration
