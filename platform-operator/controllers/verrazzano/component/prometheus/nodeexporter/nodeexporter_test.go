@@ -4,14 +4,17 @@
 package nodeexporter
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
+	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -82,4 +85,22 @@ func TestIsPrometheusNodeExporterReady(t *testing.T) {
 			assert.Equal(t, tt.expectTrue, isPrometheusNodeExporterReady(ctx))
 		})
 	}
+}
+
+// TestCreateOrUpdateNetworkPolicies tests the createOrUpdateNetworkPolicies function
+func TestCreateOrUpdateNetworkPolicies(t *testing.T) {
+	// GIVEN a Prometheus Node Exporter component
+	// WHEN  the createOrUpdateNetworkPolicies function is called
+	// THEN  no error is returned and the expected network policies have been created
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+
+	err := createOrUpdateNetworkPolicies(ctx)
+	assert.NoError(t, err)
+
+	netPolicy := &netv1.NetworkPolicy{}
+	err = client.Get(context.TODO(), types.NamespacedName{Name: networkPolicyName, Namespace: ComponentNamespace}, netPolicy)
+	assert.NoError(t, err)
+	assert.Equal(t, []netv1.PolicyType{netv1.PolicyTypeIngress}, netPolicy.Spec.PolicyTypes)
+	assert.Equal(t, int32(9100), netPolicy.Spec.Ingress[0].Ports[0].Port.IntVal)
 }

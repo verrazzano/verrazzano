@@ -49,6 +49,12 @@ func (r *Reconciler) reconcileOperatorTraitCreateOrUpdate(ctx context.Context, t
 		return reconcile.Result{Requeue: false}, nil
 	}
 
+	// If the user has specified a non-default (i.e. not the legacy Prometheus) scraper, then we have already updated the scrape config,
+	// so do not attempt to create/update a ServiceMonitor.
+	if !r.isLegacyPrometheusScraper(trait, traitDefaults) {
+		return reconcile.Result{}, nil
+	}
+
 	// Find the child resources of the workload based on the childResourceKinds from the
 	// workload definition, workload uid and the ownerReferences of the children.
 	var children []*unstructured.Unstructured

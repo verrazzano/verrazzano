@@ -4,6 +4,7 @@ package namespace
 
 import (
 	"context"
+
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,11 +42,6 @@ func CreateRancherNamespace(client client.Client) error {
 //CreateVerrazzanoMultiClusterNamespace - Create/Update and label the Verrazzano multi-cluster namespace
 func CreateVerrazzanoMultiClusterNamespace(client client.Client) error {
 	return CreateAndLabelNamespace(client, globalconst.VerrazzanoMultiClusterNamespace, false, false)
-}
-
-//CreateVerrazzanoMonitoringNamespace - Create/Update and label the Verrazzano monitoring namespace
-func CreateVerrazzanoMonitoringNamespace(client client.Client) error {
-	return CreateAndLabelNamespace(client, globalconst.VerrazzanoMonitoringNamespace, true, false)
 }
 
 // MergeMaps Merge one map into another, creating new one if necessary; returns the updated map and true if it was modified

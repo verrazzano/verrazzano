@@ -7,8 +7,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
 	"io/ioutil"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -16,10 +14,10 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -40,9 +38,8 @@ const (
 	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
 	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
 
-	nodeExporterDaemonset = "node-exporter"
-
-	prometheusDeployment = "vmi-system-prometheus-0"
+	monitoringNamespace = "monitoring"
+	nodeExporter        = "node-exporter"
 )
 
 var (
@@ -64,52 +61,11 @@ func resolveVerrazzanoNamespace(ns string) string {
 
 // isVerrazzanoReady Verrazzano component ready-check
 func isVerrazzanoReady(ctx spi.ComponentContext) bool {
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-
-	// First, check deployments
-	var deployments []types.NamespacedName
-	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments,
-			types.NamespacedName{
-				Name:      prometheusDeployment,
-				Namespace: ComponentNamespace,
-			})
-	}
-
-	if !status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
-		return false
-	}
-
-	// Finally, check daemonsets
-	var daemonsets []types.NamespacedName
-	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
-		daemonsets = append(daemonsets,
-			types.NamespacedName{
-				Name:      nodeExporterDaemonset,
-				Namespace: globalconst.VerrazzanoMonitoringNamespace,
-			})
-	}
-	if !status.DaemonSetsAreReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {
-		return false
-	}
 	return common.IsVMISecretReady(ctx)
-}
-
-// doesPromExist is the verrazzano IsInstalled check
-func doesPromExist(ctx spi.ComponentContext) bool {
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	deploy := []types.NamespacedName{{
-		Name:      prometheusDeployment,
-		Namespace: ComponentNamespace,
-	}}
-	return status.DoDeploymentsExist(ctx.Log(), ctx.Client(), deploy, 1, prefix)
 }
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart
 func verrazzanoPreUpgrade(ctx spi.ComponentContext, namespace string) error {
-	if err := importToHelmChart(ctx.Client()); err != nil {
-		return err
-	}
 	if err := exportFromHelmChart(ctx.Client()); err != nil {
 		return err
 	}
@@ -128,15 +84,6 @@ func createAndLabelNamespaces(ctx spi.ComponentContext) error {
 	}
 	if err := namespace.CreateVerrazzanoMultiClusterNamespace(ctx.Client()); err != nil {
 		return err
-	}
-	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
-		// If the monitoring operator is enabled, create the monitoring namespace and copy the image pull secret
-		if err := namespace.CreateVerrazzanoMonitoringNamespace(ctx.Client()); err != nil {
-			return ctx.Log().ErrorfNewErr("Failed creating Verrazzano Monitoring namespace: %v", err)
-		}
-		if _, err := secret.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoMonitoringNamespace); err != nil {
-			return ctx.Log().ErrorfNewErr("Failed checking for image pull secret: %v", err)
-		}
 	}
 	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
 		istio := ctx.EffectiveCR().Spec.Components.Istio
@@ -167,43 +114,14 @@ func LabelKubeSystemNamespace(client clipkg.Client) error {
 	return nil
 }
 
-//cleanTempFiles - Clean up the override temp files in the temp dir
+// cleanTempFiles - Clean up the override temp files in the temp dir
 func cleanTempFiles(ctx spi.ComponentContext) {
 	if err := vzos.RemoveTempFiles(ctx.Log().GetZapLogger(), tmpFileCleanPattern); err != nil {
 		ctx.Log().Errorf("Failed deleting temp files: %v", err)
 	}
 }
 
-//importToHelmChart annotates any existing objects that should be managed by helm
-func importToHelmChart(cli clipkg.Client) error {
-	namespacedName := types.NamespacedName{Name: nodeExporter, Namespace: globalconst.VerrazzanoMonitoringNamespace}
-	name := types.NamespacedName{Name: nodeExporter}
-	objects := []clipkg.Object{
-		&appsv1.DaemonSet{},
-		&corev1.ServiceAccount{},
-		&corev1.Service{},
-	}
-
-	noNamespaceObjects := []clipkg.Object{
-		&rbacv1.ClusterRole{},
-		&rbacv1.ClusterRoleBinding{},
-	}
-
-	for _, obj := range objects {
-		if _, err := associateHelmObjectToThisRelease(cli, obj, namespacedName); err != nil {
-			return err
-		}
-	}
-
-	for _, obj := range noNamespaceObjects {
-		if _, err := associateHelmObjectToThisRelease(cli, obj, name); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-//exportFromHelmChart annotates any existing objects that should be managed by another helm component, e.g.
+// exportFromHelmChart annotates any existing objects that should be managed by another helm component, e.g.
 // the resources associated with authproxy, fluentd and console which historically were associated with the Verrazzano chart.
 func exportFromHelmChart(cli clipkg.Client) error {
 	err := associateAuthProxyResources(cli)
@@ -319,7 +237,7 @@ func associateConsoleResources(cli clipkg.Client) error {
 	return nil
 }
 
-//associateHelmObjectToThisRelease annotates an object as being managed by the verrazzano helm chart
+// associateHelmObjectToThisRelease annotates an object as being managed by the verrazzano helm chart
 func associateHelmObjectToThisRelease(cli clipkg.Client, obj clipkg.Object, namespacedName types.NamespacedName) (clipkg.Object, error) {
 	return common.AssociateHelmObject(cli, obj, types.NamespacedName{Name: ComponentName, Namespace: globalconst.VerrazzanoSystemNamespace}, namespacedName, false)
 }
@@ -340,4 +258,57 @@ func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
 		return effectiveCR.Spec.Components.Verrazzano.ValueOverrides
 	}
 	return []vzapi.Overrides{}
+}
+
+// removeNodeExporterResources removes all resources related to the "old" Prometheus node exporter installed by the
+// Verrazzano helm chart in the "monitoring" namespace. There is a new node exporter installed in the
+// "verrazzano-monitoring" namespace that replaces it.
+func removeNodeExporterResources(ctx spi.ComponentContext) {
+	ctx.Log().Infof("Removing old node exporter resources from %s namespace", monitoringNamespace)
+
+	namespacedName := types.NamespacedName{Namespace: monitoringNamespace, Name: nodeExporter}
+	s := &corev1.Service{}
+	if err := ctx.Client().Get(context.TODO(), namespacedName, s); err != nil {
+		ctx.Log().Debugf("Ignoring failure to get service %s/%s: %v", monitoringNamespace, nodeExporter, err)
+	} else {
+		if err := ctx.Client().Delete(context.TODO(), s); err != nil {
+			ctx.Log().Debugf("Ignoring failure to delete service %s/%s: %v", monitoringNamespace, nodeExporter, err)
+		}
+	}
+
+	sa := &corev1.ServiceAccount{}
+	if err := ctx.Client().Get(context.TODO(), namespacedName, sa); err != nil {
+		ctx.Log().Debugf("Ignoring failure to get service account %s/%s: %v", monitoringNamespace, nodeExporter, err)
+	} else {
+		if err := ctx.Client().Delete(context.TODO(), sa); err != nil {
+			ctx.Log().Debugf("Ignoring failure to delete service account %s/%s: %v", monitoringNamespace, nodeExporter, err)
+		}
+	}
+
+	ds := &appsv1.DaemonSet{}
+	if err := ctx.Client().Get(context.TODO(), namespacedName, ds); err != nil {
+		ctx.Log().Debugf("Ignoring failure to get daemon set %s/%s: %v", monitoringNamespace, nodeExporter, err)
+	} else {
+		if err := ctx.Client().Delete(context.TODO(), ds); err != nil {
+			ctx.Log().Debugf("Ignoring failure to delete daemon set %s/%s: %v", monitoringNamespace, nodeExporter, err)
+		}
+	}
+
+	crb := &rbacv1.ClusterRoleBinding{}
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: nodeExporter}, crb); err != nil {
+		ctx.Log().Debugf("Ignoring failure to get cluster role binding %s/%s: %v", monitoringNamespace, nodeExporter, err)
+	} else {
+		if err := ctx.Client().Delete(context.TODO(), crb); err != nil {
+			ctx.Log().Debugf("Ignoring failure to delete cluster role binding %s/%s: %v", monitoringNamespace, nodeExporter, err)
+		}
+	}
+
+	cr := &rbacv1.ClusterRole{}
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: nodeExporter}, cr); err != nil {
+		ctx.Log().Debugf("Ignoring failure to get cluster role %s/%s: %v", monitoringNamespace, nodeExporter, err)
+	} else {
+		if err := ctx.Client().Delete(context.TODO(), cr); err != nil {
+			ctx.Log().Debugf("Ignoring failure to delete cluster role %s/%s: %v", monitoringNamespace, nodeExporter, err)
+		}
+	}
 }

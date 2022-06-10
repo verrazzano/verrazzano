@@ -180,12 +180,6 @@
           "name": "verrazzano",
           "images": [
             {
-              "image": "node-exporter",
-              "tag": "v1.3.1",
-              "helmFullImageKey": "nodeExporter.imageName",
-              "helmTagKey": "nodeExporter.imageVersion"
-            },
-            {
               "image": "proxyv2",
               "tag": "1.13.2",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
@@ -225,8 +219,8 @@
           "name": "verrazzano-monitoring-operator",
           "images": [
             {
-              "image": "verrazzano-monitoring-operator",
-              "tag": "1.4.0-20220613140333-59c3c86",
+              "image": "verrazzano-monitoring-operator-jenkins",
+              "tag": "1.4.0-20220615163933-aee31d8",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },

@@ -14,6 +14,7 @@ proxy:
 config:
   dnsSuffix: 11.22.33.44.nip.io
   envName: default
+  prometheusOperatorEnabled: true
 
 dns:
   wildcard:
