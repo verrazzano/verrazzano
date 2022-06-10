@@ -6,6 +6,7 @@ package pkg
 import (
 	"fmt"
 	"github.com/onsi/ginkgo/v2"
+	"github.com/verrazzano/verrazzano/pkg/test"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -111,8 +112,8 @@ func ExecuteClusterDumpWithEnvVarConfig() error {
 // DUMP_KUBECONFIG - The kube config file to use when executing the cluster dump tool.
 // DUMP_DIRECTORY - The directory to store the cluster dump within.
 func DumpContainerLogs(namespace string, podName string, containerName string, containerLogsDir string) {
-	directory := os.Getenv("DUMP_DIRECTORY")
-	kubeconfig := os.Getenv("DUMP_KUBECONFIG")
+	directory := os.Getenv(test.DumpDirectoryEnvVarName)
+	kubeconfig := os.Getenv(test.DumpKubeconfigEnvVarName)
 
 	containerPath := fmt.Sprintf("%s/%s:%s", namespace, podName, containerLogsDir)
 	destDir := fmt.Sprintf("%s/%s/%s", directory, podName, containerName)
