@@ -357,9 +357,14 @@ func (r *Reconciler) fetchWorkloadDefinition(ctx context.Context, workload *unst
 	workloadKind, _, _ := unstructured.NestedString(workload.Object, "kind")
 	workloadName := convertAPIVersionAndKindToNamespacedName(workloadAPIVer, workloadKind)
 	workloadDef := v1alpha2.WorkloadDefinition{}
-	if err := r.Get(ctx, workloadName, &workloadDef); err != nil {
-		log.Errorf("Failed to fetch workload %s definition: %v", workloadName, err)
-		return nil, err
+	err := r.Get(ctx, workloadName, &workloadDef)
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil, nil
+		} else {
+			log.Errorf("Failed to fetch workload %s definition: %v", workloadName, err)
+			return nil, err
+		}
 	}
 	return &workloadDef, nil
 }
