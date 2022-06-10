@@ -247,11 +247,11 @@ func appEndpointAccessible(url string, hostname string) bool {
 }
 
 func appMetricsExists() bool {
-	return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "hello-helidon")
+	return pkg.MetricsExist("base_jvm_uptime_seconds", "app", helloHelidon)
 }
 
 func appComponentMetricsExists() bool {
-	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", "hello-helidon")
+	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", helloHelidon)
 }
 
 func appConfigMetricsExists() bool {
