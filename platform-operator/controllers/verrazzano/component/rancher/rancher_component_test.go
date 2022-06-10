@@ -338,7 +338,7 @@ func TestPostInstall(t *testing.T) {
 	}
 
 	component := NewComponent()
-	assert.IsType(t, spi2.RetryableError{}, component.PostInstall(ctxWithoutIngress))
+	assert.IsType(t, fmt.Errorf(""), component.PostInstall(ctxWithoutIngress))
 	assert.Nil(t, component.PostInstall(ctxWithIngress))
 }
 
