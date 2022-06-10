@@ -4,6 +4,7 @@
 package helpers
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -57,4 +58,14 @@ func GetLogFormat(cmd *cobra.Command) (LogFormat, error) {
 	}
 
 	return LogFormat(logFormat.Value.String()), nil
+}
+
+// GetOperatorFile returns the value for the operator-file option
+func GetOperatorFile(cmd *cobra.Command) (string, error) {
+	// Get the value from the command line
+	operatorFile, err := cmd.PersistentFlags().GetString(constants.OperatorFileFlag)
+	if err != nil {
+		return "", fmt.Errorf("Failed to parse the command line option %s: %s", constants.OperatorFileFlag, err.Error())
+	}
+	return operatorFile, nil
 }
