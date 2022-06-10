@@ -68,7 +68,8 @@ type VerrazzanoSpec struct {
 	EnvironmentName string `json:"environmentName,omitempty"`
 	// Core specifies core Verrazzano configuration
 	// +optional
-	Components ComponentSpec `json:"components,omitempty"`
+	// +patchStrategy=merge
+	Components ComponentSpec `json:"components,omitempty" patchStrategy:"merge"`
 
 	// Security specifies Verrazzano security configuration
 	// +optional
