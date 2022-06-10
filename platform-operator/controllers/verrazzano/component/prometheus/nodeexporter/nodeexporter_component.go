@@ -97,3 +97,13 @@ func (c prometheusNodeExporterComponent) MonitorOverrides(ctx spi.ComponentConte
 	}
 	return false
 }
+
+// PostInstall creates/updates associated resources after this component is installed
+func (c prometheusNodeExporterComponent) PostInstall(ctx spi.ComponentContext) error {
+	return createOrUpdateNetworkPolicies(ctx)
+}
+
+// PostUpgrade creates/updates associated resources after this component is installed
+func (c prometheusNodeExporterComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	return createOrUpdateNetworkPolicies(ctx)
+}

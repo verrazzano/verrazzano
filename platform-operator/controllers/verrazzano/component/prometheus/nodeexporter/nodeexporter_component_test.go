@@ -10,6 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const profilesRelativePath = "../../../../../manifests/profiles"
@@ -133,4 +134,26 @@ func TestAppendOverrides(t *testing.T) {
 			assert.Equal(t, tt.expectedOverrides, kvs)
 		})
 	}
+}
+
+// TestPostInstall tests the PostInstall component function
+func TestPostInstall(t *testing.T) {
+	// GIVEN the Prometheus Node Exporter is being installed
+	// WHEN we call the PostInstall function
+	// THEN no error is returned
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false, profilesRelativePath)
+	err := NewComponent().PostInstall(ctx)
+	assert.NoError(t, err)
+}
+
+// TestPostUpgrade tests the PostUpgrade component function
+func TestPostUpgrade(t *testing.T) {
+	// GIVEN the Prometheus Node Exporter is being upgraded
+	// WHEN we call the PostUpgrade function
+	// THEN no error is returned
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false, profilesRelativePath)
+	err := NewComponent().PostUpgrade(ctx)
+	assert.NoError(t, err)
 }

@@ -23,9 +23,11 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -36,6 +38,8 @@ const (
 	deploymentName  = "prometheus-operator-kube-p-operator"
 	istioVolumeName = "istio-certs-dir"
 	serviceAccount  = "cluster.local/ns/verrazzano-monitoring/sa/prometheus-operator-kube-p-prometheus"
+
+	networkPolicyName = "vmi-system-prometheus"
 )
 
 // isPrometheusOperatorReady checks if the Prometheus operator deployment is ready
@@ -351,4 +355,66 @@ func updateApplicationAuthorizationPolicies(ctx spi.ComponentContext) error {
 		}
 	}
 	return nil
+}
+
+// createOrUpdateNetworkPolicies creates or updates network policies for this component
+func createOrUpdateNetworkPolicies(ctx spi.ComponentContext) error {
+	netPolicy := &netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: networkPolicyName, Namespace: ComponentNamespace}}
+
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), netPolicy, func() error {
+		netPolicy.Spec = newNetworkPolicySpec()
+		return nil
+	})
+
+	return err
+}
+
+// newNetworkPolicy returns a populated NetworkPolicySpec with ingress rules for Prometheus
+func newNetworkPolicySpec() netv1.NetworkPolicySpec {
+	tcpProtocol := corev1.ProtocolTCP
+	port := intstr.FromInt(9090)
+
+	return netv1.NetworkPolicySpec{
+		PodSelector: metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"app.kubernetes.io/name": "prometheus",
+			},
+		},
+		PolicyTypes: []netv1.PolicyType{
+			netv1.PolicyTypeIngress,
+		},
+		Ingress: []netv1.NetworkPolicyIngressRule{
+			{
+				// allow ingress to port 9090 from Auth Proxy, Grafana, and Kiali
+				From: []netv1.NetworkPolicyPeer{
+					{
+						NamespaceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								vzconst.LabelVerrazzanoNamespace: constants.VerrazzanoSystemNamespace,
+							},
+						},
+						PodSelector: &metav1.LabelSelector{
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{
+									Key:      "app",
+									Operator: metav1.LabelSelectorOpIn,
+									Values: []string{
+										"verrazzano-authproxy",
+										"system-grafana",
+										"kiali",
+									},
+								},
+							},
+						},
+					},
+				},
+				Ports: []netv1.NetworkPolicyPort{
+					{
+						Protocol: &tcpProtocol,
+						Port:     &port,
+					},
+				},
+			},
+		},
+	}
 }
