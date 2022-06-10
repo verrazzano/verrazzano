@@ -39,7 +39,7 @@ const (
 	tmpSuffix            = "yaml"
 	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
 	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
-
+	
 	nodeExporterDaemonset = "node-exporter"
 
 	prometheusDeployment = "vmi-system-prometheus-0"
@@ -283,13 +283,6 @@ func associateFluentdResources(cli clipkg.Client) error {
 	// namespaced resources
 	for _, obj := range objects {
 		if _, err := common.AssociateHelmObject(cli, obj, fluentdReleaseName, namespacedName, true); err != nil {
-			return err
-		}
-	}
-
-	fluentdManagedResources := fluentd.GetHelmManagedResources()
-	for _, managedResource := range fluentdManagedResources {
-		if _, err := common.AssociateHelmObject(cli, managedResource.Obj, fluentdReleaseName, managedResource.NamespacedName, true); err != nil {
 			return err
 		}
 	}
