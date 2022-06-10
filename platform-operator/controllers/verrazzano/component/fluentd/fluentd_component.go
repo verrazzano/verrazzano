@@ -20,13 +20,16 @@ import (
 
 const (
 	// ComponentName is the name of the component
-	ComponentName = "verrazzano-fluentd"
+	ComponentName = "fluentd"
 
 	// ComponentNamespace is the namespace of the component
 	ComponentNamespace = vzconst.VerrazzanoSystemNamespace
 
 	// ComponentJSONName is the json name of the verrazzano component in CRD
 	ComponentJSONName = "fluentd"
+
+	// HelmChartReleaseName is the helm chart release name
+	HelmChartReleaseName = "verrazzano-fluentd"
 
 	// HelmChartDir is the name of the helm chart directory
 	HelmChartDir = "verrazzano-fluentd"
@@ -55,7 +58,7 @@ var _ spi.Component = fluentdComponent{}
 func NewComponent() spi.Component {
 	return fluentdComponent{
 		helm.HelmComponent{
-			ReleaseName:             ComponentName,
+			ReleaseName:             HelmChartReleaseName,
 			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetHelmChartsDir(), HelmChartDir),
 			ChartNamespace:          ComponentNamespace,
