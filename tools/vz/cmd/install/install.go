@@ -51,7 +51,11 @@ vz install -f base.yaml -f custom.yaml --set profile=prod --log-format json`
 	verrazzanoPlatformOperatorWait = 1
 )
 
+var vpoWaitRetries = 60
 var logsEnum = cmdhelpers.LogFormatSimple
+
+// Use with unit testing
+func resetVpoWaitRetries() { vpoWaitRetries = 60 }
 
 func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
@@ -80,19 +84,11 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-	// Get the version from the command line
-	version, err := cmd.PersistentFlags().GetString(constants.VersionFlag)
+	// Get the verrazzano install resource to be created
+	vz, err := getVerrazzanoYAML(cmd)
 	if err != nil {
 		return err
 	}
-	if version == constants.VersionFlagDefault {
-		// Find the latest release version of Verrazzano
-		version, err = helpers.GetLatestReleaseVersion()
-		if err != nil {
-			return err
-		}
-	}
-	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Installing Verrazzano version %s\n", version))
 
 	// Get the timeout value for the install command
 	timeout, err := cmdhelpers.GetWaitTimeout(cmd)
@@ -118,6 +114,20 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		return err
 	}
 
+	// Get the version from the command line
+	version, err := cmd.PersistentFlags().GetString(constants.VersionFlag)
+	if err != nil {
+		return err
+	}
+	if version == constants.VersionFlagDefault {
+		// Find the latest release version of Verrazzano
+		version, err = helpers.GetLatestReleaseVersion()
+		if err != nil {
+			return err
+		}
+	}
+	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Installing Verrazzano version %s\n", version))
+
 	// Apply the Verrazzano operator.yaml.
 	err = applyPlatformOperatorYaml(client, vzHelper, version)
 	if err != nil {
@@ -131,16 +141,6 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Create the Verrazzano install resource.
-	vz := &vzapi.Verrazzano{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "default",
-			Name:      "verrazzano",
-		},
-		Spec: vzapi.VerrazzanoSpec{
-			Profile: vzapi.Prod,
-		},
-	}
 	err = client.Create(context.TODO(), vz)
 	if err != nil {
 		return err
@@ -148,6 +148,32 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 
 	// Wait for the Verrazzano install to complete
 	return waitForInstallToComplete(client, kubeClient, vzHelper, vpoPodName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, logFormat)
+}
+
+// getVerrazzanoYAML returns the verrazzano install resource to be created
+func getVerrazzanoYAML(cmd *cobra.Command) (vz *vzapi.Verrazzano, err error) {
+	filenames, err := cmd.PersistentFlags().GetStringSlice(constants.FilenameFlag)
+	if err != nil {
+		return nil, err
+	}
+
+	// If no yamls files were passed on the command line then return a minimal verrazzano
+	// resource.  The minimal resource will be used to create a resource called verrazzano
+	// in the default namespace using the prod profile.
+	if len(filenames) == 0 {
+		vz = &vzapi.Verrazzano{
+			TypeMeta: metav1.TypeMeta{},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      "verrazzano",
+			},
+		}
+		return vz, nil
+	}
+
+	// Merge the yaml files passed on the command line and return the merged verrazzano resource
+	// to be created.
+	return cmdhelpers.MergeYAMLFiles(filenames)
 }
 
 // applyPlatformOperatorYaml applies a given version of the platform operator yaml file
@@ -193,7 +219,7 @@ func waitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper) (s
 	retryCount := 0
 	for {
 		retryCount++
-		if retryCount > 60 {
+		if retryCount > vpoWaitRetries {
 			return "", fmt.Errorf("%s pod not found in namespace %s", verrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
 		}
 		time.Sleep(verrazzanoPlatformOperatorWait * time.Second)

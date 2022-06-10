@@ -20,4 +20,5 @@ tests/e2e/config/scripts/looping-test/types.txt
 tests/testdata/test-applications/weblogic/hello-weblogic/setup/exporter-config.yaml
 tools/copyright/test
 tools/fix-copyright/copyright.go
+tools/vz/test/testdata/empty.yaml
 .idea
