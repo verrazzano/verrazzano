@@ -5,11 +5,11 @@ package metricsbinding
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"strings"
 
 	"github.com/Jeffail/gabs/v2"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"

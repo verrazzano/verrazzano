@@ -30,8 +30,10 @@ func (r *Reconciler) reconcileBindingDelete(ctx context.Context, metricsBinding 
 	}
 	// If the Secret exists, delete the existing config from the Secret
 	secret, key := getPromConfigSecret(metricsBinding)
-	if err := r.deletePrometheusConfigSecret(ctx, metricsBinding, secret, key, log); err != nil {
-		return k8scontroller.Result{Requeue: true}, err
+	if secret != nil {
+		if err := r.deletePrometheusConfigSecret(ctx, metricsBinding, secret, key, log); err != nil {
+			return k8scontroller.Result{Requeue: true}, err
+		}
 	}
 
 	// Remove the finalizer if deletion was successful

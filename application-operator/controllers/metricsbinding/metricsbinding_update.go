@@ -6,23 +6,28 @@ package metricsbinding
 import (
 	"context"
 	"fmt"
-	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	"github.com/verrazzano/verrazzano/application-operator/internal/metrics"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	k8scorev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/util/rand"
-	k8scontroller "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"time"
 
+	"github.com/Jeffail/gabs/v2"
+	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	vztemplate "github.com/verrazzano/verrazzano/application-operator/controllers/template"
+	"github.com/verrazzano/verrazzano/application-operator/internal/metrics"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/metricsutils"
+	k8scorev1 "k8s.io/api/core/v1"
 	k8smetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/rand"
+	k8scontroller "sigs.k8s.io/controller-runtime"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -99,15 +104,102 @@ func (r *Reconciler) handleDefaultMetricsTemplate(ctx context.Context, metricsBi
 // metrics as specified by the custom template.
 func (r *Reconciler) handleCustomMetricsTemplate(ctx context.Context, metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) error {
 	log.Infof("Custom metrics template used by metrics binding %s/%s, edit additionalScrapeConfigs", metricsBinding.Namespace, metricsBinding.Name)
-	var configMap = getPromConfigMap(metricsBinding)
+
+	// Get the Metrics Template from the Metrics Binding
+	template, err := r.getMetricsTemplate(context.Background(), metricsBinding, log)
+	if err != nil {
+		return err
+	}
+
+	// Get the Namespace of the Metrics Binding
+	workloadNamespace := k8scorev1.Namespace{}
+	err = r.Client.Get(context.TODO(), k8sclient.ObjectKey{Name: metricsBinding.GetNamespace()}, &workloadNamespace)
+	if err != nil {
+		return log.ErrorfNewErr("Failed to get metrics binding namespace %s: %v", metricsBinding.GetName(), err)
+	}
+
+	// Create an unstructured resource from the Namespace, so it can be applied to the template
+	workloadNamespaceUnstructuredMap, err := k8sruntime.DefaultUnstructuredConverter.ToUnstructured(&workloadNamespace)
+	if err != nil {
+		return log.ErrorfNewErr("Failed to get the unstructured for namespace %s: %v", workloadNamespace.GetName(), err)
+	}
+	workloadNamespaceUnstructured := unstructured.Unstructured{Object: workloadNamespaceUnstructuredMap}
+
+	// Get the workload object, so that it can be applied to the template
+	workloadObject, err := r.getWorkloadObject(metricsBinding)
+	if err != nil {
+		return log.ErrorfNewErr("Failed to get the workload object for metrics binding %s: %v", metricsBinding.GetName(), err)
+	}
+
+	// Organize inputs for template processor
+	templateInputs := map[string]interface{}{
+		"workload":  workloadObject.Object,
+		"namespace": workloadNamespaceUnstructured.Object,
+	}
+
+	// Get scrape config from the template processor and process the template inputs
+	templateProcessor := vztemplate.NewProcessor(r.Client, template.Spec.PrometheusConfig.ScrapeConfigTemplate)
+	scrapeConfigString, err := templateProcessor.Process(templateInputs)
+	if err != nil {
+		return log.ErrorfNewErr("Failed to process metrics template %s: %v", template.GetName(), err)
+	}
+
+	// Prepend job name to the scrape config
+	createdJobName := createJobName(metricsBinding)
+	scrapeConfigString = formatJobName(createdJobName) + scrapeConfigString
+	// Format scrape config into readable container
+	configYaml, err := yaml.YAMLToJSON([]byte(scrapeConfigString))
+	if err != nil {
+		return log.ErrorfNewErr("Failed to convert scrape config YAML to JSON: %v", err)
+	}
+	newScrapeConfig, err := gabs.ParseJSON(configYaml)
+	if err != nil {
+		return log.ErrorfNewErr("Failed to convert scrape config JSON to container: %v", err)
+	}
+
+	// Collect the data from the ConfigMap or the Secret
+	var data *gabs.Container
+	configMap := getPromConfigMap(metricsBinding)
 	if configMap != nil {
-
+		_, err = controllerutil.CreateOrUpdate(ctx, r.Client, configMap, func() error {
+			data, err = getConfigData(configMap)
+			if err != nil {
+				return log.ErrorfNewErr("Failed to get the ConfigMap data: %v", err)
+			}
+			promConfig, err := metricsutils.EditScrapeJob(data, createdJobName, newScrapeConfig)
+			if err != nil {
+				return log.ErrorfNewErr("Failed to edit the scrape job: %v", err)
+			}
+			newPromConfigData, err := yaml.JSONToYAML(promConfig.Bytes())
+			if err != nil {
+				return log.ErrorfNewErr("Failed to convert scrape config JSON to YAML: %v", err)
+			}
+			configMap.Data[prometheusConfigKey] = string(newPromConfigData)
+			return nil
+		})
+		if err != nil {
+			return err
+		}
 	}
-	// If the Secret exists, delete the existing config from the Secret
 	secret, key := getPromConfigSecret(metricsBinding)
-	if err := r.deletePrometheusConfigSecret(ctx, metricsBinding, secret, key, log); err != nil {
+	if secret != nil {
+		_, err = controllerutil.CreateOrUpdate(ctx, r.Client, secret, func() error {
+			data, err = getConfigDataFromSecret(secret, key)
+			if err != nil {
+				return log.ErrorfNewErr("Failed to get the Secret data: %v", err)
+			}
+			promConfig, err := metricsutils.EditScrapeJob(data, createdJobName, newScrapeConfig)
+			if err != nil {
+				return log.ErrorfNewErr("Failed to edit the scrape job: %v", err)
+			}
+			newPromConfigData, err := yaml.JSONToYAML(promConfig.Bytes())
+			if err != nil {
+				return log.ErrorfNewErr("Failed to convert scrape config JSON to YAML: %v", err)
+			}
+			secret.Data[prometheusConfigKey] = newPromConfigData
+			return nil
+		})
 	}
-
 	return nil
 }
 

@@ -2,6 +2,7 @@ package metricsbinding
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -12,46 +13,10 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
-
-var metricsTemplate = vzapi.MetricsTemplate{
-	TypeMeta: metav1.TypeMeta{
-		Kind:       vzconst.MetricsTemplateKind,
-		APIVersion: vzconst.MetricsTemplateAPIVersion,
-	},
-	ObjectMeta: metav1.ObjectMeta{
-		Namespace: testMetricsTemplateNamespace,
-		Name:      testMetricsTemplateName,
-	},
-}
-
-var metricsBinding = vzapi.MetricsBinding{
-	ObjectMeta: metav1.ObjectMeta{
-		Namespace: testMetricsBindingNamespace,
-		Name:      testMetricsBindingName,
-	},
-	Spec: vzapi.MetricsBindingSpec{
-		MetricsTemplate: vzapi.NamespaceName{
-			Namespace: testMetricsTemplateNamespace,
-			Name:      testMetricsTemplateName,
-		},
-		PrometheusConfigMap: vzapi.NamespaceName{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      testConfigMapName,
-		},
-		Workload: vzapi.Workload{
-			Name: testDeploymentName,
-			TypeMeta: metav1.TypeMeta{
-				Kind:       vzconst.DeploymentWorkloadKind,
-				APIVersion: deploymentGroup + "/" + deploymentVersion,
-			},
-		},
-	},
-}
 
 // TestGetMetricsTemplate tests the retrieval process of the metrics template
 // GIVEN a metrics binding
@@ -61,8 +26,8 @@ func TestGetMetricsTemplate(t *testing.T) {
 	assert := asserts.New(t)
 
 	scheme := runtime.NewScheme()
-	vzapi.AddToScheme(scheme)
-	c := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(&metricsTemplate).Build()
+	_ = vzapi.AddToScheme(scheme)
+	c := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(metricsTemplate).Build()
 
 	localMetricsBinding := metricsBinding.DeepCopy()
 
@@ -73,7 +38,7 @@ func TestGetMetricsTemplate(t *testing.T) {
 	assert.NotNil(template)
 }
 
-// TestGetMetricsTemplate tests the retrieval process of the metrics template
+// TestHandleDefaultMetricsTemplate tests the retrieval process of the metrics template
 // GIVEN a metrics binding
 // WHEN the function receives the binding
 // THEN a scrape config gets generated for the target workload
@@ -86,20 +51,9 @@ func TestHandleDefaultMetricsTemplate(t *testing.T) {
 	_ = appsv1.AddToScheme(scheme)
 	_ = promoperapi.AddToScheme(scheme)
 
-	plainNs := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: testMetricsBindingNamespace,
-		},
-	}
 	labeledNs := plainNs.DeepCopy()
 	labeledNs.Labels = map[string]string{constants.LabelIstioInjection: "enabled"}
 
-	plainWorkload := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: testMetricsBindingNamespace,
-			Name:      testDeploymentName,
-		},
-	}
 	labeledWorkload := plainWorkload.DeepCopy()
 	labeledWorkload.Labels = map[string]string{constants.MetricsWorkloadLabel: testDeploymentName}
 
@@ -145,7 +99,7 @@ func TestHandleDefaultMetricsTemplate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects([]runtime.Object{
-				&metricsTemplate,
+				metricsTemplate,
 				tt.workload,
 				tt.namespace,
 			}...).Build()
@@ -175,5 +129,103 @@ func TestHandleDefaultMetricsTemplate(t *testing.T) {
 			}
 		})
 	}
+}
 
+// TestHandleCustomMetricsTemplate tests the retrieval process of the metrics template
+// GIVEN a metrics binding
+// WHEN the function receives the binding
+// THEN a scrape config gets generated for the target workload
+func TestHandleCustomMetricsTemplate(t *testing.T) {
+	assert := asserts.New(t)
+
+	scheme := runtime.NewScheme()
+	_ = vzapi.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+	_ = appsv1.AddToScheme(scheme)
+	_ = promoperapi.AddToScheme(scheme)
+
+	labeledNs := plainNs.DeepCopy()
+	labeledNs.Labels = map[string]string{constants.LabelIstioInjection: "enabled"}
+
+	labeledWorkload := plainWorkload.DeepCopy()
+	labeledWorkload.Labels = map[string]string{constants.MetricsWorkloadLabel: testDeploymentName}
+
+	populatedTemplate, err := getTemplateTestFile()
+	assert.NoError(err)
+	testFileCM, err := getConfigMapFromTestFile(true)
+	assert.NoError(err)
+	testFileSec, err := getSecretFromTestFile(true)
+	assert.NoError(err)
+
+	tests := []struct {
+		name        string
+		workload    *appsv1.Deployment
+		namespace   *corev1.Namespace
+		configMap   *corev1.ConfigMap
+		secret      *corev1.Secret
+		expectError bool
+	}{
+		{
+			name:        "test proper template",
+			workload:    labeledWorkload,
+			namespace:   labeledNs,
+			configMap:   testFileCM,
+			expectError: false,
+		},
+		{
+			name:        "test proper template",
+			workload:    labeledWorkload,
+			namespace:   labeledNs,
+			secret:      testFileSec,
+			expectError: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects([]runtime.Object{
+				populatedTemplate,
+				tt.workload,
+				tt.namespace,
+			}...)
+
+			localMetricsBinding := metricsBinding.DeepCopy()
+
+			if tt.configMap != nil {
+				c = c.WithRuntimeObjects(tt.configMap)
+			}
+			if tt.secret != nil {
+				c = c.WithRuntimeObjects(tt.secret)
+				localMetricsBinding.Spec.PrometheusConfigMap = vzapi.NamespaceName{}
+				localMetricsBinding.Spec.PrometheusConfigSecret = vzapi.SecretKey{
+					Namespace: vzconst.PrometheusOperatorNamespace,
+					Name:      vzconst.PromAdditionalScrapeConfigsSecretName,
+					Key:       prometheusConfigKey,
+				}
+			}
+
+			client := c.Build()
+
+			log := vzlog.DefaultLogger()
+			r := newReconciler(client)
+			err = r.handleCustomMetricsTemplate(context.Background(), localMetricsBinding, log)
+			if tt.expectError {
+				assert.Error(err, "Expected error handling the default MetricsTemplate")
+				return
+			}
+			assert.NoError(err, "Expected no error handling the default MetricsTemplate")
+
+			if tt.configMap != nil {
+				var newCM corev1.ConfigMap
+				err := client.Get(context.TODO(), types.NamespacedName{Namespace: vzconst.VerrazzanoSystemNamespace, Name: testConfigMapName}, &newCM)
+				assert.NoError(err)
+				assert.True(strings.Contains(newCM.Data[prometheusConfigKey], createJobName(localMetricsBinding)))
+			}
+			if tt.secret != nil {
+				var newSecret corev1.Secret
+				err := client.Get(context.TODO(), types.NamespacedName{Namespace: vzconst.PrometheusOperatorNamespace, Name: vzconst.PromAdditionalScrapeConfigsSecretName}, &newSecret)
+				assert.NoError(err)
+				assert.True(strings.Contains(string(newSecret.Data[prometheusConfigKey]), createJobName(localMetricsBinding)))
+			}
+		})
+	}
 }
