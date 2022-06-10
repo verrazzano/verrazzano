@@ -10,7 +10,9 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 )
 
-var gitCommit = "MOOSE"
+var gitCommit = "abcde1234"
+var buildDate = "YYYY-MM-DD"
+var cliVersion = "vMajor.Minor.Patch"
 
 const (
 	CommandName = "version"
@@ -30,7 +32,8 @@ func NewCmdVersion(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdVersion(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-	fmt.Fprintf(vzHelper.GetOutputStream(), "Not implemented yet\n")
-	fmt.Fprintf(vzHelper.GetOutputStream(), "testing %s value \n", gitCommit)
+	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), "Version: v%s\n", cliVersion)
+	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), "BuildDate: %s\n", buildDate)
+	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), "GitCommit: %s\n", gitCommit)
 	return nil
 }
