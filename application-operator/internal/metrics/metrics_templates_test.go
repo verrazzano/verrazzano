@@ -2,10 +2,11 @@ package metrics
 
 import (
 	"context"
+	"testing"
+
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
@@ -167,9 +168,8 @@ func TestHandleDefaultMetricsTemplate(t *testing.T) {
 			if tt.expectError {
 				assert.Error(err, "Expected error handling the default MetricsTemplate")
 				return
-			} else {
-				assert.NoError(err, "Expected no error handling the default MetricsTemplate")
 			}
+			assert.NoError(err, "Expected no error handling the default MetricsTemplate")
 
 			// Get the service monitor for analysis
 			serviceMonitor := promoperapi.ServiceMonitor{}

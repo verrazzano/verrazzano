@@ -23,9 +23,6 @@ const (
 	configMapKind   = "ConfigMap"
 	k8sV1APIVersion = "v1"
 
-	metricsTemplateKind       = "MetricsTemplate"
-	metricsTemplateAPIVersion = "app.verrazzano.io/v1alpha1"
-
 	finalizerName = "metricsbinding.finalizers.verrazzano.io/finalizer"
 )
 

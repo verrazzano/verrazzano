@@ -206,18 +206,12 @@ func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, metricsBi
 	log.Debugw("Mutating the Prometheus Scrape Config", "resource", metricsBinding.GetName())
 
 	var configMap = r.getPromConfigMap(metricsBinding)
-	var err error
 	if configMap != nil {
 		return r.mutatePrometheusConfigMap(ctx, metricsBinding, configMap, mutateFn, log)
-	} else {
-		// Get data from the config secret
-		secret, key := r.getPromConfigSecret(metricsBinding)
-		return r.mutatePrometheusConfigSecret(ctx, metricsBinding, secret, key, mutateFn, log)
 	}
-	if err != nil {
-		return err
-	}
-	return nil
+	// Get data from the config secret
+	secret, key := r.getPromConfigSecret(metricsBinding)
+	return r.mutatePrometheusConfigSecret(ctx, metricsBinding, secret, key, mutateFn, log)
 }
 
 // deleteScrapeConfig is a mutation function that deletes the scrape config data from the Prometheus ConfigMap
