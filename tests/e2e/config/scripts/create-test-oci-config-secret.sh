@@ -13,23 +13,23 @@ if [ "${OCI_DNS_AUTH}" != "instance_principal" ]; then
   # perform these validations when instance principal is not used
   # Validate expected environment variables exist
   if [ -z "${OCI_CLI_REGION}" ]; then
-    echo "OCI_REGION environment variable must be set"
+    echo "OCI_CLI_REGION environment variable must be set"
     exit 1
   fi
   if [ -z "${OCI_CLI_TENANCY}" ]; then
-    echo "OCI_TENANCY_OCID environment variable must be set"
+    echo "OCI_CLI_TENANCY environment variable must be set"
     exit 1
   fi
   if [ -z "${OCI_CLI_USER}" ]; then
-    echo "OCI_USER_OCID environment variable must be set"
+    echo "OCI_CLI_USER environment variable must be set"
     exit 1
   fi
   if [ -z "${OCI_CLI_FINGERPRINT}" ]; then
-    echo "OCI_FINGERPRINT environment variable must be set"
+    echo "OCI_CLI_FINGERPRINT environment variable must be set"
     exit 1
   fi
   if [ -z "${OCI_CLI_KEY_FILE}" ]; then
-    echo "OCI_PRIVATE_KEY_FILE environment variable must be set"
+    echo "OCI_CLI_KEY_FILE environment variable must be set"
     exit 1
   fi
 fi
@@ -47,9 +47,9 @@ if [ "${OCI_DNS_AUTH}" != "instance_principal" ]; then
   OUTPUT_FILE="$TMP_DIR/oci_config"
   KEY_FILE="$TMP_DIR/oci_key"
   echo "[DEFAULT]" > $OUTPUT_FILE
-  echo "#region=someregion.region.com" > $OUTPUT_FILE
-  echo "#tenancy=OCID of the tenancy" > $OUTPUT_FILE
-  echo "#user=" > $OUTPUT_FILE
+  echo "#region=someregion.region.com" >> $OUTPUT_FILE
+  echo "#tenancy=OCID of the tenancy" >> $OUTPUT_FILE
+  echo "#user=" >> $OUTPUT_FILE
   echo "region=${OCI_CLI_REGION}" >> $OUTPUT_FILE
   echo "tenancy=${OCI_CLI_TENANCY}" >> $OUTPUT_FILE
   echo "user=${OCI_CLI_USER}" >> $OUTPUT_FILE
