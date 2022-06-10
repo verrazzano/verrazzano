@@ -101,7 +101,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Get the Verrazzano version to install
-	version, err := cmdhelpers.GetVersion(cmd)
+	version, err := cmdhelpers.GetVersion(cmd, vzHelper)
 	if err != nil {
 		return err
 	}
@@ -110,7 +110,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Installing Verrazzano version %s\n", version))
 
 	// Apply the Verrazzano operator.yaml.
-	err = cmdhelpers.ApplyPlatformOperatorYaml(client, vzHelper, version)
+	err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)
 	if err != nil {
 		return err
 	}

@@ -4,6 +4,7 @@
 package helpers
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -60,7 +61,7 @@ func GetLogFormat(cmd *cobra.Command) (LogFormat, error) {
 }
 
 // GetVersion returns the version of Verrazzano to install/upgrade
-func GetVersion(cmd *cobra.Command) (string, error) {
+func GetVersion(cmd *cobra.Command, vzHelper helpers.VZHelper) (string, error) {
 	// Get the version from the command line
 	version, err := cmd.PersistentFlags().GetString(constants.VersionFlag)
 	if err != nil {
@@ -68,10 +69,20 @@ func GetVersion(cmd *cobra.Command) (string, error) {
 	}
 	if version == constants.VersionFlagDefault {
 		// Find the latest release version of Verrazzano
-		version, err = helpers.GetLatestReleaseVersion()
+		version, err = helpers.GetLatestReleaseVersion(vzHelper.GetHTTPClient())
 		if err != nil {
 			return version, err
 		}
 	}
 	return version, nil
+}
+
+// GetOperatorFile returns the value for the operator-file option
+func GetOperatorFile(cmd *cobra.Command) (string, error) {
+	// Get the value from the command line
+	operatorFile, err := cmd.PersistentFlags().GetString(constants.OperatorFileFlag)
+	if err != nil {
+		return "", fmt.Errorf("Failed to parse the command line option %s: %s", constants.OperatorFileFlag, err.Error())
+	}
+	return operatorFile, nil
 }

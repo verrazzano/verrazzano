@@ -84,7 +84,7 @@ func runCmdUpgrade(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Get the Verrazzano version we are upgrading to
-	version, err := cmdhelpers.GetVersion(cmd)
+	version, err := cmdhelpers.GetVersion(cmd, vzHelper)
 	if err != nil {
 		return err
 	}
@@ -93,7 +93,7 @@ func runCmdUpgrade(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Upgrading Verrazzano to version %s\n", version))
 
 	// Apply the Verrazzano operator.yaml.
-	err = cmdhelpers.ApplyPlatformOperatorYaml(client, vzHelper, version)
+	err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)
 	if err != nil {
 		return err
 	}

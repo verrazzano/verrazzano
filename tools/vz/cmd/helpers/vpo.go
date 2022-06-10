@@ -6,6 +6,7 @@ package helpers
 import (
 	"context"
 	"fmt"
+	"github.com/spf13/cobra"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
@@ -15,9 +16,9 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
-	"net/http"
 	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 	"time"
 )
 
@@ -31,35 +32,55 @@ func SetVpoWaitRetries(retries int) { vpoWaitRetries = retries }
 func ResetVpoWaitRetries()          { vpoWaitRetries = 60 }
 
 // ApplyPlatformOperatorYaml applies a given version of the platform operator yaml file
-func ApplyPlatformOperatorYaml(client clipkg.Client, vzHelper helpers.VZHelper, version string) error {
-	url := fmt.Sprintf(constants.VerrazzanoOperatorURL, version)
-	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Applying the file %s\n", url))
-
-	// Get the Verrazzano operator.yaml - use a string constant for the URL to avoid security warnings
-	resp, err := http.Get(fmt.Sprintf(constants.VerrazzanoOperatorURL, version))
+func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelper helpers.VZHelper, version string) error {
+	// Was an operator-file passed on the command line?
+	operatorFile, err := GetOperatorFile(cmd)
 	if err != nil {
-		return fmt.Errorf("Failed to access the Verrazzano operator.yaml file: %s", err.Error())
-	}
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Failed to access the Verrazzano operator.yaml file: %s", resp.Status)
+		return fmt.Errorf("Failed to parse the command-line option %s: %s", constants.OperatorFileFlag, err.Error())
 	}
 
-	// Store response in a temporary file
-	tmpFile, err := ioutil.TempFile("", "vz")
-	if err != nil {
-		return fmt.Errorf("Failed to install the Verrazzano operator.yaml file: %s", err.Error())
-	}
-	defer os.Remove(tmpFile.Name())
-	_, err = tmpFile.ReadFrom(resp.Body)
-	if err != nil {
-		return fmt.Errorf("Failed to install the Verrazzano operator.yaml file: %s", err.Error())
+	// If the operatorFile was specified, is it a local or remote file?
+	url := ""
+	internalFilename := ""
+	if len(operatorFile) > 0 {
+		if strings.HasPrefix(strings.ToLower(operatorFile), "https://") {
+			url = operatorFile
+		} else {
+			internalFilename = operatorFile
+		}
+	} else {
+		url = fmt.Sprintf(constants.VerrazzanoOperatorURL, version)
 	}
 
-	// Apply the Verrazzano operator.yaml. A valid version must be specified for this to succeed.
+	userVisibleFilename := operatorFile
+	if len(url) > 0 {
+		userVisibleFilename = url
+		// Get the Verrazzano operator.yaml and store it in a temp file
+		httpClient := vzHelper.GetHTTPClient()
+		resp, err := httpClient.Get(url)
+		if err != nil {
+			return fmt.Errorf("Failed to access the Verrazzano operator.yaml file %s: %s", userVisibleFilename, err.Error())
+		}
+		// Store response in a temporary file
+		tmpFile, err := ioutil.TempFile("", "vz")
+		if err != nil {
+			return fmt.Errorf("Failed to install the Verrazzano operator.yaml file %s: %s", userVisibleFilename, err.Error())
+		}
+		defer os.Remove(tmpFile.Name())
+		_, err = tmpFile.ReadFrom(resp.Body)
+		if err != nil {
+			os.Remove(tmpFile.Name())
+			return fmt.Errorf("Failed to install the Verrazzano operator.yaml file %s: %s", userVisibleFilename, err.Error())
+		}
+		internalFilename = tmpFile.Name()
+	}
+
+	// Apply the Verrazzano operator.yaml
+	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Applying the file %s\n", userVisibleFilename))
 	yamlApplier := k8sutil.NewYAMLApplier(client, "")
-	err = yamlApplier.ApplyF(tmpFile.Name())
+	err = yamlApplier.ApplyF(internalFilename)
 	if err != nil {
-		return fmt.Errorf("Failed to apply the Verrazzano operator.yaml file: %s", err.Error())
+		return fmt.Errorf("Failed to apply the file: %s", err.Error())
 	}
 	return nil
 }
