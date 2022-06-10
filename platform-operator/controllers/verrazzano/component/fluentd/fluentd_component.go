@@ -131,7 +131,13 @@ func (f fluentdComponent) Install(ctx spi.ComponentContext) error {
 
 // PreUpgrade Fluentd component pre-upgrade processing
 func (f fluentdComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	return fluentdPreUpgrade(ctx, ComponentNamespace)
+	if err := fluentdPreUpgrade(ctx, ComponentNamespace); err != nil {
+		return err
+	}
+	if err := fluentdPreHelmOps(ctx); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Upgrade Fluentd component upgrade processing

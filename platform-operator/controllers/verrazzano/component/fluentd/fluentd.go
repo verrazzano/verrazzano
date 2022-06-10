@@ -22,7 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // loggingPreInstall copies logging secrets from the verrazzano-install namespace to the verrazzano-system namespace
@@ -201,13 +200,13 @@ func fluentdPreHelmOps(ctx spi.ComponentContext) error {
 func reassociateResources(cli clipkg.Client) error {
 	namespacedName := types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}
 	name := types.NamespacedName{Name: ComponentName}
-	objects := []controllerutil.Object{
+	objects := []clipkg.Object{
 		&corev1.ServiceAccount{},
 		&corev1.Service{},
 		&appsv1.DaemonSet{},
 	}
 
-	noNamespaceObjects := []controllerutil.Object{
+	noNamespaceObjects := []clipkg.Object{
 		&rbacv1.ClusterRole{},
 		&rbacv1.ClusterRoleBinding{},
 	}
