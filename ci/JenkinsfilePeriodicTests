@@ -14,9 +14,8 @@ def branchSpecificSchedule = getCronSchedule()
 // We will copy over and make it part of the artifacts of the periodic job, available when we want to release a candidate
 def verrazzanoImagesJobProjectName = "verrazzano-examples"
 def verrazzanoImagesFile           = "verrazzano_images.txt"
-def verrazzanoImagesBuildNumber    = 0                        // will be set to actual build number when the job is run
-def periodicsUpToDate              = false                    // If true, indicates that the periodics already passed at the latest commit
-def dryRun                         = false                    // For debugging pipeline, run without executing tests
+def verrazzanoImagesBuildNumber    = 0     // will be set to actual build number when the job is run
+periodicsUpToDate                  = false // If true, indicates that the periodics already passed at the latest commit
 
 pipeline {
     options {
@@ -54,6 +53,8 @@ pipeline {
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
+        booleanParam (description: 'Force execution of the tests even if up-to-date', name: 'FORCE', defaultValue: false)
+        booleanParam (description: 'Skip test execution (for debugging)', name: 'DRY_RUN', defaultValue: false)
     }
 
     environment {
@@ -103,14 +104,16 @@ pipeline {
                     echo "Last clean periodics commit: ${LAST_CLEAN_PERIODIC_COMMIT}"
 
                     if (LAST_CLEAN_PERIODIC_COMMIT == GIT_COMMIT_TO_USE) {
-                        echo "Last stable commit matches last clean periodics run, skipping pipeline execution"
                         periodicsUpToDate = true
-                    } else {
-                        echo "Executing periodic tests for commit ${GIT_COMMIT_TO_USE}"
                     }
 
-                    if (dryRun) {
-                        echo "Dry run, skipping test execution"
+                    echo "Up to date: ${periodicsUpToDate}"
+                    echo "Dry run: ${params.DRY_RUN}"
+                    echo "Force run: ${params.FORCE}"
+                    echo "Execute tests: " + runTests()
+
+                    if (runTests()) {
+                        echo "Executing periodic tests for commit ${GIT_COMMIT_TO_USE}"
                     }
                 }
             }
@@ -118,8 +121,7 @@ pipeline {
         stage('Clean workspace and checkout') {
             when {
                 allOf {
-                    expression { ! dryRun }
-                    expression { ! periodicsUpToDate }
+                    expression { return runTests() }
                 }
             }
             steps {
@@ -173,9 +175,8 @@ pipeline {
         stage ('Periodic Test Suites') {
             when {
                 allOf {
-                    expression { ! periodicsUpToDate }
-                    expression { ! dryRun }
-                    expression {params.SKIP_TO_PRIVATE_REGISTRY == false}
+                    expression { return runTests() }
+                    expression { params.SKIP_TO_PRIVATE_REGISTRY == false }
                 }
             }
             parallel {
@@ -493,9 +494,8 @@ pipeline {
         stage("Private Registry") {
             when {
                 allOf {
-                    expression { ! dryRun }
-                    expression { ! periodicsUpToDate }
-                    expression {TESTS_FAILED == false}
+                    expression { return runTests() }
+                    expression { TESTS_FAILED == false }
                 }
             }
             stages {
@@ -601,6 +601,11 @@ pipeline {
             deleteDir()
         }
     }
+}
+
+// Checks all the conditions gating test execution and coallates the result
+def runTests() {
+  return params.FORCE || ( ! periodicsUpToDate && ! params.DRY_RUN )
 }
 
 def isAlertingEnabled() {
