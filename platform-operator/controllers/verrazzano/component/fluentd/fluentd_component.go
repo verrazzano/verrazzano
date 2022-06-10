@@ -29,7 +29,7 @@ const (
 	ComponentJSONName = "fluentd"
 
 	// HelmChartReleaseName is the helm chart release name
-	HelmChartReleaseName = "verrazzano-fluentd"
+	HelmChartReleaseName = "fluentd"
 
 	// HelmChartDir is the name of the helm chart directory
 	HelmChartDir = "verrazzano-fluentd"

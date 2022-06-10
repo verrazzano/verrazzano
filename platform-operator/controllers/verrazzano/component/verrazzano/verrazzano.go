@@ -271,7 +271,6 @@ func associateFluentdResources(cli clipkg.Client) error {
 	name := types.NamespacedName{Name: fluentd.ComponentName}
 	objects := []clipkg.Object{
 		&corev1.ServiceAccount{},
-		&corev1.Service{},
 		&appsv1.DaemonSet{},
 	}
 
