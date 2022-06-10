@@ -160,7 +160,7 @@ function delete_rancher() {
 
   log "Removing Rancher namespace finalizers"
   # delete namespace finalizers
-  patch_k8s_resources namespaces ":metadata.name" "Could not remove finalizers from namespaces in Rancher" '/cattle-|local|p-|user-|fleet|rancher/ {print $1}' '{"metadata":{"finalizers":null}}' \
+  patch_k8s_resources namespaces ":metadata.name" "Could not remove finalizers from namespaces in Rancher" '/^cattle-|^local|^p-|^user-|^fleet|^rancher/ {print $1}' '{"metadata":{"finalizers":null}}' \
     || return $? # return on pipefail
 
   log "Delete the Rancher service accounts"
