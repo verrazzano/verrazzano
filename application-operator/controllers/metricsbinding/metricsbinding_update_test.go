@@ -217,7 +217,7 @@ func TestHandleCustomMetricsTemplate(t *testing.T) {
 				localMetricsBinding.Spec.PrometheusConfigSecret = vzapi.SecretKey{
 					Namespace: vzconst.PrometheusOperatorNamespace,
 					Name:      vzconst.PromAdditionalScrapeConfigsSecretName,
-					Key:       prometheusConfigKey,
+					Key:       vzconst.PromAdditionalScrapeConfigsSecretKey,
 				}
 			}
 
@@ -242,7 +242,7 @@ func TestHandleCustomMetricsTemplate(t *testing.T) {
 				var newSecret corev1.Secret
 				err := client.Get(context.TODO(), types.NamespacedName{Namespace: vzconst.PrometheusOperatorNamespace, Name: vzconst.PromAdditionalScrapeConfigsSecretName}, &newSecret)
 				assert.NoError(err)
-				assert.True(strings.Contains(string(newSecret.Data[prometheusConfigKey]), createJobName(localMetricsBinding)))
+				assert.True(strings.Contains(string(newSecret.Data[vzconst.PromAdditionalScrapeConfigsSecretKey]), createJobName(localMetricsBinding)))
 			}
 		})
 	}
@@ -280,7 +280,7 @@ func TestReconcileCreateOrUpdate(t *testing.T) {
 	secMetricsBinding.Spec.PrometheusConfigSecret = vzapi.SecretKey{
 		Namespace: vzconst.PrometheusOperatorNamespace,
 		Name:      vzconst.PromAdditionalScrapeConfigsSecretName,
-		Key:       prometheusConfigKey,
+		Key:       vzconst.PromAdditionalScrapeConfigsSecretKey,
 	}
 	legacyBinding := metricsBinding.DeepCopy()
 	legacyBinding.Spec.MetricsTemplate.Namespace = constants.LegacyDefaultMetricsTemplateNamespace
