@@ -30,10 +30,6 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-const (
-	workloadSourceLabel = "__meta_kubernetes_pod_label_app_verrazzano_io_workload"
-)
-
 // reconcileBindingCreateOrUpdate completes the reconcile process for an object that is being created or updated
 func (r *Reconciler) reconcileBindingCreateOrUpdate(ctx context.Context, metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) (k8scontroller.Result, error) {
 	log.Debugw("Reconcile for created or updated object", "resource", metricsBinding.GetName())
@@ -54,9 +50,8 @@ func (r *Reconciler) reconcileBindingCreateOrUpdate(ctx context.Context, metrics
 		if err := r.deleteMetricsBinding(metricsBinding, log); err != nil {
 			return k8scontroller.Result{Requeue: true}, err
 		}
-		// Requeue with a delay to account for situations where the scrape config
-		// has changed but without the MetricsBinding changing.
-		return reconcile.Result{Requeue: true, RequeueAfter: requeueDuration}, nil
+		// Because the Metrics Binding has been deleted, don't requeue the reconcile process
+		return reconcile.Result{}, nil
 	}
 
 	// Update the MetricsBinding to add workload as owner ref

@@ -26,6 +26,8 @@ const (
 	k8sV1APIVersion = "v1"
 
 	finalizerName = "metricsbinding.finalizers.verrazzano.io/finalizer"
+
+	workloadSourceLabel = "__meta_kubernetes_pod_label_app_verrazzano_io_workload"
 )
 
 // Creates a job name in the format <namespace>_<name>_<kind>

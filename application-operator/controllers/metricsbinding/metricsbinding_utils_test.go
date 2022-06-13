@@ -11,13 +11,19 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"go.uber.org/zap"
+	k8sapps "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	k8net "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
 	testConfigMapName            = "test-cm-name"
 	testDeploymentName           = "test-deployment"
+	testDeploymentUID            = "test-uid"
 	testMetricsTemplateNamespace = "test-namespace"
 	testMetricsTemplateName      = "test-template-name"
 	testMetricsBindingNamespace  = "test-namespace"
@@ -95,10 +101,7 @@ func getSecretFromTestFile(empty bool) (*v1.Secret, error) {
 	var secretData []byte
 	var err error
 	if empty {
-		secretData, err = os.ReadFile("./testdata/secretDataEmpty.yaml")
-		if err != nil {
-			return nil, err
-		}
+		secretData = []byte{}
 	} else {
 		secretData, err = os.ReadFile("./testdata/secretDataFilled.yaml")
 		if err != nil {
@@ -127,4 +130,30 @@ func getTemplateTestFile() (*vzapi.MetricsTemplate, error) {
 	template := metricsTemplate.DeepCopy()
 	template.Spec.PrometheusConfig.ScrapeConfigTemplate = string(scrapeConfig)
 	return template, nil
+}
+
+// newScheme creates a new scheme that includes this package's object to use for testing
+func newScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	// _ = clientgoscheme.AddToScheme(scheme)
+	_ = k8sapps.AddToScheme(scheme)
+	//	vzapi.AddToScheme(scheme)
+	_ = v1.AddToScheme(scheme)
+	//	certapiv1alpha2.AddToScheme(scheme)
+	_ = k8net.AddToScheme(scheme)
+	return scheme
+}
+
+// newReconciler creates a new reconciler for testing
+// c - The Kerberos client to inject into the reconciler
+func newReconciler(c client.Client) Reconciler {
+	log := zap.S().With("test")
+	scheme := newScheme()
+	reconciler := Reconciler{
+		Client:  c,
+		Log:     log,
+		Scheme:  scheme,
+		Scraper: "istio-system/prometheus",
+	}
+	return reconciler
 }

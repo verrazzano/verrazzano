@@ -1,3 +1,6 @@
+// Copyright (c) 2022, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package metricsbinding
 
 import (
@@ -131,7 +134,7 @@ func TestHandleDefaultMetricsTemplate(t *testing.T) {
 	}
 }
 
-// TestHandleCustomMetricsTemplate tests the retrieval process of the metrics template
+// TestHandleCustomMetricsTemplate tests the custom metrics path implementation
 // GIVEN a metrics binding
 // WHEN the function receives the binding
 // THEN a scrape config gets generated for the target workload
@@ -221,12 +224,12 @@ func TestHandleCustomMetricsTemplate(t *testing.T) {
 
 			log := vzlog.DefaultLogger()
 			r := newReconciler(client)
-			err = r.handleCustomMetricsTemplate(context.Background(), localMetricsBinding, log)
+			err = r.handleCustomMetricsTemplate(context.TODO(), localMetricsBinding, log)
 			if tt.expectError {
-				assert.Error(err, "Expected error handling the default MetricsTemplate")
+				assert.Error(err, "Expected error handling the custom MetricsTemplate")
 				return
 			}
-			assert.NoError(err, "Expected no error handling the default MetricsTemplate")
+			assert.NoError(err, "Expected no error handling the custom MetricsTemplate")
 
 			if tt.configMap != nil {
 				var newCM corev1.ConfigMap
@@ -240,6 +243,128 @@ func TestHandleCustomMetricsTemplate(t *testing.T) {
 				assert.NoError(err)
 				assert.True(strings.Contains(string(newSecret.Data[prometheusConfigKey]), createJobName(localMetricsBinding)))
 			}
+		})
+	}
+}
+
+// TestReconcileCreateOrUpdate tests the create or update process of the reconiler
+// GIVEN a metrics binding
+// WHEN the function receives the binding
+// THEN the binding gets updated accordingly
+func TestReconcileCreateOrUpdate(t *testing.T) {
+	assert := asserts.New(t)
+
+	scheme := runtime.NewScheme()
+	_ = vzapi.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+	_ = appsv1.AddToScheme(scheme)
+	_ = promoperapi.AddToScheme(scheme)
+
+	labeledNs := plainNs.DeepCopy()
+	labeledNs.Labels = map[string]string{constants.LabelIstioInjection: "enabled"}
+
+	labeledWorkload := plainWorkload.DeepCopy()
+	labeledWorkload.Labels = map[string]string{constants.MetricsWorkloadLabel: testDeploymentName}
+
+	populatedTemplate, err := getTemplateTestFile()
+	assert.NoError(err)
+	testFileCM, err := getConfigMapFromTestFile(true)
+	assert.NoError(err)
+	testFileSec, err := getSecretFromTestFile(true)
+	assert.NoError(err)
+
+	CMMetricsBinding := metricsBinding.DeepCopy()
+	secMetricsBinding := metricsBinding.DeepCopy()
+	secMetricsBinding.Spec.PrometheusConfigMap = vzapi.NamespaceName{}
+	secMetricsBinding.Spec.PrometheusConfigSecret = vzapi.SecretKey{
+		Namespace: vzconst.PrometheusOperatorNamespace,
+		Name:      vzconst.PromAdditionalScrapeConfigsSecretName,
+		Key:       prometheusConfigKey,
+	}
+	legacyBinding := metricsBinding.DeepCopy()
+	legacyBinding.Spec.MetricsTemplate.Namespace = constants.LegacyDefaultMetricsTemplateNamespace
+	legacyBinding.Spec.MetricsTemplate.Name = constants.LegacyDefaultMetricsTemplateName
+	legacyBinding.Spec.PrometheusConfigMap.Namespace = vzconst.VerrazzanoSystemNamespace
+	legacyBinding.Spec.PrometheusConfigMap.Name = vzconst.VmiPromConfigName
+
+	tests := []struct {
+		name           string
+		metricsBinding *vzapi.MetricsBinding
+		workload       *appsv1.Deployment
+		namespace      *corev1.Namespace
+		configMap      *corev1.ConfigMap
+		secret         *corev1.Secret
+		requeue        bool
+		expectError    bool
+	}{
+		{
+			name:           "test configmap",
+			metricsBinding: CMMetricsBinding,
+			workload:       labeledWorkload,
+			namespace:      labeledNs,
+			configMap:      testFileCM,
+			requeue:        true,
+			expectError:    false,
+		},
+		{
+			name:           "test secret",
+			metricsBinding: secMetricsBinding,
+			workload:       labeledWorkload,
+			namespace:      labeledNs,
+			secret:         testFileSec,
+			requeue:        true,
+			expectError:    false,
+		},
+		{
+			name:           "test legacy",
+			metricsBinding: legacyBinding,
+			workload:       labeledWorkload,
+			namespace:      labeledNs,
+			secret:         testFileSec,
+			requeue:        false,
+			expectError:    false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects([]runtime.Object{
+				populatedTemplate,
+				tt.workload,
+				tt.namespace,
+				tt.metricsBinding,
+			}...)
+
+			if tt.configMap != nil {
+				c = c.WithRuntimeObjects(tt.configMap)
+			}
+			if tt.secret != nil {
+				c = c.WithRuntimeObjects(tt.secret)
+			}
+
+			client := c.Build()
+			log := vzlog.DefaultLogger()
+			r := newReconciler(client)
+			result, err := r.reconcileBindingCreateOrUpdate(context.TODO(), tt.metricsBinding, log)
+			if tt.expectError {
+				assert.Error(err, "Expected error recocniling the Metrics Binding")
+				return
+			}
+			assert.NoError(err, "Expected no error reconciling the Metrics Binding")
+			assert.Equal(tt.requeue, result.Requeue)
+
+			if isLegacyDefaultMetricsBinding(tt.metricsBinding) {
+				newMB := vzapi.MetricsBinding{}
+				err := client.Get(context.TODO(), types.NamespacedName{Namespace: tt.metricsBinding.Namespace, Name: tt.metricsBinding.Name}, &newMB)
+				assert.Error(err, "Expected not to find the Metrics Binding in the cluster")
+				return
+			}
+			newMB := vzapi.MetricsBinding{}
+			err = client.Get(context.TODO(), types.NamespacedName{Namespace: tt.metricsBinding.Namespace, Name: tt.metricsBinding.Name}, &newMB)
+			assert.NoError(err)
+			assert.Equal(1, len(newMB.Finalizers))
+			assert.Equal(finalizerName, newMB.Finalizers[0])
+			assert.Equal(1, len(newMB.OwnerReferences))
+			assert.Equal(tt.workload.Name, newMB.OwnerReferences[0].Name)
 		})
 	}
 }
