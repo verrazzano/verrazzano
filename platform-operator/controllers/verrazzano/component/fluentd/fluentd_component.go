@@ -67,6 +67,7 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:  vzImagePullSecretKeyName,
 			AppendOverridesFunc:     appendOverrides,
 			Dependencies:            []string{},
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
@@ -177,4 +178,23 @@ func (f fluentdComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 		return true
 	}
 	return *comp.Enabled
+}
+
+// MonitorOverrides checks whether monitoring of install overrides is enabled or not
+func (f fluentdComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.Fluentd != nil {
+		if ctx.EffectiveCR().Spec.Components.Fluentd.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.Fluentd.MonitorChanges
+		}
+		return true
+	}
+	return false
+}
+
+// GetOverrides returns install overrides for a component
+func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+	if effectiveCR.Spec.Components.Fluentd != nil {
+		return effectiveCR.Spec.Components.Fluentd.ValueOverrides
+	}
+	return []vzapi.Overrides{}
 }
