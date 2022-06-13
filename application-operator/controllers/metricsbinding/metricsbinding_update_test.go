@@ -387,6 +387,13 @@ func TestReconcileCreateOrUpdate(t *testing.T) {
 				assert.Equal(vzconst.PrometheusOperatorNamespace, newMB.Spec.PrometheusConfigSecret.Namespace)
 				assert.Equal(vzconst.PromAdditionalScrapeConfigsSecretName, newMB.Spec.PrometheusConfigSecret.Name)
 				assert.Equal(vzconst.PromAdditionalScrapeConfigsSecretKey, newMB.Spec.PrometheusConfigSecret.Key)
+
+				updatedSecret := corev1.Secret{}
+				err = client.Get(context.TODO(), types.NamespacedName{Namespace: vzconst.PrometheusOperatorNamespace, Name: vzconst.PromAdditionalScrapeConfigsSecretName}, &updatedSecret)
+				assert.NoError(err)
+				scrapeConfigs := updatedSecret.Data[vzconst.PromAdditionalScrapeConfigsSecretKey]
+				assert.NotNil(scrapeConfigs, "Expected additional scrape config secret to contain the scrape config")
+				assert.Contains(string(scrapeConfigs), tt.workload.Name)
 			}
 			newMB := vzapi.MetricsBinding{}
 			err = client.Get(context.TODO(), types.NamespacedName{Namespace: tt.metricsBinding.Namespace, Name: tt.metricsBinding.Name}, &newMB)

@@ -198,7 +198,7 @@ func (r *Reconciler) handleCustomMetricsTemplate(ctx context.Context, metricsBin
 			if err != nil {
 				return log.ErrorfNewErr("Failed to convert scrape config JSON to YAML: %v", err)
 			}
-			secret.Data[prometheusConfigKey] = newPromConfigData
+			secret.Data[key] = newPromConfigData
 			return nil
 		})
 		if err != nil {
