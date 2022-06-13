@@ -1,29 +1,30 @@
 // Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-// This runs the acceptance tests on an OKE cluster with OCI DNS
-// This is used during the release process
-// This will eventually be replaced by the new multi-cluster job!
+// This pipeline is configured to test Verrazzano using OLCNE environment
+// -> Setup Kubernetes in OLCNE environment
+// -> Setup persistent storage for Verrazzano 
+// -> Create OCI Load Balancers
+// -> Setup DNS Zone with the records
+// -> Install Verrazzano 
+// -> Deploys Verrazzano test applications 
+// -> Runs validations 
+// -> Undeploy the apps
+// -> Uninstall Verrazzano
+// -> Cleanup resources
 
-def DEFAULT_REPO_URL
-def zoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
-def dns_zone_ocid = 'dummy'
-// for different Jenkins jobs sharing this Jenkins file, the default TEST_ENV (the first in testEnvironments) is different.
-def testEnvironments = env.JOB_NAME.contains('oci-dns-acceptance')
-                       ? ["ocidns_oke", "magicdns_oke", "kind"]
-                       : env.JOB_NAME.contains('magic-dns')
-                       ? ["magicdns_oke", "ocidns_oke", "kind"]
-                       : ["kind", "magicdns_oke", "ocidns_oke"]
-def acmeEnvironments = [ "staging", "production" ]
-def certIssuers = [ "self-signed", "acme" ]
-def agentLabel = env.JOB_NAME.contains('-dns-') ? "" : env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
-
+def testEnvironments = ["olcne"]
+def agentLabel = env.JOB_NAME.contains('-olcne') ? "" : env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 // pulling "ap-*" from the test regions given discovery of image pull issues
-def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
-                          "sa-saopaulo-1", "uk-london-1" ]
-Collections.shuffle(availableRegions)
-def keepOKEClusterOnFailure = "false"
-def OKE_CLUSTER_PREFIX = ""
+def availableRegions = ["us-ashburn-1"]
+def availableDomains = ["hXgQ:US-ASHBURN-AD-1"]
+def kubernetesVersions = [ "v1.22.5", "v1.21.5", "v1.20.8" ]
+def olcneVersions = [ "1.5", "1.4", "1.3"]
+def osVersions = ['8', '7']
+// NOTE: dnsZoneID is different from dnsZoneOCID
+def dnsZoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
+def dnsZoneOCID = 'dummy'
+def dnsScopes = ['GLOBAL', 'PRIVATE']
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 
 pipeline {
@@ -38,161 +39,216 @@ pipeline {
             image "${RUNNER_DOCKER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS} --cap-add=NET_ADMIN"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
-            label "${agentLabel}"
+            label "$agentLabel"
         }
     }
 
     parameters {
-        // OKE_CLUSTER_REGION parameter will be ignored for private DNS tests. They get overwritten with runner region
-        choice (description: 'OCI region to launch OKE clusters in. This parameter will be ignored for private DNS tests', name: 'OKE_CLUSTER_REGION',
-            // 1st choice is the default value
-            choices: availableRegions )
-        choice (description: 'OKE node pool configuration', name: 'OKE_NODE_POOL',
-            // 1st choice is the default value
-            choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.2" ])
-        choice (description: 'Use instance principal for oci dns tests', name: 'OCI_DNS_AUTH',
-                // 1st choice is the default value
-                choices: [ "user_principal", "instance_principal" ])
-        choice (description: 'Specifies  DNS scope. Values: GLOBAL, PRIVATE. Default: GLOBAL',name: 'DNS_SCOPE',
-            // 1st choice is the default value
-            choices: [ "GLOBAL","PRIVATE" ])
-        choice (description: 'Kubernetes Version for OKE Cluster', name: 'OKE_CLUSTER_VERSION',
-                // 1st choice is the default value
-                choices: [ "v1.22.5", "v1.21.5", "v1.20.8" ])
-        choice (description: 'Certificate Issuer', name: 'CERT_ISSUER',
-                choices: certIssuers)
-        choice (description: 'ACME Certificate Environment (Staging or Production)', name: 'ACME_ENVIRONMENT',
-                choices: acmeEnvironments)
-        string defaultValue: 'dev', description: 'Verrazzano install profile name', name: "INSTALL_PROFILE", trim: true
-        string defaultValue: 'NONE', description: 'Verrazzano platform operator image name (within ghcr.io/verrazzano repo)', name: 'VERRAZZANO_OPERATOR_IMAGE', trim: true
-        choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
-                choices: testEnvironments)
-        string (name: 'GIT_COMMIT_TO_USE',
-                        defaultValue: 'NONE',
-                        description: 'This is the full git commit hash from the source build to be used for all jobs',
-                        trim: true)
-        string (name: 'TF_OCI_OLCNE_GIT_BRANCH',
-                        defaultValue: 'release-1.5',
-                        description: 'This is the branch name of the terraform-oci-olcne repository to be used for all jobs',
-                        trim: true)
-        booleanParam (description: 'Whether to create the cluster with Calico for AT testing', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
-        booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
-        booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
-        string (name: 'TAGGED_TESTS',
+        // Cluster type
+        choice (
+            name: 'TEST_ENV',
+            description: 'Verrazzano Test Environment', 
+            choices: testEnvironments)
+        choice (
+            name: 'K8S_VERSION',
+            description: 'Kubernetes Version for the cluster', 
+            choices: kubernetesVersions)
+        // OLCNE configuration
+        choice (
+            name: 'OLCNE_VERSION',
+            description: 'OLCNE Version', 
+            choices: olcneVersions)
+        choice (
+            name: 'OLCNE_CLUSTER_REGION',
+            description: 'OCI region to launch OLCNE clusters in.',
+            choices: availableRegions)
+        choice (
+            name: 'OLCNE_CLUSTER_AVAILABILITY_DOMAIN',
+            description: 'Availability domain for the cluster region.',
+            choices: availableDomains)
+        string (
+            name: "CONTROL_PLANE_NODE_COUNT",
+            defaultValue: '1',
+            description: 'Number of OLCNE control plane nodes',
+            trim: true)
+        string (
+            name: "WORKER_NODE_COUNT",
+            defaultValue: '3',
+            description: 'Number of OLCNE worker nodes',
+            trim: true)
+        choice (
+            name: "OLCNE_OS_VERSION",
+            description: 'OracleLinux OS version OLCNE nodes',
+            choices: osVersions)
+        string (
+            name: "OLCNE_ENVIRONMENT_NAME",
+            defaultValue: 'olcne-environment',
+            description: 'Name of the OLCNE environment',
+            trim: true)
+        string (
+            name: "OLCNE_KUBERNETES_NAME",
+            defaultValue: 'olcne-cluster',
+            description: 'Name of the OLCNE cluster',
+            trim: true)
+        choice(
+            name: 'OCI_DNS_SCOPE',
+            description: 'Specifies OCI DNS scope. Default: GLOBAL', 
+            choices: dnsScopes)
+        // TODO: To be removed, fetch OLCNE_TERRAFORM_GIT_URL from credentials
+        string (
+            name: "OLCNE_TERRAFORM_GIT_URL",
+            defaultValue: '',
+            description: 'terraform-oci-olcne Gitlab URL',
+            trim: true)
+        string (
+            name: "INSTALL_PROFILE",
+            defaultValue: 'dev',
+            description: 'Verrazzano install profile name',
+            trim: true)
+        string (
+            name: 'VERRAZZANO_OPERATOR_IMAGE', 
+            description: 'Verrazzano platform operator image name (within ghcr.io/verrazzano repo)', 
+            defaultValue: 'NONE', 
+            trim: true)
+        string (
+            name: 'GIT_COMMIT_TO_USE',
+            description: 'This is the full git commit hash from the source build to be used for all jobs',
+            defaultValue: 'NONE',
+            trim: true)
+        string (name: 'CONSOLE_REPO_BRANCH',
                 defaultValue: '',
+                description: 'The branch to check out after cloning the console repository.',
+                trim: true)
+        booleanParam (
+            name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', 
+            description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', 
+            defaultValue: false)
+        booleanParam (
+            name: 'EMIT_METRICS', 
+            description: 'Whether to emit metrics from the pipeline', 
+            defaultValue: true)
+        string (name: 'TAGGED_TESTS',
                 description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
+                defaultValue: '',
                 trim: true)
         string (name: 'INCLUDED_TESTS',
-                defaultValue: '.*',
                 description: 'A regex matching any fully qualified test file that should be executed (e.g. examples/helidon/). Default: .*',
+                defaultValue: '.*',
                 trim: true)
         string (name: 'EXCLUDED_TESTS',
-                defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
+                defaultValue: '_excluded_test',
                 trim: true)
     }
 
     environment {
-        CLUSTER_NAME = 'byok8s-kind'
+        // Repositories and credentials
+        GHCR_REPO = 'ghcr.io'
+        OCIR_PHX_REPO = 'phx.ocir.io'
+        OCR_REPO = 'container-registry.oracle.com'
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         NETRC_FILE = credentials('netrc')
-        OCR_REPO = 'container-registry.oracle.com'
-        GHCR_REPO = 'ghcr.io'
-        VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
-        TEST_ENV = "${params.TEST_ENV}"
-        INSTALL_PROFILE = "${params.INSTALL_PROFILE}"
         GITHUB_PKGS_CREDS = credentials('github-packages-credentials-rw')
         OCIR_CREDS = credentials('ocir-pull-and-push-account')
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // needed by install_todo.sh OAM example test
         DATABASE_PSW = credentials('todo-mysql-password') // needed by install_todo.sh OAM example test
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
-        OCIR_PHX_REPO = 'phx.ocir.io'
-        POST_DUMP_FAILED = 'false'
-        GOPATH = '/home/opc/go'
-
+        
+        // Terraform variables
         TF_VAR_tenancy_id = credentials('oci-tenancy')
+        TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
         TF_VAR_user_id = credentials('oci-user-ocid')
-
-        TF_VAR_kubernetes_version = "${params.OKE_CLUSTER_VERSION}"
-        TF_VAR_nodepool_config = "${params.OKE_NODE_POOL}"
-        TF_VAR_api_fingerprint = credentials('oci-api-key-fingerprint')
+        TF_VAR_fingerprint = credentials('oci-api-key-fingerprint')
         TF_VAR_api_private_key_path = credentials('oci-api-key')
+        TF_VAR_region = "${params.OLCNE_CLUSTER_REGION}"
+        TF_VAR_availability_domain_id = "${params.OLCNE_CLUSTER_AVAILABILITY_DOMAIN}"
+        TF_VAR_deploy_networking = "true"
+        TF_VAR_bastion_enabled = "true"
+        TF_VAR_prefix = ""
+        TF_VAR_proxy = "http://www-proxy-hqdc.us.oracle.com:80"
+        TF_VAR_use_vault = "false"
+        TF_VAR_ssh_public_key_path = credentials('oci-tf-pub-ssh-key')
+        // TODO: Figure out the private key to be used for the instances
+        TF_VAR_ssh_private_key_path = credentials('oci-tf-pvt-ssh-key')
+        TF_VAR_worker_node_count = "${params.WORKER_NODE_COUNT}"
+        TF_VAR_control_plane_node_count = "${params.CONTROL_PLANE_NODE_COUNT}"
+        TF_VAR_os_version = "${params.OLCNE_OS_VERSION}"
+        TF_VAR_environment_name = "${params.OLCNE_ENVIRONMENT_NAME}"
+        TF_VAR_kubernetes_name = "${params.OLCNE_KUBERNETES_NAME}"
+        TF_VAR_olcne_version = "${params.OLCNE_VERSION}"
         TF_VAR_s3_bucket_access_key = credentials('oci-s3-bucket-access-key')
         TF_VAR_s3_bucket_secret_key = credentials('oci-s3-bucket-secret-key')
-        TF_VAR_ssh_public_key_path = credentials('oci-tf-pub-ssh-key')
-        TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
 
+        // OCI variables
+        OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
         OCI_CLI_TENANCY = credentials('oci-tenancy')
         OCI_CLI_USER = credentials('oci-user-ocid')
         OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
+        // OCI_DNS_COMPARTMENT_OCID and OCI_PRIVATE_KEY_FILE are needed for setting up DNS zone in OCI
+        OCI_DNS_COMPARTMENT_OCID = credentials('oci-dns-compartment')
 
-        TEST_CONFIG_FILE = "${HOME}/testConfigOke.yaml"
-        CLUSTER_TYPE = getTestClusterType("${TEST_ENV}")
-        KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
-        VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
+        // Verrazzano variables
+        TEST_ENV = "${params.TEST_ENV}"
+        VZ_ENVIRONMENT_NAME = "${params.TEST_ENV == 'olcne' ? 'olcne' + env.BUILD_NUMBER : 'default'}"
+        CLUSTER_NAME = 'vz-olcne'
+        VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
+        INSTALL_PROFILE = "${params.INSTALL_PROFILE}"
+        GOPATH = '/home/opc/go'
+        GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
+        OCI_DNS_SCOPE = "${params.OCI_DNS_SCOPE}"
+        OCI_DNS_ZONE_NAME="${OCI_DNS_SCOPE == 'PRIVATE' ? "z${dnsZoneId}-private.v8o.io" : "z${dnsZoneId}.v8o.io"}"
+        TEST_CONFIG_FILE = "$HOME/testConfigOke.yaml"
+        KUBECONFIG = "$WORKSPACE/test_kubeconfig"
+        VERRAZZANO_KUBECONFIG = "$KUBECONFIG"
+        INSTALL_CONFIG_FILE_OLCNE = "$WORKSPACE/tests/e2e/config/scripts/install-verrazzano-olcne.yaml"
+        OLCNE_BRANCH_TO_USE="release/$OLCNE_VERSION"
+
+        // used for cluster dump
+        DUMP_KUBECONFIG="$KUBECONFIG"
+        DUMP_COMMAND="$WORKSPACE/tools/scripts/k8s-dump-cluster.sh"
+        TEST_DUMP_ROOT="$WORKSPACE/test-cluster-dumps"
+        POST_DUMP_FAILED = 'false'
+        POST_DUMP_FAILED_FILE = "$WORKSPACE/post_dump_failed_file.tmp"
 
         DISABLE_SPINNER=1
-        OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
-
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         SHORT_TIME_STAMP = sh(returnStdout: true, script: "date +%m%d%H%M%S").trim()
-
-        POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
-
-        INSTALL_CONFIG_FILE_OCIDNS = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-ocidns.yaml"
-        INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
-        INSTALL_CONFIG_FILE_NODEPORT = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nodeport.yaml"
-
-        //OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
-        OCI_DNS_ZONE_NAME="${params.DNS_SCOPE == 'PRIVATE' ? "z${zoneId}-private.v8o.io" : "z${zoneId}.v8o.io"}"
-        CERT_ISSUER="${params.CERT_ISSUER}"
-        ACME_ENVIRONMENT="${params.ACME_ENVIRONMENT}"
-
-        VZ_ENVIRONMENT_NAME = "${params.TEST_ENV == 'ocidns_oke' ? 'b' + env.BUILD_NUMBER : 'default'}"
-
-        DUMP_KUBECONFIG="${KUBECONFIG}"
-        DUMP_COMMAND="${WORKSPACE}/tools/scripts/k8s-dump-cluster.sh"
-        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
 
         // used for console artifact capture on failure
         JENKINS_READ = credentials('jenkins-auditor')
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
-
-        //OCI_COMPARTMENT_ID = credentials('oci-tiburon-dev-compartment-ocid')
-        //OC_TELEMETRY_URL = credentials('oci-telemetry-url')
+        // OCI_COMPARTMENT_ID = credentials('oci-tiburon-dev-compartment-ocid')
+        // OCI_TELEMETRY_URL = credentials('oci-telemetry-url')
 
         // used to emit metrics
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "${params.TEST_ENV}"
         SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+        SEARCH_PASSWORD = "$PROMETHEUS_CREDENTIALS_PSW"
+        SEARCH_USERNAME = "$PROMETHEUS_CREDENTIALS_USR"
 
         // used to generate Ginkgo test reports
         TEST_REPORT = "test-report.xml"
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
-
-        // used for setting up terraform-oci-olcne repository
-        TF_OCI_OLCNE_GIT_URL=credentials("terraform-oci-olcne-url")
-        TF_OCI_OLCNE_CREDENTIALS=credentials("terraform-oci-olcne-credentials")
     }
 
     stages {
         stage('Initialize') {
             steps {
                 script {
+                    // Proceed with checkout
                     EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
                     if (params.GIT_COMMIT_TO_USE == "NONE") {
-                        echo "Specific GIT commit was not specified, use current head"
+                        echo "[INFO] Specific GIT commit was not specified, use current head"
                         def scmInfo = checkout scm
                         env.GIT_COMMIT = scmInfo.GIT_COMMIT
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                     } else {
-                        echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
+                        echo "[INFO] SCM checkout of ${params.GIT_COMMIT_TO_USE}"
                         def scmInfo = checkout([
                             $class: 'GitSCM',
                             branches: [[name: params.GIT_COMMIT_TO_USE]],
@@ -204,80 +260,77 @@ pipeline {
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                         // If the commit we were handed is not what the SCM says we are using, fail
                         if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
-                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
+                            echo "[ERROR] SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
                             exit 1
                         }
                     }
-                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
-                }
+                    echo "[INFO] SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
 
-                // Checkout 
-                script {
-                    def scmInfo = checkout([
-                        $class: 'GitSCM',
-                        branches: [[name: params.TF_OCI_OLCNE_GIT_BRANCH]],
-                        doGenerateSubmoduleConfigurations: false,
-                        extensions: [],
-                        submoduleCfg: [],
-                        userRemoteConfigs: [[url: env.TF_OCI_OLCNE_GIT_URL, credentialsId: env.TF_OCI_OLCNE_CREDENTIALS]]])
-                    env.TF_OCI_OLCNE_GIT_COMMIT = scmInfo.GIT_COMMIT
-                    env.TF_OCI_OLCNE_GIT_BRANCH = scmInfo.GIT_BRANCH
-                    // If the commit we were handed is not what the SCM says we are using, fail
-                    if (!env.TF_OCI_OLCNE_GIT_BRANCH.equals(params.TF_OCI_OLCNE_GIT_BRANCH)) {
-                        echo "SCM didn't checkout the commit we expected. Expected: ${params.TF_OCI_OLCNE_GIT_BRANCH}, Found: ${scmInfo.GIT_BRANCH}"
-                        exit 1
-                    }
-                    echo "SCM checkout of ${env.TF_OCI_OLCNE_GIT_BRANCH} at ${env.TF_OCI_OLCNE_GIT_COMMIT}"
+                    echo "[INFO] SCM checkout of $OLCNE_TERRAFORM_GIT_URL $OLCNE_BRANCH_TO_USE"
+                        def scmInfo = checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: env.OLCNE_BRANCH_TO_USE],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: [],
+                            submoduleCfg: [],
+                            userRemoteConfigs: [[url: env.SCM_TERRAFORM_OCI_OLCNE_GIT_URL]]])
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                        // If the commit we were handed is not what the SCM says we are using, fail
+                        if (!env.GIT_BRANCH.equals(env.OLCNE_BRANCH_TO_USE)) {
+                            echo "[ERROR] SCM didn't checkout the branch we expected. Expected: ${env.OLCNE_BRANCH_TO_USE}, Found: ${scmInfo.GIT_BRANCH}"
+                            exit 1
+                        }
                 }
 
                 sh """
-                    cp -f "${NETRC_FILE}" $HOME/.netrc
+                    cp -f "$NETRC_FILE" $HOME/.netrc
                     chmod 600 $HOME/.netrc
                 """
-                println("${params.OKE_CLUSTER_REGION}")
-                println("agentlabel: ${agentLabel}")
+
                 sh """
-                    echo "${NODE_LABELS}"
+                    rm -rf $GO_REPO_PATH/verrazzano
+                    mkdir -p $GO_REPO_PATH/verrazzano
+                    tar cf - . | (cd $GO_REPO_PATH/verrazzano/ ; tar xf -)
                 """
 
                 script {
+                    echo "[INFO] ${params.OLCNE_CLUSTER_REGION}"
+                    echo "[INFO] agentlabel: $agentLabel"
+                    echo "[INFO] $NODE_LABELS"
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     // update the description with some meaningful info
                     setDisplayName()
-                    currentBuild.description = SHORT_COMMIT_HASH + " : " + params.OKE_CLUSTER_REGION + " : " + params.OKE_CLUSTER_VERSION
-
-                    if (params.TEST_ENV != "kind") {
-                        // derive the prefix for the OKE cluster
-                        OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_oke_cluster_name.sh").trim()
-                    }
+                    currentBuild.description = SHORT_COMMIT_HASH + " : " + params.OLCNE_CLUSTER_REGION + " : " + params.K8S_VERSION
+                    // derive the prefix for the OKE cluster
+                    OLCNE_CLUSTER_PREFIX = sh(returnStdout: true, script: "$WORKSPACE/ci/scripts/derive_oke_cluster_name.sh").trim()
                     // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
-                    env.K8S_VERSION_LABEL = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}").trim()
+                    env.K8S_VERSION_LABEL = sh(returnStdout: true, script: "$WORKSPACE/ci/scripts/derive_kubernetes_version.sh ${params.K8S_VERSION}").trim()
                 }
             }
         }
 
-        stage("install-oke") {
-            when { expression { return params.TEST_ENV != 'kind' } }
+        stage("Create OLCNE cluster") {
             environment {
-                TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
+                TF_VAR_prefix="$OLCNE_CLUSTER_PREFIX"
             }
             steps {
                 script {
                     withCredentials([sshUserPrivateKey(credentialsId: '5fcc03de-31ce-4566-b11f-9de38e5d98fd', keyFileVariable: 'OPC_USER_KEY_FILE', passphraseVariable: 'OPC_USER_PASSPHRASE', usernameVariable: 'OPC_USERNAME')]) {
                     def RUNNER_REGION = sh(returnStdout: true, script: "curl -s -H \"Authorization: Bearer Oracle\" http://169.254.169.254/opc/v2/instance/canonicalRegionName").trim()
-                    env.TF_VAR_region = "${params.DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OKE_CLUSTER_REGION}"
-                    env.OCI_CLI_REGION = "${params.DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OKE_CLUSTER_REGION}"
-                    println("runner region is ${RUNNER_REGION}, tf var region is ${env.TF_VAR_REGION}")
+                    env.TF_VAR_region = "${OCI_DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OLCNE_CLUSTER_REGION}"
+                    env.OCI_CLI_REGION = "${OCI_DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OLCNE_CLUSTER_REGION}"
+                    echo "[INFO] runner region is $RUNNER_REGION, tf var region is ${env.TF_VAR_region}"
                         sh """
                             # get the ssh public key
-                            ssh-keygen -y -e -f ${OPC_USER_KEY_FILE} > /tmp/opc_ssh2.pub
+                            ssh-keygen -y -e -f $OPC_USER_KEY_FILE > /tmp/opc_ssh2.pub
                             # convert SSH2 public key into an OpenSSH format
                             ssh-keygen -i -f /tmp/opc_ssh2.pub > /tmp/opc_ssh.pub
                             # set the ssh public key value for terraform
                             export TF_VAR_ssh_public_key_path=/tmp/opc_ssh.pub
                             export TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME}
-                            # call create_oke_cluster with cluster access private
-                            ${WORKSPACE}/tests/e2e/config/scripts/create_oke_cluster.sh true ${params.CREATE_CLUSTER_USE_CALICO}
+                            # TODO: call create_olcne_cluster with cluster access private
+                            $WORKSPACE/tests/e2e/config/scripts/create_olcne_cluster.sh true
                         """
                     }
                 }
@@ -285,45 +338,80 @@ pipeline {
             post {
                 failure {
                     script {
-                        echo "Cluster create failed"
+                        echo "[ERROR] Cluster create failed"
                     }
                 }
             }
         }
 
-        stage('install-kind') {
-            when { expression { return params.TEST_ENV == 'kind' } }
+        stage("Create OCI Storage") {
             steps {
-                sh """
-                    cd ${WORKSPACE}/verrazzano-acceptance-test-suite
-                    ${WORKSPACE}/verrazzano-acceptance-test-suite/scripts/install_kind.sh
-                """
+                // TODO
             }
         }
 
-        stage("create-image-pull-secrets") {
+        stage("Mount OCI Storage") {
+            steps {
+                // TODO
+            }
+        }
+
+        stage("Create OCI Load Balancers") {
+            steps {
+                // TODO
+            }
+        }
+
+       stage("Create OCI DNS zone") {
+            environment {
+                TF_VAR_prefix="$OLCNE_CLUSTER_PREFIX"
+            }
+            steps {
+                script {
+                     echo "[INFO] OCI_DNS_SCOPE =  $OCI_DNS_SCOPE"
+                     if (env.OCI_DNS_SCOPE == "PRIVATE") {
+                        switch(env.TF_VAR_region) {
+                           case "uk-london-1":
+                              env.VCN_VIEW_ID = "$DNS_VIEW_FOR_PRIVATE_DNS_LHR"
+                              break
+                           default:
+                             env.VCN_VIEW_ID = "$DNS_VIEW_FOR_PRIVATE_DNS_PHX"
+                             break
+                         }
+                         echo "[INFO] view id is ${env.VCN_VIEW_ID}"
+                     }
+                    // VCN_VIEW_ID is used inside oci_dns_ops.sh to associate private zones to view
+                    // this is only used when zone is PRIVATE
+                    dnsZoneOCID = sh(script: "$WORKSPACE/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c $TF_VAR_compartment_id -s z$dnsZoneId -k $OCI_DNS_SCOPE", returnStdout: true)
+                }
+            }
+        }
+
+        stage("Create image pull secrets") {
             steps {
                 createImagePullSecrets()
             }
         }
 
-        stage("install-platform-operator") {
+        stage("Install Verrazzano platform operator") {
             environment {
                 OCI_CLI_AUTH="instance_principal"
             }
             steps {
+                script {
+                    echo "[INFO] Install Platform Operator"
+                }
                 sh """
-                    echo "Install Platform Operator"
-                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
-                    cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
+                    oci --region us-phoenix-1 os object get --namespace $OCI_OS_NAMESPACE -bn $OCI_OS_BUCKET --name ${env.BRANCH_NAME}/$SHORT_COMMIT_HASH/operator.yaml --file $WORKSPACE/downloaded-operator.yaml
+                    cp $WORKSPACE/downloaded-operator.yaml $WORKSPACE/acceptance-test-operator.yaml
 
                     # Install the verrazzano-platform-operator
                     kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
 
                     # make sure ns exists
-                    ${WORKSPACE}/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
+                    $WORKSPACE/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
                     # create secret in verrazzano-install ns
-                    ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}" "verrazzano-install"
+                    $WORKSPACE/tests/e2e/config/scripts/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW" "verrazzano-install"
                 """
             }
             post {
@@ -333,115 +421,34 @@ pipeline {
             }
         }
 
-        stage("create-dns-zone") {
-            when { expression { return params.TEST_ENV == 'ocidns_oke' } }
-            environment {
-                            TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
-
-                        }
-            steps {
-                script {
-                     println("DNS_SCOPE =  ${params.DNS_SCOPE}")
-                     if (params.DNS_SCOPE == "PRIVATE") {
-                        switch(TF_VAR_region) {
-                           case "uk-london-1":
-                              env.VCN_VIEW_ID = "${DNS_VIEW_FOR_PRIVATE_DNS_LHR}"
-                              break
-                           default:
-                             env.VCN_VIEW_ID = "${DNS_VIEW_FOR_PRIVATE_DNS_PHX}"
-                             break
-                         }
-                         println("view id is ${env.VCN_VIEW_ID}")
-                     }
-                    // VCN_VIEW_ID is used inside oci_dns_ops.sh to associate private zones to view
-                    // this is only used when zone is PRIVATE
-                    dns_zone_ocid = sh(script: "${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId} -k ${params.DNS_SCOPE}", returnStdout: true)
-                }
-            }
-        }
-
-        stage("setup-oci-dns-config") {
-            when { expression { return params.TEST_ENV == 'ocidns_oke' } }
-            environment {
-                OCI_DNS_COMPARTMENT_OCID = credentials('oci-dns-compartment')
-                OCI_PRIVATE_KEY_FILE = credentials('oci-api-key')
-                OCI_DNS_ZONE_OCID = "${dns_zone_ocid}"
-            }
+        stage("Setup Verrazzano CR") {
             steps {
                 script {
                     sh """
-                        ${WORKSPACE}/tests/e2e/config/scripts/process_oci_dns_install_yaml.sh $INSTALL_CONFIG_FILE_OCIDNS $CERT_ISSUER $ACME_ENVIRONMENT ${params.DNS_SCOPE}
+                        $WORKSPACE/tests/e2e/config/scripts/process_nipio_install_yaml.sh $INSTALL_CONFIG_FILE_OLCNE $WILDCARD_DNS_DOMAIN
                     """
                 }
             }
         }
 
-        stage("create-oci-config-secret") {
-            when { expression { return params.TEST_ENV == 'ocidns_oke' } }
-            steps {
-                script {
-                    if (params.OCI_DNS_AUTH == "instance_principal") {
-                            env.OCI_DNS_AUTH="instance_principal"
-                    }
-                    sh """
-                        ${WORKSPACE}/tests/e2e/config/scripts/create-test-oci-config-secret.sh
-                    """
-                }
-            }
-        }
-
-        stage("setup-nip-io-config") {
-            when { expression { return params.TEST_ENV == 'magicdns_oke' } }
-            steps {
-                script {
-                    sh """
-                        ${WORKSPACE}/tests/e2e/config/scripts/process_nipio_install_yaml.sh $INSTALL_CONFIG_FILE_NIPIO
-                    """
-                }
-            }
-        }
-
-        stage("setup-nodeport-config") {
-            when { expression { return params.TEST_ENV == 'kind' } }
-            steps {
-                script {
-                    sh """
-                        ${WORKSPACE}/tests/e2e/config/scripts/process_nodeport_install_yaml.sh $INSTALL_CONFIG_FILE_NODEPORT
-                    """
-                }
-            }
-        }
-
-        stage("install-verrazzano") {
+        stage("Install Verrazzano") {
             steps {
                 sh """
-                    echo "Waiting for Operator to be ready"
+                    echo "[INFO] Waiting for Operator to be ready"
                     kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-                    echo "Installing Verrazzano on ${TEST_ENV}"
+                    echo "[INFO] Installing Verrazzano on $TEST_ENV"
                     # apply config to create cluster
-                    if [ "${TEST_ENV}" == "magicdns_oke" ]; then
-                      kubectl apply -f ${INSTALL_CONFIG_FILE_NIPIO}
-                    elif [ "${TEST_ENV}" == "ocidns_oke" ]; then
-                      kubectl apply -f ${INSTALL_CONFIG_FILE_OCIDNS}
-                    elif [ "${TEST_ENV}" == "kind" ]; then
-                      kubectl apply -f ${INSTALL_CONFIG_FILE_NODEPORT}
-                    fi
+                    kubectl apply -f $INSTALL_CONFIG_FILE_OLCNE
                     # wait for Verrazzano install to complete
-                    ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+                    $WORKSPACE/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
                     # Create acceptance test configuration file
-                    ${WORKSPACE}/tests/e2e/config/scripts/common-test-setup-script.sh "${WORKSPACE}" "${TEST_CONFIG_FILE}" "${env.DOCKER_REPO}" "${KUBECONFIG}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}" "${VZ_ENVIRONMENT_NAME}"
+                    $WORKSPACE/tests/e2e/config/scripts/common-test-setup-script.sh "$WORKSPACE" "$TEST_CONFIG_FILE" "$GHCR_REPO" "$KUBECONFIG" "$OCR_CREDS_USR" "$OCR_CREDS_PSW" "$VZ_ENVIRONMENT_NAME"
 
-                    # edit DNS info in the test config file
-                    if [ "${TEST_ENV}" == "magicdns_oke" ]; then
-                      ${WORKSPACE}/tests/e2e/config/scripts/get_ingress_ip.sh ${TEST_CONFIG_FILE}
-                    elif [ "${TEST_ENV}" == "ocidns_oke" ]; then
-                      ${WORKSPACE}/tests/e2e/config/scripts/get_oci_dns_zone.sh ${TEST_CONFIG_FILE} ${OCI_DNS_ZONE_NAME}
-                    elif [ "${TEST_ENV}" == "kind" ]; then
-                      ${WORKSPACE}/tests/e2e/config/scripts/get_node_ip.sh ${CLUSTER_NAME} ${TEST_CONFIG_FILE}
-                    fi
-                    echo "----------Test config file:-------------"
-                    cat ${TEST_CONFIG_FILE}
-                    echo "----------------------------------------"
+                    # TODO: edit DNS info in the test config file
+                    $WORKSPACE/tests/e2e/config/scripts/get_ingress_ip.sh $TEST_CONFIG_FILE
+                    echo "[INFO] ----------Test config file:-------------"
+                    cat $TEST_CONFIG_FILE
+                    echo "[INFO] ----------------------------------------"
                 """
             }
             post {
@@ -449,12 +456,12 @@ pipeline {
                     script {
                         sh """
                             ## dump out install logs
-                            mkdir -p ${WORKSPACE}/platform-operator/scripts/install/build/logs
-                            kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
-                            kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
-                            echo "Verrazzano Installation logs dumped to verrazzano-install.log"
-                            echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
-                            echo "------------------------------------------"
+                            mkdir -p $WORKSPACE/platform-operator/scripts/install/build/logs
+                            kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano > $WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
+                            kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > $WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
+                            echo "[INFO] Verrazzano Installation logs dumped to verrazzano-install.log"
+                            echo "[INFO] Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
+                            echo "[INFO] ------------------------------------------"
                         """
                         VZ_TEST_METRIC = metricJobName('')
                         metricTimerStart("${VZ_TEST_METRIC}")
@@ -463,115 +470,54 @@ pipeline {
             }
         }
 
-        stage('verify-install') {
+        stage('Post-install Verify Tests') {
             steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    sh """
-                        cd ${WORKSPACE}/tests/e2e
-                        ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/...
-                    """
+                runGinkgoRandomize('verify-install', "${TEST_DUMP_ROOT}/post-install-verify-install")
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
             }
         }
 
-        stage('acceptance-tests') {
-            parallel {
-                stage('metrics') {
-                    steps {
-                        script {
-                            runGinkgo('metrics/syscomponents')
-                        }
-                    }
+        stage('Post-install Infra Tests') {
+            steps {
+                script {
+                    parallel generateVerifyInfraStages("${TEST_DUMP_ROOT}/post-install-infra-tests")
                 }
-                stage('restapi') {
-                    steps {
-                        script {
-                            runGinkgo('verify-infra/restapi')
-                        }
-                    }
-                }
-                stage('vmi') {
-                    steps {
-                        script {
-                            runGinkgo('verify-infra/vmi')
-                        }
-                    }
-                }
-                stage('oam') {
-                    steps {
-                        script {
-                            runGinkgo('verify-infra/oam')
-                        }
-                    }
-                }
-                stage('system logging') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-logging"
-                    }
-                    steps {
-                        runGinkgo('logging/system')
-                    }
-                }
-                stage('istio authorization policy') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-istio-auth-policy"
-                    }
-                    steps {
-                        runGinkgo('istio/authz')
-                    }
-                }
-                stage('security role based access') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-rbac"
-                    }
-                    steps {
-                        runGinkgo('security/rbac')
-                    }
-                }
-                stage('WebLogic logging') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-logging"
-                    }
-                    steps {
-                        script {
-                            runGinkgoFailFast('logging/weblogic')
-                        }
-                    }
-                }
-                stage('helidon workload') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/helidon-workload"
-                    }
-                    steps {
-                        script {
-                            runGinkgoFailFast('examples/helidon')
-                        }
-                    }
-                }
-                stage('weblogic workload') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
-                    }
-                    steps {
-                        runGinkgoFailFast('workloads/weblogic')
-                    }
-                }
-                stage('coherence workload') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
-                    }
-                    steps {
-                        runGinkgoFailFast('workloads/coherence')
-                    }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
             }
         }
+
+        // TODO: Need to deploy the test applications before running these tests
+        // stage('Post-install Acceptance Tests') {
+        //     steps {
+        //         // Run all acceptance tests after installation
+        //         script {
+        //             parallel generateAllAcceptanceTestStages("${TEST_DUMP_ROOT}/post-install-acceptance-tests", 'true', 'false')
+        //         }
+        //     }
+        //     post {
+        //         always {
+        //             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+        //             junit testResults: '**/*test-result.xml', allowEmptyResults: true
+        //         }
+        //     }
+        // }
     }
     post {
         always {
+            // TODO: Need to revisit this section to validate cleanup of all the resources provisioned using OCI
             script {
                 if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true || currentBuild.currentResult == 'FAILURE') {
-                    dumpK8sCluster('oke-acceptance-tests-cluster-dump')
+                    dumpK8sCluster('olcne-acceptance-tests-cluster-dump')
                 }
             }
 
@@ -586,30 +532,27 @@ pipeline {
                 if (params.EMIT_METRICS) {
                     withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
                         sh """
-                            ${WORKSPACE}/ci/scripts/dashboard/emit_metrics.sh "${WORKSPACE}/tests/e2e" "${PROMETHEUS_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
+                            $WORKSPACE/ci/scripts/dashboard/emit_metrics.sh "$WORKSPACE/tests/e2e" "${PROMETHEUS_CREDENTIALS}" || echo "[ERROR] Emit metrics failed, continuing with other post actions"
                         """
                     }
                 }
             }
 
             sh """
-                if [ "${TEST_ENV}" == "ocidns_oke" ]; then
-                  ${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} -k ${params.DNS_SCOPE} || echo "Failed to delete DNS zone z${zoneId}"
-                fi
-                if [ "${TEST_ENV}" == "kind" ]; then
-                  ${WORKSPACE}/tests/e2e/config/scripts/delete-kind-cluster.sh
-                elif [ "${keepOKEClusterOnFailure}" == "false" ]; then
-                  TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${WORKSPACE}/tests/e2e/config/scripts/delete_oke_cluster.sh || true
+                if [ "${keepOKEClusterOnFailure}" == "false" ]; then
+                    $WORKSPACE/tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${dnsZoneId} -k ${OCI_DNS_SCOPE} || echo "[ERROR] Failed to delete DNS zone z${dnsZoneId}"
+                    # TODO: Delete the olcne cluster
+                    TF_VAR_prefix=$OLCNE_CLUSTER_PREFIX TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} $WORKSPACE/tests/e2e/config/scripts/delete_olcne_cluster.sh || true
                 fi
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then
-                  echo "Failures seen during dumping of artifacts, treat post as failed"
+                  echo "[INFO] Failures seen during dumping of artifacts, treat post as failed"
                   exit 1
                 fi
             """
        }
        failure {
             sh """
-                curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
+                curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o $WORKSPACE/build-console-output.log ${BUILD_URL}consoleText
             """
             archiveArtifacts artifacts: '**/build-console-output.log', allowEmptyArchive: true
             sh """
@@ -620,7 +563,7 @@ pipeline {
             script {
                 METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                 if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-.*" || env.BRANCH_NAME ==~ "mark/*") {
-                    slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
+                    slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                 }
            }
        }
@@ -637,6 +580,103 @@ pipeline {
     }
 }
 
+def generateNonWLSAcceptanceTestStages(dumpRoot, skipDeploy = 'false', skipUndeploy = 'false') {
+    return generate_security_tests(dumpRoot) + generate_nonwls_tests(dumpRoot, skipDeploy, skipUndeploy)
+}
+
+def generateAllAcceptanceTestStages(dumpRoot, skipDeploy = 'false', skipUndeploy = 'false') {
+    return generate_security_tests(dumpRoot) +
+        generate_nonwls_tests(dumpRoot, skipDeploy, skipUndeploy) +
+        generate_wls_tests(dumpRoot, skipDeploy, skipUndeploy)
+}
+
+def generateVerifyInfraStages(dumpRoot) {
+    return [
+        "verify-scripts": {
+            runGinkgo('scripts', '', "$KUBECONFIG")
+        },
+        "verify-infra restapi": {
+            runGinkgoRandomize('verify-infra/restapi', "${dumpRoot}/verify-infra-restapi")
+        },
+        "verify-infra oam": {
+            runGinkgoRandomize('verify-infra/oam', "${dumpRoot}/verify-infra-oam")
+        },
+        "system component metrics": {
+            runGinkgoRandomize('metrics/syscomponents', "${dumpRoot}/system-component-metrics")
+        },
+        "console": {
+            acceptanceTestsConsole("${dumpRoot}")
+        },
+    ]
+}
+
+def generate_security_tests(dumpRoot) {
+    return [
+        "istio authorization policy": {
+            runGinkgo('istio/authz', "${dumpRoot}/istio-authz-policy")
+        },
+        "security role based access": {
+            runGinkgo('security/rbac', "${dumpRoot}/sec-role-based-access")
+        },
+        "security network policies": {
+            if (params.CREATE_CLUSTER_USE_CALICO == true) {
+                runGinkgo('security/netpol', "${dumpRoot}/netpol")
+            } else {
+                echo "[INFO] Calico not enabled, skipping network policies tests"
+            }
+        },
+    ]
+}
+
+def generate_nonwls_tests(dumpRoot, skipDeploy = 'false', skipUndeploy = 'false') {
+    return [
+        "k8s deployment workload metrics": {
+            runGinkgo('metrics/deploymetrics', "${dumpRoot}/k8sdeploy-workload-metrics")
+        },
+        "examples logging helidon": {
+            runGinkgo('logging/helidon', "${dumpRoot}/examples-logging-helidon")
+        },
+        "examples spring": {
+            runGinkgoAppTest('examples/springboot', "springboot", "${dumpRoot}/examples-spring", skipDeploy, skipUndeploy)
+        },
+        "examples helidon": {
+            runGinkgoAppTest('examples/helidon', "hello-helidon", "${dumpRoot}/examples-helidon", skipDeploy, skipUndeploy)
+        },
+        "examples helidon-config": {
+            runGinkgoAppTest('examples/helidonconfig', "helidon-config", "${dumpRoot}/examples-helidon-config", skipDeploy, skipUndeploy)
+        },
+    ]
+}
+
+def generate_wls_tests(dumpRoot, skipDeploy = 'false', skipUndeploy = 'false') {
+    return [
+        "weblogic workload": {
+            runGinkgoAppTest('workloads/weblogic', "hello-wls", "${dumpRoot}/weblogic-workload", skipDeploy, skipUndeploy)
+        },
+        "coherence workload": {
+            runGinkgoAppTest('workloads/coherence', "hello-coherence", "${dumpRoot}/coherence-workload", skipDeploy, skipUndeploy)
+        },
+        "console ingress": {
+            // doesn't work with the deployement hooks
+            runGinkgo('ingress/console', "wls-console", "${dumpRoot}/console-ingress")
+        },
+    ]
+}
+
+// Called in parallel Stage console of Stage Run Acceptance Tests
+def acceptanceTestsConsole(dumpRoot) {
+    try {
+        sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} $WORKSPACE/ci/scripts/run_console_tests.sh"
+    } catch (err) {
+        saveConsoleScreenShots()
+        error "${err}"
+    }
+}
+
+def saveConsoleScreenShots() {
+    sh "$WORKSPACE/ci/scripts/save_console_test_artifacts.sh"
+}
+
 def getTestClusterType(testEnv) {
     if("kind".equalsIgnoreCase(testEnv)) {
         return "KIND"
@@ -645,94 +685,127 @@ def getTestClusterType(testEnv) {
     }
 }
 
-def runGinkgo(testSuitePath) {
+def runGinkgoRandomize(testSuitePath, dumpDir = '') {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
-            cd ${WORKSPACE}/tests/e2e
+            if [ ! -z "${dumpDir}" ]; then
+                export DUMP_DIRECTORY=${dumpDir}
+            fi
+            cd $WORKSPACE/tests/e2e
+            ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+        """
+    }
+}
+
+def runGinkgo(testSuitePath, dumpDir = '', kubeconfig = '') {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            if [ ! -z "${dumpDir}" ]; then
+                export DUMP_DIRECTORY=${dumpDir}
+            fi
+            if [ ! -z "$kubeConfig" ]; then
+                export KUBECONFIG="$kubeConfig"
+            fi
+            cd $WORKSPACE/tests/e2e
             ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
 
-def runGinkgoFailFast(testSuitePath) {
+def runGinkgoFailFast(testSuitePath, dumpDir = '') {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
-            cd ${WORKSPACE}/tests/e2e
+            if [! -z "${dumpDir}" ]; then
+                export DUMP_DIRECTORY=${dumpDir}
+            fi 
+            cd $WORKSPACE/tests/e2e
             ginkgo -v --fail-fast --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+        """
+    }
+}
+
+def runGinkgoAppTest(testSuitePath, namespace, dumpDir = '', skipDeploy = 'false', skipUndeploy = 'false') {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            if [ ! -z "${dumpDir}" ]; then
+                export DUMP_DIRECTORY=${dumpDir}
+            fi
+            cd $WORKSPACE/tests/e2e
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --namespace=${namespace}
         """
     }
 }
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${WORKSPACE}/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
+        $WORKSPACE/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
     """
 }
 
 def dumpVerrazzanoSystemPods() {
     sh """
-        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-system-pods.log"
-        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -m "verrazzano system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-system-certs.log"
-        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o cert -n verrazzano-system -m "verrazzano system certs" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-system-kibana.log"
-        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-kibana-*" -m "verrazzano system kibana log" -l -c kibana || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-system-es-master.log"
-        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-es-master-*" -m "verrazzano system kibana log" -l -c es-master || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="$WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-system-pods.log"
+        $WORKSPACE/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -m "verrazzano system pods" || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="$WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-system-certs.log"
+        $WORKSPACE/platform-operator/scripts/install/k8s-dump-objects.sh -o cert -n verrazzano-system -m "verrazzano system certs" || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="$WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-system-kibana.log"
+        $WORKSPACE/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-kibana-*" -m "verrazzano system kibana log" -l -c kibana || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="$WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-system-es-master.log"
+        $WORKSPACE/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-es-master-*" -m "verrazzano system kibana log" -l -c es-master || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 
 def dumpCertManagerNamespaceLogs() {
     sh """
-        kubectl logs --selector=app=cert-manager -n cert-manager > ${WORKSPACE}/platform-operator/scripts/install/build/logs/cert-manager.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        kubectl logs --selector=app.kubernetes.io/name=external-dns -n cert-manager > ${WORKSPACE}/platform-operator/scripts/install/build/logs/external-dns.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl logs --selector=app=cert-manager -n cert-manager > $WORKSPACE/platform-operator/scripts/install/build/logs/cert-manager.log || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl logs --selector=app.kubernetes.io/name=external-dns -n cert-manager > $WORKSPACE/platform-operator/scripts/install/build/logs/external-dns.log || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 
 def dumpCattleSystemPods() {
     sh """
-        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/cattle-system-pods.log"
-        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -m "cattle system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/rancher.log"
-        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -r "rancher-*" -m "Rancher logs" -c rancher -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="$WORKSPACE/platform-operator/scripts/install/build/logs/cattle-system-pods.log"
+        $WORKSPACE/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -m "cattle system pods" || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="$WORKSPACE/platform-operator/scripts/install/build/logs/rancher.log"
+        $WORKSPACE/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -r "rancher-*" -m "Rancher logs" -c rancher -l || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 
 def dumpNginxIngressControllerLogs() {
     sh """
-        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/nginx-ingress-controller.log"
-        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -c controller -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="$WORKSPACE/platform-operator/scripts/install/build/logs/nginx-ingress-controller.log"
+        $WORKSPACE/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -c controller -l || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 
 def dumpVerrazzanoPlatformOperatorLogs() {
     sh """
         ## dump out verrazzano-platform-operator logs
-        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
-        kubectl -n verrazzano-install logs --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        kubectl -n verrazzano-install describe pod --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        echo "verrazzano-platform-operator logs dumped to verrazzano-platform-operator-pod.log"
-        echo "verrazzano-platform-operator pod description dumped to verrazzano-platform-operator-pod.out"
-        echo "------------------------------------------"
+        mkdir -p $WORKSPACE/verrazzano-platform-operator/logs
+        kubectl -n verrazzano-install logs --selector=app=verrazzano-platform-operator > $WORKSPACE/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.log --tail -1 || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-install describe pod --selector=app=verrazzano-platform-operator > $WORKSPACE/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.out || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        echo "[INFO] verrazzano-platform-operator logs dumped to verrazzano-platform-operator-pod.log"
+        echo "[INFO] verrazzano-platform-operator pod description dumped to verrazzano-platform-operator-pod.out"
+        echo "[INFO] ------------------------------------------"
     """
 }
 
 def dumpVerrazzanoApplicationOperatorLogs() {
     sh """
         ## dump out verrazzano-application-operator logs
-        mkdir -p ${WORKSPACE}/verrazzano-application-operator/logs
-        kubectl -n verrazzano-system logs --selector=app=verrazzano-application-operator > ${WORKSPACE}/verrazzano-application-operator/logs/verrazzano-application-operator-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        kubectl -n verrazzano-system describe pod --selector=app=verrazzano-application-operator > ${WORKSPACE}/verrazzano-application-operator/logs/verrazzano-application-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        echo "verrazzano-application-operator logs dumped to verrazzano-application-operator-pod.log"
-        echo "verrazzano-application-operator pod description dumped to verrazzano-application-operator-pod.out"
-        echo "------------------------------------------"
+        mkdir -p $WORKSPACE/verrazzano-application-operator/logs
+        kubectl -n verrazzano-system logs --selector=app=verrazzano-application-operator > $WORKSPACE/verrazzano-application-operator/logs/verrazzano-application-operator-pod.log --tail -1 || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-system describe pod --selector=app=verrazzano-application-operator > $WORKSPACE/verrazzano-application-operator/logs/verrazzano-application-operator-pod.out || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        echo "[INFO] verrazzano-application-operator logs dumped to verrazzano-application-operator-pod.log"
+        echo "[INFO] verrazzano-application-operator pod description dumped to verrazzano-application-operator-pod.out"
+        echo "[INFO] ------------------------------------------"
     """
 }
 
 def dumpVerrazzanoApiLogs() {
     sh """
-        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-authproxy.log"
-        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-authproxy-*" -m "verrazzano api" -c verrazzano-authproxy -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="$WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-authproxy.log"
+        $WORKSPACE/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-authproxy-*" -m "verrazzano api" -c verrazzano-authproxy -l || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 
@@ -740,7 +813,7 @@ def getEffectiveDumpOnSuccess() {
     def effectiveValue = params.DUMP_K8S_CLUSTER_ON_SUCCESS
     if (FORCE_DUMP_K8S_CLUSTER_ON_SUCCESS.equals("true") && (env.BRANCH_NAME.equals("master"))) {
         effectiveValue = true
-        echo "Forcing dump on success based on global override setting"
+        echo "[INFO] Forcing dump on success based on global override setting"
     }
     return effectiveValue
 }
@@ -761,7 +834,7 @@ def getMetricLabels() {
              'jenkins_build_number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
              'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
              'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\",' +
-             'kubernetes_version=\\"' + "${params.OKE_CLUSTER_VERSION}"+'\\",' +
+             'kubernetes_version=\\"' + "${params.K8S_VERSION}"+'\\",' +
              'test_env=\\"' + "ocidns_oke"+'\\"'
     return labels
 }
@@ -784,12 +857,12 @@ def metricTimerEnd(metricName, status) {
         // labels = '\\"number\\"=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
         //          '\\"commit_sha\\"=\\"' + "${env.GIT_COMMIT}"+'\\",' +
         //          '\\"test_env\\"=\\"' + "$testEnv"+'\\"'
-        // OCI_MET=sh(returnStdout: true, script: "ci/scripts/oci_metric_emit.sh ${env.OC_TELEMETRY_URL} ${env.OCI_COMPARTMENT_ID} ${OCI_METRICS_NAMESPACE} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+        // OCI_MET=sh(returnStdout: true, script: "ci/scripts/oci_metric_emit.sh ${OCI_TELEMETRY_URL} ${OCI_COMPARTMENT_ID} ${OCI_METRICS_NAMESPACE} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
 
         labels = getMetricLabels()
         withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
             EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
-            echo "emit prometheus metrics: $EMIT"
+            echo "[INFO] emit prometheus metrics: $EMIT"
             return EMIT
         }
     } else {
@@ -818,21 +891,21 @@ def metricBuildDuration() {
         labels = labels + ',result=\\"' + "${statusLabel}"+'\\"'
         withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
             METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
-            echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
+            echo "[INFO] Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }
 }
 
 
 def setDisplayName() {
-    echo "Start setDisplayName"
+    echo "[INFO] Start setDisplayName"
     def causes = currentBuild.getBuildCauses()
-    echo "causes: " + causes.toString()
+    echo "[INFO] causes: " + causes.toString()
     for (cause in causes) {
         def causeString = cause.toString()
-        echo "current cause: " + causeString
+        echo "[INFO] current cause: " + causeString
         if (causeString.contains("UpstreamCause") && causeString.contains("Started by upstream project")) {
-             echo "This job was caused by " + causeString
+             echo "[INFO] This job was caused by " + causeString
              if (causeString.contains("verrazzano-periodic-triggered-tests")) {
                  currentBuild.displayName = env.BUILD_NUMBER + " : PERIODIC"
              } else if (causeString.contains("verrazzano-flaky-tests")) {
@@ -840,16 +913,16 @@ def setDisplayName() {
              }
          }
     }
-    echo "End setDisplayName"
+    echo "[INFO] End setDisplayName"
 }
 
 def createImagePullSecrets() {
     sh """
         # Create image pull secrets for Verrazzano docker images
-        cd ${WORKSPACE}
-        ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}"
-        ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}"
-        ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
+        cd $WORKSPACE
+        $WORKSPACE/tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}"
+        $WORKSPACE/tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}"
+        $WORKSPACE/tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
     """
 }
 
@@ -861,4 +934,64 @@ def emitJobMetrics() {
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
     env.TIME_WAITING = startTimeInMillis-timeInMillis
     runGinkgo('jobmetrics')
+}
+
+def runVerrazzanoAcceptanceTests() {
+    return [
+        'metrics': stage('metrics') {
+            steps {
+                runGinkgo('metrics/syscomponents', "${TEST_DUMP_ROOT}/syscomponents-metrics")
+            }
+        },
+        'restapi': stage('restapi') {
+            steps {
+                runGinkgo('verify-infra/restapi', "${TEST_DUMP_ROOT}/restapi-infra")
+            }
+        },
+        'vmi': stage('vmi') {
+            steps {
+                runGinkgo('verify-infra/vmi', "${TEST_DUMP_ROOT}/vmi-infra")
+            }
+        },
+        'oam': stage('oam') {
+            steps {
+                runGinkgo('verify-infra/oam', "${TEST_DUMP_ROOT}/oam-infra")
+            }
+        },
+        'system-logging': stage('system-logging') {
+            steps {
+                runGinkgo('logging/system', "${TEST_DUMP_ROOT}/system-logging")
+            }
+        },
+        'istio-authorization-policy': stage('istio-authorization-policy') {
+            steps {
+                runGinkgo('istio/authz', "${TEST_DUMP_ROOT}/examples-istio-auth-policy")
+            }
+        },
+        'security-role-based-access': stage('security-role-based-access') {
+            steps {
+                runGinkgo('security/rbac', "${TEST_DUMP_ROOT}/examples-rbac")
+            }
+        },
+        'WebLogic-logging': stage('WebLogic-logging') {
+            steps {
+                runGinkgoFailFast('logging/weblogic', "${TEST_DUMP_ROOT}/weblogic-logging")
+            }
+        },
+        'helidon-workload': stage('helidon-workload') {
+            steps {
+                runGinkgoFailFast('examples/helidon', "${TEST_DUMP_ROOT}/helidon-workload")
+            }
+        },
+        'weblogic-workload': stage('weblogic-workload') {
+            steps {
+                runGinkgoFailFast('workloads/weblogic', "${TEST_DUMP_ROOT}/weblogic-workload")
+            }
+        },
+        'coherence-workload': stage('coherence-workload') {
+            steps {
+                runGinkgoFailFast('workloads/coherence', "${TEST_DUMP_ROOT}/coherence-workload")
+            }
+        }
+    ]
 }
