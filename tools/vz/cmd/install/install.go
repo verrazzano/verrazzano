@@ -120,19 +120,22 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		return err
 	}
 
-	// Get the version from the command line
-	version, err := cmd.PersistentFlags().GetString(constants.VersionFlag)
-	if err != nil {
-		return err
-	}
-	if version == constants.VersionFlagDefault {
-		// Find the latest release version of Verrazzano
-		version, err = helpers.GetLatestReleaseVersion(vzHelper.GetHTTPClient())
+	// When --operator-file is not used, get the version from the command line
+	var version string
+	if !cmd.PersistentFlags().Changed(constants.OperatorFileFlag) {
+		version, err = cmd.PersistentFlags().GetString(constants.VersionFlag)
 		if err != nil {
 			return err
 		}
+		if version == constants.VersionFlagDefault {
+			// Find the latest release version of Verrazzano
+			version, err = helpers.GetLatestReleaseVersion(vzHelper.GetHTTPClient())
+			if err != nil {
+				return err
+			}
+		}
+		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Installing Verrazzano version %s\n", version))
 	}
-	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Installing Verrazzano version %s\n", version))
 
 	// Apply the Verrazzano operator.yaml.
 	err = applyPlatformOperatorYaml(cmd, client, vzHelper, version)
