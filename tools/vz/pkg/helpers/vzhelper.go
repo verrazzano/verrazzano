@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/semver"
@@ -23,6 +24,7 @@ type VZHelper interface {
 	GetInputStream() io.Reader
 	GetClient(cmd *cobra.Command) (client.Client, error)
 	GetKubeClient(cmd *cobra.Command) (kubernetes.Interface, error)
+	GetHTTPClient() *http.Client
 }
 
 // FindVerrazzanoResource - find the single Verrazzano resource
@@ -54,9 +56,9 @@ func GetVerrazzanoResource(client client.Client, namespacedName types.Namespaced
 }
 
 // GetLatestReleaseVersion - get the version of the latest release of Verrazzano
-func GetLatestReleaseVersion() (string, error) {
+func GetLatestReleaseVersion(client *http.Client) (string, error) {
 	// Get the list of all Verrazzano releases
-	releases, err := github.ListReleases()
+	releases, err := github.ListReleases(client)
 	if err != nil {
 		return "", fmt.Errorf("Failed to get list of Verrazzano releases: %s", err.Error())
 	}
