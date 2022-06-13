@@ -440,7 +440,7 @@ pipeline {
                                 expression {params.ENABLE_JWT_TESTING == true}
                             }
                             environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jwt-helidon"
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jwt-helidon-svc"
                                 REALM_USER_PASSWORD = credentials('todo-mysql-password')
                                 REALM_NAME="test-realm"
                             }
