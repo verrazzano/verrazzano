@@ -1,0 +1,69 @@
+# Copyright (C) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+metadata:
+  name: "KinD Acceptance Tests"
+  agent:
+    label: "phxlarge"
+stages:
+  - name: "Setup"
+    targets:
+    - name: "Setup Cluster"
+      target: "setup"
+  - name: "Install Verrazzano"
+    targets:
+      - name: "Install"
+        target: "install"
+  - name: "Verify Install"
+    targets:
+    - name: "Verify Install"
+      target: "verify-install"
+  - name: "Run Acceptance Tests Infra"
+    testGroups:
+    - "infra"
+  - name: "Run Acceptance Tests Deployments"
+    testGroups:
+    - "deployment"
+testGroups:
+  - name: "infra"
+    targets:
+      - name: "Verify Scripts"
+        target: "verify-scripts"
+        env:
+          - name: "TAGGED_TESTS"
+            value: ".*"
+      - name: "Verify Infra"
+        target: "verify-infra"
+      - name: "Verify RBAC"
+        target: "verify-security-rbac"
+      - name: "Verify System Metrics"
+        target: "verify-system-metrics"
+      - name: "Verify Console"
+        target: "verify-console"
+  - name: "deployment"
+    targets:
+      - name: "Opensearch Topology"
+        target: "verify-opensearch-topology"
+      - name: "Istio AuthZ"
+        target: "verify-istio-authz"
+      - name: "k8s deployment workload metrics"
+        target: "verify-deployment-workload-metrics"
+      - name: "system logging"
+        target: "verify-system-logging"
+      - name: "opensearch logging"
+        target: "verify-opensearch-logging"
+      - name: "examples logging helidon"
+        target: "verify-helidon-logging"
+      - name: "examples helidon-metrics"
+        target: "verify-helidon-metrics"
+      - name: "examples helidon"
+        target: "verify-examples-helidon"
+      - name: "workloads"
+        target: "verify-workloads"
+      - name: "console ingress"
+        target: "verify-console-ingress"
+      - name: "logging trait WebLogic workload"
+        target: "verify-wls-loggingtraits"
+      - name: "poko metricsbinding"
+        target: "verify-poko-metricsbinding"
+      - name: "security network policies"
+        target: "verify-security-netpol"

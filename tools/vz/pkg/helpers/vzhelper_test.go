@@ -4,12 +4,16 @@
 package helpers
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
+	"bytes"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -19,9 +23,10 @@ import (
 //  WHEN I call this function
 //  THEN expect it to return the latest version string
 func TestGetLatestReleaseVersion(t *testing.T) {
-
-	releases := []string{"v0.1.0", "v1.2.1", "v1.3.1"}
-	latestRelease, err := getLatestReleaseVersion(releases)
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	latestRelease, err := GetLatestReleaseVersion(rc.GetHTTPClient())
 	assert.NoError(t, err)
 	assert.Equal(t, latestRelease, "v1.3.1")
 }

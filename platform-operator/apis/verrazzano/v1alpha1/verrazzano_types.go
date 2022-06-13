@@ -68,7 +68,8 @@ type VerrazzanoSpec struct {
 	EnvironmentName string `json:"environmentName,omitempty"`
 	// Core specifies core Verrazzano configuration
 	// +optional
-	Components ComponentSpec `json:"components,omitempty"`
+	// +patchStrategy=merge
+	Components ComponentSpec `json:"components,omitempty" patchStrategy:"merge"`
 
 	// Security specifies Verrazzano security configuration
 	// +optional
@@ -527,7 +528,8 @@ type KialiComponent struct {
 // ConsoleComponent specifies the Console UI configuration
 type ConsoleComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // DNSComponent specifies the DNS configuration
