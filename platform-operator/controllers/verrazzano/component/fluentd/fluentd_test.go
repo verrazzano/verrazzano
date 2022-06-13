@@ -24,39 +24,40 @@ import (
 func TestIsFluentdReady(t *testing.T) {
 	boolTrue, boolFalse := true, false
 	var tests = []struct {
+		testName string
 		spec     vzapi.Verrazzano
 		client   clipkg.Client
 		expected bool
 	}{
-		{vzapi.Verrazzano{
+		{"1", vzapi.Verrazzano{
 			Spec: vzapi.VerrazzanoSpec{
 				Components: vzapi.ComponentSpec{Fluentd: &vzapi.FluentdComponent{
 					Enabled: &boolTrue,
 				}},
 			},
 		}, getFakeClient(1), true},
-		{vzapi.Verrazzano{
+		{"2", vzapi.Verrazzano{
 			Spec: vzapi.VerrazzanoSpec{
 				Components: vzapi.ComponentSpec{Fluentd: &vzapi.FluentdComponent{
 					Enabled: &boolFalse,
 				}},
 			},
 		}, getFakeClient(1), false},
-		{vzapi.Verrazzano{
+		{"3", vzapi.Verrazzano{
 			Spec: vzapi.VerrazzanoSpec{
 				Components: vzapi.ComponentSpec{Fluentd: &vzapi.FluentdComponent{
 					Enabled: &boolTrue,
 				}}, Profile: vzapi.Prod,
 			},
 		}, getFakeClient(1), true},
-		{vzapi.Verrazzano{
+		{"4", vzapi.Verrazzano{
 			Spec: vzapi.VerrazzanoSpec{
 				Components: vzapi.ComponentSpec{Fluentd: &vzapi.FluentdComponent{
 					Enabled: &boolTrue,
 				}}, Profile: vzapi.Prod,
 			},
 		}, getFakeClient(0), false},
-		{vzapi.Verrazzano{
+		{"5", vzapi.Verrazzano{
 			Spec: vzapi.VerrazzanoSpec{
 				Components: vzapi.ComponentSpec{Fluentd: &vzapi.FluentdComponent{
 					Enabled: &boolTrue,
@@ -68,7 +69,7 @@ func TestIsFluentdReady(t *testing.T) {
 		//client := createPreInstallTestClient()
 		ctx := spi.NewFakeContext(test.client, &test.spec, false)
 		if actual := isFluentdReady(ctx); actual != test.expected {
-			t.Errorf("got fluent ready = %v, want %v", actual, test.expected)
+			t.Errorf("test name %s: got fluent ready = %v, want %v", test.testName, actual, test.expected)
 		}
 	}
 }

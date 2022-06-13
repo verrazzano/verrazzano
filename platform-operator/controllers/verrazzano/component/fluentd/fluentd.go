@@ -8,7 +8,6 @@ import (
 	"fmt"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -89,7 +88,7 @@ func isFluentdReady(ctx spi.ComponentContext) bool {
 
 	// Check daemonsets
 	var daemonsets []types.NamespacedName
-	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) && getProfile(ctx.EffectiveCR()) != vzapi.ManagedCluster {
+	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) {
 		daemonsets = append(daemonsets,
 			types.NamespacedName{
 				Name:      DaemonsetName,
@@ -97,7 +96,7 @@ func isFluentdReady(ctx spi.ComponentContext) bool {
 			})
 		return status.DaemonSetsAreReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix)
 	}
-	return true
+	return false
 }
 
 // fluentdPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano Fluentd helm chart
@@ -222,13 +221,4 @@ func reassociateResources(cli clipkg.Client) error {
 		}
 	}
 	return nil
-}
-
-// GetProfile Returns the configured profile name, or "prod" if not specified in the configuration
-func getProfile(vz *vzapi.Verrazzano) vzapi.ProfileType {
-	profile := vz.Spec.Profile
-	if len(profile) == 0 {
-		profile = vzapi.Prod
-	}
-	return profile
 }
