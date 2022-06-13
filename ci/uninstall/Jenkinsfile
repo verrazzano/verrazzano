@@ -25,10 +25,6 @@ pipeline {
     }
 
     parameters {
-        string (name: 'VERRAZZANO_BRANCH',
-                defaultValue: 'master',
-                description: 'Branch to clone and checkout the Verrazzano repo',
-                trim: true)
         choice (name: 'OKE_NODE_POOL',
                 description: 'OKE node pool configuration',
                 // 1st choice is the default value
