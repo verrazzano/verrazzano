@@ -97,7 +97,7 @@ pipeline {
                         label: "Get last clean periodic commit ID",
                         script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_PERIODIC_OS_LOCATION} --file ${CLEAN_PERIODIC_LOCATION} 2>&1 > ${cmdResult}",
                         returnStatus: true
-                        ).trim()
+                        )
                     if (lastPeriodicCommitCommand != 0) {
                         // If the error code from OCI was anything other than a 404, fail the run otherwise continue
                         echo "Error occurred getting last periodic commit from ObjectStore"
