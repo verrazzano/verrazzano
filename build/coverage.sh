@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 #
 # Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
@@ -12,6 +12,7 @@ go test -coverpkg=./... -coverprofile ./coverage.raw.cov $(go list ./... | \
   grep -Ev github.com/verrazzano/verrazzano/platform-operator/mocks | \
   grep -Ev github.com/verrazzano/verrazzano/platform-operator/test/integ | \
   grep -Ev github.com/verrazzano/verrazzano/platform-operator/clients | \
+  grep -Ev github.com/verrazzano/verrazzano/image-patch-operator/clients | \
   grep -Ev github.com/verrazzano/verrazzano/tools/analysis | \
   grep -Ev github.com/verrazzano/verrazzano/tools/bom-validator | \
   grep -Ev github.com/verrazzano/verrazzano/tools/eventually-checker | \
