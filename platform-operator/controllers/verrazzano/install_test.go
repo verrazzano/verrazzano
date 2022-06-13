@@ -40,7 +40,7 @@ func TestUpdate(t *testing.T) {
 	reconcilingGen := int64(0)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t,
 		lastReconciledGeneration+1, reconcilingGen, lastReconciledGeneration,
-		"1.3.0", "1.3.0", namespace, name, "true", nil, nil, 2)
+		"1.3.0", "1.3.0", namespace, name, "true", nil, nil, nil, 2)
 
 	defer reset()
 	asserts.NoError(err)
@@ -60,7 +60,7 @@ func TestNoUpdateSameGeneration(t *testing.T) {
 	lastReconciledGeneration := int64(2)
 	reconcilingGen := int64(0)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t, lastReconciledGeneration, reconcilingGen, lastReconciledGeneration,
-		"1.3.1", "1.3.1", namespace, name, "true", nil, nil, 2)
+		"1.3.1", "1.3.1", namespace, name, "true", nil, nil, nil, 2)
 	defer reset()
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateReady, vz.Status.State)
@@ -79,7 +79,7 @@ func TestUpdateWithUpgrade(t *testing.T) {
 	lastReconciledGeneration := int64(2)
 	reconcilingGen := int64(0)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t, lastReconciledGeneration+1, reconcilingGen, lastReconciledGeneration,
-		"1.3.0", "1.2.0", namespace, name, "true", nil, nil, 1)
+		"1.3.0", "1.2.0", namespace, name, "true", nil, nil, nil, 1)
 	defer reset()
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateUpgrading, vz.Status.State)
@@ -99,7 +99,7 @@ func TestUpdateOnUpdate(t *testing.T) {
 	reconcilingGen := int64(3)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t,
 		reconcilingGen+1, reconcilingGen, lastReconciledGeneration,
-		"1.3.3", "1.3.3", namespace, name, "true", nil, nil, 2)
+		"1.3.3", "1.3.3", namespace, name, "true", nil, nil, nil, 2)
 	defer reset()
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateReconciling, vz.Status.State)
@@ -119,7 +119,7 @@ func TestPostInstall(t *testing.T) {
 	reconcilingGen := int64(3)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t,
 		reconcilingGen+1, reconcilingGen, lastReconciledGeneration,
-		"1.3.3", "1.3.3", namespace, name, "true", nil, nil, 3)
+		"1.3.3", "1.3.3", namespace, name, "true", nil, nil, nil, 3)
 	defer reset()
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateReady, vz.Status.State)
@@ -150,10 +150,61 @@ func TestErrorDuringComponentInstall(t *testing.T) {
 	}
 	asserts, vz, result, _, err := testUpdate(t,
 		reconcilingGen+1, reconcilingGen, lastReconciledGeneration,
-		"1.3.3", "1.3.3", namespace, name, "true", preInstallFunc, installFunc, 3)
+		"1.3.3", "1.3.3", namespace, name, "true", nil, preInstallFunc, installFunc, 3)
 	defer reset()
 	asserts.Equal(1, preInstallCalls)
 	asserts.Equal(2, installCalls)
+	asserts.NoError(err)
+	asserts.Equal(vzapi.VzStateReconciling, vz.Status.State)
+	asserts.True(result.Requeue)
+}
+
+// TestErrorDuringComponentPreInstall tests reconcile func when install func encounters an error
+// GIVEN, a request to install verrazzano component,
+// WHEN, there is an error during the install of a component,
+// THEN, ensure that the pre-install function is not called again and subsequent reconcile retries,
+//       starts at install phase
+func TestErrorDuringComponentPreInstall(t *testing.T) {
+	initUnitTesing()
+	namespace := "verrazzano"
+	name := "test"
+	lastReconciledGeneration := int64(2)
+	reconcilingGen := int64(3)
+	preInstallCalls := 0
+	preInstallFunc := func(ctx spi.ComponentContext, releaseName string, namespace string, chartDir string) error {
+		preInstallCalls++
+		return fmt.Errorf("Dummy error during pre-install phase")
+	}
+	asserts, vz, result, _, err := testUpdate(t,
+		reconcilingGen+1, reconcilingGen, lastReconciledGeneration,
+		"1.3.3", "1.3.3", namespace, name, "true", nil, preInstallFunc, nil, 2)
+	defer reset()
+	asserts.Equal(2, preInstallCalls)
+	asserts.NoError(err)
+	asserts.Equal(vzapi.VzStateReconciling, vz.Status.State)
+	asserts.True(result.Requeue)
+}
+
+// TestErrorDuringComponentPreInstallWithUnmetDepedencies tests reconcile func when install func encounters an error
+// GIVEN, a request to install verrazzano component,
+// WHEN, there are unmet dependencies, then
+// THEN, ensure that the pre-install function is not called at all inspite of subsequent calls to reconcile function.
+func TestErrorDuringComponentPreInstallWithUnmetDepedencies(t *testing.T) {
+	initUnitTesing()
+	namespace := "verrazzano"
+	name := "test"
+	lastReconciledGeneration := int64(2)
+	reconcilingGen := int64(3)
+	preInstallCalls := 0
+	preInstallFunc := func(ctx spi.ComponentContext, releaseName string, namespace string, chartDir string) error {
+		preInstallCalls++
+		return nil
+	}
+	asserts, vz, result, _, err := testUpdate(t,
+		reconcilingGen+1, reconcilingGen, lastReconciledGeneration,
+		"1.3.3", "1.3.3", namespace, name, "true", []string{"cert-manager"}, preInstallFunc, nil, 2)
+	defer reset()
+	asserts.Equal(0, preInstallCalls)
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateReconciling, vz.Status.State)
 	asserts.True(result.Requeue)
@@ -171,7 +222,7 @@ func TestUpdateFalseMonitorChanges(t *testing.T) {
 	reconcilingGen := int64(0)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t,
 		lastReconciledGeneration+1, reconcilingGen, lastReconciledGeneration,
-		"1.3.0", "1.3.0", namespace, name, "false", nil, nil, 2)
+		"1.3.0", "1.3.0", namespace, name, "false", nil, nil, nil, 2)
 	defer reset()
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateReady, vz.Status.State)
@@ -346,7 +397,7 @@ func reset() {
 func testUpdate(t *testing.T,
 	vzCrGen, reconcilingGen, lastReconciledGeneration int64,
 	specVer, statusVer,
-	namespace, name, monitorChanges string,
+	namespace, name, monitorChanges string, dependencies []string,
 	preInstallFunc func(ctx spi.ComponentContext, releaseName string, namespace string, chartDir string) error,
 	installFunc func(componentContext spi.ComponentContext) error,
 	reconcileLoopCount int) (*assert.Assertions, *vzapi.Verrazzano, ctrl.Result, *bool, error) {
@@ -375,6 +426,7 @@ func testUpdate(t *testing.T,
 	} else {
 		fakeComp.installFunc = installFunc
 	}
+	fakeComp.Dependencies = dependencies
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
 			fakeComp,

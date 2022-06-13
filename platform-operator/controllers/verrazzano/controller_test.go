@@ -1800,6 +1800,65 @@ func TestNonIntersectingMergeNestedMap(t *testing.T) {
 	assert.Equal(t, expectedMap, myInstance.MyMap)
 }
 
+// TestCheckConditionType tests the condition state and its mapping component state
+// GIVEN a VZ install condition type,
+// WHEN the checkCondtitionType function is called,
+// THEN the corresponding component state is returned.
+func TestCheckConditionType(t *testing.T) {
+	tests := []struct {
+		inputType    vzapi.ConditionType
+		expectedType vzapi.CompStateType
+	}{
+		{
+			inputType:    vzapi.CondPreInstall,
+			expectedType: vzapi.CompStatePreInstalling,
+		},
+		{
+			inputType:    vzapi.CondPreInstallComplete,
+			expectedType: vzapi.CompStateInstallStarted,
+		},
+		{
+			inputType:    vzapi.CondInstallStarted,
+			expectedType: vzapi.CompStateInstalling,
+		},
+		{
+			inputType:    vzapi.CondUninstallStarted,
+			expectedType: vzapi.CompStateUninstalling,
+		},
+		{
+			inputType:    vzapi.CondUpgradeStarted,
+			expectedType: vzapi.CompStateUpgrading,
+		},
+		{
+			inputType:    vzapi.CondUpgradePaused,
+			expectedType: vzapi.CompStateUpgrading,
+		},
+		{
+			inputType:    vzapi.CondUninstallComplete,
+			expectedType: vzapi.CompStateReady,
+		},
+		{
+			inputType:    vzapi.CondInstallFailed,
+			expectedType: vzapi.CompStateFailed,
+		},
+		{
+			inputType:    vzapi.CondUpgradeFailed,
+			expectedType: vzapi.CompStateFailed,
+		},
+		{
+			inputType:    vzapi.CondUninstallFailed,
+			expectedType: vzapi.CompStateFailed,
+		},
+	}
+
+	for _, tt := range tests {
+		name := fmt.Sprintf("Input %s - Expected %s", tt.inputType, tt.expectedType)
+		t.Run(name, func(t *testing.T) {
+			assert.Equal(t, tt.expectedType, checkCondtitionType(tt.inputType))
+		})
+	}
+}
+
 func collectVolumeMounts(vz *vzapi.Verrazzano) []string {
 	var vms []string
 	for _, vm := range vz.Spec.Components.Fluentd.ExtraVolumeMounts {
