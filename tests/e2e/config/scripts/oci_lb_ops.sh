@@ -16,6 +16,7 @@ function usage {
     echo "                            Example - \"1.1.1.1 2.2.2.2 3.3.3.3\""
     echo "  -p backend_port           Port used by backends."
     echo "  -f template_file_path     Path to the json template file for creating load balancer."
+    echo "                            A sample file is provided at 'verrazzano/tests/e2e/config/scripts/oci-load-balancer.json'"
     echo "  -e enable_public_ip       Provide a public IP to the load balancer. Defaults to 'false'." 
     echo "                            To have a public IP, LB must be in a public subnet."
     echo "  -h                        Display this help message."
