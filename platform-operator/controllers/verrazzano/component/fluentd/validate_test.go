@@ -73,7 +73,7 @@ func TestValidateFluentd(t *testing.T) {
 
 func TestValidateExternalES(t *testing.T) {
 	secName := "TestValidateExternalES-sec"
-	fakeSec(secName)
+	getFakeSecret(secName)
 	missing := "missing"
 	defer func() { getControllerRuntimeClient = getClient }()
 	tests := []struct {
@@ -118,7 +118,7 @@ func TestValidateExternalES(t *testing.T) {
 	}
 }
 
-func fakeSec(secName string) corev1.Secret {
+func getFakeSecret(secName string) corev1.Secret {
 	sec := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      secName,
