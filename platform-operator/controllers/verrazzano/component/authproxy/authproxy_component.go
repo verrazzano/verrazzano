@@ -90,7 +90,21 @@ func (c authProxyComponent) PreInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debug("AuthProxy pre-install")
 
 	err := authproxyPreHelmOps(ctx)
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Temporary work around for installer bug of calling pre-install after a component is installed
+	installed, err := c.IsInstalled(ctx)
+	if err != nil {
+		return err
+	}
+	if installed {
+		ctx.Log().Oncef("Component %s already installed, skipping PreInstall checks", ComponentName)
+		return nil
+	}
+
+	return nil
 }
 
 // PreUpgrade performs any required pre upgrade operations
