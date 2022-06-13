@@ -166,16 +166,30 @@ func TestHandleCustomMetricsTemplate(t *testing.T) {
 		expectError bool
 	}{
 		{
-			name:        "test proper template",
+			name:        "test configmap",
 			workload:    labeledWorkload,
 			namespace:   labeledNs,
 			configMap:   testFileCM,
 			expectError: false,
 		},
 		{
-			name:        "test proper template",
+			name:        "test secret",
 			workload:    labeledWorkload,
 			namespace:   labeledNs,
+			secret:      testFileSec,
+			expectError: false,
+		},
+		{
+			name:        "test configmap no Istio",
+			workload:    labeledWorkload,
+			namespace:   plainNs,
+			configMap:   testFileCM,
+			expectError: false,
+		},
+		{
+			name:        "test secret no Istio",
+			workload:    labeledWorkload,
+			namespace:   plainNs,
 			secret:      testFileSec,
 			expectError: false,
 		},

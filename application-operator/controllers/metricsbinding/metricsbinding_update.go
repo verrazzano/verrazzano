@@ -67,7 +67,7 @@ func (r *Reconciler) reconcileBindingCreateOrUpdate(ctx context.Context, metrics
 		return k8scontroller.Result{Requeue: true}, err
 	}
 
-	// Handle the case where the workloaded uses a custom metrics template
+	// Handle the case where the workload uses a custom metrics template
 	if err = r.handleCustomMetricsTemplate(ctx, metricsBinding, log); err != nil {
 		return k8scontroller.Result{Requeue: true}, err
 	}
@@ -245,7 +245,7 @@ func (r *Reconciler) createScrapeInfo(ctx context.Context, metricsBinding *vzapi
 	return scrapeInfo, nil
 }
 
-// updateMetricsBinding updates the Metrics Binding Owner Reference from the target workload and adds a Finalizer
+// updateMetricsBinding updates the Metrics Binding Owner Reference from the target workload and adds a finalizer
 func (r *Reconciler) updateMetricsBinding(metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) error {
 	// Add the finalizer
 	controllerutil.AddFinalizer(metricsBinding, finalizerName)

@@ -58,9 +58,13 @@ var plainWorkload = &k8sapps.Deployment{
 	},
 }
 
+// The namespace has to contain labels for the template
 var plainNs = &k8score.Namespace{
 	ObjectMeta: k8smeta.ObjectMeta{
 		Name: testMetricsBindingNamespace,
+		Labels: map[string]string{
+			"test": "test",
+		},
 	},
 }
 
