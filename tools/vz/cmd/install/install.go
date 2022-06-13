@@ -84,6 +84,12 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
+	// Validate the command options
+	err := validateCmd(cmd)
+	if err != nil {
+		return fmt.Errorf("Command validation failed: %s", err.Error())
+	}
+
 	// Get the verrazzano install resource to be created
 	vz, err := getVerrazzanoYAML(cmd)
 	if err != nil {
@@ -360,5 +366,13 @@ func waitForInstallToComplete(client clipkg.Client, kubeClient kubernetes.Interf
 		}
 	}
 
+	return nil
+}
+
+// validateCmd - validate the command line options
+func validateCmd(cmd *cobra.Command) error {
+	if cmd.PersistentFlags().Changed(constants.VersionFlag) && cmd.PersistentFlags().Changed(constants.OperatorFileFlag) {
+		return fmt.Errorf("--%s and --%s cannot both be specified", constants.VersionFlag, constants.OperatorFileFlag)
+	}
 	return nil
 }
