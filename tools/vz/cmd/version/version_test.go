@@ -6,6 +6,7 @@ package version
 import (
 	"bytes"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,6 +16,10 @@ import (
 
 // TestVersionCmd - check that command reports not implemented yet
 func TestVersionCmd(t *testing.T) {
+
+	cliVersion = "1.2.3"
+	buildDate = "2022-06-10T13:57:03Z"
+	gitCommit = "9dbc916b58ab9781f7b4c25e51748fb31ec940f8"
 
 	// Send the command output to a byte buffer
 	buf := new(bytes.Buffer)
@@ -27,5 +32,9 @@ func TestVersionCmd(t *testing.T) {
 	err := versionCmd.Execute()
 	assert.NoError(t, err)
 	result := buf.String()
-	assert.Equal(t, "Not implemented yet\n", result)
+	results := strings.Split(result, "\n")
+	version, build, commit := results[1], results[2], results[3]
+	assert.Regexp(t, `^(Version: )?(v)?(\d+\.)?(\d+\.)?(\d+)$`, version)
+	assert.Regexp(t, `^(BuildDate: )?(\d+\-)?(\d+\-)?(\d+T)?(\d+\:)?(\d+\:)?(\d+Z)$`, build)
+	assert.Regexp(t, `^(GitCommit: )?(\w{40})$`, commit)
 }
