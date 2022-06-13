@@ -31,6 +31,7 @@ type (
 		client            crtpkg.Client
 		objects           []unstructured.Unstructured
 		namespaceOverride string
+		objectResultMsgs  []string
 	}
 
 	action func(obj *unstructured.Unstructured) error
@@ -41,12 +42,18 @@ func NewYAMLApplier(client crtpkg.Client, namespaceOverride string) *YAMLApplier
 		client:            client,
 		objects:           []unstructured.Unstructured{},
 		namespaceOverride: namespaceOverride,
+		objectResultMsgs:  []string{},
 	}
 }
 
 //Objects is the list of objects created using the ApplyX methods
 func (y *YAMLApplier) Objects() []unstructured.Unstructured {
 	return y.objects
+}
+
+// ObjectResultMsgs is the list of object result messages using the ApplyX methods
+func (y *YAMLApplier) ObjectResultMsgs() []string {
+	return y.objectResultMsgs
 }
 
 //ApplyD applies all YAML files in a directory to Kubernetes
@@ -147,7 +154,7 @@ func (y *YAMLApplier) applyAction(obj *unstructured.Unstructured) error {
 	if err != nil {
 		return err
 	}
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), y.client, obj, func() error {
+	result, err := controllerruntime.CreateOrUpdate(context.TODO(), y.client, obj, func() error {
 		serverSpec, _, err := unstructured.NestedFieldCopy(obj.Object, specField)
 		if err != nil {
 			return err
@@ -156,10 +163,19 @@ func (y *YAMLApplier) applyAction(obj *unstructured.Unstructured) error {
 			merge(serverSpec.(map[string]interface{}), clientSpec.(map[string]interface{}))
 		}
 		return unstructured.SetNestedField(obj.Object, serverSpec, specField)
-	}); err != nil {
+	})
+	if err != nil {
 		return err
 	}
 	y.objects = append(y.objects, *obj)
+
+	// Add an informational message (to mimic what you see on a kubectl apply)
+	group := obj.GetObjectKind().GroupVersionKind().Group
+	if len(group) > 0 {
+		group = fmt.Sprintf(".%s", group)
+	}
+	y.objectResultMsgs = append(y.objectResultMsgs, fmt.Sprintf("%s%s/%s %s", obj.GetKind(), group, obj.GetName(), string(result)))
+
 	return nil
 }
 

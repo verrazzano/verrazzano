@@ -274,6 +274,7 @@ func TestInstallCmdOperatorFile(t *testing.T) {
 	err := cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
+	assert.Contains(t, buf.String(), "Applying the file ../../test/testdata/operator-file-fake.yaml\nnamespace/verrazzano-install created\nserviceaccount/verrazzano-platform-operator created\nservice/verrazzano-platform-operator created\n")
 
 	// Verify the objects in the operator-file got added
 	sa := corev1.ServiceAccount{}
