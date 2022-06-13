@@ -75,12 +75,10 @@ if [ -z "$OPERATOR_YAML" ] && [ "" = "${OPERATOR_YAML}" ]; then
       echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
       env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
   fi
-  kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
 else
   # The operator.yaml filename was provided, install using that file.
   echo "Using provided operator.yaml file: " ${OPERATOR_YAML}
   cp ${OPERATOR_YAML} ${WORKSPACE}/acceptance-test-operator.yaml
-  kubectl apply -f ${OPERATOR_YAML}
 fi
 
 # make sure ns exists
@@ -96,6 +94,7 @@ fi
 
 # Configure the custom resource to install Verrazzano on Kind
 ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}
+cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/acceptance-test-config.yaml
 
 echo "Creating Override ConfigMap"
 kubectl create cm test-overrides --from-file=${TEST_OVERRIDE_CONFIGMAP_FILE}
@@ -113,9 +112,10 @@ fi
 
 echo "Installing Verrazzano on Kind"
 cd ${GO_REPO_PATH}/verrazzano/tools/vz
-GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${INSTALL_CONFIG_FILE_KIND} --operator-file ${WORKSPACE}/acceptance-test-operator.yaml
+GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${WORKSPACE}/acceptance-test-config.yaml --operator-file ${WORKSPACE}/acceptance-test-operator.yaml
 
 # wait for Verrazzano install to complete
+cd ${GO_REPO_PATH}/verrazzano
 ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
 result=$?
 ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/post-vz-install-cluster-dump -r ${WORKSPACE}/post-vz-install-cluster-dump/analysis.report
