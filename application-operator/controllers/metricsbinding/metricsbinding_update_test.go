@@ -288,6 +288,10 @@ func TestReconcileCreateOrUpdate(t *testing.T) {
 	legacyBinding.Spec.PrometheusConfigMap.Namespace = vzconst.VerrazzanoSystemNamespace
 	legacyBinding.Spec.PrometheusConfigMap.Name = vzconst.VmiPromConfigName
 
+	legacyBindingCustomTemplateDefaultCM := metricsBinding.DeepCopy()
+	legacyBindingCustomTemplateDefaultCM.Spec.PrometheusConfigMap.Namespace = vzconst.VerrazzanoSystemNamespace
+	legacyBindingCustomTemplateDefaultCM.Spec.PrometheusConfigMap.Name = vzconst.VmiPromConfigName
+
 	tests := []struct {
 		name           string
 		metricsBinding *vzapi.MetricsBinding
@@ -325,6 +329,15 @@ func TestReconcileCreateOrUpdate(t *testing.T) {
 			requeue:        false,
 			expectError:    false,
 		},
+		{
+			name:           "test legacy with custom template default CM",
+			metricsBinding: legacyBindingCustomTemplateDefaultCM,
+			workload:       labeledWorkload,
+			namespace:      labeledNs,
+			secret:         testFileSec,
+			requeue:        true,
+			expectError:    false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -345,7 +358,8 @@ func TestReconcileCreateOrUpdate(t *testing.T) {
 			client := c.Build()
 			log := vzlog.DefaultLogger()
 			r := newReconciler(client)
-			result, err := r.reconcileBindingCreateOrUpdate(context.TODO(), tt.metricsBinding, log)
+			reconcileMetricsBinding := tt.metricsBinding.DeepCopy()
+			result, err := r.reconcileBindingCreateOrUpdate(context.TODO(), reconcileMetricsBinding, log)
 			if tt.expectError {
 				assert.Error(err, "Expected error recocniling the Metrics Binding")
 				return
@@ -358,6 +372,21 @@ func TestReconcileCreateOrUpdate(t *testing.T) {
 				err := client.Get(context.TODO(), types.NamespacedName{Namespace: tt.metricsBinding.Namespace, Name: tt.metricsBinding.Name}, &newMB)
 				assert.Error(err, "Expected not to find the Metrics Binding in the cluster")
 				return
+			}
+
+			if isLegacyVmiPrometheusConfigMapName(tt.metricsBinding.Spec.PrometheusConfigMap) {
+				newMB := vzapi.MetricsBinding{}
+				err := client.Get(context.TODO(), types.NamespacedName{Namespace: tt.metricsBinding.Namespace, Name: tt.metricsBinding.Name}, &newMB)
+				assert.NoError(err)
+
+				// for legacy VMI config map in metrics binding, it should be updated to have
+				// the additional scrape configs secret, and the config map should be removed from
+				// the metrics binding
+				assert.Empty(newMB.Spec.PrometheusConfigMap.Namespace)
+				assert.Empty(newMB.Spec.PrometheusConfigMap.Name)
+				assert.Equal(vzconst.PrometheusOperatorNamespace, newMB.Spec.PrometheusConfigSecret.Namespace)
+				assert.Equal(vzconst.PromAdditionalScrapeConfigsSecretName, newMB.Spec.PrometheusConfigSecret.Name)
+				assert.Equal(vzconst.PromAdditionalScrapeConfigsSecretKey, newMB.Spec.PrometheusConfigSecret.Key)
 			}
 			newMB := vzapi.MetricsBinding{}
 			err = client.Get(context.TODO(), types.NamespacedName{Namespace: tt.metricsBinding.Namespace, Name: tt.metricsBinding.Name}, &newMB)

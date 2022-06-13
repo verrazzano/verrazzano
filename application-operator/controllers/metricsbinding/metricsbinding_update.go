@@ -6,8 +6,9 @@ package metricsbinding
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"time"
+
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 
 	"github.com/Jeffail/gabs/v2"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -252,7 +253,9 @@ func (r *Reconciler) createScrapeInfo(ctx context.Context, metricsBinding *vzapi
 	return scrapeInfo, nil
 }
 
-// updateMetricsBinding updates the Metrics Binding Owner Reference from the target workload and adds a finalizer
+// updateMetricsBinding updates the Metrics Binding Owner Reference from the target workload,
+// adds a finalizer, and updates the PrometheusConfigSecret field if the metrics binding was using
+// the legacy default prometheus config map
 func (r *Reconciler) updateMetricsBinding(metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) error {
 	// Add the finalizer
 	controllerutil.AddFinalizer(metricsBinding, finalizerName)
@@ -282,6 +285,18 @@ func (r *Reconciler) updateMetricsBinding(metricsBinding *vzapi.MetricsBinding, 
 			BlockOwnerDeletion: &trueValue,
 		},
 	})
+
+	// If the config map specified is the legacy VMI prometheus config map, modify it to use
+	// the additionalScrapeConfigs config map for the Prometheus Operator
+	if isLegacyVmiPrometheusConfigMapName(metricsBinding.Spec.PrometheusConfigMap) {
+		metricsBinding.Spec.PrometheusConfigMap = vzapi.NamespaceName{}
+		metricsBinding.Spec.PrometheusConfigSecret = vzapi.SecretKey{
+			Namespace: vzconst.PrometheusOperatorNamespace,
+			Name:      vzconst.PromAdditionalScrapeConfigsSecretName,
+			Key:       vzconst.PromAdditionalScrapeConfigsSecretKey,
+		}
+	}
+
 	return nil
 }
 

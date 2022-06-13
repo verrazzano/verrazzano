@@ -124,6 +124,12 @@ func isLegacyDefaultMetricsBinding(metricsBinding *vzapi.MetricsBinding) bool {
 	configMapName := metricsBinding.Spec.PrometheusConfigMap
 	return templateName.Namespace == constants.LegacyDefaultMetricsTemplateNamespace &&
 		templateName.Name == constants.LegacyDefaultMetricsTemplateName &&
-		configMapName.Namespace == vzconst.VerrazzanoSystemNamespace &&
+		isLegacyVmiPrometheusConfigMapName(configMapName)
+}
+
+// isLegacyVmiPrometheusConfigMapName returns true if the given NamespaceName is that of the legacy
+// vmi system prometheus config map
+func isLegacyVmiPrometheusConfigMapName(configMapName vzapi.NamespaceName) bool {
+	return configMapName.Namespace == constants.VerrazzanoSystemNamespace &&
 		configMapName.Name == vzconst.VmiPromConfigName
 }
