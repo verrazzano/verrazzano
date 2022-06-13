@@ -8,9 +8,9 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -121,7 +121,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 	if version == constants.VersionFlagDefault {
 		// Find the latest release version of Verrazzano
-		version, err = helpers.GetLatestReleaseVersion()
+		version, err = helpers.GetLatestReleaseVersion(vzHelper.GetHTTPClient())
 		if err != nil {
 			return err
 		}
@@ -129,7 +129,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Installing Verrazzano version %s\n", version))
 
 	// Apply the Verrazzano operator.yaml.
-	err = applyPlatformOperatorYaml(client, vzHelper, version)
+	err = applyPlatformOperatorYaml(cmd, client, vzHelper, version)
 	if err != nil {
 		return err
 	}
@@ -177,31 +177,55 @@ func getVerrazzanoYAML(cmd *cobra.Command) (vz *vzapi.Verrazzano, err error) {
 }
 
 // applyPlatformOperatorYaml applies a given version of the platform operator yaml file
-func applyPlatformOperatorYaml(client client.Client, vzHelper helpers.VZHelper, version string) error {
-	// Get the Verrazzano operator.yaml - use a string constant for the URL to avoid security warnings
-	resp, err := http.Get(fmt.Sprintf(constants.VerrazzanoOperatorURL, version))
+func applyPlatformOperatorYaml(cmd *cobra.Command, client client.Client, vzHelper helpers.VZHelper, version string) error {
+	// Was an operator-file passed on the command line?
+	operatorFile, err := cmdhelpers.GetOperatorFile(cmd)
 	if err != nil {
-		return fmt.Errorf("Failed to access the Verrazzano operator.yaml file: %s", err.Error())
+		return fmt.Errorf("Failed to parse the command-line option %s: %s", constants.OperatorFileFlag, err.Error())
 	}
 
-	// Store response in a temporary file
-	tmpFile, err := ioutil.TempFile("", "vz")
-	if err != nil {
-		return fmt.Errorf("Failed to install the Verrazzano operator.yaml file: %s", err.Error())
-	}
-	defer os.Remove(tmpFile.Name())
-	_, err = tmpFile.ReadFrom(resp.Body)
-	if err != nil {
-		return fmt.Errorf("Failed to install the Verrazzano operator.yaml file: %s", err.Error())
+	// If the operatorFile was specified, is it a local or remote file?
+	url := ""
+	internalFilename := ""
+	if len(operatorFile) > 0 {
+		if strings.HasPrefix(strings.ToLower(operatorFile), "https://") {
+			url = operatorFile
+		} else {
+			internalFilename = operatorFile
+		}
+	} else {
+		url = fmt.Sprintf(constants.VerrazzanoOperatorURL, version)
 	}
 
-	// Apply the Verrazzano operator.yaml. A valid version must be specified for this to succeed.
-	url := fmt.Sprintf(constants.VerrazzanoOperatorURL, version)
-	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Applying the file %s\n", url))
+	userVisibleFilename := operatorFile
+	if len(url) > 0 {
+		userVisibleFilename = url
+		// Get the Verrazzano operator.yaml and store it in a temp file
+		httpClient := vzHelper.GetHTTPClient()
+		resp, err := httpClient.Get(url)
+		if err != nil {
+			return fmt.Errorf("Failed to access the Verrazzano operator.yaml file %s: %s", userVisibleFilename, err.Error())
+		}
+		// Store response in a temporary file
+		tmpFile, err := ioutil.TempFile("", "vz")
+		if err != nil {
+			return fmt.Errorf("Failed to install the Verrazzano operator.yaml file %s: %s", userVisibleFilename, err.Error())
+		}
+		defer os.Remove(tmpFile.Name())
+		_, err = tmpFile.ReadFrom(resp.Body)
+		if err != nil {
+			os.Remove(tmpFile.Name())
+			return fmt.Errorf("Failed to install the Verrazzano operator.yaml file %s: %s", userVisibleFilename, err.Error())
+		}
+		internalFilename = tmpFile.Name()
+	}
+
+	// Apply the Verrazzano operator.yaml
+	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Applying the file %s\n", userVisibleFilename))
 	yamlApplier := k8sutil.NewYAMLApplier(client, "")
-	err = yamlApplier.ApplyF(tmpFile.Name())
+	err = yamlApplier.ApplyF(internalFilename)
 	if err != nil {
-		return fmt.Errorf("Failed to apply the Verrazzano operator.yaml file: %s", err.Error())
+		return fmt.Errorf("Failed to apply the file: %s", err.Error())
 	}
 	return nil
 }

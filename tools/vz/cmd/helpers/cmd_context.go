@@ -5,6 +5,8 @@ package helpers
 
 import (
 	"io"
+	"net/http"
+	"time"
 
 	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/spf13/cobra"
@@ -88,6 +90,13 @@ func (rc *RootCmdContext) GetKubeClient(cmd *cobra.Command) (kubernetes.Interfac
 	}
 
 	return kubernetes.NewForConfig(config)
+}
+
+// GetHTTPClient - return an HTTP client
+func (rc *RootCmdContext) GetHTTPClient() *http.Client {
+	return &http.Client{
+		Timeout: time.Second * 30,
+	}
 }
 
 // NewRootCmdContext - create the root command context object
