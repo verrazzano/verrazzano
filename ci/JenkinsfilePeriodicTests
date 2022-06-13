@@ -3,7 +3,7 @@
 
 def GIT_COMMIT_TO_USE
 def VERRAZZANO_DEV_VERSION
-
+def RELEASABLE_IMAGES_OBJECT_STORE
 def agentLabel = env.JOB_NAME.contains('master') ? "phxsmall" : "VM.Standard2.2"
 def TESTS_FAILED = false
 def tarfilePrefix="verrazzano_periodic"
@@ -70,7 +70,6 @@ pipeline {
         OCI_OS_BUCKET="verrazzano-builds"
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
-        RELEASABLE_IMAGES_OBJECT_STORE = "releasable-verrazzano-images.txt"
 
         STABLE_COMMIT_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-stable-commit.txt"
         CLEAN_PERIODIC_OS_LOCATION = "${CLEAN_BRANCH_NAME}-last-clean-periodic-test/verrazzano_periodic-commit.txt"
@@ -168,6 +167,7 @@ pipeline {
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + GIT_COMMIT_TO_USE
                     storeLocation="${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${tarfilePrefix}.zip"
+                    RELEASABLE_IMAGES_OBJECT_STORE = "verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt"
                 }
             }
         }
