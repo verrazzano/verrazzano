@@ -44,6 +44,7 @@ func (r *Reconciler) reconcileBindingCreateOrUpdate(ctx context.Context, metrics
 	// legacy apps using default metrics template, to ServiceMonitor. If it's not using VMI config map,
 	// we treat it like custom metrics setup
 	if isLegacyDefaultMetricsBinding(metricsBinding) {
+		log.Debug("Legacy default MetricsBinding found, creating a Service Monitor and deleting the MetricsBinding")
 		if err := r.handleDefaultMetricsTemplate(ctx, metricsBinding, log); err != nil {
 			return k8scontroller.Result{Requeue: true}, err
 		}
@@ -108,6 +109,7 @@ func (r *Reconciler) handleCustomMetricsTemplate(ctx context.Context, metricsBin
 
 	// Get the Namespace of the Metrics Binding
 	workloadNamespace := k8scorev1.Namespace{}
+	log.Debugf("Getting the workload namespace %s from the MetricsBinding", metricsBinding.GetNamespace())
 	err = r.Client.Get(context.TODO(), k8sclient.ObjectKey{Name: metricsBinding.GetNamespace()}, &workloadNamespace)
 	if err != nil {
 		return log.ErrorfNewErr("Failed to get metrics binding namespace %s: %v", metricsBinding.GetName(), err)
@@ -127,6 +129,7 @@ func (r *Reconciler) handleCustomMetricsTemplate(ctx context.Context, metricsBin
 	}
 
 	// Organize inputs for template processor
+	log.Debugf("Creating the template inputs from the workload %s and namespace %s", workloadObject.GetName(), workloadNamespace.GetName())
 	templateInputs := map[string]interface{}{
 		"workload":  workloadObject.Object,
 		"namespace": workloadNamespaceUnstructured.Object,
@@ -156,6 +159,7 @@ func (r *Reconciler) handleCustomMetricsTemplate(ctx context.Context, metricsBin
 	var data *gabs.Container
 	configMap := getPromConfigMap(metricsBinding)
 	if configMap != nil {
+		log.Debugf("ConfigMap %s/%s found in the MetricsBinding, attempting scrape config update", configMap.GetNamespace(), configMap.GetName())
 		_, err = controllerutil.CreateOrUpdate(ctx, r.Client, configMap, func() error {
 			data, err = getConfigData(configMap)
 			if err != nil {
@@ -178,6 +182,7 @@ func (r *Reconciler) handleCustomMetricsTemplate(ctx context.Context, metricsBin
 	}
 	secret, key := getPromConfigSecret(metricsBinding)
 	if secret != nil {
+		log.Debugf("Secret %s/%s found in the MetricsBinding, attempting scrape config update", secret.GetNamespace(), secret.GetName())
 		_, err = controllerutil.CreateOrUpdate(ctx, r.Client, secret, func() error {
 			data, err = getConfigDataFromSecret(secret, key)
 			if err != nil {
@@ -202,6 +207,7 @@ func (r *Reconciler) handleCustomMetricsTemplate(ctx context.Context, metricsBin
 }
 
 func (r *Reconciler) createScrapeInfo(ctx context.Context, metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) (metrics.ScrapeInfo, error) {
+	log.Debugf("Attempting to create the ServiceMonitor information from the MetricsBinding %s/%s", metricsBinding.Namespace, metricsBinding.Name)
 	var scrapeInfo metrics.ScrapeInfo
 
 	// Get the workload object from the Metrics Binding to populate the Service Monitor
@@ -210,16 +216,18 @@ func (r *Reconciler) createScrapeInfo(ctx context.Context, metricsBinding *vzapi
 	workloadObject.SetKind(workload.TypeMeta.Kind)
 	workloadObject.SetAPIVersion(workload.TypeMeta.APIVersion)
 	workloadName := types.NamespacedName{Namespace: metricsBinding.Namespace, Name: workload.Name}
+	log.Debugf("Getting the workload resource %s/%s from the MetricsBinding", workloadName.Namespace, workloadName.Name)
 	err := r.Client.Get(ctx, workloadName, &workloadObject)
 	if err != nil {
-		return scrapeInfo, log.ErrorfNewErr("Failed to get the workload %s from the Metrics Binding %s/%s: %v", workload.Name, metricsBinding.Namespace, metricsBinding.Name, err)
+		return scrapeInfo, log.ErrorfNewErr("Failed to get the workload %s from the MetricsBinding %s/%s: %v", workload.Name, metricsBinding.Namespace, metricsBinding.Name, err)
 	}
 
 	// Get the namespace for the Metrics Binding to check if Istio is enabled
 	workloadNamespace := k8scorev1.Namespace{}
+	log.Debugf("Getting the workload namespace %s from the MetricsBinding", metricsBinding.GetNamespace())
 	err = r.Client.Get(context.TODO(), k8sclient.ObjectKey{Name: metricsBinding.GetNamespace()}, &workloadNamespace)
 	if err != nil {
-		return scrapeInfo, log.ErrorfNewErr("Failed to get metrics binding namespace %s: %v", metricsBinding.GetName(), err)
+		return scrapeInfo, log.ErrorfNewErr("Failed to get MetricsBinding namespace %s: %v", metricsBinding.GetName(), err)
 	}
 
 	// Verify if Istio is enabled from the Namespace annotations
@@ -258,6 +266,7 @@ func (r *Reconciler) updateMetricsBinding(metricsBinding *vzapi.MetricsBinding, 
 	}
 
 	// Set the owner reference for the MetricsBinding so that it gets deleted with the workload
+	log.Debugf("Updating the MetricsBinding OwnerReference to the target workload %s/%s", workloadObject.GetNamespace(), workloadObject.GetName())
 	trueValue := true
 	metricsBinding.SetOwnerReferences([]k8smetav1.OwnerReference{
 		{

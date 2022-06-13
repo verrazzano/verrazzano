@@ -24,6 +24,7 @@ func (r *Reconciler) reconcileBindingDelete(ctx context.Context, metricsBinding 
 	// If a ConfigMap is populated, delete the existing scrape config from the ConfigMap
 	var configMap = getPromConfigMap(metricsBinding)
 	if configMap != nil {
+		log.Debugf("ConfigMap %s/%s found in the MetricsBinding, deleting scrape config", configMap.GetName(), configMap.GetNamespace())
 		if err := r.deletePrometheusConfigMap(ctx, metricsBinding, configMap, log); err != nil {
 			return k8scontroller.Result{Requeue: true}, err
 		}
@@ -31,6 +32,7 @@ func (r *Reconciler) reconcileBindingDelete(ctx context.Context, metricsBinding 
 	// If the Secret exists, delete the existing config from the Secret
 	secret, key := getPromConfigSecret(metricsBinding)
 	if secret != nil {
+		log.Debugf("Secret %s/%s found in the MetricsBinding, deleting scrape config", secret.GetName(), secret.GetNamespace())
 		if err := r.deletePrometheusConfigSecret(ctx, metricsBinding, secret, key, log); err != nil {
 			return k8scontroller.Result{Requeue: true}, err
 		}
