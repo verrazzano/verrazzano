@@ -112,7 +112,7 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Installing Verrazzano on Kind"
-${GO_REPO_PATH}/verrazzano/tools/vz
+cd ${GO_REPO_PATH}/verrazzano/tools/vz
 GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${INSTALL_CONFIG_FILE_KIND} --operator-file ${WORKSPACE}/acceptance-test-operator.yaml
 
 # wait for Verrazzano install to complete
