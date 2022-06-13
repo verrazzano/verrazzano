@@ -59,7 +59,7 @@ func runCmdUpgrade(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		return err
 	}
 
-	// Get the verrazzano resource that needs to updated for the new version
+	// Get the verrazzano resource that needs to be updated to the new version
 	vz, err := helpers.FindVerrazzanoResource(client)
 	if err != nil {
 		return err
@@ -92,13 +92,13 @@ func runCmdUpgrade(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	// Show the version of Verrazzano we are upgrading to
 	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Upgrading Verrazzano to version %s\n", version))
 
-	// Apply the Verrazzano operator.yaml.
+	// Apply the Verrazzano operator.yaml
 	err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)
 	if err != nil {
 		return err
 	}
 
-	// Wait for the platform operator to be ready before we create the Verrazzano resource.
+	// Wait for the platform operator to be ready before we update the verrazzano install resource
 	_, err = cmdhelpers.WaitForPlatformOperator(client, vzHelper)
 	if err != nil {
 		return err
@@ -110,6 +110,8 @@ func runCmdUpgrade(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	if err != nil {
 		return fmt.Errorf("Failed to set upgrade version in verrazzano resource: %s", err.Error())
 	}
+
+	// Wait for the Verrazzano upgrade to complete
 
 	return nil
 }
