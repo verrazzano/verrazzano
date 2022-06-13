@@ -13,7 +13,7 @@ spec:
     matchNames:
       - {{ .Release.Namespace }}
   selector: {}
-  podMetricsEndpoints:
+  endpoints:
     - port: https
       path: /metrics
       scheme: https
