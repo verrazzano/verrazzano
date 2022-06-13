@@ -6,6 +6,7 @@ package metricsbinding
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
@@ -244,6 +245,9 @@ func (r *Reconciler) createScrapeInfo(ctx context.Context, metricsBinding *vzapi
 
 	// Add a port to the Service Monitor endpoints
 	scrapeInfo.Ports = 1
+
+	// Add the cluster name to the scrape info
+	scrapeInfo.ClusterName = clusters.GetClusterName(ctx, r.Client)
 
 	return scrapeInfo, nil
 }

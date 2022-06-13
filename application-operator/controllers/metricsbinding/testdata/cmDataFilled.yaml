@@ -27,3 +27,17 @@ scrape_configs:
     - source_labels:
         - __meta_kubernetes_service_label_app
       target_label: app
+- job_name: test-namespace_test-deployment_apps_v2
+  kubernetes_sd_configs:
+    - namespaces:
+        names:
+          - istio-system
+      role: endpoints
+  relabel_configs:
+    - action: keep
+      regex: istio
+      source_labels:
+        - __meta_kubernetes_service_name
+    - source_labels:
+        - __meta_kubernetes_service_label_app
+      target_label: app

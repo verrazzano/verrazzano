@@ -60,11 +60,14 @@ func (r *Reconciler) deletePrometheusConfigMap(ctx context.Context, metricsBindi
 			return log.ErrorfNewErr("Failed to get Prometheus ConfigMap Data: %v", err)
 		}
 		scrapeConfigs := promConfig.Search(prometheusScrapeConfigsLabel)
-		updatedScrapeConfigs, err := r.deleteScrapeConfig(metricsBinding, scrapeConfigs, log)
+		testBytes := promConfig.Bytes()
+		_, err = r.deleteScrapeConfig(metricsBinding, scrapeConfigs, log)
 		if err != nil {
 			return err
 		}
-		_, err = promConfig.Set(updatedScrapeConfigs, prometheusScrapeConfigsLabel)
+		//promConfig, err = promConfig.Set(updatedScrapeConfigs, prometheusScrapeConfigsLabel)
+		fmt.Printf("%v", testBytes)
+
 		if err != nil {
 			return log.ErrorfNewErr("Failed to set the new scrape config for the Prometheus ConfigMap: %v", err)
 		}
