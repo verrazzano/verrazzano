@@ -15,6 +15,11 @@ if [ -z "$JENKINS_URL" ] || [ -z "$GO_REPO_PATH" ] || [ -z "$TESTS_EXECUTED_FILE
   exit 1
 fi
 
+if ! [ -x "$(command -v go)" ]; then
+  echo "vz command-line tool requires go which does not appear to be installed"
+  exit 1
+fi
+
 INSTALL_CALICO=${1:-false}
 WILDCARD_DNS_DOMAIN=${2:-"x=nip.io"}
 KIND_NODE_COUNT=${KIND_NODE_COUNT:-1}
@@ -57,7 +62,7 @@ cd ${GO_REPO_PATH}/verrazzano
 ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
 ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
 
-echo "Install Platform Operator"
+echo "Determine which yaml file to use to install the Verrazzano Platform Operator"
 cd ${GO_REPO_PATH}/verrazzano
 
 if [ -z "$OPERATOR_YAML" ] && [ "" = "${OPERATOR_YAML}" ]; then
@@ -74,10 +79,9 @@ if [ -z "$OPERATOR_YAML" ] && [ "" = "${OPERATOR_YAML}" ]; then
 else
   # The operator.yaml filename was provided, install using that file.
   echo "Using provided operator.yaml file: " ${OPERATOR_YAML}
+  cp ${OPERATOR_YAML} ${WORKSPACE}/acceptance-test-operator.yaml
   kubectl apply -f ${OPERATOR_YAML}
 fi
-
-
 
 # make sure ns exists
 ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
@@ -92,14 +96,6 @@ fi
 
 # Configure the custom resource to install Verrazzano on Kind
 ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}
-
-echo "Wait for Operator to be ready"
-cd ${GO_REPO_PATH}/verrazzano
-kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-if [ $? -ne 0 ]; then
-  echo "Operator is not ready"
-  exit 1
-fi
 
 echo "Creating Override ConfigMap"
 kubectl create cm test-overrides --from-file=${TEST_OVERRIDE_CONFIGMAP_FILE}
@@ -116,15 +112,8 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Installing Verrazzano on Kind"
-install_retries=0
-until kubectl apply -f ${INSTALL_CONFIG_FILE_KIND}; do
-  install_retries=$((install_retries+1))
-  sleep 6
-  if [ $install_retries -ge 10 ] ; then
-    echo "Installation Failed trying to apply the Verrazzano CR YAML"
-    exit 1
-  fi
-done
+${GO_REPO_PATH}/verrazzano/tools/vz
+GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${INSTALL_CONFIG_FILE_KIND} --operator-file ${WORKSPACE}/acceptance-test-operator.yaml
 
 # wait for Verrazzano install to complete
 ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
