@@ -204,7 +204,7 @@ func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verr
 	}
 	// Reject any other edits for now
 	if err := common.CompareInstallArgs(c.getInstallArgs(old), c.getInstallArgs(new)); err != nil {
-		return fmt.Errorf("Updates to istioInstallArgs not allowed for %s", ComponentJSONName)
+		return fmt.Errorf("Updates to InstallArgs not allowed for %s", ComponentJSONName)
 	}
 	return c.HelmComponent.ValidateUpdate(old, new)
 }
