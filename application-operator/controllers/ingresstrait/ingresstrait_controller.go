@@ -390,12 +390,12 @@ func (r *Reconciler) fetchWorkloadChildren(ctx context.Context, workload *unstru
 		return children, nil
 	} else if workload.GetAPIVersion() == appsv1.SchemeGroupVersion.String() {
 		// Else if this is a native resource then use the workload itself as the child
-		log.Info("Found native workload: %v", workload)
+		log.Debugf("Found native workload: %v", workload)
 		return []*unstructured.Unstructured{workload}, nil
 	} else if workload.GetAPIVersion() == corev1.SchemeGroupVersion.String() &&
 		workload.GetKind() == "Service" {
 		// limits v1 workloads to services only
-		log.Info("Found service workload: %v", workload)
+		log.Debugf("Found service workload: %v", workload)
 		return []*unstructured.Unstructured{workload}, nil
 	} else {
 		// Else return an error that the workload type is not supported by this trait.

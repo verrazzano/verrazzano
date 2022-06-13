@@ -868,10 +868,10 @@ func TestFailureCreateGatewayCertNoAppName(t *testing.T) {
 	assert.Equal(time.Duration(0), result.RequeueAfter)
 }
 
-// TestSuccessfullyCreateNewIngressForVerrazzanoWorkload tests the Reconcile method for the following use case.
-// GIVEN a request to reconcile an ingress trait resource that applies to a Verrazzano workload type
+// TestSuccessfullyCreateNewIngressForServiceComponent tests the Reconcile method for the following use case.
+// GIVEN a request to reconcile an ingress trait resource that applies to a service workload type
 // WHEN the trait exists but the ingress does not
-// THEN ensure that the workload is unwrapped and the trait is created.
+// THEN ensure that the service workload is unwrapped and the trait is created.
 func TestSuccessfullyCreateNewIngressForServiceComponent(t *testing.T) {
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
@@ -930,7 +930,7 @@ func TestSuccessfullyCreateNewIngressForServiceComponent(t *testing.T) {
 			_ = unstructured.SetNestedMap(workload.Object, containedResource, "spec", "template")
 			return nil
 		})
-	// Expect a call to get the containerized workload resource definition
+	// Expect a call to get the service workload resource definition
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: "services."}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workloadDef *v1alpha2.WorkloadDefinition) error {

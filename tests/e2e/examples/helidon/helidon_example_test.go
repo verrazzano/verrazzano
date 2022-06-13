@@ -217,8 +217,8 @@ func appEndpointAccessible(url string, hostname string) bool {
 			}
 
 			t.Logs.Errorf("Error Response=%v", string(bodyRaw))
+			resp.Body.Close()
 		}
-		resp.Body.Close()
 		return false
 	}
 
