@@ -259,7 +259,10 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := removeBootstrapSecretIfExists(log, c); err != nil {
 		return log.ErrorfThrottledNewErr("Failed removing Rancher bootstrap secret: %s", err.Error())
 	}
-	return r.HelmComponent.PostInstall(ctx)
+	if err := r.HelmComponent.PostInstall(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("Failed helm component post install: %s", err.Error())
+	}
+	return nil
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not
