@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
@@ -39,7 +40,7 @@ func Upgrade(log vzlog.VerrazzanoLogger, imageOverrideString string, overridesFi
 	}
 
 	// Perform istioctl call of type upgrade
-	stdout, stderr, err = runIstioctl(log, args, "upgrade")
+	stdout, stderr, err = runIstioctl(log, args, "upgrade", true)
 	if err != nil {
 		return stdout, stderr, err
 	}
@@ -66,7 +67,7 @@ func Install(log vzlog.VerrazzanoLogger, overrideStrings string, overridesFiles 
 	}
 
 	// Perform istioctl call of type upgrade
-	stdout, stderr, err = runIstioctl(log, args, "install")
+	stdout, stderr, err = runIstioctl(log, args, "install", true)
 	if err != nil {
 		return stdout, stderr, err
 	}
@@ -76,7 +77,6 @@ func Install(log vzlog.VerrazzanoLogger, overrideStrings string, overridesFiles 
 
 // IsInstalled returns true if Istio is installed
 func IsInstalled(log vzlog.VerrazzanoLogger) (bool, error) {
-
 	// Perform istioctl call of type upgrade
 	stdout, _, err := VerifyInstall(log)
 	if err != nil {
@@ -94,9 +94,9 @@ func VerifyInstall(log vzlog.VerrazzanoLogger) (stdout []byte, stderr []byte, er
 	args := []string{"verify-install"}
 
 	// Perform istioctl call of type upgrade
-	stdout, stderr, err = runIstioctl(log, args, "verify-install")
+	stdout, stderr, err = runIstioctl(log, args, "verify-install", false)
 	if err != nil {
-		return stdout, stderr, err
+		return stdout, stderr, errors.Wrapf(err, "verify-install failed, stderr: %s", stderr)
 	}
 
 	return stdout, stderr, nil
@@ -105,13 +105,14 @@ func VerifyInstall(log vzlog.VerrazzanoLogger) (stdout []byte, stderr []byte, er
 // runIstioctl will perform istioctl calls with specified arguments  for operations
 // Note that operation name as of now does not affect the istioctl call (both upgrade and install call istioctl install)
 // The operationName field is just used for visibility of operation in logging at the moment
-func runIstioctl(log vzlog.VerrazzanoLogger, cmdArgs []string, operationName string) (stdout []byte, stderr []byte, err error) {
+func runIstioctl(log vzlog.VerrazzanoLogger, cmdArgs []string, operationName string, verbose bool) (stdout []byte, stderr []byte, err error) {
 	cmd := exec.Command("istioctl", cmdArgs...)
-	log.Infof("Running istioctl command: %s", cmd.String())
-
+	if verbose { // use a verbose flag instead of Debug, in some cases we want to always see the command (install, upgrade)
+		log.Infof("Running istioctl command: %s", cmd.String())
+	}
 	stdout, stderr, err = runner.Run(cmd)
 	if err != nil {
-		log.Errorf("Failed running istioctl command %s: %s", cmd.String(), stderr)
+		log.Debugf("Failed running istioctl command %s: %s", cmd.String(), stderr)
 		return stdout, stderr, err
 	}
 
