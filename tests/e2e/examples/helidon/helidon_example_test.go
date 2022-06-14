@@ -209,14 +209,16 @@ func appEndpointAccessible(url string, hostname string) bool {
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		t.Logs.Errorf("Unexpected error while making http request=%v", err)
-		bodyRaw, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			t.Logs.Errorf("Unexpected error while marshallling error response=%v", err)
-			return false
-		}
+		if resp.Body != nil {
+			bodyRaw, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				t.Logs.Errorf("Unexpected error while marshallling error response=%v", err)
+				return false
+			}
 
-		t.Logs.Errorf("Error Response=%v", string(bodyRaw))
-		resp.Body.Close()
+			t.Logs.Errorf("Error Response=%v", string(bodyRaw))
+			resp.Body.Close()
+		}
 		return false
 	}
 
