@@ -6,7 +6,7 @@ package cluster
 
 import (
 	encjson "encoding/json"
-	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/files"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"go.uber.org/zap"
 	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"

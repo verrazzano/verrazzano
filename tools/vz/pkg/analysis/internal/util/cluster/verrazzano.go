@@ -5,8 +5,8 @@
 package cluster
 
 import (
-	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/files"
-	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/report"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"

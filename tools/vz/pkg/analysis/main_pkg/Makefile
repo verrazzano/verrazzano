@@ -34,7 +34,7 @@ GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.b
 #
 .PHONY: run
 run:
-	$(GO) run ${GOPATH}/src/github.com/verrazzano/verrazzano/tools/analysis/main.go --zap-log-level=debug
+	$(GO) run ${GOPATH}/src/github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/main.go --zap-log-level=debug
 
 #
 # Go build related tasks
@@ -44,11 +44,11 @@ go-build:
 	GOOS=darwin GOARCH=amd64 $(GO) build \
 		-ldflags "${GO_LDFLAGS} -X main.analysisToolVersion=${ANALYSIS_TOOL_VERSION}" \
 		-o out/darwin_amd64/verrazzano-analysis \
-		${GOPATH}/src/github.com/verrazzano/verrazzano/tools/analysis/main.go
+		${GOPATH}/src/github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/main.go
 	GOOS=linux GOARCH=amd64 $(GO) build \
 		-ldflags "${GO_LDFLAGS} -X main.analysisToolVersion=${ANALYSIS_TOOL_VERSION}" \
 		-o out/linux_amd64/verrazzano-analysis \
-		${GOPATH}/src/github.com/verrazzano/verrazzano/tools/analysis/main.go
+		${GOPATH}/src/github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/main.go
 
 .PHONY: go-install
 go-install:

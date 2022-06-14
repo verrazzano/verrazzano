@@ -7,7 +7,7 @@ package report
 import (
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/files"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"go.uber.org/zap"
 )
 

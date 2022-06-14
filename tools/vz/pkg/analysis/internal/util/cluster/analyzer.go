@@ -6,8 +6,8 @@ package cluster
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/files"
-	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/report"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"go.uber.org/zap"
 	"regexp"
 )

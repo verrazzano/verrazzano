@@ -49,3 +49,18 @@ const VerrazzanoReleaseList = "https://api.github.com/repos/verrazzano/verrazzan
 
 // VerrazzanoOperatorURL - URL for downloading Verrazzano releases
 const VerrazzanoOperatorURL = "https://github.com/verrazzano/verrazzano/releases/download/%s/operator.yaml"
+
+// Analysis tool flags
+const (
+	DirectoryFlagName  = "directory"
+	DirectoryFlagValue = ""
+	DirectoryFlagUsage = "Directory holding the captured data"
+
+	ReportFileFlagName  = "report-file"
+	ReportFileFlagValue = ""
+	ReportFileFlagUsage = "Name of report output file. (default stdout)"
+
+	ReportFormatFlagName  = "report-format"
+	ReportFormatFlagValue = "simple"
+	ReportFormatFlagUsage = "The format of the report output. Valid output formats are \"simple\""
+)

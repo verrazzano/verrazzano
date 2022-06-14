@@ -1,14 +1,14 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-package main
+package main_pkg
 
 import (
 	"flag"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/buildlog"
-	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/cluster"
-	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/log"
-	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/report"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/buildlog"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/cluster"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/log"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"go.uber.org/zap"
 	"os"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -35,14 +35,14 @@ var flagArgs []string
 var logger *zap.SugaredLogger
 
 // The analyze tool will analyze information which has already been captured from an environment
-func main() {
-	initFlags()
+func AnalysisMain(directory string) {
+	initFlags(directory)
 	os.Exit(handleMain())
 }
 
 // initFlags is handled here. Separated out here from the main logic for now to allow for more main test coverage
 // TODO: Look at if we can reliably mess with flag variants in Go unit tests
-func initFlags() {
+func initFlags(directory string) {
 	flag.StringVar(&analyzerType, "analysis", "cluster", "Type of analysis: cluster")
 	flag.StringVar(&reportFile, "reportFile", "", "Name of report output file, default is stdout")
 	flag.BoolVar(&includeInfo, "info", true, "Include informational messages, default is true")
@@ -62,7 +62,8 @@ func initFlags() {
 	logger = zap.S()
 
 	// Doing this to allow unit testing main logic
-	flagArgs = flag.Args()
+	//flagArgs = flag.Args()
+	flagArgs = append(flagArgs, directory)
 }
 
 // handleMain is where the main logic is at, separated here to allow for more test coverage
@@ -132,7 +133,7 @@ func Analyze(logger *zap.SugaredLogger, analyzerType string, flagArgs string) (e
 	// Call the analyzer for the type specified
 	analyzerFunc, ok := analyzerTypeFunctions[analyzerType]
 	if !ok {
-		printUsage()
+		//printUsage()
 		return fmt.Errorf("Unknown analyzer type supplied: %s", analyzerType)
 	}
 	err = analyzerFunc(logger, flagArgs)
