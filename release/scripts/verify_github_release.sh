@@ -54,6 +54,7 @@ function verify_released_artifacts() {
   ${SHA_CMD} vz-darwin-amd64.tar.gz.sha256
   ${SHA_CMD} vz-darwin-arm64.tar.gz.sha256
   ${SHA_CMD} vz-linux-amd64.tar.gz.sha256
+  ${SHA_CMD} vz-linux-arm64.tar.gz.sha256
 
   # Latest tag is automatic, do we really need to check ? If required, better compare the files from the two directories
   local latestVersionDir=${TMPDIR}}/latest
@@ -73,6 +74,7 @@ function verify_released_artifacts() {
   ${SHA_CMD} vz-darwin-amd64.tar.gz.sha256
   ${SHA_CMD} vz-darwin-arm64.tar.gz.sha256
   ${SHA_CMD} vz-linux-amd64.tar.gz.sha256
+  ${SHA_CMD} vz-linux-arm64.tar.gz.sha256
 }
 
 verify_released_artifacts
