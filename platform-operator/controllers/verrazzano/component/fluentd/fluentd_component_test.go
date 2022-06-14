@@ -345,7 +345,7 @@ func TestIsInstalled(t *testing.T) {
 			fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				&appsv1.DaemonSet{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      DaemonsetName,
+						Name:      ComponentName,
 						Namespace: ComponentNamespace,
 					},
 				},

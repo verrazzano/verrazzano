@@ -36,9 +36,6 @@ const (
 
 	// vzImagePullSecretKeyName is the Helm key name for the VZ chart image pull secret
 	vzImagePullSecretKeyName = "global.imagePullSecrets[0]"
-
-	// DaemonsetName is the daemonset of the component
-	DaemonsetName = "fluentd"
 )
 
 var (
@@ -160,12 +157,12 @@ func (f fluentdComponent) IsReady(ctx spi.ComponentContext) bool {
 // IsInstalled component check
 func (f fluentdComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	daemonSet := &appsv1.DaemonSet{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: DaemonsetName}, daemonSet)
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, daemonSet)
 	if errors.IsNotFound(err) {
 		return false, nil
 	}
 	if err != nil {
-		ctx.Log().Errorf("Failed to get %s/%s daemonSet: %v", ComponentNamespace, DaemonsetName, err)
+		ctx.Log().Errorf("Failed to get %s/%s daemonSet: %v", ComponentNamespace, ComponentName, err)
 		return false, err
 	}
 	return true, nil

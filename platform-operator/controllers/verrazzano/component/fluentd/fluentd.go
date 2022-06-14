@@ -91,7 +91,7 @@ func isFluentdReady(ctx spi.ComponentContext) bool {
 	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) {
 		daemonsets = append(daemonsets,
 			types.NamespacedName{
-				Name:      DaemonsetName,
+				Name:      ComponentName,
 				Namespace: ComponentNamespace,
 			})
 		return status.DaemonSetsAreReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix)
