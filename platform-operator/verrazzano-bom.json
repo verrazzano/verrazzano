@@ -242,7 +242,7 @@
             },
             {
               "image": "prometheus",
-              "tag": "v2.34.0",
+              "tag": "v2.34.0-1",
               "helmFullImageKey": "monitoringOperator.prometheusImage"
             },
             {
@@ -484,7 +484,7 @@
           "images": [
             {
               "image": "prometheus",
-              "tag": "v2.34.0",
+              "tag": "v2.34.0-1",
               "helmFullImageKey": "prometheus.prometheusSpec.image.repository",
               "helmTagKey": "prometheus.prometheusSpec.image.tag"
             }
