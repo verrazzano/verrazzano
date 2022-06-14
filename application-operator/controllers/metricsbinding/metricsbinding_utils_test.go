@@ -72,9 +72,8 @@ func TestGetConfigData(t *testing.T) {
 func getConfigMapFromTestFile(empty bool) (*v1.ConfigMap, error) {
 	if empty {
 		return readConfigMapData("./testdata/cmDataEmpty.yaml")
-	} else {
-		return readConfigMapData("./testdata/cmDataFilled.yaml")
 	}
+	return readConfigMapData("./testdata/cmDataFilled.yaml")
 }
 
 func readConfigMapData(filename string) (*v1.ConfigMap, error) {

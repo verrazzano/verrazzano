@@ -48,10 +48,9 @@ func EditScrapeJobInPrometheusConfig(promConfig *gabs.Container, scrapeJobsKey s
 		if newScrapeConfig == nil || newScrapeConfig.Data() == nil {
 			err := promConfig.ArrayRemove(scrapeJobIndex, scrapeJobsKey)
 			return err
-		} else {
-			_, err := scrapeConfigs.SetIndex(newScrapeConfig.Data(), scrapeJobIndex)
-			return err
 		}
+		_, err := scrapeConfigs.SetIndex(newScrapeConfig.Data(), scrapeJobIndex)
+		return err
 	}
 
 	if !found && newScrapeConfig != nil {
