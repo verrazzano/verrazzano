@@ -481,15 +481,17 @@ pipeline {
                 }
             }
             
-            if (keepOLCNEClusterOnFailure == false) {
-                echo "[INFO] Deleting OLCNE Cluster"
-                deleteOLCNECluster()
-                echo "[INFO] Deleting OCI DNS Zone"
-                deleteOCIDNSZone()
-                echo "[INFO] Deleting OCI FileSystem"
-                deleteOCIFileSystem()
-                echo "[INFO] Deleting OCI LoadBalancers"
-                deleteOCILoadBalancers()
+            script {
+                if (keepOLCNEClusterOnFailure == false) {
+                    echo "[INFO] Deleting OLCNE Cluster"
+                    deleteOLCNECluster()
+                    echo "[INFO] Deleting OCI DNS Zone"
+                    deleteOCIDNSZone()
+                    echo "[INFO] Deleting OCI FileSystem"
+                    deleteOCIFileSystem()
+                    echo "[INFO] Deleting OCI LoadBalancers"
+                    deleteOCILoadBalancers()
+                }
             }
 
             sh """
@@ -498,7 +500,7 @@ pipeline {
                 exit 1
                 fi
             """
-       }
+        }
        failure {
             sh """
                 curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o $WORKSPACE/build-console-output.log ${BUILD_URL}consoleText
@@ -514,18 +516,18 @@ pipeline {
                 if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-.*" || env.BRANCH_NAME ==~ "mark/*") {
                     slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                 }
-           }
+            }
        }
        success {
            script {
                METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
-           }
+            }
        }
        cleanup {
            metricBuildDuration()
            emitJobMetrics()
            deleteDir()
-       }
+        }
     }
 }
 
