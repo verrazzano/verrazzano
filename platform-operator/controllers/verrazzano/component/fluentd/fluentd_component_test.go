@@ -46,7 +46,7 @@ func init() {
 	// +kubebuilder:scaffold:testScheme
 }
 
-func Test_FluentdComponent_ValidateUpdate(t *testing.T) {
+func TestValidateUpdate(t *testing.T) {
 	disabled := false
 	sec := getFakeSecret("TestValidateUpdate-es-sec")
 	defer func() { getControllerRuntimeClient = getClient }()
@@ -185,7 +185,7 @@ func Test_FluentdComponent_ValidateUpdate(t *testing.T) {
 	}
 }
 
-func Test_FluentdComponent_ValidateInstall(t *testing.T) {
+func TestValidateInstall(t *testing.T) {
 	tests := []struct {
 		name    string
 		vz      *vzapi.Verrazzano

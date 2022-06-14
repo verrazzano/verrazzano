@@ -98,6 +98,7 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 	a.NoError(err)
 
 	// Create a fluentd daemonset for test purposes
+	const someURL = "some-url"
 	daemonSet := appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: defNs,
@@ -116,7 +117,7 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 								},
 								{
 									Name:  vpoconst.ElasticsearchURLEnvVar,
-									Value: "some-url",
+									Value: someURL,
 								},
 							},
 						},
@@ -143,7 +144,7 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 	// create a secret with needed keys
 	data := make(map[string][]byte)
 	data[vpoconst.ClusterNameData] = []byte("managed1")
-	data[vpoconst.ElasticsearchURLData] = []byte("some-url")
+	data[vpoconst.ElasticsearchURLData] = []byte(someURL)
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: defNs,
@@ -189,12 +190,12 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 	a.NoError(err)
 	a.Equal("managed1", updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[0].Value)
 	a.Nil(updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[0].ValueFrom)
-	a.Equal("some-url", updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[1].Value)
+	a.Equal(someURL, updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[1].Value)
 	a.Nil(updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[1].ValueFrom)
 }
 
-// Test_loggingPreInstall tests the Fluentd loggingPreInstall call
-func Test_loggingPreInstall(t *testing.T) {
+// TestLoggingPreInstall tests the Fluentd loggingPreInstall call
+func TestLoggingPreInstall(t *testing.T) {
 	// GIVEN a Fluentd component
 	//  WHEN I call loggingPreInstall with fluentd overrides for ES and a custom ES secret
 	//  THEN no error is returned and the secret has been copied
@@ -254,11 +255,11 @@ func Test_loggingPreInstall(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// Test_loggingPreInstallSecretNotFound tests the Verrazzano loggingPreInstall call
+// TestLoggingPreInstallSecretNotFound tests the Verrazzano loggingPreInstall call
 // GIVEN a Verrazzano component
 //  WHEN I call loggingPreInstall with fluentd overrides for ES and a custom ES secret and the secret does not exist
 //  THEN an error is returned
-func Test_loggingPreInstallSecretNotFound(t *testing.T) {
+func TestLoggingPreInstallSecretNotFound(t *testing.T) {
 	trueValue := true
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c,
@@ -278,11 +279,11 @@ func Test_loggingPreInstallSecretNotFound(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// Test_loggingPreInstallFluentdNotEnabled tests the Verrazzano loggingPreInstall call
+// TestLoggingPreInstallFluentdNotEnabled tests the Verrazzano loggingPreInstall call
 // GIVEN a Verrazzano component
 //  WHEN I call loggingPreInstall and fluentd is disabled
 //  THEN no error is returned
-func Test_loggingPreInstallFluentdNotEnabled(t *testing.T) {
+func TestLoggingPreInstallFluentdNotEnabled(t *testing.T) {
 	falseValue := false
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c,
