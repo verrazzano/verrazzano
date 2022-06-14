@@ -181,7 +181,7 @@ pipeline {
         TF_VAR_use_vault = "false"
         TF_VAR_ssh_public_key_path = credentials('oci-tf-pub-ssh-key')
         // TODO: Figure out the private key to be used for the instances
-        TF_VAR_ssh_private_key_path = credentials('oci-tf-pvt-ssh-key')
+        // TF_VAR_ssh_private_key_path = credentials('oci-tf-pvt-ssh-key')
         TF_VAR_worker_node_count = "${params.WORKER_NODE_COUNT}"
         TF_VAR_control_plane_node_count = "${params.CONTROL_PLANE_NODE_COUNT}"
         TF_VAR_os_version = "${params.OLCNE_OS_VERSION}"
