@@ -22,12 +22,14 @@ import (
 //    where update status fails, in which case we exit the function and requeue
 //    immediately.
 func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
+	//GC Create a new Component context from the Custom Resource
+	//GC A component context defines context objects created for component opreations
 	spiCtx, err := spi.NewContext(vzctx.Log, r.Client, vzctx.ActualCR, r.DryRun)
 	if err != nil {
 		spiCtx.Log().Errorf("Failed to create component context: %v", err)
 		return newRequeueWithDelay(), err
 	}
-
+// GC cr is the now raw unmerged VZ resource
 	cr := spiCtx.ActualCR()
 	spiCtx.Log().Progress("Reconciling components for Verrazzano installation")
 
@@ -36,20 +38,26 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 	// Loop through all of the Verrazzano components and upgrade each one sequentially for now; will parallelize later
 	for _, comp := range registry.GetComponents() {
 		compName := comp.Name()
+		//GC you are initalizing a new context with that component name and the operation that is being done in the operation component 
+		//GC This new compcontext is specific for a single component! The install opreation vairable is just the word install 
 		compContext := spiCtx.Init(compName).Operation(vzconst.InstallOperation)
+		//GC This compContext.Log is the log for this specfic component 
 		compLog := compContext.Log()
 
 		compLog.Oncef("Component %s is being reconciled", compName)
-
+//GC looks at the component's name to see if the opreator supports the install
 		if !comp.IsOperatorInstallSupported() {
 			compLog.Debugf("Component based install not supported for %s", compName)
 			continue
 		}
+		//GC goes to the current VZ cluster state and checks to see what the status of the component is in the state
+		//GC this variable is stored as component status 
 		componentStatus, ok := cr.Status.Components[comp.Name()]
 		if !ok {
 			compLog.Debugf("Did not find status details in map for component %s", comp.Name())
 			continue
 		}
+		//GC ask about this code block
 		if checkConfigUpdated(spiCtx, componentStatus, compName) && comp.IsEnabled(compContext.EffectiveCR()) {
 			if !comp.MonitorOverrides(compContext) && comp.IsEnabled(spiCtx.EffectiveCR()) {
 				compLog.Oncef("Skipping update for component %s, monitorChanges set to false", comp.Name())
@@ -164,8 +172,10 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 // checkConfigUpdated checks if the component config in the VZ CR has been updated and the component needs to
 // reset the state back to pre-install to re-enter install flow
 func checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.ComponentStatusDetails, name string) bool {
+	//GC this functon goes into that parent component context and gets the state of the cluster
 	vzState := ctx.ActualCR().Status.State
 	// Do not interrupt upgrade flow
+	//If the state is not updaing or paused the function returns false
 	if vzState == vzapi.VzStateUpgrading || vzState == vzapi.VzStatePaused {
 		return false
 	}
