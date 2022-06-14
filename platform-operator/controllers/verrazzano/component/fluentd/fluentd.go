@@ -23,6 +23,13 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	// Fluentd ConfigMap names
+	fluentdInit     = "fluentd-init"
+	fluentdConfig   = "fluentd-config"
+	fluentdEsConfig = "fluentd-es-config"
+)
+
 // loggingPreInstall copies logging secrets from the verrazzano-install namespace to the verrazzano-system namespace
 func loggingPreInstall(ctx spi.ComponentContext) error {
 	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) {
@@ -221,4 +228,14 @@ func reassociateResources(cli clipkg.Client) error {
 		}
 	}
 	return nil
+}
+
+// GetHelmManagedResources returns a list of extra resource types and their namespaced names that are managed by the
+// fluentd helm chart
+func GetHelmManagedResources() []common.HelmManagedResource {
+	return []common.HelmManagedResource{
+		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: fluentdInit, Namespace: ComponentNamespace}},
+		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: fluentdConfig, Namespace: ComponentNamespace}},
+		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: fluentdEsConfig, Namespace: ComponentNamespace}},
+	}
 }

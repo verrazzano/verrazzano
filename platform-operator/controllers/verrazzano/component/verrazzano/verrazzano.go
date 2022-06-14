@@ -204,7 +204,7 @@ func importToHelmChart(cli clipkg.Client) error {
 }
 
 //exportFromHelmChart annotates any existing objects that should be managed by another helm component, e.g.
-// the resources associated with the authproxy which historically were associated with the Verrazzano chart.
+// the resources associated with authproxy, fluentd and console which historically were associated with the Verrazzano chart.
 func exportFromHelmChart(cli clipkg.Client) error {
 	err := associateAuthProxyResources(cli)
 	if err != nil {
@@ -282,6 +282,13 @@ func associateFluentdResources(cli clipkg.Client) error {
 	// namespaced resources
 	for _, obj := range objects {
 		if _, err := common.AssociateHelmObject(cli, obj, fluentdReleaseName, namespacedName, true); err != nil {
+			return err
+		}
+	}
+
+	helmManagedResources := fluentd.GetHelmManagedResources()
+	for _, managedResource := range helmManagedResources {
+		if _, err := common.AssociateHelmObject(cli, managedResource.Obj, fluentdReleaseName, managedResource.NamespacedName, true); err != nil {
 			return err
 		}
 	}
