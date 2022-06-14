@@ -14,7 +14,7 @@ function usage {
     echo "  -s subnet_ocid            Subnet OCID for creating the load balancer."
     echo "  -i backend_ip             Space separated string of backend IPs."
     echo "                            Example - \"1.1.1.1 2.2.2.2 3.3.3.3\""
-    echo "  -p backend_port           Port used by backends."
+    echo "  -p backend_port           Port used by backend."
     echo "  -f template_file_path     Path to the json template file for creating load balancer."
     echo "                            A sample file is provided at 'verrazzano/tests/e2e/config/scripts/oci-load-balancer.json'"
     echo "  -e enable_public_ip       Provide a public IP to the load balancer. Defaults to 'false'." 

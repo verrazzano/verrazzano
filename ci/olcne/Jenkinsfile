@@ -26,6 +26,7 @@ def dnsZoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
 def dnsZoneOCID = 'dummy'
 def dnsScopes = ['GLOBAL', 'PRIVATE']
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
+def keepOLCNEClusterOnFailure = false
 
 pipeline {
     options {
@@ -153,7 +154,22 @@ pipeline {
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // needed by install_todo.sh OAM example test
         DATABASE_PSW = credentials('todo-mysql-password') // needed by install_todo.sh OAM example test
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
-        
+
+        // Verrazzano variables
+        TEST_ENV = "${params.TEST_ENV}"
+        VZ_ENVIRONMENT_NAME = "${params.TEST_ENV == 'olcne' ? 'olcne' + env.BUILD_NUMBER : 'default'}"
+        CLUSTER_NAME = 'vz-olcne'
+        VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
+        INSTALL_PROFILE = "${params.INSTALL_PROFILE}"
+        GOPATH = '/home/opc/go'
+        GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
+        OCI_DNS_SCOPE = "${params.OCI_DNS_SCOPE}"
+        OCI_DNS_ZONE_NAME="${OCI_DNS_SCOPE == 'PRIVATE' ? "z${dnsZoneId}-private.v8o.io" : "z${dnsZoneId}.v8o.io"}"
+        TEST_CONFIG_FILE = "$HOME/testConfigOke.yaml"
+        KUBECONFIG = "$WORKSPACE/test_kubeconfig"
+        VERRAZZANO_KUBECONFIG = "$KUBECONFIG"
+        INSTALL_CONFIG_FILE_OLCNE = "$WORKSPACE/tests/e2e/config/scripts/install-verrazzano-olcne.yaml"
+
         // Terraform variables
         TF_VAR_tenancy_id = credentials('oci-tenancy')
         TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
@@ -164,7 +180,7 @@ pipeline {
         TF_VAR_availability_domain_id = "${params.OLCNE_CLUSTER_AVAILABILITY_DOMAIN}"
         TF_VAR_deploy_networking = "true"
         TF_VAR_bastion_enabled = "true"
-        TF_VAR_prefix = ""
+        TF_VAR_prefix = "vz-$TEST_ENV"
         TF_VAR_proxy = "http://www-proxy-hqdc.us.oracle.com:80"
         TF_VAR_use_vault = "false"
         TF_VAR_ssh_public_key_path = credentials('oci-tf-pub-ssh-key')
@@ -188,21 +204,12 @@ pipeline {
         // OCI_DNS_COMPARTMENT_OCID and OCI_PRIVATE_KEY_FILE are needed for setting up DNS zone in OCI
         OCI_DNS_COMPARTMENT_OCID = credentials('oci-dns-compartment')
 
-        // Verrazzano variables
-        TEST_ENV = "${params.TEST_ENV}"
-        VZ_ENVIRONMENT_NAME = "${params.TEST_ENV == 'olcne' ? 'olcne' + env.BUILD_NUMBER : 'default'}"
-        CLUSTER_NAME = 'vz-olcne'
-        VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
-        INSTALL_PROFILE = "${params.INSTALL_PROFILE}"
-        GOPATH = '/home/opc/go'
-        GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
-        OCI_DNS_SCOPE = "${params.OCI_DNS_SCOPE}"
-        OCI_DNS_ZONE_NAME="${OCI_DNS_SCOPE == 'PRIVATE' ? "z${dnsZoneId}-private.v8o.io" : "z${dnsZoneId}.v8o.io"}"
-        TEST_CONFIG_FILE = "$HOME/testConfigOke.yaml"
-        KUBECONFIG = "$WORKSPACE/test_kubeconfig"
-        VERRAZZANO_KUBECONFIG = "$KUBECONFIG"
-        INSTALL_CONFIG_FILE_OLCNE = "$WORKSPACE/tests/e2e/config/scripts/install-verrazzano-olcne.yaml"
+        // OLCNE variables
         OLCNE_BRANCH_TO_USE="release/$OLCNE_VERSION"
+        OLCNE_API_SERVER_IP=""
+        OLCNE_CONTROL_PLANE_NODES_IP=""
+        OLCNE_WORKER_NODES_IP=""
+        OLCNE_BASTION_OCID=""
 
         // used for cluster dump
         DUMP_KUBECONFIG="$KUBECONFIG"
@@ -267,45 +274,46 @@ pipeline {
                     echo "[INFO] SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
 
                     echo "[INFO] SCM checkout of $OLCNE_TERRAFORM_GIT_URL $OLCNE_BRANCH_TO_USE"
-                        def scmInfo = checkout([
-                            $class: 'GitSCM',
-                            branches: [[name: env.OLCNE_BRANCH_TO_USE],
-                            doGenerateSubmoduleConfigurations: false,
-                            extensions: [],
-                            submoduleCfg: [],
-                            userRemoteConfigs: [[url: env.SCM_TERRAFORM_OCI_OLCNE_GIT_URL]]])
-                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
-                        // If the commit we were handed is not what the SCM says we are using, fail
-                        if (!env.GIT_BRANCH.equals(env.OLCNE_BRANCH_TO_USE)) {
-                            echo "[ERROR] SCM didn't checkout the branch we expected. Expected: ${env.OLCNE_BRANCH_TO_USE}, Found: ${scmInfo.GIT_BRANCH}"
-                            exit 1
-                        }
-                }
+                    def scmInfo = checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: env.OLCNE_BRANCH_TO_USE]],
+                        doGenerateSubmoduleConfigurations: false,
+                        extensions: [],
+                        submoduleCfg: [],
+                        userRemoteConfigs: [[url: env.SCM_TERRAFORM_OCI_OLCNE_GIT_URL]]])
+                    env.TF_GIT_COMMIT = scmInfo.GIT_COMMIT
+                    env.TF_GIT_BRANCH = scmInfo.GIT_BRANCH
+                    // If the commit we were handed is not what the SCM says we are using, fail
+                    if (!env.TF_GIT_BRANCH.equals(env.OLCNE_BRANCH_TO_USE)) {
+                        echo "[ERROR] SCM didn't checkout the branch we expected. Expected: ${env.OLCNE_BRANCH_TO_USE}, Found: ${scmInfo.GIT_BRANCH}"
+                        exit 1
+                    }
+                    echo "[INFO] SCM checkout of ${env.TF_GIT_BRANCH} at ${env.TF_GIT_COMMIT}"
 
-                sh """
-                    cp -f "$NETRC_FILE" $HOME/.netrc
-                    chmod 600 $HOME/.netrc
-                """
+                    sh """
+                        cp -f "$NETRC_FILE" $HOME/.netrc
+                        chmod 600 $HOME/.netrc
+                    """
 
-                sh """
-                    rm -rf $GO_REPO_PATH/verrazzano
-                    mkdir -p $GO_REPO_PATH/verrazzano
-                    tar cf - . | (cd $GO_REPO_PATH/verrazzano/ ; tar xf -)
-                """
+                    sh """
+                        rm -rf $GO_REPO_PATH/verrazzano
+                        mkdir -p $GO_REPO_PATH/verrazzano
+                        tar cf - . | (cd $GO_REPO_PATH/verrazzano/ ; tar xf -)
+                    """
 
-                script {
-                    echo "[INFO] ${params.OLCNE_CLUSTER_REGION}"
-                    echo "[INFO] agentlabel: $agentLabel"
-                    echo "[INFO] $NODE_LABELS"
-                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-                    // update the description with some meaningful info
-                    setDisplayName()
-                    currentBuild.description = SHORT_COMMIT_HASH + " : " + params.OLCNE_CLUSTER_REGION + " : " + params.K8S_VERSION
-                    // derive the prefix for the OKE cluster
-                    OLCNE_CLUSTER_PREFIX = sh(returnStdout: true, script: "$WORKSPACE/ci/scripts/derive_oke_cluster_name.sh").trim()
-                    // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
-                    env.K8S_VERSION_LABEL = sh(returnStdout: true, script: "$WORKSPACE/ci/scripts/derive_kubernetes_version.sh ${params.K8S_VERSION}").trim()
+                    script {
+                        echo "[INFO] ${params.OLCNE_CLUSTER_REGION}"
+                        echo "[INFO] agentlabel: $agentLabel"
+                        echo "[INFO] $NODE_LABELS"
+                        SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+                        // update the description with some meaningful info
+                        setDisplayName()
+                        currentBuild.description = SHORT_COMMIT_HASH + " : " + params.OLCNE_CLUSTER_REGION + " : " + params.K8S_VERSION
+                        // derive the prefix for the OKE cluster
+                        OLCNE_CLUSTER_PREFIX = sh(returnStdout: true, script: "$WORKSPACE/ci/scripts/derive_oke_cluster_name.sh").trim()
+                        // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
+                        env.K8S_VERSION_LABEL = sh(returnStdout: true, script: "$WORKSPACE/ci/scripts/derive_kubernetes_version.sh ${params.K8S_VERSION}").trim()
+                    }
                 }
             }
         }
@@ -316,23 +324,8 @@ pipeline {
             }
             steps {
                 script {
-                    withCredentials([sshUserPrivateKey(credentialsId: '5fcc03de-31ce-4566-b11f-9de38e5d98fd', keyFileVariable: 'OPC_USER_KEY_FILE', passphraseVariable: 'OPC_USER_PASSPHRASE', usernameVariable: 'OPC_USERNAME')]) {
-                    def RUNNER_REGION = sh(returnStdout: true, script: "curl -s -H \"Authorization: Bearer Oracle\" http://169.254.169.254/opc/v2/instance/canonicalRegionName").trim()
-                    env.TF_VAR_region = "${OCI_DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OLCNE_CLUSTER_REGION}"
-                    env.OCI_CLI_REGION = "${OCI_DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OLCNE_CLUSTER_REGION}"
-                    echo "[INFO] runner region is $RUNNER_REGION, tf var region is ${env.TF_VAR_region}"
-                        sh """
-                            # get the ssh public key
-                            ssh-keygen -y -e -f $OPC_USER_KEY_FILE > /tmp/opc_ssh2.pub
-                            # convert SSH2 public key into an OpenSSH format
-                            ssh-keygen -i -f /tmp/opc_ssh2.pub > /tmp/opc_ssh.pub
-                            # set the ssh public key value for terraform
-                            export TF_VAR_ssh_public_key_path=/tmp/opc_ssh.pub
-                            export TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME}
-                            # TODO: call create_olcne_cluster with cluster access private
-                            $WORKSPACE/tests/e2e/config/scripts/create_olcne_cluster.sh true
-                        """
-                    }
+                    echo "[INFO] Creating OLCNE cluster"
+                    createOLCNECluster()
                 }
             }
             post {
@@ -346,19 +339,20 @@ pipeline {
 
         stage("Create OCI Storage") {
             steps {
-                // TODO
+                script {
+                    echo "[INFO] Creating OCI FileSystem"
+                    createOCIFileSystem()
+                }
             }
         }
 
-        stage("Mount OCI Storage") {
-            steps {
-                // TODO
-            }
-        }
 
         stage("Create OCI Load Balancers") {
             steps {
-                // TODO
+                script {
+                    echo "[INFO] Creating OCI LoadBalancers"
+                    createOCILoadBalancers()
+                }
             }
         }
 
@@ -368,28 +362,24 @@ pipeline {
             }
             steps {
                 script {
-                     echo "[INFO] OCI_DNS_SCOPE =  $OCI_DNS_SCOPE"
-                     if (env.OCI_DNS_SCOPE == "PRIVATE") {
-                        switch(env.TF_VAR_region) {
-                           case "uk-london-1":
-                              env.VCN_VIEW_ID = "$DNS_VIEW_FOR_PRIVATE_DNS_LHR"
-                              break
-                           default:
-                             env.VCN_VIEW_ID = "$DNS_VIEW_FOR_PRIVATE_DNS_PHX"
-                             break
-                         }
-                         echo "[INFO] view id is ${env.VCN_VIEW_ID}"
-                     }
-                    // VCN_VIEW_ID is used inside oci_dns_ops.sh to associate private zones to view
-                    // this is only used when zone is PRIVATE
-                    dnsZoneOCID = sh(script: "$WORKSPACE/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c $TF_VAR_compartment_id -s z$dnsZoneId -k $OCI_DNS_SCOPE", returnStdout: true)
+                    echo "[INFO] Creating OCI DNS Zone"
+                    createOCIDNSZone()
                 }
             }
         }
 
         stage("Create image pull secrets") {
             steps {
-                createImagePullSecrets()
+                script {
+                    echo "[INFO] Creating image pull secrets"
+                    createImagePullSecrets()
+                }
+            }
+        }
+
+        stage("Mount OCI Storage") {
+            steps {
+                // TODO
             }
         }
 
@@ -398,21 +388,8 @@ pipeline {
                 OCI_CLI_AUTH="instance_principal"
             }
             steps {
-                script {
-                    echo "[INFO] Install Platform Operator"
-                }
-                sh """
-                    oci --region us-phoenix-1 os object get --namespace $OCI_OS_NAMESPACE -bn $OCI_OS_BUCKET --name ${env.BRANCH_NAME}/$SHORT_COMMIT_HASH/operator.yaml --file $WORKSPACE/downloaded-operator.yaml
-                    cp $WORKSPACE/downloaded-operator.yaml $WORKSPACE/acceptance-test-operator.yaml
-
-                    # Install the verrazzano-platform-operator
-                    kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
-
-                    # make sure ns exists
-                    $WORKSPACE/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
-                    # create secret in verrazzano-install ns
-                    $WORKSPACE/tests/e2e/config/scripts/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW" "verrazzano-install"
-                """
+                echo "[INFO] Installing Verrazzano Platform Operator"
+                installVerrazzanoPlatformOperator()
             }
             post {
                 always {
@@ -421,48 +398,15 @@ pipeline {
             }
         }
 
-        stage("Setup Verrazzano CR") {
-            steps {
-                script {
-                    sh """
-                        $WORKSPACE/tests/e2e/config/scripts/process_nipio_install_yaml.sh $INSTALL_CONFIG_FILE_OLCNE $WILDCARD_DNS_DOMAIN
-                    """
-                }
-            }
-        }
-
         stage("Install Verrazzano") {
             steps {
-                sh """
-                    echo "[INFO] Waiting for Operator to be ready"
-                    kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-                    echo "[INFO] Installing Verrazzano on $TEST_ENV"
-                    # apply config to create cluster
-                    kubectl apply -f $INSTALL_CONFIG_FILE_OLCNE
-                    # wait for Verrazzano install to complete
-                    $WORKSPACE/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
-                    # Create acceptance test configuration file
-                    $WORKSPACE/tests/e2e/config/scripts/common-test-setup-script.sh "$WORKSPACE" "$TEST_CONFIG_FILE" "$GHCR_REPO" "$KUBECONFIG" "$OCR_CREDS_USR" "$OCR_CREDS_PSW" "$VZ_ENVIRONMENT_NAME"
-
-                    # TODO: edit DNS info in the test config file
-                    $WORKSPACE/tests/e2e/config/scripts/get_ingress_ip.sh $TEST_CONFIG_FILE
-                    echo "[INFO] ----------Test config file:-------------"
-                    cat $TEST_CONFIG_FILE
-                    echo "[INFO] ----------------------------------------"
-                """
+                echo "[INFO] Installing Verrazzano on $TEST_ENV"
+                installVerrazzano()
             }
             post {
                 always {
                     script {
-                        sh """
-                            ## dump out install logs
-                            mkdir -p $WORKSPACE/platform-operator/scripts/install/build/logs
-                            kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano > $WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
-                            kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > $WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
-                            echo "[INFO] Verrazzano Installation logs dumped to verrazzano-install.log"
-                            echo "[INFO] Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
-                            echo "[INFO] ------------------------------------------"
-                        """
+                        dumpVerrazzanoInstallLogs()
                         VZ_TEST_METRIC = metricJobName('')
                         metricTimerStart("${VZ_TEST_METRIC}")
                     }
@@ -514,7 +458,6 @@ pipeline {
     }
     post {
         always {
-            // TODO: Need to revisit this section to validate cleanup of all the resources provisioned using OCI
             script {
                 if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true || currentBuild.currentResult == 'FAILURE') {
                     dumpK8sCluster('olcne-acceptance-tests-cluster-dump')
@@ -537,16 +480,22 @@ pipeline {
                     }
                 }
             }
+            
+            if (keepOLCNEClusterOnFailure == false) {
+                echo "[INFO] Deleting OLCNE Cluster"
+                deleteOLCNECluster()
+                echo "[INFO] Deleting OCI DNS Zone"
+                deleteOCIDNSZone()
+                echo "[INFO] Deleting OCI FileSystem"
+                deleteOCIFileSystem()
+                echo "[INFO] Deleting OCI LoadBalancers"
+                deleteOCILoadBalancers()
+            }
 
             sh """
-                if [ "${keepOKEClusterOnFailure}" == "false" ]; then
-                    $WORKSPACE/tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${dnsZoneId} -k ${OCI_DNS_SCOPE} || echo "[ERROR] Failed to delete DNS zone z${dnsZoneId}"
-                    # TODO: Delete the olcne cluster
-                    TF_VAR_prefix=$OLCNE_CLUSTER_PREFIX TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} $WORKSPACE/tests/e2e/config/scripts/delete_olcne_cluster.sh || true
-                fi
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then
-                  echo "[INFO] Failures seen during dumping of artifacts, treat post as failed"
-                  exit 1
+                echo "[INFO] Failures seen during dumping of artifacts, treat post as failed"
+                exit 1
                 fi
             """
        }
@@ -994,4 +943,135 @@ def runVerrazzanoAcceptanceTests() {
             }
         }
     ]
+}
+
+def createOCIFileSystem() {
+    sh """
+        $WORKSPACE/tests/e2e/config/scripts/oci_fs_ops.sh \
+        -o "create" -a $TF_VAR_availability_domain_id \
+        -n "$TF_VAR_prefix-fs" -m "$TF_VAR_prefix-mt" \
+        -p "/$TF_VAR_prefix-export" -c $TF_VAR_compartment_id -s $PRIVATE_SUBNET_OCID
+    """
+}
+
+def deleteOCIFileSystem() {
+    sh """
+        $WORKSPACE/tests/e2e/config/scripts/oci_fs_ops.sh \
+        -o "delete" -a $TF_VAR_availability_domain_id \
+        -n "$TF_VAR_prefix-fs" -m "$TF_VAR_prefix-mt" \
+        -p "/$TF_VAR_prefix-export" -c $TF_VAR_compartment_id
+    """
+}
+
+def createOCILoadBalancers() {
+    sh """
+        $WORKSPACE/tests/e2e/config/scripts/oci_lb_ops.sh \
+        -o "create" -n "$TF_VAR_prefix-mgnmt" -e "true" \
+        -c $TF_VAR_compartment_id -s $PUBLIC_SUBNET_OCID \
+        -i $WORKER_NODES_IP -p 30443 \
+        -f "$WORKSPACE/ci/olcne/load-balancer.json"
+
+        $WORKSPACE/tests/e2e/config/scripts/oci_lb_ops.sh \
+        -o "create" -n "$TF_VAR_prefix-app" -e "true" \
+        -c $TF_VAR_compartment_id -s $PUBLIC_SUBNET_OCID \
+        -i $WORKER_NODES_IP -p 31390 \
+        -f "$WORKSPACE/ci/olcne/load-balancer.json"
+    """
+}
+
+def deleteOCILoadBalancers() {
+    sh """
+        $WORKSPACE/tests/e2e/config/scripts/oci_lb_ops.sh \
+        -o delete -n "$TF_VAR_prefix-mgnmt" \
+        -c $TF_VAR_compartment_id
+
+        $WORKSPACE/tests/e2e/config/scripts/oci_lb_ops.sh \
+        -o delete -n "$TF_VAR_prefix-app" \
+        -c $TF_VAR_compartment_id
+    """
+}
+
+def createOCIDNSZone() {
+    script {
+        if (env.OCI_DNS_SCOPE == "PRIVATE") {
+        switch(env.TF_VAR_region) {
+            case "uk-london-1":
+                env.VCN_VIEW_ID = "$DNS_VIEW_FOR_PRIVATE_DNS_LHR"
+                break
+            default:
+                env.VCN_VIEW_ID = "$DNS_VIEW_FOR_PRIVATE_DNS_PHX"
+                break
+            }
+            echo "[INFO] VCN View ID is ${env.VCN_VIEW_ID}"
+        }
+        // VCN_VIEW_ID is used inside oci_dns_ops.sh to associate private zones to view
+        // this is only used when zone is PRIVATE
+        dnsZoneOCID = sh(script: "$WORKSPACE/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c $TF_VAR_compartment_id -s z$dnsZoneId -k $OCI_DNS_SCOPE", returnStdout: true)
+    }
+}
+
+def deleteOCIDNSZone() {
+    sh """
+        $WORKSPACE/tests/e2e/config/scripts/oci_dns_ops.sh \
+        -o delete -s z${dnsZoneId} -k ${OCI_DNS_SCOPE} \
+        || echo "[ERROR] Failed to delete DNS zone z${dnsZoneId}"
+    """
+}
+
+// TODO: Run terraform to create the OLCNE cluster
+def createOLCNECluster() {
+    sh"""
+    """
+}
+
+// TODO: Run terraform delete to remove the OLCNE cluster
+def deleteOLCNECluster() {
+    sh """
+    """
+}
+
+
+def installVerrazzanoPlatformOperator() {
+    sh """
+        oci --region us-phoenix-1 os object get \
+        --namespace $OCI_OS_NAMESPACE -bn $OCI_OS_BUCKET \
+        --name ${env.BRANCH_NAME}/$SHORT_COMMIT_HASH/operator.yaml \
+        --file $WORKSPACE/downloaded-operator.yaml
+        cp $WORKSPACE/downloaded-operator.yaml $WORKSPACE/acceptance-test-operator.yaml
+        # Install the verrazzano-platform-operator
+        kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
+        # make sure ns exists
+        $WORKSPACE/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
+        # create secret in verrazzano-install ns
+        $WORKSPACE/tests/e2e/config/scripts/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW" "verrazzano-install"
+    """
+}
+
+def installVerrazzano() {
+    sh """
+        kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+        # apply config to create cluster
+        kubectl apply -f $INSTALL_CONFIG_FILE_OLCNE
+        # wait for Verrazzano install to complete
+        $WORKSPACE/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+        # Create acceptance test configuration file
+        $WORKSPACE/tests/e2e/config/scripts/common-test-setup-script.sh "$WORKSPACE" "$TEST_CONFIG_FILE" "$GHCR_REPO" "$KUBECONFIG" "$OCR_CREDS_USR" "$OCR_CREDS_PSW" "$VZ_ENVIRONMENT_NAME"
+        # TODO: edit the test config file
+        $WORKSPACE/tests/e2e/config/scripts/get_ingress_ip.sh $TEST_CONFIG_FILE
+        echo "[INFO] ----------Test config file:-------------"
+        cat $TEST_CONFIG_FILE
+        echo "[INFO] ----------------------------------------"   
+    """
+}
+
+def dumpVerrazzanoInstallLogs() {
+    sh """
+        ## dump out install logs
+        mkdir -p $WORKSPACE/platform-operator/scripts/install/build/logs
+        kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano > $WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
+        kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > $WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
+        echo "[INFO] Verrazzano Installation logs dumped to verrazzano-install.log"
+        echo "[INFO] Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
+        echo "[INFO] ------------------------------------------"
+    """
 }
