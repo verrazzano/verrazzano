@@ -32,7 +32,8 @@ function read_config() {
   local key
   [ $# -eq 3 ] && key=$3
 
- local lines=$(awk '/\[/{prefix=$0; next} $1{print prefix $0}' $ocifile)
+  # Read the lines from the OCI CLI configuration file, by ignoring the comments and prefix each line with the given section.
+  local lines=$(awk '!/^#/{gsub(/^[[:space:]]*#.*/,"",$0);print}' $ocifile | awk '/\[/{prefix=$0; next} $1{print prefix $0}')
   for line in $lines; do
     if [[ "$line" = \[$SECTION\]* ]]; then
       local keyval=$(echo $line | sed -e "s/^\[$SECTION\]//")
@@ -50,7 +51,7 @@ function read_config() {
 function usage {
     echo
     echo "usage: $0 [-o oci_config_file] [-s config_file_section]"
-    echo "  -o oci_config_file         The full path to the OCI configuration file (default ~/.oci/config)"
+    echo "  -o oci_config_file         The full path to the OCI configuration file. Default is ~/.oci/config"
     echo "  -s config_file_section     The properties section within the OCI configuration file.  Default is DEFAULT"
     echo "  -k secret_name             The secret name containing the OCI configuration.  Default is oci"
     echo "  -h                         Help"
@@ -78,8 +79,21 @@ do
     esac
 done
 
+if [[ ! -f ${OCI_CONFIG_FILE} ]]; then
+  echo "OCI CLI configuration ${OCI_CONFIG_FILE} does not exist."
+  usage
+  exit 1
+fi
+
 SECTION_PROPS=$(read_config $OCI_CONFIG_FILE $SECTION *)
 eval $SECTION_PROPS
+
+# The entries user, fingerprint, key_file, tenancy and region are mandatory in the OCI CLI configuration file.
+# An empty/null value for any of the values in $OUTPUT_FILE indicates an issue with the configuration file.
+if [ -z "$region" ] || [ -z "$tenancy" ] || [ -z "$user" ] || [ -z "$key_file" ] || [ -z "$fingerprint" ]; then
+  echo "One or more required entries are missing from section $SECTION in OCI CLI configuration."
+  exit 1
+fi
 
 #create the yaml file
 echo "auth:" > $OUTPUT_FILE
@@ -94,8 +108,6 @@ if [[ ! -z "$pass_phrase" ]]; then
 fi
 
 # create the secret in verrazzano-install namespace
-create_secret=true
-
 kubectl ${K8SCONTEXT} get secret $OCI_CONFIG_SECRET_NAME -n $VERRAZZANO_INSTALL_NS > /dev/null 2>&1
 if [ $? -eq 0 ]; then
   # secret exists
@@ -104,8 +116,4 @@ if [ $? -eq 0 ]; then
 fi
 
 kubectl ${K8SCONTEXT} create secret -n $VERRAZZANO_INSTALL_NS  generic $OCI_CONFIG_SECRET_NAME --from-file=$OUTPUT_FILE
-
-
-
-
 
