@@ -602,6 +602,8 @@ pipeline {
     }
 }
 
+// Returns the last clean commit for the periodics, or null if the commit file does not exist yet.
+// - fails the pipeline if any error other than 404 is returned by the OCI CLI
 def getLastCleanPeriodicCommit() {
     lastPeriodicCommitCommandOutput = sh (
         label: "Get last clean periodic commit ID",
@@ -609,7 +611,9 @@ def getLastCleanPeriodicCommit() {
         returnStdout: true
         ).trim()
     echo "command out: ${lastPeriodicCommitCommandOutput}"
-    assert lastPeriodicCommitCommandOutput =~ /(.*)status(.*)404(.*)/ : "An unexpected error occurred getting last periodic commit from ObjectStore: ${lastPeriodicCommitCommandOutput}"
+    if (lastPeriodicCommitCommandOutput.length() > 0) {
+        assert lastPeriodicCommitCommandOutput =~ /(.*)status(.*)404(.*)/ : "An unexpected error occurred getting last periodic commit from ObjectStore: ${lastPeriodicCommitCommandOutput}"
+    }
     // Get the commit ID for the last known clean pass of the Periodic tests
     def cleanPeriodicsCommitProps = readProperties file: "${CLEAN_PERIODIC_LOCATION}"
     return cleanPeriodicsCommitProps['git-commit']
