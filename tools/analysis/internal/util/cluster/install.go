@@ -35,6 +35,9 @@ var vpoErrorMessages []string
 const logLevelError = "error"
 const verrazzanoResource = "verrazzano_resources.json"
 const eventsJSON = "events.json"
+const servicesJSON = "services.json"
+const podsJSON = "pods.json"
+const ingressNginx = "ingress-nginx"
 
 const installErrorNotFound = "No component specific error found in the Verrazzano install log"
 const installErrorMessage = "One or more components listed below did not reach Ready state:"
@@ -46,9 +49,6 @@ const (
 	// Function names
 	nginxIngressControllerFailed = "nginxIngressControllerFailed"
 	noIPForIngressController     = "noIPForIngressController"
-
-	// Namespace of ingress controller
-	ingressControllerNamespace = "ingress-nginx"
 )
 
 var dispatchMatchMap = map[string]*regexp.Regexp{
@@ -80,7 +80,7 @@ func AnalyzeVerrazzanoResource(log *zap.SugaredLogger, clusterRoot string, issue
 
 // analyzeVerrazzanoInstallIssue is called when we have reason to believe that the installation has failed
 func analyzeVerrazzanoInstallIssue(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) (err error) {
-	podFile := files.FindFileInNamespace(clusterRoot, ingressControllerNamespace, "pods.json")
+	podFile := files.FindFileInNamespace(clusterRoot, ingressNginx, podsJSON)
 
 	podList, err := GetPodList(log, podFile)
 	if err != nil {
@@ -117,7 +117,7 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 	// If we have a start/end time for the install containerStatus, then we can use that to only look at logs which are in that time range
 
 	// Look at the ingress-controller-ingress-nginx-controller, and look at the events related to it
-	services, err := GetServiceList(log, files.FindFileInNamespace(clusterRoot, "ingress-nginx", "services.json"))
+	services, err := GetServiceList(log, files.FindFileInNamespace(clusterRoot, ingressNginx, servicesJSON))
 	if err != nil {
 		return err
 	}
@@ -222,7 +222,7 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 		messages := make(StringSlice, 1)
 		messages[0] = fmt.Sprintf("Namespace %s, Pod %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 		// TODO: Time correlation on error search here
-		nginxPodErrors, err := files.FindFilesAndSearch(log, files.FindFileInClusterRoot(clusterRoot, "ingress-nginx"), LogFilesMatchRe, WideErrorSearchRe, nil)
+		nginxPodErrors, err := files.FindFilesAndSearch(log, files.FindFileInClusterRoot(clusterRoot, ingressNginx), LogFilesMatchRe, WideErrorSearchRe, nil)
 		if err != nil {
 			log.Debugf("Failed searching NGINX Ingress namespace log files for supporting error log data", err)
 		}
