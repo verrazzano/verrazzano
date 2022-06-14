@@ -602,25 +602,14 @@ pipeline {
     }
 }
 
-// Gets the most recent clean commit for the periodic tests
 def getLastCleanPeriodicCommit() {
-    // attempt to get the last clean periodic commit ID; if not found continue the run
-    cmdResult="${WORKSPACE}/last-periodics-result.txt"
-    lastPeriodicCommitCommand = sh (
+    lastPeriodicCommitCommandOutput = sh (
         label: "Get last clean periodic commit ID",
-        script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_PERIODIC_OS_LOCATION} --file ${CLEAN_PERIODIC_LOCATION} 2>&1 > ${cmdResult}",
-        returnStatus: true
-        )
-    if (lastPeriodicCommitCommand != 0) {
-        // If the error code from OCI was anything other than a 404, fail the run otherwise continue
-        echo "Error occurred getting last periodic commit from ObjectStore"
-        lastPeriodicCommitCommandOutput = sh (
-                script: "cat ${cmdResult}",
-                returnStdout: true
-                ).trim()
-        echo "Error: $lastPeriodicCommitCommandOutput"
-        assert lastPeriodicCommitCommandOutput =~ /(.*)status(.*)404(.*)/ : "An unexpected error occurred getting last periodic commit from ObjectStore"
-    }
+        script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_PERIODIC_OS_LOCATION} --file ${CLEAN_PERIODIC_LOCATION} 2>&1 || true",
+        returnStdout: true
+        ).trim()
+    echo "command out: ${lastPeriodicCommitCommandOutput}"
+    assert lastPeriodicCommitCommandOutput =~ /(.*)status(.*)404(.*)/ : "An unexpected error occurred getting last periodic commit from ObjectStore: ${lastPeriodicCommitCommandOutput}"
     // Get the commit ID for the last known clean pass of the Periodic tests
     def cleanPeriodicsCommitProps = readProperties file: "${CLEAN_PERIODIC_LOCATION}"
     return cleanPeriodicsCommitProps['git-commit']
