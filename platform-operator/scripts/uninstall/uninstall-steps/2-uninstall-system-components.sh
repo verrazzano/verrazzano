@@ -160,7 +160,7 @@ function delete_rancher() {
 
   log "Removing Rancher namespace finalizers"
   # delete namespace finalizers
-  patch_k8s_resources namespaces ":metadata.name" "Could not remove finalizers from namespaces in Rancher" '/cattle-|local|p-|user-|fleet|rancher/ {print $1}' '{"metadata":{"finalizers":null}}' \
+  patch_k8s_resources namespaces ":metadata.name" "Could not remove finalizers from namespaces in Rancher" '/^cattle-|^local|^p-|^user-|^fleet|^rancher/ {print $1}' '{"metadata":{"finalizers":null}}' \
     || return $? # return on pipefail
 
   log "Delete the Rancher service accounts"
@@ -182,10 +182,14 @@ function delete_rancher() {
     fi
   fi
 
-  # delete cattle namespaces
-  log "Delete rancher namespace"
-  delete_k8s_resources namespaces ":metadata.name" "Could not delete namespaces from Rancher" '/cattle-|p-|user-|fleet|rancher/ {print $1}' \
-    || return $? # return on pipefail
+  log "Delete Rancher namespaces"
+  local rancher_namespaces=("cattle-fleet-clusters-system" "cattle-fleet-local-system" "cattle-fleet-system" "cattle-global-data" "cattle-global-nt" "cattle-impersonation-system" "fleet-default" "fleet-local")
+  for namespace in "${rancher_namespaces[@]}"
+  do
+    if ! kubectl delete namespace ${namespace} --ignore-not-found=true ; then
+      error "Failed to delete the namespace ${namespace}"
+    fi
+  done
 
   # delete annotations left in kube-system secrets
   log "Delete Rancher Secret Annotations"
