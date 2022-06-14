@@ -107,7 +107,8 @@ const (
 	InstallFailure            = "InstallFailure"
 	PendingPods               = "PendingPods"
 	PodProblemsNotReported    = "PodProblemsNotReported"
-	CompNotReady              = "CompNotReady"
+	ComponentsNotReady        = "ComponentsNotReady"
+	IngressNoIPFound          = "IngressNoIPFound"
 )
 
 // NOTE: How we are handling the issues/actions/reporting is still very much evolving here. Currently supplying some
@@ -128,7 +129,8 @@ var knownIssues = map[string]Issue{
 	InstallFailure:            {Type: InstallFailure, Summary: "Verrazzano install failed, however a specific root cause was not identified", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[InstallFailure]}},
 	PendingPods:               {Type: PendingPods, Summary: "Pods in a Pending state were detected. These may come up normally or there may be specific issues preventing them from coming up", Informational: true, Impact: 0, Confidence: 1, Actions: []Action{KnownActions[PendingPods]}},
 	PodProblemsNotReported:    {Type: PodProblemsNotReported, Summary: "Problem pods were detected, however a specific root cause was not identified", Informational: true, Impact: 0, Confidence: 10, Actions: []Action{KnownActions[PodProblemsNotReported]}},
-	CompNotReady:              {Type: InstallFailure, Summary: "Verrazzano install failed, one or more components did not reach Ready state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[InstallFailure]}},
+	ComponentsNotReady:        {Type: InstallFailure, Summary: "Verrazzano install failed, one or more components did not reach Ready state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[InstallFailure]}},
+	IngressNoIPFound:           {Type: IngressNoIPFound, Summary: "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressNoIPFound]}},
 }
 
 // NewKnownIssueSupportingData adds a known issue
@@ -188,7 +190,6 @@ func (issueReporter *IssueReporter) AddKnownIssueSupportingData(issueType string
 // AddKnownIssueMessagesFiles adds a known issue
 func (issueReporter *IssueReporter) AddKnownIssueMessagesFiles(issueType string, source string, messages []string, fileNames []string) {
 	confirmKnownIssueOrDie(issueType)
-
 	// If this is a new issue, get a new one
 	if issue, ok := issueReporter.PendingIssues[issueType]; !ok {
 		issueReporter.PendingIssues[issueType] = NewKnownIssueMessagesFiles(issueType, source, messages, fileNames)

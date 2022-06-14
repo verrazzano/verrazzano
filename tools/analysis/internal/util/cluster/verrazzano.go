@@ -36,7 +36,7 @@ var verrazzanoDeployments = make(map[string]appsv1.Deployment)
 var problematicVerrazzanoDeploymentNames = make([]string, 0)
 
 var verrazzanoAnalysisFunctions = map[string]func(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) (err error){
-	"Verrazzano Install Status": AnalyzeVerrazzanoResource,
+	"Verrazzano Resource Status": AnalyzeVerrazzanoResource,
 	"Installation status":       installationStatus,
 }
 
