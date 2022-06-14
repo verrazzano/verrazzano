@@ -21,9 +21,7 @@ def availableDomains = ["hXgQ:US-ASHBURN-AD-1"]
 def kubernetesVersions = [ "v1.22.5", "v1.21.5", "v1.20.8" ]
 def olcneVersions = [ "1.5", "1.4", "1.3"]
 def osVersions = ['8', '7']
-// NOTE: dnsZoneID is different from dnsZoneOCID
-def dnsZoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
-def dnsZoneOCID = 'dummy'
+def dnsZoneSubdomainName = UUID.randomUUID().toString().substring(0,6).replace('-','')
 def dnsScopes = ['GLOBAL', 'PRIVATE']
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 def keepOLCNEClusterOnFailure = false
@@ -163,8 +161,6 @@ pipeline {
         INSTALL_PROFILE = "${params.INSTALL_PROFILE}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
-        OCI_DNS_SCOPE = "${params.OCI_DNS_SCOPE}"
-        OCI_DNS_ZONE_NAME="${OCI_DNS_SCOPE == 'PRIVATE' ? "z${dnsZoneId}-private.v8o.io" : "z${dnsZoneId}.v8o.io"}"
         TEST_CONFIG_FILE = "$HOME/testConfigOke.yaml"
         KUBECONFIG = "$WORKSPACE/test_kubeconfig"
         VERRAZZANO_KUBECONFIG = "$KUBECONFIG"
@@ -203,18 +199,22 @@ pipeline {
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
         // OCI_DNS_COMPARTMENT_OCID and OCI_PRIVATE_KEY_FILE are needed for setting up DNS zone in OCI
         OCI_DNS_COMPARTMENT_OCID = credentials('oci-dns-compartment')
+        OCI_DNS_SCOPE = "${params.OCI_DNS_SCOPE}"
+        OCI_DNS_ZONE_NAME = "${OCI_DNS_SCOPE == 'PRIVATE' ? "$OCI_DNS_ZONE_SUBDOMAIN_NAME-private.v8o.io" : "$OCI_DNS_ZONE_SUBDOMAIN_NAME.v8o.io"}"
+        OCI_DNS_ZONE_SUBDOMAIN_NAME = "${dnsSubdomainName}"
+        OCI_DNS_ZONE_OCID = ""
 
         // OLCNE variables
-        OLCNE_BRANCH_TO_USE="release/$OLCNE_VERSION"
-        OLCNE_API_SERVER_IP=""
-        OLCNE_CONTROL_PLANE_NODES_IP=""
-        OLCNE_WORKER_NODES_IP=""
-        OLCNE_BASTION_OCID=""
+        OLCNE_BRANCH_TO_USE = "release/$OLCNE_VERSION"
+        OLCNE_API_SERVER_IP = ""
+        OLCNE_CONTROL_PLANE_NODES_IP = ""
+        OLCNE_WORKER_NODES_IP = ""
+        OLCNE_BASTION_OCID = ""
 
         // used for cluster dump
-        DUMP_KUBECONFIG="$KUBECONFIG"
-        DUMP_COMMAND="$WORKSPACE/tools/scripts/k8s-dump-cluster.sh"
-        TEST_DUMP_ROOT="$WORKSPACE/test-cluster-dumps"
+        DUMP_KUBECONFIG = "$KUBECONFIG"
+        DUMP_COMMAND = "$WORKSPACE/tools/scripts/k8s-dump-cluster.sh"
+        TEST_DUMP_ROOT = "$WORKSPACE/test-cluster-dumps"
         POST_DUMP_FAILED = 'false'
         POST_DUMP_FAILED_FILE = "$WORKSPACE/post_dump_failed_file.tmp"
 
@@ -225,8 +225,8 @@ pipeline {
         // used for console artifact capture on failure
         JENKINS_READ = credentials('jenkins-auditor')
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-        OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
-        OCI_OS_BUCKET="verrazzano-builds"
+        OCI_OS_ARTIFACT_BUCKET = "build-failure-artifacts"
+        OCI_OS_BUCKET = "verrazzano-builds"
         // OCI_COMPARTMENT_ID = credentials('oci-tiburon-dev-compartment-ocid')
         // OCI_TELEMETRY_URL = credentials('oci-telemetry-url')
 
@@ -320,7 +320,7 @@ pipeline {
 
         stage("Create OLCNE cluster") {
             environment {
-                TF_VAR_prefix="$OLCNE_CLUSTER_PREFIX"
+                TF_VAR_prefix = "$OLCNE_CLUSTER_PREFIX"
             }
             steps {
                 script {
@@ -358,7 +358,7 @@ pipeline {
 
        stage("Create OCI DNS zone") {
             environment {
-                TF_VAR_prefix="$OLCNE_CLUSTER_PREFIX"
+                TF_VAR_prefix = "$OLCNE_CLUSTER_PREFIX"
             }
             steps {
                 script {
@@ -385,7 +385,7 @@ pipeline {
 
         stage("Install Verrazzano platform operator") {
             environment {
-                OCI_CLI_AUTH="instance_principal"
+                OCI_CLI_AUTH = "instance_principal"
             }
             steps {
                 echo "[INFO] Installing Verrazzano Platform Operator"
@@ -1006,15 +1006,15 @@ def createOCIDNSZone() {
         }
         // VCN_VIEW_ID is used inside oci_dns_ops.sh to associate private zones to view
         // this is only used when zone is PRIVATE
-        dnsZoneOCID = sh(script: "$WORKSPACE/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c $TF_VAR_compartment_id -s z$dnsZoneId -k $OCI_DNS_SCOPE", returnStdout: true)
+        dnsZoneOCID = sh(script: "$WORKSPACE/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c $TF_VAR_compartment_id -s $OCI_DNS_ZONE_SUBDOMAIN_NAME -k $OCI_DNS_SCOPE", returnStdout: true)
     }
 }
 
 def deleteOCIDNSZone() {
     sh """
         $WORKSPACE/tests/e2e/config/scripts/oci_dns_ops.sh \
-        -o delete -s z${dnsZoneId} -k ${OCI_DNS_SCOPE} \
-        || echo "[ERROR] Failed to delete DNS zone z${dnsZoneId}"
+        -o delete -s $OCI_DNS_ZONE_SUBDOMAIN_NAME -k $OCI_DNS_SCOPE \
+        || echo "[ERROR] Failed to delete DNS zone $OCI_DNS_ZONE_SUBDOMAIN_NAME"
     """
 }
 
