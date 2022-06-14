@@ -357,7 +357,11 @@ func (r *Reconciler) fetchWorkloadDefinition(ctx context.Context, workload *unst
 	workloadKind, _, _ := unstructured.NestedString(workload.Object, "kind")
 	workloadName := convertAPIVersionAndKindToNamespacedName(workloadAPIVer, workloadKind)
 	workloadDef := v1alpha2.WorkloadDefinition{}
-	if err := r.Get(ctx, workloadName, &workloadDef); err != nil {
+	err := r.Get(ctx, workloadName, &workloadDef)
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil, nil
+		}
 		log.Errorf("Failed to fetch workload %s definition: %v", workloadName, err)
 		return nil, err
 	}
@@ -386,7 +390,12 @@ func (r *Reconciler) fetchWorkloadChildren(ctx context.Context, workload *unstru
 		return children, nil
 	} else if workload.GetAPIVersion() == appsv1.SchemeGroupVersion.String() {
 		// Else if this is a native resource then use the workload itself as the child
-		log.Debug("Found native workload")
+		log.Debugf("Found native workload: %v", workload)
+		return []*unstructured.Unstructured{workload}, nil
+	} else if workload.GetAPIVersion() == corev1.SchemeGroupVersion.String() &&
+		workload.GetKind() == "Service" {
+		// limits v1 workloads to services only
+		log.Debugf("Found service workload: %v", workload)
 		return []*unstructured.Unstructured{workload}, nil
 	} else {
 		// Else return an error that the workload type is not supported by this trait.
