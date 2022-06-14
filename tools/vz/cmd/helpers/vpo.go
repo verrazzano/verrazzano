@@ -30,11 +30,13 @@ import (
 )
 
 // Number of retries after waiting a second for VPO to be ready
-var vpoWaitRetries = 60
+const vpoDefaultWaitRetries = 60
+
+var vpoWaitRetries = vpoDefaultWaitRetries
 
 // Used with unit testing
 func SetVpoWaitRetries(retries int) { vpoWaitRetries = retries }
-func ResetVpoWaitRetries()          { vpoWaitRetries = 60 }
+func ResetVpoWaitRetries()          { vpoWaitRetries = vpoDefaultWaitRetries }
 
 // ApplyPlatformOperatorYaml applies a given version of the platform operator yaml file
 func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelper helpers.VZHelper, version string) error {
@@ -94,7 +96,7 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 }
 
 // WaitForPlatformOperator waits for the verrazzano-platform-operator to be ready
-func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper) (string, error) {
+func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, condType vzapi.ConditionType) (string, error) {
 	// Find the verrazzano-platform-operator using the app label selector
 	appLabel, _ := labels.NewRequirement("app", selection.Equals, []string{constants.VerrazzanoPlatformOperator})
 	labelSelector := labels.NewSelector()
@@ -137,7 +139,7 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper) (s
 	for {
 		time.Sleep(constants.VerrazzanoPlatformOperatorWait * time.Second)
 		seconds += constants.VerrazzanoPlatformOperatorWait
-		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("\rWaiting for verrazzano-platform-operator to be ready before starting install - %d seconds", seconds))
+		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("\rWaiting for verrazzano-platform-operator to be ready before starting %s - %d seconds", getOperationString(condType), seconds))
 
 		err := client.Get(context.TODO(), types.NamespacedName{Namespace: podList.Items[0].Namespace, Name: podList.Items[0].Name}, pod)
 		if err != nil {
@@ -220,13 +222,18 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 		return result
 	case <-time.After(timeout):
 		if timeout.Nanoseconds() != 0 {
-			operation := "install"
-			if condType == vzapi.CondUpgradeComplete {
-				operation = "upgrade"
-			}
-			fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Timeout %v exceeded waiting for %s to complete\n", timeout.String(), operation))
+			fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Timeout %v exceeded waiting for %s to complete\n", timeout.String(), getOperationString(condType)))
 		}
 	}
 
 	return nil
+}
+
+// return the operation string to display
+func getOperationString(condType vzapi.ConditionType) string {
+	operation := "install"
+	if condType == vzapi.CondUpgradeComplete {
+		operation = "upgrade"
+	}
+	return operation
 }

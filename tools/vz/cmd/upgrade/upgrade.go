@@ -103,7 +103,7 @@ func runCmdUpgrade(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Wait for the platform operator to be ready before we update the verrazzano install resource
-	vpoPodName, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper)
+	vpoPodName, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, vzapi.CondUpgradeComplete)
 	if err != nil {
 		return err
 	}

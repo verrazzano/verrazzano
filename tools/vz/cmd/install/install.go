@@ -112,7 +112,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Wait for the platform operator to be ready before we create the Verrazzano resource.
-	vpoPodName, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper)
+	vpoPodName, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, vzapi.CondInstallComplete)
 	if err != nil {
 		return err
 	}
