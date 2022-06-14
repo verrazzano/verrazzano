@@ -221,6 +221,14 @@ func reassociateResources(cli clipkg.Client) error {
 		}
 	}
 
+	// additional namespaced resources managed by this helm chart
+	helmManagedResources := GetHelmManagedResources()
+	for _, managedResoure := range helmManagedResources {
+		if _, err := common.RemoveResourcePolicyAnnotation(cli, managedResoure.Obj, managedResoure.NamespacedName); err != nil {
+			return err
+		}
+	}
+
 	// cluster resources
 	for _, obj := range noNamespaceObjects {
 		if _, err := common.RemoveResourcePolicyAnnotation(cli, obj, name); err != nil {
