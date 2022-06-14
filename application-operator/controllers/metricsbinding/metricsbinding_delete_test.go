@@ -13,6 +13,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/metricsutils"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -35,29 +36,50 @@ func TestReconcileBindingDelete(t *testing.T) {
 	_ = appsv1.AddToScheme(scheme)
 	_ = promoperapi.AddToScheme(scheme)
 
-	testFileCM, err := getConfigMapFromTestFile(false)
+	testFileCMEmpty, err := getConfigMapFromTestFile(true)
+	assert.NoError(err)
+	testFileCMFilled, err := getConfigMapFromTestFile(false)
+	assert.NoError(err)
+	testFileCMOtherScrapeConfigs, err := readConfigMapData("testdata/cmDataHasOtherScrapeConfigs.yaml")
 	assert.NoError(err)
 	testFileSec, err := getSecretFromTestFile(false)
 	assert.NoError(err)
 
 	tests := []struct {
-		name      string
-		workload  *appsv1.Deployment
-		namespace *corev1.Namespace
-		configMap *corev1.ConfigMap
-		secret    *corev1.Secret
+		name                     string
+		workload                 *appsv1.Deployment
+		namespace                *corev1.Namespace
+		configMap                *corev1.ConfigMap
+		secret                   *corev1.Secret
+		expectScrapeConfigRemove bool
 	}{
 		{
-			name:      "test configmap",
-			workload:  plainWorkload,
-			namespace: plainNs,
-			configMap: testFileCM,
+			name:                     "test configmap empty",
+			workload:                 plainWorkload,
+			namespace:                plainNs,
+			configMap:                testFileCMEmpty,
+			expectScrapeConfigRemove: false,
 		},
 		{
-			name:      "test secret",
-			workload:  plainWorkload,
-			namespace: plainNs,
-			secret:    testFileSec,
+			name:                     "test configmap with other scrape configs",
+			workload:                 plainWorkload,
+			namespace:                plainNs,
+			configMap:                testFileCMOtherScrapeConfigs,
+			expectScrapeConfigRemove: false,
+		},
+		{
+			name:                     "test configmap filled",
+			workload:                 plainWorkload,
+			namespace:                plainNs,
+			configMap:                testFileCMFilled,
+			expectScrapeConfigRemove: true,
+		},
+		{
+			name:                     "test secret",
+			workload:                 plainWorkload,
+			namespace:                plainNs,
+			secret:                   testFileSec,
+			expectScrapeConfigRemove: false,
 		},
 	}
 	for _, tt := range tests {
@@ -74,8 +96,12 @@ func TestReconcileBindingDelete(t *testing.T) {
 				tt.workload,
 				tt.namespace,
 			}...)
+			configMapNumScrapeConfigs := 0
 			if tt.configMap != nil {
 				c = c.WithRuntimeObjects(tt.configMap)
+				parsedConfigMap, err := getConfigData(tt.configMap)
+				assert.NoError(err, "Could not parse test config map")
+				configMapNumScrapeConfigs = len(parsedConfigMap.Search(prometheusScrapeConfigsLabel).Children())
 			}
 			if tt.secret != nil {
 				c = c.WithRuntimeObjects(tt.secret)
@@ -98,7 +124,18 @@ func TestReconcileBindingDelete(t *testing.T) {
 				var newCM corev1.ConfigMap
 				err = client.Get(context.TODO(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: testConfigMapName}, &newCM)
 				assert.NoError(err)
-				assert.False(strings.Contains(newCM.Data[prometheusConfigKey], createJobName(localMetricsBinding)))
+				jobName := createJobName(localMetricsBinding)
+				assert.False(strings.Contains(newCM.Data[prometheusConfigKey], jobName))
+				parsedPrometheusConfig, err := getConfigData(&newCM)
+				assert.NoError(err)
+				newScrapeConfigs := parsedPrometheusConfig.Search(prometheusScrapeConfigsLabel)
+				jobIndex := metricsutils.FindScrapeJob(newScrapeConfigs, jobName)
+				assert.Equal(-1, jobIndex)
+				expectedNumScrapeConfigs := configMapNumScrapeConfigs
+				if tt.expectScrapeConfigRemove {
+					expectedNumScrapeConfigs = configMapNumScrapeConfigs - 1
+				}
+				assert.Equal(expectedNumScrapeConfigs, len(newScrapeConfigs.Children()))
 			}
 			if tt.secret != nil {
 				var newSecret corev1.Secret

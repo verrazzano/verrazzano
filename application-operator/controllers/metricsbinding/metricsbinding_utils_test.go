@@ -70,20 +70,18 @@ func TestGetConfigData(t *testing.T) {
 
 // Returns a configmap from the testdata file
 func getConfigMapFromTestFile(empty bool) (*v1.ConfigMap, error) {
-	var configMapData []byte
-	var err error
 	if empty {
-		configMapData, err = os.ReadFile("./testdata/cmDataEmpty.yaml")
-		if err != nil {
-			return nil, err
-		}
+		return readConfigMapData("./testdata/cmDataEmpty.yaml")
 	} else {
-		configMapData, err = os.ReadFile("./testdata/cmDataFilled.yaml")
-		if err != nil {
-			return nil, err
-		}
+		return readConfigMapData("./testdata/cmDataFilled.yaml")
 	}
+}
 
+func readConfigMapData(filename string) (*v1.ConfigMap, error) {
+	configMapData, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
 	configMap := v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      testConfigMapName,

@@ -59,14 +59,11 @@ func (r *Reconciler) deletePrometheusConfigMap(ctx context.Context, metricsBindi
 		if err != nil {
 			return log.ErrorfNewErr("Failed to get Prometheus ConfigMap Data: %v", err)
 		}
-		scrapeConfigs := promConfig.Search(prometheusScrapeConfigsLabel)
-		updatedScrapeConfigs, err := r.deleteScrapeConfig(metricsBinding, scrapeConfigs, log)
+		// scrape configs would have been edited in-place, in the promConfig Container, so ignore
+		// that return value
+		_, err = r.deleteScrapeConfig(metricsBinding, promConfig, log, true)
 		if err != nil {
-			return err
-		}
-		promConfig, err = promConfig.Set(updatedScrapeConfigs, prometheusScrapeConfigsLabel)
-		if err != nil {
-			return log.ErrorfNewErr("Failed to set the new scrape config for the Prometheus ConfigMap: %v", err)
+			return log.ErrorfNewErr("Failed to delete scrape config from Prometheus ConfigMap: %v", err)
 		}
 		// scrape configs would have been edited in-place, in the promConfig Container, so serialize
 		// the whole thing for the new data.
@@ -84,11 +81,11 @@ func (r *Reconciler) deletePrometheusConfigMap(ctx context.Context, metricsBindi
 func (r *Reconciler) deletePrometheusConfigSecret(ctx context.Context, metricsBinding *vzapi.MetricsBinding, secret *k8scorev1.Secret, key string, log vzlog.VerrazzanoLogger) error {
 	log.Debugw("Prometheus target config Secret is being altered", "resource", secret.GetName())
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, secret, func() error {
-		promConfig, err := getConfigDataFromSecret(secret, key)
+		scrapeConfigData, err := getConfigDataFromSecret(secret, key)
 		if err != nil {
 			return err
 		}
-		updatedScrapeConfigs, err := r.deleteScrapeConfig(metricsBinding, promConfig, log)
+		updatedScrapeConfigs, err := r.deleteScrapeConfig(metricsBinding, scrapeConfigData, log, false)
 		if err != nil {
 			return err
 		}
@@ -103,7 +100,7 @@ func (r *Reconciler) deletePrometheusConfigSecret(ctx context.Context, metricsBi
 }
 
 // deleteScrapeConfig is a mutation function that deletes the scrape config data from the Prometheus ConfigMap
-func (r *Reconciler) deleteScrapeConfig(metricsBinding *vzapi.MetricsBinding, configData *gabs.Container, log vzlog.VerrazzanoLogger) (*gabs.Container, error) {
+func (r *Reconciler) deleteScrapeConfig(metricsBinding *vzapi.MetricsBinding, configData *gabs.Container, log vzlog.VerrazzanoLogger, isPromConfigMap bool) (*gabs.Container, error) {
 	log.Debugw("Scrape Config is being deleted from the Prometheus Config", "resource", metricsBinding.GetName())
 
 	// Verify the Owner Reference exists
@@ -114,9 +111,17 @@ func (r *Reconciler) deleteScrapeConfig(metricsBinding *vzapi.MetricsBinding, co
 	// Delete scrape config with job name matching resource
 	// parse the scrape config so we can manipulate it
 	jobNameToDelete := createJobName(metricsBinding)
-	updatedScrapeConfigs, err := metricsutils.EditScrapeJob(configData, jobNameToDelete, nil)
+
+	var updatedConfigData *gabs.Container
+	var err error
+	if isPromConfigMap {
+		err = metricsutils.EditScrapeJobInPrometheusConfig(configData, prometheusScrapeConfigsLabel, jobNameToDelete, nil)
+		updatedConfigData = configData
+	} else {
+		updatedConfigData, err = metricsutils.EditScrapeJob(configData, jobNameToDelete, nil)
+	}
 	if err != nil {
 		return nil, err
 	}
-	return updatedScrapeConfigs, nil
+	return updatedConfigData, err
 }

@@ -168,11 +168,11 @@ func (r *Reconciler) handleCustomMetricsTemplate(ctx context.Context, metricsBin
 			if err != nil {
 				return log.ErrorfNewErr("Failed to get the ConfigMap data: %v", err)
 			}
-			promConfig, err := metricsutils.EditScrapeJob(data, createdJobName, newScrapeConfig)
+			err = metricsutils.EditScrapeJobInPrometheusConfig(data, prometheusScrapeConfigsLabel, createdJobName, newScrapeConfig)
 			if err != nil {
 				return log.ErrorfNewErr("Failed to edit the scrape job: %v", err)
 			}
-			newPromConfigData, err := yaml.JSONToYAML(promConfig.Bytes())
+			newPromConfigData, err := yaml.JSONToYAML(data.Bytes())
 			if err != nil {
 				return log.ErrorfNewErr("Failed to convert scrape config JSON to YAML: %v", err)
 			}
@@ -290,6 +290,8 @@ func (r *Reconciler) updateMetricsBinding(metricsBinding *vzapi.MetricsBinding, 
 	// If the config map specified is the legacy VMI prometheus config map, modify it to use
 	// the additionalScrapeConfigs config map for the Prometheus Operator
 	if isLegacyVmiPrometheusConfigMapName(metricsBinding.Spec.PrometheusConfigMap) {
+		log.Infof("Metrics Binding %s/%s uses legacy VMI prometheus config map - updating to use the Prometheus operator secret %s/%s",
+			metricsBinding.Namespace, metricsBinding.Name, vzconst.PrometheusOperatorNamespace, vzconst.PromAdditionalScrapeConfigsSecretName)
 		metricsBinding.Spec.PrometheusConfigMap = vzapi.NamespaceName{}
 		metricsBinding.Spec.PrometheusConfigSecret = vzapi.SecretKey{
 			Namespace: vzconst.PrometheusOperatorNamespace,

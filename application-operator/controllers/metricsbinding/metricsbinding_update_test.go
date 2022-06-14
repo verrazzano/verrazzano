@@ -14,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/metricsutils"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -156,25 +157,47 @@ func TestHandleCustomMetricsTemplate(t *testing.T) {
 
 	populatedTemplate, err := getTemplateTestFile()
 	assert.NoError(err)
-	testFileCM, err := getConfigMapFromTestFile(true)
+	testFileCMEmpty, err := getConfigMapFromTestFile(true)
+	assert.NoError(err)
+	testFileCMFilled, err := getConfigMapFromTestFile(false)
+	assert.NoError(err)
+	testFileCMOtherScrapeConfigs, err := readConfigMapData("testdata/cmDataHasOtherScrapeConfigs.yaml")
 	assert.NoError(err)
 	testFileSec, err := getSecretFromTestFile(true)
 	assert.NoError(err)
 
 	tests := []struct {
-		name        string
-		workload    *appsv1.Deployment
-		namespace   *corev1.Namespace
-		configMap   *corev1.ConfigMap
-		secret      *corev1.Secret
-		expectError bool
+		name               string
+		workload           *appsv1.Deployment
+		namespace          *corev1.Namespace
+		configMap          *corev1.ConfigMap
+		expectConfigMapAdd bool
+		secret             *corev1.Secret
+		expectError        bool
 	}{
 		{
-			name:        "test configmap",
-			workload:    labeledWorkload,
-			namespace:   labeledNs,
-			configMap:   testFileCM,
-			expectError: false,
+			name:               "test configmap empty",
+			workload:           labeledWorkload,
+			namespace:          labeledNs,
+			configMap:          testFileCMEmpty,
+			expectError:        false,
+			expectConfigMapAdd: true,
+		},
+		{
+			name:               "test configmap with other scrape configs",
+			workload:           labeledWorkload,
+			namespace:          labeledNs,
+			configMap:          testFileCMOtherScrapeConfigs,
+			expectError:        false,
+			expectConfigMapAdd: true,
+		},
+		{
+			name:               "test configmap filled",
+			workload:           labeledWorkload,
+			namespace:          labeledNs,
+			configMap:          testFileCMFilled,
+			expectError:        false,
+			expectConfigMapAdd: false,
 		},
 		{
 			name:        "test secret",
@@ -184,11 +207,12 @@ func TestHandleCustomMetricsTemplate(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:        "test configmap no Istio",
-			workload:    labeledWorkload,
-			namespace:   plainNs,
-			configMap:   testFileCM,
-			expectError: false,
+			name:               "test configmap no Istio",
+			workload:           labeledWorkload,
+			namespace:          plainNs,
+			configMap:          testFileCMEmpty,
+			expectError:        false,
+			expectConfigMapAdd: true,
 		},
 		{
 			name:        "test secret no Istio",
@@ -207,9 +231,12 @@ func TestHandleCustomMetricsTemplate(t *testing.T) {
 			}...)
 
 			localMetricsBinding := metricsBinding.DeepCopy()
-
+			configMapNumScrapeConfigs := 0
 			if tt.configMap != nil {
 				c = c.WithRuntimeObjects(tt.configMap)
+				parsedConfigMap, err := getConfigData(tt.configMap)
+				assert.NoError(err, "Could not parse test config map")
+				configMapNumScrapeConfigs = len(parsedConfigMap.Search(prometheusScrapeConfigsLabel).Children())
 			}
 			if tt.secret != nil {
 				c = c.WithRuntimeObjects(tt.secret)
@@ -237,6 +264,17 @@ func TestHandleCustomMetricsTemplate(t *testing.T) {
 				err := client.Get(context.TODO(), types.NamespacedName{Namespace: vzconst.VerrazzanoSystemNamespace, Name: testConfigMapName}, &newCM)
 				assert.NoError(err)
 				assert.True(strings.Contains(newCM.Data[prometheusConfigKey], createJobName(localMetricsBinding)))
+				parsedPrometheusConfig, err := getConfigData(&newCM)
+				assert.NoError(err)
+				newScrapeConfigs := parsedPrometheusConfig.Search(prometheusScrapeConfigsLabel)
+				assert.NotNil(newScrapeConfigs)
+				if tt.expectConfigMapAdd {
+					assert.Equal(configMapNumScrapeConfigs+1, len(newScrapeConfigs.Children()))
+				} else {
+					assert.Equal(configMapNumScrapeConfigs, len(newScrapeConfigs.Children()))
+				}
+				foundJob := metricsutils.FindScrapeJob(newScrapeConfigs, createJobName(localMetricsBinding))
+				assert.NotNil(foundJob)
 			}
 			if tt.secret != nil {
 				var newSecret corev1.Secret
