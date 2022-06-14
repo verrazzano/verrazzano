@@ -298,6 +298,7 @@ func applySystemMonitors(ctx spi.ComponentContext) error {
 	args["monitoringNamespace"] = constants.VerrazzanoMonitoringNamespace
 	args["nginxNamespace"] = constants.IngressNginxNamespace
 	args["istioNamespace"] = constants.IstioSystemNamespace
+	args["installNamespace"] = constants.VerrazzanoInstallNamespace
 
 	// substitute template values to all files in the directory and apply the resulting YAML
 	dir := path.Join(config.GetThirdPartyManifestsDir(), "prometheus-operator")

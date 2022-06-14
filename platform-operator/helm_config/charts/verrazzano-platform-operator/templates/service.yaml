@@ -12,5 +12,9 @@ spec:
     - name: webhook
       port: 443
       targetPort: 9443
+    - name: http-metrics-vpo
+      protocol: TCP
+      port: 9100
+      targetPort: 9100
   selector:
     app: {{ .Values.name }}
