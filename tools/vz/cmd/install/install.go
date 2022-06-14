@@ -4,19 +4,15 @@
 package install
 
 import (
-	"bufio"
 	"context"
 	"fmt"
-	"regexp"
 	"time"
 
 	"github.com/spf13/cobra"
-	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -157,62 +153,7 @@ func getVerrazzanoYAML(cmd *cobra.Command) (vz *vzapi.Verrazzano, err error) {
 	return cmdhelpers.MergeYAMLFiles(filenames)
 }
 
-// waitForInstallToComplete waits for the Verrazzano install to complete and shows the logs of
-// the ongoing Verrazzano install.
+// Wait for the install operation to complete
 func waitForInstallToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration, logFormat cmdhelpers.LogFormat) error {
-	// Tail the log messages from the verrazzano-platform-operator starting at the current time.
-	sinceTime := metav1.Now()
-	rc, err := kubeClient.CoreV1().Pods(vzconstants.VerrazzanoInstallNamespace).GetLogs(vpoPodName, &corev1.PodLogOptions{
-		Container: constants.VerrazzanoPlatformOperator,
-		Follow:    true,
-		SinceTime: &sinceTime,
-	}).Stream(context.TODO())
-	if err != nil {
-		return fmt.Errorf("Failed to get logs stream: %v", err)
-	}
-	defer rc.Close()
-
-	resChan := make(chan error, 1)
-	go func() {
-		sc := bufio.NewScanner(rc)
-		sc.Split(bufio.ScanLines)
-		for sc.Scan() {
-			if logFormat == cmdhelpers.LogFormatSimple {
-				re := regexp.MustCompile(`"level":"(.*?)","@timestamp":"(.*?)",(.*?)"message":"(.*?)",`)
-				res := re.FindAllStringSubmatch(sc.Text(), -1)
-				// res[0][2] is the timestamp
-				// res[0][1] is the level
-				// res[0][4] is the message
-				if res != nil {
-					// Print each log message in the form "timestamp level message".
-					// For example, "2022-06-03T00:05:10.042Z info Component keycloak successfully installed"
-					fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("%s %s %s\n", res[0][2], res[0][1], res[0][4]))
-				}
-			} else if logFormat == cmdhelpers.LogFormatJSON {
-				fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("%s\n", sc.Text()))
-			}
-
-			// Return when the Verrazzano install has completed
-			vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
-			if err != nil {
-				resChan <- err
-			}
-			for _, condition := range vz.Status.Conditions {
-				if condition.Type == vzapi.CondInstallComplete {
-					resChan <- nil
-				}
-			}
-		}
-	}()
-
-	select {
-	case result := <-resChan:
-		return result
-	case <-time.After(timeout):
-		if timeout.Nanoseconds() != 0 {
-			fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Timeout %v exceeded waiting for install to complete\n", timeout.String()))
-		}
-	}
-
-	return nil
+	return cmdhelpers.WaitForOperationToComplete(client, kubeClient, vzHelper, vpoPodName, namespacedName, timeout, logFormat, vzapi.CondInstallComplete)
 }

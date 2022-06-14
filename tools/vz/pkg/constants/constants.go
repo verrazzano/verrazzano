@@ -52,3 +52,5 @@ const VerrazzanoReleaseList = "https://api.github.com/repos/verrazzano/verrazzan
 const VerrazzanoOperatorURL = "https://github.com/verrazzano/verrazzano/releases/download/%s/operator.yaml"
 
 const VerrazzanoPlatformOperator = "verrazzano-platform-operator"
+
+const VerrazzanoPlatformOperatorWait = 1

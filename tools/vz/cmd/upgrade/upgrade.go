@@ -9,9 +9,13 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -59,26 +63,26 @@ func runCmdUpgrade(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		return err
 	}
 
-	// Get the verrazzano resource that needs to be updated to the new version
+	// Find the verrazzano resource that needs to be updated to the new version
 	vz, err := helpers.FindVerrazzanoResource(client)
 	if err != nil {
 		return err
 	}
 
 	// Get the timeout value for the upgrade command
-	_, err = cmdhelpers.GetWaitTimeout(cmd)
+	timeout, err := cmdhelpers.GetWaitTimeout(cmd)
 	if err != nil {
 		return err
 	}
 
 	// Get the log format value
-	_, err = cmdhelpers.GetLogFormat(cmd)
+	logFormat, err := cmdhelpers.GetLogFormat(cmd)
 	if err != nil {
 		return err
 	}
 
 	// Get the kubernetes clientset.  This will validate that the kubeconfig and context are valid.
-	_, err = vzHelper.GetKubeClient(cmd)
+	kubeClient, err := vzHelper.GetKubeClient(cmd)
 	if err != nil {
 		return err
 	}
@@ -99,12 +103,16 @@ func runCmdUpgrade(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Wait for the platform operator to be ready before we update the verrazzano install resource
-	_, err = cmdhelpers.WaitForPlatformOperator(client, vzHelper)
+	vpoPodName, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper)
 	if err != nil {
 		return err
 	}
 
-	// Update the version in verrazzano install resource
+	// Get and then update the version in the verrazzano install resource
+	vz, err = helpers.GetVerrazzanoResource(client, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name})
+	if err != nil {
+		return err
+	}
 	vz.Spec.Version = version
 	err = client.Update(context.TODO(), vz)
 	if err != nil {
@@ -112,6 +120,10 @@ func runCmdUpgrade(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Wait for the Verrazzano upgrade to complete
+	return waitForUpgradeToComplete(client, kubeClient, vzHelper, vpoPodName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, logFormat)
+}
 
-	return nil
+// Wait for the upgrade operation to complete
+func waitForUpgradeToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration, logFormat cmdhelpers.LogFormat) error {
+	return cmdhelpers.WaitForOperationToComplete(client, kubeClient, vzHelper, vpoPodName, namespacedName, timeout, logFormat, vzapi.CondUpgradeComplete)
 }

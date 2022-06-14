@@ -9,8 +9,6 @@ import (
 	"os"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/types"
-
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -19,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -250,9 +249,9 @@ func TestInstallCmdOperatorFile(t *testing.T) {
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
-			Name:      verrazzanoPlatformOperator,
+			Name:      constants.VerrazzanoPlatformOperator,
 			Labels: map[string]string{
-				"app": verrazzanoPlatformOperator,
+				"app": constants.VerrazzanoPlatformOperator,
 			},
 		},
 	}
