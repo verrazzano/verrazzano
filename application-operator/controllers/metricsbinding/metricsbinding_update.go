@@ -53,8 +53,9 @@ func (r *Reconciler) reconcileBindingCreateOrUpdate(ctx context.Context, metrics
 		if err := r.deleteMetricsBinding(metricsBinding, log); err != nil {
 			return k8scontroller.Result{Requeue: true}, err
 		}
-		// Because the Metrics Binding has been deleted, don't requeue the reconcile process
-		return reconcile.Result{}, nil
+		// Requeue with a delay to account for situations where the scrape config
+		// has changed but without the MetricsBinding changing.
+		return reconcile.Result{Requeue: true, RequeueAfter: requeueDuration}, nil
 	}
 
 	// Update the MetricsBinding to add workload as owner ref
@@ -336,9 +337,19 @@ func (r *Reconciler) getWorkloadObject(metricsBinding *vzapi.MetricsBinding) (*u
 
 // deleteMetricsBinding deletes the Metrics Binding object from the cluster
 func (r *Reconciler) deleteMetricsBinding(metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) error {
-	err := r.Delete(context.Background(), metricsBinding)
+	// Remove the finalizer from the metrics binding
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, metricsBinding, func() error {
+		controllerutil.RemoveFinalizer(metricsBinding, finalizerName)
+		return nil
+	})
 	if err != nil {
-		return log.ErrorfNewErr("Failed to delete the Metrics Binding %s%s from the cluster: %v", metricsBinding.Namespace, metricsBinding.Name, err)
+		return log.ErrorfNewErr("Failed to remove the finalizer from the Metrics Binding %s/%s: %s", metricsBinding.Namespace, metricsBinding.Name, err)
+	}
+
+	// Delete the binding once the finalizer has been removed
+	err = r.Delete(context.Background(), metricsBinding)
+	if err != nil {
+		return log.ErrorfNewErr("Failed to delete the Metrics Binding %s/%s from the cluster: %v", metricsBinding.Namespace, metricsBinding.Name, err)
 	}
 	return err
 }

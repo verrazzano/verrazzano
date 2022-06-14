@@ -326,7 +326,7 @@ func TestReconcileCreateOrUpdate(t *testing.T) {
 			workload:       labeledWorkload,
 			namespace:      labeledNs,
 			secret:         testFileSec,
-			requeue:        false,
+			requeue:        true,
 			expectError:    false,
 		},
 		{
@@ -361,7 +361,7 @@ func TestReconcileCreateOrUpdate(t *testing.T) {
 			reconcileMetricsBinding := tt.metricsBinding.DeepCopy()
 			result, err := r.reconcileBindingCreateOrUpdate(context.TODO(), reconcileMetricsBinding, log)
 			if tt.expectError {
-				assert.Error(err, "Expected error recocniling the Metrics Binding")
+				assert.Error(err, "Expected error reconciling the Metrics Binding")
 				return
 			}
 			assert.NoError(err, "Expected no error reconciling the Metrics Binding")
