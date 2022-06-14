@@ -5,10 +5,11 @@ package helidon
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -162,7 +163,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 				t.It("Verify recent Elasticsearch log record exists", func() {
 					Eventually(func() bool {
 						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-							"kubernetes.labels.app_oam_dev\\/name": "hello-helidon-appconf",
+							"kubernetes.labels.app_oam_dev\\/name": "hello-helidon",
 							"kubernetes.container_name":            "hello-helidon-container"})
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record for container hello-helidon-container")
 				})
@@ -174,7 +175,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 				t.It("Verify recent Elasticsearch log record of other-container exists", func() {
 					Eventually(func() bool {
 						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-							"kubernetes.labels.app_oam_dev\\/name": "hello-helidon-appconf",
+							"kubernetes.labels.app_oam_dev\\/name": "hello-helidon",
 							"kubernetes.container_name":            "other-container"})
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record for other-container")
 				})
