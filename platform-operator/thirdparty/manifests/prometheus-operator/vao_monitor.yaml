@@ -1,0 +1,29 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: vao #name of service monitor
+  namespace: {{ .monitoringNamespace }} #namespace of service monitor
+  labels:
+    release: prometheus-operator #this tells prometheus to select this monitor for use
+spec:
+  namespaceSelector:
+    matchNames:
+      - {{ .systemNamespace }} #the service monitor will search in this namespace
+  selector: {}
+  endpoints:
+  - relabelings:
+      - sourceLabels:
+          - __meta_kubernetes_service_name
+          - __meta_kubernetes_endpoint_port_name
+        regex: verrazzano-application-operator;http-metrics-vao #The service to search for and the service endpoint
+        action: keep
+      - sourceLabels:
+          - __meta_kubernetes_service_label_app
+        targetLabel: k8s-app #the label the monitor will use to match the service
+      - sourceLabels:
+          - __meta_kubernetes_pod_container_port_number
+        regex: "9100" #service port
+        action: keep

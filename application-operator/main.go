@@ -5,11 +5,13 @@ package main
 
 import (
 	"flag"
+	"net/http"
 	"os"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	prometheushttp "github.com/prometheus/client_golang/prometheus/promhttp"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -85,6 +87,10 @@ var (
 )
 
 func main() {
+	go func() {
+		http.Handle("/metrics", prometheushttp.Handler())
+		http.ListenAndServe(":9100", nil)
+	}()
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&defaultMetricsScraper, "default-metrics-scraper", defaultScraperName,
 		"The namespace/deploymentName of the prometheus deployment to be used as the default metrics scraper")

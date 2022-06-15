@@ -313,6 +313,9 @@ spec:
     - name: https-webhook
       port: 443
       targetPort: 9443
+      - name: https-metrics-vao
+      port: 9100
+      targetPort: 9100
   selector:
     app: {{ .Values.name }}
 ---
