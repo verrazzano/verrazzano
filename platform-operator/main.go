@@ -5,14 +5,14 @@ package main
 
 import (
 	"flag"
+	"net/http"
 	"os"
 	"sync"
-	"net/http"
 
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	prometheushttp "github.com/prometheus/client_golang/prometheus/promhttp"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	prometheushttp "github.com/prometheus/client_golang/prometheus/promhttp"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -39,8 +39,9 @@ import (
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 	// +kubebuilder:scaffold:imports
 )
+
 // A new scheme is created when main.go runs
-// A scheme is a struct, it defines methods for 
+// A scheme is a struct, it defines methods for
 var scheme = runtime.NewScheme()
 
 func init() {
@@ -70,9 +71,9 @@ func init() {
 
 func main() {
 
-	go func(){
+	go func() {
 		http.Handle("/metrics", prometheushttp.Handler())
-        http.ListenAndServe(":9100", nil)
+		http.ListenAndServe(":9100", nil)
 	}()
 
 	// config will hold the entire operator config
@@ -81,7 +82,7 @@ func main() {
 	config := internalconfig.Get()
 	var bomOverride string
 	//GC Appear to use flags to overset default config values if possible
-	//GC the Operator Config has a metrics address 
+	//GC the Operator Config has a metrics address
 
 	flag.StringVar(&config.MetricsAddr, "metrics-addr", config.MetricsAddr, "The address the metric endpoint binds to.")
 	// GC appears to be another metrics endpoint
@@ -115,16 +116,16 @@ func main() {
 	// GC After this point in the code, the config can not be changed
 	internalconfig.Set(config)
 	log := zap.S()
-	//GC VPO started - maybe put metric here 
+	//GC VPO started - maybe put metric here
 
 	log.Info("Starting Verrazzano Platform Operator")
-// GC what does the bom path point to 
+	// GC what does the bom path point to
 	// Set the BOM file path for the operator?
 	if len(bomOverride) > 0 {
 		log.Infof("Using BOM override file %s", bomOverride)
 		internalconfig.SetDefaultBomFilePath(bomOverride)
 	}
-//GC what is an initContainer?
+	//GC what is an initContainer?
 	// initWebhooks flag is set when called from an initContainer.  This allows the certs to be setup for the
 	// validatingWebhookConfiguration resource before the operator container runs.
 	if config.InitWebhooks {
@@ -135,22 +136,22 @@ func main() {
 			log.Errorf("Failed to create certificates used by webhooks: %v", err)
 			os.Exit(1)
 		}
-// GC config is redefined to a kubeconfig file 
-//GC GetConfig returns a pointer to a kubeconfig
-//GC a Kubeconfig file is a file that tells your computer the certificates, server info, it needs to work with a cluster
+		// GC config is redefined to a kubeconfig file
+		//GC GetConfig returns a pointer to a kubeconfig
+		//GC a Kubeconfig file is a file that tells your computer the certificates, server info, it needs to work with a cluster
 		config, err := ctrl.GetConfig()
 		if err != nil {
 			log.Errorf("Failed to get kubeconfig: %v", err)
 			os.Exit(1)
 		}
-// GC A client set, called kubeclient is created 
-//GC A kubeclient is what enables communication with the Kuberentes API server (does translation)
+		// GC A client set, called kubeclient is created
+		//GC A kubeclient is what enables communication with the Kuberentes API server (does translation)
 		kubeClient, err := kubernetes.NewForConfig(config)
 		if err != nil {
 			log.Errorf("Failed to get clientset: %v", err)
 			os.Exit(1)
 		}
-//GC using the client that we create and the certificate, we tell k8 to update thh webhook configuration
+		//GC using the client that we create and the certificate, we tell k8 to update thh webhook configuration
 		log.Debug("Updating webhook configuration")
 		err = certificate.UpdateValidatingnWebhookConfiguration(kubeClient, caCert)
 		if err != nil {
@@ -158,17 +159,17 @@ func main() {
 			os.Exit(1)
 		}
 
-//GC returns a new controller runtime client
-// GC This controller runtime client takes in the kubeconfig enables reading and writinh 
-// GC ASK WHY THERE ARE TWO CLIENTS
-//GC Scheme be used to look up versions and such for given types (Scheme is like a dictionary for the client)
-//
+		//GC returns a new controller runtime client
+		// GC This controller runtime client takes in the kubeconfig enables reading and writinh
+		// GC ASK WHY THERE ARE TWO CLIENTS
+		//GC Scheme be used to look up versions and such for given types (Scheme is like a dictionary for the client)
+		//
 		client, err := client.New(config, client.Options{})
 		if err != nil {
 			log.Errorf("Failed to get controller-runtime client: %v", err)
 			os.Exit(1)
 		}
-// GC The network policies for the cluster are created and updated
+		// GC The network policies for the cluster are created and updated
 		log.Debug("Creating or updating network policies")
 		_, err = netpolicy.CreateOrUpdateNetworkPolicies(kubeClient, client)
 		if err != nil {
@@ -178,8 +179,8 @@ func main() {
 		//GC Does it end when this thing ends?
 		return
 	}
-//GC Creates a controller runtime manager and ask why a controller-runtme client and manager are needed
-//GC Maybe a controller client is just for controller, already apppears to be sending metrics but on a different port
+	//GC Creates a controller runtime manager and ask why a controller-runtme client and manager are needed
+	//GC Maybe a controller client is just for controller, already apppears to be sending metrics but on a different port
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: config.MetricsAddr,
@@ -191,7 +192,7 @@ func main() {
 		log.Errorf("Failed to create a controller-runtime manager: %v", err)
 		os.Exit(1)
 	}
-// GC What is valid web hook wise
+	// GC What is valid web hook wise
 	installv1alpha1.SetComponentValidator(validator.ComponentValidatorImpl{})
 
 	// Setup the reconciler

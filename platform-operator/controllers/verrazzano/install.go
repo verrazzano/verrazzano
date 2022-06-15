@@ -29,7 +29,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 		spiCtx.Log().Errorf("Failed to create component context: %v", err)
 		return newRequeueWithDelay(), err
 	}
-// GC cr is the now raw unmerged VZ resource
+	// GC cr is the now raw unmerged VZ resource
 	cr := spiCtx.ActualCR()
 	spiCtx.Log().Progress("Reconciling components for Verrazzano installation")
 
@@ -38,20 +38,20 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 	// Loop through all of the Verrazzano components and upgrade each one sequentially for now; will parallelize later
 	for _, comp := range registry.GetComponents() {
 		compName := comp.Name()
-		//GC you are initalizing a new context with that component name and the operation that is being done in the operation component 
-		//GC This new compcontext is specific for a single component! The install opreation vairable is just the word install 
+		//GC you are initalizing a new context with that component name and the operation that is being done in the operation component
+		//GC This new compcontext is specific for a single component! The install opreation vairable is just the word install
 		compContext := spiCtx.Init(compName).Operation(vzconst.InstallOperation)
-		//GC This compContext.Log is the log for this specfic component 
+		//GC This compContext.Log is the log for this specfic component
 		compLog := compContext.Log()
 
 		compLog.Oncef("Component %s is being reconciled", compName)
-//GC looks at the component's name to see if the opreator supports the install
+		//GC looks at the component's name to see if the opreator supports the install
 		if !comp.IsOperatorInstallSupported() {
 			compLog.Debugf("Component based install not supported for %s", compName)
 			continue
 		}
 		//GC goes to the current VZ cluster state and checks to see what the status of the component is in the state
-		//GC this variable is stored as component status 
+		//GC this variable is stored as component status
 		componentStatus, ok := cr.Status.Components[comp.Name()]
 		if !ok {
 			compLog.Debugf("Did not find status details in map for component %s", comp.Name())
