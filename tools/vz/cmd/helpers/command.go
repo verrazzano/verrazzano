@@ -86,3 +86,11 @@ func GetOperatorFile(cmd *cobra.Command) (string, error) {
 	}
 	return operatorFile, nil
 }
+
+// ValidateCmd - validate the command line options
+func ValidateCmd(cmd *cobra.Command) error {
+	if cmd.PersistentFlags().Changed(constants.VersionFlag) && cmd.PersistentFlags().Changed(constants.OperatorFileFlag) {
+		return fmt.Errorf("--%s and --%s cannot both be specified", constants.VersionFlag, constants.OperatorFileFlag)
+	}
+	return nil
+}

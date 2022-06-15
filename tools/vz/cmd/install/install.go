@@ -66,6 +66,12 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
+	// Validate the command options
+	err := cmdhelpers.ValidateCmd(cmd)
+	if err != nil {
+		return fmt.Errorf("Command validation failed: %s", err.Error())
+	}
+
 	// Get the verrazzano install resource to be created
 	vz, err := getVerrazzanoYAML(cmd)
 	if err != nil {
@@ -96,14 +102,15 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		return err
 	}
 
-	// Get the Verrazzano version to install
-	version, err := cmdhelpers.GetVersion(cmd, vzHelper)
-	if err != nil {
-		return err
+	// When --operator-file is not used, get the version from the command line
+	var version string
+	if !cmd.PersistentFlags().Changed(constants.OperatorFileFlag) {
+		version, err = cmdhelpers.GetVersion(cmd, vzHelper)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Installing Verrazzano version %s\n", version))
 	}
-
-	// Show what version of Verrazzano is being installed
-	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Installing Verrazzano version %s\n", version))
 
 	// Apply the Verrazzano operator.yaml.
 	err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)
@@ -153,7 +160,8 @@ func getVerrazzanoYAML(cmd *cobra.Command) (vz *vzapi.Verrazzano, err error) {
 	return cmdhelpers.MergeYAMLFiles(filenames)
 }
 
-// Wait for the install operation to complete
+// waitForInstallToComplete waits for the Verrazzano install to complete and shows the logs of
+// the ongoing Verrazzano install.
 func waitForInstallToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration, logFormat cmdhelpers.LogFormat) error {
 	return cmdhelpers.WaitForOperationToComplete(client, kubeClient, vzHelper, vpoPodName, namespacedName, timeout, logFormat, vzapi.CondInstallComplete)
 }

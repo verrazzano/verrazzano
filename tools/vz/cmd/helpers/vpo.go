@@ -92,6 +92,11 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 	if err != nil {
 		return fmt.Errorf("Failed to apply the file: %s", err.Error())
 	}
+
+	// Dump out the object result messages
+	for _, result := range yamlApplier.ObjectResultMsgs() {
+		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("%s\n", strings.ToLower(result)))
+	}
 	return nil
 }
 

@@ -8,6 +8,8 @@ type authProxyValues struct {
 	Name                 string        `json:"name,omitempty"`
 	ImageName            string        `json:"imageName,omitempty"`
 	ImageVersion         string        `json:"imageVersion,omitempty"`
+	MetricsImageName     string        `json:"metricsImageName,omitempty"`
+	MetricsImageVersion  string        `json:"metricsImageVersion,omitempty"`
 	PullPolicy           string        `json:"pullPolicy,omitempty"`
 	Replicas             uint32        `json:"replicas,omitempty"`
 	Port                 int           `json:"port,omitempty"`

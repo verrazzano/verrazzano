@@ -6,6 +6,7 @@ package upgrade
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -279,6 +280,7 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 	err := cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
+	assert.Contains(t, buf.String(), "Applying the file ../../test/testdata/operator-file-fake.yaml\nnamespace/verrazzano-install created\nserviceaccount/verrazzano-platform-operator created\nservice/verrazzano-platform-operator created\n")
 
 	// Verify the objects in the operator-file got added
 	sa := corev1.ServiceAccount{}
@@ -324,4 +326,21 @@ func TestUpgradeCmdNoVerrazzano(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Verrazzano is not installed: Failed to find any Verrazzano resources\n", errBuf.String())
+}
+
+// TestUpgradeValidations
+// GIVEN an upgrade command
+//  WHEN invalid command options exist
+//  THEN expect an error
+func TestUpgradeValidations(t *testing.T) {
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	cmd := NewCmdUpgrade(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.OperatorFileFlag, "test")
+	cmd.PersistentFlags().Set(constants.VersionFlag, "test")
+	err := cmd.Execute()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), fmt.Sprintf("--%s and --%s cannot both be specified", constants.VersionFlag, constants.OperatorFileFlag))
 }

@@ -57,6 +57,12 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdUpgrade(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
+	// Validate the command options
+	err := cmdhelpers.ValidateCmd(cmd)
+	if err != nil {
+		return fmt.Errorf("Command validation failed: %s", err.Error())
+	}
+
 	// Get the controller runtime client
 	client, err := vzHelper.GetClient(cmd)
 	if err != nil {
@@ -87,14 +93,15 @@ func runCmdUpgrade(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		return err
 	}
 
-	// Get the Verrazzano version we are upgrading to
-	version, err := cmdhelpers.GetVersion(cmd, vzHelper)
-	if err != nil {
-		return err
+	// When --operator-file is not used, get the version from the command line
+	var version string
+	if !cmd.PersistentFlags().Changed(constants.OperatorFileFlag) {
+		version, err := cmdhelpers.GetVersion(cmd, vzHelper)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Upgrading Verrazzano to version %s\n", version))
 	}
-
-	// Show the version of Verrazzano we are upgrading to
-	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Upgrading Verrazzano to version %s\n", version))
 
 	// Apply the Verrazzano operator.yaml
 	err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)

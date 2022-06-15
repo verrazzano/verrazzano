@@ -184,10 +184,15 @@ func loadImageSettings(ctx spi.ComponentContext, overrides *authProxyValues) err
 	}
 
 	for _, image := range images {
-		if image.Key == "api.imageName" {
+		switch image.Key {
+		case "api.imageName":
 			overrides.ImageName = image.Value
-		} else if image.Key == "api.imageVersion" {
+		case "api.imageVersion":
 			overrides.ImageVersion = image.Value
+		case "api.metricsImageName":
+			overrides.MetricsImageName = image.Value
+		case "api.metricsImageVersion":
+			overrides.MetricsImageVersion = image.Value
 		}
 	}
 	if len(overrides.ImageName) == 0 {
@@ -195,6 +200,12 @@ func loadImageSettings(ctx spi.ComponentContext, overrides *authProxyValues) err
 	}
 	if len(overrides.ImageVersion) == 0 {
 		return ctx.Log().ErrorNewErr("Failed to find api.imageVersion in BOM")
+	}
+	if len(overrides.MetricsImageName) == 0 {
+		return ctx.Log().ErrorNewErr("Failed to find api.metricsImageName in BOM")
+	}
+	if len(overrides.MetricsImageVersion) == 0 {
+		return ctx.Log().ErrorNewErr("Failed to find api.metricsImageVersion in BOM")
 	}
 
 	return nil
