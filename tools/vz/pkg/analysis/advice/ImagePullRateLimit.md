@@ -1,1 +1,0 @@
-See [https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/imagepullratelimit/](https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/imagepullratelimit/)
