@@ -5,6 +5,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: hello-helidon-deployment
+  annotations:
+    app.verrazzano.io/metrics: custom-k8s-metrics-template
 spec:
   selector:
     matchLabels:

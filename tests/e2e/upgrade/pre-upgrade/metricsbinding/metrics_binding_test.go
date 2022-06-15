@@ -72,13 +72,13 @@ var _ = t.Describe("Verify", Label("f:app-lcm.poko"), func() {
 	// THEN the Helidon application metrics should exist using the default metrics template for deployments
 	t.Context("Deploy and verify the test applications", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
 		WhenMetricsBindingInstalledIt("Apply the Deployment and external Prometheus Metrics Template", func() {
-			DeployApplication(deploymentNamespace, deploymentYaml, namePrefix, "enabled", *t)
 			DeployConfigMap(deploymentNamespace, configMapYaml, *t)
 			DeployTemplate(deploymentNamespace, externalPromTemplate, *t)
+			DeployApplication(deploymentNamespace, deploymentYaml, namePrefix, "enabled", *t)
 		})
 		WhenMetricsBindingInstalledIt("Apply the Pod and legacy VMI Metrics Template", func() {
-			DeployApplication(podNamespace, podYaml, namePrefix, "disabled", *t)
 			DeployTemplate(podNamespace, legacyVMITemplate, *t)
+			DeployApplication(podNamespace, podYaml, namePrefix, "disabled", *t)
 		})
 		WhenMetricsBindingInstalledIt("Apply the ReplicaSet", func() {
 			DeployApplication(replicasetNamespace, replicasetYaml, namePrefix, "enabled", *t)
