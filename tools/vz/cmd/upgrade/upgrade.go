@@ -96,7 +96,7 @@ func runCmdUpgrade(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	// When --operator-file is not used, get the version from the command line
 	var version string
 	if !cmd.PersistentFlags().Changed(constants.OperatorFileFlag) {
-		version, err := cmdhelpers.GetVersion(cmd, vzHelper)
+		version, err = cmdhelpers.GetVersion(cmd, vzHelper)
 		if err != nil {
 			return err
 		}
