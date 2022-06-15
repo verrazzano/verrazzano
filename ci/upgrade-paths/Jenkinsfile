@@ -938,7 +938,7 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
 
                 # Install Verrazzano
                 cd ${GO_REPO_PATH}/verrazzano/tools/vz
-                GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --kubeconfig ${KUBECONFIG} --filename ${verrazzanoConfig} --operator-file ${WORKSPACE}/acceptance-test-operator.yaml
+                GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --kubeconfig ${KUBECONFIG_DIR}/$count/kube_config --filename ${verrazzanoConfig} --operator-file ${WORKSPACE}/acceptance-test-operator.yaml
             """
             RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/${count}/kube_config' && kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
             echo "Verrazzano Version INSTALl : ${RUNNING_OPERATOR_VERSION}"
