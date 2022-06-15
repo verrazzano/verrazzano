@@ -143,7 +143,7 @@ func (f fluentdComponent) PreUpgrade(ctx spi.ComponentContext) error {
 
 // Upgrade Fluentd component upgrade processing
 func (f fluentdComponent) Upgrade(ctx spi.ComponentContext) error {
-	return f.HelmComponent.Install(ctx) // see if this works
+	return f.HelmComponent.Install(ctx)
 }
 
 // IsReady component check
