@@ -81,8 +81,8 @@ else
   cp ${OPERATOR_YAML} ${WORKSPACE}/acceptance-test-operator.yaml
 fi
 
-# make sure ns exists
-./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
+# Create the verrazzano-install namespace
+kubectl create namespace verrazzano-install
 
 # create secret in verrazzano-install ns
 ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
