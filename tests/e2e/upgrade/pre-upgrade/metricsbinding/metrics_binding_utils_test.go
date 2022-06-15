@@ -27,9 +27,11 @@ func createNamespace(namespace, istioInjection string, t framework.TestFramework
 		nsLabels := map[string]string{"verrazzano-managed": "true", "istio-injeciton": istioInjection}
 		nsExists, err := pkg.DoesNamespaceExist(namespace)
 		if err != nil {
+			t.Logs.Errorf("Could not verify if namespace %s exists", namespace)
 			return nil, err
 		}
 		if !nsExists {
+			t.Logs.Infof("Namespace %s does not exist, creating now", namespace)
 			return pkg.CreateNamespace(namespace, nsLabels)
 		}
 		return pkg.GetNamespace(namespace)

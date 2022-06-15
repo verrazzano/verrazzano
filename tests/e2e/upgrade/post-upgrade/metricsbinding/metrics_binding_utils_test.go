@@ -43,23 +43,28 @@ func undeployApplication(namespace string, yamlPath string, t framework.TestFram
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 }
 
-func verifyMetricsBindingsDeleted(namespace string) {
+func verifyMetricsBindingsDeleted(namespace string, t framework.TestFramework) {
 	Eventually(func() (bool, error) {
+		t.Logs.Infof("Verify no Metrics Bindings exist in the namespace %s", namespace)
 		nsExists, err := pkg.DoesNamespaceExist(namespace)
 		if err != nil {
+			t.Logs.Errorf("Could not verify namespace %s exists", namespace)
 			return false, err
 		}
 		if !nsExists {
+			t.Logs.Infof("Namespace %s does not exist, no Metrics Binding check is occurring", namespace)
 			return true, nil
 		}
 		clientset, err := pkg.GetVerrazzanoApplicationOperatorClientSet()
 		if err != nil {
+			t.Logs.Error("Could not get the Verrazzano Application Operator clientset")
 			return false, err
 		}
 		bindingList, err := clientset.AppV1alpha1().MetricsBindings(namespace).List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
+			t.Logs.Error("Could list Metrics Bindings in the namespace %s", namespace)
 			return false, err
 		}
-		return len(bindingList.Items) > 0, nil
+		return len(bindingList.Items) == 0, nil
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 }
