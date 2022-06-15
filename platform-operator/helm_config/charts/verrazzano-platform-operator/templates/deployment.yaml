@@ -41,7 +41,7 @@ spec:
             - containerPort: 9443
               name: webhook
               protocol: TCP
-            - containerPort: 9091
+            - containerPort: 9100
               name: http-metrics-vpo
               protocol: TCP
           startupProbe:
