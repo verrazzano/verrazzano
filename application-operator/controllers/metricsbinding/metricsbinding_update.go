@@ -89,10 +89,10 @@ func (r *Reconciler) handleDefaultMetricsTemplate(ctx context.Context, metricsBi
 	serviceMonitor := promoperapi.ServiceMonitor{}
 	serviceMonitor.SetName(metricsBinding.Name)
 	serviceMonitor.SetNamespace(metricsBinding.Namespace)
-	// set servicemonitor owner reference to the same as the metrics binding's so that
-	// this auto-created servicemonitor is deleted when the owning workload is deleted.
-	serviceMonitor.SetOwnerReferences(metricsBinding.GetOwnerReferences())
 	_, err = controllerutil.CreateOrUpdate(ctx, r.Client, &serviceMonitor, func() error {
+		// set servicemonitor owner reference to the same as the metrics binding's so that
+		// this auto-created servicemonitor is deleted when the owning workload is deleted.
+		serviceMonitor.SetOwnerReferences(metricsBinding.GetOwnerReferences())
 		return metrics.PopulateServiceMonitor(scrapeInfo, &serviceMonitor, log)
 	})
 	if err != nil {
@@ -105,7 +105,7 @@ func (r *Reconciler) handleDefaultMetricsTemplate(ctx context.Context, metricsBi
 // metrics template, by updating the additionalScrapeConfigs secret for the Prometheus CR to collect
 // metrics as specified by the custom template.
 func (r *Reconciler) handleCustomMetricsTemplate(ctx context.Context, metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) error {
-	log.Infof("Custom metrics template used by metrics binding %s/%s, edit additionalScrapeConfigs", metricsBinding.Namespace, metricsBinding.Name)
+	log.Debugf("Custom metrics template used by metrics binding %s/%s, edit additionalScrapeConfigs", metricsBinding.Namespace, metricsBinding.Name)
 
 	// Get the Metrics Template from the Metrics Binding
 	template, err := r.getMetricsTemplate(context.Background(), metricsBinding, log)

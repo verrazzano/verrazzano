@@ -38,7 +38,7 @@ type MetricsBindingSpec struct {
 	PrometheusConfigMap NamespaceName `json:"prometheusConfigMap,omitempty"`
 
 	// Identifies a namespace, name and key for a secret containing the Prometheus config
-	PrometheusConfigSecret SecretKey `json:"prometheusConfigSecret"`
+	PrometheusConfigSecret SecretKey `json:"prometheusConfigSecret,omitempty"`
 
 	// Identifies the name and type for a workload
 	Workload Workload `json:"workload"`

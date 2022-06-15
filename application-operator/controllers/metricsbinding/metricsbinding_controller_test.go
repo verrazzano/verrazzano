@@ -5,6 +5,7 @@ package metricsbinding
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -33,10 +34,20 @@ var metricsTemplate = &vzapi.MetricsTemplate{
 	},
 }
 
+var trueValue = true
 var metricsBinding = &vzapi.MetricsBinding{
 	ObjectMeta: k8smeta.ObjectMeta{
 		Namespace: testMetricsBindingNamespace,
 		Name:      testMetricsBindingName,
+		OwnerReferences: []k8smeta.OwnerReference{
+			{
+				APIVersion:         fmt.Sprintf("%s/%s", deploymentGroup, deploymentVersion),
+				BlockOwnerDeletion: &trueValue,
+				Controller:         &trueValue,
+				Kind:               deploymentKind,
+				Name:               testDeploymentName,
+			},
+		},
 	},
 	Spec: vzapi.MetricsBindingSpec{
 		MetricsTemplate: vzapi.NamespaceName{
