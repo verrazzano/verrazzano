@@ -5,13 +5,13 @@ package metricsbinding
 
 import (
 	"fmt"
+	v1 "k8s.io/api/core/v1"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -22,10 +22,7 @@ const (
 	longPollingInterval  = 20 * time.Second
 )
 
-// DeployApplication deploys an application and namespace given the application parameters
-func DeployApplication(namespace, yamlPath, podPrefix, istioInjection string, t framework.TestFramework) {
-	t.Logs.Info("Deploy test application")
-
+func createNamespace(namespace, istioInjection string, t framework.TestFramework) {
 	t.Logs.Info("Create namespace")
 	gomega.Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{"verrazzano-managed": "true", "istio-injeciton": istioInjection}
@@ -38,7 +35,11 @@ func DeployApplication(namespace, yamlPath, podPrefix, istioInjection string, t 
 		}
 		return pkg.GetNamespace(namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
+}
 
+// deployApplication deploys an application and namespace given the application parameters
+func deployApplication(namespace, yamlPath, podPrefix string, t framework.TestFramework) {
+	t.Logs.Info("Deploy test application")
 	t.Logs.Info("Create application from yaml path")
 	gomega.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(yamlPath, namespace)
@@ -82,14 +83,16 @@ func UndeployApplication(namespace string, yamlPath string, promConfigJobName st
 	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 }
 
-func DeployConfigMap(namespace, configMapYamlPath string, t framework.TestFramework) {
+// deployConfigMap deploys a ConfigMap from a file path
+func deployConfigMap(namespace, configMapYamlPath string, t framework.TestFramework) {
 	t.Logs.Info("Create ConfigMap resource")
 	gomega.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(configMapYamlPath, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 }
 
-func DeployTemplate(namespace, templateYamlPath string, t framework.TestFramework) {
+// deployTemplate deploys a Metrics Template from a file path
+func deployTemplate(namespace, templateYamlPath string, t framework.TestFramework) {
 	t.Logs.Info("Create template resource")
 	gomega.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(templateYamlPath, namespace)

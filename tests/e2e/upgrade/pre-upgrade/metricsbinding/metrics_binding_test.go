@@ -72,19 +72,23 @@ var _ = t.Describe("Verify", Label("f:app-lcm.poko"), func() {
 	// THEN the Helidon application metrics should exist using the default metrics template for deployments
 	t.Context("Deploy and verify the test applications", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
 		WhenMetricsBindingInstalledIt("Apply the Deployment and external Prometheus Metrics Template", func() {
-			DeployConfigMap(deploymentNamespace, configMapYaml, *t)
-			DeployTemplate(deploymentNamespace, externalPromTemplate, *t)
-			DeployApplication(deploymentNamespace, deploymentYaml, namePrefix, "enabled", *t)
+			createNamespace(deploymentNamespace, "enabled", *t)
+			deployConfigMap(deploymentNamespace, configMapYaml, *t)
+			deployTemplate(deploymentNamespace, externalPromTemplate, *t)
+			deployApplication(deploymentNamespace, deploymentYaml, namePrefix, *t)
 		})
 		WhenMetricsBindingInstalledIt("Apply the Pod and legacy VMI Metrics Template", func() {
-			DeployTemplate(podNamespace, legacyVMITemplate, *t)
-			DeployApplication(podNamespace, podYaml, namePrefix, "disabled", *t)
+			createNamespace(podNamespace, "disabled", *t)
+			deployTemplate(podNamespace, legacyVMITemplate, *t)
+			deployApplication(podNamespace, podYaml, namePrefix, *t)
 		})
 		WhenMetricsBindingInstalledIt("Apply the ReplicaSet", func() {
-			DeployApplication(replicasetNamespace, replicasetYaml, namePrefix, "enabled", *t)
+			createNamespace(replicasetNamespace, "enabled", *t)
+			deployApplication(replicasetNamespace, replicasetYaml, namePrefix, *t)
 		})
 		WhenMetricsBindingInstalledIt("Apply the StatefulSet", func() {
-			DeployApplication(statefulsetNamespace, statefulsetYaml, namePrefix, "disabled", *t)
+			createNamespace(statefulsetNamespace, "disabled", *t)
+			deployApplication(statefulsetNamespace, statefulsetYaml, namePrefix, *t)
 		})
 	})
 })
