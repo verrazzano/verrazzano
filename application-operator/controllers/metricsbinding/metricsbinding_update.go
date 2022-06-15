@@ -50,6 +50,7 @@ func (r *Reconciler) reconcileBindingCreateOrUpdate(ctx context.Context, metrics
 		if err := r.handleDefaultMetricsTemplate(ctx, metricsBinding, log); err != nil {
 			return k8scontroller.Result{Requeue: true}, err
 		}
+		log.Infof("Deleting legacy default MetricsBinding %s/%s", metricsBinding.Namespace, metricsBinding.Name)
 		if err := r.deleteMetricsBinding(metricsBinding, log); err != nil {
 			return k8scontroller.Result{Requeue: true}, err
 		}
@@ -79,7 +80,7 @@ func (r *Reconciler) reconcileBindingCreateOrUpdate(ctx context.Context, metrics
 // handleDefaultMetricsTemplate handles pre-Verrazzano 1.4 metrics bindings that use the default
 // metrics template, by creating/updating a service monitor that does the same work as the default template
 func (r *Reconciler) handleDefaultMetricsTemplate(ctx context.Context, metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) error {
-	log.Infof("Default metrics template used by metrics binding %s/%s, service monitor time!", metricsBinding.Namespace, metricsBinding.Name)
+	log.Infof("Default metrics template used by metrics binding %s/%s, creating service monitor", metricsBinding.Namespace, metricsBinding.Name)
 
 	// Create the Service monitor from information gathered from the Metrics Binding
 	scrapeInfo, err := r.createScrapeInfo(ctx, metricsBinding, log)
@@ -92,7 +93,7 @@ func (r *Reconciler) handleDefaultMetricsTemplate(ctx context.Context, metricsBi
 	_, err = controllerutil.CreateOrUpdate(ctx, r.Client, &serviceMonitor, func() error {
 		// set servicemonitor owner reference to the same as the metrics binding's so that
 		// this auto-created servicemonitor is deleted when the owning workload is deleted.
-		serviceMonitor.SetOwnerReferences(metricsBinding.GetOwnerReferences())
+		// serviceMonitor.SetOwnerReferences(metricsBinding.GetOwnerReferences())
 		return metrics.PopulateServiceMonitor(scrapeInfo, &serviceMonitor, log)
 	})
 	if err != nil {
