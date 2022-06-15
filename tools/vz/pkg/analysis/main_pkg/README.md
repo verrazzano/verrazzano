@@ -5,12 +5,11 @@ Please see https://verrazzano.io/latest/docs/troubleshooting/diagnostictools for
 To build the analysis tool executable:
 
 ```
-$ cd verrazzano/tools/analysis
-$ make go-build
+$ cd verrazzano/tools/vz
+$ make cli
 ```
 
-This will create an executable image for Mac and Linux in the `out` directory. For example:
+Call the analysis tool:
 ```
-out/darwin_amd64/verrazzano-analysis
-out/linux_amd64/verrazzano-analysis
+$ vz analyze --help
 ```
