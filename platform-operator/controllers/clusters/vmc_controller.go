@@ -94,7 +94,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(ctx context.Context, req 
 
 // Reconcile reconciles a VerrazzanoManagedCluster object
 func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger, vmc *clustersv1alpha1.VerrazzanoManagedCluster) (ctrl.Result, error) {
-//GC potnetially add metric here to count cluster deletion of object (Check if deletion is same as uninstall)
+	//GC potnetially add metric here to count cluster deletion of object (Check if deletion is same as uninstall)
 	if !vmc.ObjectMeta.DeletionTimestamp.IsZero() {
 		// Finalizer is present, so lets do the cluster deletion
 		if vzstring.SliceContainsString(vmc.ObjectMeta.Finalizers, finalizerName) {
