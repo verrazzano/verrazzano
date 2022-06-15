@@ -257,6 +257,11 @@ pipeline {
                                 runGinkgoSerial('upgrade/pre-upgrade/grafana')
                             }
                         }
+                        stage('metricsbinding pre-upgrade') {
+                            steps {
+                                runGinkgoSerial('upgrade/pre-upgrade/metricsbinding')
+                            }
+                        }
                         // Re-enable this stage when a mechanism is in place to deploy different comp and app yamls based on VZ version
 //                         stage('examples socks') {
 //                             steps {
@@ -470,6 +475,11 @@ pipeline {
                         stage('grafana post-upgrade') {
                             steps {
                                 runGinkgoSerial('upgrade/post-upgrade/grafana')
+                            }
+                        }
+                        stage('metricsbinding post-upgrade') {
+                            steps {
+                                runGinkgoSerial('upgrade/post-upgrade/metricsbinding')
                             }
                         }
                         stage('examples socks') {
