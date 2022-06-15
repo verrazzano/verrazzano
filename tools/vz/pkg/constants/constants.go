@@ -52,7 +52,7 @@ const VerrazzanoOperatorURL = "https://github.com/verrazzano/verrazzano/releases
 
 // Analysis tool flags
 const (
-	DirectoryFlagName  = "directory"
+	DirectoryFlagName  = "captured-dir"
 	DirectoryFlagValue = ""
 	DirectoryFlagUsage = "Directory holding the captured data"
 
