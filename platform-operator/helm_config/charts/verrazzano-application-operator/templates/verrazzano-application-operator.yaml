@@ -344,6 +344,9 @@ spec:
             - containerPort: 9443
               name: https-webhook
               protocol: TCP
+               - containerPort: 9100
+              name: https-metrics-vao
+              protocol: TCP
           args:
             - --zap-log-level={{ .Values.logLevel }}
           startupProbe:
