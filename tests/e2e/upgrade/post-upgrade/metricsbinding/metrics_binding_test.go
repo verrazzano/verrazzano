@@ -32,7 +32,7 @@ var (
 
 var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
 
-var _ = clusterDump.AfterEach(func() {
+var _ = clusterDump.AfterSuite(func() {
 	undeployApplication(deploymentNamespace, deploymentYaml, *t)
 	undeployApplication(podNamespace, podYaml, *t)
 	undeployApplication(replicasetNamespace, replicasetYaml, *t)

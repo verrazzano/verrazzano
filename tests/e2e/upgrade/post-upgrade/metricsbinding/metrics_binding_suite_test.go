@@ -10,8 +10,8 @@ import (
 	"github.com/onsi/gomega"
 )
 
-// TestHelidonDeploymentWorkload tests a helidon deployment workload for Prometheus metric scraping
-func TestMetricsBindingProstUpgrade(t *testing.T) {
+// TestMetricsBindingPostUpgrade tests the Metrics Binding status after an upgrade
+func TestMetricsBindingPostUpgrade(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Metrics Binding Pre-Upgrade Test Suite")
+	ginkgo.RunSpecs(t, "Metrics Binding Post-Upgrade Test Suite")
 }

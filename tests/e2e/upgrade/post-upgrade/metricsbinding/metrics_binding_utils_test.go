@@ -5,9 +5,11 @@ package metricsbinding
 
 import (
 	"context"
+	"fmt"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -21,6 +23,14 @@ const (
 
 // undeployApplication removes the application and namespace from the cluster
 func undeployApplication(namespace string, yamlPath string, t framework.TestFramework) {
+	t.Logs.Infof("Verifying the namespace exists before attempting to delete resources")
+	nsExists, err := pkg.DoesNamespaceExist(namespace)
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to verify if the namespace %s exists", namespace))
+	}
+	if !nsExists {
+		return
+	}
 	t.Logs.Info("Delete application")
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFileInGeneratedNamespace(yamlPath, namespace)
@@ -43,6 +53,7 @@ func undeployApplication(namespace string, yamlPath string, t framework.TestFram
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 }
 
+// verifyMetricsBindingsDeleted verifies that a metrics binding does not exist for a given namespace
 func verifyMetricsBindingsDeleted(namespace string, t framework.TestFramework) {
 	Eventually(func() (bool, error) {
 		t.Logs.Infof("Verify no Metrics Bindings exist in the namespace %s", namespace)
