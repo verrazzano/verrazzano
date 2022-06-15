@@ -6,6 +6,7 @@ package install
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"os"
 	"testing"
 
@@ -273,6 +274,7 @@ func TestInstallCmdOperatorFile(t *testing.T) {
 	err := cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
+	assert.Contains(t, buf.String(), "Applying the file ../../test/testdata/operator-file-fake.yaml\nnamespace/verrazzano-install created\nserviceaccount/verrazzano-platform-operator created\nservice/verrazzano-platform-operator created\n")
 
 	// Verify the objects in the operator-file got added
 	sa := corev1.ServiceAccount{}
@@ -286,6 +288,23 @@ func TestInstallCmdOperatorFile(t *testing.T) {
 	svc := corev1.Service{}
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "verrazzano-install", Name: "verrazzano-platform-operator"}, &svc)
 	assert.NoError(t, err)
+}
+
+// TestInstallValidations
+// GIVEN an install command
+//  WHEN invalid command options exist
+//  THEN expect an error
+func TestInstallValidations(t *testing.T) {
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	cmd := NewCmdInstall(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.OperatorFileFlag, "test")
+	cmd.PersistentFlags().Set(constants.VersionFlag, "test")
+	err := cmd.Execute()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), fmt.Sprintf("--%s and --%s cannot both be specified", constants.VersionFlag, constants.OperatorFileFlag))
 }
 
 // TestGetWaitTimeoutDefault
