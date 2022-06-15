@@ -89,6 +89,9 @@ func (r *Reconciler) handleDefaultMetricsTemplate(ctx context.Context, metricsBi
 	serviceMonitor := promoperapi.ServiceMonitor{}
 	serviceMonitor.SetName(metricsBinding.Name)
 	serviceMonitor.SetNamespace(metricsBinding.Namespace)
+	// set servicemonitor owner reference to the same as the metrics binding's so that
+	// this auto-created servicemonitor is deleted when the owning workload is deleted.
+	serviceMonitor.SetOwnerReferences(metricsBinding.GetOwnerReferences())
 	_, err = controllerutil.CreateOrUpdate(ctx, r.Client, &serviceMonitor, func() error {
 		return metrics.PopulateServiceMonitor(scrapeInfo, &serviceMonitor, log)
 	})
