@@ -5,6 +5,7 @@ package verrazzano
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
 	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -163,7 +164,7 @@ func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	}
 
 	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) {
-		if err := associateFluentdResources(ctx.Client()); err != nil {
+		if err := fluentd.ReassociateResources(ctx.Client()); err != nil {
 			return err
 		}
 	}

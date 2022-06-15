@@ -195,13 +195,13 @@ func fixupFluentdDaemonset(log vzlog.VerrazzanoLogger, client clipkg.Client, nam
 // ensuring the resource policy of "keep" is removed (if it remains then helm is unable to delete these resources and
 // they will become orphaned)
 func fluentdPreHelmOps(ctx spi.ComponentContext) error {
-	return reassociateResources(ctx.Client())
+	return ReassociateResources(ctx.Client())
 }
 
-// reassociateResources updates the resources to ensure they are managed by this release/component.  The resource policy
+// ReassociateResources updates the resources to ensure they are managed by this release/component.  The resource policy
 // annotation is removed to ensure that helm manages the lifecycle of the resources (the resource policy annotation is
 // added to ensure the resources are disassociated from the VZ chart which used to manage these resources)
-func reassociateResources(cli clipkg.Client) error {
+func ReassociateResources(cli clipkg.Client) error {
 	namespacedName := types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}
 	name := types.NamespacedName{Name: ComponentName}
 	objects := []clipkg.Object{
