@@ -12,7 +12,7 @@ spec:
     - name: webhook
       port: 443
       targetPort: 9443
-    - name: http-metrics-vpo
+    - name: http-metric-vpo
       protocol: TCP
       port: 9100
       targetPort: 9100
