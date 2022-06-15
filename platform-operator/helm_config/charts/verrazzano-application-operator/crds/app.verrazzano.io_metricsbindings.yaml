@@ -112,7 +112,6 @@ spec:
                 type: object
             required:
             - metricsTemplate
-            - prometheusConfigSecret
             - workload
             type: object
         required:
