@@ -249,7 +249,7 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 		return false
 	}
 	if !verified {
-		context.Log().Progressf("Istio install not verified")
+		context.Log().Infof("%s is waiting for istioctl verify-install to successfully complete", prefix)
 		return false
 	}
 	return true
