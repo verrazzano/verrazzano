@@ -25,16 +25,17 @@ func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 		return runCmdAnalyze(cmd, args, vzHelper)
 	}
 
+	cmd.Example = helpExample
 	cmd.PersistentFlags().String(constants.DirectoryFlagName, constants.DirectoryFlagValue, constants.DirectoryFlagUsage)
 	cmd.PersistentFlags().String(constants.ReportFileFlagName, constants.ReportFileFlagValue, constants.ReportFileFlagUsage)
 	cmd.PersistentFlags().String(constants.ReportFormatFlagName, constants.ReportFormatFlagValue, constants.ReportFormatFlagUsage)
 	return cmd
 }
 
-func runCmdAnalyze(cmd *cobra.Command, args []string, helper helpers.VZHelper) error {
+func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
 	directory, err := cmd.PersistentFlags().GetString(constants.DirectoryFlagName)
 	if err != nil {
-		fmt.Println("error fetching flag: %s", constants.DirectoryFlagName)
+		fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flag: %s", constants.DirectoryFlagName)
 	}
 	analysis.AnalysisMain(directory)
 	return nil
