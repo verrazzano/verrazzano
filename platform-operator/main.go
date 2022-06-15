@@ -73,7 +73,7 @@ func main() {
 	go func(){
 		http.Handle("/metrics", prometheushttp.Handler())
         http.ListenAndServe(":9100", nil)
-	}
+	}()
 
 	// config will hold the entire operator config
 	//GC the operator config is a singleton with specified fields
