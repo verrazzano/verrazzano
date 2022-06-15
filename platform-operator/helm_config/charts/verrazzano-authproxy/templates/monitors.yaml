@@ -1,0 +1,54 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: authproxy
+  namespace: {{ .Release.Namespace }}
+  labels:
+    release: prometheus-operator
+spec:
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector: {}
+  endpoints:
+    - port: https
+      path: /metrics
+      scheme: https
+      tlsConfig:
+        caFile: /etc/istio-certs/root-cert.pem
+        certFile: /etc/istio-certs/cert-chain.pem
+        keyFile: /etc/istio-certs/key.pem
+        insecureSkipVerify: true
+      relabelings:
+      - action: replace
+        replacement: local
+        targetLabel: verrazzano_cluster
+      - action: keep
+        regex: true;verrazzano-authproxy;verrazzano-authproxy-metrics
+        sourceLabels:
+        - __meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled
+        - __meta_kubernetes_service_name
+        - __meta_kubernetes_pod_container_name
+      - action: replace
+        regex: (.*)
+        replacement: $1
+        sourceLabels:
+        - __meta_kubernetes_namespace
+        targetLabel: namespace
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        sourceLabels:
+        - __meta_kubernetes_pod_name
+        targetLabel: pod_name
+      - action: labeldrop
+        regex: (controller_revision_hash)
+      - action: replace
+        regex: .*/(.*)$
+        replacement: $1
+        sourceLabels:
+        - name
+        targetLabel: app

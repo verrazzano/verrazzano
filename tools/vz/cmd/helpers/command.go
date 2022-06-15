@@ -60,6 +60,23 @@ func GetLogFormat(cmd *cobra.Command) (LogFormat, error) {
 	return LogFormat(logFormat.Value.String()), nil
 }
 
+// GetVersion returns the version of Verrazzano to install/upgrade
+func GetVersion(cmd *cobra.Command, vzHelper helpers.VZHelper) (string, error) {
+	// Get the version from the command line
+	version, err := cmd.PersistentFlags().GetString(constants.VersionFlag)
+	if err != nil {
+		return "", err
+	}
+	if version == constants.VersionFlagDefault {
+		// Find the latest release version of Verrazzano
+		version, err = helpers.GetLatestReleaseVersion(vzHelper.GetHTTPClient())
+		if err != nil {
+			return version, err
+		}
+	}
+	return version, nil
+}
+
 // GetOperatorFile returns the value for the operator-file option
 func GetOperatorFile(cmd *cobra.Command) (string, error) {
 	// Get the value from the command line
@@ -68,4 +85,12 @@ func GetOperatorFile(cmd *cobra.Command) (string, error) {
 		return "", fmt.Errorf("Failed to parse the command line option %s: %s", constants.OperatorFileFlag, err.Error())
 	}
 	return operatorFile, nil
+}
+
+// ValidateCmd - validate the command line options
+func ValidateCmd(cmd *cobra.Command) error {
+	if cmd.PersistentFlags().Changed(constants.VersionFlag) && cmd.PersistentFlags().Changed(constants.OperatorFileFlag) {
+		return fmt.Errorf("--%s and --%s cannot both be specified", constants.VersionFlag, constants.OperatorFileFlag)
+	}
+	return nil
 }

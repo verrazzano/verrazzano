@@ -39,6 +39,14 @@ spec:
       to:
         - operation:
             ports: ["15090"]
+    # verrazzano-authproxy:9113 <- vmi-system-prometheus (uses VMO SA)
+    - from:
+        - source:
+            namespaces: [ "{{ .Release.Namespace }}" ]
+            principals: [ "cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}" ]
+      to:
+        - operation:
+            ports: [ "9113" ]
 
 ---
 {{- if .Values.elasticSearch.enabled }}
