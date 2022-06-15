@@ -165,6 +165,12 @@ pipeline {
         KUBECONFIG = "$WORKSPACE/test_kubeconfig"
         VERRAZZANO_KUBECONFIG = "$KUBECONFIG"
         INSTALL_CONFIG_FILE_OLCNE = "$WORKSPACE/tests/e2e/config/scripts/install-verrazzano-olcne.yaml"
+        OLCNE_BRANCH_TO_USE = "release/$OLCNE_VERSION"
+        API_SERVER_IP = ""
+        CONTROL_PLANE_IP = ""
+        WORKER_NODES_IP = ""
+        BASTION_PUBLIC_IP = ""
+        BASTION_USER = ""
 
         // Terraform variables
         TF_VAR_tenancy_id = credentials('oci-tenancy')
@@ -203,13 +209,6 @@ pipeline {
         OCI_DNS_ZONE_SUBDOMAIN_NAME = "${dnsZoneSubdomainName}"
         OCI_DNS_ZONE_NAME = "${OCI_DNS_SCOPE == 'PRIVATE' ? '${OCI_DNS_ZONE_SUBDOMAIN_NAME}-private.v8o.io' : '${OCI_DNS_ZONE_SUBDOMAIN_NAME}.v8o.io'}"
         OCI_DNS_ZONE_OCID = ""
-
-        // OLCNE variables
-        OLCNE_BRANCH_TO_USE = "release/$OLCNE_VERSION"
-        OLCNE_API_SERVER_IP = ""
-        OLCNE_CONTROL_PLANE_NODES_IP = ""
-        OLCNE_WORKER_NODES_IP = ""
-        OLCNE_BASTION_OCID = ""
 
         // used for cluster dump
         DUMP_KUBECONFIG = "$KUBECONFIG"
@@ -379,7 +378,7 @@ pipeline {
 
         stage("Mount OCI Storage") {
             steps {
-                // TODO
+                mountOCIStorage()
             }
         }
 
@@ -956,6 +955,28 @@ def createOCIFileSystem() {
     """
 }
 
+def setupBastionSSH() {
+    sh """
+        sudo yum -y install oracle-epel-release-el7
+        sudo yum -y install sshuttle
+        if [ $? -ne 0 ]; then
+            echo "[ERROR] Failed to install sshuttle"
+            exit 1
+        fi
+        sshuttle -r $BASTION_USER@$BASTION_IP $VCN_CIDR --ssh-cmd 'ssh -o StrictHostKeyChecking=no -i $OPC_USER_KEY_FILE' --daemon
+        if [ $? -ne 0 ]; then
+            echo "[ERROR] Failed to ssh tunnel to the bastion host $TF_VAR_prefix-bastion at $BASTION_USER@$BASTION_IP"
+            exit 1
+        fi
+    """
+}
+
+def mountOCIStorage() {
+    sh """
+        
+    """
+}
+
 def deleteOCIFileSystem() {
     sh """
         $WORKSPACE/tests/e2e/config/scripts/oci_fs_ops.sh \
@@ -1023,12 +1044,37 @@ def deleteOCIDNSZone() {
 // TODO: Run terraform to create the OLCNE cluster
 def createOLCNECluster() {
     sh"""
+        cd $WORKSPACE/terraform-oci-olcne
+        terraform init -input=false
+        terraform plan -input=false -out=tfplan -no-color
+        terraform apply -input=false -no-color -auto-approve tfplan
+        API_SERVER_IP=$(terraform output -raw apiserver_ip)
+        VCN_OCID=$(terraform output -raw vcn_id)
+        VCN_CIDR=$(oci netork vcn get --vcn-id $VCN_OCID | jq -r '.data."cidr-block"')
+        PUBLIC_SUBNET_OCID=$(oci network subnet list -c $TF_VAR_compartment_id --vcn-id $VCN_OCID --display-name "$TF_VAR_prefix-bastion" | jq -r '.data[0].id')
+        PRIVATE_SUBNET_OCID=$(terraform output -raw subnet_id)
+        BASTION_PUBLIC_IP=$(terraform output -raw bastion_public_ip)
+        BASTION_USER=$(terraform output -raw bastion_user)
+        WORKER_NODES_IP=$(terraform output -json worker_nodes)
+        IFS=',' read -ra IP <<< ${WORKER_NODES_IP:1:-1}
+        WORKER_NODES_IP=""
+        for i in "${IP[@]}"; do
+            WORKER_NODES_IP="$WORKER_NODES_IP ${i:1:-1}"
+        done
+        CONTROL_PLANE_IP=$(terraform output -json control_plane_nodes)
+        IFS=',' read -ra IP <<< ${CONTROL_PLANE_IP:1:-1}
+        CONTROL_PLANE_IP=""
+        for i in "${IP[@]}"; do
+            CONTROL_PLANE_IP="$CONTROL_PLANE_IP ${i:1:-1}"
+        done
     """
 }
 
 // TODO: Run terraform delete to remove the OLCNE cluster
 def deleteOLCNECluster() {
     sh """
+        cd $WORKSPACE/terraform-oci-olcne
+        terraform destroy
     """
 }
 
