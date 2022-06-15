@@ -10,7 +10,7 @@ import (
 	"github.com/onsi/gomega"
 )
 
-// TestHelidonDeploymentWorkload tests a helidon deployment workload for Prometheus metric scraping
+// TestMetricsBindingPreUpgrade tests the deployment of resources before upgrade to verify the Metrics Binding upgrade
 func TestMetricsBindingPreUpgrade(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "Metrics Binding Pre-Upgrade Test Suite")

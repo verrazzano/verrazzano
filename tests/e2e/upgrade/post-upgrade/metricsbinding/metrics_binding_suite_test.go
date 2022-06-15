@@ -11,7 +11,7 @@ import (
 )
 
 // TestHelidonDeploymentWorkload tests a helidon deployment workload for Prometheus metric scraping
-func TestMetricsBindingPreUpgrade(t *testing.T) {
+func TestMetricsBindingProstUpgrade(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "Metrics Binding Pre-Upgrade Test Suite")
 }
