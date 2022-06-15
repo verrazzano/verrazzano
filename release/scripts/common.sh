@@ -20,7 +20,9 @@ declare -a releaseArtifacts=("operator.yaml"
                              "vz-darwin-arm64.tar.gz"
                              "vz-darwin-arm64.tar.gz.sha256"
                              "vz-linux-amd64.tar.gz"
-                             "vz-linux-amd64.tar.gz.sha256")
+                             "vz-linux-amd64.tar.gz.sha256"
+                             "vz-linux-arm64.tar.gz"
+                             "vz-linux-arm64.tar.gz.sha256")
 
 # Validates whether OCI CLI is installed
 function validate_oci_cli() {

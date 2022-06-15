@@ -1,17 +1,17 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package helidon
+package helidonsvc
 
 import (
 	"fmt"
+	"github.com/hashicorp/go-retryablehttp"
 	"io/ioutil"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/hashicorp/go-retryablehttp"
-	v1 "k8s.io/api/core/v1"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
@@ -30,19 +30,18 @@ const (
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
 	skipVerifications        = "Skip Verifications"
-	helloHelidon             = "hello-helidon"
 )
 
 const (
-	helidonComponentYaml = "../../../examples/hello-helidon/hello-helidon-comp.yaml"
-	helidonAppYaml       = "testdata/jwt/helidon/hello-helidon-app.yaml"
+	helidonComponentYaml = "testdata/jwt/helidon-svc/hello-helidon-svc-comps.yaml"
+	helidonAppYaml       = "testdata/jwt/helidon-svc/hello-helidon-svc-app.yaml"
 )
 
 var (
 	t                  = framework.NewTestFramework("helidon")
-	generatedNamespace = pkg.GenerateNamespace(helloHelidon)
+	generatedNamespace = pkg.GenerateNamespace("hello-helidon-svc")
 	//yamlApplier              = k8sutil.YAMLApplier{}
-	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
+	expectedPodsHelloHelidon = []string{"hello-helidon-svc-deployment"}
 )
 
 var _ = t.BeforeSuite(func() {
@@ -78,7 +77,7 @@ var _ = t.AfterSuite(func() {
 	}
 	if !skipUndeploy {
 		start := time.Now()
-		pkg.UndeployHelloHelidonApplication(namespace)
+		undeployHelloHelidonApplication(namespace)
 		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
@@ -189,14 +188,14 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 			}
 			Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"kubernetes.labels.app_oam_dev\\/name": helloHelidon,
+					"kubernetes.labels.app_oam_dev\\/name": "hello-helidon-svc-application",
 					"kubernetes.container_name":            "hello-helidon-container",
 				})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
 			Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"kubernetes.labels.app_oam_dev\\/component": "hello-helidon-component",
-					"kubernetes.labels.app_oam_dev\\/name":      helloHelidon,
+					"kubernetes.labels.app_oam_dev\\/component": "hello-helidon-deploy-component",
+					"kubernetes.labels.app_oam_dev\\/name":      "hello-helidon-svc-application",
 					"kubernetes.container_name":                 "hello-helidon-container",
 				})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
@@ -233,6 +232,44 @@ func deployHelloHelidonApplication(namespace string, ociLogID string, istioInjec
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(helidonAppYaml, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon application resource")
+}
+
+// undeployHelloHelidonApplication undeploys the Hello Helidon example application.
+func undeployHelloHelidonApplication(namespace string) {
+	pkg.Log(pkg.Info, "Undeploy Hello Helidon Application")
+	if exists, _ := pkg.DoesNamespaceExist(namespace); exists {
+		pkg.Log(pkg.Info, "Delete Hello Helidon application")
+		Eventually(func() error {
+			return pkg.DeleteResourceFromFileInGeneratedNamespace(helidonAppYaml, namespace)
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon application resource")
+
+		pkg.Log(pkg.Info, "Delete Hello Helidon components")
+		Eventually(func() error {
+			return pkg.DeleteResourceFromFileInGeneratedNamespace(helidonComponentYaml, namespace)
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon component resource")
+
+		pkg.Log(pkg.Info, "Wait for application pods to terminate")
+		Eventually(func() bool {
+			podsTerminated, _ := pkg.PodsNotRunning(namespace, expectedPodsHelloHelidon)
+			return podsTerminated
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+
+		pkg.Log(pkg.Info, fmt.Sprintf("Delete namespace %s", namespace))
+		Eventually(func() error {
+			return pkg.DeleteNamespace(namespace)
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), fmt.Sprintf("Failed to deleted namespace %s", namespace))
+
+		pkg.Log(pkg.Info, "Wait for namespace finalizer to be removed")
+		Eventually(func() bool {
+			return pkg.CheckNamespaceFinalizerRemoved(namespace)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+
+		pkg.Log(pkg.Info, "Wait for namespace to be deleted")
+		Eventually(func() bool {
+			_, err := pkg.GetNamespace(namespace)
+			return err != nil && errors.IsNotFound(err)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+	}
 }
 
 func helloHelidonPodsRunning() bool {
@@ -305,15 +342,15 @@ func appEndpointAccess(url string, hostname string, token string, requestShouldS
 }
 
 func appMetricsExists() bool {
-	return pkg.MetricsExist("base_jvm_uptime_seconds", "app", helloHelidon)
+	return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "hello-helidon-svc-application")
 }
 
 func appComponentMetricsExists() bool {
-	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", helloHelidon)
+	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", "hello-helidon-svc-application")
 }
 
 func appConfigMetricsExists() bool {
-	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "hello-helidon-component")
+	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "hello-helidon-deploy-component")
 }
 
 func nodeExporterProcsRunning() bool {
