@@ -66,7 +66,7 @@ func runCmdUpgrade(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	// Find the verrazzano resource that needs to be updated to the new version
 	vz, err := helpers.FindVerrazzanoResource(client)
 	if err != nil {
-		return err
+		return fmt.Errorf("Verrazzano is not installed: %s", err.Error())
 	}
 
 	// Get the timeout value for the upgrade command
@@ -108,11 +108,13 @@ func runCmdUpgrade(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		return err
 	}
 
-	// Get and then update the version in the verrazzano install resource
+	// Get the verrazzano install resource
 	vz, err = helpers.GetVerrazzanoResource(client, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name})
 	if err != nil {
 		return err
 	}
+
+	// Update the version in the verrazzano install resource
 	vz.Spec.Version = version
 	err = client.Update(context.TODO(), vz)
 	if err != nil {
