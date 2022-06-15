@@ -68,10 +68,10 @@ var _ = t.Describe("Verify", Label("f:app-lcm.poko"), func() {
 	// THEN the Metrics Bindings should be deleted for default template and binding
 	t.Context("Verify Metrics Bindings are deleted", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
 		WhenMetricsBindingInstalledIt("Verify no Metrics Bindings exist in the ReplicaSet namespace", func() {
-			verifyMetricsBindingsDeleted(replicasetNamespace)
+			verifyMetricsBindingsDeleted(replicasetNamespace, *t)
 		})
 		WhenMetricsBindingInstalledIt("Verify no Metrics Bindings exist in the StatefulSet namespace", func() {
-			verifyMetricsBindingsDeleted(statefulsetNamespace)
+			verifyMetricsBindingsDeleted(statefulsetNamespace, *t)
 		})
 	})
 })
