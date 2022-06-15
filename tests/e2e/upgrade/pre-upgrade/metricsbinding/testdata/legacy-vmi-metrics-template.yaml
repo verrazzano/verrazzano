@@ -5,7 +5,6 @@ piVersion: app.verrazzano.io/v1alpha1
 kind: MetricsTemplate
 metadata:
   name: custom-k8s-metrics-template
-  namespace: {{ .Values.namespace }}
 spec:
   workloadSelector:
     apiGroups: ["apps", ""]
@@ -13,7 +12,7 @@ spec:
     resources: ["deployment", "statefulset", "replicaset", "pod"]
   prometheusConfig:
     targetConfigMap:
-      namespace: {{ .Values.namespace }}
+      namespace: verrazzano-system
       name: vmi-system-prometheus-config
     scrapeConfigTemplate: |
       kubernetes_sd_configs:

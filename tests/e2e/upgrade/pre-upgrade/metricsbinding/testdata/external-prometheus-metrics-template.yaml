@@ -1,7 +1,7 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-piVersion: app.verrazzano.io/v1alpha1
+apiVersion: app.verrazzano.io/v1alpha1
 kind: MetricsTemplate
 metadata:
   name: custom-k8s-metrics-template
@@ -12,8 +12,8 @@ spec:
     resources: ["deployment", "statefulset", "replicaset", "pod"]
   prometheusConfig:
     targetConfigMap:
-      namespace: {{ .Values.namespace }}
-      name: vmi-system-prometheus-config
+      namespace: hello-helidon-deployment
+      name: external-prometheus-config
     scrapeConfigTemplate: |
       kubernetes_sd_configs:
         - namespaces:

@@ -22,6 +22,7 @@ const (
 	longPollingInterval  = 20 * time.Second
 )
 
+// DeployApplication deploys an application and namespace given the application parameters
 func DeployApplication(namespace, yamlPath, podPrefix, istioInjection string, t framework.TestFramework) {
 	t.Logs.Info("Deploy test application")
 
@@ -74,33 +75,16 @@ func UndeployApplication(namespace string, yamlPath string, promConfigJobName st
 	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 }
 
-func DeployApplicationAndTemplate(namespace, appYamlPath, templateYamlPath, podPrefix string, nsAnnotations map[string]string, t framework.TestFramework, istioInjection string) {
-	t.Logs.Info("Deploy test application")
+func DeployConfigMap(namespace, configMapYamlPath string, t framework.TestFramework) {
+	t.Logs.Info("Create ConfigMap resource")
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(configMapYamlPath, namespace)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+}
 
-	t.Logs.Info("Create namespace")
-	gomega.Eventually(func() (*v1.Namespace, error) {
-		nsLabels := map[string]string{
-			"verrazzano-managed": "true",
-			"istio-injection":    istioInjection}
-		return pkg.CreateNamespaceWithAnnotations(namespace, nsLabels, nsAnnotations)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
-
+func DeployTemplate(namespace, templateYamlPath string, t framework.TestFramework) {
 	t.Logs.Info("Create template resource")
 	gomega.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(templateYamlPath, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
-
-	t.Logs.Info("Create helidon resources")
-	gomega.Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(appYamlPath, namespace)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
-
-	t.Logs.Info("Check application pods are running")
-	gomega.Eventually(func() bool {
-		result, err := pkg.PodsRunning(namespace, []string{podPrefix})
-		if err != nil {
-			ginkgo.AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
-		}
-		return result
-	}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 }
