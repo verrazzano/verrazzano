@@ -18,7 +18,7 @@ spec:
       - sourceLabels:
           - __meta_kubernetes_service_name
           - __meta_kubernetes_endpoint_port_name
-        regex: verrazzano-platform-operator;http-metrics-vpo #The service to search for and the service endpoint
+        regex: verrazzano-platform-operator;http-metric-vpo #The service to search for and the service endpoint
         action: keep
       - sourceLabels:
           - __meta_kubernetes_service_label_app
