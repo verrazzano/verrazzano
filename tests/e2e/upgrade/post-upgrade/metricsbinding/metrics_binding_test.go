@@ -18,21 +18,11 @@ const (
 	replicasetNamespace  = "hello-helidon-replicaset"
 	statefulsetNamespace = "hello-helidon-statefulset"
 
-	// Define the test deployment name prefix
-	namePrefix = "hello-helidon-"
-
 	// Define the test yaml file locations
 	deploymentYaml  = "tests/e2e/upgrade/pre-upgrade/metricsbinding/testdata/hello-helidon-deployment.yaml"
 	podYaml         = "tests/e2e/upgrade/pre-upgrade/metricsbinding/testdata/hello-helidon-pod.yaml"
 	replicasetYaml  = "tests/e2e/upgrade/pre-upgrade/metricsbinding/testdata/hello-helidon-replicaset.yaml"
 	statefulsetYaml = "tests/e2e/upgrade/pre-upgrade/metricsbinding/testdata/hello-helidon-statefulset.yaml"
-
-	// Define the custom templates
-	legacyVMITemplate    = "tests/e2e/upgrade/pre-upgrade/metricsbinding/testdata/legacy-vmi-metrics-template.yaml"
-	externalPromTemplate = "tests/e2e/upgrade/pre-upgrade/metricsbinding/testdata/external-prometheus-metrics-template.yaml"
-
-	// Define the simulated external Prometheus ConfigMap
-	configMapYaml = "tests/e2e/upgrade/pre-upgrade/metricsbinding/testdata/external-prometheus-config.yaml"
 )
 
 var (
@@ -42,9 +32,16 @@ var (
 
 var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
 
+var _ = clusterDump.AfterEach(func() {
+	undeployApplication(deploymentNamespace, deploymentYaml, *t)
+	undeployApplication(podNamespace, podYaml, *t)
+	undeployApplication(replicasetNamespace, replicasetYaml, *t)
+	undeployApplication(statefulsetNamespace, statefulsetYaml, *t)
+})
+
 var _ = t.AfterEach(func() {})
 
-// 'It' Wrapper to only run spec if the Metrics Binding will be created
+// 'It' Wrapper to only run spec if the Metrics Binding verification is supported
 func WhenMetricsBindingInstalledIt(description string, f func()) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
@@ -52,7 +49,7 @@ func WhenMetricsBindingInstalledIt(description string, f func()) {
 			Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 		})
 	}
-	supported, err := pkg.IsVerrazzanoBelowVersion("1.4.0", kubeconfigPath)
+	supported, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
 	if err != nil {
 		t.It(description, func() {
 			Fail(fmt.Sprintf("Failed to check Verrazzano version less than 1.4.0: %s", err.Error()))
@@ -67,27 +64,14 @@ func WhenMetricsBindingInstalledIt(description string, f func()) {
 
 var _ = t.Describe("Verify", Label("f:app-lcm.poko"), func() {
 	// GIVEN the Verrazzano version
-	// WHEN the sample applications are deployed
-	// THEN no errors should occur
-	t.Context("Deploy and verify the test applications", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
-		WhenMetricsBindingInstalledIt("Apply the Deployment and external Prometheus Metrics Template", func() {
-			createNamespace(deploymentNamespace, "enabled", *t)
-			deployConfigMap(deploymentNamespace, configMapYaml, *t)
-			deployTemplate(deploymentNamespace, externalPromTemplate, *t)
-			deployApplication(deploymentNamespace, deploymentYaml, namePrefix, *t)
+	// WHEN the Metrics Binding utilities are updated
+	// THEN the Metrics Bindings should be deleted for default template and binding
+	t.Context("Verify Metrics Bindings are deleted", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
+		WhenMetricsBindingInstalledIt("Verify no Metrics Bindings exist in the ReplicaSet namespace", func() {
+			verifyMetricsBindingsDeleted(replicasetNamespace)
 		})
-		WhenMetricsBindingInstalledIt("Apply the Pod and legacy VMI Metrics Template", func() {
-			createNamespace(podNamespace, "disabled", *t)
-			deployTemplate(podNamespace, legacyVMITemplate, *t)
-			deployApplication(podNamespace, podYaml, namePrefix, *t)
-		})
-		WhenMetricsBindingInstalledIt("Apply the ReplicaSet", func() {
-			createNamespace(replicasetNamespace, "enabled", *t)
-			deployApplication(replicasetNamespace, replicasetYaml, namePrefix, *t)
-		})
-		WhenMetricsBindingInstalledIt("Apply the StatefulSet", func() {
-			createNamespace(statefulsetNamespace, "disabled", *t)
-			deployApplication(statefulsetNamespace, statefulsetYaml, namePrefix, *t)
+		WhenMetricsBindingInstalledIt("Verify no Metrics Bindings exist in the StatefulSet namespace", func() {
+			verifyMetricsBindingsDeleted(statefulsetNamespace)
 		})
 	})
 })
