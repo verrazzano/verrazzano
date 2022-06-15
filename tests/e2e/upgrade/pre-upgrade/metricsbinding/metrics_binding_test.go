@@ -22,17 +22,17 @@ const (
 	namePrefix = "hello-helidon-"
 
 	// Define the test yaml file locations
-	deploymentYaml  = "tests/e2e/metricsbinding/testdata/hello-helidon-deployment.yaml"
-	podYaml         = "tests/e2e/metricsbinding/testdata/hello-helidon-pod.yaml"
-	replicasetYaml  = "tests/e2e/metricsbinding/testdata/hello-helidon-replicaset.yaml"
-	statefulsetYaml = "tests/e2e/metricsbinding/testdata/hello-helidon-statefulset.yaml"
+	deploymentYaml  = "tests/e2e/upgrade/pre-upgrade/metricsbinding/testdata/hello-helidon-deployment.yaml"
+	podYaml         = "tests/e2e/upgrade/pre-upgrade/metricsbinding/testdata/hello-helidon-pod.yaml"
+	replicasetYaml  = "tests/e2e/upgrade/pre-upgrade/metricsbinding/testdata/hello-helidon-replicaset.yaml"
+	statefulsetYaml = "tests/e2e/upgrade/pre-upgrade/metricsbinding/testdata/hello-helidon-statefulset.yaml"
 
 	// Define the custom templates
-	legacyVMITemplate    = "tests/e2e/metricsbinding/testdata/legacy-vmi-metrics-template.yaml"
-	externalPromTemplate = "tests/e2e/metricsbinding/testdata/external-prometheus-metrics-template.yaml"
+	legacyVMITemplate    = "tests/e2e/upgrade/pre-upgrade/metricsbinding/testdata/legacy-vmi-metrics-template.yaml"
+	externalPromTemplate = "tests/e2e/upgrade/pre-upgrade/metricsbinding/testdata/external-prometheus-metrics-template.yaml"
 
 	// Define the simulated external Prometheus ConfigMap
-	configMapYaml = "tests/e2e/metricsbinding/testdata/external-prometheus-config.yaml"
+	configMapYaml = "tests/e2e/upgrade/pre-upgrade/metricsbinding/testdata/external-prometheus-config.yaml"
 )
 
 var (

@@ -29,10 +29,17 @@ func DeployApplication(namespace, yamlPath, podPrefix, istioInjection string, t 
 	t.Logs.Info("Create namespace")
 	gomega.Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{"verrazzano-managed": "true", "istio-injeciton": istioInjection}
-		return pkg.CreateNamespace(namespace, nsLabels)
+		nsExists, err := pkg.DoesNamespaceExist(namespace)
+		if err != nil {
+			return nil, err
+		}
+		if !nsExists {
+			return pkg.CreateNamespace(namespace, nsLabels)
+		}
+		return pkg.GetNamespace(namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
 
-	t.Logs.Info("Create helidon resources")
+	t.Logs.Info("Create application from yaml path")
 	gomega.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(yamlPath, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
