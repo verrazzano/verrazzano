@@ -252,29 +252,29 @@ pipeline {
                 script {
                     // Proceed with checkout
                     EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS=getEffectiveDumpOnSuccess()
-                    if (params.GIT_COMMIT_TO_USE == "NONE") {
-                        echo "[INFO] Specific GIT commit was not specified, use current head"
-                        def scmInfo=checkout scm
-                        env.GIT_COMMIT=scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH=scmInfo.GIT_BRANCH
-                    } else {
-                        echo "[INFO] SCM checkout of ${params.GIT_COMMIT_TO_USE}"
-                        def scmInfo=checkout([
-                            $class: 'GitSCM',
-                            branches: [[name: params.GIT_COMMIT_TO_USE]],
-                            doGenerateSubmoduleConfigurations: false,
-                            extensions: [],
-                            submoduleCfg: [],
-                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
-                        env.GIT_COMMIT=scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH=scmInfo.GIT_BRANCH
-                        // If the commit we were handed is not what the SCM says we are using, fail
-                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
-                            echo "[ERROR] SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
-                            exit 1
-                        }
-                    }
-                    echo "[INFO] SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                    // if (params.GIT_COMMIT_TO_USE == "NONE") {
+                    //     echo "[INFO] Specific GIT commit was not specified, use current head"
+                    //     def scmInfo=checkout scm
+                    //     env.GIT_COMMIT=scmInfo.GIT_COMMIT
+                    //     env.GIT_BRANCH=scmInfo.GIT_BRANCH
+                    // } else {
+                    //     echo "[INFO] SCM checkout of ${params.GIT_COMMIT_TO_USE}"
+                    //     def scmInfo=checkout([
+                    //         $class: 'GitSCM',
+                    //         branches: [[name: params.GIT_COMMIT_TO_USE]],
+                    //         doGenerateSubmoduleConfigurations: false,
+                    //         extensions: [],
+                    //         submoduleCfg: [],
+                    //         userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+                    //     env.GIT_COMMIT=scmInfo.GIT_COMMIT
+                    //     env.GIT_BRANCH=scmInfo.GIT_BRANCH
+                    //     // If the commit we were handed is not what the SCM says we are using, fail
+                    //     if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
+                    //         echo "[ERROR] SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
+                    //         exit 1
+                    //     }
+                    // }
+                    // echo "[INFO] SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
 
                     echo "[INFO] SCM checkout of $OLCNE_TERRAFORM_GIT_URL $OLCNE_BRANCH_TO_USE"
                     def scmInfo=checkout([
@@ -292,6 +292,12 @@ pipeline {
                         exit 1
                     }
                     echo "[INFO] SCM checkout of ${env.TF_GIT_BRANCH} at ${env.TF_GIT_COMMIT}"
+
+                    sh '''
+                        pwd
+                        echo $WORKSPACE
+                        ls $WORKSPACE
+                    '''
 
                     sh '''
                         cp -f "$NETRC_FILE" $HOME/.netrc
