@@ -32,7 +32,7 @@ spec:
               name: http-metrics
               protocol: TCP
             - containerPort: {{ .Values.monitoringOperator.exporterPort }}
-              name: http-prom-metrics
+              name: http-prom
               protocol: TCP
           resources:
             requests:
