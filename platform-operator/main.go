@@ -8,10 +8,10 @@ import (
 	"os"
 	"sync"
 	"net/http"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	prometheushttp "github.com/prometheus/client_golang/prometheus/promhttp"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -71,7 +71,7 @@ func init() {
 func main() {
 
 	go func(){
-		http.Handle("/metrics", prometheus.Handler())
+		http.Handle("/metrics", prometheushttp.Handler())
         http.ListenAndServe(":9100", nil)
 	}
 
