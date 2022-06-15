@@ -1,16 +1,17 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package helidon
+package helidonsvc
 
 import (
 	"fmt"
+	"github.com/hashicorp/go-retryablehttp"
 	"io/ioutil"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/hashicorp/go-retryablehttp"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
@@ -31,24 +32,28 @@ const (
 	skipVerifications        = "Skip Verifications"
 )
 
+const (
+	helidonComponentYaml = "testdata/jwt/helidon-svc/hello-helidon-svc-comps.yaml"
+	helidonAppYaml       = "testdata/jwt/helidon-svc/hello-helidon-svc-app.yaml"
+)
+
 var (
 	t                  = framework.NewTestFramework("helidon")
-	generatedNamespace = pkg.GenerateNamespace("hello-helidon")
+	generatedNamespace = pkg.GenerateNamespace("hello-helidon-svc")
 	//yamlApplier              = k8sutil.YAMLApplier{}
-	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
+	expectedPodsHelloHelidon = []string{"hello-helidon-svc-deployment"}
 )
 
 var _ = t.BeforeSuite(func() {
 	if !skipDeploy {
 		start := time.Now()
-		pkg.DeployHelloHelidonApplication(namespace, "", istioInjection)
+		deployHelloHelidonApplication(namespace, "", istioInjection)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
-
-		Eventually(func() bool {
-			return pkg.ContainerImagePullWait(namespace, expectedPodsHelloHelidon)
-		}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	}
 
+	Eventually(func() bool {
+		return pkg.ContainerImagePullWait(namespace, expectedPodsHelloHelidon)
+	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	// Verify hello-helidon-deployment pod is running
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig are created
@@ -72,7 +77,7 @@ var _ = t.AfterSuite(func() {
 	}
 	if !skipUndeploy {
 		start := time.Now()
-		pkg.UndeployHelloHelidonApplication(namespace)
+		undeployHelloHelidonApplication(namespace)
 		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
@@ -97,13 +102,34 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
 	t.Describe("for Ingress.", Label("f:mesh.ingress"), func() {
-		t.It("Access /greet App Url.", func() {
+		t.It("Access /greet App Url w/o token and get RBAC denial", func() {
 			if skipVerify {
 				Skip(skipVerifications)
 			}
 			url := fmt.Sprintf("https://%s/greet", host)
 			Eventually(func() bool {
-				return appEndpointAccessible(url, host)
+				return appEndpointAccess(url, host, "", false)
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+		})
+
+		t.It("Access /greet App Url with valid token", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
+			kc, err := pkg.NewKeycloakAdminRESTClient()
+			Expect(err).To(BeNil())
+			password := pkg.GetRequiredEnvVarOrFail("REALM_USER_PASSWORD")
+			realmName := pkg.GetRequiredEnvVarOrFail("REALM_NAME")
+			// check for realm
+			_, err = kc.GetRealm(realmName)
+			Expect(err).To(BeNil())
+			var token string
+			token, err = kc.GetToken(realmName, "testuser", password, "appsclient", t.Logs)
+			Expect(err).To(BeNil())
+			t.Logs.Debugf("Obtained token: %v", token)
+			url := fmt.Sprintf("https://%s/greet", host)
+			Eventually(func() bool {
+				return appEndpointAccess(url, host, token, true)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 	})
@@ -162,14 +188,14 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 			}
 			Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"kubernetes.labels.app_oam_dev\\/name": "hello-helidon-appconf",
+					"kubernetes.labels.app_oam_dev\\/name": "hello-helidon-svc-application",
 					"kubernetes.container_name":            "hello-helidon-container",
 				})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
 			Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"kubernetes.labels.app_oam_dev\\/component": "hello-helidon-component",
-					"kubernetes.labels.app_oam_dev\\/name":      "hello-helidon-appconf",
+					"kubernetes.labels.app_oam_dev\\/component": "hello-helidon-deploy-component",
+					"kubernetes.labels.app_oam_dev\\/name":      "hello-helidon-svc-application",
 					"kubernetes.container_name":                 "hello-helidon-container",
 				})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
@@ -177,6 +203,74 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	})
 
 })
+
+// DeployHelloHelidonApplication deploys the Hello Helidon example application. It accepts an optional
+// OCI Log ID that is added as an annotation on the namespace to test the OCI Logging service integration.
+func deployHelloHelidonApplication(namespace string, ociLogID string, istioInjection string) {
+	pkg.Log(pkg.Info, "Deploy Hello Helidon Application")
+	pkg.Log(pkg.Info, fmt.Sprintf("Create namespace %s", namespace))
+	Eventually(func() (*v1.Namespace, error) {
+		nsLabels := map[string]string{
+			"verrazzano-managed": "true",
+			"istio-injection":    istioInjection}
+
+		var annotations map[string]string
+		if len(ociLogID) > 0 {
+			annotations = make(map[string]string)
+			annotations["verrazzano.io/oci-log-id"] = ociLogID
+		}
+
+		return pkg.CreateNamespaceWithAnnotations(namespace, nsLabels, annotations)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil(), fmt.Sprintf("Failed to create namespace %s", namespace))
+
+	pkg.Log(pkg.Info, "Create Hello Helidon component resource")
+	Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(helidonComponentYaml, namespace)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon component resource")
+
+	pkg.Log(pkg.Info, "Create Hello Helidon application resource")
+	Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(helidonAppYaml, namespace)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon application resource")
+}
+
+// undeployHelloHelidonApplication undeploys the Hello Helidon example application.
+func undeployHelloHelidonApplication(namespace string) {
+	pkg.Log(pkg.Info, "Undeploy Hello Helidon Application")
+	if exists, _ := pkg.DoesNamespaceExist(namespace); exists {
+		pkg.Log(pkg.Info, "Delete Hello Helidon application")
+		Eventually(func() error {
+			return pkg.DeleteResourceFromFileInGeneratedNamespace(helidonAppYaml, namespace)
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon application resource")
+
+		pkg.Log(pkg.Info, "Delete Hello Helidon components")
+		Eventually(func() error {
+			return pkg.DeleteResourceFromFileInGeneratedNamespace(helidonComponentYaml, namespace)
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon component resource")
+
+		pkg.Log(pkg.Info, "Wait for application pods to terminate")
+		Eventually(func() bool {
+			podsTerminated, _ := pkg.PodsNotRunning(namespace, expectedPodsHelloHelidon)
+			return podsTerminated
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+
+		pkg.Log(pkg.Info, fmt.Sprintf("Delete namespace %s", namespace))
+		Eventually(func() error {
+			return pkg.DeleteNamespace(namespace)
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), fmt.Sprintf("Failed to deleted namespace %s", namespace))
+
+		pkg.Log(pkg.Info, "Wait for namespace finalizer to be removed")
+		Eventually(func() bool {
+			return pkg.CheckNamespaceFinalizerRemoved(namespace)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+
+		pkg.Log(pkg.Info, "Wait for namespace to be deleted")
+		Eventually(func() bool {
+			_, err := pkg.GetNamespace(namespace)
+			return err != nil && errors.IsNotFound(err)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+	}
+}
 
 func helloHelidonPodsRunning() bool {
 	result, err := pkg.PodsRunning(namespace, expectedPodsHelloHelidon)
@@ -186,7 +280,7 @@ func helloHelidonPodsRunning() bool {
 	return result
 }
 
-func appEndpointAccessible(url string, hostname string) bool {
+func appEndpointAccess(url string, hostname string, token string, requestShouldSucceed bool) bool {
 	req, err := retryablehttp.NewRequest("GET", url, nil)
 	if err != nil {
 		t.Logs.Errorf("Unexpected error=%v", err)
@@ -204,20 +298,15 @@ func appEndpointAccessible(url string, hostname string) bool {
 		t.Logs.Errorf("Unexpected error=%v", err)
 		return false
 	}
+
+	if len(token) > 0 {
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %v", token))
+	}
+
 	req.Host = hostname
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		t.Logs.Errorf("Unexpected error=%v", err)
-		if resp.Body != nil {
-			bodyRaw, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				t.Logs.Errorf("Unexpected error while marshallling error response=%v", err)
-				return false
-			}
-
-			t.Logs.Errorf("Error Response=%v", string(bodyRaw))
-			resp.Body.Close()
-		}
 		return false
 	}
 	bodyRaw, err := ioutil.ReadAll(resp.Body)
@@ -226,35 +315,42 @@ func appEndpointAccessible(url string, hostname string) bool {
 		t.Logs.Errorf("Unexpected error=%v", err)
 		return false
 	}
-	if resp.StatusCode != http.StatusOK {
-		t.Logs.Errorf("Unexpected status code=%v", resp.StatusCode)
-		return false
-	}
-	// HTTP Server headers should never be returned.
-	for headerName, headerValues := range resp.Header {
-		if strings.EqualFold(headerName, "Server") {
-			t.Logs.Errorf("Unexpected Server header=%v", headerValues)
+	if requestShouldSucceed {
+		if resp.StatusCode != http.StatusOK {
+			t.Logs.Errorf("Unexpected status code=%v", resp.StatusCode)
 			return false
 		}
-	}
-	bodyStr := string(bodyRaw)
-	if !strings.Contains(bodyStr, "Hello World") {
-		t.Logs.Errorf("Unexpected response body=%v", bodyStr)
-		return false
+		// HTTP Server headers should never be returned.
+		for headerName, headerValues := range resp.Header {
+			if strings.EqualFold(headerName, "Server") {
+				t.Logs.Errorf("Unexpected Server header=%v", headerValues)
+				return false
+			}
+		}
+		bodyStr := string(bodyRaw)
+		if !strings.Contains(bodyStr, "Hello World") {
+			t.Logs.Errorf("Unexpected response body=%v", bodyStr)
+			return false
+		}
+	} else {
+		if resp.StatusCode == http.StatusOK {
+			t.Logs.Errorf("Unexpected status code=%v", resp.StatusCode)
+			return false
+		}
 	}
 	return true
 }
 
 func appMetricsExists() bool {
-	return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "hello-helidon")
+	return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "hello-helidon-svc-application")
 }
 
 func appComponentMetricsExists() bool {
-	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", "hello-helidon-appconf")
+	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", "hello-helidon-svc-application")
 }
 
 func appConfigMetricsExists() bool {
-	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "hello-helidon-component")
+	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "hello-helidon-deploy-component")
 }
 
 func nodeExporterProcsRunning() bool {

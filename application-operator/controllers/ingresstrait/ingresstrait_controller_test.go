@@ -868,6 +868,116 @@ func TestFailureCreateGatewayCertNoAppName(t *testing.T) {
 	assert.Equal(time.Duration(0), result.RequeueAfter)
 }
 
+// TestSuccessfullyCreateNewIngressForServiceComponent tests the Reconcile method for the following use case.
+// GIVEN a request to reconcile an ingress trait resource that applies to a service workload type
+// WHEN the trait exists but the ingress does not
+// THEN ensure that the service workload is unwrapped and the trait is created.
+func TestSuccessfullyCreateNewIngressForServiceComponent(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	// Expect a call to get the ingress trait resource.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testTraitName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.IngressTrait) error {
+			trait.TypeMeta = metav1.TypeMeta{
+				APIVersion: apiVersion,
+				Kind:       traitKind}
+			trait.ObjectMeta = metav1.ObjectMeta{
+				Namespace: name.Namespace,
+				Name:      name.Name,
+				Labels:    map[string]string{oam.LabelAppName: "myapp", oam.LabelAppComponent: "mycomp"}}
+			trait.Spec.Rules = []vzapi.IngressRule{{
+				Hosts: []string{"test-host"},
+				Paths: []vzapi.IngressPath{{Path: "test-path"}},
+				Destination: vzapi.IngressDestination{
+					Host: "test-service.test-space.svc.local",
+					Port: 0,
+				}}}
+			trait.Spec.WorkloadReference = oamrt.TypedReference{
+				APIVersion: "v1",
+				Kind:       "Service",
+				Name:       testWorkloadName}
+			return nil
+		})
+	// Expect a call to update the ingress trait resource with a finalizer.
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait, options ...client.UpdateOption) error {
+			assert.Equal(testNamespace, trait.Namespace)
+			assert.Equal(testTraitName, trait.Name)
+			assert.Len(trait.Finalizers, 1)
+			assert.Equal(finalizerName, trait.Finalizers[0])
+			return nil
+		})
+
+	containedName := "test-contained-workload-name"
+	containedResource := map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"name": containedName,
+		},
+	}
+
+	// Expect a call to get the service workload resource
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testWorkloadName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *unstructured.Unstructured) error {
+			workload.SetAPIVersion("v1")
+			workload.SetKind("Service")
+			workload.SetNamespace(name.Namespace)
+			workload.SetName(name.Name)
+			_ = unstructured.SetNestedMap(workload.Object, containedResource, "spec", "template")
+			return nil
+		})
+	// Expect a call to get the service workload resource definition
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: "services."}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workloadDef *v1alpha2.WorkloadDefinition) error {
+			return k8serrors.NewNotFound(schema.GroupResource{Group: testNamespace, Resource: "Service"}, testWorkloadName)
+		})
+	appCertificateExpectations(mock)
+	// Expect a call to get the app config and return that it is not found.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "myapp"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, app *v1alpha2.ApplicationConfiguration) error {
+			app.TypeMeta = metav1.TypeMeta{
+				APIVersion: "core.oam.dev/v1alpha2",
+				Kind:       "ApplicationConfiguration",
+			}
+			return nil
+		})
+
+	deleteCertExpectations(mock, "test-space-myapp-cert")
+	deleteCertSecretExpectations(mock, "test-space-myapp-cert-secret")
+	createCertSuccessExpectations(mock)
+	getGatewayForTraitNotFoundExpectations(mock)
+	createIngressResourceSuccessExpectations(mock)
+	traitVSNotFoundExpectation(mock)
+
+	createIngressResSuccessExpectations(mock, assert)
+	getMockStatusWriterExpectations(mock, mockStatus)
+	// Expect a call to update the status of the ingress trait.
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait, opts ...client.UpdateOption) error {
+			assert.Len(trait.Status.Conditions, 1)
+			assert.Len(trait.Status.Resources, 3)
+			return nil
+		})
+
+	// Create and make the request
+	request := newRequest(testNamespace, testTraitName)
+	reconciler := newIngressTraitReconciler(mock)
+	result, err := reconciler.Reconcile(nil, request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(true, result.Requeue)
+	assert.Equal(time.Duration(0), result.RequeueAfter)
+}
+
 // TestSuccessfullyCreateNewIngressForVerrazzanoWorkload tests the Reconcile method for the following use case.
 // GIVEN a request to reconcile an ingress trait resource that applies to a Verrazzano workload type
 // WHEN the trait exists but the ingress does not

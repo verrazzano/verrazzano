@@ -421,24 +421,30 @@ pipeline {
                                 runGinkgo('examples/helidon')
                             }
                         }
-                        stage('jwt helidon') {
-                           when {
+                        stage('JWT Workload Component') {
+                            when {
                                 expression {params.ENABLE_JWT_TESTING == true}
-                           }
-                           environment {
+                            }
+                            environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jwt-helidon"
                                 REALM_USER_PASSWORD = credentials('todo-mysql-password')
                                 REALM_NAME="test-realm"
                             }
                             steps {
-                                sh """
-                                    cd ${GO_REPO_PATH}/verrazzano
-                                    keycloakPassword=\$(kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo)
-                                    sed -i "s|##KEYCLOAK_PASSWORD##|\$keycloakPassword|g" ci/scripts/create_test_realm.sh
-                                    sed -i "s|##REALM_USER_PASSWORD##|${env.REALM_USER_PASSWORD}|g" ci/scripts/create_test_realm.sh
-                                    sed -i "s|##REALM_NAME##|${env.REALM_NAME}|g" ci/scripts/create_test_realm.sh
-                                """
                                 runGinkgo('jwt/helidon')
+                            }
+                        }
+                        stage('JWT Service Component') {
+                            when {
+                                expression {params.ENABLE_JWT_TESTING == true}
+                            }
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jwt-helidon-svc"
+                                REALM_USER_PASSWORD = credentials('todo-mysql-password')
+                                REALM_NAME="test-realm"
+                            }
+                            steps {
+                                runGinkgo('jwt/helidon-svc')
                             }
                         }
                         stage('weblogic workload') {
