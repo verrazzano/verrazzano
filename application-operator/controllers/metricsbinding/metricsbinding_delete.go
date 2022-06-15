@@ -25,7 +25,7 @@ func (r *Reconciler) reconcileBindingDelete(ctx context.Context, metricsBinding 
 	var configMap = getPromConfigMap(metricsBinding)
 	if configMap != nil {
 		log.Debugf("ConfigMap %s/%s found in the MetricsBinding, deleting scrape config", configMap.GetName(), configMap.GetNamespace())
-		if err := r.deletePrometheusConfigMap(ctx, metricsBinding, configMap, log); err != nil {
+		if err := r.deleteFromPrometheusConfigMap(ctx, metricsBinding, configMap, log); err != nil {
 			return k8scontroller.Result{Requeue: true}, err
 		}
 	}
@@ -33,7 +33,7 @@ func (r *Reconciler) reconcileBindingDelete(ctx context.Context, metricsBinding 
 	secret, key := getPromConfigSecret(metricsBinding)
 	if secret != nil {
 		log.Debugf("Secret %s/%s found in the MetricsBinding, deleting scrape config", secret.GetName(), secret.GetNamespace())
-		if err := r.deletePrometheusConfigSecret(ctx, metricsBinding, secret, key, log); err != nil {
+		if err := r.deleteFromPrometheusConfigSecret(ctx, metricsBinding, secret, key, log); err != nil {
 			return k8scontroller.Result{Requeue: true}, err
 		}
 	}
@@ -50,8 +50,8 @@ func (r *Reconciler) reconcileBindingDelete(ctx context.Context, metricsBinding 
 	return k8scontroller.Result{}, nil
 }
 
-// deletePrometheusConfigMap deletes the scrape config from the Prometheus ConfigMap
-func (r *Reconciler) deletePrometheusConfigMap(ctx context.Context, metricsBinding *vzapi.MetricsBinding, configMap *k8scorev1.ConfigMap, log vzlog.VerrazzanoLogger) error {
+// deleteFromPrometheusConfigMap deletes the scrape config from the Prometheus ConfigMap
+func (r *Reconciler) deleteFromPrometheusConfigMap(ctx context.Context, metricsBinding *vzapi.MetricsBinding, configMap *k8scorev1.ConfigMap, log vzlog.VerrazzanoLogger) error {
 	log.Debugw("Prometheus target ConfigMap is being altered", "resource", configMap.GetName())
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, configMap, func() error {
 		// Get data from the configmap
@@ -77,8 +77,8 @@ func (r *Reconciler) deletePrometheusConfigMap(ctx context.Context, metricsBindi
 	return err
 }
 
-// deletePrometheusConfigSecret deletes the scrape config from the Prometheus config Secret
-func (r *Reconciler) deletePrometheusConfigSecret(ctx context.Context, metricsBinding *vzapi.MetricsBinding, secret *k8scorev1.Secret, key string, log vzlog.VerrazzanoLogger) error {
+// deleteFromPrometheusConfigSecret deletes the scrape config from the Prometheus config Secret
+func (r *Reconciler) deleteFromPrometheusConfigSecret(ctx context.Context, metricsBinding *vzapi.MetricsBinding, secret *k8scorev1.Secret, key string, log vzlog.VerrazzanoLogger) error {
 	log.Debugw("Prometheus target config Secret is being altered", "resource", secret.GetName())
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, secret, func() error {
 		scrapeConfigData, err := getConfigDataFromSecret(secret, key)

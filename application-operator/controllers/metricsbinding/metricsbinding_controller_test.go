@@ -171,7 +171,7 @@ func TestReconcile(t *testing.T) {
 			workload:       labeledWorkload,
 			namespace:      labeledNs,
 			configMap:      testFileCM,
-			requeue:        true,
+			requeue:        false,
 			expectError:    false,
 		},
 	}
