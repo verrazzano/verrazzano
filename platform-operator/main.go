@@ -8,7 +8,6 @@ import (
 	"os"
 	"sync"
 	"net/http"
-	"github.com/prometheus/client_golang/prometheus"
 
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
@@ -28,9 +27,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/netpolicy"
 	"go.uber.org/zap"
-	prometheus "github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	prometheus "github.com/prometheus/client_golang/prometheus/promhttp"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -74,7 +71,8 @@ func init() {
 func main() {
 
 	go func(){
-		http.Handle("/metrics",promhttp.Handler())
+		http.Handle("/metrics", promhttp.Handler())
+        http.ListenAndServe(":9100", nil)
 	}
 
 	// config will hold the entire operator config
