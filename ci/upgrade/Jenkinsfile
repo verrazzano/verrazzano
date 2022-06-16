@@ -531,6 +531,9 @@ pipeline {
                         sh """
                             kubectl delete verrazzano my-verrazzano
                             kubectl delete namespace verrazzano-install
+                            kubectl delete ValidatingWebhookConfiguration verrazzano-platform-operator
+                            kubectl delete ClusterRoleBinding verrazzano-platform-operator
+                            kubectl delete ClusterRole verrazzano-managed-cluster
                         """
                     } catch (err) {
                         currentBuild.result = "FAILURE"
