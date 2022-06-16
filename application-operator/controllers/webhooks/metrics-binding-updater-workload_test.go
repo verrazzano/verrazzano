@@ -26,6 +26,9 @@ import (
 
 const testNS = "test"
 const testConfigMapName = "testPromConfigMap"
+const testTemplateWorkloadNamespace = "testTemplateWorkloadNamespace"
+const appsv1APIVersion = "apps/v1"
+const testDeploymentName = "testDeployment"
 
 // newGeneratorWorkloadWebhook creates a new WorkloadWebhook
 func newGeneratorWorkloadWebhook() WorkloadWebhook {
@@ -91,7 +94,7 @@ func TestHandleDeployment(t *testing.T) {
 	v.createNamespace(t, "test", nil, nil)
 	testDeployment := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testDeployment",
+			Name:      testDeploymentName,
 			Namespace: "test",
 		},
 	}
@@ -157,7 +160,7 @@ func TestHandleOwnerRefs(t *testing.T) {
 	v.createNamespace(t, "test", nil, nil)
 	testDeployment := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testDeployment",
+			Name:      testDeploymentName,
 			Namespace: "test",
 			OwnerReferences: []metav1.OwnerReference{
 				{
@@ -188,10 +191,10 @@ func TestHandleMetricsNone(t *testing.T) {
 	v.createNamespace(t, "test", map[string]string{vzconst.VerrazzanoManagedLabelKey: "true"}, nil)
 	testDeployment := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testDeployment",
+			Name:      testDeploymentName,
 			Namespace: "test",
 			Annotations: map[string]string{
-				"app.verrazzano.io/metrics": "none",
+				MetricsAnnotation: "none",
 			},
 		},
 	}
@@ -214,10 +217,10 @@ func TestHandleMetricsNoneNamespace(t *testing.T) {
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
-	v.createNamespace(t, "test", map[string]string{vzconst.VerrazzanoManagedLabelKey: "true"}, map[string]string{"app.verrazzano.io/metrics": "none"})
+	v.createNamespace(t, "test", map[string]string{vzconst.VerrazzanoManagedLabelKey: "true"}, map[string]string{MetricsAnnotation: "none"})
 	testDeployment := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testDeployment",
+			Name:      testDeploymentName,
 			Namespace: "test",
 		},
 	}
@@ -258,13 +261,13 @@ func TestHandleInvalidMetricsTemplate(t *testing.T) {
 			testDeployment := appsv1.Deployment{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Deployment",
-					APIVersion: "apps/v1",
+					APIVersion: appsv1APIVersion,
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "testDeployment",
+					Name:      testDeploymentName,
 					Namespace: "test",
 					Annotations: map[string]string{
-						"app.verrazzano.io/metrics": "badTemplate",
+						MetricsAnnotation: "badTemplate",
 					},
 				},
 			}
@@ -280,7 +283,7 @@ func TestHandleInvalidMetricsTemplate(t *testing.T) {
 				assert.NoError(t, v.Client.Create(context.TODO(), &existingMetricsBinding))
 			}
 
-			req := newGeneratorWorkloadRequest(admissionv1.Create, "Deployment", testDeployment)
+			req := newGeneratorWorkloadRequest(admissionv1.Create, vzconst.DeploymentWorkloadKind, testDeployment)
 			res := v.Handle(context.TODO(), req)
 			assert.Equal(t, tt.expectAllowed, res.Allowed)
 			if !tt.expectAllowed {
@@ -315,15 +318,15 @@ func TestHandleMetricsTemplateWorkloadNamespace(t *testing.T) {
 			v.createConfigMap(t, "test", testConfigMapName)
 			testDeployment := appsv1.Deployment{
 				TypeMeta: metav1.TypeMeta{
-					Kind:       "Deployment",
-					APIVersion: "apps/v1",
+					Kind:       vzconst.DeploymentWorkloadKind,
+					APIVersion: appsv1APIVersion,
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "testDeployment",
+					Name:      testDeploymentName,
 					Namespace: "test",
 					UID:       "11",
 					Annotations: map[string]string{
-						"app.verrazzano.io/metrics": "testTemplateWorkloadNamespace",
+						MetricsAnnotation: testTemplateWorkloadNamespace,
 					},
 				},
 			}
@@ -342,7 +345,7 @@ func TestHandleMetricsTemplateWorkloadNamespace(t *testing.T) {
 			testTemplate := vzapp.MetricsTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "test",
-					Name:      "testTemplateWorkloadNamespace",
+					Name:      testTemplateWorkloadNamespace,
 				},
 				Spec: vzapp.MetricsTemplateSpec{
 					WorkloadSelector: vzapp.WorkloadSelector{},
@@ -356,7 +359,7 @@ func TestHandleMetricsTemplateWorkloadNamespace(t *testing.T) {
 			}
 			assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
 
-			req := newGeneratorWorkloadRequest(admissionv1.Create, "Deployment", testDeployment)
+			req := newGeneratorWorkloadRequest(admissionv1.Create, vzconst.DeploymentWorkloadKind, testDeployment)
 			res := v.Handle(context.TODO(), req)
 
 			assert.Equal(t, tt.expectAllowed, res.Allowed)
@@ -368,7 +371,7 @@ func TestHandleMetricsTemplateWorkloadNamespace(t *testing.T) {
 				assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
 
 				// validate that metrics binding was updated as expected
-				v.validateMetricsBinding(t, testNS, "testTemplateWorkloadNamespace", testNS, testConfigMapName, false)
+				v.validateMetricsBinding(t, testNS, testTemplateWorkloadNamespace, testNS, testConfigMapName, false)
 			} else {
 				assert.Len(t, res.Patches, 0)
 				v.validateNoMetricsBinding(t)
@@ -404,15 +407,15 @@ func TestHandleMetricsTemplateSystemNamespace(t *testing.T) {
 			v.createConfigMap(t, testNS, testConfigMapName)
 			testDeployment := appsv1.Deployment{
 				TypeMeta: metav1.TypeMeta{
-					Kind:       "Deployment",
-					APIVersion: "apps/v1",
+					Kind:       vzconst.DeploymentWorkloadKind,
+					APIVersion: appsv1APIVersion,
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "testDeployment",
+					Name:      testDeploymentName,
 					Namespace: testNS,
 					UID:       "11",
 					Annotations: map[string]string{
-						"app.verrazzano.io/metrics": "testTemplateSameNamespace",
+						MetricsAnnotation: "testTemplateSameNamespace",
 					},
 				},
 			}
@@ -445,7 +448,7 @@ func TestHandleMetricsTemplateSystemNamespace(t *testing.T) {
 			}
 			assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
 
-			req := newGeneratorWorkloadRequest(admissionv1.Create, "Deployment", testDeployment)
+			req := newGeneratorWorkloadRequest(admissionv1.Create, vzconst.DeploymentWorkloadKind, testDeployment)
 			res := v.Handle(context.TODO(), req)
 			assert.Equal(t, tt.expectAllowed, res.Allowed)
 			if tt.expectMetricsBindingUpdate {
@@ -495,12 +498,12 @@ func TestHandleMetricsTemplateConfigMapNotFound(t *testing.T) {
 					Namespace: testNS,
 					UID:       "11",
 					Annotations: map[string]string{
-						"app.verrazzano.io/metrics": "testTemplateWorkloadNamespace",
+						MetricsAnnotation: testTemplateWorkloadNamespace,
 					},
 				},
 				TypeMeta: metav1.TypeMeta{
-					Kind:       "Deployment",
-					APIVersion: "apps/v1",
+					Kind:       vzconst.DeploymentWorkloadKind,
+					APIVersion: appsv1APIVersion,
 				},
 			}
 			assert.NoError(t, v.Client.Create(context.TODO(), &testDeployment))
@@ -518,7 +521,7 @@ func TestHandleMetricsTemplateConfigMapNotFound(t *testing.T) {
 			testTemplate := vzapp.MetricsTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: testNS,
-					Name:      "testTemplateWorkloadNamespace",
+					Name:      testTemplateWorkloadNamespace,
 				},
 				Spec: vzapp.MetricsTemplateSpec{
 					WorkloadSelector: vzapp.WorkloadSelector{},
@@ -532,7 +535,7 @@ func TestHandleMetricsTemplateConfigMapNotFound(t *testing.T) {
 			}
 			assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
 
-			req := newGeneratorWorkloadRequest(admissionv1.Create, "Deployment", testDeployment)
+			req := newGeneratorWorkloadRequest(admissionv1.Create, vzconst.DeploymentWorkloadKind, testDeployment)
 			res := v.Handle(context.TODO(), req)
 			assert.Equal(t, tt.expectAllowed, res.Allowed)
 			if tt.expectMetricsBindingError {
@@ -568,11 +571,11 @@ func TestHandleMatchWorkloadNamespace(t *testing.T) {
 			v.createConfigMap(t, testNS, testConfigMapName)
 			testDeployment := appsv1.Deployment{
 				TypeMeta: metav1.TypeMeta{
-					Kind:       "Deployment",
-					APIVersion: "apps/v1",
+					Kind:       vzconst.DeploymentWorkloadKind,
+					APIVersion: appsv1APIVersion,
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "testDeployment",
+					Name:      testDeploymentName,
 					Namespace: testNS,
 					UID:       "11",
 				},
@@ -592,7 +595,7 @@ func TestHandleMatchWorkloadNamespace(t *testing.T) {
 			testTemplate := vzapp.MetricsTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: testNS,
-					Name:      "testTemplateWorkloadNamespace",
+					Name:      testTemplateWorkloadNamespace,
 				},
 				Spec: vzapp.MetricsTemplateSpec{
 					WorkloadSelector: vzapp.WorkloadSelector{
@@ -616,7 +619,7 @@ func TestHandleMatchWorkloadNamespace(t *testing.T) {
 			}
 			assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
 
-			req := newGeneratorWorkloadRequest(admissionv1.Create, "Deployment", testDeployment)
+			req := newGeneratorWorkloadRequest(admissionv1.Create, vzconst.DeploymentWorkloadKind, testDeployment)
 			res := v.Handle(context.TODO(), req)
 			assert.Equal(t, tt.expectAllowed, res.Allowed)
 			if tt.expectMetricsBindingUpdate {
@@ -625,7 +628,7 @@ func TestHandleMatchWorkloadNamespace(t *testing.T) {
 				assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
 				assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
 				// validate that metrics binding was updated as expected
-				v.validateMetricsBinding(t, testNS, "testTemplateWorkloadNamespace", testNS, testConfigMapName, false)
+				v.validateMetricsBinding(t, testNS, testTemplateWorkloadNamespace, testNS, testConfigMapName, false)
 			} else {
 				assert.Len(t, res.Patches, 0)
 				v.validateNoMetricsBinding(t)
@@ -663,11 +666,11 @@ func TestHandleMatchSystemNamespace(t *testing.T) {
 			v.createConfigMap(t, testNS, testConfigMapName)
 			testDeployment := appsv1.Deployment{
 				TypeMeta: metav1.TypeMeta{
-					Kind:       "Deployment",
-					APIVersion: "apps/v1",
+					Kind:       vzconst.DeploymentWorkloadKind,
+					APIVersion: appsv1APIVersion,
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "testDeployment",
+					Name:      testDeploymentName,
 					Namespace: testNS,
 					UID:       "11",
 				},
@@ -711,7 +714,7 @@ func TestHandleMatchSystemNamespace(t *testing.T) {
 			}
 			assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
 
-			req := newGeneratorWorkloadRequest(admissionv1.Create, "Deployment", testDeployment)
+			req := newGeneratorWorkloadRequest(admissionv1.Create, vzconst.DeploymentWorkloadKind, testDeployment)
 			res := v.Handle(context.TODO(), req)
 			assert.Equal(t, tt.expectAllowed, res.Allowed)
 			if tt.expectMetricsBindingUpdate {
@@ -744,11 +747,11 @@ func TestHandleMatchNotFound(t *testing.T) {
 	v.createConfigMap(t, testNS, testConfigMapName)
 	testDeployment := appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "Deployment",
-			APIVersion: "apps/v1",
+			Kind:       vzconst.DeploymentWorkloadKind,
+			APIVersion: appsv1APIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testDeployment",
+			Name:      testDeploymentName,
 			Namespace: testNS,
 			UID:       "11",
 		},
@@ -781,7 +784,7 @@ func TestHandleMatchNotFound(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
 
-	req := newGeneratorWorkloadRequest(admissionv1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1.Create, vzconst.DeploymentWorkloadKind, testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
 	assert.Empty(t, res.Patches)
@@ -804,11 +807,11 @@ func TestHandleMatchTemplateNoWorkloadSelector(t *testing.T) {
 	v.createConfigMap(t, testNS, testConfigMapName)
 	testDeployment := appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "Deployment",
-			APIVersion: "apps/v1",
+			Kind:       vzconst.DeploymentWorkloadKind,
+			APIVersion: appsv1APIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testDeployment",
+			Name:      testDeploymentName,
 			Namespace: testNS,
 			UID:       "11",
 		},
@@ -830,7 +833,7 @@ func TestHandleMatchTemplateNoWorkloadSelector(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
 
-	req := newGeneratorWorkloadRequest(admissionv1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1.Create, vzconst.DeploymentWorkloadKind, testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
 	assert.Empty(t, res.Patches)
@@ -852,14 +855,14 @@ func TestHandleNoConfigMap(t *testing.T) {
 	v.createNamespace(t, vzconst.VerrazzanoSystemNamespace, nil, nil)
 	testDeployment := appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "Deployment",
-			APIVersion: "apps/v1",
+			Kind:       vzconst.DeploymentWorkloadKind,
+			APIVersion: appsv1APIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testDeployment",
+			Name:      testDeploymentName,
 			Namespace: testNS,
 			Annotations: map[string]string{
-				"app.verrazzano.io/metrics": "testTemplateWorkloadNamespace",
+				MetricsAnnotation: testTemplateWorkloadNamespace,
 			},
 			UID: "11",
 		},
@@ -868,13 +871,13 @@ func TestHandleNoConfigMap(t *testing.T) {
 	testTemplate := vzapp.MetricsTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: testNS,
-			Name:      "testTemplateWorkloadNamespace",
+			Name:      testTemplateWorkloadNamespace,
 		},
 		Spec: vzapp.MetricsTemplateSpec{},
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
 
-	req := newGeneratorWorkloadRequest(admissionv1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1.Create, vzconst.DeploymentWorkloadKind, testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
 	assert.Empty(t, res.Patches)
@@ -902,16 +905,16 @@ func TestHandleNamespaceAnnotation(t *testing.T) {
 			v := newGeneratorWorkloadWebhook()
 
 			// Test data
-			v.createNamespace(t, testNS, map[string]string{vzconst.VerrazzanoManagedLabelKey: "true"}, map[string]string{"app.verrazzano.io/metrics": "testTemplateDifferentNamespace"})
+			v.createNamespace(t, testNS, map[string]string{vzconst.VerrazzanoManagedLabelKey: "true"}, map[string]string{MetricsAnnotation: "testTemplateDifferentNamespace"})
 			v.createNamespace(t, constants.VerrazzanoSystemNamespace, nil, nil)
 			v.createConfigMap(t, testNS, testConfigMapName)
 			testDeployment := appsv1.Deployment{
 				TypeMeta: metav1.TypeMeta{
-					Kind:       "Deployment",
-					APIVersion: "apps/v1",
+					Kind:       vzconst.DeploymentWorkloadKind,
+					APIVersion: appsv1APIVersion,
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "testDeployment",
+					Name:      testDeploymentName,
 					Namespace: testNS,
 				},
 			}
@@ -960,7 +963,7 @@ func TestHandleNamespaceAnnotation(t *testing.T) {
 			assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
 			assert.NoError(t, v.Client.Create(context.TODO(), &extraTemplate))
 
-			req := newGeneratorWorkloadRequest(admissionv1.Create, "Deployment", testDeployment)
+			req := newGeneratorWorkloadRequest(admissionv1.Create, vzconst.DeploymentWorkloadKind, testDeployment)
 			res := v.Handle(context.TODO(), req)
 			assert.Equal(t, tt.expectAllowed, res.Allowed)
 			if tt.expectMetricsBindingUpdate {
@@ -988,7 +991,7 @@ func TestExistingMetricsBindingVmiConfigMap(t *testing.T) {
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
-	v.createNamespace(t, testNS, map[string]string{vzconst.VerrazzanoManagedLabelKey: "true"}, map[string]string{"app.verrazzano.io/metrics": "testTemplateDifferentNamespace"})
+	v.createNamespace(t, testNS, map[string]string{vzconst.VerrazzanoManagedLabelKey: "true"}, map[string]string{MetricsAnnotation: "testTemplateDifferentNamespace"})
 	v.createNamespace(t, constants.VerrazzanoSystemNamespace, nil, nil)
 
 	testTemplate := vzapp.MetricsTemplate{
@@ -1010,11 +1013,11 @@ func TestExistingMetricsBindingVmiConfigMap(t *testing.T) {
 
 	testDeployment := appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "Deployment",
-			APIVersion: "apps/v1",
+			Kind:       vzconst.DeploymentWorkloadKind,
+			APIVersion: appsv1APIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testDeployment",
+			Name:      testDeploymentName,
 			Namespace: testNS,
 			Annotations: map[string]string{
 				MetricsAnnotation: testTemplate.Name,
@@ -1037,7 +1040,7 @@ func TestExistingMetricsBindingVmiConfigMap(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &existingMetricsBinding))
 
-	req := newGeneratorWorkloadRequest(admissionv1.Update, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1.Update, vzconst.DeploymentWorkloadKind, testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed, "Expected validation to succeed.")
 	v.validateMetricsBinding(t, testNS, "testTemplate", "", "", true)
@@ -1080,9 +1083,9 @@ func (v *WorkloadWebhook) validateMetricsBinding(
 	namespacedName := types.NamespacedName{Namespace: testNS, Name: "testDeployment-apps-v1-deployment"}
 	metricsBinding := &vzapp.MetricsBinding{}
 	assert.NoError(t, v.Client.Get(context.TODO(), namespacedName, metricsBinding))
-	assert.Equal(t, "apps/v1", metricsBinding.Spec.Workload.TypeMeta.APIVersion)
-	assert.Equal(t, "Deployment", metricsBinding.Spec.Workload.TypeMeta.Kind)
-	assert.Equal(t, "testDeployment", metricsBinding.Spec.Workload.Name)
+	assert.Equal(t, appsv1APIVersion, metricsBinding.Spec.Workload.TypeMeta.APIVersion)
+	assert.Equal(t, vzconst.DeploymentWorkloadKind, metricsBinding.Spec.Workload.TypeMeta.Kind)
+	assert.Equal(t, testDeploymentName, metricsBinding.Spec.Workload.Name)
 	assert.Equal(t, templateNamespace, metricsBinding.Spec.MetricsTemplate.Namespace)
 	assert.Equal(t, templateName, metricsBinding.Spec.MetricsTemplate.Name)
 	assert.Equal(t, configMapNamespace, metricsBinding.Spec.PrometheusConfigMap.Namespace)
