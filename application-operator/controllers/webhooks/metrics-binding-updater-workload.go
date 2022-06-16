@@ -118,11 +118,8 @@ func (a *WorkloadWebhook) handleWorkloadResource(ctx context.Context, req admiss
 	// Workload resource specifies a valid metrics template or we found one above
 	// We use that metrics template to update the existing metrics binding resource. We won't
 	// create new MetricsBindings as of Verrazzano 1.4 but we will honor settings for existing apps
-	if metricsTemplate != nil {
-		err = a.updateMetricBinding(ctx, unst, metricsTemplate, existingMetricsBinding, log)
-		if err != nil {
-			return admission.Errored(http.StatusInternalServerError, err)
-		}
+	if err = a.updateMetricBinding(ctx, unst, metricsTemplate, existingMetricsBinding, log); err != nil {
+		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
 	marshaledWorkloadResource, err := json.Marshal(unst)
@@ -216,6 +213,10 @@ func (a *WorkloadWebhook) processMetricsAnnotation(unst *unstructured.Unstructur
 // updateMetricBinding updates an existing metricsBinding resource and
 // adds the apps.verrazzano.io/workload label to the workload resource
 func (a *WorkloadWebhook) updateMetricBinding(ctx context.Context, unst *unstructured.Unstructured, template *vzapp.MetricsTemplate, metricsBinding *vzapp.MetricsBinding, log *zap.SugaredLogger) error {
+	if template == nil {
+		// nothing to update
+		return nil
+	}
 	// When the Prometheus target config map was not specified in the metrics template then there is nothing to do.
 	if reflect.DeepEqual(template.Spec.PrometheusConfig.TargetConfigMap, vzapp.TargetConfigMap{}) {
 		log.Infof("Prometheus target config map %s/%s not specified", template.Namespace, template.Name)
