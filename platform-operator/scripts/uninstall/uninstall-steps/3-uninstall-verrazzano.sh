@@ -208,10 +208,11 @@ function delete_prometheus_pushgateway {
 
 function delete_jaeger_operator {
   log "Uninstall the Jaeger operator"
-  local JAEGER_TEMPLATE_FILE=$MANIFESTS_DIR/jaeger/jaeger-operator.yaml
-  sed 's/{{.*}}/verrazzano-monitoring/g' "$JAEGER_TEMPLATE_FILE" > jaeger.yaml
-  kubectl delete -f jaeger.yaml --ignore-not-found || err_return $? "Could not delete Jaeger Operator"
-  rm -f jaeger.yaml
+  if helm status jaeger-operator --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
+    if ! helm uninstall jaeger-operator --namespace "${VERRAZZANO_MONITORING_NS}" ; then
+      error "Failed to uninstall the Jaeger Operator."
+    fi
+  fi
 }
 
 function delete_verrazzano_console {
