@@ -104,16 +104,17 @@ func (r *Reconciler) handleDefaultMetricsTemplate(ctx context.Context, metricsBi
 func (r *Reconciler) handleCustomMetricsTemplate(ctx context.Context, metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) error {
 	log.Debugf("Custom metrics template used by metrics binding %s/%s, edit additionalScrapeConfigs", metricsBinding.Namespace, metricsBinding.Name)
 
+	var workloadNamespaceUnstructured *unstructured.Unstructured
+	var err error
 	// Get the Namespace of the Metrics Binding as an unstructured resource so that it can be applied
 	// to the template
-	workloadNamespaceUnstructured, err := r.createWorkloadNamespaceUnstructured(metricsBinding, log)
-	if err != nil {
+	if workloadNamespaceUnstructured, err = r.createWorkloadNamespaceUnstructured(metricsBinding, log); err != nil {
 		return err
 	}
 
 	// Get the workload object, so that it can be applied to the template
-	workloadObject, err := r.getWorkloadObject(metricsBinding)
-	if err != nil {
+	var workloadObject *unstructured.Unstructured
+	if workloadObject, err = r.getWorkloadObject(metricsBinding); err != nil {
 		return log.ErrorfNewErr("Failed to get the workload object for metrics binding %s: %v", metricsBinding.GetName(), err)
 	}
 
@@ -124,12 +125,13 @@ func (r *Reconciler) handleCustomMetricsTemplate(ctx context.Context, metricsBin
 	}
 
 	// Format scrape config into readable container
-	configYaml, err := yaml.YAMLToJSON([]byte(scrapeConfigString))
-	if err != nil {
+	var configYaml []byte
+	if configYaml, err = yaml.YAMLToJSON([]byte(scrapeConfigString)); err != nil {
 		return log.ErrorfNewErr("Failed to convert scrape config YAML to JSON: %v", err)
 	}
-	newScrapeConfig, err := gabs.ParseJSON(configYaml)
-	if err != nil {
+
+	var newScrapeConfig *gabs.Container
+	if newScrapeConfig, err = gabs.ParseJSON(configYaml); err != nil {
 		return log.ErrorfNewErr("Failed to convert scrape config JSON to container: %v", err)
 	}
 
@@ -139,16 +141,15 @@ func (r *Reconciler) handleCustomMetricsTemplate(ctx context.Context, metricsBin
 	if configMap != nil {
 		log.Debugf("ConfigMap %s/%s found in the MetricsBinding, attempting scrape config update", configMap.GetNamespace(), configMap.GetName())
 		_, err = controllerutil.CreateOrUpdate(ctx, r.Client, configMap, func() error {
-			data, err = getConfigData(configMap)
-			if err != nil {
+			var err error
+			if data, err = getConfigData(configMap); err != nil {
 				return log.ErrorfNewErr("Failed to get the ConfigMap data: %v", err)
 			}
-			err = metricsutils.EditScrapeJobInPrometheusConfig(data, prometheusScrapeConfigsLabel, createdJobName, newScrapeConfig)
-			if err != nil {
+			if err = metricsutils.EditScrapeJobInPrometheusConfig(data, prometheusScrapeConfigsLabel, createdJobName, newScrapeConfig); err != nil {
 				return log.ErrorfNewErr("Failed to edit the scrape job: %v", err)
 			}
-			newPromConfigData, err := yaml.JSONToYAML(data.Bytes())
-			if err != nil {
+			var newPromConfigData []byte
+			if newPromConfigData, err = yaml.JSONToYAML(data.Bytes()); err != nil {
 				return log.ErrorfNewErr("Failed to convert scrape config JSON to YAML: %v", err)
 			}
 			configMap.Data[prometheusConfigKey] = string(newPromConfigData)
@@ -162,16 +163,16 @@ func (r *Reconciler) handleCustomMetricsTemplate(ctx context.Context, metricsBin
 	if secret != nil {
 		log.Debugf("Secret %s/%s found in the MetricsBinding, attempting scrape config update", secret.GetNamespace(), secret.GetName())
 		_, err = controllerutil.CreateOrUpdate(ctx, r.Client, secret, func() error {
-			data, err = getConfigDataFromSecret(secret, key)
-			if err != nil {
+			var err error
+			if data, err = getConfigDataFromSecret(secret, key); err != nil {
 				return log.ErrorfNewErr("Failed to get the Secret data: %v", err)
 			}
-			promConfig, err := metricsutils.EditScrapeJob(data, createdJobName, newScrapeConfig)
-			if err != nil {
+			var promConfig *gabs.Container
+			if promConfig, err = metricsutils.EditScrapeJob(data, createdJobName, newScrapeConfig); err != nil {
 				return log.ErrorfNewErr("Failed to edit the scrape job: %v", err)
 			}
-			newPromConfigData, err := yaml.JSONToYAML(promConfig.Bytes())
-			if err != nil {
+			var newPromConfigData []byte
+			if newPromConfigData, err = yaml.JSONToYAML(promConfig.Bytes()); err != nil {
 				return log.ErrorfNewErr("Failed to convert scrape config JSON to YAML: %v", err)
 			}
 			secret.Data[key] = newPromConfigData
