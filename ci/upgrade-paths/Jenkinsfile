@@ -999,6 +999,8 @@ def upgradeVerrazzano() {
 def upgradeVerrazzanoOnCluster(count, verrazzanoDevVersion) {
     // For parallel execution, wrap this in a Groovy enclosure {}
     return {
+        echo "Downloading target upgrade operator yaml"
+        getPlatformOperatorForRelease()
         script {
             def v8oInstallFile="${KUBECONFIG_DIR}/${count}/${installerFileName}"
             def v8oUpgradeFile="${KUBECONFIG_DIR}/${count}/verrazzano-upgrade-cr.yaml"
