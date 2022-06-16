@@ -117,3 +117,7 @@ const VerrazzanoIngressTLSSecret = "verrazzano-tls" //nolint:gosec //#gosec G101
 
 // VerrazzanoLocalCABundleSecret is the name of the secret in the verrazzano-mc namespace on an admin cluster that contains the cluster's ca bundle
 const VerrazzanoLocalCABundleSecret = "verrazzano-local-ca-bundle" //nolint:gosec //#gosec G101
+
+// DefaultScraperName is the default Prometheus deployment name used to scrape metrics. If a metrics trait does not specify a scraper, this
+// is the scraper that will be used.
+const DefaultScraperName = "verrazzano-system/vmi-system-prometheus-0"

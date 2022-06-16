@@ -74,8 +74,6 @@ func init() {
 	_ = promoperapi.AddToScheme(scheme)
 }
 
-const defaultScraperName = "verrazzano-system/vmi-system-prometheus-0"
-
 var (
 	metricsAddr           string
 	defaultMetricsScraper string
@@ -86,7 +84,7 @@ var (
 
 func main() {
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
-	flag.StringVar(&defaultMetricsScraper, "default-metrics-scraper", defaultScraperName,
+	flag.StringVar(&defaultMetricsScraper, "default-metrics-scraper", constants.DefaultScraperName,
 		"The namespace/deploymentName of the prometheus deployment to be used as the default metrics scraper")
 	flag.StringVar(&certDir, "cert-dir", "/etc/certs/", "The directory containing tls.crt and tls.key.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
