@@ -28,6 +28,7 @@ type verrazzanoValues struct {
 	Prometheus             *prometheusValues             `json:"prometheus,omitempty"`
 	Grafana                *grafanaValues                `json:"grafana,omitempty"`
 	Kibana                 *kibanaValues                 `json:"kibana,omitempty"`
+	Istio                  *istioValues                  `json:"istio,omitempty"`
 	Kiali                  *kialiValues                  `json:"kiali,omitempty"`
 	Keycloak               *keycloakValues               `json:"keycloak,omitempty"`
 	Rancher                *rancherValues                `json:"rancher,omitempty"`
@@ -89,6 +90,10 @@ type kialiValues struct {
 }
 
 type keycloakValues struct {
+	Enabled bool `json:"enabled"` // Always write
+}
+
+type istioValues struct {
 	Enabled bool `json:"enabled"` // Always write
 }
 

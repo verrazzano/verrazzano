@@ -32,6 +32,7 @@ affinity:
 config:
   envName:
   dnsSuffix:
+  prometheusEnabled:
 
 dns:
   wildcard:

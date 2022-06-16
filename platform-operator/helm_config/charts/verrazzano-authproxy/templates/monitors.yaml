@@ -1,6 +1,6 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-
+  {{- if .Values.prometheusEnabled }}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -51,4 +51,5 @@ spec:
         replacement: $1
         sourceLabels:
         - name
-        targetLabel: app
+        targetLabel:
+  {{- end }}
