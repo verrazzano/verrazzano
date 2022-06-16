@@ -1146,6 +1146,7 @@ def installVerrazzanoPlatformOperator() {
         cp $WORKSPACE/downloaded-operator.yaml $WORKSPACE/acceptance-test-operator.yaml
         # Install the verrazzano-platform-operator
         kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
+        kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
         # make sure ns exists
         $WORKSPACE/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
         # create secret in verrazzano-install ns
@@ -1155,8 +1156,10 @@ def installVerrazzanoPlatformOperator() {
 
 def installVerrazzano() {
     sh '''
-        kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-        
+        yq -i eval '.spec.environmentName = $TEST_ENV' $INSTALL_CONFIG_FILE_OLCNE
+        yq -i eval '.spec.components.dns.external.suffix = $OCI_DNS_ZONE_NAME' $INSTALL_CONFIG_FILE_OLCNE
+        yq -i eval '.spec.components.ingress.nginxInstallArgs[0].valueList[0] = $OCI_LB_MGMT_IP' $INSTALL_CONFIG_FILE_OLCNE
+        yq -i eval '.spec.components.istio.istioInstallArgs[0].valueList[0] = $OCI_LB_APP_IP' $INSTALL_CONFIG_FILE_OLCNE
         # apply config to create cluster
         kubectl apply -f $INSTALL_CONFIG_FILE_OLCNE
         # wait for Verrazzano install to complete
