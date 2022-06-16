@@ -38,6 +38,11 @@ vz uninstall
 vz uninstall --crds --timeout 20m`
 )
 
+// Number of retries after waiting a second for uninstall pod to be ready
+const uninstallDefaultWaitRetries = 20
+
+var uninstallWaitRetries = uninstallDefaultWaitRetries
+
 func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
@@ -98,7 +103,7 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return fmt.Errorf("Failed to uninstall in Verrazzano resource: %s", err.Error())
 	}
 
-	uninstallPodName, err := waitForUninstallPod(client, vzHelper, vzapi.CondUpgradeComplete)
+	uninstallPodName, err := getUninstallPod(client, vzHelper, vzapi.CondUpgradeComplete)
 	if err != nil {
 		return err
 	}
@@ -107,26 +112,25 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	return waitForUninstallToComplete(client, kubeClient, vzHelper, uninstallPodName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout)
 }
 
-// WaitForPlatformOperator waits for the verrazzano-platform-operator to be ready
-func WaitForUninstallPod(client client.Client, vzHelper helpers.VZHelper, condType vzapi.ConditionType) (string, error) {
+func getUninstallPod(c client.Client, vzHelper helpers.VZHelper, condType vzapi.ConditionType) (string, error) {
 	// Find the verrazzano-platform-operator using the app label selector
-	appLabel, _ := labels.NewRequirement("app", selection.Equals, []string{constants.VerrazzanoPlatformOperator})
+	appLabel, _ := labels.NewRequirement("app", selection.Equals, []string{constants.VerrazzanoUninstall})
 	labelSelector := labels.NewSelector()
 	labelSelector = labelSelector.Add(*appLabel)
 	podList := corev1.PodList{}
 
-	// Wait for the verrazzano-platform-operator pod to be found
+	// Wait for the verrazzano-uninstall pod to be found
 	seconds := 0
 	retryCount := 0
 	for {
 		retryCount++
-		if retryCount > vpoWaitRetries {
-			return "", fmt.Errorf("%s pod not found in namespace %s", constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
+		if retryCount > uninstallWaitRetries {
+			return "", fmt.Errorf("%s pod not found in namespace %s", constants.VerrazzanoUninstall, vzconstants.VerrazzanoInstallNamespace)
 		}
 		time.Sleep(constants.VerrazzanoPlatformOperatorWait * time.Second)
 		seconds += constants.VerrazzanoPlatformOperatorWait
 
-		err := client.List(
+		err := c.List(
 			context.TODO(),
 			&podList,
 			&client.ListOptions{
@@ -140,20 +144,19 @@ func WaitForUninstallPod(client client.Client, vzHelper helpers.VZHelper, condTy
 			continue
 		}
 		if len(podList.Items) > 1 {
-			return "", fmt.Errorf("More than one %s pod was found in namespace %s", constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
+			return "", fmt.Errorf("More than one %s pod was found in namespace %s", constants.VerrazzanoUninstall, vzconstants.VerrazzanoInstallNamespace)
 		}
 		break
 	}
 
-	// We found the verrazzano-platform-operator pod. Wait until it's containers are ready.
+	// We found the verrazzano-uninstall pod. Wait until it's containers are ready.
 	pod := &corev1.Pod{}
 	seconds = 0
 	for {
 		time.Sleep(constants.VerrazzanoPlatformOperatorWait * time.Second)
 		seconds += constants.VerrazzanoPlatformOperatorWait
-		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("\rWaiting for verrazzano-platform-operator to be ready before starting %s - %d seconds", getOperationString(condType), seconds))
 
-		err := client.Get(context.TODO(), types.NamespacedName{Namespace: podList.Items[0].Namespace, Name: podList.Items[0].Name}, pod)
+		err := c.Get(context.TODO(), types.NamespacedName{Namespace: podList.Items[0].Namespace, Name: podList.Items[0].Name}, pod)
 		if err != nil {
 			return "", err
 		}
@@ -173,7 +176,7 @@ func WaitForUninstallPod(client client.Client, vzHelper helpers.VZHelper, condTy
 		}
 
 		if initReady && ready {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "\n")
+			_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), "\n")
 			break
 		}
 	}
