@@ -56,11 +56,14 @@ func MergeSetFlags(vz *vzapi.Verrazzano, overlayYAML string) (*vzapi.Verrazzano,
 		return vz, err
 	}
 	vzYAML, err := overlayVerrazzano(string(baseYAML), overlayYAML)
+	if err != nil {
+		return vz, err
+	}
 	fmt.Println("vzYaml:\n", vzYAML)
 
 	err = yaml.Unmarshal([]byte(vzYAML), &vz)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create a verrazzano install resource: %s", err.Error())
+		return vz, fmt.Errorf("Failed to create a verrazzano install resource: %s", err.Error())
 	}
 	return vz, nil
 }
