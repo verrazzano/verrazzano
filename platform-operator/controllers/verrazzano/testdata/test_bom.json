@@ -568,6 +568,32 @@
           ]
         }
       ]
+    },
+    {
+      "name": "velero",
+      "subcomponents": [
+        {
+          "repository": "verrazzano/velero",
+          "name": "velero",
+          "images": [
+            {
+              "image": "velero",
+              "tag": "20220503000302-4750a3fa"
+            }
+          ]
+        },
+        {
+          "registry": "olcne-containers-stable-ol8.dockerhub-iad.oci.oraclecorp.com",
+          "repository": "olcne",
+          "name": "velero-plugin-for-aws",
+          "images": [
+            {
+              "image": "velero-plugin-for-aws",
+              "tag": "v1.4.1"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

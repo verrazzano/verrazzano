@@ -4,9 +4,7 @@
 package operator
 
 import (
-	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,7 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const testBomPath = "../../../../../verrazzano-bom.json"
+const testBomPath = "../../../../verrazzano-bom.json"
 
 var testScheme = runtime.NewScheme()
 
@@ -50,7 +48,7 @@ func TestBuildInstallArgs(t *testing.T) {
 			true,
 		},
 		{
-			"fails to build install args when bomfile doesn't have jaeger subcomponent",
+			"fails to build install args when bomfile doesn't have Velero subcomponent",
 			"invalid bom file",
 			true,
 		},
@@ -65,27 +63,32 @@ func TestBuildInstallArgs(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				for _, subcomponent := range subcomponentNames {
-					img, ok := args[strings.ReplaceAll(subcomponent, "-", "")]
-					assert.True(t, ok, fmt.Sprintf("couldn't find subcomponent image: %s", img))
-					assert.Contains(t, img, subcomponent)
+					operatorImage := args.VeleroImage
+					pluginImage := args.VeleroPluginForAwsImage
+					switch subcomponent {
+					case "velero":
+						assert.Contains(t, operatorImage, subcomponent)
+					case "velero-plugin-for-aws":
+						assert.Contains(t, pluginImage, subcomponent)
+					}
 				}
 			}
 		})
 	}
 }
 
-// TestIsJaegerOperatorReady tests the isJaegerOperatorReady function for the Jaeger Operator
-func TestIsJaegerOperatorReady(t *testing.T) {
+// TestisVeleroOperatorReady tests the isVeleroOperatorReady function for the Velero Operator
+func TestIsVeleroOperatorReady(t *testing.T) {
 	tests := []struct {
 		name       string
 		client     client.Client
 		expectTrue bool
 	}{
 		{
-			// GIVEN the Jaeger Operator deployment exists and there are available replicas
-			// WHEN we call isJaegerOperatorReady
+			// GIVEN the Velero Operator deployment exists and there are available replicas
+			// WHEN we call isVeleroOperatorReady
 			// THEN the call returns true
-			name: "Test IsReady when Jaeger Operator is successfully deployed",
+			name: "Test IsReady when Velero Operator is successfully deployed",
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				&appsv1.Deployment{
 					ObjectMeta: metav1.ObjectMeta{
@@ -101,10 +104,10 @@ func TestIsJaegerOperatorReady(t *testing.T) {
 			expectTrue: true,
 		},
 		{
-			// GIVEN the Jaeger Operator deployment exists and there are no available replicas
-			// WHEN we call isJaegerOperatorReady
+			// GIVEN the Velero Operator deployment exists and there are no available replicas
+			// WHEN we call isVeleroOperatorReady
 			// THEN the call returns false
-			name: "Test IsReady when Jaeger Operator deployment is not ready",
+			name: "Test IsReady when Velero Operator deployment is not ready",
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				&appsv1.Deployment{
 					ObjectMeta: metav1.ObjectMeta{
@@ -120,10 +123,10 @@ func TestIsJaegerOperatorReady(t *testing.T) {
 			expectTrue: false,
 		},
 		{
-			// GIVEN the Jaeger Operator deployment does not exist
-			// WHEN we call isJaegerOperatorReady
+			// GIVEN the Velero Operator deployment does not exist
+			// WHEN we call isVeleroOperatorReady
 			// THEN the call returns false
-			name:       "Test IsReady when Jaeger Operator deployment does not exist",
+			name:       "Test IsReady when Velero Operator deployment does not exist",
 			client:     fake.NewClientBuilder().WithScheme(testScheme).Build(),
 			expectTrue: false,
 		},
@@ -131,14 +134,7 @@ func TestIsJaegerOperatorReady(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, false)
-			assert.Equal(t, tt.expectTrue, isJaegerOperatorReady(ctx))
+			assert.Equal(t, tt.expectTrue, isVeleroOperatorReady(ctx))
 		})
 	}
-}
-
-// TestEnsureMonitoringOperatorNamespace asserts the verrazzano-monitoring namespaces can be created
-func TestEnsureMonitoringOperatorNamespace(t *testing.T) {
-	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), jaegerEnabledCR, false)
-	err := ensureVerrazzanoMonitoringNamespace(ctx)
-	assert.NoError(t, err)
 }

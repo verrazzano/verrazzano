@@ -17,62 +17,64 @@ import (
 
 const (
 	// ComponentName is the name of the component
-	ComponentName = "velero-operator"
+	ComponentName = "velero"
 	// ComponentNamespace is the namespace of the component
 	ComponentNamespace = constants.VeleroNameSpace
 	// ComponentJSONName is the json name of the component in the CRD
-	ComponentJSONName = "veleroOperator"
+	ComponentJSONName = "velero"
 )
 
 var (
-	componentPrefix          = fmt.Sprintf("Component %s", ComponentName)
-	veleroOperatorDeployment = types.NamespacedName{
+	componentPrefix  = fmt.Sprintf("Component %s", ComponentName)
+	veleroDeployment = types.NamespacedName{
 		Name:      ComponentName,
 		Namespace: ComponentNamespace,
 	}
 	deployments = []types.NamespacedName{
-		veleroOperatorDeployment,
+		veleroDeployment,
 	}
 )
 
-//veleroOperatorComponent is stubbed if any properties need to be added in the future
-type veleroOperatorComponent struct{}
+//veleroComponent is stubbed if any properties need to be added in the future
+type veleroComponent struct{}
 
 func NewComponent() spi.Component {
-	return veleroOperatorComponent{}
+	return veleroComponent{}
 }
 
-func (c veleroOperatorComponent) PreInstall(ctx spi.ComponentContext) error {
-	return ensureVerrazzanoMonitoringNamespace(ctx)
-}
-
-func (c veleroOperatorComponent) Upgrade(ctx spi.ComponentContext) error {
-	return componentInstall(ctx)
-}
-
-func (c veleroOperatorComponent) Install(ctx spi.ComponentContext) error {
-	return componentInstall(ctx)
-}
-
-func (c veleroOperatorComponent) Reconcile(ctx spi.ComponentContext) error {
+func (v veleroComponent) PreInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
-func (c veleroOperatorComponent) IsReady(context spi.ComponentContext) bool {
+func (v veleroComponent) Upgrade(ctx spi.ComponentContext) error {
+	return componentInstall(ctx)
+}
+
+func (v veleroComponent) Install(ctx spi.ComponentContext) error {
+	ctx.Log().Infof("+++ Install Velero Operator Triggered +++")
+	return componentInstall(ctx)
+}
+
+func (v veleroComponent) Reconcile(ctx spi.ComponentContext) error {
+	return nil
+}
+
+func (v veleroComponent) IsReady(context spi.ComponentContext) bool {
 	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, componentPrefix)
 }
 
 // IsEnabled returns true only if the Jaeger Operator is explicitly enabled
 // in the Verrazzano CR.
-func (c veleroOperatorComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.VeleroOperator
+func (v veleroComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+	comp := effectiveCR.Spec.Components.Velero
+	fmt.Printf(" COMP = %v", comp)
 	if comp == nil || comp.Enabled == nil {
 		return false
 	}
 	return *comp.Enabled
 }
 
-func (c veleroOperatorComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
+func (v veleroComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	for _, nsn := range deployments {
 		if err := ctx.Client().Get(context.TODO(), nsn, &appsv1.Deployment{}); err != nil {
 			if errors.IsNotFound(err) {
@@ -85,52 +87,62 @@ func (c veleroOperatorComponent) IsInstalled(ctx spi.ComponentContext) (bool, er
 	return true, nil
 }
 
-func (c veleroOperatorComponent) Name() string {
+func (v veleroComponent) Name() string {
 	return ComponentName
 }
 
-func (c veleroOperatorComponent) GetDependencies() []string {
+func (v veleroComponent) GetDependencies() []string {
 	return []string{}
 }
 
-func (c veleroOperatorComponent) GetMinVerrazzanoVersion() string {
+func (v veleroComponent) GetMinVerrazzanoVersion() string {
 	return constants.VerrazzanoVersion1_3_0
 }
 
-func (c veleroOperatorComponent) GetJSONName() string {
+func (v veleroComponent) GetJSONName() string {
 	return ComponentJSONName
 }
 
-func (c veleroOperatorComponent) IsOperatorInstallSupported() bool {
+// GetHelmOverrides returns the Helm override sources for a component
+func (v veleroComponent) GetOverrides(_ spi.ComponentContext) []vzapi.Overrides {
+	return []vzapi.Overrides{}
+}
+
+// MonitorOverrides indicates whether monitoring of Helm override sources is enabled for a component
+func (v veleroComponent) MonitorOverrides(_ spi.ComponentContext) bool {
+	return true
+}
+
+func (v veleroComponent) IsOperatorInstallSupported() bool {
 	return true
 }
 
 // ##### Only interface stubs below #####
 
-func (c veleroOperatorComponent) PostInstall(_ spi.ComponentContext) error {
+func (v veleroComponent) PostInstall(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (c veleroOperatorComponent) PreUpgrade(_ spi.ComponentContext) error {
+func (v veleroComponent) PreUpgrade(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (c veleroOperatorComponent) PostUpgrade(_ spi.ComponentContext) error {
+func (v veleroComponent) PostUpgrade(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (c veleroOperatorComponent) GetIngressNames(_ spi.ComponentContext) []types.NamespacedName {
+func (v veleroComponent) GetIngressNames(_ spi.ComponentContext) []types.NamespacedName {
 	return nil
 }
 
-func (c veleroOperatorComponent) GetCertificateNames(_ spi.ComponentContext) []types.NamespacedName {
+func (v veleroComponent) GetCertificateNames(_ spi.ComponentContext) []types.NamespacedName {
 	return nil
 }
 
-func (c veleroOperatorComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
+func (v veleroComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
 	return nil
 }
 
-func (c veleroOperatorComponent) ValidateUpdate(_, _ *vzapi.Verrazzano) error {
+func (v veleroComponent) ValidateUpdate(_, _ *vzapi.Verrazzano) error {
 	return nil
 }

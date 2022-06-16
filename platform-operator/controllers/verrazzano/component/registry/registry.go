@@ -26,6 +26,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/pushgateway"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	velero "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/velero"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
@@ -82,6 +83,7 @@ func getComponents() []spi.Component {
 			pushgateway.NewComponent(),
 			promnodeexporter.NewComponent(),
 			jaegeroperator.NewComponent(),
+			velero.NewComponent(),
 		}
 	}
 	return componentsRegistry

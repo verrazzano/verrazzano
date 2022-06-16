@@ -27,3 +27,5 @@ prometheusNodeExporter:
   enabled: false
 jaegerOperator:
   enabled: false
+velero:
+  enabled: false

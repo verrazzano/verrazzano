@@ -4,71 +4,96 @@
 package operator
 
 import (
-	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"path"
-	"strings"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"go.uber.org/zap"
+	"time"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
 const (
 	deploymentName = "velero"
-	templateFile   = "/jaeger/jaeger-operator.yaml"
+
+	veleroBin            = "velero"
+	installCli           = "install"
+	volSnapshotEnableCli = "--use-volume-snapshots=false"
+	pluginImageCli       = "--plugins"
+	veleroImageCli       = "--image"
+	resticCli            = "--use-restic"
+	nosecret             = "--no-secret"
+	noDefaultBackup      = "--no-default-backup-location"
+	veleroPodCpuRequest  = "--velero-pod-cpu-request=500m"
+	veleroPodCpuLimit    = "--velero-pod-cpu-limit=1000m"
+	veleroPodMemRequest  = "--velero-pod-mem-request=128Mi"
+	veleroPodMemLimit    = "--velero-pod-mem-limit=512Mi"
+	resticPodCpuRequest  = "--restic-pod-cpu-request=500m"
+	resticPodCpuLimit    = "--restic-pod-cpu-limit=1000m"
+	resticPodMemRequest  = "--restic-pod-mem-request=128Mi"
+	resticPodMemLimit    = "--restic-pod-mem-limit=512Mi"
+	cliwait              = "--wait"
 )
 
 var subcomponentNames = []string{
-	"velero-operator",
+	"velero",
 	"velero-plugin-for-aws",
 }
-
-/*
-velero install \
-    --provider aws \
-    --bucket aamitra-bucket-velero \
-    --prefix data-backup \
-    --use-volume-snapshots=false \
-    --plugins velero/velero-plugin-for-aws:v1.4.1 \
-    --use-restic \
-    --secret-file /Users/aamitra/sshkeys/credentials-velero \
-    --backup-location-config region=us-phoenix-1,s3ForcePathStyle="true",s3Url=https://stevengreenberginc.compat.objectstorage.us-phoenix-1.oraclecloud.com
-*/
 
 func componentInstall(ctx spi.ComponentContext) error {
 	args, err := buildInstallArgs()
 	if err != nil {
+		ctx.Log().Errorf("Unable to build installargs %v", zap.Error(err))
 		return err
 	}
+	var vcmd BashCommand
+	vcmd.Timeout = time.Second * 600
 
-	// Apply Jaeger Operator
-	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
-	if err := yamlApplier.ApplyFT(path.Join(config.GetThirdPartyManifestsDir(), templateFile), args); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to install Jaeger Operator: %v", err)
+	var bcmd []string
+	bcmd = append(bcmd, veleroBin, installCli)
+	bcmd = append(bcmd, veleroImageCli, args.VeleroImage)
+	bcmd = append(bcmd, pluginImageCli, args.VeleroPluginForAwsImage)
+	bcmd = append(bcmd, resticCli, volSnapshotEnableCli, nosecret, noDefaultBackup)
+	bcmd = append(bcmd, veleroPodCpuRequest, veleroPodCpuLimit, veleroPodMemRequest, veleroPodMemLimit)
+	bcmd = append(bcmd, resticPodCpuRequest, resticPodMemRequest, resticPodMemLimit, resticPodCpuLimit)
+	vcmd.CommandArgs = bcmd
+
+	response := VeleroRunner(&vcmd, ctx.Log())
+	if response.Error != nil {
+		return ctx.Log().ErrorfNewErr("Failed to install Velero Operator: %v", response.Error)
 	}
+	ctx.Log().Infof("%v", response.Stdout.String())
 	return nil
 }
 
-func buildInstallArgs() (map[string]interface{}, error) {
+func buildInstallArgs() (VeleroImage, error) {
 	args := map[string]interface{}{
 		"namespace": constants.VeleroNameSpace,
 	}
+	var vi VeleroImage
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
-		return args, err
+		return vi, err
 	}
 	for _, subcomponent := range subcomponentNames {
 		if err := setImageOverride(args, bomFile, subcomponent); err != nil {
-			return args, err
+			return vi, err
 		}
 	}
-	return args, nil
+	dbin, err := json.Marshal(args)
+	if err != nil {
+		return vi, err
+	}
+
+	err = json.Unmarshal(dbin, &vi)
+	if err != nil {
+		return vi, err
+	}
+
+	return vi, nil
 }
 
 func setImageOverride(args map[string]interface{}, bomFile bom.Bom, subcomponent string) error {
@@ -80,23 +105,11 @@ func setImageOverride(args map[string]interface{}, bomFile bom.Bom, subcomponent
 		return fmt.Errorf("expected 1 %s image, got %d", subcomponent, len(images))
 	}
 
-	args[strings.ReplaceAll(subcomponent, "-", "")] = images[0]
+	args[subcomponent] = images[0]
 	return nil
 }
 
-//// isVeleroOperatorReady checks if the Jaeger operator deployment is ready
-//func isVeleroOperatorReady(context spi.ComponentContext) bool {
-//	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, componentPrefix)
-//}
-
-func ensureVerrazzanoMonitoringNamespace(ctx spi.ComponentContext) error {
-	// Create the velero namespace
-	ctx.Log().Debugf("Creating namespace %s for the Velero Operator", ComponentNamespace)
-	namespace := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ComponentNamespace}}
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &namespace, func() error {
-		return nil
-	}); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to create or update the %s namespace: %v", ComponentNamespace, err)
-	}
-	return nil
+// isVeleroOperatorReady checks if the Jaeger operator deployment is ready
+func isVeleroOperatorReady(context spi.ComponentContext) bool {
+	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, componentPrefix)
 }

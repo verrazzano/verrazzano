@@ -372,9 +372,9 @@ type ComponentSpec struct {
 	// +optional
 	WebLogicOperator *WebLogicOperatorComponent `json:"weblogicOperator,omitempty"`
 
-	// VeleroOperator configuration
+	// Velero configuration
 	// +optional
-	VeleroOperator *VeleroOperatorComponent `json:"veleroOperator,omitempty"`
+	Velero *VeleroComponent `json:"velero,omitempty"`
 
 	// Verrazzano configuration
 	// +optional
@@ -665,8 +665,8 @@ type WebLogicOperatorComponent struct {
 	Enabled *bool `json:"enabled,omitempty"`
 }
 
-// VeleroOperatorComponent  specifies the Velero Operator configuration
-type VeleroOperatorComponent struct {
+// VeleroComponent  specifies the Velero configuration
+type VeleroComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 }

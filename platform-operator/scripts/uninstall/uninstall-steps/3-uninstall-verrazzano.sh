@@ -212,6 +212,11 @@ function delete_jaeger_operator {
   rm -f jaeger.yaml
 }
 
+function delete_velero {
+  log "Uninstall velero"
+  velero uninstall --namespace velero --force || err_return $? "Could not delete Velero"
+}
+
 action "Deleting Prometheus Pushgateway " delete_prometheus_pushgateway || exit 1
 action "Deleting Jaeger operator " delete_jaeger_operator || exit 1
 action "Deleting Prometheus adapter " delete_prometheus_adapter || exit 1
@@ -226,3 +231,4 @@ action "Deleting Verrazzano AuthProxy" delete_authproxy || exit 1
 action "Deleting Verrazzano Monitoring Operator" delete_vmo || exit 1
 action "Deleting Verrazzano Components" delete_verrazzano || exit 1
 action "Deleting Kiali " delete_kiali || exit 1
+action "Deleting Velero " delete_velero || exit 1

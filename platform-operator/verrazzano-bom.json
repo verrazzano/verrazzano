@@ -613,18 +613,17 @@
       "name": "velero",
       "subcomponents": [
         {
-          "repository": "verrazzano/velero",
-          "name": "velero-operator",
+          "repository": "verrazzano",
+          "name": "velero",
           "images": [
             {
               "image": "velero",
-              "tag": "20220503000302-4750a3fa"
+              "tag": "v1.8.1"
             }
           ]
         },
         {
-          "registry": "iad.ocir.io",
-          "repository": "odsbuilddev/aamitra/dev",
+          "repository": "verrazzano",
           "name": "velero-plugin-for-aws",
           "images": [
             {

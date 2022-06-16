@@ -2,6 +2,7 @@ package operator
 
 import (
 	"bytes"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
 	"io"
 	"os"
@@ -21,7 +22,12 @@ type RunnerResponse struct {
 	Error  error        `json:"error"`
 }
 
-func VeleroRunner(bcmd *BashCommand, log *zap.SugaredLogger) *RunnerResponse {
+type VeleroImage struct {
+	VeleroImage             string `json:"velero"`
+	VeleroPluginForAwsImage string `json:"velero-plugin-for-aws"`
+}
+
+func VeleroRunner(bcmd *BashCommand, log vzlog.VerrazzanoLogger) *RunnerResponse {
 	var stdoutBuf, stderrBuf bytes.Buffer
 	var response RunnerResponse
 	execCmd := exec.Command(bcmd.CommandArgs[0], bcmd.CommandArgs[1:]...)
@@ -29,7 +35,7 @@ func VeleroRunner(bcmd *BashCommand, log *zap.SugaredLogger) *RunnerResponse {
 	execCmd.Stdout = io.MultiWriter(os.Stdout, &stdoutBuf)
 	execCmd.Stderr = io.MultiWriter(os.Stderr, &stderrBuf)
 
-	log.Debugf("Executing command '%v'", execCmd.String())
+	log.Infof("Executing command '%v'", execCmd.String())
 	err := execCmd.Start()
 	if err != nil {
 		log.Errorf("Cmd '%v' execution failed due to '%v'", execCmd.String(), zap.Error(err))
