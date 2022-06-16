@@ -530,6 +530,7 @@ pipeline {
                     try {
                         sh """
                             kubectl delete verrazzano my-verrazzano
+                            kubectl delete namespace verrazzano-install
                         """
                     } catch (err) {
                         currentBuild.result = "FAILURE"
