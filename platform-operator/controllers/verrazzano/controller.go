@@ -169,7 +169,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger
 	case installv1alpha1.VzStatePaused:
 		return r.ProcPausedUpgradeState(vzctx)
 	default:
-		panic("Invalid Verrazzano contoller state")
+		panic("Invalid Verrazzano controller state")
 	}
 }
 
@@ -995,67 +995,6 @@ func mergeMaps(to map[string]string, from map[string]string) (map[string]string,
 		}
 	}
 	return mergedMap, updated
-}
-
-func addFluentdExtraVolumeMounts(files []string, vz *installv1alpha1.Verrazzano) *installv1alpha1.Verrazzano {
-	for _, extraMount := range dirsOutsideVarLog(files) {
-		if vz.Spec.Components.Fluentd == nil {
-			vz.Spec.Components.Fluentd = &installv1alpha1.FluentdComponent{}
-		}
-		found := false
-		for _, vm := range vz.Spec.Components.Fluentd.ExtraVolumeMounts {
-			if isParentDir(extraMount, vm.Source) {
-				found = true
-			}
-		}
-		if !found {
-			vz.Spec.Components.Fluentd.ExtraVolumeMounts = append(vz.Spec.Components.Fluentd.ExtraVolumeMounts,
-				installv1alpha1.VolumeMount{Source: extraMount})
-		}
-	}
-	return vz
-}
-
-func dirsOutsideVarLog(paths []string) []string {
-	var results []string
-	for _, path := range paths {
-		if !strings.HasPrefix(path, "/var/log/") {
-			found := false
-			var temp []string
-			for _, res := range results {
-				commonPath := commonPath(res, path)
-				if commonPath != "/" {
-					temp = append(temp, commonPath)
-					found = true
-				} else {
-					temp = append(temp, res)
-				}
-			}
-			if !found {
-				temp = append(temp, path)
-			}
-			results = temp
-		}
-	}
-	return results
-}
-
-func isParentDir(path, dir string) bool {
-	if !strings.HasSuffix(dir, "/") {
-		dir = dir + "/"
-	}
-	return commonPath(path, dir) == dir
-}
-
-func commonPath(a, b string) string {
-	i := 0
-	s := 0
-	for ; i < len(a) && i < len(b) && a[i] == b[i]; i++ {
-		if a[i] == '/' {
-			s = i
-		}
-	}
-	return a[0 : s+1]
 }
 
 // Get the install namespace where this controller is running.
