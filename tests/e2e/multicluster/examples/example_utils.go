@@ -18,10 +18,11 @@ import (
 )
 
 const (
+	helloHelidon          = "hello-helidon"
 	TestNamespace         = "hello-helidon" // currently only used for placement tests
 	multiclusterNamespace = "verrazzano-mc"
-	projectName           = "hello-helidon"
-	appConfigName         = "hello-helidon-appconf"
+	projectName           = helloHelidon
+	appConfigName         = helloHelidon
 	componentName         = "hello-helidon-component"
 	workloadName          = "hello-helidon-workload"
 )

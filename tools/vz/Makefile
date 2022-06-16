@@ -46,6 +46,10 @@ go-build:
 		-ldflags "${CLI_GO_LDFLAGS}" \
 		-o out/linux_amd64/vz \
 		${GOPATH}/src/${VZ_DIR}/main.go
+	GOOS=linux GOARCH=arm64 $(GO) build \
+		-ldflags "${CLI_GO_LDFLAGS}" \
+		-o out/linux_arm64/vz \
+		${GOPATH}/src/${VZ_DIR}/main.go
 
 .PHONY: cli
 cli: ## build the CLI

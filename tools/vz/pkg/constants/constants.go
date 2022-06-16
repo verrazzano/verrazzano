@@ -23,9 +23,10 @@ const (
 	TimeoutFlag     = "timeout"
 	TimeoutFlagHelp = "Limits the amount of time a command will wait to complete"
 
-	VersionFlag        = "version"
-	VersionFlagDefault = "latest"
-	VersionFlagHelp    = "The version of Verrazzano to install or upgrade"
+	VersionFlag            = "version"
+	VersionFlagDefault     = "latest"
+	VersionFlagInstallHelp = "The version of Verrazzano to install"
+	VersionFlagUpgradeHelp = "The version of Verrazzano to upgrade to"
 
 	DryRunFlag = "dry-run"
 
@@ -49,3 +50,7 @@ const VerrazzanoReleaseList = "https://api.github.com/repos/verrazzano/verrazzan
 
 // VerrazzanoOperatorURL - URL for downloading Verrazzano releases
 const VerrazzanoOperatorURL = "https://github.com/verrazzano/verrazzano/releases/download/%s/operator.yaml"
+
+const VerrazzanoPlatformOperator = "verrazzano-platform-operator"
+
+const VerrazzanoPlatformOperatorWait = 1
