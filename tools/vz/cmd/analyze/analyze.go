@@ -52,8 +52,8 @@ func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 }
 
 func validateFormat(format string) error {
-	if format != "simple" || format != "Simple" {
-		return fmt.Errorf("unsupported output format: %s", format)
+	if format == "simple" {
+		return nil
 	}
-	return nil
+	return fmt.Errorf("unsupported output format: %s, only supported type is \"simple\"", format)
 }

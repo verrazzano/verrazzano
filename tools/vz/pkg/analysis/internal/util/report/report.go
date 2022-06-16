@@ -96,9 +96,9 @@ func ContributeIssue(log *zap.SugaredLogger, issue Issue) (err error) {
 // GenerateHumanReport is a basic report generator
 // TODO: This is super basic for now, need to do things like sort based on Confidence, add other formats on output, etc...
 // Also add other niceties like time, Summary of what was analyzed, if no issues were found, etc...
-func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, includeSupportData bool, includeInfo bool, includeActions bool, minConfidence int, minImpact int, vzHelper helpers.VZHelper) (err error) {
+func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat string, includeSupportData bool, includeInfo bool, includeActions bool, minConfidence int, minImpact int, vzHelper helpers.VZHelper) (err error) {
 	// Default to stdout if no reportfile is supplied
-	//var writeOut = bufio.NewWriter(os.Stdout)
+
 	var writeOut = bufio.NewWriter(vzHelper.GetOutputStream())
 	if len(reportFile) > 0 {
 		log.Debugf("Generating human report to file: %s", reportFile)

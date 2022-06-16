@@ -24,7 +24,7 @@ var analysisToolVersion = "development build"
 
 var version = false
 var help = false
-var analyzerType string
+var analyzerType = "cluster" //Currently does only cluster analysis
 var reportFile string
 var includeInfo bool
 var includeSupport bool
@@ -36,13 +36,13 @@ var logger *zap.SugaredLogger
 
 // The analyze tool will analyze information which has already been captured from an environment
 func AnalysisMain(vzHelper helpers.VZHelper, directory string, reportFile string, reportFormat string) error {
-	initFlags(directory)
+	initFlags()
 	return handleMain(vzHelper, directory, reportFile, reportFormat)
 }
 
 // initFlags is handled here. Separated out here from the main logic for now to allow for more main test coverage
 // TODO: Look at if we can reliably mess with flag variants in Go unit tests
-func initFlags(directory string) {
+func initFlags() {
 	flag.StringVar(&analyzerType, "analysis", "cluster", "Type of analysis: cluster")
 	flag.StringVar(&reportFile, "reportFile", "", "Name of report output file, default is stdout")
 	flag.BoolVar(&includeInfo, "info", true, "Include informational messages, default is true")
@@ -62,8 +62,7 @@ func initFlags(directory string) {
 	logger = zap.S()
 
 	// Doing this to allow unit testing main logic
-	//flagArgs = flag.Args()
-	flagArgs = append(flagArgs, directory)
+	flagArgs = flag.Args()
 }
 
 // handleMain is where the main logic is at, separated here to allow for more test coverage
@@ -76,14 +75,14 @@ func handleMain(vzHelper helpers.VZHelper, directory string, reportFile string, 
 	// gather up information, sanitize it in a way that it could be sent along to someone else for further analysis, etc...
 
 	// Call the analyzer for the type specified
-	err := Analyze(logger, analyzerType, flagArgs[0])
+	err := Analyze(logger, analyzerType, directory)
 	if err != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "Analyze failed with error: %s, exiting.\n", err.Error())
 		return fmt.Errorf("\nAnalyze failed with error: %s, exiting.\n", err.Error())
 	}
 
 	// Generate a report
-	err = report.GenerateHumanReport(logger, reportFile, includeSupport, includeInfo, includeActions, minConfidence, minImpact, vzHelper)
+	err = report.GenerateHumanReport(logger, reportFile, reportFormat, includeSupport, includeInfo, includeActions, minConfidence, minImpact, vzHelper)
 	if err != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "\nReport generation failed, exiting.\n")
 		return fmt.Errorf("\nReport generation failed, exiting.\n")
@@ -92,14 +91,14 @@ func handleMain(vzHelper helpers.VZHelper, directory string, reportFile string, 
 }
 
 // Analyze is exported for unit testing
-func Analyze(logger *zap.SugaredLogger, analyzerType string, flagArgs string) (err error) {
+func Analyze(logger *zap.SugaredLogger, analyzerType string, rootDirectory string) (err error) {
 	// Call the analyzer for the type specified
 	analyzerFunc, ok := analyzerTypeFunctions[analyzerType]
 	if !ok {
 		//printUsage()
 		return fmt.Errorf("Unknown analyzer type supplied: %s", analyzerType)
 	}
-	err = analyzerFunc(logger, flagArgs)
+	err = analyzerFunc(logger, rootDirectory)
 	if err != nil {
 		return err
 	}
