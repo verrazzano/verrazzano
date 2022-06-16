@@ -5,6 +5,7 @@ package operator
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -13,12 +14,15 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -29,8 +33,9 @@ import (
 )
 
 const (
-	profileDir      = "../../../../../manifests/profiles"
-	testBomFilePath = "../../../testdata/test_bom.json"
+	profileDir         = "../../../../../manifests/profiles"
+	testBomFilePath    = "../../../testdata/test_bom.json"
+	jaegerDisabledJSON = "{\"jaeger\": {\"create\": false}}"
 )
 
 var (
@@ -39,6 +44,53 @@ var (
 	falseValue = false
 	trueValue  = true
 )
+
+var jaegerDisabledCR = &vzapi.Verrazzano{
+	Spec: vzapi.VerrazzanoSpec{
+		Components: vzapi.ComponentSpec{
+			JaegerOperator: &vzapi.JaegerOperatorComponent{
+				Enabled: &trueValue,
+				InstallOverrides: vzapi.InstallOverrides{
+					MonitorChanges: &trueValue,
+					ValueOverrides: []vzapi.Overrides{
+						{
+							Values: &apiextensionsv1.JSON{
+								Raw: []byte(jaegerDisabledJSON),
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+}
+
+var keycloakDisabledCR = &vzapi.Verrazzano{
+	Spec: vzapi.VerrazzanoSpec{
+		Components: vzapi.ComponentSpec{
+			Keycloak: &vzapi.KeycloakComponent{
+				Enabled: &falseValue,
+			},
+		},
+	},
+}
+
+var keycloakEnabledCR = &vzapi.Verrazzano{
+	Spec: vzapi.VerrazzanoSpec{
+		Components: vzapi.ComponentSpec{
+			Keycloak: &vzapi.KeycloakComponent{
+				Enabled: &trueValue,
+			},
+		},
+	},
+}
+
+var vzEsInternalSecret = &corev1.Secret{
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      globalconst.VerrazzanoESInternal,
+		Namespace: constants.VerrazzanoSystemNamespace,
+	},
+}
 
 func init() {
 	_ = clientgoscheme.AddToScheme(testScheme)
@@ -131,20 +183,55 @@ func TestIsJaegerOperatorReady(t *testing.T) {
 	}
 }
 
-// TestPreInstall tests the preInstall function.
+// TestPreInstall tests the preInstall function for various scenarios.
 func TestPreInstall(t *testing.T) {
-	// GIVEN the Jaeger Operator is being installed
-	// WHEN the preInstall function is called
-	// THEN the component namespace is created in the cluster
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	var tests = []struct {
+		name   string
+		spec   *vzapi.Verrazzano
+		client client.Client
+		err    error
+	}{
+		{
+			"should fail when verrazzano-es-internal secret does not exist and keycloak is enabled",
+			keycloakEnabledCR,
+			createFakeClient(),
+			ctrlerrors.RetryableError{Source: ComponentName},
+		},
+		{
+			"should pass when verrazzano-es-internal secret does exist and keycloak is enabled",
+			keycloakEnabledCR,
+			createFakeClient(vzEsInternalSecret),
+			nil,
+		},
+		{
+			"always nil error when keycloak is disabled",
+			keycloakDisabledCR,
+			createFakeClient(),
+			nil,
+		},
+		{
+			"always nil error when jaeger instance creation is disabled",
+			jaegerDisabledCR,
+			createFakeClient(),
+			nil,
+		},
+	}
 
-	err := preInstall(ctx)
-	assert.NoError(t, err)
-
-	ns := corev1.Namespace{}
-	err = client.Get(context.TODO(), types.NamespacedName{Name: ComponentNamespace}, &ns)
-	assert.NoError(t, err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.client, tt.spec, false)
+			err := preInstall(ctx)
+			if tt.err != nil {
+				assert.Error(t, err)
+				assert.IsTypef(t, tt.err, err, "")
+			} else {
+				assert.NoError(t, err)
+			}
+			ns := corev1.Namespace{}
+			err = tt.client.Get(context.TODO(), types.NamespacedName{Name: ComponentNamespace}, &ns)
+			assert.NoError(t, err)
+		})
+	}
 }
 
 // TestValidateJaegerOperator tests the validation of the Jaeger Operator installation and the Verrazzano CR
@@ -221,6 +308,14 @@ func TestAppendOverrides(t *testing.T) {
 			description:  "Test overriding Jaeger Images",
 			expectedYAML: "testdata/jaegerOperatorOverrideValues.yaml",
 			actualCR:     "testdata/jaegerOperatorOverrideVz.yaml",
+			numKeyValues: 1,
+			expectedErr:  nil,
+		},
+		{
+			name:         "OverrideJaegerCreate",
+			description:  "Test overriding Jaeger create",
+			expectedYAML: "testdata/jaegerOperatorOverrideJaegerCreateValues.yaml",
+			actualCR:     "testdata/jaegerOperatorOverrideJaegerCreateVz.yaml",
 			numKeyValues: 1,
 			expectedErr:  nil,
 		},
@@ -307,4 +402,11 @@ func TestEnsureMonitoringOperatorNamespace(t *testing.T) {
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), jaegerEnabledCR, false)
 	err := ensureVerrazzanoMonitoringNamespace(ctx)
 	assert.NoError(t, err)
+}
+
+func createFakeClient(extraObjs ...client.Object) client.Client {
+	var objs []client.Object
+	objs = append(objs, extraObjs...)
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(objs...).Build()
+	return c
 }

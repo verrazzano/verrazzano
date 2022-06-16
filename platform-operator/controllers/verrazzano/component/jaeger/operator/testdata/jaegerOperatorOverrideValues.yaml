@@ -9,3 +9,19 @@ extraEnv:
     value: "ghcr.io/verrazzano/jaeger-collector:1.32.0"
   - name: "JAEGER-INGESTER-IMAGE"
     value: "ghcr.io/verrazzano/jaeger-ingester:1.32.0"
+jaeger:
+  create: true
+  spec:
+    annotations:
+      sidecar.istio.io/inject: "true"
+    strategy: production
+    storage:
+      # Jaeger Elasticsearch storage is compatible with Verrazzano OpenSearch.
+      type: elasticsearch
+      esIndexCleaner:
+        enabled: false
+      options:
+        es:
+          server-urls: "http://verrazzano-authproxy-elasticsearch.verrazzano-system.svc.cluster.local:8775"
+          index-prefix: verrazzano-jaeger
+      secretName: "verrazzano-jaeger-secret"
