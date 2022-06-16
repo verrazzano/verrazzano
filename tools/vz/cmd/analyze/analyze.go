@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
-	analysis "github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/main_pkg"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 )
@@ -29,14 +29,29 @@ func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().String(constants.DirectoryFlagName, constants.DirectoryFlagValue, constants.DirectoryFlagUsage)
 	cmd.PersistentFlags().String(constants.ReportFileFlagName, constants.ReportFileFlagValue, constants.ReportFileFlagUsage)
 	cmd.PersistentFlags().String(constants.ReportFormatFlagName, constants.ReportFormatFlagValue, constants.ReportFormatFlagUsage)
+	cmd.MarkPersistentFlagRequired(constants.DirectoryFlagName)
 	return cmd
 }
 
 func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
 	directory, err := cmd.PersistentFlags().GetString(constants.DirectoryFlagName)
+	reportFileName, err := cmd.PersistentFlags().GetString(constants.ReportFileFlagName)
+	reportFormat, err := cmd.PersistentFlags().GetString(constants.ReportFormatFlagName)
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flag: %s", constants.DirectoryFlagName)
+		fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags with error: %s", err.Error())
 	}
-	analysis.AnalysisMain(directory)
+
+	err = validateFormat(reportFormat)
+	if err != nil {
+		return err
+	}
+
+	return analysis.AnalysisMain(vzHelper, directory, reportFileName, reportFormat)
+}
+
+func validateFormat(format string) error {
+	if format != "simple" || format != "Simple" {
+		return fmt.Errorf("unsupported output format: %s", format)
+	}
 	return nil
 }

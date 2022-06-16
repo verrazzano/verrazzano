@@ -1,6 +1,6 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-package main_pkg
+package analysis
 
 import (
 	"flag"
@@ -9,8 +9,8 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/cluster"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/log"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"go.uber.org/zap"
-	"os"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
@@ -35,9 +35,9 @@ var flagArgs []string
 var logger *zap.SugaredLogger
 
 // The analyze tool will analyze information which has already been captured from an environment
-func AnalysisMain(directory string) {
+func AnalysisMain(vzHelper helpers.VZHelper, directory string, reportFile string, reportFormat string) error {
 	initFlags(directory)
-	os.Exit(handleMain())
+	return handleMain(vzHelper, directory, reportFile, reportFormat)
 }
 
 // initFlags is handled here. Separated out here from the main logic for now to allow for more main test coverage
@@ -67,7 +67,7 @@ func initFlags(directory string) {
 }
 
 // handleMain is where the main logic is at, separated here to allow for more test coverage
-func handleMain() (exitCode int) {
+func handleMain(vzHelper helpers.VZHelper, directory string, reportFile string, reportFormat string) error {
 	// TODO: how we surface different analysis report types will likely change up, for now it is specified here, and it may also
 	// make sense to treat all cluster dumps the same way whether single or multiple (structure the dumps the same way)
 	// We could also have different types of report output formats as well. For example, the current report format is
@@ -75,57 +75,20 @@ func handleMain() (exitCode int) {
 	// in their environment. We also could generate a more detailed "bug-report-type" which someone could call which would
 	// gather up information, sanitize it in a way that it could be sent along to someone else for further analysis, etc...
 
-	if version {
-		printVersion()
-		return 0
-	}
-
-	if help {
-		printUsage()
-		return 0
-	}
-
-	if len(flagArgs) < 1 {
-		fmt.Printf("\nCaptured data directory was not specified for analysis, exiting.\n")
-		printUsage()
-		return 1
-	}
-
-	// We already handle finding multiple cluster dumps in a directory, we could look
-	// at multiple here as well if that really is needed, for now we expect one root
-	// directory
-	if len(flagArgs) > 1 {
-		fmt.Printf("\nToo many arguments were supplied, exiting.\n")
-		printUsage()
-		return 1
-	}
-
-	if minConfidence < 0 || minConfidence > 10 {
-		fmt.Printf("\nminConfidence is out of range %d, exiting.\n", minConfidence)
-		printUsage()
-		return 1
-	}
-
-	if minImpact < 0 || minImpact > 10 {
-		fmt.Printf("\nminImpact is out of range %d, exiting.\n", minImpact)
-		printUsage()
-		return 1
-	}
-
 	// Call the analyzer for the type specified
 	err := Analyze(logger, analyzerType, flagArgs[0])
 	if err != nil {
-		fmt.Printf("\nAnalyze failed: %s, exiting.\n", err)
-		return 1
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Analyze failed with error: %s, exiting.\n", err.Error())
+		return fmt.Errorf("\nAnalyze failed with error: %s, exiting.\n", err.Error())
 	}
 
 	// Generate a report
-	err = report.GenerateHumanReport(logger, reportFile, includeSupport, includeInfo, includeActions, minConfidence, minImpact)
+	err = report.GenerateHumanReport(logger, reportFile, includeSupport, includeInfo, includeActions, minConfidence, minImpact, vzHelper)
 	if err != nil {
-		fmt.Printf("\nReport generation failed, exiting.\n")
-		return 1
+		fmt.Fprintf(vzHelper.GetOutputStream(), "\nReport generation failed, exiting.\n")
+		return fmt.Errorf("\nReport generation failed, exiting.\n")
 	}
-	return 0
+	return nil
 }
 
 // Analyze is exported for unit testing
