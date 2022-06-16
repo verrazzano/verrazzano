@@ -4,6 +4,7 @@
 package uninstall
 
 import (
+	"context"
 	"fmt"
 	"k8s.io/client-go/kubernetes"
 	"time"
@@ -28,7 +29,7 @@ const (
 vz uninstall
 
 # Uninstall Verrazzano including the CRDs and wait for the command to complete. Output the logs in json format, timeout the command after 20 minutes.
-vz uninstall --crds --log-format json --timeout 20m`
+vz uninstall --crds --timeout 20m`
 )
 
 var logsEnum = cmdhelpers.LogFormatSimple
@@ -42,27 +43,20 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 
 	cmd.PersistentFlags().Bool(constants.WaitFlag, constants.WaitFlagDefault, constants.WaitFlagHelp)
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*30, constants.TimeoutFlagHelp)
-	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
 	cmd.PersistentFlags().Bool(crdsFlag, false, crdsFlagHelp)
 
 	// Dry run flag is still being discussed - keep hidden for now
 	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an uninstall.")
-	cmd.PersistentFlags().MarkHidden(constants.DryRunFlag)
+	_ = cmd.PersistentFlags().MarkHidden(constants.DryRunFlag)
 
 	return cmd
 }
 
 func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-	fmt.Fprintf(vzHelper.GetOutputStream(), "Not implemented yet\n")
+	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), "Not implemented yet\n")
 
 	// Get the timeout value for the install command
 	timeout, err := cmdhelpers.GetWaitTimeout(cmd)
-	if err != nil {
-		return err
-	}
-
-	// Get the log format value
-	logFormat, err := cmdhelpers.GetLogFormat(cmd)
 	if err != nil {
 		return err
 	}
@@ -86,17 +80,25 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	}
 
 	// Delete the Verrazzano custom resource.
+	// Create the Verrazzano install resource.
+	err = client.Create(context.TODO(), vz)
+	if err != nil {
+		return err
+	}
 
 	// Wait for the Verrazzano uninstall to complete.
-	return waitForUninstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, logFormat)
-
-	return nil
+	return waitForUninstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout)
 }
 
 func getVerrazzanoCRName(cmd *cobra.Command, client client.Client, helper helpers.VZHelper) (vz *vzapi.Verrazzano, err error) {
 	return nil, nil
 }
 
-func waitForUninstallToComplete(c client.Client, kubeClient kubernetes.Interface, helper helpers.VZHelper, name types.NamespacedName, timeout time.Duration, format cmdhelpers.LogFormat) error {
+func waitForUninstallToComplete(c client.Client, kubeClient kubernetes.Interface, helper helpers.VZHelper, name types.NamespacedName, timeout time.Duration) error {
+
+	// Get the uninstall job
+
+	// Stream the logs from the uninstall job
+
 	return nil
 }
