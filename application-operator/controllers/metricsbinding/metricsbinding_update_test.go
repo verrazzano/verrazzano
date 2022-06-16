@@ -127,7 +127,6 @@ func TestHandleDefaultMetricsTemplate(t *testing.T) {
 			assert.Equal(1, len(serviceMonitor.Spec.Endpoints))
 			assert.Contains(serviceMonitor.Spec.Endpoints[0].RelabelConfigs[1].SourceLabels, promoperapi.LabelName(workloadSourceLabel))
 			assert.Equal("local", serviceMonitor.Spec.Endpoints[0].RelabelConfigs[0].Replacement)
-			assert.Equal(localMetricsBinding.OwnerReferences, serviceMonitor.OwnerReferences)
 			if _, ok := tt.namespace.Labels[constants.LabelIstioInjection]; ok {
 				assert.Equal("https", serviceMonitor.Spec.Endpoints[0].Scheme)
 			} else {
