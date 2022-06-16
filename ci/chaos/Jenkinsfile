@@ -489,6 +489,10 @@ pipeline {
                         if [[ \${vz_status} == "UpgradeStarted" ]]; then
                             # Uninstall VZ
                             kubectl delete verrazzano my-verrazzano
+                            kubectl delete namespace verrazzano-install
+                            kubectl delete ValidatingWebhookConfiguration verrazzano-platform-operator
+                            kubectl delete ClusterRoleBinding verrazzano-platform-operator
+                            kubectl delete ClusterRole verrazzano-managed-cluster
 
                             ## dump out uninstall logs
                             mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
