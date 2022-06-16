@@ -6,13 +6,13 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: authproxy
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ .monitoringNamespace }}
   labels:
     release: prometheus-operator
 spec:
   namespaceSelector:
     matchNames:
-      - {{ .Release.Namespace }}
+      - {{ .systemNamespace }}
   selector: {}
   endpoints:
     - port: https
