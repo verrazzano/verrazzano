@@ -39,6 +39,7 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "coherence-values.yaml"),
 			Dependencies:            []string{},
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
@@ -66,5 +67,16 @@ func (c coherenceComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ver
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	return nil
+	return c.HelmComponent.ValidateUpdate(old, new)
+}
+
+// MonitorOverrides checks whether monitoring of install overrides is enabled or not
+func (c coherenceComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.CoherenceOperator != nil {
+		if ctx.EffectiveCR().Spec.Components.CoherenceOperator.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.CoherenceOperator.MonitorChanges
+		}
+		return true
+	}
+	return false
 }

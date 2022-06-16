@@ -6,6 +6,7 @@ package keycloak
 import (
 	"context"
 	"fmt"
+
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -15,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -67,6 +69,7 @@ func NewComponent() spi.Component {
 					Name:      constants.KeycloakIngress,
 				},
 			},
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
@@ -148,6 +151,14 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
+	// Update the Prometheus annotations to include the Keycloak service as an outbound IP address
+	if promoperator.NewComponent().IsEnabled(ctx.EffectiveCR()) {
+		err = updatePrometheusAnnotations(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
 	return c.HelmComponent.PostInstall(ctx)
 }
 
@@ -155,6 +166,14 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
 		return err
+	}
+
+	// Update the Prometheus annotations to include the Keycloak service as an outbound IP address
+	if promoperator.NewComponent().IsEnabled(ctx.EffectiveCR()) {
+		err := updatePrometheusAnnotations(ctx)
+		if err != nil {
+			return err
+		}
 	}
 
 	return configureKeycloakRealms(ctx)
@@ -185,9 +204,9 @@ func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verr
 	}
 	// Reject any other edits for now
 	if err := common.CompareInstallArgs(c.getInstallArgs(old), c.getInstallArgs(new)); err != nil {
-		return fmt.Errorf("Updates to istioInstallArgs not allowed for %s", ComponentJSONName)
+		return fmt.Errorf("Updates to InstallArgs not allowed for %s", ComponentJSONName)
 	}
-	return nil
+	return c.HelmComponent.ValidateUpdate(old, new)
 }
 
 func (c KeycloakComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
@@ -195,4 +214,15 @@ func (c KeycloakComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallA
 		return vz.Spec.Components.Keycloak.KeycloakInstallArgs
 	}
 	return nil
+}
+
+// MonitorOverrides checks whether monitoring of install overrides is enabled or not
+func (c KeycloakComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.Keycloak != nil {
+		if ctx.EffectiveCR().Spec.Components.Keycloak.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.Keycloak.MonitorChanges
+		}
+		return true
+	}
+	return false
 }

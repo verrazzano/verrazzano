@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # Downloads the operator.yaml and the zip file containing the analysis tool.
@@ -10,7 +10,7 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
 usage() {
     cat <<EOM
-  Downloads the operator.yaml and the zip file containing the analysis tool.
+  Downloads the operator.yaml, the zip file containing the analysis tool, and the zip file containing the Verrazzno CLI.
 
   Usage:
     $(basename $0) <release branch> <short hash of commit to release> <directory where the release artifacts need to be downloaded, defaults to the current directory>

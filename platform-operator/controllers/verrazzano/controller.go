@@ -158,7 +158,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger
 	switch vz.Status.State {
 	case installv1alpha1.VzStateFailed:
 		return r.ProcFailedState(vzctx)
-	case installv1alpha1.VzStateInstalling:
+	case installv1alpha1.VzStateReconciling:
 		return r.ProcInstallingState(vzctx)
 	case installv1alpha1.VzStateReady:
 		return r.ProcReadyState(vzctx)
@@ -196,11 +196,23 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 
 	// If Verrazzano is installed see if upgrade is needed
 	if isInstalled(actualCR.Status) {
-		if len(actualCR.Spec.Version) > 0 && actualCR.Spec.Version != actualCR.Status.Version {
-			// Transition to upgrade state
-			r.updateVzState(log, actualCR, installv1alpha1.VzStateUpgrading)
-			return newRequeueWithDelay(), err
+		if len(actualCR.Spec.Version) > 0 {
+			specVersion, err := semver.NewSemVersion(actualCR.Spec.Version)
+			if err != nil {
+				return newRequeueWithDelay(), err
+			}
+			statusVersion, err := semver.NewSemVersion(actualCR.Status.Version)
+			if err != nil {
+				return newRequeueWithDelay(), err
+			}
+			// if the spec version field is set and the SemVer spec field doesn't equal the SemVer status field
+			if specVersion.CompareTo(statusVersion) != 0 {
+				// Transition to upgrade state
+				r.updateVzState(log, actualCR, installv1alpha1.VzStateUpgrading)
+				return newRequeueWithDelay(), err
+			}
 		}
+
 		// Keep retrying to reconcile components until it completes
 		if result, err := r.reconcileComponents(vzctx); err != nil {
 			return newRequeueWithDelay(), err
@@ -760,7 +772,7 @@ func checkCondtitionType(currentCondition installv1alpha1.ConditionType) install
 func conditionToVzState(currentCondition installv1alpha1.ConditionType) installv1alpha1.VzStateType {
 	switch currentCondition {
 	case installv1alpha1.CondInstallStarted:
-		return installv1alpha1.VzStateInstalling
+		return installv1alpha1.VzStateReconciling
 	case installv1alpha1.CondUninstallStarted:
 		return installv1alpha1.VzStateUninstalling
 	case installv1alpha1.CondUpgradeStarted:

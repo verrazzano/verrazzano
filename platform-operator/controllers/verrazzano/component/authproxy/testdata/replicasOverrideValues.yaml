@@ -2,6 +2,9 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 imageName: ghcr.io/verrazzano/nginx-ingress-controller
 imageVersion: 0.46.0-20210510134749-abc2d2088
+metricsImageName: "ghcr.io/verrazzano/nginx-prometheus-exporter"
+metricsImageVersion: "0.10.0"
+
 replicas: 3
 
 proxy:

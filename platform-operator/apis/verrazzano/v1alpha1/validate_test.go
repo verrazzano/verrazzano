@@ -693,26 +693,25 @@ func TestValidateActiveInstallFail(t *testing.T) {
 // THEN ensure TestValidateInProgress returns correctly
 func TestValidateInProgress(t *testing.T) {
 	vzOld := Verrazzano{}
-	vzNew := Verrazzano{}
 
 	vzOld.Status.State = VzStateReady
-	assert.NoError(t, ValidateInProgress(&vzOld, &vzNew))
+	assert.NoError(t, ValidateInProgress(&vzOld))
 
 	vzOld.Status.State = VzStatePaused
-	assert.NoError(t, ValidateInProgress(&vzOld, &vzNew))
+	assert.NoError(t, ValidateInProgress(&vzOld))
 
-	vzOld.Status.State = VzStateInstalling
-	err := ValidateInProgress(&vzOld, &vzNew)
+	vzOld.Status.State = VzStateReconciling
+	err := ValidateInProgress(&vzOld)
 	assert.NoError(t, err)
 
 	vzOld.Status.State = VzStateUninstalling
-	err = ValidateInProgress(&vzOld, &vzNew)
+	err = ValidateInProgress(&vzOld)
 	if assert.Error(t, err) {
 		assert.Equal(t, ValidateInProgressError, err.Error())
 	}
 
 	vzOld.Status.State = VzStateUpgrading
-	err = ValidateInProgress(&vzOld, &vzNew)
+	err = ValidateInProgress(&vzOld)
 	if assert.Error(t, err) {
 		assert.Equal(t, ValidateInProgressError, err.Error())
 	}
@@ -761,27 +760,26 @@ func TestValidateEnable(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
-			vzNew := Verrazzano{}
 			test.vzOld.Status.State = VzStateReady
-			err := ValidateInProgress(&test.vzOld, &vzNew)
+			err := ValidateInProgress(&test.vzOld)
 			assert.NoError(t, err, "Unexpected error enabling Coherence")
 
-			test.vzOld.Status.State = VzStateInstalling
-			err = ValidateInProgress(&test.vzOld, &vzNew)
+			test.vzOld.Status.State = VzStateReconciling
+			err = ValidateInProgress(&test.vzOld)
 			assert.NoError(t, err, "Unexpected error enabling Coherence")
 
 			test.vzOld.Status.State = VzStatePaused
-			err = ValidateInProgress(&test.vzOld, &vzNew)
+			err = ValidateInProgress(&test.vzOld)
 			assert.NoError(t, err, "Unexpected error enabling Coherence")
 
 			test.vzOld.Status.State = VzStateUpgrading
-			err = ValidateInProgress(&test.vzOld, &vzNew)
+			err = ValidateInProgress(&test.vzOld)
 			if assert.Error(t, err) {
 				assert.Equal(t, ValidateInProgressError, err.Error())
 			}
 
 			test.vzOld.Status.State = VzStateUninstalling
-			err = ValidateInProgress(&test.vzOld, &vzNew)
+			err = ValidateInProgress(&test.vzOld)
 			if assert.Error(t, err) {
 				assert.Equal(t, ValidateInProgressError, err.Error())
 			}

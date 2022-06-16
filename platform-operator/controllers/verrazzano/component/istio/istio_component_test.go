@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/istio"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/types"
 	"os/exec"
@@ -38,6 +39,11 @@ import (
 // fakeRunner is used to test istio without actually running an OS exec command
 type fakeRunner struct {
 }
+
+var (
+	falseValue = false
+	trueValue  = true
+)
 
 const profilesRelativePath = "../../../../manifests/profiles"
 
@@ -241,7 +247,7 @@ func fakeUpgrade(log vzlog.VerrazzanoLogger, imageOverridesString string, overri
 	if overridesFiles[0] != "test-values-file.yaml" {
 		return []byte("error"), []byte(""), fmt.Errorf("invalid values file")
 	}
-	if !strings.Contains(overridesFiles[1], "values-") || !strings.Contains(overridesFiles[1], ".yaml") {
+	if !strings.Contains(overridesFiles[1], "istio-") || !strings.Contains(overridesFiles[1], ".yaml") {
 		return []byte("error"), []byte(""), fmt.Errorf("incorrect install args overrides file")
 	}
 	installArgsFromFile, err := ioutil.ReadFile(overridesFiles[1])
@@ -363,10 +369,13 @@ func TestIsReady(t *testing.T) {
 			},
 		},
 	).Build()
-	var iComp istioComponent
-	iComp.monitor = &fakeMonitor{
-		istioctlSuccess: true,
+
+	isInstalledFunc = func(log vzlog.VerrazzanoLogger) (bool, error) {
+		return true, nil
 	}
+	defer func() { isInstalledFunc = istio.IsInstalled }()
+
+	var iComp istioComponent
 	compContext := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)
 	assert.True(t, iComp.IsReady(compContext))
 }
@@ -784,4 +793,27 @@ func Test_istioComponent_ValidateInstall(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestValidateUpdate tests the istio ValidateUpdate function
+func TestValidateUpdate(t *testing.T) {
+	oldVZ := vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Istio: &vzapi.IstioComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	newVZ := vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Istio: &vzapi.IstioComponent{
+					Enabled: &falseValue,
+				},
+			},
+		},
+	}
+	assert.Error(t, NewComponent().ValidateUpdate(&oldVZ, &newVZ))
 }

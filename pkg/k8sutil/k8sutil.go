@@ -100,6 +100,27 @@ func GetKubeConfig() (*rest.Config, error) {
 	return config, err
 }
 
+// GetKubeConfigGivenPathAndContext returns a rest.Config given a kubeConfig and kubeContext.
+func GetKubeConfigGivenPathAndContext(kubeConfigPath string, kubeContext string) (*rest.Config, error) {
+	// If no values passed, call default GetKubeConfig
+	if len(kubeConfigPath) == 0 && len(kubeContext) == 0 {
+		return GetKubeConfig()
+	}
+
+	// Default the value of kubeConfigLoc?
+	var err error
+	if len(kubeConfigPath) == 0 {
+		kubeConfigPath, err = GetKubeConfigLocation()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeConfigPath},
+		&clientcmd.ConfigOverrides{CurrentContext: kubeContext}).ClientConfig()
+}
+
 // GetKubernetesClientset returns the Kubernetes clientset for the cluster set in the environment
 func GetKubernetesClientset() (*kubernetes.Clientset, error) {
 	// use the current context in the kubeconfig

@@ -41,6 +41,7 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:  "imagePullSecrets[0].name",
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "kube-state-metrics-values.yaml"),
 			Dependencies:            []string{},
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
@@ -66,4 +67,15 @@ func (c kubeStateMetricsComponent) IsReady(ctx spi.ComponentContext) bool {
 // PreInstall updates resources necessary for kube-state-metrics Component installation
 func (c kubeStateMetricsComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preInstall(ctx)
+}
+
+// MonitorOverrides checks whether monitoring of install overrides is enabled or not
+func (c kubeStateMetricsComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.KubeStateMetrics != nil {
+		if ctx.EffectiveCR().Spec.Components.KubeStateMetrics.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.KubeStateMetrics.MonitorChanges
+		}
+		return true
+	}
+	return false
 }

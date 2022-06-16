@@ -8,6 +8,7 @@ import (
 
 	"github.com/Jeffail/gabs/v2"
 	asserts "github.com/stretchr/testify/assert"
+	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -258,4 +259,65 @@ func TestGetSupportedWorkloadType(t *testing.T) {
 	apiVerKind = "v1.ConfigMap"
 	workloadType = GetSupportedWorkloadType(apiVerKind)
 	assert.Empty(workloadType)
+}
+
+// TestCreateServiceMonitorName test the creation of a service monitor name from relevant resources
+func TestCreateServiceMonitorName(t *testing.T) {
+	tests := []struct {
+		name         string
+		trait        *vzapi.MetricsTrait
+		portNum      int
+		expectedName string
+		expectError  bool
+	}{
+		{
+			name:         "test empty trait",
+			trait:        &vzapi.MetricsTrait{},
+			portNum:      0,
+			expectedName: "",
+			expectError:  true,
+		},
+		{
+			name: "test empty trait",
+			trait: &vzapi.MetricsTrait{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-name",
+					Namespace: "test-namespace",
+					Labels: map[string]string{
+						appObjectMetaLabel:  "test-app",
+						compObjectMetaLabel: "test-comp",
+					},
+				},
+			},
+			portNum:      0,
+			expectedName: "test-app_default_test-namespace_test-comp",
+			expectError:  false,
+		},
+		{
+			name: "test name too long",
+			trait: &vzapi.MetricsTrait{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-name",
+					Namespace: "test-namespace",
+					Labels: map[string]string{
+						appObjectMetaLabel:  "test-app-long-label",
+						compObjectMetaLabel: "test-comp-extra-long-label",
+					},
+				},
+			},
+			portNum:      1,
+			expectedName: "test-app-long-label_test-namespace_1",
+			expectError:  false,
+		},
+	}
+	assert := asserts.New(t)
+	for _, tt := range tests {
+		name, err := createServiceMonitorName(tt.trait, tt.portNum)
+		if tt.expectError {
+			assert.Error(err)
+		} else {
+			assert.NoError(err)
+		}
+		asserts.Equal(t, tt.expectedName, name)
+	}
 }

@@ -353,6 +353,7 @@ func TestUpgradeStarted(t *testing.T) {
 					},
 				},
 				Components: makeVerrazzanoComponentStatusMap(),
+				Version:    "0.1.0",
 			},
 		},
 		rbac.NewServiceAccount(namespace, name, []string{}, nil),
@@ -478,6 +479,7 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 			Spec: vzapi.VerrazzanoSpec{
 				Version: "0.2.0"},
 			Status: vzapi.VerrazzanoStatus{
+				Version:    "0.1.0",
 				State:      vzapi.VzStateReady,
 				Components: makeVerrazzanoComponentStatusMap(),
 				Conditions: []vzapi.Condition{

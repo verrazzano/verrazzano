@@ -34,7 +34,6 @@ type verrazzanoValues struct {
 	NodeExporter           *nodeExporterValues           `json:"nodeExporter,omitempty"`
 	Logging                *loggingValues                `json:"logging,omitempty"`
 	Fluentd                *fluentdValues                `json:"fluentd,omitempty"`
-	Console                *consoleValues                `json:"console,omitempty"`
 	API                    *apiValues                    `json:"api,omitempty"`
 	Config                 *configValues                 `json:"config,omitempty"`
 	Security               *securityRoleBindingValues    `json:"security,omitempty"`
@@ -122,11 +121,6 @@ type fluentdValues struct {
 	Enabled           bool                `json:"enabled"` // Always write
 	ExtraVolumeMounts []volumeMount       `json:"extraVolumeMounts,omitempty"`
 	OCI               *ociLoggingSettings `json:"oci,omitempty"`
-}
-
-type consoleValues struct {
-	Enabled bool   `json:"enabled"` // Always write
-	Name    string `json:"name,omitempty"`
 }
 
 type apiValues struct {

@@ -54,6 +54,7 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:     AppendOverrides,
 			PostInstallFunc:         PostInstall,
 			Dependencies:            []string{istio.ComponentName},
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
@@ -80,11 +81,17 @@ func (c nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
+	if err := c.HelmComponent.ValidateUpdate(old, new); err != nil {
+		return err
+	}
 	return c.validateForExternalIPSWithNodePort(&new.Spec)
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
 func (c nginxComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	if err := c.HelmComponent.ValidateInstall(vz); err != nil {
+		return err
+	}
 	return c.validateForExternalIPSWithNodePort(&vz.Spec)
 }
 
@@ -106,4 +113,15 @@ func (c nginxComponent) validateForExternalIPSWithNodePort(vz *vzapi.VerrazzanoS
 	}
 
 	return nil
+}
+
+// MonitorOverrides checks whether monitoring of install overrides is enabled or not
+func (c nginxComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.Ingress != nil {
+		if ctx.EffectiveCR().Spec.Components.Ingress.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.Ingress.MonitorChanges
+		}
+		return true
+	}
+	return false
 }

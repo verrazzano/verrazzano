@@ -36,6 +36,10 @@ const multipleListExpect = `name:
 const escapedExpect = `name.name/name: name
 `
 
+const hyphenName = `name:
+- name-name: name
+`
+
 // TestExpand tests the Expand function
 // GIVEN a set of dot seperated names
 // WHEN Expand is called
@@ -111,6 +115,14 @@ func TestHelmValueFileConstructor(t *testing.T) {
 				{Key: `name\.name/name`, Value: "name"},
 			},
 			expected:    escapedExpect,
+			expectError: false,
+		},
+		{
+			name: "test hyphen key",
+			kvs: []bom.KeyValue{
+				{Key: `name[0].name-name`, Value: "name"},
+			},
+			expected:    hyphenName,
 			expectError: false,
 		},
 	}

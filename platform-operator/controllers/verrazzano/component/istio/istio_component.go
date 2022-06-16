@@ -6,8 +6,6 @@ package istio
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -60,6 +58,9 @@ const subcompIstiod = "istiod"
 // This IstioOperator YAML uses this imagePullSecret key
 const imagePullSecretHelmKey = "values.global.imagePullSecrets[0]"
 
+// istioManfiestNotInstalledError - Expected error during install when running verify-install before Istio CR is applied
+const istioManfiestNotInstalledError = "Istio present but verify-install needs an IstioOperator or manifest for comparison"
+
 // istioComponent represents an Istio component
 type istioComponent struct {
 	// ValuesFile contains the path to the IstioOperator CR values file
@@ -80,13 +81,22 @@ func (i istioComponent) GetJSONName() string {
 	return ComponentJSONName
 }
 
-// GetHelmOverrides returns the Helm override sources for a component
-func (i istioComponent) GetOverrides(_ spi.ComponentContext) []vzapi.Overrides {
+// GetOverrides returns the Helm override sources for a component
+func (i istioComponent) GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+	if effectiveCR.Spec.Components.Istio != nil {
+		return effectiveCR.Spec.Components.Istio.ValueOverrides
+	}
 	return []vzapi.Overrides{}
 }
 
 // MonitorOverrides indicates whether monitoring of override sources is enabled for a component
-func (i istioComponent) MonitorOverrides(_ spi.ComponentContext) bool {
+func (i istioComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.Istio == nil {
+		return false
+	}
+	if ctx.EffectiveCR().Spec.Components.Istio.MonitorChanges != nil {
+		return *ctx.EffectiveCR().Spec.Components.Istio.MonitorChanges
+	}
 	return true
 }
 
@@ -144,6 +154,13 @@ func (i istioComponent) Name() string {
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
 func (i istioComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	// Validate install overrides
+	if vz.Spec.Components.Istio != nil {
+		if err := vzapi.ValidateInstallOverrides(vz.Spec.Components.Istio.ValueOverrides); err != nil {
+			return err
+		}
+	}
+
 	return i.validateForExternalIPSWithNodePort(&vz.Spec)
 }
 
@@ -151,6 +168,12 @@ func (i istioComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if i.IsEnabled(old) && !i.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	// Validate install overrides
+	if new.Spec.Components.Istio != nil {
+		if err := vzapi.ValidateInstallOverrides(new.Spec.Components.Istio.ValueOverrides); err != nil {
+			return err
+		}
 	}
 	return i.validateForExternalIPSWithNodePort(&new.Spec)
 }
@@ -178,38 +201,20 @@ func (i istioComponent) validateForExternalIPSWithNodePort(vz *vzapi.VerrazzanoS
 func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 	log := context.Log()
 
-	// temp file to contain override values from istio install args
-	var tmpFile *os.File
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "values-*.yaml")
+	// build list of temp files
+	istioTempFiles, err := i.createIstioTempFiles(context)
 	if err != nil {
-		return log.ErrorfNewErr("Failed to create temporary file: %v", err)
+		return err
 	}
 
-	vz := context.EffectiveCR()
-	defer os.Remove(tmpFile.Name())
-	if vz.Spec.Components.Istio != nil {
-		istioOperatorYaml, err := BuildIstioOperatorYaml(context, vz.Spec.Components.Istio)
-		if err != nil {
-			return log.ErrorfNewErr("Failed to Build IstioOperator YAML: %v", err)
-		}
+	defer removeTempFiles(context.Log())
 
-		if _, err = tmpFile.Write([]byte(istioOperatorYaml)); err != nil {
-			return log.ErrorfNewErr("Failed to write to temporary file: %v", err)
-		}
-
-		// Close the file
-		if err := tmpFile.Close(); err != nil {
-			return log.ErrorfNewErr("Failed to close temporary file: %v", err)
-		}
-
-		log.Debugf("Created values file from Istio install args: %s", tmpFile.Name())
-	}
-
+	// build image override strings
 	overrideStrings, err := getOverridesString(context)
 	if err != nil {
 		return err
 	}
-	_, _, err = upgradeFunc(log, overrideStrings, i.ValuesFile, tmpFile.Name())
+	_, _, err = upgradeFunc(log, overrideStrings, istioTempFiles...)
 	if err != nil {
 		return err
 	}
@@ -238,14 +243,20 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 		return false
 	}
 
-	// Make sure istioctl successfully completed.  We have seen cases during install where the Istio
-	// deployments are ready but istioctl fails.
-	if context.ActualCR().Status.State == vzapi.VzStateInstalling && !i.monitor.isIstioctlSuccess() {
-		context.Log().Infof("%s is waiting for istioctl install to successfully complete", prefix)
+	verified, err := isInstalledFunc(context.Log())
+	if err != nil && !isIstioManifestNotInstalledError(err) {
+		context.Log().ErrorfThrottled("Unexpected error checking Istio status: %s", err)
 		return false
 	}
-
+	if !verified {
+		context.Log().Progressf("%s is waiting for istioctl verify-install to successfully complete", prefix)
+		return false
+	}
 	return true
+}
+
+func isIstioManifestNotInstalledError(err error) bool {
+	return strings.Contains(err.Error(), istioManfiestNotInstalledError)
 }
 
 // GetDependencies returns the dependencies of this component

@@ -104,7 +104,7 @@ func (v veleroComponent) GetJSONName() string {
 }
 
 // GetHelmOverrides returns the Helm override sources for a component
-func (v veleroComponent) GetOverrides(_ spi.ComponentContext) []vzapi.Overrides {
+func (v veleroComponent) GetOverrides(_ *vzapi.Verrazzano) []vzapi.Overrides {
 	return []vzapi.Overrides{}
 }
 

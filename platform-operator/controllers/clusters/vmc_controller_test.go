@@ -20,6 +20,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
+	"github.com/verrazzano/verrazzano/pkg/scrapeconfigutils"
 	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -67,6 +68,7 @@ spec:
 `
 
 type AssertFn func(configMap *corev1.ConfigMap) error
+type secretAssertFn func(secret *corev1.Secret) error
 
 // TestCreateVMC tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an VerrazzanoManagedCluster resource
@@ -96,33 +98,29 @@ func TestCreateVMC(t *testing.T) {
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
-	expectSyncPrometheusScraper(mock, testManagedCluster, "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
+	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
+		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
 
 		scrapeConfig, err := getScrapeConfig(prometheusYaml, testManagedCluster)
 		if err != nil {
 			asserts.Fail("failed due to error %v", err)
 		}
-		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
-		asserts.Equal(getPrometheusHost(),
-			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
-		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
-		asserts.Equal(prometheusConfigBasePath+"ca-test",
-			scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
-		// assert that the verrazzano_cluster label is added in the static config
-		asserts.Equal(testManagedCluster, scrapeConfig.Search(
-			"static_configs", "0", "labels", "verrazzano_cluster").Data(),
-			"Label verrazzano_cluster not set correctly in static_configs")
-
-		// assert that the VMC job relabels verrazzano_cluster label to the right value
-		asserts.Equal("verrazzano_cluster", scrapeConfig.Search("metric_relabel_configs", "0",
-			"target_label").Data(),
-			"metric_relabel_configs entry to post-process verrazzano_cluster label does not have expected target_label value")
-		asserts.Equal(testManagedCluster, scrapeConfig.Search("metric_relabel_configs", "0",
-			"replacement").Data(),
-			"metric_relabel_configs entry to post-process verrazzano_cluster label does not have right replacement value")
+		validateScrapeConfig(t, scrapeConfig, prometheusConfigBasePath, true)
+		return nil
+	}, func(secret *corev1.Secret) error {
+		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
+		scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(scrapeConfigYaml))
+		if err != nil {
+			asserts.Fail("failed due to error %v", err)
+		}
+		scrapeConfig := getJob(scrapeConfigs.Children(), testManagedCluster)
+		validateScrapeConfig(t, scrapeConfig, managedCertsBasePath, true)
+		return nil
+	}, func(secret *corev1.Secret) error {
+		asserts.NotEmpty(secret.Data["ca-test"], "Expected to find a managed cluster TLS cert")
 		return nil
 	})
 
@@ -169,22 +167,29 @@ func TestCreateVMCWithExternalES(t *testing.T) {
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster, true)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
-	expectSyncPrometheusScraper(mock, testManagedCluster, "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
+	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
+		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
 
 		scrapeConfig, err := getScrapeConfig(prometheusYaml, testManagedCluster)
 		if err != nil {
 			asserts.Fail("failed due to error %v", err)
 		}
-		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
-		asserts.Equal(getPrometheusHost(),
-			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
-		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
-		asserts.NotEmpty(testManagedCluster, scrapeConfig.Path("job_name").Data(), "Managed cluster scrape config not configured")
-		asserts.Equal(prometheusConfigBasePath+"ca-test",
-			scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
+		validateScrapeConfig(t, scrapeConfig, prometheusConfigBasePath, true)
+		return nil
+	}, func(secret *corev1.Secret) error {
+		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
+		scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(scrapeConfigYaml))
+		if err != nil {
+			asserts.Fail("failed due to error %v", err)
+		}
+		scrapeConfig := getJob(scrapeConfigs.Children(), testManagedCluster)
+		validateScrapeConfig(t, scrapeConfig, managedCertsBasePath, true)
+		return nil
+	}, func(secret *corev1.Secret) error {
+		asserts.NotEmpty(secret.Data["ca-test"], "Expected to find a managed cluster TLS cert")
 		return nil
 	})
 
@@ -231,21 +236,29 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
-	expectSyncPrometheusScraper(mock, testManagedCluster, "", true, "", func(configMap *corev1.ConfigMap) error {
+	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, "", func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.Empty(configMap.Data["ca-test"], "Cert entry found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
+		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
+
 		scrapeConfig, err := getScrapeConfig(prometheusYaml, testManagedCluster)
 		if err != nil {
 			asserts.Fail("failed due to error %v", err)
 		}
-		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
-		asserts.Equal(getPrometheusHost(),
-			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
-		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
-		asserts.NotEmpty(testManagedCluster, scrapeConfig.Path("job_name").Data(), "Managed cluster scrape config not configured")
-		asserts.Empty(scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
-
+		validateScrapeConfig(t, scrapeConfig, prometheusConfigBasePath, false)
+		return nil
+	}, func(secret *corev1.Secret) error {
+		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
+		scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(scrapeConfigYaml))
+		if err != nil {
+			asserts.Fail("failed due to error %v", err)
+		}
+		scrapeConfig := getJob(scrapeConfigs.Children(), testManagedCluster)
+		validateScrapeConfig(t, scrapeConfig, managedCertsBasePath, false)
+		return nil
+	}, func(secret *corev1.Secret) error {
+		asserts.Empty(secret.Data["ca-test"])
 		return nil
 	})
 
@@ -292,19 +305,28 @@ func TestCreateVMCNoCACert(t *testing.T) {
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster, true)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
-	expectSyncPrometheusScraper(mock, testManagedCluster, "", false, getCaCrt(), func(configMap *corev1.ConfigMap) error {
+	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", false, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
+		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
 
 		scrapeConfig, err := getScrapeConfig(prometheusYaml, testManagedCluster)
 		if err != nil {
 			asserts.Fail("failed due to error %v", err)
 		}
-		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
-		asserts.Equal(getPrometheusHost(),
-			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
-		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
-		asserts.NotEmpty(testManagedCluster, scrapeConfig.Path("job_name").Data(), "Managed cluster scrape config not configured")
+		validateScrapeConfig(t, scrapeConfig, prometheusConfigBasePath, false)
+		return nil
+	}, func(secret *corev1.Secret) error {
+		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
+		scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(scrapeConfigYaml))
+		if err != nil {
+			asserts.Fail("failed due to error %v", err)
+		}
+		scrapeConfig := getJob(scrapeConfigs.Children(), testManagedCluster)
+		validateScrapeConfig(t, scrapeConfig, managedCertsBasePath, false)
+		return nil
+	}, func(secret *corev1.Secret) error {
+		asserts.Empty(secret.Data["ca-test"])
 		return nil
 	})
 
@@ -329,15 +351,16 @@ func TestCreateVMCNoCACert(t *testing.T) {
 // THEN ensure all the objects are created
 func TestCreateVMCWithExistingScrapeConfiguration(t *testing.T) {
 	namespace := "verrazzano-mc"
+	jobs := `  - ` + constants.PrometheusJobNameKey + `: cluster1
+    scrape_interval: 20s
+    scrape_timeout: 15s
+    scheme: http`
 	prometheusYaml := `global:
   scrape_interval: 20s
   scrape_timeout: 10s
   evaluation_interval: 30s
 scrape_configs:
-- job_name: cluster1
-  scrape_interval: 20s
-  scrape_timeout: 15s
-  scheme: http`
+` + jobs
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -360,24 +383,31 @@ scrape_configs:
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
-	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
+	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, jobs, true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 
 		// check for the modified entry
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
+		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
+
 		scrapeConfig, err := getScrapeConfig(prometheusYaml, testManagedCluster)
 		if err != nil {
 			asserts.Fail("failed due to error %v", err)
 		}
-		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
-		asserts.Equal(getPrometheusHost(),
-			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
-		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
-		asserts.NotEmpty(testManagedCluster, scrapeConfig.Path("job_name").Data(), "Managed cluster scrape config not configured")
-		asserts.Equal(prometheusConfigBasePath+"ca-test",
-			scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
-
+		validateScrapeConfig(t, scrapeConfig, prometheusConfigBasePath, true)
+		return nil
+	}, func(secret *corev1.Secret) error {
+		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
+		scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(scrapeConfigYaml))
+		if err != nil {
+			asserts.Fail("failed due to error %v", err)
+		}
+		scrapeConfig := getJob(scrapeConfigs.Children(), testManagedCluster)
+		validateScrapeConfig(t, scrapeConfig, managedCertsBasePath, true)
+		return nil
+	}, func(secret *corev1.Secret) error {
+		asserts.NotEmpty(secret.Data["ca-test"], "Expected to find a managed cluster TLS cert")
 		return nil
 	})
 
@@ -402,15 +432,16 @@ scrape_configs:
 // THEN ensure all the objects are created (existing configuration is replaced)
 func TestReplaceExistingScrapeConfiguration(t *testing.T) {
 	namespace := "verrazzano-mc"
+	jobs := `  - ` + constants.PrometheusJobNameKey + `: test
+    scrape_interval: 20s
+    scrape_timeout: 15s
+    scheme: http`
 	prometheusYaml := `global:
   scrape_interval: 20s
   scrape_timeout: 10s
   evaluation_interval: 30s
 scrape_configs:
-- job_name: test
-  scrape_interval: 20s
-  scrape_timeout: 15s
-  scheme: http`
+` + jobs
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -433,24 +464,30 @@ scrape_configs:
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
-	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
+	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, jobs, true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotNil(configMap.Data["ca-test"], "No cert entry found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
+		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
+
 		scrapeConfig, err := getScrapeConfig(prometheusYaml, testManagedCluster)
 		if err != nil {
 			asserts.Fail("failed due to error %v", err)
 		}
-		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
-		asserts.Equal("test", scrapeConfig.Path("job_name").Data(), "wrong job testManagedCluster")
-		asserts.Equal(getPrometheusHost(),
-			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
-		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
-		asserts.NotEmpty(testManagedCluster, scrapeConfig.Path("job_name").Data(), "Managed cluster scrape config not configured")
-		asserts.Equal(prometheusConfigBasePath+"ca-test",
-			scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
-		asserts.Equal("https", scrapeConfig.Path("scheme").Data(), "wrong scheme")
+		validateScrapeConfig(t, scrapeConfig, prometheusConfigBasePath, true)
+		return nil
+	}, func(secret *corev1.Secret) error {
+		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
+		scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(scrapeConfigYaml))
+		if err != nil {
+			asserts.Fail("failed due to error %v", err)
+		}
+		scrapeConfig := getJob(scrapeConfigs.Children(), testManagedCluster)
+		validateScrapeConfig(t, scrapeConfig, managedCertsBasePath, true)
+		return nil
+	}, func(secret *corev1.Secret) error {
+		asserts.NotEmpty(secret.Data["ca-test"], "Expected to find a managed cluster TLS cert")
 		return nil
 	})
 
@@ -498,22 +535,29 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, true, rancherManifestYAML)
-	expectSyncPrometheusScraper(mock, testManagedCluster, "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
+	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
+		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
 
 		scrapeConfig, err := getScrapeConfig(prometheusYaml, testManagedCluster)
 		if err != nil {
 			asserts.Fail("failed due to error %v", err)
 		}
-		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
-		asserts.Equal(getPrometheusHost(),
-			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
-		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
-		asserts.NotEmpty(testManagedCluster, scrapeConfig.Path("job_name").Data(), "Managed cluster scrape config not configured")
-		asserts.Equal(prometheusConfigBasePath+"ca-test",
-			scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
+		validateScrapeConfig(t, scrapeConfig, prometheusConfigBasePath, true)
+		return nil
+	}, func(secret *corev1.Secret) error {
+		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
+		scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(scrapeConfigYaml))
+		if err != nil {
+			asserts.Fail("failed due to error %v", err)
+		}
+		scrapeConfig := getJob(scrapeConfigs.Children(), testManagedCluster)
+		validateScrapeConfig(t, scrapeConfig, managedCertsBasePath, true)
+		return nil
+	}, func(secret *corev1.Secret) error {
+		asserts.NotEmpty(secret.Data["ca-test"], "Expected to find a managed cluster TLS cert")
 		return nil
 	})
 
@@ -634,6 +678,15 @@ func TestDeleteVMC(t *testing.T) {
 			return nil
 		})
 
+	jobs := `  - ` + constants.PrometheusJobNameKey + `: test
+    scrape_interval: 20s
+    scrape_timeout: 15s
+    scheme: http
+  - ` + constants.PrometheusJobNameKey + `: test2
+    scrape_interval: 20s
+    scrape_timeout: 15s
+    scheme: http`
+
 	// Expect a call to get the prometheus configmap and return one with two entries, including this cluster
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-prometheus-config"}, gomock.Not(gomock.Nil())).
@@ -652,14 +705,7 @@ func TestDeleteVMC(t *testing.T) {
   scrape_timeout: 10s
   evaluation_interval: 30s
 scrape_configs:
-- job_name: test
-  scrape_interval: 20s
-  scrape_timeout: 15s
-  scheme: http
-- job_name: test2
-  scrape_interval: 20s
-  scrape_timeout: 15s
-  scheme: http`,
+` + jobs,
 				"ca-test": getCaCrt(),
 			}
 
@@ -679,18 +725,74 @@ scrape_configs:
 				asserts.Fail("failed due to error %v", err)
 			}
 
-			// Expect a call to update the VerrazzanoManagedCluster finalizer
-			mock.EXPECT().
-				Update(gomock.Any(), gomock.Any(), gomock.Any()).
-				DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
-					asserts.True(len(vmc.ObjectMeta.Finalizers) == 0, "Wrong number of finalizers")
-					return nil
-				})
-
 			asserts.NotNil(prometheusYaml, "No prometheus config yaml found")
 			asserts.NotNil(scrapeConfig, "No scrape configs found")
-			asserts.Equal("test2", scrapeConfig.Path("job_name").Data(), "Expected scrape config not found")
+			asserts.Equal("test2", scrapeConfig.Path(constants.PrometheusJobNameKey).Data(), "Expected scrape config not found")
 
+			return nil
+		})
+
+	// Expect a call to get the additional scrape config secret - return it configured with the two scrape jobs
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: constants.PromAdditionalScrapeConfigsSecretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				constants.PromAdditionalScrapeConfigsSecretKey: []byte(jobs),
+			}
+			return nil
+		})
+
+	// Expect a call to get the additional scrape config secret (we call controllerruntime.CreateOrUpdate so it fetches again) - return it
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: constants.PromAdditionalScrapeConfigsSecretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				constants.PromAdditionalScrapeConfigsSecretKey: []byte(jobs),
+			}
+			return nil
+		})
+
+	// Expect a call to update the additional scrape config secret
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.UpdateOption) error {
+			// validate that the scrape config for the managed cluster is no longer present
+			scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]))
+			if err != nil {
+				return err
+			}
+			asserts.Len(scrapeConfigs.Children(), 1, "Expected only one scrape config")
+			scrapeJobName := scrapeConfigs.Children()[0].Search(constants.PrometheusJobNameKey).Data()
+			asserts.Equal("test2", scrapeJobName)
+			return nil
+		})
+
+	// Expect a call to get the managed cluster TLS certs secret - return it configured with two managed cluster certs
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: vpoconstants.PromManagedClusterCACertsSecretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				"ca-test":  []byte("ca-cert-1"),
+				"ca-test2": []byte("ca-cert-1"),
+			}
+			return nil
+		})
+
+	// Expect a call to update the managed cluster TLS certs secret
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.UpdateOption) error {
+			// validate that the cert for the cluster being deleted is no longer present
+			asserts.Len(secret.Data, 1, "Expected only one managed cluster cert")
+			asserts.Contains(secret.Data, "ca-test2", "Expected to find cert for managed cluster not being deleted")
+			return nil
+		})
+
+	// Expect a call to update the VerrazzanoManagedCluster finalizer
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+			asserts.True(len(vmc.ObjectMeta.Finalizers) == 0, "Wrong number of finalizers")
 			return nil
 		})
 
@@ -1157,22 +1259,29 @@ func TestRegisterClusterWithRancherOverrideRegistry(t *testing.T) {
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, expectedRancherYAML)
-	expectSyncPrometheusScraper(mock, testManagedCluster, "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
+	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
+		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
 
 		scrapeConfig, err := getScrapeConfig(prometheusYaml, testManagedCluster)
 		if err != nil {
 			asserts.Fail("failed due to error %v", err)
 		}
-		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
-		asserts.Equal("prometheus.vmi.system.default.1.2.3.4.nip.io",
-			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
-		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
-		asserts.NotEmpty(testManagedCluster, scrapeConfig.Path("job_name").Data(), "Managed cluster scrape config not configured")
-		asserts.Equal(prometheusConfigBasePath+"ca-test",
-			scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
+		validateScrapeConfig(t, scrapeConfig, prometheusConfigBasePath, true)
+		return nil
+	}, func(secret *corev1.Secret) error {
+		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
+		scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(scrapeConfigYaml))
+		if err != nil {
+			asserts.Fail("failed due to error %v", err)
+		}
+		scrapeConfig := getJob(scrapeConfigs.Children(), testManagedCluster)
+		validateScrapeConfig(t, scrapeConfig, managedCertsBasePath, true)
+		return nil
+	}, func(secret *corev1.Secret) error {
+		asserts.NotEmpty(secret.Data["ca-test"], "Expected to find a managed cluster TLS cert")
 		return nil
 	})
 
@@ -1578,7 +1687,10 @@ func expectVmcGetAndUpdate(t *testing.T, mock *mocks.MockClient, name string, ca
 
 }
 
-func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometheusYaml string, caSecretExists bool, cacrtSecretData string, f AssertFn) {
+func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometheusYaml string, jobs string, caSecretExists bool, cacrtSecretData string,
+	f AssertFn, additionalScrapeConfigsAssertFunc secretAssertFn, managedClusterCertsAssertFunc secretAssertFn) {
+	const internalSecretPassword = "nRXlxXgMwN" //nolint:gosec //#gosec G101
+
 	if caSecretExists {
 		// Expect a call to get the prometheus secret - return it
 		mock.EXPECT().
@@ -1597,7 +1709,7 @@ func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometh
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VerrazzanoPromInternal}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
-				mcconstants.VerrazzanoPasswordKey: []byte("nRXlxXgMwN"),
+				mcconstants.VerrazzanoPasswordKey: []byte(internalSecretPassword),
 			}
 			return nil
 		})
@@ -1617,6 +1729,55 @@ func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometh
 		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.UpdateOption) error {
 			return f(configMap)
+		})
+
+	// Expect a call to get the additional scrape config secret - return it
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: constants.PromAdditionalScrapeConfigsSecretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				constants.PromAdditionalScrapeConfigsSecretKey: []byte(jobs),
+			}
+			return nil
+		})
+
+	// Expect a call to get the Verrazzano Prometheus internal secret - return it
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VerrazzanoPromInternal}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				mcconstants.VerrazzanoPasswordKey: []byte(internalSecretPassword),
+			}
+			return nil
+		})
+
+	// Expect a call to get the additional scrape config secret (we call controllerruntime.CreateOrUpdate so it fetches again) - return it
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: constants.PromAdditionalScrapeConfigsSecretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				constants.PromAdditionalScrapeConfigsSecretKey: []byte(jobs),
+			}
+			return nil
+		})
+
+	// Expect a call to update the additional scrape config secret
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.UpdateOption) error {
+			return additionalScrapeConfigsAssertFunc(secret)
+		})
+
+	// Expect a call to get the managed cluster TLS certs secret - return NotFound error
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: vpoconstants.PromManagedClusterCACertsSecretName}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, vpoconstants.PromManagedClusterCACertsSecretName))
+
+	// Expect a call to update the managed cluster TLS certs secret
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.UpdateOption) error {
+			return managedClusterCertsAssertFunc(secret)
 		})
 
 }
@@ -1786,14 +1947,20 @@ func getScrapeConfig(prometheusYaml string, name string) (*gabs.Container, error
 		return nil, err
 	}
 	scrapeConfigs := cfg.Path(scrapeConfigsKey).Children()
-	var scrapeConfig *gabs.Container
-	for _, scrapeConfig = range scrapeConfigs {
-		jobName := scrapeConfig.Search(jobNameKey).Data()
+	return getJob(scrapeConfigs, name), nil
+}
+
+// getJob returns the scrape config job identified by the passed name from the slice of scrape configs
+func getJob(scrapeConfigs []*gabs.Container, name string) *gabs.Container {
+	var job *gabs.Container
+	for _, scrapeConfig := range scrapeConfigs {
+		jobName := scrapeConfig.Search(constants.PrometheusJobNameKey).Data()
 		if jobName == name {
+			job = scrapeConfig
 			break
 		}
 	}
-	return scrapeConfig, nil
+	return job
 }
 
 // getCASecretName returns the ca secret for testManagedCluster
@@ -1834,4 +2001,30 @@ func expectStatusUpdateReadyCondition(asserts *assert.Assertions, mock *mocks.Mo
 			asserts.Equal(1, readyConditionCount, "Found more than one Ready condition")
 			return nil
 		})
+}
+
+// validateScrapeConfig validates that a scrape config job has the expected field names and values
+func validateScrapeConfig(t *testing.T, scrapeConfig *gabs.Container, caBasePath string, expectTLSConfig bool) {
+	asserts := assert.New(t)
+	asserts.NotNil(scrapeConfig)
+	asserts.Equal(getPrometheusHost(),
+		scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
+	asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
+
+	// assert that the verrazzano_cluster label is added in the static config
+	asserts.Equal(testManagedCluster, scrapeConfig.Search(
+		"static_configs", "0", "labels", "verrazzano_cluster").Data(),
+		"Label verrazzano_cluster not set correctly in static_configs")
+
+	// assert that the VMC job relabels verrazzano_cluster label to the right value
+	asserts.Equal("verrazzano_cluster", scrapeConfig.Search("metric_relabel_configs", "0",
+		"target_label").Data(),
+		"metric_relabel_configs entry to post-process verrazzano_cluster label does not have expected target_label value")
+	asserts.Equal(testManagedCluster, scrapeConfig.Search("metric_relabel_configs", "0",
+		"replacement").Data(),
+		"metric_relabel_configs entry to post-process verrazzano_cluster label does not have right replacement value")
+	if expectTLSConfig {
+		asserts.Equal("https", scrapeConfig.Path("scheme").Data(), "wrong scheme")
+		asserts.Equal(caBasePath+"ca-test", scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
+	}
 }

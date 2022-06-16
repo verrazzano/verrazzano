@@ -106,11 +106,56 @@ spec:
         - name: VZ_API_VERSION
           value: "20210501"
         ports:
-            - containerPort: {{ .Values.port }}
+        - containerPort: {{ .Values.port }}
+        livenessProbe:
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+          timeoutSeconds: 1
+          tcpSocket:
+            port: {{ .Values.port }}
+        readinessProbe:
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          successThreshold: 1
+          failureThreshold: 1
+          timeoutSeconds: 1
+          tcpSocket:
+            port: {{ .Values.port }}
         volumeMounts:
         - mountPath: /api-config
           name: api-config
-      serviceAccount: {{ .Values.name }}
+      - image: {{ .Values.metricsImageName }}:{{ .Values.metricsImageVersion }}
+        imagePullPolicy: {{ .Values.pullPolicy }}
+        name: verrazzano-authproxy-metrics
+        command: [ "/usr/bin/nginx-prometheus-exporter" ]
+        env:
+        - name: SCRAPE_URI
+          value: "http://localhost:{{ .Values.port }}/nginx_status"
+        ports:
+        - containerPort: 9113
+          name: http-metrics
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: http-metrics
+          initialDelaySeconds: 3
+          periodSeconds: 3
+        startupProbe:
+          httpGet:
+            path: /metrics
+            port: http-metrics
+          failureThreshold: 30
+          periodSeconds: 3
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: http-metrics
+          failureThreshold: 3
+          periodSeconds: 3
+      serviceAccountName: {{ .Values.name }}
 ---
 apiVersion: v1
 kind: Service

@@ -21,14 +21,18 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
+// RestartCheckFunc is the function used to check if a pod needs to be restarted
+type RestartCheckFunc func(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType string, workloadNmae string, istioProxyImageName string) bool
+
 // RestartComponents restarts all the deployments, StatefulSets, and DaemonSets
 // in all of the Istio injected system namespaces
-func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generation int64) error {
+func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generation int64, restartCheckFunc RestartCheckFunc) error {
 	// Get the latest Istio proxy image name from the bom
 	istioProxyImage, err := getIstioProxyImageFromBom()
 	if err != nil {
 		return log.ErrorfNewErr("Restart components cannot find Istio proxy image in BOM: %v", err)
 	}
+
 	// Get the go client so we can bypass the cache and get directly from etcd
 	goClient, err := k8sutil.GetGoClient(log)
 	if err != nil {
@@ -36,7 +40,7 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 	}
 
 	// Restart all the deployments in the injected system namespaces
-	log.Oncef("Restarting system Deployments that have an old Istio proxy sidecar so that the pods get the new Isio sidecar")
+	log.Oncef("Restarting system Deployments to pickup latest Istio proxy sidecar")
 	deploymentList, err := goClient.AppsV1().Deployments("").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return err
@@ -48,7 +52,7 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 		if !vzString.SliceContainsString(namespaces, deployment.Namespace) {
 			continue
 		}
-		log.Oncef("Checking if Deployment %s has a pod with an old Istio proxy sidecar", deployment.Name)
+		log.Oncef("Checking the Istio proxy sidecar for Deployment %s", deployment.Name)
 
 		// Get the pods for this deployment
 		podList, err := getMatchingPods(log, goClient, deployment.Namespace, deployment.Spec.Selector)
@@ -56,11 +60,10 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 			return err
 		}
 		// Check if any pods contain the old Istio proxy image
-		found, oldImage := doesPodContainOldIstioSidecar(podList, istioProxyImage)
+		found := restartCheckFunc(log, podList, "Deployment", deployment.Name, istioProxyImage)
 		if !found {
 			continue
 		}
-		log.Oncef("Restarting Deployment %s which has a pod with an old Istio proxy %s", deployment.Name, oldImage)
 		// Annotate the deployment to do a restart of the pods
 		if deployment.Spec.Paused {
 			return log.ErrorfNewErr("Failed, Deployment %s can't be restarted because it is paused", deployment.Name)
@@ -73,10 +76,10 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 			return log.ErrorfNewErr("Failed, error updating Deployment %s annotation to force a pod restart", deployment.Name)
 		}
 	}
-	log.Oncef("Finished restarting system Deployments to pick up the new Isio sidecar")
+	log.Oncef("Finished restarting system Deployments to pick up the latest Istio proxy sidecar")
 
 	// Restart all the StatefulSets in the injected system namespaces
-	log.Oncef("Restarting system StatefulSets that have an old Istio proxy sidecar so that the pods get the new Isio sidecar")
+	log.Oncef("Restarting system StatefulSets to pickup latest Istio proxy sidecar")
 	statefulSetList, err := goClient.AppsV1().StatefulSets("").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return err
@@ -88,7 +91,7 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 		if !vzString.SliceContainsString(namespaces, sts.Namespace) {
 			continue
 		}
-		log.Oncef("Checking if StatefulSet %s has a pod with an old Istio proxy sidecar", sts.Name)
+		log.Oncef("Checking the Istio proxy sidecar for StatefulSet %s", sts.Name)
 
 		// Get the pods for this StatefulSet
 		podList, err := getMatchingPods(log, goClient, sts.Namespace, sts.Spec.Selector)
@@ -96,11 +99,10 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 			return err
 		}
 		// Check if any pods contain the old Istio proxy image
-		found, oldImage := doesPodContainOldIstioSidecar(podList, istioProxyImage)
+		found := restartCheckFunc(log, podList, "StatefulSet", sts.Name, istioProxyImage)
 		if !found {
 			continue
 		}
-		log.Oncef("Restarting StatefulSet %s which has a pod with an old Istio proxy %s", sts.Name, oldImage)
 		if sts.Spec.Template.ObjectMeta.Annotations == nil {
 			sts.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 		}
@@ -109,10 +111,10 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 			return log.ErrorfNewErr("Failed, error updating StatefulSet %s annotation to force a pod restart", sts.Name)
 		}
 	}
-	log.Oncef("Finished restarting system Statefulsets to pick up new Isio sidecar")
+	log.Oncef("Finished restarting system Statefulsets to pick up latest Istio proxy sidecar")
 
 	// Restart all the DaemonSets in the injected system namespaces
-	log.Oncef("Restarting system DaemonSets that have an old Istio proxy sidecar so that the pods get the new Isio sidecar")
+	log.Oncef("Restarting system DaemonSets to pickup latest Istio proxy sidecar")
 	daemonSetList, err := goClient.AppsV1().DaemonSets("").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return err
@@ -124,7 +126,7 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 		if !vzString.SliceContainsString(namespaces, daemonSet.Namespace) {
 			continue
 		}
-		log.Oncef("Checking if DaemonSet %s has a pod with an old Istio proxy sidecar", daemonSet.Name)
+		log.Oncef("Checking the Istio proxy sidecar for DaemonSet %s", daemonSet.Name)
 
 		// Get the pods for this DaemonSet
 		podList, err := getMatchingPods(log, goClient, daemonSet.Namespace, daemonSet.Spec.Selector)
@@ -132,11 +134,10 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 			return err
 		}
 		// Check if any pods contain the old Istio proxy image
-		found, oldImage := doesPodContainOldIstioSidecar(podList, istioProxyImage)
+		found := restartCheckFunc(log, podList, "DaemonSet", daemonSet.Name, istioProxyImage)
 		if !found {
 			continue
 		}
-		log.Oncef("Restarting DaemonSet %s which has a pod with an old Istio proxy %s", daemonSet.Name, oldImage)
 
 		if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
 			daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
@@ -146,7 +147,7 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 			return log.ErrorfNewErr("Failed, error updating DaemonSet %s annotation to force a pod restart", daemonSet.Name)
 		}
 	}
-	log.Oncef("Finished restarting system DaemonSets to pick up new Isio sidecar")
+	log.Oncef("Finished restarting system DaemonSets to pick up latest Istio proxy sidecar")
 	return nil
 }
 
@@ -169,20 +170,50 @@ func getIstioProxyImageFromBom() (string, error) {
 	return "", errors.New("Failed to find Istio proxy image in the BOM for Istiod")
 }
 
-// doesPodContainOldIstioSidecar returns true if any pods contain an old Istio proxy sidecar
-func doesPodContainOldIstioSidecar(podList *v1.PodList, istioProxyImageName string) (bool, string) {
+// DoesPodContainOldIstioSidecar returns true if any pods contain an old Istio proxy sidecar
+func DoesPodContainOldIstioSidecar(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType string, workloadName string, istioProxyImageName string) bool {
 	for _, pod := range podList.Items {
 		for _, container := range pod.Spec.Containers {
 			if strings.Contains(container.Image, "proxyv2") {
 				// Container contains the proxy2 image (Envoy Proxy).  Return true if it
 				// doesn't match the Istio proxy in the BOM
 				if 0 != strings.Compare(container.Image, istioProxyImageName) {
-					return true, container.Image
+					log.Oncef("Restarting %s %s which has a pod with an old Istio proxy %s", workloadType, workloadName, container.Image)
+					return true
 				}
 			}
 		}
 	}
-	return false, ""
+	return false
+}
+
+// DoesPodContainNoIstioSidecar returns true if any pods don't have an Istio proxy sidecar
+func DoesPodContainNoIstioSidecar(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType string, workloadName string, _ string) bool {
+	for _, pod := range podList.Items {
+		// Ignore pods that are not expected to have Istio injected
+		noInjection := false
+		for _, item := range config.GetNoInjectionComponents() {
+			if strings.Contains(pod.Name, item) {
+				noInjection = true
+				break
+			}
+		}
+		if noInjection {
+			continue
+		}
+		proxyFound := false
+		for _, container := range pod.Spec.Containers {
+			if strings.Contains(container.Image, "proxyv2") {
+				proxyFound = true
+			}
+		}
+		if !proxyFound {
+			log.Oncef("Restarting %s %s which has a pod with no Istio proxy image", workloadType, workloadName)
+			return true
+		}
+	}
+
+	return false
 }
 
 // Get the matching pods in namespace given a selector

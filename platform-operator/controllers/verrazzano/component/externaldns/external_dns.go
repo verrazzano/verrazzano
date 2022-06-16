@@ -170,3 +170,11 @@ func buildOwnerString(uid types.UID) (string, error) {
 	sum := hash.Sum32()
 	return fmt.Sprintf("v8o-%s", strconv.FormatUint(uint64(sum), 16)), nil
 }
+
+// GetOverrides gets the install overrides
+func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+	if effectiveCR.Spec.Components.DNS != nil {
+		return effectiveCR.Spec.Components.DNS.ValueOverrides
+	}
+	return []vzapi.Overrides{}
+}

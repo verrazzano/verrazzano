@@ -6,7 +6,6 @@ package update
 import (
 	"context"
 	"fmt"
-	corev1 "k8s.io/api/core/v1"
 	"time"
 
 	ginkgov2 "github.com/onsi/ginkgo/v2"
@@ -15,6 +14,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -66,11 +66,7 @@ func UpdateCR(m CRModifier) error {
 
 	// Update the CR
 	var err error
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		ginkgov2.Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-	}
-	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
+	config, err := k8sutil.GetKubeConfigGivenPath(defaultKubeConfigPath())
 	if err != nil {
 		ginkgov2.Fail(err.Error())
 	}
@@ -83,27 +79,34 @@ func UpdateCR(m CRModifier) error {
 	return err
 }
 
+func defaultKubeConfigPath() string {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		ginkgov2.Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
+	return kubeconfigPath
+}
+
 // UpdateCRWithRetries updates the CR with the given CRModifier.
 // If the update fails, it retries by getting the latest version of CR and applying the same
 // update till it succeeds or timesout.
 func UpdateCRWithRetries(m CRModifier, pollingInterval, timeout time.Duration) {
+	RetryUpdate(m, defaultKubeConfigPath(), true, pollingInterval, timeout)
+}
+
+// RetryUpdate tries update with kubeconfigPath
+func RetryUpdate(m CRModifier, kubeconfigPath string, waitForReady bool, pollingInterval, timeout time.Duration) {
 	gomega.Eventually(func() bool {
-		// Wait till the custom resource becomes ready.
-		WaitForReadyState(time.Time{}, pollingInterval, timeout)
-		cr, err := pkg.GetVerrazzano()
+		if waitForReady {
+			WaitForReadyState(kubeconfigPath, time.Time{}, pollingInterval, timeout)
+		}
+		cr, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
 			return false
 		}
 		// Modify the CR
 		m.ModifyCR(cr)
-
-		// Update the CR
-		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-		if err != nil {
-			pkg.Log(pkg.Error, err.Error())
-			return false
-		}
 		config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
@@ -120,8 +123,10 @@ func UpdateCRWithRetries(m CRModifier, pollingInterval, timeout time.Duration) {
 			pkg.Log(pkg.Error, err.Error())
 			return false
 		}
-		// Wait till the resource edit is complete and the verrazzano custom resource comes to ready state
-		WaitForReadyState(time.Now(), pollingInterval, timeout)
+		if waitForReady {
+			// Wait till the resource edit is complete and the verrazzano custom resource comes to ready state
+			WaitForReadyState(kubeconfigPath, time.Now(), pollingInterval, timeout)
+		}
 		return true
 	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(gomega.BeTrue())
 }
@@ -169,7 +174,7 @@ func IsCRReadyAfterUpdate(cr *vzapi.Verrazzano, updatedTime time.Time) bool {
 	for _, condition := range cr.Status.Conditions {
 		pkg.Log(pkg.Info, fmt.Sprintf("Checking if condition of type '%s', transitioned at '%s' is for the expected update",
 			condition.Type, condition.LastTransitionTime))
-		if condition.Type == vzapi.CondInstallComplete && condition.Status == corev1.ConditionTrue {
+		if (condition.Type == vzapi.CondInstallComplete || condition.Type == vzapi.CondUpgradeComplete) && condition.Status == corev1.ConditionTrue {
 			// check if the transistion time is post the time of update
 			transitionTime, err := time.Parse(time.RFC3339, condition.LastTransitionTime)
 			if err != nil {
@@ -181,17 +186,17 @@ func IsCRReadyAfterUpdate(cr *vzapi.Verrazzano, updatedTime time.Time) bool {
 				return true
 			}
 		}
-		pkg.Log(pkg.Error, fmt.Sprintf("Could not find condition of type '%s', transitioned after '%s'",
-			vzapi.CondInstallComplete, updatedTime.String()))
+		pkg.Log(pkg.Error, fmt.Sprintf("Could not find condition of type '%s' or '%s', transitioned after '%s'",
+			vzapi.CondInstallComplete, vzapi.CondUpgradeComplete, updatedTime.String()))
 	}
 	// Return true if the state is ready and there are no conditions updated in the status.
 	return len(cr.Status.Conditions) == 0
 }
 
 // WaitForReadyState waits till the verrazzano custom resource becomes ready or times out
-func WaitForReadyState(updateTime time.Time, pollingInterval, timeout time.Duration) {
+func WaitForReadyState(kubeconfigPath string, updateTime time.Time, pollingInterval, timeout time.Duration) {
 	gomega.Eventually(func() bool {
-		cr, err := pkg.GetVerrazzano()
+		cr, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
 			return false

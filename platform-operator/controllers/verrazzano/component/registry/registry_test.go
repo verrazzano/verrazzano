@@ -5,6 +5,7 @@ package registry
 
 import (
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -32,6 +33,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/pushgateway"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	velero "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/velero"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
@@ -60,7 +62,7 @@ func TestGetComponents(t *testing.T) {
 	a := assert.New(t)
 	comps := GetComponents()
 
-	a.Len(comps, 24, "Wrong number of components")
+	a.Len(comps, 26, "Wrong number of components")
 	a.Equal(comps[0].Name(), oam.ComponentName)
 	a.Equal(comps[1].Name(), appoper.ComponentName)
 	a.Equal(comps[2].Name(), istio.ComponentName)
@@ -85,6 +87,8 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[21].Name(), pushgateway.ComponentName)
 	a.Equal(comps[22].Name(), promnodeexporter.ComponentName)
 	a.Equal(comps[23].Name(), jaegeroperator.ComponentName)
+	a.Equal(comps[24].Name(), console.ComponentName)
+	a.Equal(comps[25].Name(), velero.ComponentName)
 }
 
 // TestFindComponent tests FindComponent
@@ -488,7 +492,7 @@ func (f fakeComponent) GetJSONName() string {
 	return f.name
 }
 
-func (f fakeComponent) GetOverrides(_ spi.ComponentContext) []v1alpha1.Overrides {
+func (f fakeComponent) GetOverrides(_ *v1alpha1.Verrazzano) []v1alpha1.Overrides {
 	return []v1alpha1.Overrides{}
 }
 
