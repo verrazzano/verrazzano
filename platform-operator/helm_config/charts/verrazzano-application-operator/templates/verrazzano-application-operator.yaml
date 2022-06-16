@@ -313,6 +313,8 @@ spec:
     - name: https-webhook
       port: 443
       targetPort: 9443
+      #adding service
+      #service added
     - name: http-metric-vao
       protocol: TCP
       port: 9100
