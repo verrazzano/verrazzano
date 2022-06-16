@@ -49,7 +49,7 @@ func MergeYAMLFiles(filenames []string) (*vzapi.Verrazzano, error) {
 }
 
 // MergeSetFlags merges yaml representing a set flag passed on the command line with a
-// verrazano install resource.  The merged verrazzano install resource is returned.
+// verrazano install resource.  A merged verrazzano install resource is returned.
 func MergeSetFlags(vz *vzapi.Verrazzano, overlayYAML string) (*vzapi.Verrazzano, error) {
 	baseYAML, err := yaml.Marshal(vz)
 	if err != nil {
@@ -59,6 +59,7 @@ func MergeSetFlags(vz *vzapi.Verrazzano, overlayYAML string) (*vzapi.Verrazzano,
 	if err != nil {
 		return vz, err
 	}
+	// TODO: remove this
 	fmt.Println("vzYaml:\n", vzYAML)
 
 	err = yaml.Unmarshal([]byte(vzYAML), &vz)

@@ -6,11 +6,11 @@ package install
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/yaml"
 	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/pkg/yaml"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
