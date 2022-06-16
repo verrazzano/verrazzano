@@ -64,8 +64,8 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 
 	// Environment name
 	overrides.Config = &configValues{
-		EnvName:           vzconfig.GetEnvName(effectiveCR),
-		PrometheusEnabled: vzconfig.IsPrometheusOperatorEnabled(effectiveCR),
+		EnvName:                   vzconfig.GetEnvName(effectiveCR),
+		PrometheusOperatorEnabled: vzconfig.IsPrometheusOperatorEnabled(effectiveCR),
 	}
 
 	// DNS Suffix
