@@ -56,8 +56,7 @@ func (a *WorkloadWebhook) InjectDecoder(d *admission.Decoder) error {
 // and then processes workload resource
 func (a *WorkloadWebhook) handleWorkloadResource(ctx context.Context, req admission.Request, log *zap.SugaredLogger) admission.Response {
 	unst := &unstructured.Unstructured{}
-	err := a.Decoder.Decode(req, unst)
-	if err != nil {
+	if err := a.Decoder.Decode(req, unst); err != nil {
 		log.Errorf("Failed decoding object in admission request: %v", err)
 		return admission.Errored(http.StatusBadRequest, err)
 	}
@@ -70,8 +69,9 @@ func (a *WorkloadWebhook) handleWorkloadResource(ctx context.Context, req admiss
 
 	// Handle legacy metrics annotations only for _existing_ workloads i.e. if a MetricsBinding
 	// already exists
-	existingMetricsBinding, err := a.GetLegacyMetricsBinding(ctx, unst)
-	if err != nil {
+	var existingMetricsBinding *vzapp.MetricsBinding
+	var err error
+	if existingMetricsBinding, err = a.GetLegacyMetricsBinding(ctx, unst); err != nil {
 		log.Errorf("Failed trying to retrieve legacy MetricsBinding for %s workload %s/%s: %v", unst.GetKind(), unst.GetNamespace(), unst.GetName(), err)
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
@@ -94,8 +94,7 @@ func (a *WorkloadWebhook) handleWorkloadResource(ctx context.Context, req admiss
 
 	// Get the workload Namespace for annotation processing
 	workloadNamespace := &corev1.Namespace{}
-	err = a.Client.Get(context.TODO(), types.NamespacedName{Name: unst.GetNamespace()}, workloadNamespace)
-	if err != nil {
+	if err = a.Client.Get(context.TODO(), types.NamespacedName{Name: unst.GetNamespace()}, workloadNamespace); err != nil {
 		log.Errorf("Failed getting workload namespace %s: %v", unst.GetNamespace(), err)
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
@@ -108,29 +107,10 @@ func (a *WorkloadWebhook) handleWorkloadResource(ctx context.Context, req admiss
 		}
 	}
 
-	// Process the app.verrazzano.io/metrics annotation and get the metrics template, if specified.
-	metricsTemplate, err := a.processMetricsAnnotation(unst, workloadNamespace, log)
+	// Get the metrics template from annotation or workload selector
+	metricsTemplate, err := a.getMetricsTemplate(ctx, unst, workloadNamespace, log)
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
-	}
-
-	if metricsTemplate == nil {
-		// Workload resource does not specify a metrics template.
-		// Look for a matching metrics template workload whose workload selector matches.
-		// First, check the namespace of the workload resource and then check the verrazzano-system namespace
-		// NOTE: use the first match for now
-		// var metricsTemplate *vzapp.MetricsTemplate
-		metricsTemplate, err = a.findMatchingTemplate(ctx, unst, unst.GetNamespace(), log)
-		if err != nil {
-			return admission.Errored(http.StatusInternalServerError, err)
-		}
-		if metricsTemplate == nil {
-			template, err := a.findMatchingTemplate(ctx, unst, constants.VerrazzanoSystemNamespace, log)
-			if err != nil {
-				return admission.Errored(http.StatusInternalServerError, err)
-			}
-			metricsTemplate = template
-		}
 	}
 
 	// Metrics template handling - update the metrics binding as needed
@@ -151,6 +131,35 @@ func (a *WorkloadWebhook) handleWorkloadResource(ctx context.Context, req admiss
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 	return admission.PatchResponseFromRaw(req.Object.Raw, marshaledWorkloadResource)
+}
+
+// getMetricsTemplate processes the app.verrazzano.io/metrics annotation and gets the metrics
+// template, if specified. Otherwise it finds the matching metrics template based on workload selector
+func (a *WorkloadWebhook) getMetricsTemplate(ctx context.Context, unst *unstructured.Unstructured, workloadNamespace *corev1.Namespace, log *zap.SugaredLogger) (*vzapp.MetricsTemplate, error) {
+	metricsTemplate, err := a.processMetricsAnnotation(unst, workloadNamespace, log)
+	if err != nil {
+		return nil, err
+	}
+
+	if metricsTemplate == nil {
+		// Workload resource does not specify a metrics template.
+		// Look for a matching metrics template workload whose workload selector matches.
+		// First, check the namespace of the workload resource and then check the verrazzano-system namespace
+		// NOTE: use the first match for now
+		// var metricsTemplate *vzapp.MetricsTemplate
+		metricsTemplate, err = a.findMatchingTemplate(ctx, unst, unst.GetNamespace(), log)
+		if err != nil {
+			return nil, err
+		}
+		if metricsTemplate == nil {
+			template, err := a.findMatchingTemplate(ctx, unst, constants.VerrazzanoSystemNamespace, log)
+			if err != nil {
+				return nil, err
+			}
+			metricsTemplate = template
+		}
+	}
+	return metricsTemplate, nil
 }
 
 // GetLegacyMetricsBinding returns the existing MetricsBinding (legacy resource) for the given
