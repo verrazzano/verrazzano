@@ -33,8 +33,6 @@ type verrazzanoValues struct {
 	Keycloak               *keycloakValues               `json:"keycloak,omitempty"`
 	Rancher                *rancherValues                `json:"rancher,omitempty"`
 	NodeExporter           *nodeExporterValues           `json:"nodeExporter,omitempty"`
-	Logging                *loggingValues                `json:"logging,omitempty"`
-	Fluentd                *fluentdValues                `json:"fluentd,omitempty"`
 	API                    *apiValues                    `json:"api,omitempty"`
 	Config                 *configValues                 `json:"config,omitempty"`
 	Security               *securityRoleBindingValues    `json:"security,omitempty"`
@@ -53,12 +51,6 @@ type subject struct {
 	Kind      string `json:"kind,omitempty"`
 	Name      string `json:"name,omitempty"`
 	Namespace string `json:"namespace,omitempty"`
-}
-
-type volumeMount struct {
-	Source      string `json:"source,omitempty"`
-	Destination string `json:"destination,omitempty"`
-	ReadOnly    bool   `json:"readOnly,omitempty"`
 }
 
 type imageValues struct {
@@ -115,19 +107,6 @@ type nodeExporterValues struct {
 	Enabled bool `json:"enabled"` // Always write
 }
 
-type loggingValues struct {
-	Name                string `json:"name,omitempty"`
-	ElasticsearchURL    string `json:"elasticsearchURL,omitempty"`
-	ElasticsearchSecret string `json:"elasticsearchSecret,omitempty"`
-	ConfigHash          string `json:"configHash,omitempty"`
-}
-
-type fluentdValues struct {
-	Enabled           bool                `json:"enabled"` // Always write
-	ExtraVolumeMounts []volumeMount       `json:"extraVolumeMounts,omitempty"`
-	OCI               *ociLoggingSettings `json:"oci,omitempty"`
-}
-
 type apiValues struct {
 	Name string `json:"name,omitempty"`
 	Port int    `json:"port,omitempty"`
@@ -159,12 +138,6 @@ type serviceSettings struct {
 type endpoint struct {
 	IP   string `json:"ip,omitempty"`
 	Port int    `json:"port,omitempty"`
-}
-
-type ociLoggingSettings struct {
-	DefaultAppLogID string `json:"defaultAppLogId"`
-	SystemLogID     string `json:"systemLogId"`
-	APISecret       string `json:"apiSecret,omitempty"`
 }
 
 type prometheusOperatorValues struct {
