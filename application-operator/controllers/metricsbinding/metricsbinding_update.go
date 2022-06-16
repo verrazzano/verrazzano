@@ -136,53 +136,69 @@ func (r *Reconciler) handleCustomMetricsTemplate(ctx context.Context, metricsBin
 	}
 
 	// Collect the data from the ConfigMap or the Secret
+	configMapExists, err := r.updateScrapeConfigInConfigMap(ctx, metricsBinding, createdJobName, newScrapeConfig, log)
+	if !configMapExists {
+		_, err = r.updateScrapeConfigInConfigSecret(ctx, metricsBinding, createdJobName, newScrapeConfig, log)
+	}
+
+	return err
+}
+
+// updateScrapeConfigInConfigSecret updates the scrape config in the PrometheusConfigSecret if one
+// is specified in the metrics binding. Returns true if there is a config secret, and any error that occurred
+func (r *Reconciler) updateScrapeConfigInConfigSecret(ctx context.Context, metricsBinding *vzapi.MetricsBinding,
+	createdJobName string, newScrapeConfig *gabs.Container, log vzlog.VerrazzanoLogger) (bool, error) {
+	secret, key := getPromConfigSecret(metricsBinding)
+	if secret == nil {
+		return false, nil
+	}
+	log.Debugf("Secret %s/%s found in the MetricsBinding, attempting scrape config update", secret.GetNamespace(), secret.GetName())
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, secret, func() error {
+		var err error
+		var data *gabs.Container
+		if data, err = getConfigDataFromSecret(secret, key); err != nil {
+			return log.ErrorfNewErr("Failed to get the Secret data: %v", err)
+		}
+		var promConfig *gabs.Container
+		if promConfig, err = metricsutils.EditScrapeJob(data, createdJobName, newScrapeConfig); err != nil {
+			return log.ErrorfNewErr("Failed to edit the scrape job: %v", err)
+		}
+		var newPromConfigData []byte
+		if newPromConfigData, err = yaml.JSONToYAML(promConfig.Bytes()); err != nil {
+			return log.ErrorfNewErr("Failed to convert scrape config JSON to YAML: %v", err)
+		}
+		secret.Data[key] = newPromConfigData
+		return nil
+	})
+	return true, err
+}
+
+// updateScrapeConfigInConfigMap updates the scrape config in the Prometheus ConfigMap if one
+// is specified in the metrics binding. Returns true if there is a config map, and any error that occurred
+func (r *Reconciler) updateScrapeConfigInConfigMap(ctx context.Context,
+	metricsBinding *vzapi.MetricsBinding, name string, config *gabs.Container, log vzlog.VerrazzanoLogger) (bool, error) {
 	var data *gabs.Container
 	configMap := getPromConfigMap(metricsBinding)
-	if configMap != nil {
-		log.Debugf("ConfigMap %s/%s found in the MetricsBinding, attempting scrape config update", configMap.GetNamespace(), configMap.GetName())
-		_, err = controllerutil.CreateOrUpdate(ctx, r.Client, configMap, func() error {
-			var err error
-			if data, err = getConfigData(configMap); err != nil {
-				return log.ErrorfNewErr("Failed to get the ConfigMap data: %v", err)
-			}
-			if err = metricsutils.EditScrapeJobInPrometheusConfig(data, prometheusScrapeConfigsLabel, createdJobName, newScrapeConfig); err != nil {
-				return log.ErrorfNewErr("Failed to edit the scrape job: %v", err)
-			}
-			var newPromConfigData []byte
-			if newPromConfigData, err = yaml.JSONToYAML(data.Bytes()); err != nil {
-				return log.ErrorfNewErr("Failed to convert scrape config JSON to YAML: %v", err)
-			}
-			configMap.Data[prometheusConfigKey] = string(newPromConfigData)
-			return nil
-		})
-		if err != nil {
-			return err
-		}
+	if configMap == nil {
+		return false, nil
 	}
-	secret, key := getPromConfigSecret(metricsBinding)
-	if secret != nil {
-		log.Debugf("Secret %s/%s found in the MetricsBinding, attempting scrape config update", secret.GetNamespace(), secret.GetName())
-		_, err = controllerutil.CreateOrUpdate(ctx, r.Client, secret, func() error {
-			var err error
-			if data, err = getConfigDataFromSecret(secret, key); err != nil {
-				return log.ErrorfNewErr("Failed to get the Secret data: %v", err)
-			}
-			var promConfig *gabs.Container
-			if promConfig, err = metricsutils.EditScrapeJob(data, createdJobName, newScrapeConfig); err != nil {
-				return log.ErrorfNewErr("Failed to edit the scrape job: %v", err)
-			}
-			var newPromConfigData []byte
-			if newPromConfigData, err = yaml.JSONToYAML(promConfig.Bytes()); err != nil {
-				return log.ErrorfNewErr("Failed to convert scrape config JSON to YAML: %v", err)
-			}
-			secret.Data[key] = newPromConfigData
-			return nil
-		})
-		if err != nil {
-			return err
+	log.Debugf("ConfigMap %s/%s found in the MetricsBinding, attempting scrape config update", configMap.GetNamespace(), configMap.GetName())
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, configMap, func() error {
+		var err error
+		if data, err = getConfigData(configMap); err != nil {
+			return log.ErrorfNewErr("Failed to get the ConfigMap data: %v", err)
 		}
-	}
-	return nil
+		if err = metricsutils.EditScrapeJobInPrometheusConfig(data, prometheusScrapeConfigsLabel, createdJobName, newScrapeConfig); err != nil {
+			return log.ErrorfNewErr("Failed to edit the scrape job: %v", err)
+		}
+		var newPromConfigData []byte
+		if newPromConfigData, err = yaml.JSONToYAML(data.Bytes()); err != nil {
+			return log.ErrorfNewErr("Failed to convert scrape config JSON to YAML: %v", err)
+		}
+		configMap.Data[prometheusConfigKey] = string(newPromConfigData)
+		return nil
+	})
+	return true, err
 }
 
 func (r *Reconciler) createWorkloadNamespaceUnstructured(metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) (*unstructured.Unstructured, error) {
