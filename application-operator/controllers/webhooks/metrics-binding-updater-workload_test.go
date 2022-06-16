@@ -301,8 +301,7 @@ func TestHandleMetricsTemplateWorkloadNamespace(t *testing.T) {
 		metricsBindingExists       bool
 		expectAllowed              bool
 		expectMetricsBindingUpdate bool
-		// TODO poko metrics promoper
-		expectServiceMonitor bool
+		expectServiceMonitor       bool
 	}{
 		{"legacy app with existing MetricsBinding", true, true, true, false},
 		{"new app with no MetricsBinding present", false, true, false, false},
@@ -391,8 +390,7 @@ func TestHandleMetricsTemplateSystemNamespace(t *testing.T) {
 		metricsBindingExists       bool
 		expectAllowed              bool
 		expectMetricsBindingUpdate bool
-		// TODO poko metrics promoper
-		expectServiceMonitor bool
+		expectServiceMonitor       bool
 	}{
 		{"legacy app with existing MetricsBinding", true, true, true, false},
 		{"new app with no MetricsBinding present", false, true, false, false},
@@ -400,7 +398,6 @@ func TestHandleMetricsTemplateSystemNamespace(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			v := newGeneratorWorkloadWebhook()
-			// TODO POKO promoper do tt stuff with existingMetricsBinding
 			// Test data
 			v.createNamespace(t, testNS, map[string]string{"verrazzano-managed": "true"}, nil)
 			v.createNamespace(t, "verrazzano-system", nil, nil)
