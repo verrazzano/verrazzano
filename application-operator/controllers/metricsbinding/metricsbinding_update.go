@@ -176,7 +176,7 @@ func (r *Reconciler) updateScrapeConfigInConfigSecret(ctx context.Context, metri
 // updateScrapeConfigInConfigMap updates the scrape config in the Prometheus ConfigMap if one
 // is specified in the metrics binding. Returns true if there is a config map, and any error that occurred
 func (r *Reconciler) updateScrapeConfigInConfigMap(ctx context.Context,
-	metricsBinding *vzapi.MetricsBinding, name string, config *gabs.Container, log vzlog.VerrazzanoLogger) (bool, error) {
+	metricsBinding *vzapi.MetricsBinding, jobName string, newScrapeConfig *gabs.Container, log vzlog.VerrazzanoLogger) (bool, error) {
 	var data *gabs.Container
 	configMap := getPromConfigMap(metricsBinding)
 	if configMap == nil {
@@ -188,7 +188,7 @@ func (r *Reconciler) updateScrapeConfigInConfigMap(ctx context.Context,
 		if data, err = getConfigData(configMap); err != nil {
 			return log.ErrorfNewErr("Failed to get the ConfigMap data: %v", err)
 		}
-		if err = metricsutils.EditScrapeJobInPrometheusConfig(data, prometheusScrapeConfigsLabel, createdJobName, newScrapeConfig); err != nil {
+		if err = metricsutils.EditScrapeJobInPrometheusConfig(data, prometheusScrapeConfigsLabel, jobName, newScrapeConfig); err != nil {
 			return log.ErrorfNewErr("Failed to edit the scrape job: %v", err)
 		}
 		var newPromConfigData []byte
