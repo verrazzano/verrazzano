@@ -125,7 +125,7 @@ func runCmdUpgrade(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	vz.Spec.Version = version
 	err = client.Update(context.TODO(), vz)
 	if err != nil {
-		return fmt.Errorf("Failed to set upgrade version in verrazzano resource: %s", err.Error())
+		return fmt.Errorf("Failed to set upgrade version in Verrazzano resource: %s", err.Error())
 	}
 
 	// Wait for the Verrazzano upgrade to complete
