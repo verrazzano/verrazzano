@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
@@ -76,7 +77,6 @@ func Install(log vzlog.VerrazzanoLogger, overrideStrings string, overridesFiles 
 
 // IsInstalled returns true if Istio is installed
 func IsInstalled(log vzlog.VerrazzanoLogger) (bool, error) {
-
 	// Perform istioctl call of type upgrade
 	stdout, _, err := VerifyInstall(log)
 	if err != nil {
@@ -89,14 +89,13 @@ func IsInstalled(log vzlog.VerrazzanoLogger) (bool, error) {
 }
 
 // VerifyInstall verifies the Istio installation
-
 func VerifyInstall(log vzlog.VerrazzanoLogger) (stdout []byte, stderr []byte, err error) {
 	args := []string{"verify-install"}
 
 	// Perform istioctl call of type upgrade
 	stdout, stderr, err = runIstioctl(log, args, "verify-install")
 	if err != nil {
-		return stdout, stderr, err
+		return stdout, stderr, errors.Wrapf(err, "verify-install failed, stderr: %s", stderr)
 	}
 
 	return stdout, stderr, nil
@@ -107,11 +106,10 @@ func VerifyInstall(log vzlog.VerrazzanoLogger) (stdout []byte, stderr []byte, er
 // The operationName field is just used for visibility of operation in logging at the moment
 func runIstioctl(log vzlog.VerrazzanoLogger, cmdArgs []string, operationName string) (stdout []byte, stderr []byte, err error) {
 	cmd := exec.Command("istioctl", cmdArgs...)
-	log.Infof("Running istioctl command: %s", cmd.String())
-
+	log.Progressf("Running istioctl command: %s", cmd.String())
 	stdout, stderr, err = runner.Run(cmd)
 	if err != nil {
-		log.Errorf("Failed running istioctl command %s: %s", cmd.String(), stderr)
+		log.Progressf("Failed running istioctl command %s: %s", cmd.String(), stderr)
 		return stdout, stderr, err
 	}
 
