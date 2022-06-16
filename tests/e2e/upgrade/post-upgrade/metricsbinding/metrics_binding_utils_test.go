@@ -33,12 +33,20 @@ func undeployApplication(namespace string, yamlPath string, t framework.TestFram
 	}
 	t.Logs.Info("Delete application")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace(yamlPath, namespace)
+		err := pkg.DeleteResourceFromFileInGeneratedNamespace(yamlPath, namespace)
+		if err != nil {
+			t.Logs.Errorf("Failed to delete the Application from file: %v", err)
+		}
+		return err
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Delete namespace")
 	Eventually(func() error {
-		return pkg.DeleteNamespace(namespace)
+		err := pkg.DeleteNamespace(namespace)
+		if err != nil {
+			t.Logs.Errorf("Failed to delete the Namespace %s from the cluster: %v", namespace, err)
+		}
+		return err
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Wait for namespace finalizer to be removed")

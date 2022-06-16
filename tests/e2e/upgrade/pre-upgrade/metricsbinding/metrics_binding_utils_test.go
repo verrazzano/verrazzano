@@ -32,18 +32,29 @@ func createNamespace(namespace, istioInjection string, t framework.TestFramework
 		}
 		if !nsExists {
 			t.Logs.Infof("Namespace %s does not exist, creating now", namespace)
-			return pkg.CreateNamespace(namespace, nsLabels)
+			nsObject, err := pkg.CreateNamespace(namespace, nsLabels)
+			if err != nil {
+				t.Logs.Errorf("Failed to create the Namespace %s in the cluster: %v", namespace, err)
+			}
+			return nsObject, err
 		}
-		return pkg.GetNamespace(namespace)
+		nsObject, err := pkg.GetNamespace(namespace)
+		if err != nil {
+			t.Logs.Errorf("Failed to get the Namespace %s from the cluster: %v", namespace, err)
+		}
+		return nsObject, err
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
 }
 
 // deployApplication deploys an application and namespace given the application parameters
 func deployApplication(namespace, yamlPath, podPrefix string, t framework.TestFramework) {
-	t.Logs.Info("Deploy test application")
 	t.Logs.Info("Create application from yaml path")
 	gomega.Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(yamlPath, namespace)
+		err := pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(yamlPath, namespace)
+		if err != nil {
+			t.Logs.Errorf("Failed to apply the Application from file: %v", err)
+		}
+		return err
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	t.Logs.Info("Check application pods are running")
@@ -60,7 +71,11 @@ func deployApplication(namespace, yamlPath, podPrefix string, t framework.TestFr
 func deployConfigMap(namespace, configMapYamlPath string, t framework.TestFramework) {
 	t.Logs.Info("Create ConfigMap resource")
 	gomega.Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(configMapYamlPath, namespace)
+		err := pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(configMapYamlPath, namespace)
+		if err != nil {
+			t.Logs.Errorf("Failed to apply the ConfigMap from file: %v", err)
+		}
+		return err
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 }
 
@@ -68,6 +83,10 @@ func deployConfigMap(namespace, configMapYamlPath string, t framework.TestFramew
 func deployTemplate(namespace, templateYamlPath string, t framework.TestFramework) {
 	t.Logs.Info("Create template resource")
 	gomega.Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(templateYamlPath, namespace)
+		err := pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(templateYamlPath, namespace)
+		if err != nil {
+			t.Logs.Errorf("Failed to apply the Metrics Template from file: %v", err)
+		}
+		return err
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 }
