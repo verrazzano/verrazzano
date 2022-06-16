@@ -672,13 +672,7 @@ pipeline {
         always {
             script {
                 if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                    dumpVerrazzanoSystemPods()
-                    dumpCattleSystemPods()
-                    dumpNginxIngressControllerLogs()
-                    dumpVerrazzanoPlatformOperatorLogs()
-                    dumpVerrazzanoApplicationOperatorLogs()
-                    dumpOamKubernetesRuntimeLogs()
-                    dumpVerrazzanoApiLogs()
+                    dumpAll()
                 }
             }
             copyGeneratedTestReports()
@@ -693,11 +687,7 @@ pipeline {
             }
         }
         cleanup {
-            // Delete clusters as the very first thing in cleanup to reclaim cluster resources especially OKE resources
-            deleteClusters()
-            metricBuildDuration()
-            emitJobMetrics()
-            deleteDir()
+            deleteAll()
         }
     }
 }
@@ -725,6 +715,14 @@ def createTestOCIConfigSecret() {
             """
         }
     }
+}
+
+def deleteAll() {
+    // Delete clusters as the very first thing in cleanup to reclaim cluster resources especially OKE resources
+    deleteClusters()
+    metricBuildDuration()
+    emitJobMetrics()
+    deleteDir()
 }
 
 def deleteClusters() {
@@ -1512,6 +1510,17 @@ def validateBom(count) {
         }
     }
 }
+
+def dumpAll() {
+    dumpVerrazzanoSystemPods()
+    dumpCattleSystemPods()
+    dumpNginxIngressControllerLogs()
+    dumpVerrazzanoPlatformOperatorLogs()
+    dumpVerrazzanoApplicationOperatorLogs()
+    dumpOamKubernetesRuntimeLogs()
+    dumpVerrazzanoApiLogs()
+}
+
 
 def dumpK8sCluster(dumpDirectory) {
     script {
