@@ -132,9 +132,6 @@ func (f fluentdComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err := fluentdPreUpgrade(ctx, ComponentNamespace); err != nil {
 		return err
 	}
-	if err := fluentdPreHelmOps(ctx); err != nil {
-		return err
-	}
 	return nil
 }
 

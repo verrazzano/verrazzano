@@ -191,13 +191,6 @@ func fixupFluentdDaemonset(log vzlog.VerrazzanoLogger, client clipkg.Client, nam
 	return err
 }
 
-// fluentdPreHelmOps ensures the fluentd associated resources are managed its helm install/upgrade executions by
-// ensuring the resource policy of "keep" is removed (if it remains then helm is unable to delete these resources and
-// they will become orphaned)
-func fluentdPreHelmOps(ctx spi.ComponentContext) error {
-	return ReassociateResources(ctx.Client())
-}
-
 // ReassociateResources updates the resources to ensure they are managed by this release/component.  The resource policy
 // annotation is removed to ensure that helm manages the lifecycle of the resources (the resource policy annotation is
 // added to ensure the resources are disassociated from the VZ chart which used to manage these resources)
