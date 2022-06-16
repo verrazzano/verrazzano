@@ -1128,7 +1128,7 @@ def mountOCIStorage() {
                 storage: 50Gi
                 nfs:
                 path: /$OCI_EXPORT_PATH/pv${n}
-                server: 10.0..1.216
+                server: $OCI_MOUNT_IP
                 volumeMode: Filesystem
                 persistentVolumeReclaimPolicy: Recycle
             EOF
@@ -1156,6 +1156,7 @@ def installVerrazzanoPlatformOperator() {
 def installVerrazzano() {
     sh '''
         kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+        
         # apply config to create cluster
         kubectl apply -f $INSTALL_CONFIG_FILE_OLCNE
         # wait for Verrazzano install to complete
