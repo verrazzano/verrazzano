@@ -8,12 +8,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-
 	"github.com/Jeffail/gabs/v2"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vztemplate "github.com/verrazzano/verrazzano/application-operator/controllers/template"
 	"github.com/verrazzano/verrazzano/application-operator/internal/metrics"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -105,26 +104,12 @@ func (r *Reconciler) handleDefaultMetricsTemplate(ctx context.Context, metricsBi
 func (r *Reconciler) handleCustomMetricsTemplate(ctx context.Context, metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) error {
 	log.Debugf("Custom metrics template used by metrics binding %s/%s, edit additionalScrapeConfigs", metricsBinding.Namespace, metricsBinding.Name)
 
-	// Get the Metrics Template from the Metrics Binding
-	template, err := r.getMetricsTemplate(context.Background(), metricsBinding, log)
+	// Get the Namespace of the Metrics Binding as an unstructured resource so that it can be applied
+	// to the template
+	workloadNamespaceUnstructured, err := r.createWorkloadNamespaceUnstructured(metricsBinding, log)
 	if err != nil {
 		return err
 	}
-
-	// Get the Namespace of the Metrics Binding
-	workloadNamespace := k8scorev1.Namespace{}
-	log.Debugf("Getting the workload namespace %s from the MetricsBinding", metricsBinding.GetNamespace())
-	err = r.Client.Get(context.TODO(), k8sclient.ObjectKey{Name: metricsBinding.GetNamespace()}, &workloadNamespace)
-	if err != nil {
-		return log.ErrorfNewErr("Failed to get metrics binding namespace %s: %v", metricsBinding.GetName(), err)
-	}
-
-	// Create an unstructured resource from the Namespace, so it can be applied to the template
-	workloadNamespaceUnstructuredMap, err := k8sruntime.DefaultUnstructuredConverter.ToUnstructured(&workloadNamespace)
-	if err != nil {
-		return log.ErrorfNewErr("Failed to get the unstructured for namespace %s: %v", workloadNamespace.GetName(), err)
-	}
-	workloadNamespaceUnstructured := unstructured.Unstructured{Object: workloadNamespaceUnstructuredMap}
 
 	// Get the workload object, so that it can be applied to the template
 	workloadObject, err := r.getWorkloadObject(metricsBinding)
@@ -132,23 +117,12 @@ func (r *Reconciler) handleCustomMetricsTemplate(ctx context.Context, metricsBin
 		return log.ErrorfNewErr("Failed to get the workload object for metrics binding %s: %v", metricsBinding.GetName(), err)
 	}
 
-	// Organize inputs for template processor
-	log.Debugf("Creating the template inputs from the workload %s and namespace %s", workloadObject.GetName(), workloadNamespace.GetName())
-	templateInputs := map[string]interface{}{
-		"workload":  workloadObject.Object,
-		"namespace": workloadNamespaceUnstructured.Object,
-	}
-
-	// Get scrape config from the template processor and process the template inputs
-	templateProcessor := vztemplate.NewProcessor(r.Client, template.Spec.PrometheusConfig.ScrapeConfigTemplate)
-	scrapeConfigString, err := templateProcessor.Process(templateInputs)
-	if err != nil {
-		return log.ErrorfNewErr("Failed to process metrics template %s: %v", template.GetName(), err)
-	}
-
-	// Prepend job name to the scrape config
 	createdJobName := createJobName(metricsBinding)
-	scrapeConfigString = formatJobName(createdJobName) + scrapeConfigString
+	scrapeConfigString, err := r.createScrapeConfigForMetricsBinding(metricsBinding, workloadObject, workloadNamespaceUnstructured, createdJobName, log)
+	if err != nil {
+		return err
+	}
+
 	// Format scrape config into readable container
 	configYaml, err := yaml.YAMLToJSON([]byte(scrapeConfigString))
 	if err != nil {
@@ -208,6 +182,22 @@ func (r *Reconciler) handleCustomMetricsTemplate(ctx context.Context, metricsBin
 		}
 	}
 	return nil
+}
+
+func (r *Reconciler) createWorkloadNamespaceUnstructured(metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) (*unstructured.Unstructured, error) {
+	workloadNamespace := k8scorev1.Namespace{}
+	log.Debugf("Getting the workload namespace %s from the MetricsBinding", metricsBinding.GetNamespace())
+	err := r.Client.Get(context.TODO(), k8sclient.ObjectKey{Name: metricsBinding.GetNamespace()}, &workloadNamespace)
+	if err != nil {
+		return nil, log.ErrorfNewErr("Failed to get metrics binding namespace %s: %v", metricsBinding.GetName(), err)
+	}
+
+	// Create an unstructured resource from the Namespace, so it can be applied to the template
+	workloadNamespaceUnstructuredMap, err := k8sruntime.DefaultUnstructuredConverter.ToUnstructured(&workloadNamespace)
+	if err != nil {
+		return nil, log.ErrorfNewErr("Failed to get the unstructured for namespace %s: %v", workloadNamespace.GetName(), err)
+	}
+	return &unstructured.Unstructured{Object: workloadNamespaceUnstructuredMap}, nil
 }
 
 func (r *Reconciler) createScrapeInfo(ctx context.Context, metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) (metrics.ScrapeInfo, error) {
@@ -355,4 +345,32 @@ func (r *Reconciler) deleteMetricsBinding(metricsBinding *vzapi.MetricsBinding, 
 		return log.ErrorfNewErr("Failed to delete the Metrics Binding %s/%s from the cluster: %v", metricsBinding.Namespace, metricsBinding.Name, err)
 	}
 	return err
+}
+
+func (r *Reconciler) createScrapeConfigForMetricsBinding(
+	metricsBinding *vzapi.MetricsBinding, workloadObject *unstructured.Unstructured,
+	workloadNamespaceUnstructured *unstructured.Unstructured, jobName string, log vzlog.VerrazzanoLogger) (string, error) {
+	// Get the Metrics Template from the Metrics Binding
+	template, err := r.getMetricsTemplate(context.Background(), metricsBinding, log)
+	if err != nil {
+		return "", err
+	}
+
+	// Organize inputs for template processor
+	log.Debugf("Creating the template inputs from the workload %s and namespace %s", workloadObject.GetName(), metricsBinding.GetNamespace())
+	templateInputs := map[string]interface{}{
+		"workload":  workloadObject.Object,
+		"namespace": workloadNamespaceUnstructured.Object,
+	}
+
+	// Get scrape config from the template processor and process the template inputs
+	templateProcessor := vztemplate.NewProcessor(r.Client, template.Spec.PrometheusConfig.ScrapeConfigTemplate)
+	scrapeConfigString, err := templateProcessor.Process(templateInputs)
+	if err != nil {
+		return "", log.ErrorfNewErr("Failed to process metrics template %s: %v", template.GetName(), err)
+	}
+
+	// Prepend job name to the scrape config
+	scrapeConfigString = formatJobName(jobName) + scrapeConfigString
+	return scrapeConfigString, nil
 }
