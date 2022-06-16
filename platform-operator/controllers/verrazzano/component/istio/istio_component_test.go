@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/istio"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/types"
 	"os/exec"
@@ -368,10 +369,13 @@ func TestIsReady(t *testing.T) {
 			},
 		},
 	).Build()
-	var iComp istioComponent
-	iComp.monitor = &fakeMonitor{
-		istioctlSuccess: true,
+
+	isInstalledFunc = func(log vzlog.VerrazzanoLogger) (bool, error) {
+		return true, nil
 	}
+	defer func() { isInstalledFunc = istio.IsInstalled }()
+
+	var iComp istioComponent
 	compContext := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)
 	assert.True(t, iComp.IsReady(compContext))
 }

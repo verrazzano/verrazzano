@@ -2,17 +2,17 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 MAKEFILE_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
-TOOLS_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/..
+VZ_DIR:=github.com$(shell echo ${MAKEFILE_DIR} | sed 's/.*github.com//')
+VERSION_DIR:=${VZ_DIR}/cmd/version
 
 NAME:=vz
 
-LOCAL_VERSION ?= local-$(shell git rev-parse --short HEAD)
+GIT_COMMIT:=$(shell git rev-parse HEAD)
+CLI_VERSION:=$(shell grep verrazzano-development-version ${MAKEFILE_DIR}/../../.verrazzano-development-version | cut -d= -f 2)
+BUILD_DATE:=$(shell date +"%Y-%m-%dT%H:%M:%SZ")
 
-OPERATOR_VERSION = ${LOCAL_VERSION}
-CLI_VERSION = ${LOCAL_VERSION}
 ifdef RELEASE_VERSION
-	OPERATOR_VERSION = ${RELEASE_VERSION}
-	CLI_VERSION = ${RELEASE_VERSION}
+	CLI_VERSION=${RELEASE_VERSION}
 endif
 ifndef RELEASE_BRANCH
 	RELEASE_BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
@@ -20,36 +20,40 @@ endif
 
 DIST_DIR:=dist
 ENV_NAME=vz
-GO = GO111MODULE=on GOPRIVATE=github.com/verrazzano/* go
-CLI_GO_LDFLAGS ?= -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
+GO=GO111MODULE=on GOPRIVATE=github.com/verrazzano/* go
+CLI_GO_LDFLAGS=-X '${VERSION_DIR}.gitCommit=${GIT_COMMIT}' -X '${VERSION_DIR}.buildDate=${BUILD_DATE}' -X '${VERSION_DIR}.cliVersion=${CLI_VERSION}'
 
 #
 # CLI
 #
 .PHONY: run
 run:
-	$(GO) run ${GOPATH}/src/github.com/verrazzano/verrazzano/tools/vz/main.go
+	$(GO) run ${GOPATH}/src/${VZ_DIR}/main.go
 #
 # Go build related tasks
 #
 .PHONY: go-build
 go-build:
 	GOOS=darwin GOARCH=amd64 $(GO) build \
-		-ldflags "${CLI_GO_LDFLAGS} -X main.cliVersion=${CLI_VERSION}" \
+		-ldflags "${CLI_GO_LDFLAGS}" \
 		-o out/darwin_amd64/vz \
-		${GOPATH}/src/github.com/verrazzano/verrazzano/tools/vz/main.go
+		${GOPATH}/src/${VZ_DIR}/main.go
 	GOOS=darwin GOARCH=arm64 $(GO) build \
-		-ldflags "${CLI_GO_LDFLAGS} -X main.cliVersion=${CLI_VERSION}" \
+		-ldflags "${CLI_GO_LDFLAGS}" \
 		-o out/darwin_arm64/vz \
-		${GOPATH}/src/github.com/verrazzano/verrazzano/tools/vz/main.go
+		${GOPATH}/src/${VZ_DIR}/main.go
 	GOOS=linux GOARCH=amd64 $(GO) build \
-		-ldflags "${CLI_GO_LDFLAGS} -X main.cliVersion=${CLI_VERSION}" \
+		-ldflags "${CLI_GO_LDFLAGS}" \
 		-o out/linux_amd64/vz \
-		${GOPATH}/src/github.com/verrazzano/verrazzano/tools/vz/main.go
+		${GOPATH}/src/${VZ_DIR}/main.go
+	GOOS=linux GOARCH=arm64 $(GO) build \
+		-ldflags "${CLI_GO_LDFLAGS}" \
+		-o out/linux_arm64/vz \
+		${GOPATH}/src/${VZ_DIR}/main.go
 
 .PHONY: cli
 cli: ## build the CLI
-	$(GO) install -ldflags "${CLI_GO_LDFLAGS} -X main.cliVersion=${CLI_VERSION}" ./...
+	$(GO) install -ldflags "${CLI_GO_LDFLAGS}" ./...
 
 .PHONY: unit-test
 unit-test: cli

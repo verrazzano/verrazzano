@@ -4,13 +4,18 @@
 package upgrade
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/spf13/cobra"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -36,7 +41,7 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 
 	cmd.PersistentFlags().Bool(constants.WaitFlag, constants.WaitFlagDefault, constants.WaitFlagHelp)
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*30, constants.TimeoutFlagHelp)
-	cmd.PersistentFlags().String(constants.VersionFlag, constants.VersionFlagDefault, constants.VersionFlagHelp)
+	cmd.PersistentFlags().String(constants.VersionFlag, constants.VersionFlagDefault, constants.VersionFlagUpgradeHelp)
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
 
 	// Initially the operator-file flag may be for internal use, hide from help until
@@ -52,6 +57,82 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdUpgrade(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-	fmt.Fprintf(vzHelper.GetOutputStream(), "Not implemented yet\n")
-	return nil
+	// Validate the command options
+	err := cmdhelpers.ValidateCmd(cmd)
+	if err != nil {
+		return fmt.Errorf("Command validation failed: %s", err.Error())
+	}
+
+	// Get the controller runtime client
+	client, err := vzHelper.GetClient(cmd)
+	if err != nil {
+		return err
+	}
+
+	// Find the verrazzano resource that needs to be updated to the new version
+	vz, err := helpers.FindVerrazzanoResource(client)
+	if err != nil {
+		return fmt.Errorf("Verrazzano is not installed: %s", err.Error())
+	}
+
+	// Get the timeout value for the upgrade command
+	timeout, err := cmdhelpers.GetWaitTimeout(cmd)
+	if err != nil {
+		return err
+	}
+
+	// Get the log format value
+	logFormat, err := cmdhelpers.GetLogFormat(cmd)
+	if err != nil {
+		return err
+	}
+
+	// Get the kubernetes clientset.  This will validate that the kubeconfig and context are valid.
+	kubeClient, err := vzHelper.GetKubeClient(cmd)
+	if err != nil {
+		return err
+	}
+
+	// When --operator-file is not used, get the version from the command line
+	var version string
+	if !cmd.PersistentFlags().Changed(constants.OperatorFileFlag) {
+		version, err = cmdhelpers.GetVersion(cmd, vzHelper)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Upgrading Verrazzano to version %s\n", version))
+	}
+
+	// Apply the Verrazzano operator.yaml
+	err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)
+	if err != nil {
+		return err
+	}
+
+	// Wait for the platform operator to be ready before we update the verrazzano install resource
+	vpoPodName, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, vzapi.CondUpgradeComplete)
+	if err != nil {
+		return err
+	}
+
+	// Get the verrazzano install resource
+	vz, err = helpers.GetVerrazzanoResource(client, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name})
+	if err != nil {
+		return err
+	}
+
+	// Update the version in the verrazzano install resource
+	vz.Spec.Version = version
+	err = client.Update(context.TODO(), vz)
+	if err != nil {
+		return fmt.Errorf("Failed to set upgrade version in verrazzano resource: %s", err.Error())
+	}
+
+	// Wait for the Verrazzano upgrade to complete
+	return waitForUpgradeToComplete(client, kubeClient, vzHelper, vpoPodName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, logFormat)
+}
+
+// Wait for the upgrade operation to complete
+func waitForUpgradeToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration, logFormat cmdhelpers.LogFormat) error {
+	return cmdhelpers.WaitForOperationToComplete(client, kubeClient, vzHelper, vpoPodName, namespacedName, timeout, logFormat, vzapi.CondUpgradeComplete)
 }

@@ -1,16 +1,17 @@
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 apiVersion: core.oam.dev/v1alpha2
 kind: ApplicationConfiguration
 metadata:
-  name: hello-helidon
-  namespace: hello-helidon
+  name: hello-helidon-svc-application
   annotations:
     version: v1.0.0
-    description: "Hello Helidon application"
+    description: "Hello Helidon service-based application"
 spec:
   components:
-    - componentName: hello-helidon-component
+    - componentName: hello-helidon-deploy-component
+    - componentName: hello-helidon-svc-component
       traits:
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
@@ -21,7 +22,7 @@ spec:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: IngressTrait
             metadata:
-              name: hello-helidon-ingress
+              name: hello-helidon-svc-ingress
             spec:
               rules:
                 - paths:

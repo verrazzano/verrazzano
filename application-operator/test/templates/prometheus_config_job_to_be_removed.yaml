@@ -231,7 +231,7 @@ scrape_configs:
       - source_labels: [__meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled,
                         __meta_kubernetes_pod_label_app_oam_dev_name, __meta_kubernetes_pod_label_app_oam_dev_component]
         separator: ;
-        regex: true;hello-helidon-appconf;hello-helidon-component
+        regex: true;hello-helidon;hello-helidon-component
         replacement: $1
         action: keep
       - source_labels: [__meta_kubernetes_pod_annotation_verrazzano_io_metricsPath]
