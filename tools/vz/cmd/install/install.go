@@ -6,6 +6,8 @@ package install
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/yaml"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -30,8 +32,8 @@ vz install
 # Install version 1.3.0 using a dev profile, timeout the command after 20 minutes
 vz install --version v1.3.0 --set profile=dev --timeout 20m
 
-# Install version 1.3.0 using a dev profile with elasticsearch disabled and wait for the install to complete
-vz install --version v1.3.0 --set profile=dev --set components.elasticsearch.enabled=false
+# Install version 1.3.0 using a dev profile with kiali disabled and wait for the install to complete
+vz install --version v1.3.0 --set profile=dev --set components.kiali.enabled=false
 
 # Install the latest version of Verrazzano using CR overlays and explicit value sets.  Output the logs in json format.
 vz install -f base.yaml -f custom.yaml --set profile=prod --log-format json`
@@ -73,7 +75,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Get the verrazzano install resource to be created
-	vz, err := getVerrazzanoYAML(cmd)
+	vz, err := getVerrazzanoYAML(cmd, vzHelper)
 	if err != nil {
 		return err
 	}
@@ -135,14 +137,21 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 }
 
 // getVerrazzanoYAML returns the verrazzano install resource to be created
-func getVerrazzanoYAML(cmd *cobra.Command) (vz *vzapi.Verrazzano, err error) {
+func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper) (vz *vzapi.Verrazzano, err error) {
+	// Get the list yaml filenames specified
 	filenames, err := cmd.PersistentFlags().GetStringSlice(constants.FilenameFlag)
 	if err != nil {
 		return nil, err
 	}
 
-	// If no yamls files were passed on the command line then return a minimal verrazzano
-	// resource.  The minimal resource will be used to create a resource called verrazzano
+	// Get the set arguments - list of paths and value
+	pv, err := getSetArguments(cmd, vzHelper)
+	if err != nil {
+		return nil, err
+	}
+
+	// If no yamls files were passed on the command line then create a minimal verrazzano
+	// resource.  The minimal resource is used to create a resource called verrazzano
 	// in the default namespace using the prod profile.
 	if len(filenames) == 0 {
 		vz = &vzapi.Verrazzano{
@@ -152,12 +161,61 @@ func getVerrazzanoYAML(cmd *cobra.Command) (vz *vzapi.Verrazzano, err error) {
 				Name:      "verrazzano",
 			},
 		}
-		return vz, nil
+	} else {
+		// Merge the yaml files passed on the command line
+		vz, err = cmdhelpers.MergeYAMLFiles(filenames)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	// Merge the yaml files passed on the command line and return the merged verrazzano resource
-	// to be created.
-	return cmdhelpers.MergeYAMLFiles(filenames)
+	// Merge the set flags passed on the command line. The set flags take precedence over the path/values
+	// passed in the yaml file on the command line.
+	for path, value := range pv {
+		outYaml, err := yaml.Expand(0, false, path, value)
+		if err != nil {
+			return nil, err
+		}
+		vz, err = cmdhelpers.MergeSetFlags(vz, outYaml)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Return the merged verrazzano install resource to be created
+	return vz, nil
+}
+
+// getSetArguments gets all the set arguments and returns a map of property/value
+func getSetArguments(cmd *cobra.Command, vzHelper helpers.VZHelper) (map[string]string, error) {
+	setMap := make(map[string]string)
+	setFlags, err := cmd.PersistentFlags().GetStringArray(constants.SetFlag)
+	if err != nil {
+		return nil, err
+	}
+
+	invalidFlag := false
+	for _, setFlag := range setFlags {
+		pv := strings.Split(setFlag, "=")
+		if len(pv) != 2 {
+			fmt.Fprintf(vzHelper.GetErrorStream(), fmt.Sprintf("Invalid set flag \"%s\" specified. Flag must be specified in the format path=value\n", setFlag))
+			invalidFlag = true
+			continue
+		}
+		if !invalidFlag {
+			path, value := strings.TrimSpace(pv[0]), strings.TrimSpace(pv[1])
+			if !strings.HasPrefix(path, "spec.") {
+				path = "spec." + path
+			}
+			setMap[path] = value
+		}
+	}
+
+	if invalidFlag {
+		return nil, fmt.Errorf("Invalid set flag(s) specified")
+	}
+
+	return setMap, nil
 }
 
 // waitForInstallToComplete waits for the Verrazzano install to complete and shows the logs of
