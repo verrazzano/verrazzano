@@ -372,6 +372,11 @@ pipeline {
                                 runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/grafana', "${TEST_DUMP_ROOT}/grafana")
                             }
                         }
+                        stage('Metricsbinding pre-upgrade') {
+                            steps {
+                                runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/metricsbinding', "${TEST_DUMP_ROOT}/metricsbinding")
+                            }
+                        }
                         stage ('Deploy Helidon example application - single cluster') {
                             when { expression { isVZOperatorMinimumCompatibleVersion("v1.1.0") } }
                             steps {
@@ -566,6 +571,11 @@ pipeline {
                         stage('Grafana post-upgrade') {
                             steps {
                                 runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/grafana', "${TEST_DUMP_ROOT}/grafana")
+                            }
+                        }
+                        stage('Metricsbinding post-upgrade') {
+                            steps {
+                                runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/metricsbinding', "${TEST_DUMP_ROOT}/metricsbinding")
                             }
                         }
                         stage('Prometheus post-upgrade') {
