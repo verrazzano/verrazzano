@@ -211,18 +211,7 @@ func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzano
 			overrides.Logging.ElasticsearchSecret = fluentd.ElasticsearchSecret
 		}
 		if len(fluentd.ExtraVolumeMounts) > 0 {
-			for _, vm := range fluentd.ExtraVolumeMounts {
-				dest := vm.Source
-				if vm.Destination != "" {
-					dest = vm.Destination
-				}
-				readOnly := true
-				if vm.ReadOnly != nil {
-					readOnly = *vm.ReadOnly
-				}
-				overrides.Fluentd.ExtraVolumeMounts = append(overrides.Fluentd.ExtraVolumeMounts,
-					volumeMount{Source: vm.Source, Destination: dest, ReadOnly: readOnly})
-			}
+			appendFluentdExtraVolumeMountsOverrides(fluentd, overrides)
 		}
 		// Overrides for OCI Logging integration
 		if fluentd.OCI != nil {
@@ -240,5 +229,20 @@ func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzano
 		if overrides.Logging.ElasticsearchSecret == globalconst.LegacyElasticsearchSecretName {
 			overrides.Logging.ElasticsearchSecret = globalconst.VerrazzanoESInternal
 		}
+	}
+}
+
+func appendFluentdExtraVolumeMountsOverrides(fluentd *vzapi.FluentdComponent, overrides *verrazzanoValues) {
+	for _, vm := range fluentd.ExtraVolumeMounts {
+		dest := vm.Source
+		if vm.Destination != "" {
+			dest = vm.Destination
+		}
+		readOnly := true
+		if vm.ReadOnly != nil {
+			readOnly = *vm.ReadOnly
+		}
+		overrides.Fluentd.ExtraVolumeMounts = append(overrides.Fluentd.ExtraVolumeMounts,
+			volumeMount{Source: vm.Source, Destination: dest, ReadOnly: readOnly})
 	}
 }
