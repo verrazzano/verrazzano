@@ -22,7 +22,7 @@ spec:
         action: keep
       - sourceLabels:
           - __meta_kubernetes_service_label_app
-        targetLabel: k8s-app #the label the monitor will use to match the service
+        targetLabel: app #the label the monitor will use to match the service
       - sourceLabels:
           - __meta_kubernetes_pod_container_port_number
         regex: "9100" #service port
