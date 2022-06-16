@@ -77,7 +77,6 @@ func (a *WorkloadWebhook) handleWorkloadResource(ctx context.Context, req admiss
 	}
 
 	if existingMetricsBinding == nil {
-		// TODO POKO promop for newer apps we don't support annotations anymore - check and deny?
 		// No MetricsBinding exists to be migrated - this is likely a newer app that has not been
 		// processed by Verrazzano versions earlier than 1.4
 		return admission.Allowed(constants.StatusReasonSuccess)
