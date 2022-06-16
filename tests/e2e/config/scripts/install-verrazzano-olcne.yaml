@@ -1,0 +1,36 @@
+apiVersion: install.verrazzano.io/v1alpha1
+kind: Verrazzano
+metadata:
+  name: my-verrazzano
+spec:
+  profile: dev
+  environmentName: 
+  components:
+    dns:
+      external:
+        suffix: 
+    ingress:
+      type: NodePort
+      ports:
+      - name: https
+        port: 443
+        nodePort: 30443
+        protocol: TCP
+        targetPort: https
+      nginxInstallArgs:
+      - name: controller.service.externalIPs
+        valueList:
+        - 
+    istio:
+      ingress:
+        type: NodePort
+        ports:
+        - name: https
+          port: 443
+          nodePort: 31390
+          protocol: TCP
+          targetPort: 8443
+      istioInstallArgs:
+      - name: gateways.istio-ingressgateway.externalIPs
+        valueList:
+        - 
