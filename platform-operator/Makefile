@@ -43,6 +43,9 @@ VERRAZZANO_DEV_VERSION ?= $(shell grep verrazzano-development-version ../.verraz
 VERRAZZANO_VERSION ?= ${VERRAZZANO_DEV_VERSION}-local+${SHORT_COMMIT_HASH}
 
 VERRAZZANO_APPLICATION_OPERATOR_IMAGE ?= verrazzano-application-operator-dev
+VERRAZZANO_APPLICATION_OPERATOR_IMAGE ?= verrazzano-application-operator-dev
+
+VERRAZZANO_TLS_SECRET_GENERATOR_IMAGE_NAME ?= verrazzano-tls-secret-generator-dev
 
 OPERATOR_VERSION = ${DOCKER_IMAGE_TAG}
 ifdef RELEASE_VERSION
