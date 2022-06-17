@@ -97,7 +97,7 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	// When --operator-file is used, the version being upgraded to is not used to locate the
 	// operator file to apply.  Pass in an empty version string.
 	var applyVersion = version
-	if !cmd.PersistentFlags().Changed(constants.OperatorFileFlag) {
+	if cmd.PersistentFlags().Changed(constants.OperatorFileFlag) {
 		applyVersion = ""
 	}
 
