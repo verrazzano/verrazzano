@@ -182,6 +182,7 @@ pipeline {
         TF_VAR_availability_domain_id="${params.OLCNE_CLUSTER_AVAILABILITY_DOMAIN}"
         TF_VAR_deploy_networking="true"
         TF_VAR_bastion_enabled="true"
+        TF_VAR_bastion_private_key_path="$WORKSPACE/terraform-oci-olcne/id_rsa"
         TF_VAR_prefix="vz-$TEST_ENV"
         TF_VAR_proxy="http://www-proxy-hqdc.us.oracle.com:80"
         TF_VAR_use_vault="false"
@@ -1048,7 +1049,7 @@ def createOCIDNSZone() {
 def deleteOLCNECluster() {
     sh '''
         cd $GO_REPO_PATH/terraform-oci-olcne
-        terraform destroy
+        terraform destroy -auto-approve
     '''
 }
 
