@@ -169,8 +169,8 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper) (vz *vzapi
 		}
 	}
 
-	// Merge the set flags passed on the command line. The set flags take precedence over the path/values
-	// passed in the yaml file on the command line.
+	// Merge the set flags passed on the command line. The set flags take precedence over
+	// the yaml files passed on the command line.
 	for path, value := range pv {
 		outYaml, err := yaml.Expand(0, false, path, value)
 		if err != nil {
