@@ -45,7 +45,8 @@ function update-kiali-redirect-uris {
         "https://kibana.vmi.system.$2/*",
         "https://kibana.vmi.system.$2/_authentication_callback",
         "https://kiali.vmi.system.$2/*",
-        "https://kiali.vmi.system.$2/_authentication_callback"
+        "https://kiali.vmi.system.$2/_authentication_callback",
+        "https://jaeger.$2/*"
       ],
       "webOrigins": [
         "https://verrazzano.$2",
@@ -53,7 +54,8 @@ function update-kiali-redirect-uris {
         "https://prometheus.vmi.system.$2",
         "https://grafana.vmi.system.$2",
         "https://kibana.vmi.system.$2",
-        "https://kiali.vmi.system.$2"
+        "https://kiali.vmi.system.$2",
+        "https://jaeger.$2"
       ]
     }
 END

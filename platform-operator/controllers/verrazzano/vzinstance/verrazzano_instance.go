@@ -6,8 +6,8 @@ package vzinstance
 import (
 	"context"
 	"fmt"
-
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
+	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
 
@@ -56,6 +56,7 @@ func GetInstanceInfo(ctx spi.ComponentContext) *v1alpha1.InstanceInfo {
 		GrafanaURL:    getComponentIngressURL(ingressList.Items, ctx, grafana.ComponentName, constants.GrafanaIngress),
 		PrometheusURL: getComponentIngressURL(ingressList.Items, ctx, verrazzano.ComponentName, constants.PrometheusIngress),
 		KialiURL:      getComponentIngressURL(ingressList.Items, ctx, kiali.ComponentName, constants.KialiIngress),
+		JaegerURL:     getComponentIngressURL(ingressList.Items, ctx, jaegeroperator.ComponentName, constants.JaegerIngress),
 	}
 	return instanceInfo
 }

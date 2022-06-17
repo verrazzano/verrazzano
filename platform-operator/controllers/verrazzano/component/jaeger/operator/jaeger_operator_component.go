@@ -10,6 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -117,24 +118,43 @@ func (c jaegerOperatorComponent) IsOperatorInstallSupported() bool {
 
 // ##### Only interface stubs below #####
 
-func (c jaegerOperatorComponent) PostInstall(_ spi.ComponentContext) error {
-	return nil
+func (c jaegerOperatorComponent) PostInstall(ctx spi.ComponentContext) error {
+	ctx.Log().Debugf("Jaeger post-install")
+	return c.createOrUpdateJaegerResources(ctx)
 }
 
 func (c jaegerOperatorComponent) PreUpgrade(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (c jaegerOperatorComponent) PostUpgrade(_ spi.ComponentContext) error {
-	return nil
+func (c jaegerOperatorComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	ctx.Log().Debugf("Jaeger post-upgrade")
+	return c.createOrUpdateJaegerResources(ctx)
 }
 
-func (c jaegerOperatorComponent) GetIngressNames(_ spi.ComponentContext) []types.NamespacedName {
-	return nil
+func (c jaegerOperatorComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
+	var ingressNames []types.NamespacedName
+	if vzconfig.IsNGINXEnabled(ctx.EffectiveCR()) {
+		ingressNames = []types.NamespacedName{
+			{
+				Namespace: ComponentNamespace,
+				Name:      constants.JaegerIngress,
+			},
+		}
+	}
+	return ingressNames
 }
 
-func (c jaegerOperatorComponent) GetCertificateNames(_ spi.ComponentContext) []types.NamespacedName {
-	return nil
+func (c jaegerOperatorComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
+	var certificateNames []types.NamespacedName
+
+	if vzconfig.IsNGINXEnabled(ctx.EffectiveCR()) {
+		certificateNames = append(certificateNames, types.NamespacedName{
+			Namespace: ComponentNamespace,
+			Name:      jaegerCertificateName,
+		})
+	}
+	return certificateNames
 }
 
 func (c jaegerOperatorComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
@@ -142,5 +162,15 @@ func (c jaegerOperatorComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
 }
 
 func (c jaegerOperatorComponent) ValidateUpdate(_, _ *vzapi.Verrazzano) error {
+	return nil
+}
+
+// createOrUpdateKialiResources create or update related Kiali resources
+func (c jaegerOperatorComponent) createOrUpdateJaegerResources(ctx spi.ComponentContext) error {
+	if vzconfig.IsNGINXEnabled(ctx.EffectiveCR()) {
+		if err := createOrUpdateJaegerIngress(ctx, ComponentNamespace); err != nil {
+			return err
+		}
+	}
 	return nil
 }
