@@ -4,7 +4,7 @@
 FROM ghcr.io/oracle/oraclelinux:7-slim as builder
 
 # Need to use specific WORKDIR to match verrazzano-tls-secret-generator's source packages
-WORKDIR /root/go/src/github.com/verrazzano/verrazzano/tls-secret-operator
+WORKDIR /root/go/src/github.com/verrazzano/verrazzano/tls-secret-generator
 COPY . .
 
 COPY out/linux_amd64/verrazzano-tls-secret-generator /usr/local/bin/verrazzano-tls-secret-generator
@@ -26,7 +26,7 @@ RUN groupadd -r verrazzano && useradd --no-log-init -r -g verrazzano -u 1000 ver
 
 COPY --from=builder --chown=verrazzano:verrazzano /usr/local/bin/verrazzano-tls-secret-generator /usr/local/bin/verrazzano-tls-secret-generator
 
-COPY --from=builder /root/go/src/github.com/verrazzano/verrazzano/tls-secert-generator/THIRD_PARTY_LICENSES.txt /licenses/
+COPY --from=builder /root/go/src/github.com/verrazzano/verrazzano/tls-secret-generator/THIRD_PARTY_LICENSES.txt /licenses/
 
 USER 1000
 
