@@ -31,16 +31,22 @@ fi
 VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=$4
 
 if [ -z "$5" ]; then
+  echo "You must specify the TLS Secret Generator Image Name"
+  exit 1
+fi
+VERRAZZANO_TLS_SECRET_GENERATOR_IMAGE_NAME=$5
+
+if [ -z "$6" ]; then
   echo "You must specify the Image Tag"
   exit 1
 fi
-IMAGE_TAG=$5
+IMAGE_TAG=$6
 
-if [ -z "$6" ]; then
+if [ -z "$7" ]; then
   echo "You must specify the BOM filename as output"
   exit 1
 fi
-GENERATED_BOM_FILE=$6
+GENERATED_BOM_FILE=$7
 
 cp ${BOM_FILE} ${GENERATED_BOM_FILE}
 
@@ -57,4 +63,7 @@ else
 fi
 sed -i"" -e "s|VERRAZZANO_PLATFORM_OPERATOR_IMAGE|${VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME}|g" ${GENERATED_BOM_FILE}
 sed -i"" -e "s|VERRAZZANO_PLATFORM_OPERATOR_TAG|${IMAGE_TAG}|g" ${GENERATED_BOM_FILE}
+sed -i"" -e "s|VERRAZZANO_VERSION|${VERRAZZANO_VERSION}|g" ${GENERATED_BOM_FILE}
+sed -i"" -e "s|VERRAZZANO_TLS_SECRET_GENERATOR_IMAGE|${VERRAZZANO_TLS_SECRET_GENERATOR_IMAGE_NAME}|g" ${GENERATED_BOM_FILE}
+sed -i"" -e "s|VERRAZZANO_TLS_SECRET_GENERATOR_TAG|${IMAGE_TAG}|g" ${GENERATED_BOM_FILE}
 sed -i"" -e "s|VERRAZZANO_VERSION|${VERRAZZANO_VERSION}|g" ${GENERATED_BOM_FILE}
