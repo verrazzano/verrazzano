@@ -8,7 +8,7 @@ import (
 	"os"
 
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
-	"github.com/verrazzano/verrazzano/tls-secret-generator/src/generate"
+	"github.com/verrazzano/verrazzano/tls-secret-generator/controllers/secretgenerator"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -59,5 +59,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	generate.GenerateSecret(mgr.GetClient(), log)
+	if err = (&secretgenerator.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    log,
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		log.Errorf("Failed to create SecretGenerator controller: %v", err)
+		os.Exit(1)
+	}
+
+	log.Info("Starting manager")
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+		log.Errorf("Failed to run manager: %v", err)
+		os.Exit(1)
+	}
 }
