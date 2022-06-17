@@ -191,41 +191,61 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 	defer rc.Close()
 
 	resChan := make(chan error, 1)
+	logChanQuit := make(chan bool)
+
+	// goroutine to stream the log output until a quit message is sent over a channel
+	re := regexp.MustCompile(`"level":"(.*?)","@timestamp":"(.*?)",(.*?)"message":"(.*?)",`)
 	go func() {
 		sc := bufio.NewScanner(rc)
 		sc.Split(bufio.ScanLines)
-		for sc.Scan() {
-			if logFormat == LogFormatSimple {
-				re := regexp.MustCompile(`"level":"(.*?)","@timestamp":"(.*?)",(.*?)"message":"(.*?)",`)
-				res := re.FindAllStringSubmatch(sc.Text(), -1)
-				// res[0][2] is the timestamp
-				// res[0][1] is the level
-				// res[0][4] is the message
-				if res != nil {
-					// Print each log message in the form "timestamp level message".
-					// For example, "2022-06-03T00:05:10.042Z info Component keycloak successfully installed"
-					fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("%s %s %s\n", res[0][2], res[0][1], res[0][4]))
-				}
-			} else if logFormat == LogFormatJSON {
-				fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("%s\n", sc.Text()))
-			}
-
-			// Return when the Verrazzano operation has completed
-			vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
-			if err != nil {
-				resChan <- err
-			}
-			for _, condition := range vz.Status.Conditions {
-				// Operation condition met for install/upgrade
-				if condition.Type == condType {
-					resChan <- nil
+		for {
+			select {
+			case <-logChanQuit:
+				return
+			default:
+				sc.Scan()
+				if logFormat == LogFormatSimple {
+					res := re.FindAllStringSubmatch(sc.Text(), -1)
+					// res[0][2] is the timestamp
+					// res[0][1] is the level
+					// res[0][4] is the message
+					if res != nil {
+						// Print each log message in the form "timestamp level message".
+						// For example, "2022-06-03T00:05:10.042Z info Component keycloak successfully installed"
+						fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("%s %s %s\n", res[0][2], res[0][1], res[0][4]))
+					}
+				} else if logFormat == LogFormatJSON {
+					fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("%s\n", sc.Text()))
 				}
 			}
 		}
 	}()
 
+	// goroutine to wait for the completion of the operation
+	go func() {
+		for {
+			// Return when the Verrazzano operation has completed
+			vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
+			if err != nil {
+				resChan <- err
+				return
+			}
+			for _, condition := range vz.Status.Conditions {
+				// Operation condition met for install/upgrade
+				if condition.Type == condType {
+					resChan <- nil
+					return
+				}
+			}
+
+			// Pause before next status check
+			time.Sleep(15 * time.Second)
+		}
+	}()
+
 	select {
 	case result := <-resChan:
+		logChanQuit <- true
 		return result
 	case <-time.After(timeout):
 		if timeout.Nanoseconds() != 0 {
