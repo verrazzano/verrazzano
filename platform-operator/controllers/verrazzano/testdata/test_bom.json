@@ -445,6 +445,16 @@
         },
         {
           "repository": "verrazzano",
+          "name": "tls-secret-generator",
+          "images": [
+            {
+              "image": "VERRAZZANO_TLS_SECRET_GENERATOR_IMAGE",
+              "tag": "VERRAZZANO_TLS_SECRET_GENERATOR_TAG"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
           "name": "alertmanager",
           "images": [
             {

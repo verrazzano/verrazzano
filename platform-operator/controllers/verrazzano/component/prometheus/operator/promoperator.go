@@ -173,6 +173,12 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	// Add label to the Prometheus Operator pod to avoid a sidecar injection
 	kvs = append(kvs, bom.KeyValue{Key: `prometheusOperator.podAnnotations.sidecar\.istio\.io/inject`, Value: `"false"`})
 
+	// Add tls-secret-generator image to the Prometheus CR as an additional container
+	kvs, err = appendTLSSecretGeneratorImage(ctx, kvs)
+	if err != nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed applying the TLS secret generator overrides for Prometheus")
+	}
+
 	return kvs, nil
 }
 
@@ -286,6 +292,23 @@ func appendAdditionalVolumeOverrides(ctx spi.ComponentContext, volumeMountKey, v
 	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[1].secret.secretName", volumeKey), Value: constants.PromManagedClusterCACertsSecretName})
 	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[1].secret.optional", volumeKey), Value: "true"})
 
+	return kvs, nil
+}
+
+// appendTLSSecretGeneratorImage appends the tls-secret-generator image to the extra container of the Prometheus pod
+func appendTLSSecretGeneratorImage(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return kvs, ctx.Log().ErrorNewErr("Failed to get the bom file for the Prometheus Operator image overrides: ", err)
+	}
+	subcomponent := "tls-secret-generator"
+	images, err := bomFile.GetImageNameList(subcomponent)
+	if err != nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed to get the image for subcomponent %s from the bom: ", subcomponent, err)
+	}
+	if len(images) > 0 {
+		kvs = append(kvs, bom.KeyValue{Key: "prometheusOperator.prometheus.prometheusSpec.containers[0].image", Value: images[0]})
+	}
 	return kvs, nil
 }
 

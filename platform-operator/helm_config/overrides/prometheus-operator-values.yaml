@@ -14,6 +14,30 @@ prometheus:
       enabled: true
       name: additional-scrape-configs
       key: jobs
+    containers:
+    - name: tls-secret-generator
+      volumeMounts:
+        - mountPath: /etc/istio-certs
+          name: istio-certs-dir
+  additionalRulesForClusterRole:
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - create
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - prometheuses
+    verbs:
+      - get
+      - list
+      - watch
 alertmanager:
   enabled: false
 prometheusOperator:
