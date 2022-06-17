@@ -916,6 +916,8 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
 
                 # Display the kubectl and cluster versions
                 kubectl version
+
+                ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}/pre-install-resources
                 
                 echo "Create the verrazzano-install namespace"
                 kubectl create namespace verrazzano-install
@@ -1016,7 +1018,7 @@ def upgradeVerrazzanoOnCluster(count, verrazzanoDevVersion) {
 
                 echo "Upgrading the Verrazzano installation to version" ${verrazzanoDevVersion}
                 cd ${GO_REPO_PATH}/verrazzano/tools/vz
-                GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go upgrade --kubeconfig ${kubeClusterConfig} --version ${verrazzanoDevVersion}
+                GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go upgrade --kubeconfig ${kubeClusterConfig} --version ${verrazzanoDevVersion} --operator-file ${upgradeOperatorFile}
 
                 # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
                 kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-post-upgrade-job.out
