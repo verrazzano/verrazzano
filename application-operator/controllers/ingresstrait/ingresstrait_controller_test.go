@@ -4064,6 +4064,10 @@ func getIngressTraitResourceExpectations(mock *mocks.MockClient, assert *asserts
 		})
 }
 
+// TestIngressTraitIsDeleted tests the Reconcile method for the following use case
+// GIVEN a request to Reconcile the controller
+// WHEN the IngressTrait is found as being deleted
+// THEN cert and secret are deleted and gateway spec is cleaned up
 func TestIngressTraitIsDeleted(t *testing.T) {
 	assert := asserts.New(t)
 	cli := fake.NewClientBuilder().WithScheme(newScheme()).Build()
@@ -4098,9 +4102,13 @@ func TestIngressTraitIsDeleted(t *testing.T) {
 	// Create trait
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/ingress_trait_instance.yaml", params))
 	trait := &vzapi.IngressTrait{}
-	assert.NoError(cli.Get(context.TODO(), types.NamespacedName{Name: params["TRAIT_NAME"], Namespace: params["TRAIT_NAMESPACE"]}, trait))
+	assert.NoError(cli.Get(context.TODO(), types.NamespacedName{Namespace: params["TRAIT_NAMESPACE"], Name: params["TRAIT_NAME"]}, trait))
+	trait.Finalizers = []string{finalizerName}
 	trait.DeletionTimestamp = &metav1.Time{time.Now()}
 	assert.NoError(cli.Update(context.TODO(), trait))
+	tt := vzapi.IngressTrait{}
+	assert.NoError(cli.Get(context.TODO(), types.NamespacedName{Namespace: trait.Namespace, Name: trait.Name}, &tt))
+	assert.True(isIngressTraitBeingDeleted(&tt))
 
 	sec := &k8score.Secret{
 		TypeMeta: metav1.TypeMeta{
@@ -4130,7 +4138,7 @@ func TestIngressTraitIsDeleted(t *testing.T) {
 	}
 	assert.NoError(cli.Create(context.TODO(), cert))
 
-	gwName := fmt.Sprintf("%s-%s-gw", trait.Name, trait.Labels[oam.LabelAppName])
+	gwName := fmt.Sprintf("%s-%s-gw", trait.Namespace, trait.Labels[oam.LabelAppName])
 	server := []*istionet.Server{
 		{
 			Name: trait.Name,
@@ -4152,11 +4160,20 @@ func TestIngressTraitIsDeleted(t *testing.T) {
 	}
 	assert.NoError(cli.Create(context.TODO(), gw))
 	reconciler := newIngressTraitReconciler(cli)
-	res, err := reconciler.Reconcile(context.TODO(), ctrl.Request{types.NamespacedName{Name: trait.Name, Namespace: trait.Namespace}})
+	request := newRequest(trait.Namespace, trait.Name)
+	res, err := reconciler.Reconcile(context.TODO(), request)
 	assert.NoError(err)
 	assert.Equal(res.Requeue, false)
-	assert.NoError(cli.Get(context.TODO(), types.NamespacedName{Name: gw.Name, Namespace: gw.Namespace}, gw))
-	assert.Len(gw.Spec.Servers, 0)
+
+	gw1 := &istioclient.Gateway{}
+	assert.NoError(cli.Get(context.TODO(), types.NamespacedName{Name: gw.Name, Namespace: gw.Namespace}, gw1))
+	assert.Len(gw1.Spec.Servers, 0)
+
+	sec1 := k8score.Secret{}
+	assert.True(k8serrors.IsNotFound(cli.Get(context.TODO(), types.NamespacedName{Namespace: sec.Namespace, Name: sec.Name}, &sec1)))
+
+	cert1 := certapiv1.Certificate{}
+	assert.True(k8serrors.IsNotFound(cli.Get(context.TODO(), types.NamespacedName{Namespace: cert.Namespace, Name: cert.Name}, &cert1)))
 }
 
 func createReconcilerWithFake(initObjs ...client.Object) Reconciler {
