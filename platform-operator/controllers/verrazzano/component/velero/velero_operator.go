@@ -61,7 +61,7 @@ func componentInstall(ctx spi.ComponentContext) error {
 	bcmd = append(bcmd, resticPodCpuRequest, resticPodMemRequest, resticPodMemLimit, resticPodCpuLimit)
 	vcmd.CommandArgs = bcmd
 
-	response := VeleroRunner(&vcmd, ctx.Log())
+	response := veleroRunner(&vcmd, ctx.Log())
 	if response.Error != nil {
 		return ctx.Log().ErrorfNewErr("Failed to install Velero Operator: %v", response.Error)
 	}

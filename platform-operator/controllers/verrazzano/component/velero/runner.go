@@ -27,7 +27,8 @@ type VeleroImage struct {
 	VeleroPluginForAwsImage string `json:"velero-plugin-for-aws"`
 }
 
-func VeleroRunner(bcmd *BashCommand, log vzlog.VerrazzanoLogger) *RunnerResponse {
+// Generic method to execute shell commands
+func veleroRunner(bcmd *BashCommand, log vzlog.VerrazzanoLogger) *RunnerResponse {
 	var stdoutBuf, stderrBuf bytes.Buffer
 	var response RunnerResponse
 	execCmd := exec.Command(bcmd.CommandArgs[0], bcmd.CommandArgs[1:]...)
@@ -35,7 +36,7 @@ func VeleroRunner(bcmd *BashCommand, log vzlog.VerrazzanoLogger) *RunnerResponse
 	execCmd.Stdout = io.MultiWriter(os.Stdout, &stdoutBuf)
 	execCmd.Stderr = io.MultiWriter(os.Stderr, &stderrBuf)
 
-	log.Infof("Executing command '%v'", execCmd.String())
+	log.Debugf("Executing command '%v'", execCmd.String())
 	err := execCmd.Start()
 	if err != nil {
 		log.Errorf("Cmd '%v' execution failed due to '%v'", execCmd.String(), zap.Error(err))
@@ -59,13 +60,11 @@ func VeleroRunner(bcmd *BashCommand, log vzlog.VerrazzanoLogger) *RunnerResponse
 	case err = <-done:
 		if err != nil {
 			log.Errorf("Cmd '%v' execution failed due to '%v'", execCmd.String(), zap.Error(err))
-			//log.Error(stderrBuf.String())
 			response.Stderr = stderrBuf
 			response.Error = err
 			return &response
 		} else {
-			log.Debugf("Command '%s' execution successfull", execCmd.String())
-			//log.Info(stdoutBuf.String())
+			log.Debugf("Command '%s' execution successful", execCmd.String())
 			response.Stdout = stdoutBuf
 			response.Error = err
 			return &response
