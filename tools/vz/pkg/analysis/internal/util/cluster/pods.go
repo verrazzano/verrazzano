@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package cluster handles cluster analysis
@@ -29,7 +29,6 @@ var dockerServiceUnavailableRe = regexp.MustCompile(`.*Service Unavailable.*`)
 
 // TODO: "Verrazzano Uninstall Pod Issue":    AnalyzeVerrazzanoUninstallIssue,
 var podAnalysisFunctions = map[string]func(log *zap.SugaredLogger, directory string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error){
-	"Verrazzano Install Pod Issue":        AnalyzeVerrazzanoInstallIssue,
 	"Pod Container Related Issues":        podContainerIssues,
 	"Pod Status Condition Related Issues": podStatusConditionIssues,
 }

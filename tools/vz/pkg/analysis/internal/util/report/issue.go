@@ -107,7 +107,9 @@ const (
 	InstallFailure            = "InstallFailure"
 	PendingPods               = "PendingPods"
 	PodProblemsNotReported    = "PodProblemsNotReported"
-	CompNotReady              = "CompNotReady"
+	ComponentsNotReady        = "ComponentsNotReady"
+	IngressNoIPFound          = "IngressNoIPFound"
+	IngressShapeInvalid       = "IngressShapeInvalid"
 )
 
 // NOTE: How we are handling the issues/actions/reporting is still very much evolving here. Currently supplying some
@@ -128,7 +130,9 @@ var knownIssues = map[string]Issue{
 	InstallFailure:            {Type: InstallFailure, Summary: "Verrazzano install failed, however a specific root cause was not identified", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[InstallFailure]}},
 	PendingPods:               {Type: PendingPods, Summary: "Pods in a Pending state were detected. These may come up normally or there may be specific issues preventing them from coming up", Informational: true, Impact: 0, Confidence: 1, Actions: []Action{KnownActions[PendingPods]}},
 	PodProblemsNotReported:    {Type: PodProblemsNotReported, Summary: "Problem pods were detected, however a specific root cause was not identified", Informational: true, Impact: 0, Confidence: 10, Actions: []Action{KnownActions[PodProblemsNotReported]}},
-	CompNotReady:              {Type: InstallFailure, Summary: "Verrazzano install failed, one or more components did not reach Ready state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[InstallFailure]}},
+	ComponentsNotReady:        {Type: InstallFailure, Summary: "Verrazzano install failed, one or more components did not reach Ready state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[InstallFailure]}},
+	IngressNoIPFound:          {Type: IngressNoIPFound, Summary: "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressNoIPFound]}},
+	IngressShapeInvalid:       {Type: IngressShapeInvalid, Summary: "Verrazzano install failed as the shape provided for NGINX Ingress Controller is invalid", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressShapeInvalid]}},
 }
 
 // NewKnownIssueSupportingData adds a known issue

@@ -8,11 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/spf13/cobra"
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
@@ -62,9 +59,6 @@ func (rc *RootCmdContext) GetClient(cmd *cobra.Command) (client.Client, error) {
 
 	scheme := runtime.NewScheme()
 	_ = vzapi.AddToScheme(scheme)
-	_ = clustersv1alpha1.AddToScheme(scheme)
-	_ = platformopclusters.AddToScheme(scheme)
-	_ = oamv1alpha2.SchemeBuilder.AddToScheme(scheme)
 	_ = corev1.SchemeBuilder.AddToScheme(scheme)
 
 	return client.New(config, client.Options{Scheme: scheme})
@@ -95,7 +89,7 @@ func (rc *RootCmdContext) GetKubeClient(cmd *cobra.Command) (kubernetes.Interfac
 // GetHTTPClient - return an HTTP client
 func (rc *RootCmdContext) GetHTTPClient() *http.Client {
 	return &http.Client{
-		Timeout: time.Second * 30,
+		Timeout: time.Second * 120,
 	}
 }
 

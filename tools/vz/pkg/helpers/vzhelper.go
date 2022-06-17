@@ -33,7 +33,7 @@ func FindVerrazzanoResource(client client.Client) (*vzapi.Verrazzano, error) {
 	vzList := vzapi.VerrazzanoList{}
 	err := client.List(context.TODO(), &vzList)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to find any Verrazzano resources: %s", err.Error())
 	}
 	if len(vzList.Items) == 0 {
 		return nil, fmt.Errorf("Failed to find any Verrazzano resources")

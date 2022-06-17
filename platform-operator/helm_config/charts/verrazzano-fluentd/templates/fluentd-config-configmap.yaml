@@ -1,45 +1,6 @@
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-{{- if .Values.fluentd.enabled }}
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ .Values.logging.name }}-init
-  namespace: {{ .Release.Namespace }}
-  labels:
-    app: {{ .Values.logging.name }}
-data:
-  init.sh: |
-    #!/bin/bash
-    cat /etc/ssl/certs/ca-bundle.crt > /fluentd/cacerts/all-ca-certs.pem
-    if [ -f "/fluentd/secret/ca-bundle" ]; then
-      cat /fluentd/secret/ca-bundle >> /fluentd/cacerts/all-ca-certs.pem
-    fi
-    if [ -f "/fluentd/secret/es-ca-bundle" ]; then
-      cat /fluentd/secret/es-ca-bundle >> /fluentd/cacerts/all-ca-certs.pem
-    fi
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ .Values.logging.name }}-es-config
-  namespace: {{ .Release.Namespace }}
-  labels:
-    app: {{ .Values.logging.name }}
-data:
-  {{- if .Values.logging.elasticsearchURL }}
-  es-url: {{ .Values.logging.elasticsearchURL }}
-  {{- else }}
-  es-url: http://verrazzano-authproxy-elasticsearch:8775
-  {{- end }}
-  {{- if .Values.logging.elasticsearchSecret }}
-  es-secret: {{ .Values.logging.elasticsearchSecret }}
-  {{- else }}
-  es-secret: verrazzano-es-internal
-  {{- end }}
----
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -110,7 +71,6 @@ data:
       @id in_monitor_agent
       bind 0.0.0.0
       port 24220
-      tag fluentd.monitor.metrics
     </source>
 
   prometheus.conf: |
@@ -861,7 +821,7 @@ data:
 
   es-output.conf: |
     # Matches anything that Verrazzano installs
-    <match kubernetes.**_kube-** kubernetes.**_verrazzano-** kubernetes.**cattle-** kubernetes.**rancher-** kubernetes.**fleet-** kubernetes.**ingress-nginx** kubernetes.**istio-system** kubernetes.**keycloak** kubernetes.**cert-manager**  kubernetes.**_monitoring_** kubernetes.**_metallb-** kubernetes.**_local-path-storage_** kubernetes.**_local_** systemd.** fluentd.monitor.metrics>
+    <match kubernetes.**_kube-** kubernetes.**_verrazzano-** kubernetes.**cattle-** kubernetes.**rancher-** kubernetes.**fleet-** kubernetes.**ingress-nginx** kubernetes.**istio-system** kubernetes.**keycloak** kubernetes.**cert-manager**  kubernetes.**_monitoring_** kubernetes.**_metallb-** kubernetes.**_local-path-storage_** kubernetes.**_local_** systemd.**>
       @type opensearch_data_stream
       @id out_systemd
       @log_level info
@@ -946,7 +906,7 @@ data:
 {{- if .Values.fluentd.oci }}
   oci-logging-system.conf: |
     # Match all "system" namespaces so system log records are sent to a separate OCI Log object
-    <match kubernetes.**_kube-** kubernetes.**_verrazzano-** kubernetes.**cattle-** kubernetes.**rancher-** kubernetes.**fleet-** kubernetes.**ingress-nginx** kubernetes.**istio-system** kubernetes.**keycloak** kubernetes.**cert-manager**  kubernetes.**_monitoring_** kubernetes.**_metallb-** kubernetes.**_local-path-storage_** kubernetes.**_local_** systemd.** fluentd.monitor.metrics>
+    <match kubernetes.**_kube-** kubernetes.**_verrazzano-** kubernetes.**cattle-** kubernetes.**rancher-** kubernetes.**fleet-** kubernetes.**ingress-nginx** kubernetes.**istio-system** kubernetes.**keycloak** kubernetes.**cert-manager**  kubernetes.**_monitoring_** kubernetes.**_metallb-** kubernetes.**_local-path-storage_** kubernetes.**_local_** systemd.**>
       @type oci_logging
       log_object_id {{ .Values.fluentd.oci.systemLogId }}
       <buffer>
@@ -981,8 +941,8 @@ data:
   opensearch-template-verrazzano.json: |
     {
       "index_patterns":[
-          "verrazzano-system",
-          "verrazzano-application*"
+        "verrazzano-system",
+        "verrazzano-application*"
       ],
       "version":60001,
       "priority": 101,
@@ -1038,210 +998,3 @@ data:
         }
       }
     }
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: {{ .Values.logging.name }}
-  namespace: {{ .Release.Namespace }}
-  {{- if .Values.global.imagePullSecrets }}
-imagePullSecrets:
-  {{- range .Values.global.imagePullSecrets }}
-- name: {{ . }}
-  {{- end }}
-  {{- end }}
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: {{ .Values.logging.name }}
-rules:
-  - apiGroups:
-      - ""
-    resources:
-      - namespaces
-      - pods
-    verbs:
-      - get
-      - list
-      - watch
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: {{ .Values.logging.name }}
-subjects:
-  - kind: ServiceAccount
-    name: {{ .Values.logging.name }}
-    namespace: {{ .Release.Namespace }}
-roleRef:
-  kind: ClusterRole
-  name: {{ .Values.logging.name }}
-  apiGroup: rbac.authorization.k8s.io
----
-apiVersion: apps/v1
-kind: DaemonSet
-metadata:
-  name: {{ .Values.logging.name }}
-  namespace: {{ .Release.Namespace }}
-  labels:
-    app: fluentd
-spec:
-  selector:
-    matchLabels:
-      app: fluentd
-  template:
-    metadata:
-      annotations:
-        sidecar.istio.io/inject: "true"
-      labels:
-        app: fluentd
-    spec:
-      initContainers:
-        - name: cacert-init
-          command: ["/init/init.sh"]
-          image: {{ .Values.logging.fluentdImage }}
-          imagePullPolicy: IfNotPresent
-          volumeMounts:
-            - mountPath: /init
-              name: {{ .Values.logging.name }}-init
-              readOnly: true
-            - name: cacerts
-              mountPath: /fluentd/cacerts
-            - mountPath: /fluentd/secret
-              name: secret-volume
-              readOnly: true
-      containers:
-        - args:
-            - -c
-            - /etc/fluentd.conf
-          env:
-            - name: FLUENTD_CONF
-              value: fluentd-standalone.conf
-            - name: FLUENT_ELASTICSEARCH_SED_DISABLE
-              value: "true"
-            - name: ELASTICSEARCH_URL
-  {{- if .Values.logging.elasticsearchURL }}
-              value: {{ .Values.logging.elasticsearchURL }}
-  {{- else }}
-              value: http://verrazzano-authproxy-elasticsearch:8775
-  {{- end }}
-            - name: CLUSTER_NAME
-              value: local
-            - name: ELASTICSEARCH_USER
-              valueFrom:
-                secretKeyRef:
-                  key: username
-  {{- if .Values.logging.elasticsearchSecret }}
-                  name: {{ .Values.logging.elasticsearchSecret }}
-  {{- else }}
-                  name: verrazzano-es-internal
-  {{- end }}
-                  optional: true
-            - name: ELASTICSEARCH_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  key: password
-  {{- if .Values.logging.elasticsearchSecret }}
-                  name: {{ .Values.logging.elasticsearchSecret }}
-  {{- else }}
-                  name: verrazzano-es-internal
-  {{- end }}
-                  optional: true
-            - name: CA_FILE
-              value: /fluentd/cacerts/all-ca-certs.pem
-            - name: CONFIG_HASH
-{{- if .Values.logging.configHash }}
-              value: {{ .Values.logging.configHash }}
-{{- else }}
-              value: none
-{{- end }}
-          image: {{ .Values.logging.fluentdImage }}
-          imagePullPolicy: IfNotPresent
-          name: {{ .Values.logging.name }}
-          terminationMessagePath: /dev/termination-log
-          terminationMessagePolicy: File
-          volumeMounts:
-            - name: cacerts
-              mountPath: /fluentd/cacerts
-            - mountPath: /fluentd/secret
-              name: secret-volume
-              readOnly: true
-  {{- if .Values.fluentd.oci }}
-  {{- if .Values.fluentd.oci.apiSecret }}
-            - mountPath: /root/.oci
-              name: oci-secret-volume
-              readOnly: true
-  {{- end }}
-  {{- end }}
-            - mountPath: /fluentd/etc
-              name: {{ .Values.logging.name }}-config
-              readOnly: true
-            - mountPath: /var/log
-              name: varlog
-              readOnly: true
-            - mountPath: /var/lib
-              name: varlib
-              readOnly: true
-            - mountPath: /run/log/journal
-              name: run-log-journal
-              readOnly: true
-{{- if .Values.fluentd.extraVolumeMounts }}
-{{- range $i, $e := .Values.fluentd.extraVolumeMounts }}
-            - mountPath: {{ $e.destination }}
-              name: extra-volume-{{ $i }}
-              readOnly: {{ $e.readOnly }}
-{{- end }}
-{{- end }}
-      serviceAccount: fluentd
-      serviceAccountName: fluentd
-      terminationGracePeriodSeconds: 30
-      volumes:
-        - configMap:
-            defaultMode: 0744
-            name: {{ .Values.logging.name }}-init
-          name: {{ .Values.logging.name }}-init
-        - name: cacerts
-          emptyDir: {}
-        - name: secret-volume
-          secret:
-  {{- if .Values.logging.elasticsearchSecret }}
-            secretName: {{ .Values.logging.elasticsearchSecret }}
-  {{- else }}
-            secretName: verrazzano-es-internal
-  {{- end }}
-  {{- if .Values.fluentd.oci }}
-  {{- if .Values.fluentd.oci.apiSecret }}
-        - name: oci-secret-volume
-          secret:
-            secretName: {{ .Values.fluentd.oci.apiSecret }}
-  {{- end }}
-  {{- end }}
-        - configMap:
-            name: {{ .Values.logging.name }}-config
-          name: {{ .Values.logging.name }}-config
-        - hostPath:
-            path: /var/log
-            type: ""
-          name: varlog
-        - hostPath:
-            path: /var/lib
-            type: ""
-          name: varlib
-        - hostPath:
-            path: /run/log/journal
-            type: ""
-          name: run-log-journal
-{{- if .Values.fluentd.extraVolumeMounts }}
-{{- range $i, $e := .Values.fluentd.extraVolumeMounts }}
-        - hostPath:
-            path: {{ $e.source }}
-            type: ""
-          name: extra-volume-{{ $i }}
-{{- end }}
-{{- end }}
-  updateStrategy:
-    rollingUpdate:
-      maxUnavailable: 1
-    type: RollingUpdate
-{{- end }}
