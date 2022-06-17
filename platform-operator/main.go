@@ -70,13 +70,10 @@ func init() {
 }
 
 func main() {
-	var wg sync.WaitGroup
-	wg.Add(1)
 
 	go func() {
 		http.Handle("/metrics", prometheushttp.Handler())
 		http.ListenAndServe(":9100", nil)
-		defer wg.Done()
 	}()
 
 	// config will hold the entire operator config
@@ -266,5 +263,4 @@ func main() {
 		log.Errorf("Failed starting controller-runtime manager: %v", err)
 		os.Exit(1)
 	}
-	wg.Wait()
 }
