@@ -185,9 +185,8 @@ pipeline {
         TF_VAR_prefix="vz-$TEST_ENV"
         TF_VAR_proxy="http://www-proxy-hqdc.us.oracle.com:80"
         TF_VAR_use_vault="false"
-        TF_VAR_ssh_public_key_path=credentials('oci-tf-pub-ssh-key')
-        // TODO: Figure out the private key to be used for the instances, is it ~/.ssh/id_rsa in the Jenkins env?
-        // TF_VAR_ssh_private_key_path=credentials('oci-tf-pvt-ssh-key')
+        TF_VAR_ssh_public_key_path="$WORKSPACE/terraform-oci-olcne/id_rsa.pub"
+        TF_VAR_ssh_private_key_path="$WORKSPACE/terraform-oci-olcne/id_rsa"
         TF_VAR_worker_node_count="${params.WORKER_NODE_COUNT}"
         TF_VAR_control_plane_node_count="${params.CONTROL_PLANE_NODE_COUNT}"
         TF_VAR_os_version="${params.OLCNE_OS_VERSION}"
@@ -307,10 +306,12 @@ pipeline {
                         rm -rf $WORKSPACE/*
                     '''
 
-                    // Install terraform
+                    // Install terraform and generate ssh keys
                     sh '''
                         sudo yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/x86_64 
                         sudo yum install -y terraform
+                        mkdir -p $WORKSPACE/terraform-oci-olcne
+                        ssh-keygen -t rsa -b 4096 -q -N "" -f $TF_VAR_ssh_private_key_path
                     '''
 
                     sh '''
