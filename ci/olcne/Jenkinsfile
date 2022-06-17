@@ -283,11 +283,6 @@ pipeline {
                         rm -rf $WORKSPACE/*
                     '''
 
-                    sh '''
-                        ls $WORKSPACE
-                        ls $GO_REPO_PATH
-                    '''
-
                     echo "[INFO] SCM checkout of $OLCNE_TERRAFORM_GIT_URL $OLCNE_BRANCH_TO_USE"
                     def scmInfo=checkout([
                         $class: 'GitSCM',
@@ -312,9 +307,9 @@ pipeline {
                         rm -rf $WORKSPACE/*
                     '''
 
+                    // Install terraform
                     sh '''
-                        ls $WORKSPACE
-                        ls $GO_REPO_PATH
+                        yum install -y terraform
                     '''
 
                     sh '''
