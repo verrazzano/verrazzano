@@ -283,7 +283,7 @@ pipeline {
                         doGenerateSubmoduleConfigurations: false,
                         extensions: [],
                         submoduleCfg: [],
-                        userRemoteConfigs: [[url: env.SCM_TERRAFORM_OCI_OLCNE_GIT_URL]]])
+                        userRemoteConfigs: [[url: env.OLCNE_TERRAFORM_GIT_URL]]])
                     env.TF_GIT_COMMIT=scmInfo.GIT_COMMIT
                     env.TF_GIT_BRANCH=scmInfo.GIT_BRANCH
                     // If the commit we were handed is not what the SCM says we are using, fail
