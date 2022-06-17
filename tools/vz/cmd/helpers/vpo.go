@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -194,7 +195,7 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 	logChanQuit := make(chan bool)
 	resChan := make(chan error, 1)
 
-	// goroutine to stream the log output until a quit message is sent over a channel
+	// goroutine to scan log file output and send it to a channel to be logged
 	re := regexp.MustCompile(`"level":"(.*?)","@timestamp":"(.*?)",(.*?)"message":"(.*?)",`)
 	go func() {
 		sc := bufio.NewScanner(rc)
@@ -223,16 +224,16 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 	}()
 
 	// goroutine to output the log messages read on the scan channel
-	go func() {
+	go func(outputStream io.Writer) {
 		for {
 			select {
 			case <-logChanQuit:
 				return
 			case <-logChanText:
-				fmt.Fprintf(vzHelper.GetOutputStream(), <-logChanText)
+				fmt.Fprintf(outputStream, <-logChanText)
 			}
 		}
-	}()
+	}(vzHelper.GetOutputStream())
 
 	// goroutine to wait for the completion of the operation
 	go func() {
