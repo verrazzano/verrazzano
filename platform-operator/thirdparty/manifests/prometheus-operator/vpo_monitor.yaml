@@ -5,25 +5,16 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: vpo #name of service monitor
-  namespace: {{ .monitoringNamespace }} #namespace of service monitor
+  namespace: verrazzano-monitoring #namespace of service monitor
   labels:
     release: prometheus-operator #this tells prometheus to select this monitor for use
 spec:
   namespaceSelector:
     matchNames:
-      - {{ .installNamespace }} #the service monitor will search in this namespace
-  selector: {}
+      - verrazzano-install #the service monitor will search in this namespace
+  selector: 
   endpoints:
-  - relabelings:
-      - sourceLabels:
-          - __meta_kubernetes_service_name
-          - __meta_kubernetes_endpoint_port_name
-        regex: verrazzano-platform-operator;http-metric-vpo #The service to search for and the service endpoint
-        action: keep
-      - sourceLabels:
-          - __meta_kubernetes_service_label_app
-        targetLabel: k8s-app #the label the monitor will use to match the service
-      - sourceLabels:
-          - __meta_kubernetes_pod_container_port_number
-        regex: "9100" #service port
-        action: keep
+  - port: http-metric-vpo
+    path: /metrics
+    interval: 30s
+    scheme: http
