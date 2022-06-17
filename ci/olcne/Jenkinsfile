@@ -309,7 +309,7 @@ pipeline {
 
                     // Install terraform
                     sh '''
-                        yum install -y terraform
+                        sudo yum install -y terraform
                     '''
 
                     sh '''
