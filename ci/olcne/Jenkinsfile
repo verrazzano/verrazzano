@@ -309,6 +309,7 @@ pipeline {
 
                     // Install terraform
                     sh '''
+                        sudo yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/x86_64 
                         sudo yum install -y terraform
                     '''
 
