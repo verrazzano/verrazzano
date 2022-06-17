@@ -4174,6 +4174,9 @@ func TestIngressTraitIsDeleted(t *testing.T) {
 
 	cert1 := certapiv1.Certificate{}
 	assert.True(k8serrors.IsNotFound(cli.Get(context.TODO(), types.NamespacedName{Namespace: cert.Namespace, Name: cert.Name}, &cert1)))
+
+	trait1 := vzapi.IngressTrait{}
+	assert.True(k8serrors.IsNotFound(cli.Get(context.TODO(), types.NamespacedName{Namespace: trait.Namespace, Name: trait.Name}, &trait1)))
 }
 
 func createReconcilerWithFake(initObjs ...client.Object) Reconciler {
