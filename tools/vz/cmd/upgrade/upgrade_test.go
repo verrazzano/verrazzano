@@ -6,7 +6,9 @@ package upgrade
 import (
 	"bytes"
 	"context"
-	"fmt"
+	"os"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -18,9 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 // TestUpgradeCmdDefaultNoWait
@@ -326,21 +326,4 @@ func TestUpgradeCmdNoVerrazzano(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Verrazzano is not installed: Failed to find any Verrazzano resources\n", errBuf.String())
-}
-
-// TestUpgradeValidations
-// GIVEN an upgrade command
-//  WHEN invalid command options exist
-//  THEN expect an error
-func TestUpgradeValidations(t *testing.T) {
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	cmd := NewCmdUpgrade(rc)
-	assert.NotNil(t, cmd)
-	cmd.PersistentFlags().Set(constants.OperatorFileFlag, "test")
-	cmd.PersistentFlags().Set(constants.VersionFlag, "test")
-	err := cmd.Execute()
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), fmt.Sprintf("--%s and --%s cannot both be specified", constants.VersionFlag, constants.OperatorFileFlag))
 }
