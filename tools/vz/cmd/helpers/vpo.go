@@ -190,8 +190,9 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 	}
 	defer rc.Close()
 
-	resChan := make(chan error, 1)
+	logChanText := make(chan string)
 	logChanQuit := make(chan bool)
+	resChan := make(chan error, 1)
 
 	// goroutine to stream the log output until a quit message is sent over a channel
 	re := regexp.MustCompile(`"level":"(.*?)","@timestamp":"(.*?)",(.*?)"message":"(.*?)",`)
@@ -212,11 +213,23 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 					if res != nil {
 						// Print each log message in the form "timestamp level message".
 						// For example, "2022-06-03T00:05:10.042Z info Component keycloak successfully installed"
-						fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("%s %s %s\n", res[0][2], res[0][1], res[0][4]))
+						logChanText <- fmt.Sprintf("%s %s %s\n", res[0][2], res[0][1], res[0][4])
 					}
 				} else if logFormat == LogFormatJSON {
-					fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("%s\n", sc.Text()))
+					logChanText <- fmt.Sprintf("%s\n", sc.Text())
 				}
+			}
+		}
+	}()
+
+	// goroutine to output the log messages read on the scan channel
+	go func() {
+		for {
+			select {
+			case <-logChanQuit:
+				return
+			case <-logChanText:
+				fmt.Fprintf(vzHelper.GetOutputStream(), <-logChanText)
 			}
 		}
 	}()
