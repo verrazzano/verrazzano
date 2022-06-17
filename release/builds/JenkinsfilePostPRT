@@ -32,10 +32,14 @@ pipeline {
         DOCKER_REPO = 'ghcr.io'
         IS_PATCH_RELEASE = 'false'
 
-        OCI_CLI_AUTH = "instance_principal"
-        OCI_REGION = "us-phoenix-1"
-        OBJECT_STORAGE_NS = credentials('oci-os-namespace')
-        OBJECT_STORAGE_BUCKET="verrazzano-builds"
+        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+        OCI_OS_BUCKET="verrazzano-builds"
+        OCI_OS_REGION="us-phoenix-1"
+        OCI_CLI_AUTH="api_key"
+        OCI_CLI_TENANCY = credentials('oci-tenancy')
+        OCI_CLI_USER = credentials('oci-user-ocid')
+        OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
+        OCI_CLI_KEY_FILE = credentials('oci-api-key')
 
         RELEASE_BINARIES_DIR = "${WORKSPACE}/release/scripts/release_work"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
