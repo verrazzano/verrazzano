@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"istio.io/api/meta/v1alpha1"
 	"istio.io/client-go/pkg/apis/security/v1beta1"
 	"os"
 	"strings"
@@ -4063,64 +4064,99 @@ func getIngressTraitResourceExpectations(mock *mocks.MockClient, assert *asserts
 		})
 }
 
-// TestDeleteCertAndSecretWhenIngressTraitIsDeleted tests the Reconcile method for the following use case.
-// GIVEN a request to reconcile an ingress trait resource that is marked for deletion
-// WHEN the ingress trait exists
-// THEN ensure that the cert and secret trait resources associated with the ingress trait are also deleted
-func TestDeleteCertAndSecretWhenIngressTraitIsDeleted(t *testing.T) {
+func TestIngressTraitIsDeleted(t *testing.T) {
 	assert := asserts.New(t)
-	mocker := gomock.NewController(t)
-	cli := mocks.NewMockClient(mocker)
-	const testAppName = "test-app"
-	// expect a call to fetch the IngressTrait
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testTraitName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.IngressTrait) error {
-			trait.ObjectMeta = ctrl.ObjectMeta{
-				Namespace:         testNamespace,
-				Name:              testTraitName,
-				Finalizers:        []string{finalizerName},
-				Labels:            map[string]string{oam.LabelAppName: testAppName, oam.LabelAppComponent: "mycomp"},
-				DeletionTimestamp: &metav1.Time{Time: time.Now()}}
-			return nil
-		})
-	// Expect a call to delete the cert
-	cli.EXPECT().
-		Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, cert *certapiv1.Certificate, opt *client.DeleteOptions) error {
-			assert.Equal(constants.IstioSystemNamespace, cert.Namespace)
-			assert.Equal(fmt.Sprintf("%s-%s-cert", testNamespace, testTraitName), cert.Name)
-			return nil
-		})
-	// Expect a call to delete the secret
-	cli.EXPECT().
-		Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, sec *k8score.Secret, opt *client.DeleteOptions) error {
-			assert.Equal(constants.IstioSystemNamespace, sec.Namespace)
-			assert.Equal(fmt.Sprintf("%s-%s-cert-secret", testNamespace, testTraitName), sec.Name)
-			return nil
-		})
+	cli := fake.NewClientBuilder().WithScheme(newScheme()).Build()
+	params := map[string]string{
+		"NAMESPACE_NAME":      "test-namespace",
+		"APPCONF_NAME":        "test-appconf",
+		"APPCONF_NAMESPACE":   "test-namespace",
+		"COMPONENT_NAME":      "test-comp",
+		"COMPONENT_NAMESPACE": "test-namespace",
+		"TRAIT_NAME":          "test-trait",
+		"TRAIT_NAMESPACE":     "test-namespace",
+		"WORKLOAD_NAME":       "test-workload",
+		"WORKLOAD_NAMESPACE":  "test-namespace",
+		"WORKLOAD_KIND":       "VerrazzanoWebLogicWorkload",
+		"DOMAIN_NAME":         "test-domain",
+		"DOMAIN_NAMESPACE":    "test-namespace",
+		"DOMAIN_UID":          "test-domain-uid",
+	}
+	istioNs := &corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Namespace",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: constants.IstioSystemNamespace,
+		},
+		Spec:   k8score.NamespaceSpec{},
+		Status: k8score.NamespaceStatus{},
+	}
+	assert.NoError(cli.Create(context.TODO(), istioNs))
+	// Create Namespace
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
+	// Create trait
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/ingress_trait_instance.yaml", params))
+	trait := &vzapi.IngressTrait{}
+	assert.NoError(cli.Get(context.TODO(), types.NamespacedName{Name: params["TRAIT_NAME"], Namespace: params["TRAIT_NAMESPACE"]}, trait))
+	trait.DeletionTimestamp = &metav1.Time{time.Now()}
+	assert.NoError(cli.Update(context.TODO(), trait))
 
-	// Expect a call to update the ingress trait resource with the finalizer removed.
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait, options ...client.UpdateOption) error {
-			assert.Equal(testNamespace, trait.Namespace)
-			assert.Equal(testTraitName, trait.Name)
-			assert.Len(trait.Finalizers, 0)
-			return nil
-		})
+	sec := &k8score.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Secret",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      buildCertificateSecretName(trait),
+			Namespace: constants.IstioSystemNamespace,
+		},
+		Immutable:  nil,
+		Data:       nil,
+		StringData: nil,
+		Type:       "",
+	}
+	assert.NoError(cli.Create(context.TODO(), sec))
 
-	// Create and make the request
-	request := newRequest(testNamespace, testTraitName)
+	cert := &certapiv1.Certificate{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Cerificate",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      buildCertificateName(trait),
+			Namespace: istioSystemNamespace,
+		},
+		Spec:   certapiv1.CertificateSpec{},
+		Status: certapiv1.CertificateStatus{},
+	}
+	assert.NoError(cli.Create(context.TODO(), cert))
+
+	gwName := fmt.Sprintf("%s-%s-gw", trait.Name, trait.Labels[oam.LabelAppName])
+	server := []*istionet.Server{
+		{
+			Name: trait.Name,
+		},
+	}
+	gw := &istioclient.Gateway{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: gatewayAPIVersion,
+			Kind:       gatewayKind,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      gwName,
+			Namespace: trait.Namespace,
+		},
+		Spec: istionet.Gateway{
+			Servers: server,
+		},
+		Status: v1alpha1.IstioStatus{},
+	}
+	assert.NoError(cli.Create(context.TODO(), gw))
 	reconciler := newIngressTraitReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
-
-	// Validate the results
-	mocker.Finish()
+	res, err := reconciler.Reconcile(context.TODO(), ctrl.Request{types.NamespacedName{Name: trait.Name, Namespace: trait.Namespace}})
 	assert.NoError(err)
-	assert.Equal(false, result.Requeue)
-	assert.Equal(time.Duration(0), result.RequeueAfter)
+	assert.Equal(res.Requeue, false)
+	assert.NoError(cli.Get(context.TODO(), types.NamespacedName{Name: gw.Name, Namespace: gw.Namespace}, gw))
+	assert.Len(gw.Spec.Servers, 0)
 }
 
 func createReconcilerWithFake(initObjs ...client.Object) Reconciler {

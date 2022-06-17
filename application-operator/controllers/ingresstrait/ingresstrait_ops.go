@@ -136,6 +136,9 @@ func cleanupGateway(trait *vzapi.IngressTrait, c client.Client, log vzlog.Verraz
 	gateway := &istioclient.Gateway{}
 	err = c.Get(context.TODO(), types.NamespacedName{Name: gwName, Namespace: trait.Namespace}, gateway)
 	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
 		return log.ErrorfThrottledNewErr(fmt.Sprintf("Failed to fetch gateway: %v", err))
 	}
 
