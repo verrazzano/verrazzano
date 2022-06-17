@@ -55,6 +55,9 @@ docker-push: ## build and push all images
 	(cd application-operator; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG})
 	(cd platform-operator; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} VERRAZZANO_APPLICATION_OPERATOR_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE})
 
+.PHONY: docker-push-tls
+	(cd tls-secret-generator; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_TLS_SECRET_GENERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG})
+
 .PHONY: docker-push-ipo
 docker-push-ipo: ## build and push just the Image Patch Operator
 	(cd image-patch-operator; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_IMAGE_PATCH_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG})
