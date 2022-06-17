@@ -56,6 +56,7 @@ docker-push: ## build and push all images
 	(cd platform-operator; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} VERRAZZANO_APPLICATION_OPERATOR_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE})
 
 .PHONY: docker-push-tls
+docker-push-tls: ## build and push the TLS Secret Generator
 	(cd tls-secret-generator; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_TLS_SECRET_GENERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG})
 
 .PHONY: docker-push-ipo
