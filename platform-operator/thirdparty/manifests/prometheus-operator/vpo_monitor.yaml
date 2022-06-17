@@ -13,6 +13,8 @@ spec:
     matchNames:
       - verrazzano-install #the service monitor will search in this namespace
   selector: 
+    matchLabels:
+      k8s-app: verrazzano-platform-operator
   endpoints:
   - port: http-metric-vpo
     path: /metrics
