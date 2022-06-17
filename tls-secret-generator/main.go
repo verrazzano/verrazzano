@@ -5,6 +5,7 @@ package main
 
 import (
 	"flag"
+	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"os"
 
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
@@ -23,6 +24,7 @@ var (
 
 func init() {
 	utilruntime.Must(corev1.AddToScheme(scheme))
+	utilruntime.Must(promoperapi.AddToScheme(scheme))
 }
 
 var (
