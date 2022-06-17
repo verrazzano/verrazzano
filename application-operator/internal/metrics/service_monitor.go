@@ -5,6 +5,7 @@ package metrics
 
 import (
 	"fmt"
+	"strconv"
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -111,7 +112,7 @@ func createServiceMonitorEndpoint(info ScrapeInfo, portIncrement int) (promopera
 	if info.VZPrometheusLabels != nil && *info.VZPrometheusLabels {
 		var portString string
 		if portIncrement > 0 {
-			portString = fmt.Sprintf("_%d", portIncrement)
+			portString = strconv.Itoa(portIncrement)
 		}
 		enabledLabel = fmt.Sprintf("__meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled%s", portString)
 		portLabel = fmt.Sprintf("__meta_kubernetes_pod_annotation_verrazzano_io_metricsPort%s", portString)
