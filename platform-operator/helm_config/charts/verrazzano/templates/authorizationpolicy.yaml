@@ -4,6 +4,7 @@
 #
 # Istio AuthorizationPolicy for verrazzano-authproxy
 #
+{{- if .Values.istio.enabled }}
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
@@ -268,4 +269,5 @@ spec:
       to:
         - operation:
             ports: ["15090"]
+{{- end }}
 {{- end }}

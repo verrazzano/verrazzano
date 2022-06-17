@@ -42,3 +42,5 @@ jaegerOperator:
   enabled: false
 velero:
   enabled: false
+istio:
+  enabled: true

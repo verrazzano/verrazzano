@@ -89,7 +89,7 @@ func (rc *RootCmdContext) GetKubeClient(cmd *cobra.Command) (kubernetes.Interfac
 // GetHTTPClient - return an HTTP client
 func (rc *RootCmdContext) GetHTTPClient() *http.Client {
 	return &http.Client{
-		Timeout: time.Second * 30,
+		Timeout: time.Second * 120,
 	}
 }
 
