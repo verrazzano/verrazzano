@@ -99,7 +99,7 @@ endif
 #
 .PHONY: unit-test
 unit-test: go-install
-	$(GO) test -v ./api/... ./controllers/...
+	$(GO) test -v ./controllers/...
 
 # Generate mocks
 .PHONY: mock-gen
