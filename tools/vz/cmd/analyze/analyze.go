@@ -14,8 +14,8 @@ import (
 
 const (
 	CommandName = "analyze"
-	helpShort   = "Verrazzano Analysis Tool"
-	helpLong    = "Verrazzano Analysis Tool"
+	helpShort   = "Analyze cluster"
+	helpLong    = `Analyze cluster for identifying issues and providing advice`
 	helpExample = `# Run analysis tool on captured directory
 $vz analyze --captured-dir <path>
 `
@@ -40,7 +40,13 @@ func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 
 func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
 	directory, err := cmd.PersistentFlags().GetString(constants.DirectoryFlagName)
+	if err != nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", err.Error())
+	}
 	reportFileName, err := cmd.PersistentFlags().GetString(constants.ReportFileFlagName)
+	if err != nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", err.Error())
+	}
 	reportFormat, err := GetLogFormat(cmd)
 	if err != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", err.Error())
