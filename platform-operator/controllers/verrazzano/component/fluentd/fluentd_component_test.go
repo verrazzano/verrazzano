@@ -6,6 +6,7 @@ package fluentd
 import (
 	"github.com/stretchr/testify/assert"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -33,6 +34,7 @@ const (
 )
 
 var enabled = true
+var notEnabled = false
 var fluentdEnabledCR = &vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		Components: vzapi.ComponentSpec{
@@ -268,27 +270,37 @@ func TestPostUpgrade(t *testing.T) {
 func TestPreInstall(t *testing.T) {
 	var tests = []struct {
 		name   string
+		spec   *vzapi.Verrazzano
 		client client.Client
-		isErr  bool
+		err    error
 	}{
 		{
-			"should fail when verrazzano-es-internal secret does not exist",
+			"should fail when verrazzano-es-internal secret does not exist and keycloak is enabled",
+			keycloakEnabledCR,
 			createFakeClient(),
-			true,
+			ctrlerrors.RetryableError{Source: ComponentName},
 		},
 		{
-			"should pass when verrazzano-es-internal secret does exist",
+			"should pass when verrazzano-es-internal secret does exist and keycloak is enabled",
+			keycloakEnabledCR,
 			createFakeClient(vzEsInternalSecret),
-			false,
+			nil,
+		},
+		{
+			"always nil error when keycloak is disabled",
+			keycloakDisabledCR,
+			createFakeClient(),
+			nil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, false)
+			ctx := spi.NewFakeContext(tt.client, tt.spec, false)
 			err := NewComponent().PreInstall(ctx)
-			if tt.isErr {
+			if tt.err != nil {
 				assert.Error(t, err)
+				assert.IsTypef(t, tt.err, err, "")
 			} else {
 				assert.NoError(t, err)
 			}
@@ -343,27 +355,37 @@ func TestPreUpgrade(t *testing.T) {
 
 	var tests = []struct {
 		name   string
+		spec   *vzapi.Verrazzano
 		client client.Client
-		isErr  bool
+		err    error
 	}{
 		{
-			"should fail when verrazzano-es-internal secret does not exist",
+			"should fail when verrazzano-es-internal secret does not exist and keycloak is enabled",
+			keycloakEnabledCR,
 			createFakeClient(),
-			true,
+			ctrlerrors.RetryableError{Source: ComponentName},
 		},
 		{
-			"should pass when verrazzano-es-internal secret does exist",
+			"should pass when verrazzano-es-internal secret does exist and keycloak is enabled",
+			keycloakEnabledCR,
 			createFakeClient(vzEsInternalSecret),
-			false,
+			nil,
+		},
+		{
+			"always nil error when keycloak is disabled",
+			keycloakDisabledCR,
+			createFakeClient(),
+			nil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, false)
+			ctx := spi.NewFakeContext(tt.client, tt.spec, false)
 			err := NewComponent().PreUpgrade(ctx)
-			if tt.isErr {
+			if tt.err != nil {
 				assert.Error(t, err)
+				assert.IsTypef(t, tt.err, err, "")
 			} else {
 				assert.NoError(t, err)
 			}

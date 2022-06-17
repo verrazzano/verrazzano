@@ -22,6 +22,26 @@ import (
 	"testing"
 )
 
+var keycloakEnabledCR = &vzapi.Verrazzano{
+	Spec: vzapi.VerrazzanoSpec{
+		Components: vzapi.ComponentSpec{
+			Keycloak: &vzapi.KeycloakComponent{
+				Enabled: &enabled,
+			},
+		},
+	},
+}
+
+var keycloakDisabledCR = &vzapi.Verrazzano{
+	Spec: vzapi.VerrazzanoSpec{
+		Components: vzapi.ComponentSpec{
+			Keycloak: &vzapi.KeycloakComponent{
+				Enabled: &notEnabled,
+			},
+		},
+	},
+}
+
 func TestIsFluentdReady(t *testing.T) {
 	boolTrue, boolFalse := true, false
 	var tests = []struct {
@@ -305,27 +325,33 @@ func TestLoggingPreInstallFluentdNotEnabled(t *testing.T) {
 func TestCheckSecretExists(t *testing.T) {
 	var tests = []struct {
 		name   string
+		spec   *vzapi.Verrazzano
 		client clipkg.Client
-		isErr  bool
 		err    error
 	}{
 		{
-			"should fail when verrazzano-es-internal secret does not exist",
+			"should fail when verrazzano-es-internal secret does not exist and keycloak is enabled",
+			keycloakEnabledCR,
 			createFakeClient(),
-			false,
 			ctrlerrors.RetryableError{Source: ComponentName},
 		},
 		{
-			"should pass when verrazzano-es-internal secret does exist",
+			"should pass when verrazzano-es-internal secret does exist and keycloak is enabled",
+			keycloakEnabledCR,
 			createFakeClient(vzEsInternalSecret),
-			false,
+			nil,
+		},
+		{
+			"always nil error when keycloak is disabled",
+			keycloakDisabledCR,
+			createFakeClient(),
 			nil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, false)
+			ctx := spi.NewFakeContext(tt.client, tt.spec, false)
 			err := checkSecretExists(ctx)
 			if tt.err != nil {
 				assert.Error(t, err)

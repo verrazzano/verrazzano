@@ -33,22 +33,24 @@ const (
 
 //checkSecretExists whether verrazzano-es-internal secret exists. Return error if secret does not exist.
 func checkSecretExists(ctx spi.ComponentContext) error {
-	// Check verrazzano-es-internal Secret. return error which will cause requeue
-	secret := &corev1.Secret{}
-	err := ctx.Client().Get(context.TODO(), clipkg.ObjectKey{
-		Namespace: constants.VerrazzanoSystemNamespace,
-		Name:      globalconst.VerrazzanoESInternal,
-	}, secret)
+	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
+		// Check verrazzano-es-internal Secret. return error which will cause requeue
+		secret := &corev1.Secret{}
+		err := ctx.Client().Get(context.TODO(), clipkg.ObjectKey{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      globalconst.VerrazzanoESInternal,
+		}, secret)
 
-	if err != nil {
-		if errors.IsNotFound(err) {
-			ctx.Log().Progressf("Component Fluentd waiting for the secret %s/%s to exist",
-				constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoESInternal)
-			return ctrlerrors.RetryableError{Source: ComponentName}
+		if err != nil {
+			if errors.IsNotFound(err) {
+				ctx.Log().Progressf("Component Fluentd waiting for the secret %s/%s to exist",
+					constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoESInternal)
+				return ctrlerrors.RetryableError{Source: ComponentName}
+			}
+			ctx.Log().Errorf("Component Fluentd failed to get the secret %s/%s: %v",
+				constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoESInternal, err)
+			return err
 		}
-		ctx.Log().Errorf("Component Fluentd failed to get the secret %s/%s: %v",
-			constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoESInternal, err)
-		return err
 	}
 	return nil
 }
