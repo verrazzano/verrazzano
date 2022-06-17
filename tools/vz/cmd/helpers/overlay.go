@@ -21,20 +21,20 @@ func MergeYAMLFiles(filenames []string) (*vzapi.Verrazzano, error) {
 	if len(filenames) == 0 {
 		return nil, fmt.Errorf("Failed to merge files - no files specified")
 	}
-	var vzYaml string
+	var vzYAML string
 	for _, filename := range filenames {
 		readBytes, err := os.ReadFile(strings.TrimSpace(filename))
 		if err != nil {
 			return nil, err
 		}
-		vzYaml, err = overlayVerrazzano(vzYaml, string(readBytes))
+		vzYAML, err = overlayVerrazzano(vzYAML, string(readBytes))
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	vz := &vzapi.Verrazzano{}
-	err := yaml.Unmarshal([]byte(vzYaml), &vz)
+	err := yaml.Unmarshal([]byte(vzYAML), &vz)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create a verrazzano install resource: %s", err.Error())
 	}
@@ -59,8 +59,6 @@ func MergeSetFlags(vz *vzapi.Verrazzano, overlayYAML string) (*vzapi.Verrazzano,
 	if err != nil {
 		return vz, err
 	}
-	// TODO: remove this
-	fmt.Println("vzYaml:\n", vzYAML)
 
 	err = yaml.Unmarshal([]byte(vzYAML), &vz)
 	if err != nil {
