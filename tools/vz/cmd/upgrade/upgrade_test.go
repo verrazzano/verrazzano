@@ -275,6 +275,7 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.OperatorFileFlag, "../../test/testdata/operator-file-fake.yaml")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.2.3")
 
 	// Run upgrade command
 	err := cmd.Execute()
@@ -294,6 +295,11 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 	svc := corev1.Service{}
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "verrazzano-install", Name: "verrazzano-platform-operator"}, &svc)
 	assert.NoError(t, err)
+
+	// Verify the version got updated
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, vz)
+	assert.NoError(t, err)
+	assert.Equal(t, "v1.2.3", vz.Spec.Version)
 }
 
 // TestUpgradeCmdNoVerrazzano

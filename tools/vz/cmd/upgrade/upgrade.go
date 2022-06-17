@@ -94,15 +94,8 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	}
 	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Upgrading Verrazzano to version %s\n", version))
 
-	// When --operator-file is used, the version being upgraded to is not used to locate the
-	// operator file to apply.  Pass in an empty version string.
-	var applyVersion = version
-	if cmd.PersistentFlags().Changed(constants.OperatorFileFlag) {
-		applyVersion = ""
-	}
-
 	// Apply the Verrazzano operator.yaml
-	err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, applyVersion)
+	err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)
 	if err != nil {
 		return err
 	}
