@@ -59,7 +59,7 @@ const VerrazzanoPlatformOperatorWait = 1
 const (
 	DirectoryFlagName  = "captured-dir"
 	DirectoryFlagValue = ""
-	DirectoryFlagUsage = "Directory holding the captured data"
+	DirectoryFlagUsage = "Directory holding the captured data [Required]"
 
 	ReportFileFlagName  = "report-file"
 	ReportFileFlagValue = ""

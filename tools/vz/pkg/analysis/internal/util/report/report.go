@@ -98,7 +98,7 @@ func ContributeIssue(log *zap.SugaredLogger, issue Issue) (err error) {
 // Also add other niceties like time, Summary of what was analyzed, if no issues were found, etc...
 func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat string, includeSupportData bool, includeInfo bool, includeActions bool, minConfidence int, minImpact int, vzHelper helpers.VZHelper) (err error) {
 	// Default to stdout if no reportfile is supplied
-
+	//TODO: Eventually add support other reportFormat type (json)
 	var writeOut = bufio.NewWriter(vzHelper.GetOutputStream())
 	if len(reportFile) > 0 {
 		log.Debugf("Generating human report to file: %s", reportFile)
