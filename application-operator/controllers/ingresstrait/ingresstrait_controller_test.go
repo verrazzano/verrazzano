@@ -4104,7 +4104,7 @@ func TestIngressTraitIsDeleted(t *testing.T) {
 	trait := &vzapi.IngressTrait{}
 	assert.NoError(cli.Get(context.TODO(), types.NamespacedName{Namespace: params["TRAIT_NAMESPACE"], Name: params["TRAIT_NAME"]}, trait))
 	trait.Finalizers = []string{finalizerName}
-	trait.DeletionTimestamp = &metav1.Time{time.Now()}
+	trait.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 	assert.NoError(cli.Update(context.TODO(), trait))
 	tt := vzapi.IngressTrait{}
 	assert.NoError(cli.Get(context.TODO(), types.NamespacedName{Namespace: trait.Namespace, Name: trait.Name}, &tt))
