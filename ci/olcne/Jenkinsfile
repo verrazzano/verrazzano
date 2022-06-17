@@ -184,7 +184,7 @@ pipeline {
         TF_VAR_deploy_networking="true"
         TF_VAR_bastion_enabled="true"
         TF_VAR_bastion_private_key_path="$WORKSPACE/terraform-oci-olcne/id_rsa"
-        TF_VAR_prefix="vz"
+        TF_VAR_prefix="vz-$TEST_ENV"
         TF_VAR_proxy="http://www-proxy-hqdc.us.oracle.com:80"
         TF_VAR_use_vault="false"
         TF_VAR_ssh_public_key_path="$WORKSPACE/terraform-oci-olcne/id_rsa.pub"
@@ -340,9 +340,6 @@ pipeline {
         }
 
         stage("Create OLCNE cluster") {
-            environment {
-                TF_VAR_prefix="$OLCNE_CLUSTER_PREFIX"
-            }
             steps {
                 script {
                     echo "[INFO] Creating OLCNE cluster"
@@ -378,9 +375,6 @@ pipeline {
         }
 
        stage("Create OCI DNS zone") {
-            environment {
-                TF_VAR_prefix="$OLCNE_CLUSTER_PREFIX"
-            }
             steps {
                 script {
                     echo "[INFO] Creating OCI DNS Zone"
@@ -868,7 +862,6 @@ def metricBuildDuration() {
         }
     }
 }
-
 
 def setDisplayName() {
     echo "[INFO] Start setDisplayName"
