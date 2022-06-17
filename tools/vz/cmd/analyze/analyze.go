@@ -23,6 +23,9 @@ $vz analyze --captured-dir <path>
 
 func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
+	cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		return validateReportFormat(cmd)
+	}
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return runCmdAnalyze(cmd, args, vzHelper)
 	}
@@ -38,22 +41,26 @@ func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
 	directory, err := cmd.PersistentFlags().GetString(constants.DirectoryFlagName)
 	reportFileName, err := cmd.PersistentFlags().GetString(constants.ReportFileFlagName)
-	reportFormat, err := cmd.PersistentFlags().GetString(constants.ReportFormatFlagName)
+	reportFormat, err := GetLogFormat(cmd)
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags with error: %s", err.Error())
+		fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", err.Error())
 	}
 
-	err = validateFormat(reportFormat)
-	if err != nil {
-		return err
-	}
-
-	return analysis.AnalysisMain(vzHelper, directory, reportFileName, reportFormat)
+	return analysis.AnalysisMain(vzHelper, directory, reportFileName, reportFormat.String())
 }
 
-func validateFormat(format string) error {
-	if format == "simple" {
+func validateReportFormat(cmd *cobra.Command) error {
+	reportFormatValue, _ := GetLogFormat(cmd)
+	if reportFormatValue == "simple" {
 		return nil
 	}
-	return fmt.Errorf("unsupported output format: %s, only supported type is \"simple\"", format)
+	return fmt.Errorf("unsupported output format: %s, only supported type is \"simple\"", reportFormatValue)
+}
+
+func GetLogFormat(cmd *cobra.Command) (cmdhelpers.LogFormat, error) {
+	logFormat := cmd.PersistentFlags().Lookup(constants.ReportFormatFlagName)
+	if logFormat == nil {
+		return cmdhelpers.LogFormatSimple, nil
+	}
+	return cmdhelpers.LogFormat(logFormat.Value.String()), nil
 }

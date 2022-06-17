@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-var imagePullCase1 = "/Users/sdosapat/src/github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/test/cluster/image-pull-case1"
+var imagePullCase1 = "../../pkg/analysis/test/cluster/image-pull-case1/"
 
 func TestAnalyzeCommandDefault(t *testing.T) {
 	// Send stdout stderr to a byte buffer
@@ -98,3 +98,6 @@ func TestAnalyzeCommandCapturedDirInvalid(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Cluster Analyzer runAnalysis didn't find any clusters")
 }
+
+//TODO sdosapat add UT for bhat's changes with new cluster dump
+//verrazzano/tools/analysis/test/cluster/ingress-ip-not-found/cluster-dump/
