@@ -165,7 +165,7 @@ pipeline {
         KUBECONFIG="$WORKSPACE/test_kubeconfig"
         VERRAZZANO_KUBECONFIG="$KUBECONFIG"
         INSTALL_CONFIG_FILE_OLCNE="$WORKSPACE/tests/e2e/config/scripts/install-verrazzano-olcne.yaml"
-        OLCNE_BRANCH_TO_USE="release/$OLCNE_VERSION"
+        OLCNE_BRANCH_TO_USE="origin/release/$OLCNE_VERSION"
         API_SERVER_IP=""
         CONTROL_PLANE_NODES_IP=""
         WORKER_NODES_IP=""
