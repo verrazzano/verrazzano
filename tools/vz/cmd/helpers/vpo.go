@@ -180,6 +180,10 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 // shows the logs of the ongoing Verrazzano install/upgrade.
 func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration, logFormat LogFormat, condType vzapi.ConditionType) error {
 	// Tail the log messages from the verrazzano-platform-operator starting at the current time.
+	//
+	// The stream is intentionally not closed due to not being able to cancel a blocking read.  The calls to
+	// read input from this stream (sc.Scan) are blocking.  If you try to close the stream, it hangs until the
+	// next read is satisfied, which may never occur if there is no more log output.
 	sinceTime := metav1.Now()
 	rc, err := kubeClient.CoreV1().Pods(vzconstants.VerrazzanoInstallNamespace).GetLogs(vpoPodName, &corev1.PodLogOptions{
 		Container: constants.VerrazzanoPlatformOperator,
@@ -189,39 +193,30 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 	if err != nil {
 		return fmt.Errorf("Failed to read the %s log file: %s", constants.VerrazzanoPlatformOperator, err.Error())
 	}
-	defer rc.Close()
-
-	// Create the channels
-	logChanQuit := make(chan bool)
-	defer close(logChanQuit)
 
 	resChan := make(chan error, 1)
 	defer close(resChan)
 
-	// goroutine to stream log file output
+	// goroutine to stream log file output - this goroutine will be left running when this
+	// function is exited because there is no way to cancel the blocking read to the input stream.
 	re := regexp.MustCompile(`"level":"(.*?)","@timestamp":"(.*?)",(.*?)"message":"(.*?)",`)
 	go func(outputStream io.Writer) {
 		sc := bufio.NewScanner(rc)
 		sc.Split(bufio.ScanLines)
 		for {
-			select {
-			case <-logChanQuit:
-				return
-			default:
-				sc.Scan()
-				if logFormat == LogFormatSimple {
-					res := re.FindAllStringSubmatch(sc.Text(), -1)
-					// res[0][2] is the timestamp
-					// res[0][1] is the level
-					// res[0][4] is the message
-					if res != nil {
-						// Print each log message in the form "timestamp level message".
-						// For example, "2022-06-03T00:05:10.042Z info Component keycloak successfully installed"
-						fmt.Fprintf(outputStream, fmt.Sprintf("%s %s %s\n", res[0][2], res[0][1], res[0][4]))
-					}
-				} else if logFormat == LogFormatJSON {
-					fmt.Fprintf(outputStream, fmt.Sprintf("%s\n", sc.Text()))
+			sc.Scan()
+			if logFormat == LogFormatSimple {
+				res := re.FindAllStringSubmatch(sc.Text(), -1)
+				// res[0][2] is the timestamp
+				// res[0][1] is the level
+				// res[0][4] is the message
+				if res != nil {
+					// Print each log message in the form "timestamp level message".
+					// For example, "2022-06-03T00:05:10.042Z info Component keycloak successfully installed"
+					fmt.Fprintf(outputStream, fmt.Sprintf("%s %s %s\n", res[0][2], res[0][1], res[0][4]))
 				}
+			} else if logFormat == LogFormatJSON {
+				fmt.Fprintf(outputStream, fmt.Sprintf("%s\n", sc.Text()))
 			}
 		}
 	}(vzHelper.GetOutputStream())
@@ -250,7 +245,6 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 
 	select {
 	case result := <-resChan:
-		logChanQuit <- true
 		return result
 	case <-time.After(timeout):
 		if timeout.Nanoseconds() != 0 {
