@@ -226,8 +226,8 @@
               "helmTagKey": "nodeExporter.imageVersion"
             },
             {
-              "image": "verrazzano-monitoring-operator",
-              "tag": "1.1.0-20210816150650-1ff4223",
+              "image": "verrazzano-monitoring-operator-jenkins",
+              "tag": "1.4.0-20220616115606-59c3c86",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
