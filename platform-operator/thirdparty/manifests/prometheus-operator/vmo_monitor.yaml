@@ -18,7 +18,7 @@ spec:
   endpoints:
     - port: http-prom
       path: /metrics
-      scheme: http
+      scheme: https
       tlsConfig:
         caFile: /etc/istio-certs/root-cert.pem
         certFile: /etc/istio-certs/cert-chain.pem
