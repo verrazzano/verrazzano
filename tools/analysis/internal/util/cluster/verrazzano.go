@@ -9,6 +9,8 @@ import (
 	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/report"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	"regexp"
 	"strings"
 )
 
@@ -19,6 +21,9 @@ var allNamespacesFound []string
 
 // verrazzanoNamespacesFound is a list of the Verrazzano namespaces found
 var verrazzanoNamespacesFound []string
+
+// Pattern matchers
+var verrazzanoInstallJobPodMatcher = regexp.MustCompile("verrazzano-install-.*")
 
 // TODO: CRDs related to verrazzano
 // TODO: Can we determine the underlying platform that is being used? This may generally help in terms
@@ -106,4 +111,9 @@ func installationStatus(log *zap.SugaredLogger, clusterRoot string, issueReporte
 
 	// Get more details on problematicVerrazzanoDeploymentNames and find a way to report
 	return nil
+}
+
+// IsVerrazzanoInstallJobPod returns true if the pod is an install job related pod for Verrazzano
+func IsVerrazzanoInstallJobPod(pod corev1.Pod) bool {
+	return verrazzanoInstallJobPodMatcher.MatchString(pod.ObjectMeta.Name) && (pod.ObjectMeta.Namespace == "verrazzano-install" || pod.ObjectMeta.Namespace == "default")
 }

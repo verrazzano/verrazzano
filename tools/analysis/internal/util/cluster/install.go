@@ -20,6 +20,7 @@ import (
 
 // Compiled Regular expressions
 var installNGINXIngressControllerFailedRe = regexp.MustCompile(`Installing NGINX Ingress Controller.*\[FAILED\]`)
+var installFailedRe = regexp.MustCompile(`Install.*\[FAILED\]`)
 var noIPForIngressControllerRegExp = regexp.MustCompile(`Failed getting DNS suffix: No IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer`)
 
 // I'm going with a more general pattern for limit reached as the supporting details should give the precise message
@@ -74,6 +75,54 @@ func AnalyzeVerrazzanoResource(log *zap.SugaredLogger, clusterRoot string, issue
 	// When one or more components are not in Ready state, get the events from the pods based on the list of known failures and report
 	if len(compsNotReady) > 0 {
 		analyzeVerrazzanoInstallIssue(log, clusterRoot, issueReporter)
+	}
+	return nil
+}
+
+// AnalyzeVerrazzanoInstallIssue is called when we have reason to believe that the installation has failed, with cluster dumps created in earlier releases
+func AnalyzeVerrazzanoInstallIssue(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error) {
+	// Skip if it is not the Verrazzano install job pod
+	if !IsVerrazzanoInstallJobPod(pod) {
+		return nil
+	}
+
+	log.Debugf("verrazzanoInstallIssues analysis called for cluster: %s, ns: %s, pod: %s", clusterRoot, pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+	// TODO: Not correlating time here yet
+	if IsContainerNotReady(pod.Status.Conditions) {
+		// The install job pod log is currently the only place we can determine where the install process failed at, so we
+		// scrape those log messages out.
+		logMatches, err := files.SearchFile(log, files.FindPodLogFileName(clusterRoot, pod), installFailedRe, nil)
+		if err == nil {
+			// We likely will only have a single failure message here (we may only want to look at the last one for install failures)
+			for _, matched := range logMatches {
+				log.Debugf("Install failure message: %s", matched.MatchedText)
+				// Loop through the match expressions to see if we have a handler for the message that matches
+				for matchKey, matcher := range dispatchMatchMap {
+					log.Debugf("Checking matcher: %s", matchKey)
+					// If the matcher expression matches the failure message, call the handler function related to that matcher (same key)
+					if matcher.MatchString(matched.MatchedText) {
+						log.Debugf("Dispatch to handler: %s", matchKey)
+						err = dispatchFunctions[matchKey](log, clusterRoot, podFile, pod, issueReporter)
+						if err != nil {
+							log.Errorf("AnalyzeVerrazzanoInstallIssue failed in %s function", matchKey, err)
+						}
+					}
+				}
+			}
+		} else {
+			log.Errorf("AnalyzeVerrazzanoInstallIssue failed to get log messages to determine install issue", err)
+		}
+	}
+
+	// TODO: If we got here without determining a specific cause, put out a General Issue that the install has failed with supporting details
+	//  Note that we may not have a lot of details to provide here (which is why we are falling back to this general issue)
+	if len(issueReporter.PendingIssues) == 0 {
+		// TODO: Add more supporting details here
+		messages := make(StringSlice, 1)
+		messages[0] = fmt.Sprintf("Namespace %s, Pod %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+		files := make(StringSlice, 1)
+		files[0] = podFile
+		issueReporter.AddKnownIssueMessagesFiles(report.InstallFailure, clusterRoot, messages, files)
 	}
 	return nil
 }
@@ -248,7 +297,9 @@ func getComponentsNotReady(log *zap.SugaredLogger, clusterRoot string) ([]string
 	fileInfo, e := os.Stat(vzResourcesPath)
 	if e != nil || fileInfo.Size() == 0 {
 		log.Infof("Verrazzano resource file %s is either empty or there is an issue in getting the file info about it", vzResourcesPath)
-		return compsNotReady, e
+		// Looks like the tool is invoked with the cluster dumps created in the previous release. So do not return an error so that
+		// the tools can still detect the issue
+		return nil, nil
 	}
 
 	file, err := os.Open(vzResourcesPath)
