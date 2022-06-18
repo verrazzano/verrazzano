@@ -191,3 +191,6 @@ const VerrazzanoComponentLabelKey = "verrazzano-component"
 
 // IstioAppLabel is the label used for Verrazzano Istio components
 const IstioAppLabel = "verrazzano.io/istio"
+
+// VZTLSSecretGeneratorName is the name of the secret generator contianer
+const VZTLSSecretGeneratorName = "verrazzano-tls-secret-generator"

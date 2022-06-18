@@ -307,7 +307,12 @@ func appendTLSSecretGeneratorImage(ctx spi.ComponentContext, kvs []bom.KeyValue)
 		return kvs, ctx.Log().ErrorfNewErr("Failed to get the image for subcomponent %s from the bom: ", subcomponent, err)
 	}
 	if len(images) > 0 {
-		kvs = append(kvs, bom.KeyValue{Key: "prometheus.prometheusSpec.containers[0].image", Value: images[0]})
+		kvs = append(kvs, []bom.KeyValue{
+			{Key: "prometheus.prometheusSpec.containers[1].image", Value: images[0]},
+			{Key: "prometheus.prometheusSpec.containers[1].name", Value: constants.VZTLSSecretGeneratorName},
+			{Key: "prometheus.prometheusSpec.containers[1].volumeMounts[0].mountPath", Value: vmoconst.IstioCertsMountPath},
+			{Key: "prometheus.prometheusSpec.containers[1].volumeMounts[0].name", Value: istioVolumeName},
+		}...)
 	}
 	return kvs, nil
 }

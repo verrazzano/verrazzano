@@ -14,11 +14,6 @@ prometheus:
       enabled: true
       name: additional-scrape-configs
       key: jobs
-    containers:
-    - name: tls-secret-generator
-      volumeMounts:
-        - mountPath: /etc/istio-certs
-          name: istio-certs-dir
   additionalRulesForClusterRole:
   - apiGroups:
       - ""
