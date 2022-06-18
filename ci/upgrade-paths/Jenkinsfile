@@ -251,7 +251,6 @@ pipeline {
                         stage('Create OKE Clusters') {
                             when { expression { return params.TEST_ENV == 'ocidns_oke' || params.TEST_ENV == 'magicdns_oke'} }
                             steps {
-                                echo "OKE Cluster Prefix: ${OKE_CLUSTER_PREFIX}"
                                 createOKEClusters("${OKE_CLUSTER_PREFIX}")
                             }
                         }
@@ -307,30 +306,22 @@ pipeline {
                 }
                 stage ('Install Verrazzano') {
                     steps {
-                        script {
-                            VZ_INSTALL_METRIC = metricJobName('install_v8o')
-                            metricTimerStart("${VZ_INSTALL_METRIC}")
-                            getVerrazzanoOperatorYaml()
-                        }
                         installVerrazzano()
                     }
                     post {
                         always {
                             script {
-                                dumpInstallLogs()
-                                VZ_TEST_METRIC = metricJobName('')
-                                metricTimerStart("${VZ_TEST_METRIC}")
+                                postInstallAlways()
                             }
                         }
                         failure {
                             script {
-                                dumpK8sCluster("${WORKSPACE}/install-failure-cluster-dump")
-                                INSTALL_METRICS_PUSHED=metricTimerEnd("${VZ_INSTALL_METRIC}", '0')
+                                postInstallFailure()
                             }
                         }
                         success {
                             script {
-                                INSTALL_METRICS_PUSHED=metricTimerEnd("${VZ_INSTALL_METRIC}", '1')
+                                postInstallSuccess()
                             }
                         }
                     }
@@ -483,16 +474,11 @@ pipeline {
         // Run Verify Registry
         stage('Verify Registry') {
             steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    script {
-                        runMulticlusterVerifyRegistry()
-                    }
-                }
+                runMulticlusterVerifyRegistry()
             }
             post {
                 always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                    postArchiveArtifacts()
                 }
             }
         }
@@ -522,8 +508,7 @@ pipeline {
             }
             post {
                 always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                    postArchiveArtifacts()
                 }
             }
         }
@@ -581,11 +566,7 @@ pipeline {
                         stage ('Multi-cluster Verify Api') {
                             when { expression { isMultiCluster() } }
                             steps {
-                                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                                    script {
-                                        runMulticlusterVerifyApi()
-                                    }
-                                }
+                                runMulticlusterVerifyApi()
                             }
                             post {
                                 failure {
@@ -616,22 +597,17 @@ pipeline {
             post {
                 failure {
                     script {
-                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
-                        dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-dump")
+                        postUpgradeAcceptanceTestsClusterDump()
                     }
                 }
                 aborted {
                     script {
-                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
-                        dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-dump")
+                        postUpgradeAcceptanceTestsClusterDump()
                     }
                 }
                 success {
                     script {
-                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
-                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                            dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-dump")
-                        }
+                        postUpgradeAcceptanceTestsClusterDumpSuccess()
                     }
                 }
             }
@@ -648,8 +624,7 @@ pipeline {
             post {
                 failure {
                     script {
-                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
-                        dumpK8sCluster("${WORKSPACE}/multicluster-cleanup-tests-cluster-dump")
+                        postCleanupTestsFailure()
                     }
                 }
             }
@@ -891,6 +866,10 @@ def getVerrazzanoOperatorYaml() {
 // Install Verrazzano on each of the clusters
 def installVerrazzano() {
     script {
+        VZ_INSTALL_METRIC = metricJobName('install_v8o')
+        metricTimerStart("${VZ_INSTALL_METRIC}")
+        getVerrazzanoOperatorYaml()
+
         def verrazzanoInstallStages = createClusterExecutionsMap()
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
@@ -1455,6 +1434,7 @@ def createKindClusters() {
 def createOKEClusters(clusterPrefix) {
     script {
         sh """
+            echo "OKE Cluster Prefix: ${clusterPrefix}"
             echo "tests will execute" > ${TESTS_EXECUTED_FILE}
         """
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
@@ -1878,12 +1858,16 @@ def modifyHelloHelidonApp(newNamespace, newProjName) {
 }
 
 def runMulticlusterVerifyApi() {
-    def verrazzanoMulticlusterVerifyApiStages = createClusterExecutionsMap()
-    int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-    for(int count=2; count<=clusterCount; count++) {
-        verrazzanoMulticlusterVerifyApiStages["${count} - Verify Api"] = runMulticlusterVerifyApi(count)
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        script {
+            def verrazzanoMulticlusterVerifyApiStages = createClusterExecutionsMap()
+            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+            for(int count=2; count<=clusterCount; count++) {
+                verrazzanoMulticlusterVerifyApiStages["${count} - Verify Api"] = runMulticlusterVerifyApi(count)
+            }
+            parallel verrazzanoMulticlusterVerifyApiStages
+        }
     }
-    parallel verrazzanoMulticlusterVerifyApiStages
 }
 
 def runMulticlusterVerifyApi(count) {
@@ -1901,12 +1885,16 @@ def runMulticlusterVerifyApi(count) {
 }
 
 def runMulticlusterVerifyRegistry() {
-    def verifyRegistryStages = createClusterExecutionsMap()
-    int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-    for(int count=1; count<=clusterCount; count++) {
-        verifyRegistryStages["${count} - Verify registry"] = verifyRegistry(count)
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        script {
+            def verifyRegistryStages = createClusterExecutionsMap()
+            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+            for(int count=1; count<=clusterCount; count++) {
+                verifyRegistryStages["${count} - Verify registry"] = verifyRegistry(count)
+            }
+            parallel verifyRegistryStages
+        }
     }
-    parallel verifyRegistryStages
 }
 
 def verifyRegistry(count) {
@@ -2085,4 +2073,41 @@ def performDescribeVerrazzanoResource() {
             """
         }
     }
+}
+
+def postInstallAlways() {
+    dumpInstallLogs()
+    VZ_TEST_METRIC = metricJobName('')
+    metricTimerStart("${VZ_TEST_METRIC}")
+}
+
+def postInstallFailure() {
+    dumpK8sCluster("${WORKSPACE}/install-failure-cluster-dump")
+    INSTALL_METRICS_PUSHED=metricTimerEnd("${VZ_INSTALL_METRIC}", '0')
+}
+
+def postInstallSuccess() {
+    INSTALL_METRICS_PUSHED=metricTimerEnd("${VZ_INSTALL_METRIC}", '1')
+}
+
+def postCleanupTestsFailure() {
+    METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
+    dumpK8sCluster("${WORKSPACE}/multicluster-cleanup-tests-cluster-dump")
+}
+
+def postUpgradeAcceptanceTestsClusterDump() {
+    METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
+    dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-dump")
+}
+
+def postUpgradeAcceptanceTestsClusterDumpSuccess() {
+    METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
+    if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+        dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-dump")
+    }
+}
+
+def postArchiveArtifacts() {
+    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+    junit testResults: '**/*test-result.xml', allowEmptyResults: true
 }
