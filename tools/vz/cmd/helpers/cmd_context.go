@@ -6,6 +6,7 @@ package helpers
 import (
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -87,7 +88,9 @@ func (rc *RootCmdContext) GetKubeClient(cmd *cobra.Command) (kubernetes.Interfac
 
 // GetHTTPClient - return an HTTP client
 func (rc *RootCmdContext) GetHTTPClient() *http.Client {
-	return &http.Client{}
+	return &http.Client{
+		Timeout: time.Second * 120,
+	}
 }
 
 // NewRootCmdContext - create the root command context object
