@@ -91,7 +91,10 @@ func (c jaegerOperatorComponent) Name() string {
 }
 
 func (c jaegerOperatorComponent) GetDependencies() []string {
-	return []string{}
+	return []string{
+		"cert-manager",
+		"ingress-controller",
+	}
 }
 
 func (c jaegerOperatorComponent) GetMinVerrazzanoVersion() string {
@@ -137,7 +140,7 @@ func (c jaegerOperatorComponent) GetIngressNames(ctx spi.ComponentContext) []typ
 	if vzconfig.IsNGINXEnabled(ctx.EffectiveCR()) {
 		ingressNames = []types.NamespacedName{
 			{
-				Namespace: ComponentNamespace,
+				Namespace: constants.VerrazzanoSystemNamespace,
 				Name:      constants.JaegerIngress,
 			},
 		}
@@ -150,7 +153,7 @@ func (c jaegerOperatorComponent) GetCertificateNames(ctx spi.ComponentContext) [
 
 	if vzconfig.IsNGINXEnabled(ctx.EffectiveCR()) {
 		certificateNames = append(certificateNames, types.NamespacedName{
-			Namespace: ComponentNamespace,
+			Namespace: constants.VerrazzanoSystemNamespace,
 			Name:      jaegerCertificateName,
 		})
 	}
@@ -168,7 +171,7 @@ func (c jaegerOperatorComponent) ValidateUpdate(_, _ *vzapi.Verrazzano) error {
 // createOrUpdateKialiResources create or update related Kiali resources
 func (c jaegerOperatorComponent) createOrUpdateJaegerResources(ctx spi.ComponentContext) error {
 	if vzconfig.IsNGINXEnabled(ctx.EffectiveCR()) {
-		if err := createOrUpdateJaegerIngress(ctx, ComponentNamespace); err != nil {
+		if err := createOrUpdateJaegerIngress(ctx, constants.VerrazzanoSystemNamespace); err != nil {
 			return err
 		}
 	}

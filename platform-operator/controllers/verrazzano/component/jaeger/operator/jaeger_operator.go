@@ -27,7 +27,6 @@ const (
 	deploymentName        = "jaeger-operator"
 	templateFile          = "/jaeger/jaeger-operator.yaml"
 	jaegerHostName        = "jaeger"
-	jaegerSystemName      = "jaeger"
 	jaegerCertificateName = "jaeger-tls"
 )
 
@@ -102,14 +101,13 @@ func ensureVerrazzanoMonitoringNamespace(ctx spi.ComponentContext) error {
 // createOrUpdateJaegerIngress Creates or updates the Jaeger authproxy ingress
 func createOrUpdateJaegerIngress(ctx spi.ComponentContext, namespace string) error {
 	ingress := networkv1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{Name: jaegerSystemName, Namespace: namespace},
+		ObjectMeta: metav1.ObjectMeta{Name: constants.JaegerIngress, Namespace: namespace},
 	}
 	_, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &ingress, func() error {
 		dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
 		if err != nil {
 			return ctx.Log().ErrorfNewErr("Failed building DNS domain name: %v", err)
 		}
-		ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
 
 		jaegerHostName := buildJaegerHostnameForDomain(dnsSubDomain)
 
@@ -157,13 +155,14 @@ func createOrUpdateJaegerIngress(ctx spi.ComponentContext, namespace string) err
 		ingress.Annotations["nginx.ingress.kubernetes.io/upstream-vhost"] = "${service_name}.${namespace}.svc.cluster.local"
 		ingress.Annotations["cert-manager.io/common-name"] = jaegerHostName
 		if vzconfig.IsExternalDNSEnabled(ctx.EffectiveCR()) {
+			ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
 			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
 			ingress.Annotations["external-dns.alpha.kubernetes.io/ttl"] = "60"
 		}
 		return nil
 	})
 	if ctrlerrors.ShouldLogKubenetesAPIError(err) {
-		return ctx.Log().ErrorfNewErr("Failed create/update Kiali ingress: %v", err)
+		return ctx.Log().ErrorfNewErr("Failed create/update Jaeger ingress: %v", err)
 	}
 	return err
 }
