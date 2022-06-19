@@ -91,10 +91,7 @@ func (c jaegerOperatorComponent) Name() string {
 }
 
 func (c jaegerOperatorComponent) GetDependencies() []string {
-	return []string{
-		"cert-manager",
-		"ingress-controller",
-	}
+	return []string{}
 }
 
 func (c jaegerOperatorComponent) GetMinVerrazzanoVersion() string {
