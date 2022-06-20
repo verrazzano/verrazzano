@@ -167,8 +167,6 @@ pipeline {
         VERRAZZANO_KUBECONFIG="$KUBECONFIG"
         INSTALL_CONFIG_FILE_OLCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-olcne.yaml"
         OLCNE_BRANCH_TO_USE="origin/release/$OLCNE_VERSION"
-        BASTION_PUBLIC_IP=""
-        BASTION_USER=""
         API_SERVER_IP=""
         WORKER_NODES_IP=""
         CONTROL_PLANE_NODES_IP=""
