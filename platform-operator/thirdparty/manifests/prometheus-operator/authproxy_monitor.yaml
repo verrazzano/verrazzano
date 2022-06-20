@@ -1,7 +1,6 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-{{ if .Capabilities.APIVersions.Has "monitoring.coreos.com/v1/ServiceMonitor" -}}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -53,4 +52,3 @@ spec:
         sourceLabels:
         - name
         targetLabel: app
-  {{ end -}}
