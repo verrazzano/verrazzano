@@ -91,7 +91,7 @@ function deleteFileSystem() {
 
 function deleteMountTarget() {
     log "Deleting the mount target: $MT_NAME"
-    MT_OCID=$(oci fs mount-target list --compartment-id $COMPARTMENT_OCID --availability-domain $AVAILABILITY_DOMAIN --display-name $MT_NAME --lifecycle-state ACTIVE | jq -r '.data[0].id')
+    MT_OCID=$(oci fs mount-target list --compartment-id $COMPARTMENT_OCID --availability-domain $AVAILABILITY_DOMAIN --display-name $MT_NAME --lifecycle-state ACTIVE --force | jq -r '.data[0].id')
     if [ $? -ne 0 ]; then
         log "Error while fetching the mount target: $MT_NAME"
         exit 1
