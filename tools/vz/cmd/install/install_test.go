@@ -69,6 +69,11 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 	err := cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
+
+	// Verify the vz resource is as expected
+	vz := vzapi.Verrazzano{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
+	assert.NoError(t, err)
 }
 
 // TestInstallCmdDefaultTimeout
@@ -205,6 +210,11 @@ func TestInstallCmdJsonLogFormat(t *testing.T) {
 	err := cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
+
+	// Verify the vz resource is as expected
+	vz := vzapi.Verrazzano{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
+	assert.NoError(t, err)
 }
 
 // TestInstallCmdFilenames
@@ -239,6 +249,97 @@ func TestInstallCmdFilenames(t *testing.T) {
 	err := cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
+
+	// Verify the vz resource is as expected
+	vz := vzapi.Verrazzano{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "my-verrazzano"}, &vz)
+	assert.NoError(t, err)
+	assert.Equal(t, vzapi.Dev, vz.Spec.Profile)
+}
+
+// TestInstallCmdSets
+// GIVEN a CLI install command with defaults and --wait=false and --set specified
+//  WHEN I call cmd.Execute for install
+//  THEN the CLI install command is successful
+func TestInstallCmdSets(t *testing.T) {
+	vpo := &corev1.Pod{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperator,
+			Labels: map[string]string{
+				"app": constants.VerrazzanoPlatformOperator,
+			},
+		},
+	}
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo).Build()
+
+	// Send stdout stderr to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	cmd := NewCmdInstall(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.SetFlag, "profile=dev")
+	cmd.PersistentFlags().Set(constants.SetFlag, "environmentName=test")
+	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+
+	// Run install command
+	err := cmd.Execute()
+	assert.NoError(t, err)
+	assert.Equal(t, "", errBuf.String())
+
+	// Verify the vz resource is as expected
+	vz := vzapi.Verrazzano{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
+	assert.NoError(t, err)
+	assert.Equal(t, vzapi.Dev, vz.Spec.Profile)
+	assert.Equal(t, "test", vz.Spec.EnvironmentName)
+}
+
+// TestInstallCmdFilenamesAndSets
+// GIVEN a CLI install command with defaults and --wait=false and --filename and --set specified
+//  WHEN I call cmd.Execute for install
+//  THEN the CLI install command is successful
+func TestInstallCmdFilenamesAndSets(t *testing.T) {
+	vpo := &corev1.Pod{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperator,
+			Labels: map[string]string{
+				"app": constants.VerrazzanoPlatformOperator,
+			},
+		},
+	}
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo).Build()
+
+	// Send stdout stderr to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	cmd := NewCmdInstall(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/dev-profile.yaml")
+	cmd.PersistentFlags().Set(constants.SetFlag, "profile=prod")
+	cmd.PersistentFlags().Set(constants.SetFlag, "environmentName=test")
+	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+
+	// Run install command
+	err := cmd.Execute()
+	assert.NoError(t, err)
+	assert.Equal(t, "", errBuf.String())
+
+	// Verify the vz resource is as expected
+	vz := vzapi.Verrazzano{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "my-verrazzano"}, &vz)
+	assert.NoError(t, err)
+	assert.Equal(t, vzapi.Prod, vz.Spec.Profile)
+	assert.Equal(t, "test", vz.Spec.EnvironmentName)
 }
 
 // TestInstallCmdOperatorFile
@@ -286,6 +387,11 @@ func TestInstallCmdOperatorFile(t *testing.T) {
 
 	svc := corev1.Service{}
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "verrazzano-install", Name: "verrazzano-platform-operator"}, &svc)
+	assert.NoError(t, err)
+
+	// Verify the vz resource is as expected
+	vz := vzapi.Verrazzano{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 }
 
@@ -383,4 +489,76 @@ func TestGetLogFormatJson(t *testing.T) {
 	logFormat, err := cmdHelpers.GetLogFormat(cmd)
 	assert.NoError(t, err)
 	assert.Equal(t, "json", logFormat.String())
+}
+
+// TestSetCommandInvalidFormat
+// GIVEN a set command is specified with the invalid format
+//  WHEN I call getSetArguments
+//  THEN an error is returned
+func TestSetCommandInvalidFormat(t *testing.T) {
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	cmd := NewCmdInstall(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.SetFlag, "badflag")
+	propValues, err := getSetArguments(cmd, rc)
+	assert.Nil(t, propValues)
+	assert.Error(t, err)
+	assert.Equal(t, err.Error(), "Invalid set flag(s) specified")
+	assert.Equal(t, "Invalid set flag \"badflag\" specified. Flag must be specified in the format path=value\n", errBuf.String())
+}
+
+// TestSetCommandSingle
+// GIVEN a single set command
+//  WHEN I call getSetArguments
+//  THEN the expected property value is returned
+func TestSetCommandSingle(t *testing.T) {
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	cmd := NewCmdInstall(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.SetFlag, "profile=dev")
+	propValues, err := getSetArguments(cmd, rc)
+	assert.NoError(t, err)
+	assert.Len(t, propValues, 1)
+	assert.Contains(t, propValues["spec.profile"], "dev")
+}
+
+// TestSetCommandMultiple
+// GIVEN multiple set commands
+//  WHEN I call getSetArguments
+//  THEN the expected property values are returned
+func TestSetCommandMultiple(t *testing.T) {
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	cmd := NewCmdInstall(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.SetFlag, "profile=dev")
+	cmd.PersistentFlags().Set(constants.SetFlag, "spec.environmentName=default")
+	propValues, err := getSetArguments(cmd, rc)
+	assert.NoError(t, err)
+	assert.Len(t, propValues, 2)
+	assert.Contains(t, propValues["spec.profile"], "dev")
+	assert.Contains(t, propValues["spec.environmentName"], "default")
+}
+
+// TestSetCommandOverride
+// GIVEN multiple set commands overriding the same property
+//  WHEN I call getSetArguments
+//  THEN the expected property values are returned
+func TestSetCommandOverride(t *testing.T) {
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	cmd := NewCmdInstall(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.SetFlag, "profile=dev")
+	cmd.PersistentFlags().Set(constants.SetFlag, "profile=prod")
+	propValues, err := getSetArguments(cmd, rc)
+	assert.NoError(t, err)
+	assert.Len(t, propValues, 1)
+	assert.Contains(t, propValues["spec.profile"], "prod")
 }
