@@ -140,3 +140,9 @@ const MetricsTemplateAPIVersion = "app.verrazzano.io/v1alpha1"
 
 // SecretKind is the kind for a secret
 const SecretKind = "Secret"
+
+// VerrazzanoComponentLabelKey is the key for the verrazzano component label to distinguish verrazzano component resources
+const VerrazzanoComponentLabelKey = "verrazzano-component"
+
+// PromOperatorComponentName is the name of the Prometheus Operator component
+const PromOperatorComponentName = "prometheus-operator"

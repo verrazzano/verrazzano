@@ -17,6 +17,7 @@ import (
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
@@ -465,7 +466,7 @@ func updatePrometheusAnnotations(ctx spi.ComponentContext) error {
 	promList := promoperapi.PrometheusList{}
 	err := ctx.Client().List(context.TODO(), &promList, &client.ListOptions{
 		Namespace:     operator.ComponentNamespace,
-		LabelSelector: labels.SelectorFromSet(labels.Set{constants.VerrazzanoComponentLabelKey: promoperator.ComponentName}),
+		LabelSelector: labels.SelectorFromSet(labels.Set{vzconst.VerrazzanoComponentLabelKey: promoperator.ComponentName}),
 	})
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to list Prometheus in the %s namespace: %v", operator.ComponentNamespace, err)
