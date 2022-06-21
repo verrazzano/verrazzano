@@ -394,6 +394,7 @@ pipeline {
         stage("Mount OCI Storage") {
             steps {
                 script {
+                    echo "[INFO] Mounting OCI storage"
                     setupBastionSSH()
                     mountOCIStorage()
                 }
