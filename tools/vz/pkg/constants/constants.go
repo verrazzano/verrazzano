@@ -53,6 +53,10 @@ const VerrazzanoOperatorURL = "https://github.com/verrazzano/verrazzano/releases
 
 const VerrazzanoPlatformOperator = "verrazzano-platform-operator"
 
-const VerrazzanoUninstall = "verrazzanp-uninstall"
+const VerrazzanoUninstall = "verrazzano-uninstall"
+
+const VerrazzanoInstall = "verrazzano-install"
+
+const VerrazzanoManagedCluster = "verrazzano-managed-cluster"
 
 const VerrazzanoPlatformOperatorWait = 1

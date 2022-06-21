@@ -7,21 +7,25 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
+	"io"
+	adminv1 "k8s.io/api/admissionregistration/v1"
 	"time"
 
 	"github.com/spf13/cobra"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -65,7 +69,11 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), "Not implemented yet\n")
+	// Validate the command options.
+	err := cmdhelpers.ValidateCmd(cmd)
+	if err != nil {
+		return fmt.Errorf("Command validation failed: %s", err.Error())
+	}
 
 	// Get the controller runtime client.
 	client, err := vzHelper.GetClient(cmd)
@@ -101,9 +109,11 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	err = client.Delete(context.TODO(), vz)
 	if err != nil {
 		return fmt.Errorf("Failed to uninstall in Verrazzano resource: %s", err.Error())
+	} else {
+		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Uninstalling Verrazzano\n"))
 	}
 
-	uninstallPodName, err := getUninstallPod(client, vzHelper, vzapi.CondUpgradeComplete)
+	uninstallPodName, err := getUninstallPodName(client, vzHelper)
 	if err != nil {
 		return err
 	}
@@ -112,7 +122,7 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	return waitForUninstallToComplete(client, kubeClient, vzHelper, uninstallPodName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout)
 }
 
-func getUninstallPod(c client.Client, vzHelper helpers.VZHelper, condType vzapi.ConditionType) (string, error) {
+func getUninstallPodName(c client.Client, vzHelper helpers.VZHelper) (string, error) {
 	// Find the verrazzano-platform-operator using the app label selector
 	appLabel, _ := labels.NewRequirement("app", selection.Equals, []string{constants.VerrazzanoUninstall})
 	labelSelector := labels.NewSelector()
@@ -194,37 +204,104 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 	if err != nil {
 		return fmt.Errorf("Failed to get logs stream: %v", err)
 	}
-	defer rc.Close()
+	defer func(rc io.ReadCloser) {
+		_ = rc.Close()
+	}(rc)
 
 	resChan := make(chan error, 1)
 	go func() {
 		sc := bufio.NewScanner(rc)
 		sc.Split(bufio.ScanLines)
 		for sc.Scan() {
-			fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("%s\n", sc.Text()))
+			_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("%s\n", sc.Text()))
 
 			// Return when the Verrazzano uninstall has completed
 			vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
+			if vz == nil && errors.IsNotFound(err) {
+				resChan <- nil
+			}
 			if err != nil {
 				resChan <- err
 			}
-			for _, condition := range vz.Status.Conditions {
-				// Operation condition met for uninstall
-				if condition.Type == vzapi.CondUninstallComplete {
-					resChan <- nil
-				}
-			}
 		}
 	}()
-
 	select {
 	case result := <-resChan:
 		return result
 	case <-time.After(timeout):
 		if timeout.Nanoseconds() != 0 {
-			fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Timeout %v exceeded waiting for uninstall to complete\n", timeout.String()))
+			_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Timeout %v exceeded waiting for uninstall to complete\n", timeout.String()))
 		}
 	}
 
+	// Delete verrazzano-install namespace
+	err = deleteNamespace(client, constants.VerrazzanoInstall)
+
+	// Delete other verrazzano resources
+	err = deleteWebhookConfiguration(client, constants.VerrazzanoManagedCluster)
+	err = deleteClusterRoleBinding(client, constants.VerrazzanoManagedCluster)
+	err = deleteClusterRole(client, constants.VerrazzanoManagedCluster)
+
+	if err != nil {
+		return err
+	}
+	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Successfully uninstalled Verrazzano\n"))
+
 	return nil
+}
+
+func deleteClusterRoleBinding(client clipkg.Client, name string) error {
+	crb := &rbacv1.ClusterRoleBinding{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name}, crb)
+
+	propagationPolicy := metav1.DeletePropagationBackground
+	deleteOptions := &clipkg.DeleteOptions{PropagationPolicy: &propagationPolicy}
+	err = client.Delete(context.TODO(), crb, deleteOptions)
+	if err != nil {
+		return fmt.Errorf("Failed to delete Cluster Role %s: %s", name, err.Error())
+	} else {
+		return nil
+	}
+}
+
+func deleteWebhookConfiguration(client clipkg.Client, name string) error {
+	vwc := &adminv1.ValidatingWebhookConfiguration{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name}, vwc)
+
+	propagationPolicy := metav1.DeletePropagationBackground
+	deleteOptions := &clipkg.DeleteOptions{PropagationPolicy: &propagationPolicy}
+	err = client.Delete(context.TODO(), vwc, deleteOptions)
+	if err != nil {
+		return fmt.Errorf("Failed to delete Cluster Role %s: %s", name, err.Error())
+	} else {
+		return nil
+	}
+}
+
+func deleteClusterRole(client client.Client, name string) error {
+	cr := &rbacv1.ClusterRole{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name}, cr)
+
+	propagationPolicy := metav1.DeletePropagationBackground
+	deleteOptions := &clipkg.DeleteOptions{PropagationPolicy: &propagationPolicy}
+	err = client.Delete(context.TODO(), cr, deleteOptions)
+	if err != nil {
+		return fmt.Errorf("Failed to delete Cluster Role %s: %s", name, err.Error())
+	} else {
+		return nil
+	}
+}
+
+func deleteNamespace(client client.Client, name string) error {
+	ns := &corev1.Namespace{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name}, ns)
+
+	propagationPolicy := metav1.DeletePropagationBackground
+	deleteOptions := &clipkg.DeleteOptions{PropagationPolicy: &propagationPolicy}
+	err = client.Delete(context.TODO(), ns, deleteOptions)
+	if err != nil {
+		return fmt.Errorf("Failed to delete namespace verrazzano-install: %s", err.Error())
+	} else {
+		return nil
+	}
 }
