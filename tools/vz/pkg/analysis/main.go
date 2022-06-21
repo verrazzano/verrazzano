@@ -19,9 +19,6 @@ var analyzerTypeFunctions = map[string]func(log *zap.SugaredLogger, args string)
 	"buildlog": buildlog.RunAnalysis,
 }
 
-// The analysisToolVersion is set during the build, this value is a default if the tool is built differently
-var analysisToolVersion = "development build"
-
 var version = false
 var help = false
 var analyzerType = "cluster" //Currently does only cluster analysis
@@ -78,14 +75,14 @@ func handleMain(vzHelper helpers.VZHelper, directory string, reportFile string, 
 	err := Analyze(logger, analyzerType, directory)
 	if err != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "Analyze failed with error: %s, exiting.\n", err.Error())
-		return fmt.Errorf("\nAnalyze failed with error: %s, exiting.\n", err.Error())
+		return fmt.Errorf("\nanalyze failed with error: %s, exiting", err.Error())
 	}
 
 	// Generate a report
 	err = report.GenerateHumanReport(logger, reportFile, reportFormat, includeSupport, includeInfo, includeActions, minConfidence, minImpact, vzHelper)
 	if err != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "\nReport generation failed, exiting.\n")
-		return fmt.Errorf("\nReport generation failed, exiting.\n")
+		return fmt.Errorf("\nreport generation failed, exiting")
 	}
 	return nil
 }
@@ -103,19 +100,4 @@ func Analyze(logger *zap.SugaredLogger, analyzerType string, rootDirectory strin
 		return err
 	}
 	return nil
-}
-
-// printUsage Prints the help for this program
-func printUsage() {
-	usageString := `
-Usage: verrazzano-analysis [options] captured-data-directory
-Options:
-`
-	fmt.Printf(usageString)
-	flag.PrintDefaults()
-}
-
-// printVersion Prints the version for this program
-func printVersion() {
-	fmt.Printf("%s\n", analysisToolVersion)
 }
