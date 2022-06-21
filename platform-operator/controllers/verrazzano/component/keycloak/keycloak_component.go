@@ -103,7 +103,7 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 			constants.VerrazzanoSystemNamespace, constants.Verrazzano, err)
 		return err
 	}
-	// Check MySQL Secret. return error which will cause reque
+	// Check MySQL Secret. return error which will cause requeue
 	secret = &corev1.Secret{}
 	err = ctx.Client().Get(context.TODO(), client.ObjectKey{
 		Namespace: ComponentNamespace,
