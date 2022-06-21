@@ -304,8 +304,8 @@ func applySystemMonitors(ctx spi.ComponentContext) error {
 	dir := path.Join(config.GetThirdPartyManifestsDir(), "prometheus-operator")
 	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
 	err := yamlApplier.ApplyDT(dir, args)
-	if err != nil{
-		return ctx.Log().ErrorfNewErr("Failed to substitute template values for System Monitors %v",err)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to substitute template values for System Monitors %v", err)
 	}
 	return nil
 }
