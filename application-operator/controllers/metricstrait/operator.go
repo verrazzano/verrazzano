@@ -59,7 +59,7 @@ func (r *Reconciler) reconcileOperatorTraitCreateOrUpdate(ctx context.Context, t
 	// Create or update the related resources of the trait and collect the outcomes.
 	status := r.createOrUpdateRelatedWorkloads(ctx, trait, workload, traitDefaults, children, log)
 
-	status.RecordOutcome(r.updateServiceMonitor(ctx, trait, workload, traitDefaults, log))
+	status.RecordOutcome(r.updatePodMonitor(ctx, trait, workload, traitDefaults, log))
 
 	return r.updateTraitStatus(ctx, trait, status, log)
 }

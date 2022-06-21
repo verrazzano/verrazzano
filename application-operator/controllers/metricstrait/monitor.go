@@ -16,9 +16,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// updateServiceMonitor creates or updates a service monitor given the trait and workload parameters
-// A service monitor emulates a scrape config for Prometheus with the Prometheus Operator
-func (r *Reconciler) updateServiceMonitor(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, log vzlog.VerrazzanoLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
+// updatePodMonitor creates or updates a pod monitor given the trait and workload parameters
+// A pod monitor emulates a scrape config for Prometheus with the Prometheus Operator
+func (r *Reconciler) updatePodMonitor(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, log vzlog.VerrazzanoLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
 	var rel vzapi.QualifiedResourceRelation
 
 	// If the metricsTrait is being disabled then return nil for the config
@@ -26,11 +26,11 @@ func (r *Reconciler) updateServiceMonitor(ctx context.Context, trait *vzapi.Metr
 		return rel, controllerutil.OperationResultNone, nil
 	}
 
-	// Creating a service monitor with name and namespace
+	// Creating a pod monitor with name and namespace
 	// Replacing underscores with dashes in name to appease Kubernetes requirements
-	pmName, err := createServiceMonitorName(trait, 0)
+	pmName, err := createPodMonitorName(trait, 0)
 	if err != nil {
-		return rel, controllerutil.OperationResultNone, log.ErrorfNewErr("Failed to create Service Monitor name: %v", err)
+		return rel, controllerutil.OperationResultNone, log.ErrorfNewErr("Failed to create Pod Monitor name: %v", err)
 	}
 	pmName = strings.Replace(pmName, "_", "-", -1)
 
@@ -52,7 +52,7 @@ func (r *Reconciler) updateServiceMonitor(ctx context.Context, trait *vzapi.Metr
 	}
 	vzPromLabels := !wlsWorkload
 
-	log.Debugf("Creating or updating the Service Monitor for workload %s/%s", workload.GetNamespace(), workload.GetName())
+	log.Debugf("Creating or updating the Pod Monitor for workload %s/%s", workload.GetNamespace(), workload.GetName())
 	scrapeInfo := metrics.ScrapeInfo{
 		Ports:              len(getPortSpecs(trait, traitDefaults)),
 		BasicAuthSecret:    secret,
