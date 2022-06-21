@@ -148,7 +148,7 @@ pipeline {
             steps {
                 script {
                     sh """
-                        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/verrazzano_${params.RELEASE_VERSION}-scan_report,out --file ${RELEASE_BINARIES_DIR}/scan_report.out
+                        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/verrazzano_${params.RELEASE_VERSION}-scan_report.out --file ${RELEASE_BINARIES_DIR}/scan_report.out
                         oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/verrazzano_${params.RELEASE_VERSION}-scan_summary.out --file ${RELEASE_BINARIES_DIR}/scan_summary.out
                     """
                 }
