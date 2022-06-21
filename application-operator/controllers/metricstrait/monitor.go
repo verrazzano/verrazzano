@@ -5,6 +5,9 @@ package metricstrait
 
 import (
 	"context"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -77,7 +80,7 @@ func (r *Reconciler) updatePodMonitor(ctx context.Context, trait *vzapi.MetricsT
 	podMonitor.SetName(pmName)
 	podMonitor.SetNamespace(constants.PrometheusOperatorNamespace)
 	result, err := controllerutil.CreateOrUpdate(ctx, r.Client, &podMonitor, func() error {
-		return metrics.PopulatePodMonitor(scrapeInfo, &podMonitor, workload.GetNamespace(), log)
+		return metrics.PopulatePodMonitor(scrapeInfo, &podMonitor, log)
 	})
 	if err != nil {
 		return rel, controllerutil.OperationResultNone, log.ErrorfNewErr("Failed to create or update the service monitor for workload %s/%s: %v", workload.GetNamespace(), workload.GetName(), err)
@@ -94,13 +97,35 @@ func (r *Reconciler) deletePodMonitor(ctx context.Context, rel vzapi.QualifiedRe
 		return rel, controllerutil.OperationResultNone, nil
 	}
 
+	// Check if this is the last trait in the namespace
+	// If so, delete the Istio certificate secret
+	metricsTraitList := vzapi.MetricsTraitList{}
+	err := r.List(ctx, &metricsTraitList, &client.ListOptions{Namespace: trait.GetNamespace()})
+	if err != nil {
+		return rel, controllerutil.OperationResultNone, log.ErrorfNewErr("Failed to list Metrics Trait in the namespace %s: %v", trait.GetNamespace(), err)
+	}
+
+	// It is the last trait if there is only one left since this one is being deleted
+	if len(metricsTraitList.Items) == 1 {
+		istioCertSecret := corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.IstioTLSSecretName,
+				Namespace: trait.GetNamespace(),
+			},
+		}
+		err := r.Delete(ctx, &istioCertSecret)
+		if err != nil {
+			return rel, controllerutil.OperationResultNone, log.ErrorfNewErr("Failed to delete secret %s/%s: %v", trait.GetNamespace(), constants.IstioTLSSecretName, err)
+		}
+	}
+
 	// If the trait is being deleted or is not enabled, delete the Pod Monitor
-	log.Debugf("Deleting Pod Monitor name: %s namespace: %s from resource relation", rel.Name, rel.Namespace)
+	log.Debugf("Deleting Pod Monitor name: %s/%s from resource relation", rel.Namespace, rel.Name)
 	podMonitor := promoperapi.PodMonitor{}
 	podMonitor.SetName(rel.Name)
 	podMonitor.SetNamespace(rel.Namespace)
 	if err := r.Delete(ctx, &podMonitor); err != nil {
-		return rel, controllerutil.OperationResultNone, err
+		return rel, controllerutil.OperationResultNone, log.ErrorfNewErr("Failed to delete Pod Monitor %s/%s: %v", rel.Namespace, rel.Name, err)
 	}
 	return rel, controllerutil.OperationResultUpdated, nil
 }

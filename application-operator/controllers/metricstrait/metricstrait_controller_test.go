@@ -455,6 +455,20 @@ func TestDeploymentUpdateError(t *testing.T) {
 			return nil
 		})
 
+	// Expect to get the Istio certificate secret
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: vzconst.IstioTLSSecretName, Namespace: vzconst.PrometheusOperatorNamespace}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, secret *k8score.Secret) error {
+			return nil
+		})
+
+	// Expect to get the copied Istio certificate secret
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: vzconst.IstioTLSSecretName, Namespace: "test-namespace"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, secret *k8score.Secret) error {
+			return nil
+		})
+
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
@@ -895,6 +909,12 @@ func containerizedWorkloadClient(deleting, deploymentDeleted, traitDisabled bool
 				Name: "test-namespace",
 			},
 		},
+		&k8score.Secret{
+			ObjectMeta: k8smeta.ObjectMeta{
+				Name:      vzconst.IstioTLSSecretName,
+				Namespace: vzconst.PrometheusOperatorNamespace,
+			},
+		},
 	}
 
 	if !deploymentDeleted {
@@ -997,6 +1017,12 @@ func deploymentWorkloadClient(deleting bool) client.WithWatch {
 		&k8score.Namespace{
 			ObjectMeta: k8smeta.ObjectMeta{
 				Name: "test-namespace",
+			},
+		},
+		&k8score.Secret{
+			ObjectMeta: k8smeta.ObjectMeta{
+				Name:      vzconst.IstioTLSSecretName,
+				Namespace: vzconst.PrometheusOperatorNamespace,
 			},
 		},
 	).Build()
@@ -1114,6 +1140,12 @@ func wlsWorkloadClient(deleting bool) client.WithWatch {
 			},
 		},
 		&domain,
+		&k8score.Secret{
+			ObjectMeta: k8smeta.ObjectMeta{
+				Name:      vzconst.IstioTLSSecretName,
+				Namespace: vzconst.PrometheusOperatorNamespace,
+			},
+		},
 	}
 
 	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
@@ -1234,6 +1266,12 @@ func cohWorkloadClient(deleting bool, portNum int, ports ...int) client.WithWatc
 					{APIVersion: "apps/v1", Kind: "Deployment", Selector: nil},
 					{APIVersion: "v1", Kind: "Service", Selector: nil},
 				},
+			},
+		},
+		&k8score.Secret{
+			ObjectMeta: k8smeta.ObjectMeta{
+				Name:      vzconst.IstioTLSSecretName,
+				Namespace: vzconst.PrometheusOperatorNamespace,
 			},
 		},
 	).Build()

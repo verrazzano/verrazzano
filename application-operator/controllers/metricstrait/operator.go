@@ -5,6 +5,11 @@ package metricstrait
 
 import (
 	"context"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -59,6 +64,11 @@ func (r *Reconciler) reconcileOperatorTraitCreateOrUpdate(ctx context.Context, t
 	// Create or update the related resources of the trait and collect the outcomes.
 	status := r.createOrUpdateRelatedWorkloads(ctx, trait, workload, traitDefaults, children, log)
 
+	err = r.copyIstioCertSecret(ctx, workload, log)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
 	status.RecordOutcome(r.updatePodMonitor(ctx, trait, workload, traitDefaults, log))
 
 	return r.updateTraitStatus(ctx, trait, status, log)
@@ -101,4 +111,28 @@ func (r *Reconciler) fetchTraitDefaults(ctx context.Context, workload *unstructu
 		return nil, false, nil
 	}
 
+}
+
+func (r *Reconciler) copyIstioCertSecret(ctx context.Context, workload *unstructured.Unstructured, log vzlog.VerrazzanoLogger) error {
+	istioCertSecret := corev1.Secret{}
+	err := r.Client.Get(ctx, types.NamespacedName{Namespace: vzconst.PrometheusOperatorNamespace, Name: vzconst.IstioTLSSecretName}, &istioCertSecret)
+	if err != nil {
+		return log.ErrorfNewErr("Failed to get the Istio certificate secret %s/%s: %v", vzconst.PrometheusOperatorNamespace, vzconst.IstioTLSSecretName, err)
+	}
+
+	copiedSecret := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      vzconst.IstioTLSSecretName,
+			Namespace: workload.GetNamespace(),
+		},
+	}
+
+	_, err = controllerutil.CreateOrUpdate(ctx, r.Client, &copiedSecret, func() error {
+		copiedSecret.Data = istioCertSecret.Data
+		return nil
+	})
+	if err != nil {
+		return log.ErrorfNewErr("Failed to copy the Istio certificate secret %s/%s: %v", vzconst.PrometheusOperatorNamespace, vzconst.IstioTLSSecretName, err)
+	}
+	return nil
 }
