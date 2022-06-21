@@ -121,13 +121,13 @@ func TestReconcile(t *testing.T) {
 			// Verify the certificate files
 			fileData, ok := secret.Data[certKeyFile]
 			assert.True(ok)
-			assert.Equal("test-key\n", string(fileData))
+			assert.Contains(string(fileData), "test-key")
 			fileData, ok = secret.Data[rootCertFile]
 			assert.True(ok)
-			assert.Equal("test-root-cert\n", string(fileData))
+			assert.Contains(string(fileData), "test-root-cert")
 			fileData, ok = secret.Data[certChainFile]
 			assert.True(ok)
-			assert.Equal("test-cert-chain\n", string(fileData))
+			assert.Contains(string(fileData), "test-cert-chain")
 		})
 	}
 }
