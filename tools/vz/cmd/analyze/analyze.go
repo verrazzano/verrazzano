@@ -17,7 +17,7 @@ const (
 	helpShort   = "Analyze cluster"
 	helpLong    = `Analyze cluster for identifying issues and providing advice`
 	helpExample = `# Run analysis tool on captured directory
-$vz analyze --captured-dir <path>
+$vz analyze --capture-dir <path>
 `
 )
 

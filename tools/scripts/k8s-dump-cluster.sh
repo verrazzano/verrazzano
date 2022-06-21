@@ -273,14 +273,14 @@ function analyze_dump() {
       cd $SCRIPT_DIR/../vz
       # To enable debug, add  -zap-log-level debug
       if [ -z $REPORT_FILE ]; then
-        GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go analyze --captured-dir $FULL_PATH_CAPTURE_DIR || true
+        GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go analyze --capture-dir $FULL_PATH_CAPTURE_DIR || true
       else
         # Since we have to change the current working directory to run go, we need to take into account if the reportFile specified was relative to the original
         # working directory. If it was absolute then we just use it directly
         if [[ $REPORT_FILE = /* ]]; then
-          GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go analyze --captured-dir $FULL_PATH_CAPTURE_DIR --report-file $REPORT_FILE || true
+          GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go analyze --capture-dir $FULL_PATH_CAPTURE_DIR --report-file $REPORT_FILE || true
         else
-          GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go analyze --captured-dir $FULL_PATH_CAPTURE_DIR --report-file $SAVE_DIR/$REPORT_FILE || true
+          GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go analyze --capture-dir $FULL_PATH_CAPTURE_DIR --report-file $SAVE_DIR/$REPORT_FILE || true
         fi
       fi
       cd $SAVE_DIR

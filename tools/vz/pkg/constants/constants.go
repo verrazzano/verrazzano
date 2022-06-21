@@ -57,7 +57,7 @@ const VerrazzanoPlatformOperatorWait = 1
 
 // Analysis tool flags
 const (
-	DirectoryFlagName  = "captured-dir"
+	DirectoryFlagName  = "capture-dir"
 	DirectoryFlagValue = ""
 	DirectoryFlagUsage = "Directory holding the captured data [Required]"
 

@@ -24,7 +24,7 @@ func TestAnalyzeCommandDefault(t *testing.T) {
 	cmd := NewCmdAnalyze(rc)
 	assert.NotNil(t, cmd)
 	err := cmd.Execute()
-	assert.Contains(t, err.Error(), "\"captured-dir\" not set")
+	assert.Contains(t, err.Error(), "\"capture-dir\" not set")
 }
 
 func TestAnalyzeCommandValidCapturedDir(t *testing.T) {
