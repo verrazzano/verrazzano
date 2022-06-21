@@ -20,7 +20,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
-	"github.com/verrazzano/verrazzano/pkg/scrapeconfigutils"
+	"github.com/verrazzano/verrazzano/pkg/metricsutils"
 	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -112,7 +112,7 @@ func TestCreateVMC(t *testing.T) {
 		return nil
 	}, func(secret *corev1.Secret) error {
 		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
-		scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(scrapeConfigYaml))
+		scrapeConfigs, err := metricsutils.ParseScrapeConfig(string(scrapeConfigYaml))
 		if err != nil {
 			asserts.Fail("failed due to error %v", err)
 		}
@@ -181,7 +181,7 @@ func TestCreateVMCWithExternalES(t *testing.T) {
 		return nil
 	}, func(secret *corev1.Secret) error {
 		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
-		scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(scrapeConfigYaml))
+		scrapeConfigs, err := metricsutils.ParseScrapeConfig(string(scrapeConfigYaml))
 		if err != nil {
 			asserts.Fail("failed due to error %v", err)
 		}
@@ -250,7 +250,7 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 		return nil
 	}, func(secret *corev1.Secret) error {
 		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
-		scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(scrapeConfigYaml))
+		scrapeConfigs, err := metricsutils.ParseScrapeConfig(string(scrapeConfigYaml))
 		if err != nil {
 			asserts.Fail("failed due to error %v", err)
 		}
@@ -318,7 +318,7 @@ func TestCreateVMCNoCACert(t *testing.T) {
 		return nil
 	}, func(secret *corev1.Secret) error {
 		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
-		scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(scrapeConfigYaml))
+		scrapeConfigs, err := metricsutils.ParseScrapeConfig(string(scrapeConfigYaml))
 		if err != nil {
 			asserts.Fail("failed due to error %v", err)
 		}
@@ -399,7 +399,7 @@ scrape_configs:
 		return nil
 	}, func(secret *corev1.Secret) error {
 		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
-		scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(scrapeConfigYaml))
+		scrapeConfigs, err := metricsutils.ParseScrapeConfig(string(scrapeConfigYaml))
 		if err != nil {
 			asserts.Fail("failed due to error %v", err)
 		}
@@ -479,7 +479,7 @@ scrape_configs:
 		return nil
 	}, func(secret *corev1.Secret) error {
 		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
-		scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(scrapeConfigYaml))
+		scrapeConfigs, err := metricsutils.ParseScrapeConfig(string(scrapeConfigYaml))
 		if err != nil {
 			asserts.Fail("failed due to error %v", err)
 		}
@@ -549,7 +549,7 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 		return nil
 	}, func(secret *corev1.Secret) error {
 		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
-		scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(scrapeConfigYaml))
+		scrapeConfigs, err := metricsutils.ParseScrapeConfig(string(scrapeConfigYaml))
 		if err != nil {
 			asserts.Fail("failed due to error %v", err)
 		}
@@ -757,7 +757,7 @@ scrape_configs:
 		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.UpdateOption) error {
 			// validate that the scrape config for the managed cluster is no longer present
-			scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]))
+			scrapeConfigs, err := metricsutils.ParseScrapeConfig(string(secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]))
 			if err != nil {
 				return err
 			}
@@ -1273,7 +1273,7 @@ func TestRegisterClusterWithRancherOverrideRegistry(t *testing.T) {
 		return nil
 	}, func(secret *corev1.Secret) error {
 		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
-		scrapeConfigs, err := scrapeconfigutils.ParseScrapeConfig(string(scrapeConfigYaml))
+		scrapeConfigs, err := metricsutils.ParseScrapeConfig(string(scrapeConfigYaml))
 		if err != nil {
 			asserts.Fail("failed due to error %v", err)
 		}

@@ -131,3 +131,12 @@ const PromAdditionalScrapeConfigsSecretName = "additional-scrape-configs"
 
 // PromAdditionalScrapeConfigsSecretKey is the name of the key in the additional scrape configurations secret that contains the scrape config YAML
 const PromAdditionalScrapeConfigsSecretKey = "jobs"
+
+// MetricsTemplateKind is the Kind of the MetricsTemplate custom resource
+const MetricsTemplateKind = "MetricsTemplate"
+
+// MetricsTemplateAPIVersion is the APIVersion of the MetricsTemplate custom resource
+const MetricsTemplateAPIVersion = "app.verrazzano.io/v1alpha1"
+
+// SecretKind is the kind for a secret
+const SecretKind = "Secret"
