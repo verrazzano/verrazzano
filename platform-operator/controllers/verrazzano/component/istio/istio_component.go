@@ -58,6 +58,9 @@ const subcompIstiod = "istiod"
 // This IstioOperator YAML uses this imagePullSecret key
 const imagePullSecretHelmKey = "values.global.imagePullSecrets[0]"
 
+// istioManfiestNotInstalledError - Expected error during install when running verify-install before Istio CR is applied
+const istioManfiestNotInstalledError = "Istio present but verify-install needs an IstioOperator or manifest for comparison"
+
 // istioComponent represents an Istio component
 type istioComponent struct {
 	// ValuesFile contains the path to the IstioOperator CR values file
@@ -240,14 +243,20 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 		return false
 	}
 
-	// Make sure istioctl successfully completed.  We have seen cases during install where the Istio
-	// deployments are ready but istioctl fails.
-	if context.ActualCR().Status.State == vzapi.VzStateReconciling && !i.monitor.isIstioctlSuccess() {
-		context.Log().Infof("%s is waiting for istioctl install to successfully complete", prefix)
+	verified, err := isInstalledFunc(context.Log())
+	if err != nil && !isIstioManifestNotInstalledError(err) {
+		context.Log().ErrorfThrottled("Unexpected error checking Istio status: %s", err)
 		return false
 	}
-
+	if !verified {
+		context.Log().Progressf("%s is waiting for istioctl verify-install to successfully complete", prefix)
+		return false
+	}
 	return true
+}
+
+func isIstioManifestNotInstalledError(err error) bool {
+	return strings.Contains(err.Error(), istioManfiestNotInstalledError)
 }
 
 // GetDependencies returns the dependencies of this component

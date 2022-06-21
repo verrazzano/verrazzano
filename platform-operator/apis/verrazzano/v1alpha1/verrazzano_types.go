@@ -673,7 +673,8 @@ type FluentdComponent struct {
 
 	// Configuration for integration with OCI (Oracle Cloud Infrastructure) Logging Service
 	// +optional
-	OCI *OciLoggingConfiguration `json:"oci,omitempty"`
+	OCI              *OciLoggingConfiguration `json:"oci,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // WebLogicOperatorComponent specifies the WebLogic Operator configuration

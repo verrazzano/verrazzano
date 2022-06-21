@@ -223,6 +223,16 @@ function delete_verrazzano_console {
   fi
 }
 
+function delete_fluentd {
+  log "Uninstall the Fluentd"
+  if helm status fluentd --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
+    if ! helm uninstall fluentd --namespace "${VERRAZZANO_NS}" ; then
+      error "Failed to uninstall the fluentd."
+    fi
+  fi
+}
+
+action "Deleting Fluentd" delete_fluentd || exit 1
 action "Deleting Verrazzano Console" delete_verrazzano_console || exit 1
 action "Deleting Prometheus Pushgateway " delete_prometheus_pushgateway || exit 1
 action "Deleting Jaeger operator " delete_jaeger_operator || exit 1

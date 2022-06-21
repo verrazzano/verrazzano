@@ -8,6 +8,8 @@ type authProxyValues struct {
 	Name                 string        `json:"name,omitempty"`
 	ImageName            string        `json:"imageName,omitempty"`
 	ImageVersion         string        `json:"imageVersion,omitempty"`
+	MetricsImageName     string        `json:"metricsImageName,omitempty"`
+	MetricsImageVersion  string        `json:"metricsImageVersion,omitempty"`
 	PullPolicy           string        `json:"pullPolicy,omitempty"`
 	Replicas             uint32        `json:"replicas,omitempty"`
 	Port                 int           `json:"port,omitempty"`
@@ -34,8 +36,9 @@ type proxyValues struct {
 }
 
 type configValues struct {
-	EnvName   string `json:"envName,omitempty"`
-	DNSSuffix string `json:"dnsSuffix,omitempty"`
+	EnvName                   string `json:"envName,omitempty"`
+	DNSSuffix                 string `json:"dnsSuffix,omitempty"`
+	PrometheusOperatorEnabled bool   `json:"prometheusOperatorEnabled,omitempty"`
 }
 
 type dnsValues struct {

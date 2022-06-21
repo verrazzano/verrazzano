@@ -52,6 +52,8 @@ var RunbookLinks = map[string][]string{
 	InstallFailure:            {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/installfailure"},
 	PendingPods:               {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/pendingpods"},
 	PodProblemsNotReported:    {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/podproblemsnotreported"},
+	IngressNoIPFound:          {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/ingressnoloadbalancerip"},
+	IngressShapeInvalid:       {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/ingressinvalidshape"},
 }
 
 // KnownActions are Standard Action types
@@ -68,6 +70,8 @@ var KnownActions = map[string]Action{
 	InstallFailure:            {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[InstallFailure][0])},
 	PendingPods:               {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[PendingPods][0])},
 	PodProblemsNotReported:    {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[PodProblemsNotReported][0])},
+	IngressNoIPFound:          {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[IngressNoIPFound][0])},
+	IngressShapeInvalid:       {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[IngressShapeInvalid][0])},
 }
 
 func getConsultRunbookAction(summaryF string, runbookLink string) string {

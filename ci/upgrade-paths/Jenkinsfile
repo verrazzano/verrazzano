@@ -195,7 +195,7 @@ pipeline {
         SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
 
         // sample app deployed before upgrade and UI console tests
-        SAMPLE_APP_NAME="hello-helidon-appconf"
+        SAMPLE_APP_NAME="hello-helidon"
         SAMPLE_APP_NAMESPACE="hello-helidon"
         SAMPLE_APP_PROJECT="hello-helidon-sample-proj"
         SAMPLE_APP_COMPONENT="hello-helidon-component"
@@ -416,6 +416,11 @@ pipeline {
                 stage("upgrade-verrazzano") {
                     steps {
                         upgradeVerrazzano()
+                    }
+                    post {
+                        always {
+                            performDescribeVerrazzanoResource()
+                        }
                     }
                 }
             }
@@ -2066,5 +2071,18 @@ def pipelinePostFailure() {
             oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip || true
             rm archive.zip || true
         """
+    }
+}
+
+def performDescribeVerrazzanoResource() {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for(int count=1; count<=clusterCount; count++) {
+            sh """
+                echo "Performing describe on Verrazzano resource on cluster ${count}"
+                export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                kubectl get vz -o yaml
+            """
+        }
     }
 }

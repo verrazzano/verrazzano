@@ -1,0 +1,20 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.logging.name }}-init
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.logging.name }}
+data:
+  init.sh: |
+    #!/bin/bash
+    cat /etc/ssl/certs/ca-bundle.crt > /fluentd/cacerts/all-ca-certs.pem
+    if [ -f "/fluentd/secret/ca-bundle" ]; then
+      cat /fluentd/secret/ca-bundle >> /fluentd/cacerts/all-ca-certs.pem
+    fi
+    if [ -f "/fluentd/secret/es-ca-bundle" ]; then
+      cat /fluentd/secret/es-ca-bundle >> /fluentd/cacerts/all-ca-certs.pem
+    fi
