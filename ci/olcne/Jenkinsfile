@@ -989,8 +989,8 @@ def createOCIFileSystem() {
         -n "$TF_VAR_prefix-fs" -m "$TF_VAR_prefix-mt" \
         -p "/$TF_VAR_prefix-export" -c $TF_VAR_compartment_id -s $PRIVATE_SUBNET_OCID
     """
-    MT_PVT_IP_OCID=sh("oci fs mount-target list --compartment-id $TF_VAR_compartment_id --availability-domain $TF_VAR_availability_domain_id --display-name $TF_VAR_prefix-mt --lifecycle-state ACTIVE | jq -r '.data[0].\"private-ip-ids\"[0]'")
-    OCI_MOUNT_IP=sh("oci network private-ip get --private-ip-id $MT_PVT_IP_OCID | jq -r '.data.\"ip-address\"'")
+    MT_PVT_IP_OCID=sh(returnStdout: true, script: "oci fs mount-target list --compartment-id $TF_VAR_compartment_id --availability-domain $TF_VAR_availability_domain_id --display-name $TF_VAR_prefix-mt --lifecycle-state ACTIVE | jq -r '.data[0].\"private-ip-ids\"[0]'")
+    OCI_MOUNT_IP=sh(returnStdout: true, script: "oci network private-ip get --private-ip-id $MT_PVT_IP_OCID | jq -r '.data.\"ip-address\"'")
     OCI_EXPORT_PATH="/$TF_VAR_prefix-export"
 }
 
@@ -1008,12 +1008,12 @@ def createOCILoadBalancers() {
         -i $WORKER_NODES_IP -p 31390 \
         -f "$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci-load-balancer.json"
     """
-    OCI_LB_MGMT_IP=sh("oci lb load-balancer list --compartment-id $TF_VAR_compartment_id --display-name $TF_VAR_prefix-mgmt --lifecycle-state ACTIVE | jq -r '.data[0].id'")
-    OCI_LB_APP_IP=sh("oci lb load-balancer list --compartment-id $TF_VAR_compartment_id --display-name $TF_VAR_prefix-app --lifecycle-state ACTIVE | jq -r '.data[0].id'")
+    OCI_LB_MGMT_IP=sh(returnStdout: true, script: "oci lb load-balancer list --compartment-id $TF_VAR_compartment_id --display-name $TF_VAR_prefix-mgmt --lifecycle-state ACTIVE | jq -r '.data[0].id'")
+    OCI_LB_APP_IP=sh(returnStdout: true, script: "oci lb load-balancer list --compartment-id $TF_VAR_compartment_id --display-name $TF_VAR_prefix-app --lifecycle-state ACTIVE | jq -r '.data[0].id'")
 }
 
 def createOCIDNSZone() {
-    OCI_DNS_ZONE_OCID=sh(script: "$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c $TF_VAR_compartment_id -s $OCI_DNS_ZONE_SUBDOMAIN_NAME -k $OCI_DNS_SCOPE", returnStdout: true)
+    OCI_DNS_ZONE_OCID=ssh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c $TF_VAR_compartment_id -s $OCI_DNS_ZONE_SUBDOMAIN_NAME -k $OCI_DNS_SCOPE")
 }
 
 def deleteOLCNECluster() {
@@ -1053,15 +1053,16 @@ def deleteOCIDNSZone() {
 }
 
 def setupBastionSSH() {
+    status=sh(returnStdout: true, script: "sudo yum -y install oracle-epel-release-el7 && sudo yum -y install sshuttle")
     sh """
-        sudo yum -y install oracle-epel-release-el7
-        sudo yum -y install sshuttle
-        if [ $? -ne 0 ]; then
+        if [ $status -ne 0 ]; then
             echo "[ERROR] Failed to install sshuttle"
             exit 1
         fi
-        sshuttle -r $BASTION_USER@$BASTION_IP $VCN_CIDR --ssh-cmd 'ssh -o StrictHostKeyChecking=no -i '$OPC_USER_KEY_FILE'' --daemon
-        if [ $? -ne 0 ]; then
+    """
+    status=sh(returnStdout: true, script: "sshuttle -r $BASTION_USER@$BASTION_IP $VCN_CIDR --ssh-cmd 'ssh -o StrictHostKeyChecking=no -i '$OPC_USER_KEY_FILE'' --daemon")
+    sh """
+        if [ $status -ne 0 ]; then
             echo "[ERROR] Failed to ssh tunnel to the bastion host $TF_VAR_prefix-bastion at $BASTION_USER@$BASTION_IP"
             exit 1
         fi
