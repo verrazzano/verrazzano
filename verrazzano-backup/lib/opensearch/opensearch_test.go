@@ -140,3 +140,48 @@ func TestCheckRestoreProgress(t *testing.T) {
 	err := o.CheckRestoreProgress(&c, log)
 	assert.Nil(t, err)
 }
+
+// TestBackup tests the Backup method for the following use case.
+// GIVEN OpenSearch object
+// WHEN invoked with snapshot name
+// THEN takes the opensearch backup
+func TestBackup(t *testing.T) {
+	log, f := logHelper()
+	defer os.Remove(f)
+
+	o := opensearch.Opensearch(&opensearch.OpensearchImpl{})
+	var c types.ConnectionData
+	c.BackupName = "mango"
+	err := o.Backup(&c, log)
+	assert.NotNil(t, err)
+}
+
+// TestRestore tests the Restore method for the following use case.
+// GIVEN OpenSearch object
+// WHEN invoked with snapshot name
+// THEN restores the opensearch from a given backup
+func TestRestore(t *testing.T) {
+	log, f := logHelper()
+	defer os.Remove(f)
+
+	o := opensearch.Opensearch(&opensearch.OpensearchImpl{})
+	var c types.ConnectionData
+	c.BackupName = "mango"
+	err := o.Restore(&c, log)
+	assert.NotNil(t, err)
+}
+
+// TestEnsureOpenSearchIsHealthy tests the EnsureOpenSearchIsHealthy method for the following use case.
+// GIVEN OpenSearch object
+// WHEN invoked with snapshot name
+// THEN checks if opensearch cluster is healthy
+func TestEnsureOpenSearchIsHealthy(t *testing.T) {
+	log, f := logHelper()
+	defer os.Remove(f)
+
+	o := opensearch.Opensearch(&opensearch.OpensearchImpl{})
+	var c types.ConnectionData
+	c.BackupName = "mango"
+	err := o.EnsureOpenSearchIsHealthy("http://127.0.0.1", &c, log)
+	assert.NotNil(t, err)
+}
