@@ -373,7 +373,7 @@ pipeline {
             }
         }
 
-       stage("Create OCI DNS zone") {
+       stage("Create OCI DNS Zone") {
             steps {
                 script {
                     echo "[INFO] Creating OCI DNS Zone"
@@ -972,14 +972,23 @@ def createOLCNECluster() {
         terraform apply -input=false -no-color -auto-approve tfplan
     """
     API_SERVER_IP=sh(returnStdout: true, script: "terraform output -raw apiserver_ip")
+    println(API_SERVER_IP)
     VCN_OCID=sh(returnStdout: true, script: "terraform output -raw vcn_id")
-    VCN_CIDR=sh(returnStdout: true, script: "oci network vcn get --vcn-id $VCN_OCID | jq -r '.data.\"cidr-block\"'")
-    PUBLIC_SUBNET_OCID=sh(returnStdout: true, script: "oci network subnet list -c $TF_VAR_compartment_id --vcn-id $VCN_OCID --display-name $TF_VAR_prefix-bastion | jq -r '.data[0].id'")
-    PRIVATE_SUBNET_OCID=sh(returnStdout: true, script: "terraform output -raw subnet_id")
+    println(VCN_OCID)
     BASTION_IP=sh(returnStdout: true, script: "terraform output -raw bastion_public_ip")
+    println(BASTION_IP)
     BASTION_USER=sh(returnStdout: true, script: "terraform output -raw bastion_user")
+    println(BASTION_USER)
     WORKER_NODES_IP=sh(returnStdout: true, script: "terraform output -json worker_nodes").replaceAll(/["\[\]]/, "").replaceAll(",", " ")
+    println(WORKER_NODES_IP)
     CONTROL_PLANE_NODES_IP=sh(returnStdout: true, script: "terraform output -json control_plane_nodes").replaceAll(/["\[\]]/, "").replaceAll(",", " ")
+    println(CONTROL_PLANE_NODES_IP)
+    PRIVATE_SUBNET_OCID=sh(returnStdout: true, script: "terraform output -raw subnet_id")
+    println(PRIVATE_SUBNET_OCID)
+    VCN_CIDR=sh(returnStdout: true, script: "oci network vcn get --vcn-id $VCN_OCID | jq -r '.data.\"cidr-block\"'")
+    println(VCN_CIDR)
+    PUBLIC_SUBNET_OCID=sh(returnStdout: true, script: "oci network subnet list -c $TF_VAR_compartment_id --vcn-id $VCN_OCID --display-name $TF_VAR_prefix-bastion | jq -r '.data[0].id'")
+    println(PUBLIC_SUBNET_OCID)
 }
 
 def createOCIFileSystem() {
