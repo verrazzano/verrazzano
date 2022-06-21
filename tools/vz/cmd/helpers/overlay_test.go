@@ -4,10 +4,14 @@
 package helpers
 
 import (
-	"testing"
-
+	"context"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"testing"
 )
 
 // TestMergeYAMLFilesSingle
@@ -92,4 +96,30 @@ func TestMergeYAMLFilesNotFound(t *testing.T) {
 	_, err := MergeYAMLFiles([]string{"../../test/testdate/file-does-not-exist.yaml"})
 	assert.Error(t, err)
 	assert.EqualError(t, err, "open ../../test/testdate/file-does-not-exist.yaml: no such file or directory")
+}
+
+// TestMergeSetFlags
+// GIVEN a YAML file and a YAML string
+// WHEN I call MergeSetFlags
+// THEN the call returns a vz resource with the two source merged
+func TestMergeSetFlags(t *testing.T) {
+	yamlString := "spec:\n  environmentName: test"
+	vz := &vzapi.Verrazzano{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      "verrazzano",
+		},
+	}
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vz).Build()
+
+	_, err := MergeSetFlags(vz, yamlString)
+	assert.NoError(t, err)
+
+	// Verify the vz resource is as expected
+	mergedvz := vzapi.Verrazzano{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &mergedvz)
+	assert.NoError(t, err)
+	assert.Equal(t, "test", vz.Spec.EnvironmentName)
 }
