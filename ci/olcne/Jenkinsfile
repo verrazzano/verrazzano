@@ -253,95 +253,95 @@ pipeline {
     }
 
     stages {
-        stage('Initialize') {
-            steps {
-                script {
-                    // Proceed with checkout
-                    EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS=getEffectiveDumpOnSuccess()
-                    if (params.GIT_COMMIT_TO_USE == "NONE") {
-                        echo "[INFO] Specific GIT commit was not specified, use current head"
-                        def scmInfo=checkout scm
-                        env.GIT_COMMIT=scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH=scmInfo.GIT_BRANCH
-                    } else {
-                        echo "[INFO] SCM checkout of ${params.GIT_COMMIT_TO_USE}"
-                        def scmInfo=checkout([
-                            $class: 'GitSCM',
-                            branches: [[name: params.GIT_COMMIT_TO_USE]],
-                            doGenerateSubmoduleConfigurations: false,
-                            extensions: [],
-                            submoduleCfg: [],
-                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
-                        env.GIT_COMMIT=scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH=scmInfo.GIT_BRANCH
-                        // If the commit we were handed is not what the SCM says we are using, fail
-                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
-                            echo "[ERROR] SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
-                            exit 1
-                        }
-                    }
-                    echo "[INFO] SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+        // stage('Initialize') {
+        //     steps {
+        //         script {
+        //             // Proceed with checkout
+        //             EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS=getEffectiveDumpOnSuccess()
+        //             if (params.GIT_COMMIT_TO_USE == "NONE") {
+        //                 echo "[INFO] Specific GIT commit was not specified, use current head"
+        //                 def scmInfo=checkout scm
+        //                 env.GIT_COMMIT=scmInfo.GIT_COMMIT
+        //                 env.GIT_BRANCH=scmInfo.GIT_BRANCH
+        //             } else {
+        //                 echo "[INFO] SCM checkout of ${params.GIT_COMMIT_TO_USE}"
+        //                 def scmInfo=checkout([
+        //                     $class: 'GitSCM',
+        //                     branches: [[name: params.GIT_COMMIT_TO_USE]],
+        //                     doGenerateSubmoduleConfigurations: false,
+        //                     extensions: [],
+        //                     submoduleCfg: [],
+        //                     userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+        //                 env.GIT_COMMIT=scmInfo.GIT_COMMIT
+        //                 env.GIT_BRANCH=scmInfo.GIT_BRANCH
+        //                 // If the commit we were handed is not what the SCM says we are using, fail
+        //                 if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
+        //                     echo "[ERROR] SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
+        //                     exit 1
+        //                 }
+        //             }
+        //             echo "[INFO] SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
                     
-                    sh '''
-                        rm -rf $GO_REPO_PATH/verrazzano
-                        mkdir -p $GO_REPO_PATH/verrazzano
-                        tar cf - . | (cd $GO_REPO_PATH/verrazzano/ ; tar xf -)
-                        rm -rf $WORKSPACE/*
-                    '''
+        //             sh '''
+        //                 rm -rf $GO_REPO_PATH/verrazzano
+        //                 mkdir -p $GO_REPO_PATH/verrazzano
+        //                 tar cf - . | (cd $GO_REPO_PATH/verrazzano/ ; tar xf -)
+        //                 rm -rf $WORKSPACE/*
+        //             '''
 
-                    echo "[INFO] SCM checkout of $OLCNE_TERRAFORM_GIT_URL $OLCNE_BRANCH_TO_USE"
-                    def scmInfo=checkout([
-                        $class: 'GitSCM',
-                        branches: [[name: env.OLCNE_BRANCH_TO_USE]],
-                        doGenerateSubmoduleConfigurations: false,
-                        extensions: [],
-                        submoduleCfg: [],
-                        userRemoteConfigs: [[url: env.OLCNE_TERRAFORM_GIT_URL, credentialsId: 'sk_gitlab_rw']]])
-                    env.TF_GIT_COMMIT=scmInfo.GIT_COMMIT
-                    env.TF_GIT_BRANCH=scmInfo.GIT_BRANCH
-                    // If the commit we were handed is not what the SCM says we are using, fail
-                    if (!env.TF_GIT_BRANCH.equals(env.OLCNE_BRANCH_TO_USE)) {
-                        echo "[ERROR] SCM didn't checkout the branch we expected. Expected: ${env.OLCNE_BRANCH_TO_USE}, Found: ${scmInfo.GIT_BRANCH}"
-                        exit 1
-                    }
-                    echo "[INFO] SCM checkout of ${env.TF_GIT_BRANCH} at ${env.TF_GIT_COMMIT}"
+        //             echo "[INFO] SCM checkout of $OLCNE_TERRAFORM_GIT_URL $OLCNE_BRANCH_TO_USE"
+        //             def scmInfo=checkout([
+        //                 $class: 'GitSCM',
+        //                 branches: [[name: env.OLCNE_BRANCH_TO_USE]],
+        //                 doGenerateSubmoduleConfigurations: false,
+        //                 extensions: [],
+        //                 submoduleCfg: [],
+        //                 userRemoteConfigs: [[url: env.OLCNE_TERRAFORM_GIT_URL, credentialsId: 'sk_gitlab_rw']]])
+        //             env.TF_GIT_COMMIT=scmInfo.GIT_COMMIT
+        //             env.TF_GIT_BRANCH=scmInfo.GIT_BRANCH
+        //             // If the commit we were handed is not what the SCM says we are using, fail
+        //             if (!env.TF_GIT_BRANCH.equals(env.OLCNE_BRANCH_TO_USE)) {
+        //                 echo "[ERROR] SCM didn't checkout the branch we expected. Expected: ${env.OLCNE_BRANCH_TO_USE}, Found: ${scmInfo.GIT_BRANCH}"
+        //                 exit 1
+        //             }
+        //             echo "[INFO] SCM checkout of ${env.TF_GIT_BRANCH} at ${env.TF_GIT_COMMIT}"
                                         
-                    sh '''
-                        rm -rf $GO_REPO_PATH/terraform-oci-olcne
-                        mkdir -p $GO_REPO_PATH/terraform-oci-olcne
-                        tar cf - . | (cd $GO_REPO_PATH/terraform-oci-olcne/ ; tar xf -)
-                        rm -rf $WORKSPACE/*
-                    '''
+        //             sh '''
+        //                 rm -rf $GO_REPO_PATH/terraform-oci-olcne
+        //                 mkdir -p $GO_REPO_PATH/terraform-oci-olcne
+        //                 tar cf - . | (cd $GO_REPO_PATH/terraform-oci-olcne/ ; tar xf -)
+        //                 rm -rf $WORKSPACE/*
+        //             '''
 
-                    // Install terraform and generate ssh keys
-                    sh '''
-                        sudo yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/x86_64 
-                        sudo yum install -y terraform
-                        mkdir -p $WORKSPACE/terraform-oci-olcne
-                        ssh-keygen -t rsa -b 4096 -q -N "" -f $TF_VAR_ssh_private_key_path
-                    '''
+        //             // Install terraform and generate ssh keys
+        //             sh '''
+        //                 sudo yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/x86_64 
+        //                 sudo yum install -y terraform
+        //                 mkdir -p $WORKSPACE/terraform-oci-olcne
+        //                 ssh-keygen -t rsa -b 4096 -q -N "" -f $TF_VAR_ssh_private_key_path
+        //             '''
 
-                    sh '''
-                        cp -f "$NETRC_FILE" $HOME/.netrc
-                        chmod 600 $HOME/.netrc
-                    '''
+        //             sh '''
+        //                 cp -f "$NETRC_FILE" $HOME/.netrc
+        //                 chmod 600 $HOME/.netrc
+        //             '''
 
-                    script {
-                        echo "[INFO] ${params.OLCNE_CLUSTER_REGION}"
-                        echo "[INFO] agentlabel: $agentLabel"
-                        echo "[INFO] $NODE_LABELS"
-                        SHORT_COMMIT_HASH=sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-                        // update the description with some meaningful info
-                        setDisplayName()
-                        currentBuild.description=SHORT_COMMIT_HASH + " : " + params.OLCNE_CLUSTER_REGION + " : " + params.K8S_VERSION
-                        // derive the prefix for the OKE cluster
-                        OLCNE_CLUSTER_PREFIX=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
-                        // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
-                        env.K8S_VERSION_LABEL=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/derive_kubernetes_version.sh ${params.K8S_VERSION}").trim()
-                    }
-                }
-            }
-        }
+        //             script {
+        //                 echo "[INFO] ${params.OLCNE_CLUSTER_REGION}"
+        //                 echo "[INFO] agentlabel: $agentLabel"
+        //                 echo "[INFO] $NODE_LABELS"
+        //                 SHORT_COMMIT_HASH=sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+        //                 // update the description with some meaningful info
+        //                 setDisplayName()
+        //                 currentBuild.description=SHORT_COMMIT_HASH + " : " + params.OLCNE_CLUSTER_REGION + " : " + params.K8S_VERSION
+        //                 // derive the prefix for the OKE cluster
+        //                 OLCNE_CLUSTER_PREFIX=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
+        //                 // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
+        //                 env.K8S_VERSION_LABEL=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/derive_kubernetes_version.sh ${params.K8S_VERSION}").trim()
+        //             }
+        //         }
+        //     }
+        // }
 
         stage("Test env var") {
             steps {
