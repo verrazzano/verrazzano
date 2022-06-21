@@ -8,7 +8,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
@@ -82,6 +84,8 @@ func getComponents() []spi.Component {
 			pushgateway.NewComponent(),
 			promnodeexporter.NewComponent(),
 			jaegeroperator.NewComponent(),
+			console.NewComponent(),
+			fluentd.NewComponent(),
 		}
 	}
 	return componentsRegistry

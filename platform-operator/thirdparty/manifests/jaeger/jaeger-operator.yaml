@@ -13228,7 +13228,6 @@ spec:
         - name: JAEGER-COLLECTOR-IMAGE
           value: {{.jaegercollector}}
         image: {{.jaegeroperator}}
-        image: quay.io/jaegertracing/jaeger-operator:1.32.0
         livenessProbe:
           httpGet:
             path: /healthz

@@ -4,13 +4,13 @@
 package rancher
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
@@ -60,15 +60,17 @@ func NewComponent() spi.Component {
 					Name:      constants.RancherIngress,
 				},
 			},
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
 
 //AppendOverrides set the Rancher overrides for Helm
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	log := ctx.Log()
 	rancherHostName, err := getRancherHostname(ctx.Client(), ctx.EffectiveCR())
 	if err != nil {
-		return kvs, err
+		return kvs, log.ErrorfThrottledNewErr("Failed retrieving Rancher hostname: %s", err.Error())
 	}
 	kvs = append(kvs, bom.KeyValue{
 		Key:   "hostname",
@@ -80,7 +82,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		Value: useBundledSystemChartValue,
 	})
 	kvs = appendRegistryOverrides(kvs)
-	return appendCAOverrides(kvs, ctx)
+	return appendCAOverrides(log, kvs, ctx)
 }
 
 //appendRegistryOverrides appends overrides if a custom registry is being used
@@ -104,10 +106,10 @@ func appendRegistryOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 }
 
 //appendCAOverrides sets overrides for CA Issuers, ACME or CA.
-func appendCAOverrides(kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyValue, error) {
+func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyValue, error) {
 	cm := ctx.EffectiveCR().Spec.Components.CertManager
 	if cm == nil {
-		return kvs, errors.New("certManager component not found in effective cr")
+		return kvs, log.ErrorfThrottledNewErr("Failed to find certManager component in effective cr")
 	}
 
 	// Configure CA Issuer KVs
@@ -161,7 +163,7 @@ func (r rancherComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 	if r.IsEnabled(old) && !r.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	return nil
+	return r.HelmComponent.ValidateUpdate(old, new)
 }
 
 // PreInstall
@@ -176,9 +178,11 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 	c := ctx.Client()
 	log := ctx.Log()
 	if err := createCattleSystemNamespace(log, c); err != nil {
+		log.ErrorfThrottledNewErr("Failed creating cattle-system namespace: %s", err.Error())
 		return err
 	}
 	if err := copyDefaultCACertificate(log, c, vz); err != nil {
+		log.ErrorfThrottledNewErr("Failed copying default CA certificate: %s", err.Error())
 		return err
 	}
 	return nil
@@ -191,20 +195,19 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 - Patch Rancher ingress with NGINX/TLS annotations
 */
 func (r rancherComponent) Install(ctx spi.ComponentContext) error {
-	if err := r.HelmComponent.Install(ctx); err != nil {
-		return err
-	}
-
 	log := ctx.Log()
+	if err := r.HelmComponent.Install(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("Failed retrieving Rancher install component: %s", err.Error())
+	}
 	c := ctx.Client()
 	// Set MKNOD Cap on Rancher deployment
 	if err := patchRancherDeployment(c); err != nil {
-		return log.ErrorfThrottledNewErr("Error patching Rancher deployment: %s", err.Error())
+		return log.ErrorfThrottledNewErr("Failed patching Rancher deployment: %s", err.Error())
 	}
 	log.Debugf("Patched Rancher deployment to support MKNOD")
 	// Annotate Rancher ingress for NGINX/TLS
 	if err := patchRancherIngress(c, ctx.EffectiveCR()); err != nil {
-		return log.ErrorfThrottledNewErr("Error patching Rancher ingress: %s", err.Error())
+		return log.ErrorfThrottledNewErr("Failed patching Rancher ingress: %s", err.Error())
 	}
 	log.Debugf("Patched Rancher ingress")
 
@@ -232,29 +235,43 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	log := ctx.Log()
 
 	if err := createAdminSecretIfNotExists(log, c); err != nil {
-		return log.ErrorfThrottledNewErr("Error creating Rancher admin secret: %s", err.Error())
+		return log.ErrorfThrottledNewErr("Failed creating Rancher admin secret: %s", err.Error())
 	}
 	password, err := common.GetAdminSecret(c)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Error getting Rancher admin secret: %s", err.Error())
+		return log.ErrorfThrottledNewErr("Failed getting Rancher admin secret: %s", err.Error())
 	}
 	rancherHostName, err := getRancherHostname(c, vz)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Error getting Rancher hostname: %s", err.Error())
+		return log.ErrorfThrottledNewErr("Failed getting Rancher hostname: %s", err.Error())
 	}
 
 	rest, err := common.NewClient(c, rancherHostName, password)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Error getting Rancher client: %s", err.Error())
+		return log.ErrorfThrottledNewErr("Failed getting Rancher client: %s", err.Error())
 	}
 	if err := rest.SetAccessToken(); err != nil {
-		return log.ErrorfThrottledNewErr("Error setting Rancher access token: %s", err.Error())
+		return log.ErrorfThrottledNewErr("Failed setting Rancher access token: %s", err.Error())
 	}
 	if err := rest.PutServerURL(); err != nil {
-		return log.ErrorfThrottledNewErr("Error setting Rancher server URL: %s", err.Error())
+		return log.ErrorfThrottledNewErr("Failed setting Rancher server URL: %s", err.Error())
 	}
 	if err := removeBootstrapSecretIfExists(log, c); err != nil {
-		return log.ErrorfThrottledNewErr("Error removing Rancher bootstrap secret: %s", err.Error())
+		return log.ErrorfThrottledNewErr("Failed removing Rancher bootstrap secret: %s", err.Error())
 	}
-	return r.HelmComponent.PostInstall(ctx)
+	if err := r.HelmComponent.PostInstall(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("Failed helm component post install: %s", err.Error())
+	}
+	return nil
+}
+
+// MonitorOverrides checks whether monitoring of install overrides is enabled or not
+func (r rancherComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.Rancher != nil {
+		if ctx.EffectiveCR().Spec.Components.Rancher.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.Rancher.MonitorChanges
+		}
+		return true
+	}
+	return false
 }

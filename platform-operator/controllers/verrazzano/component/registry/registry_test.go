@@ -4,6 +4,9 @@
 package registry
 
 import (
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -59,7 +62,7 @@ func TestGetComponents(t *testing.T) {
 	a := assert.New(t)
 	comps := GetComponents()
 
-	a.Len(comps, 24, "Wrong number of components")
+	a.Len(comps, 26, "Wrong number of components")
 	a.Equal(comps[0].Name(), oam.ComponentName)
 	a.Equal(comps[1].Name(), appoper.ComponentName)
 	a.Equal(comps[2].Name(), istio.ComponentName)
@@ -84,6 +87,8 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[21].Name(), pushgateway.ComponentName)
 	a.Equal(comps[22].Name(), promnodeexporter.ComponentName)
 	a.Equal(comps[23].Name(), jaegeroperator.ComponentName)
+	a.Equal(comps[24].Name(), console.ComponentName)
+	a.Equal(comps[25].Name(), fluentd.ComponentName)
 }
 
 // TestFindComponent tests FindComponent
@@ -100,41 +105,19 @@ func TestFindComponent(t *testing.T) {
 // TestComponentDependenciesMet tests ComponentDependenciesMet
 // GIVEN a component
 //  WHEN I call ComponentDependenciesMet for it
-//  THEN the true is returned if all depdencies are met
+//  THEN the true is returned if all dependencies are met
 func TestComponentDependenciesMet(t *testing.T) {
 	comp := helm2.HelmComponent{
 		ReleaseName:    "foo",
 		ChartDir:       "chartDir",
 		ChartNamespace: "bar",
-		Dependencies:   []string{istio.ComponentName},
+		Dependencies:   []string{coherence.ComponentName},
 	}
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "istio-system",
-				Name:      "istiod",
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "istio-system",
-				Name:      "istio-ingressgateway",
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "istio-system",
-				Name:      "istio-egressgateway",
+				Namespace: vzconst.VerrazzanoSystemNamespace,
+				Name:      "coherence-operator",
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
@@ -147,14 +130,14 @@ func TestComponentDependenciesMet(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "default"}}, false))
+	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "default"}}, true))
 	assert.True(t, ready)
 }
 
 // TestComponentDependenciesNotMet tests ComponentDependenciesMet
 // GIVEN a component
 //  WHEN I call ComponentDependenciesMet for it
-//  THEN the false is returned if any depdencies are not met
+//  THEN the false is returned if any dependencies are not met
 func TestComponentDependenciesNotMet(t *testing.T) {
 	comp := helm2.HelmComponent{
 		ReleaseName:    "foo",
@@ -264,18 +247,16 @@ func TestComponentMultipleDependenciesPartiallyMet(t *testing.T) {
 // TestComponentMultipleDependenciesMet tests ComponentDependenciesMet
 // GIVEN a component
 //  WHEN I call ComponentDependenciesMet for it
-//  THEN the true is returned if all depdencies are met
+//  THEN the true is returned if all dependencies are met
 func TestComponentMultipleDependenciesMet(t *testing.T) {
 	comp := helm2.HelmComponent{
 		ReleaseName:    "foo",
 		ChartDir:       "chartDir",
 		ChartNamespace: "bar",
-		Dependencies:   []string{istio.ComponentName, "cert-manager"},
+		Dependencies:   []string{oam.ComponentName, certmanager.ComponentName},
 	}
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		newReadyDeployment("istiod", "istio-system"),
-		newReadyDeployment("istio-ingressgateway", "istio-system"),
-		newReadyDeployment("istio-egressgateway", "istio-system"),
+		newReadyDeployment("oam-kubernetes-runtime", vzconst.VerrazzanoSystemNamespace),
 		newReadyDeployment(certManagerDeploymentName, certManagerNamespace),
 		newReadyDeployment(cainjectorDeploymentName, certManagerNamespace),
 		newReadyDeployment(webhookDeploymentName, certManagerNamespace),
@@ -509,6 +490,14 @@ func (f fakeComponent) Name() string {
 
 func (f fakeComponent) GetJSONName() string {
 	return f.name
+}
+
+func (f fakeComponent) GetOverrides(_ *v1alpha1.Verrazzano) []v1alpha1.Overrides {
+	return []v1alpha1.Overrides{}
+}
+
+func (f fakeComponent) MonitorOverrides(_ spi.ComponentContext) bool {
+	return true
 }
 
 func (f fakeComponent) GetDependencies() []string {

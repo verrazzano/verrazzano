@@ -47,6 +47,16 @@ spec:
       ports:
         - port: 15090
           protocol: TCP
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: system-prometheus
+      ports:
+        - port: 9113
+          protocol: TCP
 {{- if .Values.console.enabled }}
 ---
 # Network policy for Verrazzano console

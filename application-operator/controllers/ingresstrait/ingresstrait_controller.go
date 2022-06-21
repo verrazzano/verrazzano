@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"istio.io/api/security/v1beta1"
+	v1beta12 "istio.io/api/type/v1beta1"
 	"reflect"
 	"strings"
 	"time"
@@ -38,6 +40,7 @@ import (
 	"go.uber.org/zap"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8net "k8s.io/api/networking/v1"
@@ -70,6 +73,8 @@ const (
 	wlProxySSLHeaderVal       = "true"
 	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
 	destinationRuleKind       = "DestinationRule"
+	authzPolicyAPIVersion     = "security.istio.io/v1beta1"
+	authzPolicyKind           = "AuthorizationPolicy"
 	controllerName            = "ingresstrait"
 	httpsProtocol             = "HTTPS"
 	istioIngressGateway       = "istio-ingressgateway"
@@ -193,28 +198,26 @@ func isIngressTraitBeingDeleted(trait *vzapi.IngressTrait) bool {
 	return trait != nil && trait.GetDeletionTimestamp() != nil
 }
 
-// removeFinalizerIfRequired removes the finalizer from the application configuration if required
-// The finalizer is only removed if the application configuration is being deleted and the finalizer had been added
+// removeFinalizerIfRequired removes the finalizer from the ingress trait if required
+// The finalizer is only removed if the ingress trait is being deleted and the finalizer had been added
 func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) error {
 	if !trait.DeletionTimestamp.IsZero() && vzstring.SliceContainsString(trait.Finalizers, finalizerName) {
-		appName := vznav.GetNamespacedNameFromObjectMeta(trait.ObjectMeta)
-		log.Debugf("Removing finalizer from application configuration %s", appName)
+		log.Debugf("Removing finalizer from ingress trait %s", trait.Name)
 		trait.Finalizers = vzstring.RemoveStringFromSlice(trait.Finalizers, finalizerName)
 		err := r.Update(ctx, trait)
-		return vzlogInit.ConflictWithLog(fmt.Sprintf("Failed to remove finalizer from application configuration %s", appName), err, zap.S())
+		return vzlogInit.ConflictWithLog(fmt.Sprintf("Failed to remove finalizer from ingress trait %s", trait.Name), err, zap.S())
 	}
 	return nil
 }
 
-// addFinalizerIfRequired adds the finalizer to the app config if required
-// The finalizer is only added if the app config is not being deleted and the finalizer has not previously been added
-func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, appConfig *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) error {
-	if appConfig.GetDeletionTimestamp().IsZero() && !vzstring.SliceContainsString(appConfig.Finalizers, finalizerName) {
-		appName := vznav.GetNamespacedNameFromObjectMeta(appConfig.ObjectMeta)
-		log.Debugf("Adding finalizer for appConfig %s", appName)
-		appConfig.Finalizers = append(appConfig.Finalizers, finalizerName)
-		err := r.Update(ctx, appConfig)
-		_, err = vzlogInit.IgnoreConflictWithLog(fmt.Sprintf("Failed to add finalizer to appConfig %s", appName), err, zap.S())
+// addFinalizerIfRequired adds the finalizer to the ingress trait if required
+// The finalizer is only added if the ingress trait is not being deleted and the finalizer has not previously been added
+func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, trait *vzapi.IngressTrait, log vzlog.VerrazzanoLogger) error {
+	if trait.GetDeletionTimestamp().IsZero() && !vzstring.SliceContainsString(trait.Finalizers, finalizerName) {
+		log.Debugf("Adding finalizer for ingress trait %s", trait.Name)
+		trait.Finalizers = append(trait.Finalizers, finalizerName)
+		err := r.Update(ctx, trait)
+		_, err = vzlogInit.IgnoreConflictWithLog(fmt.Sprintf("Failed to add finalizer to ingress trait %s", trait.Name), err, zap.S())
 		return err
 	}
 	return nil
@@ -255,8 +258,10 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 
 				vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, index)
 				drName := fmt.Sprintf("%s-rule-%d-dr", trait.Name, index)
+				authzPolicyName := fmt.Sprintf("%s-rule-%d-authz", trait.Name, index)
 				r.createOrUpdateVirtualService(ctx, trait, rule, allHostsForTrait, vsName, services, gateway, &status, log)
-				r.createOrUpdateDestinationRule(ctx, trait, rule, drName, &status, log)
+				r.createOrUpdateDestinationRule(ctx, trait, rule, drName, &status, log, services)
+				r.createOrUpdateAuthorizationPolicies(ctx, rule, authzPolicyName, &status, log)
 			}
 		}
 	}
@@ -352,7 +357,11 @@ func (r *Reconciler) fetchWorkloadDefinition(ctx context.Context, workload *unst
 	workloadKind, _, _ := unstructured.NestedString(workload.Object, "kind")
 	workloadName := convertAPIVersionAndKindToNamespacedName(workloadAPIVer, workloadKind)
 	workloadDef := v1alpha2.WorkloadDefinition{}
-	if err := r.Get(ctx, workloadName, &workloadDef); err != nil {
+	err := r.Get(ctx, workloadName, &workloadDef)
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil, nil
+		}
 		log.Errorf("Failed to fetch workload %s definition: %v", workloadName, err)
 		return nil, err
 	}
@@ -381,7 +390,12 @@ func (r *Reconciler) fetchWorkloadChildren(ctx context.Context, workload *unstru
 		return children, nil
 	} else if workload.GetAPIVersion() == appsv1.SchemeGroupVersion.String() {
 		// Else if this is a native resource then use the workload itself as the child
-		log.Debug("Found native workload")
+		log.Debugf("Found native workload: %v", workload)
+		return []*unstructured.Unstructured{workload}, nil
+	} else if workload.GetAPIVersion() == corev1.SchemeGroupVersion.String() &&
+		workload.GetKind() == "Service" {
+		// limits v1 workloads to services only
+		log.Debugf("Found service workload: %v", workload)
 		return []*unstructured.Unstructured{workload}, nil
 	} else {
 		// Else return an error that the workload type is not supported by this trait.
@@ -689,7 +703,7 @@ func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualSer
 }
 
 //createOfUpdateDestinationRule creates or updates the DestinationRule.
-func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) {
+func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger, services []*corev1.Service) {
 	if rule.Destination.HTTPCookie != nil {
 		destinationRule := &istioclient.DestinationRule{
 			TypeMeta: metav1.TypeMeta{
@@ -699,9 +713,14 @@ func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *v
 				Namespace: trait.Namespace,
 				Name:      name},
 		}
+		namespace := &corev1.Namespace{}
+		namespaceErr := r.Client.Get(ctx, client.ObjectKey{Namespace: "", Name: trait.Namespace}, namespace)
+		if namespaceErr != nil {
+			log.Errorf("Failed to retrieve namespace resource: %v", namespaceErr)
+		}
 
 		res, err := controllerutil.CreateOrUpdate(ctx, r.Client, destinationRule, func() error {
-			return r.mutateDestinationRule(destinationRule, trait, rule)
+			return r.mutateDestinationRule(destinationRule, trait, rule, services, namespace)
 		})
 
 		ref := vzapi.QualifiedResourceRelation{APIVersion: destinationRuleAPIVersion, Kind: destinationRuleKind, Name: name, Role: "destinationrule"}
@@ -715,10 +734,24 @@ func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *v
 	}
 }
 
-func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.DestinationRule, trait *vzapi.IngressTrait, rule vzapi.IngressRule) error {
+// mutateDestinationRule changes the destination rule based upon a traits configuration
+func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.DestinationRule, trait *vzapi.IngressTrait, rule vzapi.IngressRule, services []*corev1.Service, namespace *corev1.Namespace) error {
+	dest, err := createDestinationFromRuleOrService(rule, services)
+	if err != nil {
+		return err
+	}
+
+	mode := istionet.ClientTLSSettings_DISABLE
+	value, ok := namespace.Labels["istio-injection"]
+	if ok && value == "enabled" {
+		mode = istionet.ClientTLSSettings_ISTIO_MUTUAL
+	}
 	destinationRule.Spec = istionet.DestinationRule{
-		Host: rule.Destination.Host,
+		Host: dest.Destination.Host,
 		TrafficPolicy: &istionet.TrafficPolicy{
+			Tls: &istionet.ClientTLSSettings{
+				Mode: mode,
+			},
 			LoadBalancer: &istionet.LoadBalancerSettings{
 				LbPolicy: &istionet.LoadBalancerSettings_ConsistentHash{
 					ConsistentHash: &istionet.LoadBalancerSettings_ConsistentHashLB{
@@ -735,6 +768,96 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 	}
 
 	return controllerutil.SetControllerReference(trait, destinationRule, r.Scheme)
+}
+
+//createOrUpdateAuthorizationPolicies creates or updates the authorization policies associated with the paths defined in the ingress rule.
+func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, rule vzapi.IngressRule, namePrefix string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) {
+	for _, path := range rule.Paths {
+		if path.Policy != nil {
+			pathSuffix := strings.Replace(path.Path, "/", "", -1)
+			policyName := fmt.Sprintf("%s-%s", namePrefix, pathSuffix)
+			authzPolicy := &clisecurity.AuthorizationPolicy{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       authzPolicyKind,
+					APIVersion: authzPolicyAPIVersion,
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      policyName,
+					Namespace: constants.IstioSystemNamespace,
+				},
+			}
+			res, err := controllerutil.CreateOrUpdate(ctx, r.Client, authzPolicy, func() error {
+				return r.mutateAuthorizationPolicy(authzPolicy, path.Policy, path.Path)
+			})
+
+			ref := vzapi.QualifiedResourceRelation{APIVersion: authzPolicyAPIVersion, Kind: authzPolicyKind, Name: namePrefix, Role: "authorizationpolicy"}
+			status.Relations = append(status.Relations, ref)
+			status.Results = append(status.Results, res)
+			status.Errors = append(status.Errors, err)
+
+			if err != nil {
+				log.Errorf("Failed to create or update authorization policy: %v", err)
+			}
+		}
+	}
+}
+
+// mutateDestinationRule changes the destination rule based upon a traits configuration
+func (r *Reconciler) mutateAuthorizationPolicy(authzPolicy *clisecurity.AuthorizationPolicy, vzPolicy *vzapi.AuthorizationPolicy, path string) error {
+	policyRules := make([]*v1beta1.Rule, len(vzPolicy.Rules))
+	var err error
+	for i, authzRule := range vzPolicy.Rules {
+		policyRules[i], err = createAuthorizationPolicyRule(authzRule, path)
+		if err != nil {
+			return err
+		}
+	}
+	authzPolicy.Spec = v1beta1.AuthorizationPolicy{
+		Selector: &v1beta12.WorkloadSelector{
+			MatchLabels: map[string]string{"istio": "ingressgateway"},
+		},
+		Rules: policyRules,
+	}
+
+	return nil
+}
+
+// createAuthorizationPolicyRule uses the provided information to create an istio authorization policy rule
+func createAuthorizationPolicyRule(rule *vzapi.AuthorizationRule, path string) (*v1beta1.Rule, error) {
+	if rule.From == nil {
+		return nil, fmt.Errorf("Authorization Policy requires 'From' clause")
+	}
+	source := &v1beta1.Source{
+		RequestPrincipals: rule.From.RequestPrincipals,
+	}
+	paths := &v1beta1.Operation{
+		Paths: []string{path},
+	}
+	authzRule := v1beta1.Rule{
+		From: []*v1beta1.Rule_From{
+			{
+				Source: source,
+			},
+		},
+		To: []*v1beta1.Rule_To{
+			{
+				Operation: paths,
+			},
+		},
+	}
+	if rule.When != nil {
+		conditions := []*v1beta1.Condition{}
+		for _, vzCondition := range rule.When {
+			condition := &v1beta1.Condition{
+				Key:    vzCondition.Key,
+				Values: vzCondition.Values,
+			}
+			conditions = append(conditions, condition)
+		}
+		authzRule.When = conditions
+	}
+
+	return &authzRule, nil
 }
 
 // setupWatches Sets up watches for the IngressTrait controller

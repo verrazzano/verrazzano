@@ -41,6 +41,7 @@ func NewComponent() spi.Component {
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "oam-kubernetes-runtime-values.yaml"),
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			Dependencies:            []string{},
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
@@ -68,10 +69,37 @@ func (c oamComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzan
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	return nil
+	return c.HelmComponent.ValidateUpdate(old, new)
 }
 
 // PreUpgrade OAM-pre-upgrade processing
 func (c oamComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return common.ApplyCRDYaml(ctx, config.GetHelmOamChartsDir())
+}
+
+// PostInstall runs post-install processing for the OAM component
+func (c oamComponent) PostInstall(ctx spi.ComponentContext) error {
+	if err := ensureClusterRoles(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PostInstall(ctx)
+}
+
+// PostUpgrade runs post-upgrade processing for the OAM component
+func (c oamComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	if err := ensureClusterRoles(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PostUpgrade(ctx)
+}
+
+// MonitorOverrides checks whether monitoring of install overrides is enabled or not
+func (c oamComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.OAM != nil {
+		if ctx.EffectiveCR().Spec.Components.OAM.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.OAM.MonitorChanges
+		}
+		return true
+	}
+	return false
 }

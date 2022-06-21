@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
 	clusterapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -110,7 +111,7 @@ func (r *VerrazzanoManagedClusterReconciler) createOrUpdateManifestSecret(vmc *c
 func (r *VerrazzanoManagedClusterReconciler) mutateManifestSecret(secret *corev1.Secret, yamlData string) error {
 	secret.Type = corev1.SecretTypeOpaque
 	secret.Data = map[string][]byte{
-		YamlKey: []byte(yamlData),
+		constants2.YamlKey: []byte(yamlData),
 	}
 	return nil
 }

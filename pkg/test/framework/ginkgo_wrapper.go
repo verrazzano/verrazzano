@@ -4,8 +4,11 @@
 package framework
 
 import (
+	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/test"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"go.uber.org/zap"
+	"os"
 	"reflect"
 
 	"github.com/onsi/ginkgo/v2"
@@ -22,8 +25,22 @@ func NewTestFramework(pkg string) *TestFramework {
 	t := new(TestFramework)
 	t.Pkg = pkg
 	t.Metrics, _ = metrics.NewLogger(pkg, metrics.MetricsIndex)
-	t.Logs, _ = metrics.NewLogger(pkg, metrics.TestLogIndex)
+	t.Logs, _ = metrics.NewLogger(pkg, metrics.TestLogIndex, "stdout")
+	t.initDumpDirectoryIfNecessary()
 	return t
+}
+
+// initDumpDirectoryIfNecessary - sets the DUMP_DIRECTORY env variable to a default if not set externally
+func (t *TestFramework) initDumpDirectoryIfNecessary() {
+	if _, dumpDirIsSet := os.LookupEnv(test.DumpDirectoryEnvVarName); !dumpDirIsSet {
+		dumpDirectory := t.Pkg
+		dumpRoot, exists := os.LookupEnv(test.DumpRootDirectoryEnvVarName)
+		if exists {
+			dumpDirectory = fmt.Sprintf("%s/%s", dumpRoot, t.Pkg)
+		}
+		t.Logs.Infof("Defaulting %s to %s", test.DumpDirectoryEnvVarName, dumpDirectory)
+		os.Setenv(test.DumpDirectoryEnvVarName, dumpDirectory)
+	}
 }
 
 // AfterEach wraps Ginkgo AfterEach to emit a metric

@@ -6,9 +6,10 @@ package istio
 import (
 	"bytes"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"strings"
 	"text/template"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 
 	"sigs.k8s.io/yaml"
 
@@ -20,9 +21,6 @@ const (
 	//ExternalIPArg is used in a special case where Istio helm chart no longer supports ExternalIPs.
 	// Put external IPs into the IstioOperator YAML, which does support it
 	ExternalIPArg = "gateways.istio-ingressgateway.externalIPs"
-
-	//meshConfigEnableTracingValue is a boolean flag to enable/disable tracing in the istio mesh
-	meshConfigEnableTracingValue = "meshConfig.enableTracing"
 
 	//meshConfigTracingAddress is the Jaeger collector address
 	meshConfigTracingAddress = "meshConfig.defaultConfig.tracing.zipkin.address"
@@ -98,8 +96,6 @@ type ReplicaData struct {
 func BuildIstioOperatorYaml(ctx spi.ComponentContext, comp *vzapi.IstioComponent) (string, error) {
 
 	var externalIPYAMLTemplateValue = ""
-	// Tracing is disabled by default
-	installArgs := append([]vzapi.InstallArgs{{Name: meshConfigEnableTracingValue, Value: "false"}}, comp.IstioInstallArgs...)
 
 	// Build a list of YAML strings from the istioComponent initargs, one for each arg.
 	expandedYamls := []string{}
@@ -110,7 +106,7 @@ func BuildIstioOperatorYaml(ctx spi.ComponentContext, comp *vzapi.IstioComponent
 		return "", err
 	}
 
-	for _, arg := range append(jaegerArgs, installArgs...) {
+	for _, arg := range append(jaegerArgs, comp.IstioInstallArgs...) {
 		values := arg.ValueList
 		if len(values) == 0 {
 			values = []string{arg.Value}

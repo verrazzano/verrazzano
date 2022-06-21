@@ -45,10 +45,6 @@ monitoringOperator:
 
 logging:
   name: fluentd
-  # NOTE: The fluentd-kubernetes-daemonset image now comes from the bill of materials file (verrazzano-bom.json).
-
-fluentd:
-  enabled: true
 
 keycloak:
   enabled: true
@@ -97,3 +93,6 @@ kubernetes:
 
 externaldns:
   enabled: false
+
+istio:
+  enabled: true

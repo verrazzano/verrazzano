@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -45,6 +47,17 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:     AppendOverrides,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
+			GetInstallOverridesFunc: GetOverrides,
+			Dependencies:            []string{nginx.ComponentName},
+			Certificates: []types.NamespacedName{
+				{Name: constants.VerrazzanoIngressSecret, Namespace: ComponentNamespace},
+			},
+			IngressNames: []types.NamespacedName{
+				{
+					Namespace: ComponentNamespace,
+					Name:      constants.VzConsoleIngress,
+				},
+			},
 		},
 	}
 }
@@ -64,7 +77,7 @@ func (c authProxyComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ver
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	return nil
+	return c.HelmComponent.ValidateUpdate(old, new)
 }
 
 // IsReady component check
@@ -73,17 +86,6 @@ func (c authProxyComponent) IsReady(ctx spi.ComponentContext) bool {
 		return isAuthProxyReady(ctx)
 	}
 	return false
-}
-
-// GetIngressNames - gets the names of the ingresses associated with this component
-func (c authProxyComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
-	ingressNames := []types.NamespacedName{
-		{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      constants.VzConsoleIngress,
-		},
-	}
-	return ingressNames
 }
 
 // PreInstall - actions to perform prior to installing this component
@@ -111,4 +113,15 @@ func (c authProxyComponent) PreInstall(ctx spi.ComponentContext) error {
 // PreUpgrade performs any required pre upgrade operations
 func (c authProxyComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return authproxyPreHelmOps(ctx)
+}
+
+// MonitorOverrides checks whether monitoring of install overrides is enabled or not
+func (c authProxyComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.AuthProxy != nil {
+		if ctx.EffectiveCR().Spec.Components.AuthProxy.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.AuthProxy.MonitorChanges
+		}
+		return true
+	}
+	return false
 }

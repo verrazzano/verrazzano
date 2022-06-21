@@ -25,13 +25,14 @@ var _ = t.Describe("VMI", Label("f:infra-lcm",
 	)
 
 	t.Context("urls test to", func() {
-		isManagedClusterProfile := pkg.IsManagedClusterProfile()
-		var isEsEnabled = false
-		var isKibanaEnabled = false
-		var isPrometheusEnabled = false
-		var isGrafanaEnabled = false
 
-		t.It("Fetch VMI", func() {
+		t.It("Access VMI endpoints", FlakeAttempts(5), Label("f:ui.api"), func() {
+			isManagedClusterProfile := pkg.IsManagedClusterProfile()
+			var isEsEnabled = false
+			var isKibanaEnabled = false
+			var isPrometheusEnabled = false
+			var isGrafanaEnabled = false
+
 			if !isManagedClusterProfile {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
@@ -67,13 +68,9 @@ var _ = t.Describe("VMI", Label("f:infra-lcm",
 					isGrafanaEnabled = vmi["spec"].(map[string]interface{})["grafana"].(map[string]interface{})["enabled"].(bool)
 					return true
 				}, waitTimeout, pollingInterval).Should(BeTrue())
-			}
-		})
 
-		t.It("Access VMI endpoints", FlakeAttempts(5), Label("f:ui.api"), func() {
-			if !isManagedClusterProfile {
 				var api *pkg.APIEndpoint
-				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+				kubeconfigPath, err = k8sutil.GetKubeConfigLocation()
 				Expect(err).ShouldNot(HaveOccurred())
 				Eventually(func() (*pkg.APIEndpoint, error) {
 					var err error

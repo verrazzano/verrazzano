@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # Verifies GitHub release artifacts.
@@ -51,6 +51,10 @@ function verify_released_artifacts() {
   ${SHA_CMD} k8s-dump-cluster.sh.sha256
   ${SHA_CMD} verrazzano-analysis-darwin-amd64.tar.gz.sha256
   ${SHA_CMD} verrazzano-analysis-linux-amd64.tar.gz.sha256
+  ${SHA_CMD} vz-darwin-amd64.tar.gz.sha256
+  ${SHA_CMD} vz-darwin-arm64.tar.gz.sha256
+  ${SHA_CMD} vz-linux-amd64.tar.gz.sha256
+  ${SHA_CMD} vz-linux-arm64.tar.gz.sha256
 
   # Latest tag is automatic, do we really need to check ? If required, better compare the files from the two directories
   local latestVersionDir=${TMPDIR}}/latest
@@ -67,6 +71,10 @@ function verify_released_artifacts() {
   ${SHA_CMD} k8s-dump-cluster.sh.sha256
   ${SHA_CMD} verrazzano-analysis-darwin-amd64.tar.gz.sha256
   ${SHA_CMD} verrazzano-analysis-linux-amd64.tar.gz.sha256
+  ${SHA_CMD} vz-darwin-amd64.tar.gz.sha256
+  ${SHA_CMD} vz-darwin-arm64.tar.gz.sha256
+  ${SHA_CMD} vz-linux-amd64.tar.gz.sha256
+  ${SHA_CMD} vz-linux-arm64.tar.gz.sha256
 }
 
 verify_released_artifacts

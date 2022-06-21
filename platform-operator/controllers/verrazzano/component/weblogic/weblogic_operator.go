@@ -6,6 +6,7 @@ package weblogic
 import (
 	"context"
 	"fmt"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -80,4 +81,12 @@ func isWeblogicOperatorReady(ctx spi.ComponentContext) bool {
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+}
+
+// GetOverrides returns install overrides for a component
+func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+	if effectiveCR.Spec.Components.WebLogicOperator != nil {
+		return effectiveCR.Spec.Components.WebLogicOperator.ValueOverrides
+	}
+	return []vzapi.Overrides{}
 }

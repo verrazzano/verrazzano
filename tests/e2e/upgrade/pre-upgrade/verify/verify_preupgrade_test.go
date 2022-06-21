@@ -58,13 +58,13 @@ func updateConfigMap() {
 		for _, nsc := range scrapeConfigs {
 			scrapeConfig := nsc.(map[interface{}]interface{})
 			// Change the default value of an existing default job
-			if scrapeConfig["job_name"] == "prometheus" && scrapeConfig["scrape_interval"].(string) != vzconst.TestPrometheusJobScrapeInterval {
+			if scrapeConfig[vzconst.PrometheusJobNameKey] == "prometheus" && scrapeConfig["scrape_interval"].(string) != vzconst.TestPrometheusJobScrapeInterval {
 				scrapeConfig["scrape_interval"] = vzconst.TestPrometheusJobScrapeInterval
 				updateMap = true
 			}
 
 			// Create test job only once
-			if scrapeConfig["job_name"] == vzconst.TestPrometheusScrapeJob {
+			if scrapeConfig[vzconst.PrometheusJobNameKey] == vzconst.TestPrometheusScrapeJob {
 				testJobFound = true
 			}
 		}
@@ -72,7 +72,7 @@ func updateConfigMap() {
 		if !testJobFound {
 			// Add a test scrape config
 			dummyScrapConfig := make(map[interface{}]interface{})
-			dummyScrapConfig["job_name"] = vzconst.TestPrometheusScrapeJob
+			dummyScrapConfig[vzconst.PrometheusJobNameKey] = vzconst.TestPrometheusScrapeJob
 			scrapeConfigs = append(scrapeConfigs, dummyScrapConfig)
 			updateMap = true
 		}
@@ -116,12 +116,12 @@ var _ = t.Describe("Update prometheus configmap", Label("f:platform-lcm.upgrade"
 				for _, nsc := range scrapeConfigs {
 					scrapeConfig := nsc.(map[interface{}]interface{})
 					// Check that interval is updated
-					if scrapeConfig["job_name"] == "prometheus" {
+					if scrapeConfig[vzconst.PrometheusJobNameKey] == "prometheus" {
 						intervalUpdated = (scrapeConfig["scrape_interval"].(string) == vzconst.TestPrometheusJobScrapeInterval)
 					}
 
 					// Check that test scrape config is created
-					if scrapeConfig["job_name"] == vzconst.TestPrometheusScrapeJob {
+					if scrapeConfig[vzconst.PrometheusJobNameKey] == vzconst.TestPrometheusScrapeJob {
 						testJobFound = true
 					}
 				}

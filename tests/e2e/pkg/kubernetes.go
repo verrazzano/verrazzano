@@ -8,28 +8,31 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/types"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	certmanagerv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	"github.com/onsi/gomega"
 	vpClient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
+	istionetv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -213,6 +216,96 @@ func GetDaemonSet(namespace string, daemonSetName string) (*appsv1.DaemonSet, er
 	return daemonset, nil
 }
 
+// GetService returns a Service with the given name and namespace
+func GetService(namespace string, serviceName string) (*corev1.Service, error) {
+	// Get the Kubernetes clientset
+	clientSet, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	svc, err := clientSet.CoreV1().Services(namespace).Get(context.TODO(), serviceName, metav1.GetOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get Service %s from namespace %s: %v ", serviceName, namespace, err))
+		return nil, err
+	}
+	return svc, nil
+}
+
+// GetIngressList returns a list of ingresses in the given namespace
+func GetIngressList(namespace string) (*netv1.IngressList, error) {
+	// Get the Kubernetes clientset
+	clientSet, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	ingressList, err := clientSet.NetworkingV1().Ingresses(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get Ingresses in namespace %s: %v ", namespace, err))
+		return nil, err
+	}
+	return ingressList, nil
+}
+
+// GetVirtualServiceList returns a list of virtual services in the given namespace
+func GetVirtualServiceList(namespace string) (*istionetv1beta1.VirtualServiceList, error) {
+	// Get the Istio clientset
+	clientSet, err := k8sutil.GetIstioClientset()
+	if err != nil {
+		return nil, err
+	}
+	VirtualServiceList, err := clientSet.NetworkingV1beta1().VirtualServices(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get Gateways in namespace %s: %v ", namespace, err))
+		return nil, err
+	}
+	return VirtualServiceList, nil
+}
+
+// GetCertificateList returns a list of certificates in the given namespace
+func GetCertificateList(namespace string) (*certmanagerv1.CertificateList, error) {
+	// Get the Cert-manager clientset
+	clientSet, err := k8sutil.GetCertManagerClienset()
+	if err != nil {
+		return nil, err
+	}
+	certificateList, err := clientSet.Certificates(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get Certificates in namespace %s: %v ", namespace, err))
+		return nil, err
+	}
+	return certificateList, nil
+}
+
+// GetClusterIssuerList returns a list of cluster issuers
+func GetClusterIssuerList() (*certmanagerv1.ClusterIssuerList, error) {
+	// Get the Cert-manager clientset
+	clientSet, err := k8sutil.GetCertManagerClienset()
+	if err != nil {
+		return nil, err
+	}
+	clusterIssuerList, err := clientSet.ClusterIssuers().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get Cluster Issuers: %v ", err))
+		return nil, err
+	}
+	return clusterIssuerList, nil
+}
+
+// GetIssuerList returns a list of cluster issuers
+func GetIssuerList(namespace string) (*certmanagerv1.IssuerList, error) {
+	// Get the Cert-manager clientset
+	clientSet, err := k8sutil.GetCertManagerClienset()
+	if err != nil {
+		return nil, err
+	}
+	issuerList, err := clientSet.Issuers(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get Issuers in namespace %s: %v ", namespace, err))
+		return nil, err
+	}
+	return issuerList, nil
+}
+
 // ListNodes returns the list of nodes for the cluster
 func ListNodes() (*corev1.NodeList, error) {
 	// Get the Kubernetes clientset
@@ -227,6 +320,18 @@ func ListNodes() (*corev1.NodeList, error) {
 		return nil, err
 	}
 	return nodes, nil
+}
+
+// GetNodeCount returns the number of nodes for the cluster
+func GetNodeCount() (uint32, error) {
+	nodes, err := ListNodes()
+	if err != nil {
+		return 0, err
+	}
+	if len(nodes.Items) < 1 {
+		return 0, fmt.Errorf("can not find node in the cluster")
+	}
+	return uint32(len(nodes.Items)), nil
 }
 
 // GetPodsFromSelector returns a collection of pods for the given namespace and selector
@@ -548,12 +653,25 @@ func IsPrometheusOperatorEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
-		return false
+		return true
 	}
 	if vz.Spec.Components.PrometheusOperator == nil || vz.Spec.Components.PrometheusOperator.Enabled == nil {
-		return false
+		return true
 	}
 	return *vz.Spec.Components.PrometheusOperator.Enabled
+}
+
+// IsPrometheusEnabled returns true if the Prometheus component is not set and the Prometheus Operator is enabled, or the value of its Enabled field otherwise
+func IsPrometheusEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf(verrazzanoErrorTemplate, err))
+		return false
+	}
+	if vz.Spec.Components.Prometheus == nil || vz.Spec.Components.Prometheus.Enabled == nil {
+		return true
+	}
+	return *vz.Spec.Components.Prometheus.Enabled
 }
 
 // IsKubeStateMetricsEnabled returns false if the Kube State Metrics component is not set, or the value of its Enabled field otherwise
@@ -619,6 +737,20 @@ func IsJaegerOperatorEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	return *vz.Spec.Components.JaegerOperator.Enabled
+}
+
+// IsGrafanaEnabled returns false if the Grafana component is not set, or the value of its Enabled field otherwise
+func IsGrafanaEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.Grafana == nil || vz.Spec.Components.Grafana.Enabled == nil {
+		// Grafana component is enabled by default
+		return true
+	}
+	return *vz.Spec.Components.Grafana.Enabled
 }
 
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
@@ -1209,7 +1341,7 @@ func GetServiceAccount(namespace, name string) (*corev1.ServiceAccount, error) {
 	return sa, nil
 }
 
-func GetPersistentVolumes(namespace string) (map[string]*corev1.PersistentVolumeClaim, error) {
+func GetPersistentVolumeClaims(namespace string) (map[string]*corev1.PersistentVolumeClaim, error) {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
@@ -1276,36 +1408,33 @@ func UpdateConfigMap(configMap *corev1.ConfigMap) error {
 	return nil
 }
 
-// ContainerHasExpectedEnv returns true if each of the envs matches a substring of one of the env found in the deployment
-func ContainerHasExpectedEnv(namespace string, deploymentName string, containerName string, envMap map[string]string) (bool, error) {
+// GetContainerEnv returns an array of environment variables in the specified container for the specified deployment
+func GetContainerEnv(namespace string, deploymentName string, containerName string) ([]corev1.EnvVar, error) {
 	deployment, err := GetDeployment(namespace, deploymentName)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Deployment %v is not found in the namespace: %v, error: %v", deploymentName, namespace, err))
-		return false, nil
+		return nil, fmt.Errorf("deployment %s not found in the namespace: %s, error: %v", deploymentName, namespace, err)
 	}
 	for _, container := range deployment.Spec.Template.Spec.Containers {
 		if container.Name == containerName {
-			for env, val := range envMap {
-				found := false
-				for _, containerEnv := range container.Env {
-					if containerEnv.Name == env {
-						if containerEnv.Value != val {
-							Log(Error, fmt.Sprintf("The value %v of the env %v for the container %v is not set as expected: %v",
-								containerEnv.Value, containerEnv.Name, containerName, val))
-							return false, nil
-						}
-						found = true
-					}
-				}
-				if !found {
-					Log(Error, fmt.Sprintf("The env %v not set for the container %v", env, containerName))
-					return false, nil
-				}
-			}
-			return true, nil
+			return container.Env, nil
 		}
 	}
-	return false, nil
+	return nil, fmt.Errorf("container %s not found in the namespace: %s", containerName, namespace)
+}
+
+// GetContainerImage returns the image used by the specified container for the specified deployment
+func GetContainerImage(namespace string, deploymentName string, containerName string) (string, error) {
+	deployment, err := GetDeployment(namespace, deploymentName)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Deployment %v not found in the namespace: %v, error: %v", deploymentName, namespace, err))
+		return "", nil
+	}
+	for _, container := range deployment.Spec.Template.Spec.Containers {
+		if container.Name == containerName {
+			return container.Image, nil
+		}
+	}
+	return "", fmt.Errorf("container %v not found in the namespace: %v", containerName, namespace)
 }
 
 // WaitForVZCondition waits till the VZ CR reaches the given condition
@@ -1324,4 +1453,26 @@ func WaitForVZCondition(conditionType v1alpha1.ConditionType, pollingInterval, t
 		}
 		return false
 	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(gomega.BeTrue())
+}
+
+// DeleteConfigMap to delete the ConfigMap with the given name and namespace
+func DeleteConfigMap(namespace string, name string) error {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return err
+	}
+	return clientset.CoreV1().ConfigMaps(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+}
+
+// CreateConfigMap creates the ConfigMap
+func CreateConfigMap(configMap *corev1.ConfigMap) error {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return err
+	}
+	_, err = clientset.CoreV1().ConfigMaps(configMap.Namespace).Create(context.TODO(), configMap, metav1.CreateOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
 }

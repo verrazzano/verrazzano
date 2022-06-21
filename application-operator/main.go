@@ -9,6 +9,7 @@ import (
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -37,6 +38,7 @@ import (
 	vmcclient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned/scheme"
 	"go.uber.org/zap"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
 	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
 	k8sapiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -65,9 +67,11 @@ func init() {
 	_ = vzapp.AddToScheme(scheme)
 	_ = istioclinet.AddToScheme(scheme)
 	_ = wls.AddToScheme(scheme)
+	_ = clisecurity.AddToScheme(scheme)
 
 	_ = clustersv1alpha1.AddToScheme(scheme)
 	_ = certapiv1.AddToScheme(scheme)
+	_ = promoperapi.AddToScheme(scheme)
 }
 
 const defaultScraperName = "verrazzano-system/vmi-system-prometheus-0"

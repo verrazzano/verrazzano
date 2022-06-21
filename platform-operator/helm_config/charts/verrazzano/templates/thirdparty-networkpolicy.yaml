@@ -426,6 +426,7 @@ spec:
           podSelector:
             matchLabels:
               app: system-prometheus
+{{- if .Values.istio.enabled}}
 ---
 # Network policy for istio-system pod communication
 # Ingress: allow all pod-to-pod communication within the namespace
@@ -594,6 +595,12 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/name: ingress-nginx
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
     - ports:
         - port: 15017
           protocol: TCP
@@ -647,3 +654,4 @@ spec:
           protocol: TCP
         - port: 15090
           protocol: TCP
+{{- end }}

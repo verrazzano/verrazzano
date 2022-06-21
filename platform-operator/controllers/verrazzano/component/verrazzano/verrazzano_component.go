@@ -5,6 +5,7 @@ package verrazzano
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
 	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -18,8 +19,11 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -33,12 +37,17 @@ const (
 	vzImagePullSecretKeyName = "global.imagePullSecrets[0]"
 
 	// Certificate names
-	verrazzanoCertificateName = "verrazzano-tls"
 	prometheusCertificateName = "system-tls-prometheus"
+
+	// ES secret keys
+	esUsernameKey = "username"
+	esPasswordKey = "password"
 )
 
 // ComponentJSONName is the josn name of the verrazzano component in CRD
 const ComponentJSONName = "verrazzano"
+
+var getControllerRuntimeClient = getClient
 
 type verrazzanoComponent struct {
 	helm.HelmComponent
@@ -57,6 +66,7 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:  vzImagePullSecretKeyName,
 			SupportsOperatorInstall: true,
 			Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName, authproxy.ComponentName},
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
@@ -82,9 +92,6 @@ func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debug("Verrazzano pre-install")
 	if err := createAndLabelNamespaces(ctx); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed creating/labeling namespaces for Verrazzano: %v", err)
-	}
-	if err := loggingPreInstall(ctx); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed copying logging secrets for Verrazzano: %v", err)
 	}
 	return nil
 }
@@ -155,6 +162,12 @@ func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 			return err
 		}
 	}
+
+	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) {
+		if err := fluentd.ReassociateResources(ctx.Client()); err != nil {
+			return err
+		}
+	}
 	return c.HelmComponent.PostUpgrade(ctx)
 }
 
@@ -178,41 +191,12 @@ func (c verrazzanoComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 	if err := common.CompareStorageOverrides(old, new, ComponentJSONName); err != nil {
 		return err
 	}
-	if err := validateFluentd(new); err != nil {
-		return err
-	}
-	return nil
+	return c.HelmComponent.ValidateUpdate(old, new)
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
 func (c verrazzanoComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	if err := validateFluentd(vz); err != nil {
-		return err
-	}
-	return nil
-}
-
-// existing Fluentd mount paths can be found at platform-operator/helm_config/charts/verrazzano/templates/verrazzano-logging.yaml
-var existingFluentdMountPaths = [7]string{
-	"/fluentd/cacerts", "/fluentd/secret", "/fluentd/etc",
-	"/root/.oci", "/var/log", "/var/lib", "/run/log/journal"}
-
-func validateFluentd(vz *vzapi.Verrazzano) error {
-	fluentd := vz.Spec.Components.Fluentd
-	if fluentd != nil && len(fluentd.ExtraVolumeMounts) > 0 {
-		for _, vm := range fluentd.ExtraVolumeMounts {
-			mountPath := vm.Source
-			if vm.Destination != "" {
-				mountPath = vm.Destination
-			}
-			for _, existing := range existingFluentdMountPaths {
-				if mountPath == existing {
-					return fmt.Errorf("duplicate mount path found: %s; Fluentd by default has mount paths: %v", mountPath, existingFluentdMountPaths)
-				}
-			}
-		}
-	}
-	return nil
+	return c.HelmComponent.ValidateInstall(vz)
 }
 
 func (c verrazzanoComponent) checkEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
@@ -247,11 +231,6 @@ func (c verrazzanoComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 func (c verrazzanoComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var certificateNames []types.NamespacedName
 
-	certificateNames = append(certificateNames, types.NamespacedName{
-		Namespace: ComponentNamespace,
-		Name:      verrazzanoCertificateName,
-	})
-
 	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
 		certificateNames = append(certificateNames, types.NamespacedName{
 			Namespace: ComponentNamespace,
@@ -260,4 +239,32 @@ func (c verrazzanoComponent) GetCertificateNames(ctx spi.ComponentContext) []typ
 	}
 
 	return certificateNames
+}
+
+// getClient returns a controller runtime client for the Verrazzano resource
+func getClient() (client.Client, error) {
+	config, err := ctrl.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+	return client.New(config, client.Options{Scheme: newScheme()})
+}
+
+// newScheme creates a new scheme that includes this package's object for use by client
+func newScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	vzapi.AddToScheme(scheme)
+	clientgoscheme.AddToScheme(scheme)
+	return scheme
+}
+
+// MonitorOverrides checks whether monitoring of install overrides is enabled or not
+func (c verrazzanoComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.Verrazzano != nil {
+		if ctx.EffectiveCR().Spec.Components.Verrazzano.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.Verrazzano.MonitorChanges
+		}
+		return true
+	}
+	return false
 }

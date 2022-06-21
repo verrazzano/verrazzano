@@ -4,6 +4,7 @@ package verrazzano
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"os/exec"
 	"testing"
 
@@ -14,12 +15,12 @@ import (
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -107,38 +108,11 @@ func TestInstall(t *testing.T) {
 //  WHEN I call PostInstall
 //  THEN no error is returned
 func TestPostInstall(t *testing.T) {
-	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: dnsComponents,
-		},
-	}, false)
-	vzComp := NewComponent()
-
-	// PostInstall will fail because the expected VZ ingresses are not present in cluster
+	time := metav1.Now()
+	ctx, vzComp := fakeComponent(t, []certv1.CertificateCondition{
+		{Type: certv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
+	})
 	err := vzComp.PostInstall(ctx)
-	assert.IsType(t, spi2.RetryableError{}, err)
-
-	// now get all the ingresses for VZ and add them to the fake K8S and ensure that PostInstall succeeds
-	// when all the ingresses are present in the cluster
-	vzIngressNames := vzComp.(verrazzanoComponent).GetIngressNames(ctx)
-	for _, ingressName := range vzIngressNames {
-		_ = c.Create(context.TODO(), &v1.Ingress{
-			ObjectMeta: metav1.ObjectMeta{Name: ingressName.Name, Namespace: ingressName.Namespace},
-		})
-	}
-	for _, certName := range vzComp.(verrazzanoComponent).GetCertificateNames(ctx) {
-		time := metav1.Now()
-		_ = c.Create(context.TODO(), &certv1.Certificate{
-			ObjectMeta: metav1.ObjectMeta{Name: certName.Name, Namespace: certName.Namespace},
-			Status: certv1.CertificateStatus{
-				Conditions: []certv1.CertificateCondition{
-					{Type: certv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
-				},
-			},
-		})
-	}
-	err = vzComp.PostInstall(ctx)
 	assert.NoError(t, err)
 }
 
@@ -147,38 +121,11 @@ func TestPostInstall(t *testing.T) {
 //  WHEN I call PostInstall and the certificates aren't ready
 //  THEN a retryable error is returned
 func TestPostInstallCertsNotReady(t *testing.T) {
-	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: dnsComponents,
-		},
-	}, false)
-	vzComp := NewComponent()
-
-	// PostInstall will fail because the expected VZ ingresses are not present in cluster
+	time := metav1.Now()
+	ctx, vzComp := fakeComponent(t, []certv1.CertificateCondition{
+		{Type: certv1.CertificateConditionIssuing, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
+	})
 	err := vzComp.PostInstall(ctx)
-	assert.IsType(t, spi2.RetryableError{}, err)
-
-	// now get all the ingresses for VZ and add them to the fake K8S and ensure that PostInstall succeeds
-	// when all the ingresses are present in the cluster
-	vzIngressNames := vzComp.(verrazzanoComponent).GetIngressNames(ctx)
-	for _, ingressName := range vzIngressNames {
-		_ = c.Create(context.TODO(), &v1.Ingress{
-			ObjectMeta: metav1.ObjectMeta{Name: ingressName.Name, Namespace: ingressName.Namespace},
-		})
-	}
-	for _, certName := range vzComp.(verrazzanoComponent).GetCertificateNames(ctx) {
-		time := metav1.Now()
-		_ = c.Create(context.TODO(), &certv1.Certificate{
-			ObjectMeta: metav1.ObjectMeta{Name: certName.Name, Namespace: certName.Namespace},
-			Status: certv1.CertificateStatus{
-				Conditions: []certv1.CertificateCondition{
-					{Type: certv1.CertificateConditionIssuing, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
-				},
-			},
-		})
-	}
-	err = vzComp.PostInstall(ctx)
 
 	expectedErr := spi2.RetryableError{
 		Source:    vzComp.Name(),
@@ -210,13 +157,13 @@ func TestGetCertificateNames(t *testing.T) {
 	vzComp := NewComponent()
 
 	certNames := vzComp.GetCertificateNames(ctx)
-	assert.Len(t, certNames, 1, "Unexpected number of cert names")
+	assert.Len(t, certNames, 0, "Unexpected number of cert names")
 
 	vmiEnabled = true
 	vz.Spec.Components.Prometheus.Enabled = &vmiEnabled
 
 	certNames = vzComp.GetCertificateNames(ctx)
-	assert.Len(t, certNames, 2, "Unexpected number of cert names")
+	assert.Len(t, certNames, 1, "Unexpected number of cert names")
 }
 
 // TestUpgrade tests the Verrazzano Upgrade call; simple wrapper exercise, more detailed testing is done elsewhere
@@ -325,6 +272,8 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 	disabled := false
 	var pvc1Gi, _ = resource.ParseQuantity("1Gi")
 	var pvc2Gi, _ = resource.ParseQuantity("2Gi")
+	sec := fakeSec("TestValidateUpdate-es-sec")
+	defer func() { getControllerRuntimeClient = getClient }()
 	tests := []struct {
 		name    string
 		old     *vzapi.Verrazzano
@@ -516,7 +465,7 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						Fluentd: &vzapi.FluentdComponent{
-							ElasticsearchSecret: "secret",
+							ElasticsearchSecret: sec.Name,
 						},
 					},
 				},
@@ -551,20 +500,6 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 			},
 			wantErr: false,
 		},
-		{
-			name: "invalid-fluentd-extravolume",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
-							ExtraVolumeMounts: []vzapi.VolumeMount{{Source: "/root/.oci"}},
-						},
-					},
-				},
-			},
-			wantErr: true,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -577,47 +512,51 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 	}
 }
 
-func TestValidateFluentd(t *testing.T) {
-	varlog := "/var/log"
-	homevar := "/home/var_log"
-	tests := []struct {
-		name    string
-		vz      *vzapi.Verrazzano
-		wantErr bool
-	}{{
-		name:    "default",
-		vz:      &vzapi.Verrazzano{},
-		wantErr: false,
-	}, {
-		name: varlog,
-		vz: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						ExtraVolumeMounts: []vzapi.VolumeMount{{Source: varlog}},
-					},
-				},
-			},
+func fakeSec(secName string) corev1.Secret {
+	sec := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secName,
+			Namespace: constants.VerrazzanoInstallNamespace,
 		},
-		wantErr: true,
-	}, {
-		name: homevar,
-		vz: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						ExtraVolumeMounts: []vzapi.VolumeMount{{Source: varlog, Destination: homevar}},
-					},
-				},
-			},
+		Data: map[string][]byte{
+			esUsernameKey: []byte(secName),
+			esPasswordKey: []byte(secName),
 		},
-		wantErr: false,
-	}}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := validateFluentd(tt.vz); (err != nil) != tt.wantErr {
-				t.Errorf("validateFluentd() error = %v, wantErr %v", err, tt.wantErr)
-			}
+	}
+	getControllerRuntimeClient = func() (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithRuntimeObjects(&sec).Build(), nil
+	}
+	return sec
+}
+
+func fakeComponent(t *testing.T, certConditions []certv1.CertificateCondition) (spi.ComponentContext, spi.Component) {
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: dnsComponents,
+		},
+	}, false)
+	vzComp := NewComponent()
+
+	// PostInstall will fail because the expected VZ ingresses are not present in cluster
+	err := vzComp.PostInstall(ctx)
+	assert.IsType(t, spi2.RetryableError{}, err)
+
+	// now get all the ingresses for VZ and add them to the fake K8S and ensure that PostInstall succeeds
+	// when all the ingresses are present in the cluster
+	vzIngressNames := vzComp.(verrazzanoComponent).GetIngressNames(ctx)
+	for _, ingressName := range vzIngressNames {
+		_ = c.Create(context.TODO(), &v1.Ingress{
+			ObjectMeta: metav1.ObjectMeta{Name: ingressName.Name, Namespace: ingressName.Namespace},
 		})
 	}
+	for _, certName := range vzComp.(verrazzanoComponent).GetCertificateNames(ctx) {
+		_ = c.Create(context.TODO(), &certv1.Certificate{
+			ObjectMeta: metav1.ObjectMeta{Name: certName.Name, Namespace: certName.Namespace},
+			Status: certv1.CertificateStatus{
+				Conditions: certConditions,
+			},
+		})
+	}
+	return ctx, vzComp
 }

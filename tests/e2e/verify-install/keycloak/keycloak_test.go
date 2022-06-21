@@ -6,8 +6,6 @@ package keycloak
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"os/exec"
 	"path"
 	"strings"
@@ -15,6 +13,8 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -103,7 +103,7 @@ var t = framework.NewTestFramework("keycloak")
 var _ = t.BeforeSuite(func() {
 	Eventually(func() (map[string]*corev1.PersistentVolumeClaim, error) {
 		var err error
-		volumeClaims, err = pkg.GetPersistentVolumes(keycloakNamespace)
+		volumeClaims, err = pkg.GetPersistentVolumeClaims(keycloakNamespace)
 		return volumeClaims, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 })
@@ -230,7 +230,7 @@ func verifyKeycloakRealmPasswordPolicyIsCorrect(realm string) bool {
 	userID := path.Base(userURL)
 	defer func() {
 		err = kc.DeleteUser(realm, userID)
-		if err == nil {
+		if err != nil {
 			t.Logs.Info(fmt.Printf("Failed to delete user %s/%s: %v\n", realm, userID, err))
 		}
 	}()

@@ -7,6 +7,7 @@ def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 
 pipeline {
     options {
+        timeout(time: 1, unit: 'HOURS')
         skipDefaultCheckout true
         timestamps ()
     }
@@ -58,6 +59,7 @@ pipeline {
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
+        booleanParam (description: 'Whether to run JWT tests', name: 'ENABLE_JWT_TESTING', defaultValue: false)
     }
 
     environment {
@@ -200,12 +202,32 @@ pipeline {
                         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
                         OCI_OS_BUCKET="verrazzano-builds"
                         OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                        REALM_USER_PASSWORD = credentials('todo-mysql-password')
+                        REALM_NAME = "test-realm"
                     }
                     steps {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
                             ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
                         """
+                        script {
+                            if (params.ENABLE_JWT_TESTING) {
+                                sh """
+                                    # setup test realm for JWT testing scenarios
+                                    keycloakPassword=\$(kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo)
+                                    sed -i "s|##KEYCLOAK_PASSWORD##|\$keycloakPassword|g" ci/scripts/create_test_realm.sh
+                                    sed -i "s|##REALM_USER_PASSWORD##|${env.REALM_USER_PASSWORD}|g" ci/scripts/create_test_realm.sh
+                                    sed -i "s|##REALM_NAME##|${env.REALM_NAME}|g" ci/scripts/create_test_realm.sh
+                                    kubectl exec keycloak-0 -n keycloak -- /bin/sh -c "`cat ci/scripts/create_test_realm.sh`"
+                                    # setup request authentication policy
+                                    keycloakURI=\$(kubectl get ingress -n keycloak keycloak -o jsonpath="{.spec.rules[0].host}")
+                                    sed -i "s|##KEYCLOAK_URI##|\$keycloakURI|g" tests/testdata/jwt/helidon/test-realm-reqauth.yaml
+                                    jwks=\$(curl -sk https://\$keycloakURI/auth/realms/test-realm/protocol/openid-connect/certs | jq -c 'del(.keys[] | select( .use == "enc"))')
+                                    sed -i "s|##JWKS_KEY##|\$jwks|g" tests/testdata/jwt/helidon/test-realm-reqauth.yaml
+                                    kubectl apply -f tests/testdata/jwt/helidon/test-realm-reqauth.yaml
+                                """
+                            }
+                        }
                     }
                     post {
                         failure {
@@ -320,7 +342,7 @@ pipeline {
                             }
                             post {
                                 failure {
-                                    sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_screenshots.sh"
+                                    sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
                                 }
                             }
                         }
@@ -400,6 +422,32 @@ pipeline {
                                 runGinkgo('examples/helidon')
                             }
                         }
+                        stage('JWT Workload Component') {
+                            when {
+                                expression {params.ENABLE_JWT_TESTING == true}
+                            }
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jwt-helidon"
+                                REALM_USER_PASSWORD = credentials('todo-mysql-password')
+                                REALM_NAME="test-realm"
+                            }
+                            steps {
+                                runGinkgo('jwt/helidon')
+                            }
+                        }
+                        stage('JWT Service Component') {
+                            when {
+                                expression {params.ENABLE_JWT_TESTING == true}
+                            }
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jwt-helidon-svc"
+                                REALM_USER_PASSWORD = credentials('todo-mysql-password')
+                                REALM_NAME="test-realm"
+                            }
+                            steps {
+                                runGinkgo('jwt/helidon-svc')
+                            }
+                        }
                         stage('weblogic workload') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
@@ -414,6 +462,14 @@ pipeline {
                             }
                             steps {
                                 runGinkgo('workloads/coherence')
+                            }
+                        }
+                        stage('OAM workloads') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/oam-workloads"
+                            }
+                            steps {
+                                runGinkgo('workloads/oam')
                             }
                         }
                         stage('examples helidon-metrics') {
@@ -470,7 +526,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**,**/Screenshot*.png', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
@@ -519,7 +575,7 @@ pipeline {
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                 find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
             """
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/Screenshot*.png,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {

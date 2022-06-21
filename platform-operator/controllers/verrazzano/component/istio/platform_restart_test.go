@@ -26,11 +26,11 @@ const (
 	oldIstioImage   = "proxyv2.old"
 )
 
-// TestRestartAllWorkloadTypes tests the RestartComponents method for the following use case
-// GIVEN a request to RestartComponents a component
+// TestRestartAllWorkloadTypesWithOldProxy tests the RestartComponents method for the following use case
+// GIVEN a request to RestartComponents passing DoesPodContainOldIstioSidecar
 // WHEN where the fake client has deployments, statefulsets, and daemonsets that need to be restarted
-// THEN the workloads have the restart annotation with the Verraazano CR generation as the value
-func TestRestartAllWorkloadTypes(t *testing.T) {
+// THEN the workloads have the restart annotation with the Verrazzano CR generation as the value
+func TestRestartAllWorkloadTypesWithOldProxy(t *testing.T) {
 	asserts := assert.New(t)
 	config.SetDefaultBomFilePath(unitTestBomFile)
 
@@ -42,7 +42,7 @@ func TestRestartAllWorkloadTypes(t *testing.T) {
 	k8sutil.SetFakeClient(clientSet)
 
 	namespaces := []string{constants.VerrazzanoSystemNamespace}
-	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1)
+	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, DoesPodContainOldIstioSidecar)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -62,11 +62,11 @@ func TestRestartAllWorkloadTypes(t *testing.T) {
 	asserts.Equal("1", val, "Incorrect DaemonSet restart annotation")
 }
 
-// TestNoRestartAllWorkloadTypes tests the RestartComponents method for the following use case
-// GIVEN a request to RestartComponents a component
+// TestNoRestartAllWorkloadTypesWithNoProxy tests the RestartComponents method for the following use case
+// GIVEN a request to RestartComponents passing DoesPodContainNoIstioSidecar
 // WHEN where the fake client has deployments, statefulsets, and daemonsets that do not need to be restarted
-// THEN the workloads should not have the restart annotation with the Verraazano CR generation as the value
-func TestNoRestartAllWorkloadTypes(t *testing.T) {
+// THEN the workloads should not have the restart annotation with the Verrazzano CR generation as the value
+func TestNoRestartAllWorkloadTypesWithNoProxy(t *testing.T) {
 	asserts := assert.New(t)
 	config.SetDefaultBomFilePath(unitTestBomFile)
 
@@ -78,7 +78,121 @@ func TestNoRestartAllWorkloadTypes(t *testing.T) {
 	k8sutil.SetFakeClient(clientSet)
 
 	namespaces := []string{constants.VerrazzanoSystemNamespace}
-	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1)
+	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, DoesPodContainNoIstioSidecar)
+
+	// Validate the results
+	asserts.NoError(err)
+	dep, err := clientSet.AppsV1().Deployments("verrazzano-system").Get(context.TODO(), "test", metav1.GetOptions{})
+	asserts.NoError(err)
+	val := dep.Spec.Template.Annotations[vzconst.VerrazzanoRestartAnnotation]
+	asserts.Equal("1", val, "Incorrect Deployment restart annotation")
+
+	sts, err := clientSet.AppsV1().StatefulSets("verrazzano-system").Get(context.TODO(), "test", metav1.GetOptions{})
+	asserts.NoError(err)
+	val = sts.Spec.Template.Annotations[vzconst.VerrazzanoRestartAnnotation]
+	asserts.Equal("1", val, "Incorrect StatefulSet restart annotation")
+
+	daemonSet, err := clientSet.AppsV1().DaemonSets("verrazzano-system").Get(context.TODO(), "test", metav1.GetOptions{})
+	asserts.NoError(err)
+	val = daemonSet.Spec.Template.Annotations[vzconst.VerrazzanoRestartAnnotation]
+	asserts.Equal("1", val, "Incorrect DaemonSet restart annotation")
+}
+
+// TestNoRestartAllWorkloadTypesNoOldProxy tests the RestartComponents method for the following use case
+// GIVEN a request to RestartComponents a component passing DoesPodContainOldIstioSidecar
+// WHEN where the fake client has deployments, statefulsets, and daemonsets that do not need to be restarted
+// THEN the workloads should not have the restart annotation with the Verrazzano CR generation as the value
+func TestNoRestartAllWorkloadTypesNoOldProxy(t *testing.T) {
+	asserts := assert.New(t)
+	config.SetDefaultBomFilePath(unitTestBomFile)
+
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	// Setup fake client to provide workloads for restart platform testing
+	clientSet := fake.NewSimpleClientset(initFakePod("someimage"), initFakeDeployment(), initFakeStatefulSet(), initFakeDaemonSet())
+	k8sutil.SetFakeClient(clientSet)
+
+	namespaces := []string{constants.VerrazzanoSystemNamespace}
+	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, DoesPodContainOldIstioSidecar)
+
+	// Validate the results
+	asserts.NoError(err)
+	dep, err := clientSet.AppsV1().Deployments("verrazzano-system").Get(context.TODO(), "test", metav1.GetOptions{})
+	asserts.NoError(err)
+	asserts.Nil(dep.Spec.Template.Annotations, "Incorrect Deployment restart annotation")
+
+	sts, err := clientSet.AppsV1().StatefulSets("verrazzano-system").Get(context.TODO(), "test", metav1.GetOptions{})
+	asserts.NoError(err)
+	asserts.Nil(sts.Spec.Template.Annotations, "Incorrect StatefulSet restart annotation")
+
+	daemonSet, err := clientSet.AppsV1().DaemonSets("verrazzano-system").Get(context.TODO(), "test", metav1.GetOptions{})
+	asserts.NoError(err)
+	asserts.Nil(daemonSet.Spec.Template.Annotations, "Incorrect DaemonSet restart annotation")
+}
+
+// TestNoRestartAllWorkloadTypesWithProxy tests the RestartComponents method for the following use case
+// GIVEN a request to RestartComponents a component passing DoesPodContainNoIstioSidecar
+// WHEN where the fake client has deployments, statefulsets, and daemonsets that do not need to be restarted
+// THEN the workloads should not have the restart annotation with the Verrazzano CR generation as the value
+func TestNoRestartAllWorkloadTypesWithProxy(t *testing.T) {
+	asserts := assert.New(t)
+	config.SetDefaultBomFilePath(unitTestBomFile)
+
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	// Setup fake client to provide workloads for restart platform testing
+	clientSet := fake.NewSimpleClientset(initFakePod("proxyv2"), initFakeDeployment(), initFakeStatefulSet(), initFakeDaemonSet())
+	k8sutil.SetFakeClient(clientSet)
+
+	namespaces := []string{constants.VerrazzanoSystemNamespace}
+	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, DoesPodContainNoIstioSidecar)
+
+	// Validate the results
+	asserts.NoError(err)
+	dep, err := clientSet.AppsV1().Deployments("verrazzano-system").Get(context.TODO(), "test", metav1.GetOptions{})
+	asserts.NoError(err)
+	asserts.Nil(dep.Spec.Template.Annotations, "Incorrect Deployment restart annotation")
+
+	sts, err := clientSet.AppsV1().StatefulSets("verrazzano-system").Get(context.TODO(), "test", metav1.GetOptions{})
+	asserts.NoError(err)
+	asserts.Nil(sts.Spec.Template.Annotations, "Incorrect StatefulSet restart annotation")
+
+	daemonSet, err := clientSet.AppsV1().DaemonSets("verrazzano-system").Get(context.TODO(), "test", metav1.GetOptions{})
+	asserts.NoError(err)
+	asserts.Nil(daemonSet.Spec.Template.Annotations, "Incorrect DaemonSet restart annotation")
+}
+
+// TestNoRestartAllWorkloadTypesWithOAMPod tests the RestartComponents method for the following use case
+// GIVEN a request to RestartComponents a component passing DoesPodContainNoIstioSidecar
+// WHEN where the fake client has deployments, statefulsets, and daemonsets that do not need to be restarted
+// THEN the workloads should not have the restart annotation with the Verrazzano CR generation as the value
+func TestNoRestartAllWorkloadTypesWithOAMPod(t *testing.T) {
+	asserts := assert.New(t)
+	config.SetDefaultBomFilePath(unitTestBomFile)
+
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	// Setup fake client to provide workloads for restart platform testing
+	clientSet := fake.NewSimpleClientset(&v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "oam-kubernetes-runtime-85b66fcf68-94zl9",
+			Namespace: "verrazzano-system",
+			Labels:    map[string]string{"app": "foo"},
+		},
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{{
+				Name:  "c1",
+				Image: "someimage",
+			}},
+		},
+	}, initFakeDeployment(), initFakeStatefulSet(), initFakeDaemonSet())
+	k8sutil.SetFakeClient(clientSet)
+
+	namespaces := []string{constants.VerrazzanoSystemNamespace}
+	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, DoesPodContainNoIstioSidecar)
 
 	// Validate the results
 	asserts.NoError(err)

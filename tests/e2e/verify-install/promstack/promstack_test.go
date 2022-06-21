@@ -18,7 +18,6 @@ import (
 )
 
 const (
-	verrazzanoMonitoringNamespace   = "verrazzano-monitoring"
 	waitTimeout                     = 3 * time.Minute
 	pollingInterval                 = 10 * time.Second
 	prometheusTLSSecret             = "prometheus-operator-kube-p-admission"
@@ -43,6 +42,7 @@ var (
 		{podName: "kube-state-metrics", enabledFunc: pkg.IsKubeStateMetricsEnabled},
 		{podName: "prometheus-pushgateway", enabledFunc: pkg.IsPrometheusPushgatewayEnabled},
 		{podName: "prometheus-node-exporter", enabledFunc: pkg.IsPrometheusNodeExporterEnabled},
+		{podName: "prometheus-prometheus-operator-kube-p-prometheus", enabledFunc: pkg.IsPrometheusEnabled},
 	}
 	promOperatorCrds = []string{
 		"alertmanagerconfigs.monitoring.coreos.com",
@@ -96,7 +96,7 @@ func areOverridesEnabled() bool {
 		AbortSuite(fmt.Sprintf("Failed to get vz resource in cluster: %s", err.Error()))
 		return false
 	}
-	return len(vz.Spec.Components.PrometheusOperator.ValueOverrides) > 0
+	return vz.Spec.Components.PrometheusOperator != nil && len(vz.Spec.Components.PrometheusOperator.ValueOverrides) > 0
 }
 
 // 'It' Wrapper to only run spec if the Prometheus Stack is supported on the current Verrazzano version
@@ -130,7 +130,7 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 				if len(listEnabledComponents()) == 0 {
 					return true, nil
 				}
-				return pkg.DoesNamespaceExist(verrazzanoMonitoringNamespace)
+				return pkg.DoesNamespaceExist(constants.VerrazzanoMonitoringNamespace)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
@@ -140,9 +140,9 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 		WhenPromStackInstalledIt("should have running pods", func() {
 			promStackPodsRunning := func() bool {
 				enabledPods := listEnabledComponents()
-				result, err := pkg.PodsRunning(verrazzanoMonitoringNamespace, enabledPods)
+				result, err := pkg.PodsRunning(constants.VerrazzanoMonitoringNamespace, enabledPods)
 				if err != nil {
-					AbortSuite(fmt.Sprintf("Pods %v is not running in the namespace: %v, error: %v", enabledPods, verrazzanoMonitoringNamespace, err))
+					AbortSuite(fmt.Sprintf("Pods %v is not running in the namespace: %v, error: %v", enabledPods, constants.VerrazzanoMonitoringNamespace, err))
 				}
 				return result
 			}
@@ -159,9 +159,9 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 					if err == nil {
 						pods, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{
 							MatchLabels: labelMatch,
-						}, verrazzanoMonitoringNamespace)
+						}, constants.VerrazzanoMonitoringNamespace)
 						if err != nil {
-							AbortSuite(fmt.Sprintf("Label override not found for the Prometheus Operator pod in namespace %s: %v", verrazzanoMonitoringNamespace, err))
+							AbortSuite(fmt.Sprintf("Label override not found for the Prometheus Operator pod in namespace %s: %v", constants.VerrazzanoMonitoringNamespace, err))
 						}
 						foundAnnotation := false
 						for _, pod := range pods {
@@ -185,7 +185,7 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 		WhenPromStackInstalledIt(fmt.Sprintf("should have the correct default image arguments: %s, %s", expectedPromOperatorArgs[0], expectedPromOperatorArgs[1]), func() {
 			promStackPodsRunning := func() (bool, error) {
 				if isPrometheusOperatorEnabled() {
-					return pkg.ContainerHasExpectedArgs(verrazzanoMonitoringNamespace, prometheusOperatorDeployment, prometheusOperatorContainerName, expectedPromOperatorArgs)
+					return pkg.ContainerHasExpectedArgs(constants.VerrazzanoMonitoringNamespace, prometheusOperatorDeployment, prometheusOperatorContainerName, expectedPromOperatorArgs)
 				}
 				return true, nil
 			}
@@ -211,7 +211,7 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 		WhenPromStackInstalledIt("should have the TLS secret", func() {
 			Eventually(func() bool {
 				if isPrometheusOperatorEnabled() {
-					return pkg.SecretsCreated(verrazzanoMonitoringNamespace, prometheusTLSSecret)
+					return pkg.SecretsCreated(constants.VerrazzanoMonitoringNamespace, prometheusTLSSecret)
 				}
 				return true
 			}, waitTimeout, pollingInterval).Should(BeTrue())

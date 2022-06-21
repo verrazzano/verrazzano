@@ -42,8 +42,8 @@ pipeline {
                 defaultValue: '3',
                 description: 'This is to define total number of jobs executed in parallel per each batch',
                 trim: true)
-        choice (description: 'Predefined config permutations for Verrazzano installation', name: 'VZ_INSTALL_CONFIG',
-                choices: ["dev-kind-all-default", "NONE"])
+        choice (description: 'Predefined config permutations for Verrazzano installation. Prod profile is the default profile for NONE', name: 'VZ_INSTALL_CONFIG',
+                choices: ["NONE", "dev-kind-persistence"])
         string (name: 'EXCLUDE_RELEASES',
                 defaultValue: "v1.0.0, v1.0.1, v1.0.2, v1.0.3, v1.0.4",
                 description: 'This is to exclude the specified releases from upgrade tests.', trim: true)
@@ -84,7 +84,7 @@ pipeline {
         OCI_OS_BUCKET="verrazzano-builds"
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
-        TARGET_UPGRADE_VERSION = "master"
+        TARGET_UPGRADE_VERSION = "current_branch"
     }
 
     stages {
@@ -414,10 +414,10 @@ List extractReleaseTags(final String fileContent) {
 
 def getStageOfUpgradeJob(job) {
     return {
-        stage("Upgrade Verrazzano from version ${job[0]} to  ${job[1]}"){
+        stage("Upgrade Verrazzano from version ${job[0]} to  ${job[1].replace('_', " ")}"){
             script {
                 try {
-                    echo "Running upgrade job from version ${job[0]} to ${job[1]}"
+                    echo "Running upgrade job from version ${job[0]} to ${job[1].replace('_', " ")}"
                     def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                     parameters: [
                         string(name: 'GIT_COMMIT_TO_USE', value: params.GIT_COMMIT_TO_USE),

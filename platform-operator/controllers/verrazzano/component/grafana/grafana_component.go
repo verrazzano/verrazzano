@@ -80,6 +80,16 @@ func (g grafanaComponent) GetJSONName() string {
 	return ComponentJSONName
 }
 
+// GetOverrides returns the Helm overrides for a component
+func (g grafanaComponent) GetOverrides(_ *vzapi.Verrazzano) []vzapi.Overrides {
+	return []vzapi.Overrides{}
+}
+
+// MonitorOverrides indicates if monitoring of override sources is enabled or not for a component
+func (g grafanaComponent) MonitorOverrides(_ spi.ComponentContext) bool {
+	return true
+}
+
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the Grafana component
 func (g grafanaComponent) GetMinVerrazzanoVersion() string {
 	return constants.VerrazzanoVersion1_0_0

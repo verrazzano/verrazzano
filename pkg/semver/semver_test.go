@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package semver
@@ -100,12 +100,14 @@ func TestCompareVersion(t *testing.T) {
 func TestCompareTo(t *testing.T) {
 
 	v010, _ := NewSemVersion("v0.1.0")
+	vn010, _ := NewSemVersion("0.1.0")
 	v010_2, _ := NewSemVersion("v0.1.0")
 	v011, _ := NewSemVersion("v0.1.1")
 
 	v020, _ := NewSemVersion("v0.2.0")
 	v100, _ := NewSemVersion("v1.0.0")
 
+	assert.Equal(t, 0, v010.CompareTo(vn010))
 	assert.Equal(t, 0, v010.CompareTo(v010_2))
 	assert.Equal(t, -1, v010.CompareTo(v011))
 	assert.Equal(t, -1, v010.CompareTo(v020))

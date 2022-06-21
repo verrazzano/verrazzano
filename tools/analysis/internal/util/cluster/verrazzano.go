@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package cluster handles cluster analysis
@@ -9,8 +9,6 @@ import (
 	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/report"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	"regexp"
 	"strings"
 )
 
@@ -22,10 +20,6 @@ var allNamespacesFound []string
 // verrazzanoNamespacesFound is a list of the Verrazzano namespaces found
 var verrazzanoNamespacesFound []string
 
-// Pattern matchers
-var verrazzanoInstallJobPodMatcher = regexp.MustCompile("verrazzano-install-.*")
-var verrazzanoUninstallJobPodMatcher = regexp.MustCompile("verrazzano-uninstall-.*")
-
 // TODO: CRDs related to verrazzano
 // TODO: Can we determine the underlying platform that is being used? This may generally help in terms
 //       of the analysis (ie: message formatting), but it also is generally useful in terms of how we
@@ -36,7 +30,8 @@ var verrazzanoDeployments = make(map[string]appsv1.Deployment)
 var problematicVerrazzanoDeploymentNames = make([]string, 0)
 
 var verrazzanoAnalysisFunctions = map[string]func(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) (err error){
-	"Installation status": installationStatus,
+	"Verrazzano Resource Status": AnalyzeVerrazzanoResource,
+	"Installation status":        installationStatus,
 }
 
 // AnalyzeVerrazzano handles high level checking for Verrazzano itself. Note that we are not necessarily going to drill deeply here and
@@ -73,6 +68,7 @@ func installationStatus(log *zap.SugaredLogger, clusterRoot string, issueReporte
 	if err != nil {
 		return err
 	}
+
 	for _, namespace := range allNamespacesFound {
 		// These are Verrazzano owned namespaces
 		if strings.Contains(namespace, "verrazzano") {
@@ -91,7 +87,6 @@ func installationStatus(log *zap.SugaredLogger, clusterRoot string, issueReporte
 				}
 			}
 		}
-
 		// TBD: For now not enumerating out potentially related namespaces that could be here even
 		// without Verrazzano (cattle, keycloak, etc...). Those will still be in the AllNamespacesFound if present
 		// so until there is an explicit need to separate those, not doing that here (we could though)
@@ -109,15 +104,6 @@ func installationStatus(log *zap.SugaredLogger, clusterRoot string, issueReporte
 	// TODO: verrazzanoApiResourceMatches := files.SearchFile(log, files.FindFileInCluster(cluserRoot, "api_resources.out"), ".*verrazzano.*")
 	// TODO: verrazzanoResources (json file)
 
+	// Get more details on problematicVerrazzanoDeploymentNames and find a way to report
 	return nil
-}
-
-// IsVerrazzanoInstallJobPod returns true if the pod is an install job related pod for Verrazzano
-func IsVerrazzanoInstallJobPod(pod corev1.Pod) bool {
-	return verrazzanoInstallJobPodMatcher.MatchString(pod.ObjectMeta.Name) && (pod.ObjectMeta.Namespace == "verrazzano-install" || pod.ObjectMeta.Namespace == "default")
-}
-
-// IsVerrazzanoUninstallJobPod returns true if the pod is an uninstall job related pod for Verrazzano
-func IsVerrazzanoUninstallJobPod(pod corev1.Pod) bool {
-	return verrazzanoUninstallJobPodMatcher.MatchString(pod.ObjectMeta.Name) && (pod.ObjectMeta.Namespace == "verrazzano-install" || pod.ObjectMeta.Namespace == "default")
 }

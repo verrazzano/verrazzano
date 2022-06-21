@@ -167,8 +167,27 @@ const VerrazzanoIngressSecret = "verrazzano-tls" //nolint:gosec //#gosec G101
 // VerrazzanoLocalCABundleSecret is a secret containing the admin ca bundle
 const VerrazzanoLocalCABundleSecret = "verrazzano-local-ca-bundle" //nolint:gosec //#gosec G101
 
-//KubernetesAppLabel is a label key for kubernetes apps
+// KubernetesAppLabel is a label key for kubernetes apps
 const KubernetesAppLabel = "app.kubernetes.io/component"
 
-//JaegerCollectorService is a label value for Jaeger collector
+// JaegerCollectorService is a label value for Jaeger collector
 const JaegerCollectorService = "service-collector"
+
+// OverridesFinalizer is a label value for value override object finalizer
+const OverridesFinalizer = "overrides.finalizers.verrazzano.io/finalizer"
+
+// ConfigMapKind is a label value for ConfigMap kind
+const ConfigMapKind = "ConfigMap"
+
+// SecretKind is a label value for Secret Kind
+const SecretKind = "Secret"
+
+// PromManagedClusterCACertsSecretName is the name of the secret that contains managed cluster CA certificates. The secret is mounted
+// as a volume in the Prometheus pod.
+const PromManagedClusterCACertsSecretName = "managed-cluster-ca-certs"
+
+// VerrazzanoComponentLabelKey is the key for the verrazzano component label to distinguish verrazzano component resources
+const VerrazzanoComponentLabelKey = "verrazzano-component"
+
+// IstioAppLabel is the label used for Verrazzano Istio components
+const IstioAppLabel = "verrazzano.io/istio"

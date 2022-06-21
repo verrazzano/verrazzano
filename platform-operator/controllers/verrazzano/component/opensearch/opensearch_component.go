@@ -45,6 +45,16 @@ func (o opensearchComponent) GetJSONName() string {
 	return ComponentJSONName
 }
 
+// GetOverrides returns the Helm override sources for a component
+func (o opensearchComponent) GetOverrides(_ *vzapi.Verrazzano) []vzapi.Overrides {
+	return []vzapi.Overrides{}
+}
+
+// MonitorOverrides indicates whether monitoring of Helm override sources is enabled for a component
+func (o opensearchComponent) MonitorOverrides(_ spi.ComponentContext) bool {
+	return true
+}
+
 func (o opensearchComponent) IsOperatorInstallSupported() bool {
 	return true
 }
@@ -143,12 +153,13 @@ func (o opensearchComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 	if err := common.CompareStorageOverrides(old, new, ComponentJSONName); err != nil {
 		return err
 	}
-	return nil
+	// Reject edits that duplicate names of install args or node groups
+	return validateNoDuplicatedConfiguration(new)
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (o opensearchComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
-	return nil
+func (o opensearchComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return validateNoDuplicatedConfiguration(vz)
 }
 
 // Name returns the component name

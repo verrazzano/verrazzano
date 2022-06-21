@@ -29,7 +29,7 @@ spec:
                     port: 7001
                     httpCookie:
                       name: cidomain
-                      path: /console
+                      path: "/console"
                       ttl: 30
     - componentName: todo-jdbc-configmap
     - componentName: todo-mysql-configmap

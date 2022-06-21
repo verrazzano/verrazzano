@@ -50,11 +50,12 @@ var _ = t.BeforeSuite(func() {
 		}, shortWaitTimeout, shortPollingInterval, "Failed to create helidon-config application resource").ShouldNot(HaveOccurred())
 		beforeSuitePassed = true
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
+
+		Eventually(func() bool {
+			return pkg.ContainerImagePullWait(namespace, expectedPodsHelidonConfig)
+		}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	}
 
-	Eventually(func() bool {
-		return pkg.ContainerImagePullWait(namespace, expectedPodsHelidonConfig)
-	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	// Verify helidon-config-deployment pod is running
 	// GIVEN OAM helidon-config app is deployed
 	// WHEN the component and appconfig are created

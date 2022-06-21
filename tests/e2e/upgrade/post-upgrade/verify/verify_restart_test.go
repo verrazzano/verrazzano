@@ -12,9 +12,7 @@ import (
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
-	"github.com/verrazzano/verrazzano/pkg/istio"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -42,7 +40,7 @@ const (
 	fiveMinutes = 5 * time.Minute
 
 	pollingInterval = 10 * time.Second
-	envoyImage      = "proxyv2:1.10"
+	envoyImage      = "proxyv2:1.13.2"
 	minimumVersion  = "1.1.0"
 )
 
@@ -108,7 +106,7 @@ var _ = t.Describe("Application pods post-upgrade", Label("f:platform-lcm.upgrad
 		springbootNamespace   = "springboot"
 		todoListNamespace     = "todo-list"
 	)
-	t.DescribeTable("should contain Envoy sidecar 1.10.4",
+	t.DescribeTable("should contain Envoy sidecar 1.13.2",
 		func(namespace string, timeout time.Duration) {
 			exists, err := pkg.DoesNamespaceExist(namespace)
 			if err != nil {
@@ -151,18 +149,6 @@ var _ = t.Describe("Istio helm releases", Label("f:platform-lcm.upgrade"), func(
 		t.Entry(fmt.Sprintf("istio-system doesn't contain release %s", istioEgress), istioEgress),
 		t.Entry(fmt.Sprintf("istio-system doesn't contain release %s", istioCoreDNS), istioCoreDNS),
 	)
-})
-
-var _ = t.Describe("istioctl verify-install", func() {
-	t.It("should not return an error", func() {
-		Eventually(func() error {
-			stdout, _, err := istio.VerifyInstall(vzlog.DefaultLogger())
-			if err != nil {
-				pkg.Log(pkg.Error, string(stdout))
-			}
-			return err
-		}, twoMinutes, pollingInterval).Should(BeNil(), "istioctl verify-install return with stderr")
-	})
 })
 
 var _ = t.Describe("Checking if Verrazzano system components are ready, post-upgrade", Label("f:platform-lcm.upgrade"), func() {
@@ -324,12 +310,12 @@ var _ = t.Describe("Verify prometheus configmap reconciliation,", Label("f:platf
 			for _, nsc := range scrapeConfigs {
 				scrapeConfig := nsc.(map[interface{}]interface{})
 				// Check that interval is updated
-				if scrapeConfig["job_name"] == "prometheus" {
+				if scrapeConfig[vzconst.PrometheusJobNameKey] == "prometheus" {
 					intervalUpdated = (scrapeConfig["scrape_interval"].(string) != vzconst.TestPrometheusJobScrapeInterval)
 				}
 
 				// Check that test scrape config is not removed
-				if scrapeConfig["job_name"] == vzconst.TestPrometheusScrapeJob {
+				if scrapeConfig[vzconst.PrometheusJobNameKey] == vzconst.TestPrometheusScrapeJob {
 					testJobFound = true
 				}
 			}
