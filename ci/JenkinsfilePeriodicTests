@@ -108,6 +108,17 @@ pipeline {
                     echo "Force run: ${params.FORCE}"
                     echo "Execute tests: " + runTests()
 
+                    // Indicate in title if run is up-to-date or dry-run
+                    if (params.DRY_RUN) {
+                        currentBuild.displayName = "${currentBuild.displayName} : DRY-RUN"
+                    }
+                    if (periodicsUpToDate) {
+                        currentBuild.displayName = "${currentBuild.displayName} : UP-TO-DATE"
+                    }
+                    if (params.FORCE) {
+                        currentBuild.displayName = "${currentBuild.displayName} : FORCE"
+                    }
+
                     if (runTests()) {
                         echo "Executing periodic tests for commit ${GIT_COMMIT_TO_USE}"
                     }
