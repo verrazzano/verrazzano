@@ -217,10 +217,12 @@ func main() {
 		)
 
 		// Register the metrics binding mutating webhooks for plain old kubernetes objects workloads
+		// The webhooks handle legacy metrics template annotations on these workloads - newer
+		// workloads should rely on user-created monitor resources.
 		mgr.GetWebhookServer().Register(
 			webhooks.MetricsBindingGeneratorWorkloadPath,
 			&webhook.Admission{
-				Handler: &webhooks.GeneratorWorkloadWebhook{
+				Handler: &webhooks.WorkloadWebhook{
 					Client:     mgr.GetClient(),
 					KubeClient: kubeClient,
 				},
