@@ -11,7 +11,7 @@ metadata:
   spec:
   namespaceSelector:
     matchNames:
-      - {{ .installNamespace }}
+      - verrazzano-install
   selector: {}
   endpoints:
   - relabelings:
@@ -23,9 +23,3 @@ metadata:
       - sourceLabels:
           - __meta_kubernetes_service_label_app
         targetLabel: app
-      - sourceLabels:
-          - __meta_kubernetes_pod_container_port_number
-        regex: "9100"
-        action: keep
-         
-
