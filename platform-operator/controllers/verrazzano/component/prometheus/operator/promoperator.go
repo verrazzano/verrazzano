@@ -303,7 +303,11 @@ func applySystemMonitors(ctx spi.ComponentContext) error {
 	// substitute template values to all files in the directory and apply the resulting YAML
 	dir := path.Join(config.GetThirdPartyManifestsDir(), "prometheus-operator")
 	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
-	return yamlApplier.ApplyDT(dir, args)
+	err := yamlApplier.ApplyDT(dir, args)
+	if err != nil{
+		return ctx.Log().ErrorfNewErr("Failed to substitute template values for System Monitors %v",err)
+	}
+	return nil
 }
 
 func updateApplicationAuthorizationPolicies(ctx spi.ComponentContext) error {
