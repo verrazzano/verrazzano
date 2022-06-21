@@ -7,6 +7,7 @@ import (
 	"context"
 	"github.com/stretchr/testify/assert"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -20,6 +21,26 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 )
+
+var keycloakEnabledCR = &vzapi.Verrazzano{
+	Spec: vzapi.VerrazzanoSpec{
+		Components: vzapi.ComponentSpec{
+			Keycloak: &vzapi.KeycloakComponent{
+				Enabled: &enabled,
+			},
+		},
+	},
+}
+
+var keycloakDisabledCR = &vzapi.Verrazzano{
+	Spec: vzapi.VerrazzanoSpec{
+		Components: vzapi.ComponentSpec{
+			Keycloak: &vzapi.KeycloakComponent{
+				Enabled: &notEnabled,
+			},
+		},
+	},
+}
 
 func TestIsFluentdReady(t *testing.T) {
 	boolTrue, boolFalse := true, false
@@ -66,7 +87,6 @@ func TestIsFluentdReady(t *testing.T) {
 		}, getFakeClient(0), false},
 	}
 	for _, test := range tests {
-		//client := createPreInstallTestClient()
 		ctx := spi.NewFakeContext(test.client, &test.spec, false)
 		if actual := isFluentdReady(ctx); actual != test.expected {
 			t.Errorf("test name %s: got fluent ready = %v, want %v", test.testName, actual, test.expected)
@@ -299,6 +319,48 @@ func TestLoggingPreInstallFluentdNotEnabled(t *testing.T) {
 		false)
 	err := loggingPreInstall(ctx)
 	assert.NoError(t, err)
+}
+
+// TestCheckSecretExists tests the verrazzano-es-internal secret exists.
+func TestCheckSecretExists(t *testing.T) {
+	var tests = []struct {
+		name   string
+		spec   *vzapi.Verrazzano
+		client clipkg.Client
+		err    error
+	}{
+		{
+			"should fail when verrazzano-es-internal secret does not exist and keycloak is enabled",
+			keycloakEnabledCR,
+			createFakeClient(),
+			ctrlerrors.RetryableError{Source: ComponentName},
+		},
+		{
+			"should pass when verrazzano-es-internal secret does exist and keycloak is enabled",
+			keycloakEnabledCR,
+			createFakeClient(vzEsInternalSecret),
+			nil,
+		},
+		{
+			"always nil error when keycloak is disabled",
+			keycloakDisabledCR,
+			createFakeClient(),
+			nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.client, tt.spec, false)
+			err := checkSecretExists(ctx)
+			if tt.err != nil {
+				assert.Error(t, err)
+				assert.IsTypef(t, tt.err, err, "")
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }
 
 func getFakeClient(scheduled int32) clipkg.Client {
