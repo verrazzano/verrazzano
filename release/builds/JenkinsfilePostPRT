@@ -153,11 +153,11 @@ pipeline {
                           echo ""
                           ls ${RELEASE_BINARIES_DIR}/scan_report.out
                           ls ${RELEASE_BINARIES_DIR}/scan_summary.out
-                          echo "oci --region us-phoenix-1 os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${CLEAN_BRANCH_NAME}/verrazzano_${params.RELEASE_VERSION}-scan_report.out --file ${RELEASE_BINARIES_DIR}/scan_report.out"
-                          echo "oci --region us-phoenix-1 os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${CLEAN_BRANCH_NAME}/verrazzano_${params.RELEASE_VERSION}-scan_summary.out --file ${RELEASE_BINARIES_DIR}/scan_summary.out"
+                          echo "oci --region us-phoenix-1 os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_report.out --file ${RELEASE_BINARIES_DIR}/scan_report.out"
+                          echo "oci --region us-phoenix-1 os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_summary.out --file ${RELEASE_BINARIES_DIR}/scan_summary.out"
                         else
-                          oci --region us-phoenix-1 os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${CLEAN_BRANCH_NAME}/verrazzano_${params.RELEASE_VERSION}-scan_report.out --file ${RELEASE_BINARIES_DIR}/scan_report.out
-                          oci --region us-phoenix-1 os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${CLEAN_BRANCH_NAME}/verrazzano_${params.RELEASE_VERSION}-scan_summary.out --file ${RELEASE_BINARIES_DIR}/scan_summary.out
+                          oci --region us-phoenix-1 os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_report.out --file ${RELEASE_BINARIES_DIR}/scan_report.out
+                          oci --region us-phoenix-1 os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_summary.out --file ${RELEASE_BINARIES_DIR}/scan_summary.out
                         fi
                     """
                 }
