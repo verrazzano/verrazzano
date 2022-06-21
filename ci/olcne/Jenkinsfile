@@ -980,8 +980,8 @@ def createOLCNECluster() {
     PRIVATE_SUBNET_OCID=sh(returnStdout: true, script: "terraform output -raw subnet_id")
     BASTION_IP=sh(returnStdout: true, script: "terraform output -raw bastion_public_ip")
     BASTION_USER=sh(returnStdout: true, script: "terraform output -raw bastion_user")
-    WORKER_NODES_IP=sh(returnStdout: true, script: "terraform output -json worker_nodes").replaceAll("[\"\[\]]", "").replaceAll(",", " ")
-    CONTROL_PLANE_NODES_IP=sh(returnStdout: true, script: "terraform output -json control_plane_nodes").replaceAll("[\"\[\]]", "").replaceAll(",", " ")
+    WORKER_NODES_IP=sh(returnStdout: true, script: "terraform output -json worker_nodes").replaceAll(/["\[\]]/, "").replaceAll(",", " ")
+    CONTROL_PLANE_NODES_IP=sh(returnStdout: true, script: "terraform output -json control_plane_nodes").replaceAll(/["\[\]]/, "").replaceAll(",", " ")
 }
 
 def createOCIFileSystem() {
