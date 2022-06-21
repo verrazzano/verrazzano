@@ -980,22 +980,8 @@ def createOLCNECluster() {
     PRIVATE_SUBNET_OCID=sh(returnStdout: true, script: "terraform output -raw subnet_id")
     BASTION_IP=sh(returnStdout: true, script: "terraform output -raw bastion_public_ip")
     BASTION_USER=sh(returnStdout: true, script: "terraform output -raw bastion_user")
-    WORKER_NODES_IP=sh(returnStdout: true, script: "terraform output -json worker_nodes")
-    CONTROL_PLANE_NODES_IP=sh(returnStdout: true, script: "terraform output -json control_plane_nodes")
-    sh """
-        IFS=',' read -ra INSTANCE_IP <<< ${WORKER_NODES_IP:1:-1}
-        WORKER_NODES_IP=""
-        for ip in "${INSTANCE_IP[@]}"; do
-            WORKER_NODES_IP="$WORKER_NODES_IP ${ip:1:-1}"
-        done
-        WORKER_NODES_IP=${WORKER_NODES_IP:1}
-        IFS=',' read -ra INSTANCE_IP <<< ${CONTROL_PLANE_NODES_IP:1:-1}
-        CONTROL_PLANE_NODES_IP=""
-        for ip in "${INSTANCE_IP[@]}"; do
-            CONTROL_PLANE_NODES_IP="$CONTROL_PLANE_NODES_IP ${ip:1:-1}"
-        done
-        CONTROL_PLANE_NODES_IP=${CONTROL_PLANE_NODES_IP:1}
-    """
+    WORKER_NODES_IP=sh(returnStdout: true, script: "terraform output -json worker_nodes").replaceAll("[\"\[\]]", "").replaceAll(",", " ")
+    CONTROL_PLANE_NODES_IP=sh(returnStdout: true, script: "terraform output -json control_plane_nodes").replaceAll("[\"\[\]]", "").replaceAll(",", " ")
 }
 
 def createOCIFileSystem() {
@@ -1089,9 +1075,8 @@ def setupBastionSSH() {
 }
 
 def mountOCIStorage() {
+    def INSTANCE_IP=$WORKER_NODES_IP.split(" ")[0]
     sh """
-        IFS=', ' read -r -a INSTANCE_IP <<< "$WORKER_NODES_IP"
-        INSTANCE_IP=${INSTANCE_IP[0]}
         ssh -o StrictHostKeyChecking=no opc@$INSTANCE_IP "
             sudo mkdir -p "/mnt/$OCI_EXPORT_PATH"
             sudo mount $OCI_MOUNT_IP:"/$OCI_EXPORT_PATH" "/mnt/$OCI_EXPORT_PATH"
