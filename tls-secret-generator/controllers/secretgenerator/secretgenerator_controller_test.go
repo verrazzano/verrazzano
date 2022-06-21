@@ -115,17 +115,17 @@ func TestReconcile(t *testing.T) {
 			assert.True(requeueTime >= 40)
 
 			secret := corev1.Secret{}
-			err = r.Client.Get(context.TODO(), types.NamespacedName{Namespace: constants.PrometheusOperatorNamespace, Name: istioTLSSecret}, &secret)
+			err = r.Client.Get(context.TODO(), types.NamespacedName{Namespace: constants.PrometheusOperatorNamespace, Name: constants.IstioTLSSecretName}, &secret)
 			assert.NoError(err)
 
 			// Verify the certificate files
-			fileData, ok := secret.Data[certKeyFile]
+			fileData, ok := secret.Data[constants.CertKeyFileName]
 			assert.True(ok)
 			assert.Contains(string(fileData), "test-key")
-			fileData, ok = secret.Data[rootCertFile]
+			fileData, ok = secret.Data[constants.RootCertFileName]
 			assert.True(ok)
 			assert.Contains(string(fileData), "test-root-cert")
-			fileData, ok = secret.Data[certChainFile]
+			fileData, ok = secret.Data[constants.CertChainFileName]
 			assert.True(ok)
 			assert.Contains(string(fileData), "test-cert-chain")
 		})
