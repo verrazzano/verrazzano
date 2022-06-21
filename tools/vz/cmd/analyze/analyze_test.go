@@ -37,7 +37,7 @@ func TestAnalyzeCommandValidCapturedDir(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.ReportFormatFlagName, "simple")
 	err := cmd.Execute()
 	assert.Nil(t, err)
-	assert.Contains(t, buf.String(), "No IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer")
+	assert.Contains(t, buf.String(), "no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer")
 }
 
 func TestAnalyzeCommandInvalidReportFormat(t *testing.T) {
