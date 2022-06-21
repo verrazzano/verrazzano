@@ -123,17 +123,17 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 	seconds := 0
 	retryCount := 0
 	for {
-		retryCount++
-		if retryCount > vpoWaitRetries {
-			return "", fmt.Errorf("Waiting for %s, pod was not found in namespace %s", constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
-		}
-		time.Sleep(constants.VerrazzanoPlatformOperatorWait * time.Second)
-		seconds += constants.VerrazzanoPlatformOperatorWait
-
-		ready, _ := clik8sutil.DeploymentsAreReady(client, deployments, 1, "")
+		ready, err := clik8sutil.DeploymentsAreReady(client, deployments, 1, "")
 		if ready {
 			break
 		}
+
+		retryCount++
+		if retryCount > vpoWaitRetries {
+			return "", fmt.Errorf("Waiting for %s pod in namespace %s: %v", constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace, err)
+		}
+		time.Sleep(constants.VerrazzanoPlatformOperatorWait * time.Second)
+		seconds += constants.VerrazzanoPlatformOperatorWait
 	}
 
 	// Return the platform operator pod name

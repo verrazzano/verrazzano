@@ -93,7 +93,7 @@ func podsReadyDeployment(client clipkg.Client, namespacedName types.NamespacedNa
 		rsName := fmt.Sprintf("%s-%s", namespacedName.Name, pod.Labels[podTemplateHashLabel])
 		err := client.Get(context.TODO(), types.NamespacedName{Namespace: namespacedName.Namespace, Name: rsName}, &rs)
 		if err != nil {
-			return false, fmt.Errorf("Failed to get replicaset %s: %v", namespacedName, err)
+			return false, fmt.Errorf("failed to get replicaset %s", namespacedName)
 		}
 
 		// Log error and return if the deployment.kubernetes.io/revision annotation is not found.  This should never happen.
