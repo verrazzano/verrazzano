@@ -127,7 +127,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	// Create the Verrazzano install resource.
 	err = client.Create(context.TODO(), vz)
 	if err != nil {
-		return fmt.Errorf("Failed to create verrazzano resource: %s", err.Error())
+		return fmt.Errorf("Failed to create the verrazzano install resource: %s", err.Error())
 	}
 
 	// Wait for the Verrazzano install to complete

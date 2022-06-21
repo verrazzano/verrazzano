@@ -126,8 +126,8 @@ func TestInstallCmdDefaultNoVPO(t *testing.T) {
 	err := cmd.Execute()
 	cmdHelpers.ResetVpoWaitRetries()
 	assert.Error(t, err)
-	assert.EqualError(t, err, "verrazzano-platform-operator pod not found in namespace verrazzano-install")
-	assert.Equal(t, errBuf.String(), "Error: verrazzano-platform-operator pod not found in namespace verrazzano-install\n")
+	assert.EqualError(t, err, "Waiting for verrazzano-platform-operator, pod was not found in namespace verrazzano-install")
+	assert.Equal(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator, pod was not found in namespace verrazzano-install\n")
 }
 
 // TestInstallCmdDefaultMultipleVPO
@@ -169,8 +169,8 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 	// Run install command
 	err := cmd.Execute()
 	assert.Error(t, err)
-	assert.EqualError(t, err, "More than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
-	assert.Equal(t, errBuf.String(), "Error: More than one verrazzano-platform-operator pod was found in namespace verrazzano-install\n")
+	assert.EqualError(t, err, "Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
+	assert.Equal(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install\n")
 }
 
 // TestInstallCmdJsonLogFormat
