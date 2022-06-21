@@ -35,7 +35,7 @@ var logsEnum = cmdhelpers.LogFormatSimple
 func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		return runCmdUpgrade(cmd, args, vzHelper)
+		return runCmdUpgrade(cmd, vzHelper)
 	}
 	cmd.Example = helpExample
 
@@ -56,7 +56,7 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 	return cmd
 }
 
-func runCmdUpgrade(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
+func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	// Validate the command options
 	err := cmdhelpers.ValidateCmd(cmd)
 	if err != nil {
@@ -125,7 +125,7 @@ func runCmdUpgrade(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	vz.Spec.Version = version
 	err = client.Update(context.TODO(), vz)
 	if err != nil {
-		return fmt.Errorf("Failed to set upgrade version in verrazzano resource: %s", err.Error())
+		return fmt.Errorf("Failed to set upgrade version in the verrazzano install resource: %s", err.Error())
 	}
 
 	// Wait for the Verrazzano upgrade to complete

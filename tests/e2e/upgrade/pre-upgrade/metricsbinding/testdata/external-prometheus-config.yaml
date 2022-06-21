@@ -1,0 +1,170 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: external-prometheus-config
+data:
+  prometheus.yml: |2-
+
+    global:
+      scrape_interval: 20s
+      evaluation_interval: 30s
+    rule_files:
+      - '/etc/prometheus/rules/*.rules'
+    alerting:
+      alertmanagers:
+        - static_configs:
+          - targets: ["vmi-system-alertmanager:9093"]
+    scrape_configs:
+     - job_name: 'prometheus'
+       scrape_interval: 20s
+       scrape_timeout: 15s
+       static_configs:
+       - targets: ['localhost:9090']
+         labels:
+           verrazzano_cluster: local
+
+     - job_name: 'node-exporter'
+       scrape_interval: 20s
+       scrape_timeout: 15s
+       kubernetes_sd_configs:
+       - role: endpoints
+       relabel_configs:
+       - source_labels: [__meta_kubernetes_endpoints_name]
+         regex: 'node-exporter'
+         action: keep
+       - source_labels: null
+         action: replace
+         target_label: verrazzano_cluster
+         replacement: local
+
+     - job_name: 'cadvisor'
+       scrape_interval: 20s
+       scrape_timeout: 15s
+       kubernetes_sd_configs:
+       - role: node
+       scheme: https
+       tls_config:
+         ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+         insecure_skip_verify: true
+       bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+       relabel_configs:
+       - action: labelmap
+         regex: __meta_kubernetes_node_label_(.+)
+       - target_label: __address__
+         replacement: kubernetes.default.svc:443
+       - source_labels: [__meta_kubernetes_node_name]
+         regex: (.+)
+         target_label: __metrics_path__
+         replacement: /api/v1/nodes/$1/proxy/metrics/cadvisor
+       - source_labels: null
+         action: replace
+         target_label: verrazzano_cluster
+         replacement: local
+
+     - job_name: 'nginx-ingress-controller'
+       kubernetes_sd_configs:
+       - role: pod
+         namespaces:
+           names:
+             - "ingress-nginx"
+       relabel_configs:
+       - source_labels: [__meta_kubernetes_pod_annotation_system_io_scrape]
+         action: keep
+         regex: true
+       - action: labelmap
+         regex: __meta_kubernetes_pod_label_(.+)
+       - source_labels: [__meta_kubernetes_namespace]
+         action: replace
+         target_label: kubernetes_namespace
+       - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+         action: replace
+         regex: ([^:]+)(?::\d+)?;(\d+)
+         replacement: $1:10254
+         target_label: __address__
+       - source_labels: [__meta_kubernetes_pod_name]
+         action: replace
+         target_label: kubernetes_pod_name
+       - source_labels: null
+         action: replace
+         target_label: verrazzano_cluster
+         replacement: local
+
+     # Scrape config for Istio envoy stats
+     - job_name: 'envoy-stats'
+       metrics_path: /stats/prometheus
+       kubernetes_sd_configs:
+       - role: pod
+       relabel_configs:
+       - source_labels: [__meta_kubernetes_pod_container_port_name]
+         action: keep
+         regex: '.*-envoy-prom'
+       - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+         action: replace
+         regex: ([^:]+)(?::\d+)?;(\d+)
+         replacement: $1:15090
+         target_label: __address__
+       - action: labeldrop
+         regex: __meta_kubernetes_pod_label_(.+)
+       - source_labels: [__meta_kubernetes_namespace]
+         action: replace
+         target_label: namespace
+       - source_labels: [__meta_kubernetes_pod_name]
+         action: replace
+         target_label: pod_name
+       - source_labels: null
+         action: replace
+         target_label: verrazzano_cluster
+         replacement: local
+
+     # Scrape config for Istio - mesh and istiod metrics
+     - job_name: 'pilot'
+       kubernetes_sd_configs:
+       - role: endpoints
+         namespaces:
+           names:
+             - "istio-system"
+       relabel_configs:
+       - source_labels: [__meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+         action: keep
+         regex: istiod;http-monitoring
+       - source_labels: [__meta_kubernetes_service_label_app]
+         target_label: app
+       - source_labels: null
+         action: replace
+         target_label: verrazzano_cluster
+         replacement: local
+
+     # Scrape config for opensearch
+     - job_name: 'opensearch'
+       scheme: https
+       tls_config:
+         ca_file: /etc/istio-certs/root-cert.pem
+         cert_file: /etc/istio-certs/cert-chain.pem
+         key_file: /etc/istio-certs/key.pem
+         insecure_skip_verify: true
+       metrics_path: "/_prometheus/metrics"
+       kubernetes_sd_configs:
+       - role: pod
+         namespaces:
+           names:
+             - "verrazzano-system"
+       relabel_configs:
+       - source_labels: [__meta_kubernetes_pod_name]
+         action: keep
+         regex: 'vmi-system-es-.*'
+       - source_labels: [__meta_kubernetes_pod_container_port_number]
+         action: keep
+         regex: '9200'
+       - source_labels: [__meta_kubernetes_namespace]
+         action: replace
+         target_label: namespace
+       - source_labels: [__meta_kubernetes_pod_name]
+         action: replace
+         target_label: kubernetes_pod_name
+       - source_labels: null
+         action: replace
+         target_label: verrazzano_cluster
+         replacement: local

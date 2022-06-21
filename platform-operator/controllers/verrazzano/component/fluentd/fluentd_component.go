@@ -116,6 +116,9 @@ func (f fluentdComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := loggingPreInstall(ctx); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed copying logging secrets for Verrazzano: %v", err)
 	}
+	if err := checkSecretExists(ctx); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -130,6 +133,9 @@ func (f fluentdComponent) Install(ctx spi.ComponentContext) error {
 // PreUpgrade Fluentd component pre-upgrade processing
 func (f fluentdComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err := fluentdPreUpgrade(ctx, ComponentNamespace); err != nil {
+		return err
+	}
+	if err := checkSecretExists(ctx); err != nil {
 		return err
 	}
 	return nil
