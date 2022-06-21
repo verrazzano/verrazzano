@@ -32,8 +32,8 @@ pipeline {
         DOCKER_REPO = 'ghcr.io'
         IS_PATCH_RELEASE = 'false'
 
-        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-        OCI_OS_BUCKET="verrazzano-builds"
+        OBJECT_STORAGE_NS = credentials('oci-os-namespace')
+        OBJECT_STORAGE_BUCKET="verrazzano-builds"
         OCI_OS_REGION="us-phoenix-1"
         OCI_CLI_AUTH="api_key"
         OCI_CLI_TENANCY = credentials('oci-tenancy')
@@ -153,11 +153,11 @@ pipeline {
                           echo ""
                           ls ${RELEASE_BINARIES_DIR}/scan_report.out
                           ls ${RELEASE_BINARIES_DIR}/scan_summary.out
-                          echo "oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/verrazzano_${params.RELEASE_VERSION}-scan_report.out --file ${RELEASE_BINARIES_DIR}/scan_report.out"
-                          echo "oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/verrazzano_${params.RELEASE_VERSION}-scan_summary.out --file ${RELEASE_BINARIES_DIR}/scan_summary.out"
+                          echo "oci --region us-phoenix-1 os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${CLEAN_BRANCH_NAME}/verrazzano_${params.RELEASE_VERSION}-scan_report.out --file ${RELEASE_BINARIES_DIR}/scan_report.out"
+                          echo "oci --region us-phoenix-1 os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${CLEAN_BRANCH_NAME}/verrazzano_${params.RELEASE_VERSION}-scan_summary.out --file ${RELEASE_BINARIES_DIR}/scan_summary.out"
                         else
-                          oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/verrazzano_${params.RELEASE_VERSION}-scan_report.out --file ${RELEASE_BINARIES_DIR}/scan_report.out
-                          oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/verrazzano_${params.RELEASE_VERSION}-scan_summary.out --file ${RELEASE_BINARIES_DIR}/scan_summary.out
+                          oci --region us-phoenix-1 os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${CLEAN_BRANCH_NAME}/verrazzano_${params.RELEASE_VERSION}-scan_report.out --file ${RELEASE_BINARIES_DIR}/scan_report.out
+                          oci --region us-phoenix-1 os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${CLEAN_BRANCH_NAME}/verrazzano_${params.RELEASE_VERSION}-scan_summary.out --file ${RELEASE_BINARIES_DIR}/scan_summary.out
                         fi
                     """
                 }
