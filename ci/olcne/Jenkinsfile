@@ -393,8 +393,10 @@ pipeline {
 
         stage("Mount OCI Storage") {
             steps {
-                setupBastionSSH()
-                mountOCIStorage()
+                script {
+                    setupBastionSSH()
+                    mountOCIStorage()
+                }
             }
         }
 
