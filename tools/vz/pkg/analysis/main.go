@@ -3,15 +3,12 @@
 package analysis
 
 import (
-	"flag"
 	"fmt"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/buildlog"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/cluster"
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/log"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"go.uber.org/zap"
-	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 var analyzerTypeFunctions = map[string]func(log *zap.SugaredLogger, args string) (err error){
@@ -33,33 +30,8 @@ var logger *zap.SugaredLogger
 
 // The analyze tool will analyze information which has already been captured from an environment
 func AnalysisMain(vzHelper helpers.VZHelper, directory string, reportFile string, reportFormat string) error {
-	initFlags()
-	return handleMain(vzHelper, directory, reportFile, reportFormat)
-}
-
-// initFlags is handled here. Separated out here from the main logic for now to allow for more main test coverage
-// TODO: Look at if we can reliably mess with flag variants in Go unit tests
-func initFlags() {
-	flag.StringVar(&analyzerType, "analysis", "cluster", "Type of analysis: cluster")
-	flag.StringVar(&reportFile, "reportFile", "", "Name of report output file, default is stdout")
-	flag.BoolVar(&includeInfo, "info", true, "Include informational messages, default is true")
-	flag.BoolVar(&includeSupport, "support", true, "Include support data in the report, default is true")
-	flag.BoolVar(&includeActions, "actions", true, "Include actions in the report, default is true")
-	flag.IntVar(&minImpact, "minImpact", 0, "Minimum impact threshold to report for issues, 0-10, default is 0")
-	flag.IntVar(&minConfidence, "minConfidence", 0, "Minimum confidence threshold to report for issues, 0-10, default is 0")
-	flag.BoolVar(&help, "help", false, "Display usage help")
-	flag.BoolVar(&version, "version", false, "Display version")
-	// Add the zap logger flag set to the CLI.
-	opts := kzap.Options{}
-	opts.BindFlags(flag.CommandLine)
-
-	flag.Parse()
-	kzap.UseFlagOptions(&opts)
-	log.InitLogs(opts)
 	logger = zap.S()
-
-	// Doing this to allow unit testing main logic
-	flagArgs = flag.Args()
+	return handleMain(vzHelper, directory, reportFile, reportFormat)
 }
 
 // handleMain is where the main logic is at, separated here to allow for more test coverage
