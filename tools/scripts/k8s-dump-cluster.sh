@@ -264,26 +264,19 @@ function full_k8s_cluster_dump() {
 }
 
 function analyze_dump() {
-  if [ $ANALYZE == "TRUE" ]; then
-    if ! [ -x "$(command -v go)" ]; then
-      echo "Analyze requires go which does not appear to be installed, skipping analyze"
+  local FULL_PATH_CAPTURE_DIR=$(echo "$(cd "$(dirname "$CAPTURE_DIR")" && pwd -P)/$(basename "$CAPTURE_DIR")")
+  local SAVE_DIR=$(pwd)
+
+  # To enable debug, add  -zap-log-level debug
+  if [ -z $REPORT_FILE ]; then
+    vz analyze --captured-dir $FULL_PATH_CAPTURE_DIR || true
+  else
+    # Since we have to change the current working directory to run go, we need to take into account if the reportFile specified was relative to the original
+    # working directory. If it was absolute then we just use it directly
+    if [[ $REPORT_FILE = /* ]]; then
+      vz analyze --captured-dir $FULL_PATH_CAPTURE_DIR --report-file $REPORT_FILE || true
     else
-      local FULL_PATH_CAPTURE_DIR=$(echo "$(cd "$(dirname "$CAPTURE_DIR")" && pwd -P)/$(basename "$CAPTURE_DIR")")
-      local SAVE_DIR=$(pwd)
-      cd $SCRIPT_DIR/../analysis
-      # To enable debug, add  -zap-log-level debug
-      if [ -z $REPORT_FILE ]; then
-        GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true $FULL_PATH_CAPTURE_DIR || true
-      else
-        # Since we have to change the current working directory to run go, we need to take into account if the reportFile specified was relative to the original
-        # working directory. If it was absolute then we just use it directly
-        if [[ $REPORT_FILE = /* ]]; then
-          GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true --reportFile=$REPORT_FILE $FULL_PATH_CAPTURE_DIR || true
-        else
-          GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true --reportFile=$SAVE_DIR/$REPORT_FILE $FULL_PATH_CAPTURE_DIR || true
-        fi
-      fi
-      cd $SAVE_DIR
+      vz analyze --captured-dir $FULL_PATH_CAPTURE_DIR --report-file $SAVE_DIR/$REPORT_FILE || true
     fi
   fi
 }
@@ -311,5 +304,21 @@ if [ $? -eq 0 ]; then
   save_dump_file
 fi
 
-analyze_dump
+SKIP_ANALYZE="FALSE"
+if [ $ANALYZE == "TRUE" ]; then
+  if ! [ -x "$(command -v go)" ]; then
+    echo "Analyze requires go, which does not appear to be installed, skipping analyze"
+    SKIP_ANALYZE="TRUE"
+  fi
+
+  if [ "FALSE" = "${SKIP_ANALYZE}" ] && ! command -v vz &> /dev/null
+  then
+    echo "Analyze requires Verrazzano command line interface which does not appear to be built, skipping analyze"
+    SKIP_ANALYZE="TRUE"
+  fi
+fi
+
+if [ "FALSE" = "${SKIP_ANALYZE}" ]; then
+  analyze_dump
+fi
 cleanup_dump
