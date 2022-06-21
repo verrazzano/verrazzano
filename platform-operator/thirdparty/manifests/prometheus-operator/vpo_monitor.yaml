@@ -8,10 +8,10 @@ metadata:
   namespace: {{ .monitoringNamespace }} #namespace of service monitor
   labels:
     release: prometheus-operator #this tells prometheus to select this monitor for use
-  spec:
+spec:
   namespaceSelector:
     matchNames:
-      - verrazzano-install
+      - {{ .installNamespace }}
   selector: {}
   endpoints:
   - relabelings:
