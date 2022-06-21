@@ -174,7 +174,7 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 			t.It("Verify envoy stats", func() {
 				Eventually(func() bool {
 					return verifyEnvoyStats(envoyStatsRecentLookups)
-				}, 180*time.Minute, longPollingInterval).Should(BeTrue())
+				}, 40*time.Minute, longPollingInterval).Should(BeTrue())
 			})
 		}
 	})
