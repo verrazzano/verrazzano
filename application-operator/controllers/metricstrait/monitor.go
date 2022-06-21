@@ -78,7 +78,7 @@ func (r *Reconciler) updatePodMonitor(ctx context.Context, trait *vzapi.MetricsT
 
 	podMonitor := promoperapi.PodMonitor{}
 	podMonitor.SetName(pmName)
-	podMonitor.SetNamespace(constants.PrometheusOperatorNamespace)
+	podMonitor.SetNamespace(workload.GetNamespace())
 	result, err := controllerutil.CreateOrUpdate(ctx, r.Client, &podMonitor, func() error {
 		return metrics.PopulatePodMonitor(scrapeInfo, &podMonitor, log)
 	})
