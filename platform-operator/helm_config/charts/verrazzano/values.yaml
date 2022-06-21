@@ -93,3 +93,6 @@ kubernetes:
 
 externaldns:
   enabled: false
+
+istio:
+  enabled: true
