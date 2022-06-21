@@ -59,6 +59,8 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 		url = fmt.Sprintf(constants.VerrazzanoOperatorURL, version)
 	}
 
+	const accessErrorMsg = "Failed to access the Verrazzano operator.yaml file %s: %s"
+	const applyErrorMsg = "Failed to apply the Verrazzano operator.yaml file %s: %s"
 	userVisibleFilename := operatorFile
 	if len(url) > 0 {
 		userVisibleFilename = url
@@ -66,21 +68,21 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 		httpClient := vzHelper.GetHTTPClient()
 		resp, err := httpClient.Get(url)
 		if err != nil {
-			return fmt.Errorf("Failed to access the Verrazzano operator.yaml file %s: %s", userVisibleFilename, err.Error())
+			return fmt.Errorf(accessErrorMsg, userVisibleFilename, err.Error())
 		}
 		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("Failed to access the Verrazzano operator.yaml file %s: %s", userVisibleFilename, resp.Status)
+			return fmt.Errorf(accessErrorMsg, userVisibleFilename, resp.Status)
 		}
 		// Store response in a temporary file
 		tmpFile, err := ioutil.TempFile("", "vz")
 		if err != nil {
-			return fmt.Errorf("Failed to apply the Verrazzano operator.yaml file %s: %s", userVisibleFilename, err.Error())
+			return fmt.Errorf(applyErrorMsg, userVisibleFilename, err.Error())
 		}
 		defer os.Remove(tmpFile.Name())
 		_, err = tmpFile.ReadFrom(resp.Body)
 		if err != nil {
 			os.Remove(tmpFile.Name())
-			return fmt.Errorf("Failed to apply the Verrazzano operator.yaml file %s: %s", userVisibleFilename, err.Error())
+			return fmt.Errorf(applyErrorMsg, userVisibleFilename, err.Error())
 		}
 		internalFilename = tmpFile.Name()
 	}
@@ -90,7 +92,7 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 	yamlApplier := k8sutil.NewYAMLApplier(client, "")
 	err = yamlApplier.ApplyF(internalFilename)
 	if err != nil {
-		return fmt.Errorf("Failed to apply the Verrazzano operator.yaml file %s: %s", internalFilename, err.Error())
+		return fmt.Errorf(applyErrorMsg, internalFilename, err.Error())
 	}
 
 	// Dump out the object result messages
