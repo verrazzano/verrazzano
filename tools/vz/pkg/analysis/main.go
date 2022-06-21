@@ -16,16 +16,12 @@ var analyzerTypeFunctions = map[string]func(log *zap.SugaredLogger, args string)
 	"buildlog": buildlog.RunAnalysis,
 }
 
-var version = false
-var help = false
 var analyzerType = "cluster" //Currently does only cluster analysis
-var reportFile string
 var includeInfo bool
 var includeSupport bool
 var includeActions bool
 var minImpact int
 var minConfidence int
-var flagArgs []string
 var logger *zap.SugaredLogger
 
 // The analyze tool will analyze information which has already been captured from an environment
