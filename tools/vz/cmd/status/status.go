@@ -141,7 +141,7 @@ Verrazzano Status
 func NewCmdStatus(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		return runCmdStatus(cmd, args, vzHelper)
+		return runCmdStatus(cmd, vzHelper)
 	}
 	cmd.Example = helpExample
 
@@ -149,7 +149,7 @@ func NewCmdStatus(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 // runCmdStatus - run the "vz status" command
-func runCmdStatus(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
+func runCmdStatus(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	client, err := vzHelper.GetClient(cmd)
 	if err != nil {
 		return err
@@ -173,7 +173,7 @@ func runCmdStatus(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) 
 	addComponents(vz.Status.Components, templateValues)
 	result, err := templates.ApplyTemplate(statusOutputTemplate, templateValues)
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed to generate %s command output: %s", CommandName, err.Error())
 	}
 	fmt.Fprintf(vzHelper.GetOutputStream(), result)
 

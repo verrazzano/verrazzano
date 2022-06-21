@@ -171,7 +171,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 	return ctrl.Result{}, nil
 }
 
-// resolvePendingUpgrdes will delete any helm secrets with a status other than "deployed" for the given component
+// resolvePendingUpgrades will delete any helm secrets with a status other than "deployed" for the given component
 func (r *Reconciler) resolvePendingUpgrades(compName string, compLog vzlog.VerrazzanoLogger) {
 	nameReq, _ := kblabels.NewRequirement("name", selection.Equals, []string{compName})
 	notDeployedReq, _ := kblabels.NewRequirement("status", selection.NotEquals, []string{"deployed"})
