@@ -21,6 +21,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	clik8sutil "github.com/verrazzano/verrazzano/tools/vz/pkg/k8sutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -111,6 +112,13 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 	labelSelector = labelSelector.Add(*appLabel)
 	podList := corev1.PodList{}
 
+	deployments := []types.NamespacedName{
+		{
+			Name:      constants.VerrazzanoPlatformOperator,
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+		},
+	}
+
 	// Wait for the verrazzano-platform-operator pod to be found
 	seconds := 0
 	retryCount := 0
@@ -122,58 +130,31 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 		time.Sleep(constants.VerrazzanoPlatformOperatorWait * time.Second)
 		seconds += constants.VerrazzanoPlatformOperatorWait
 
-		err := client.List(
-			context.TODO(),
-			&podList,
-			&clipkg.ListOptions{
-				Namespace:     vzconstants.VerrazzanoInstallNamespace,
-				LabelSelector: labelSelector,
-			})
-		if err != nil {
-			return "", fmt.Errorf("Waiting for %s, failed to list pods: %s", constants.VerrazzanoPlatformOperator, err.Error())
-		}
-		if len(podList.Items) == 0 {
-			continue
-		}
-		if len(podList.Items) > 1 {
-			return "", fmt.Errorf("Waiting for %s, more than one %s pod was found in namespace %s", constants.VerrazzanoPlatformOperator, constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
-		}
-		break
-	}
-
-	// We found the verrazzano-platform-operator pod. Wait until it's containers are ready.
-	pod := &corev1.Pod{}
-	seconds = 0
-	for {
-		time.Sleep(constants.VerrazzanoPlatformOperatorWait * time.Second)
-		seconds += constants.VerrazzanoPlatformOperatorWait
-		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("\rWaiting for %s to be ready before starting %s - %d seconds", constants.VerrazzanoPlatformOperator, getOperationString(condType), seconds))
-
-		err := client.Get(context.TODO(), types.NamespacedName{Namespace: podList.Items[0].Namespace, Name: podList.Items[0].Name}, pod)
-		if err != nil {
-			return "", fmt.Errorf("Waiting for %s to be ready: %s", constants.VerrazzanoPlatformOperator, err.Error())
-		}
-		initReady := true
-		for _, initContainer := range pod.Status.InitContainerStatuses {
-			if !initContainer.Ready {
-				initReady = false
-				break
-			}
-		}
-		ready := true
-		for _, container := range pod.Status.ContainerStatuses {
-			if !container.Ready {
-				ready = false
-				break
-			}
-		}
-
-		if initReady && ready {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "\n")
+		ready, _ := clik8sutil.DeploymentsAreReady(client, deployments, 1, "")
+		if ready {
 			break
 		}
 	}
-	return pod.Name, nil
+
+	// Return the platform operator pod name
+	err := client.List(
+		context.TODO(),
+		&podList,
+		&clipkg.ListOptions{
+			Namespace:     vzconstants.VerrazzanoInstallNamespace,
+			LabelSelector: labelSelector,
+		})
+	if err != nil {
+		return "", fmt.Errorf("Waiting for %s, failed to list pods: %s", constants.VerrazzanoPlatformOperator, err.Error())
+	}
+	if len(podList.Items) == 0 {
+		return "", fmt.Errorf("Failed to find the Verrazzano platform operator in namespace %s", vzconstants.VerrazzanoInstallNamespace)
+	}
+	if len(podList.Items) > 1 {
+		return "", fmt.Errorf("Waiting for %s, more than one %s pod was found in namespace %s", constants.VerrazzanoPlatformOperator, constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
+	}
+
+	return podList.Items[0].Name, nil
 }
 
 // WaitForOperationToComplete waits for the Verrazzano install/upgrade to complete and

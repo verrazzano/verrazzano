@@ -10,6 +10,8 @@ import (
 	"os"
 	"testing"
 
+	appsv1 "k8s.io/api/apps/v1"
+
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -353,12 +355,37 @@ func TestInstallCmdOperatorFile(t *testing.T) {
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
 			Name:      constants.VerrazzanoPlatformOperator,
 			Labels: map[string]string{
-				"app": constants.VerrazzanoPlatformOperator,
+				"app":               constants.VerrazzanoPlatformOperator,
+				"pod-template-hash": "56f78ffcfd",
 			},
 		},
 	}
+	deployment := &appsv1.Deployment{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperator,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
+			},
+		},
+		Status: appsv1.DeploymentStatus{
+			AvailableReplicas: 1,
+			UpdatedReplicas:   1,
+		},
+	}
+	replicatSet := &appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:   vzconstants.VerrazzanoInstallNamespace,
+			Name:        fmt.Sprintf("%s-56f78ffcfd", constants.VerrazzanoPlatformOperator),
+			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+		},
+	}
+
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo).Build()
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment, replicatSet).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
