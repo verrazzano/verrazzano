@@ -139,7 +139,7 @@ func newReconciler(cli client.Client) Reconciler {
 		Client:  cli,
 		Log:     zap.S(),
 		Scheme:  scheme,
-		Scraper: "istio-system/prometheus",
+		Scraper: "secretgenerator",
 	}
 	return reconciler
 }
