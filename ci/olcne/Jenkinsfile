@@ -971,19 +971,20 @@ def createOLCNECluster() {
         terraform plan -input=false -out=tfplan -no-color
         terraform apply -input=false -no-color -auto-approve tfplan
     """
-    API_SERVER_IP=sh(returnStdout: true, script: "terraform output -raw apiserver_ip")
+    // TODO: Optimize the way in which the groovy variables are set using a file based approach
+    API_SERVER_IP=sh(returnStdout: true, script: "cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw apiserver_ip")
     println(API_SERVER_IP)
-    VCN_OCID=sh(returnStdout: true, script: "terraform output -raw vcn_id")
+    VCN_OCID=sh(returnStdout: true, script: "cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw vcn_id")
     println(VCN_OCID)
-    BASTION_IP=sh(returnStdout: true, script: "terraform output -raw bastion_public_ip")
+    BASTION_IP=sh(returnStdout: true, script: "cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw bastion_public_ip")
     println(BASTION_IP)
-    BASTION_USER=sh(returnStdout: true, script: "terraform output -raw bastion_user")
+    BASTION_USER=sh(returnStdout: true, script: "cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw bastion_user")
     println(BASTION_USER)
-    WORKER_NODES_IP=sh(returnStdout: true, script: "terraform output -json worker_nodes").replaceAll(/["\[\]]/, "").replaceAll(",", " ")
+    WORKER_NODES_IP=sh(returnStdout: true, script: "cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -json worker_nodes").replaceAll(/["\[\]]/, "").replaceAll(",", " ")
     println(WORKER_NODES_IP)
-    CONTROL_PLANE_NODES_IP=sh(returnStdout: true, script: "terraform output -json control_plane_nodes").replaceAll(/["\[\]]/, "").replaceAll(",", " ")
+    CONTROL_PLANE_NODES_IP=sh(returnStdout: true, script: "cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -json control_plane_nodes").replaceAll(/["\[\]]/, "").replaceAll(",", " ")
     println(CONTROL_PLANE_NODES_IP)
-    PRIVATE_SUBNET_OCID=sh(returnStdout: true, script: "terraform output -raw subnet_id")
+    PRIVATE_SUBNET_OCID=sh(returnStdout: true, script: "cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw subnet_id")
     println(PRIVATE_SUBNET_OCID)
     VCN_CIDR=sh(returnStdout: true, script: "oci network vcn get --vcn-id $VCN_OCID | jq -r '.data.\"cidr-block\"'")
     println(VCN_CIDR)
