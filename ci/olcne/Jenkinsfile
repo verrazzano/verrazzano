@@ -94,12 +94,6 @@ pipeline {
             name: 'OCI_DNS_SCOPE',
             description: 'Specifies OCI DNS scope. Default: GLOBAL', 
             choices: dnsScopes)
-        // TODO: To be removed, fetch OLCNE_TERRAFORM_GIT_URL from credentials
-        string (
-            name: "OLCNE_TERRAFORM_GIT_URL",
-            defaultValue: '',
-            description: 'terraform-oci-olcne Gitlab URL',
-            trim: true)
         string (
             name: "INSTALL_PROFILE",
             defaultValue: 'dev',
@@ -166,6 +160,7 @@ pipeline {
         KUBECONFIG="$WORKSPACE/test_kubeconfig"
         VERRAZZANO_KUBECONFIG="$KUBECONFIG"
         INSTALL_CONFIG_FILE_OLCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-olcne.yaml"
+        OLCNE_TERRAFORM_GIT_URL=credentials("terraform-oci-olcne-url")
         OLCNE_BRANCH_TO_USE="origin/release/$OLCNE_VERSION"
         API_SERVER_IP=""
         WORKER_NODES_IP=""
@@ -990,11 +985,10 @@ def createOCIFileSystem() {
         -o "create" -a $TF_VAR_availability_domain_id \
         -n "$TF_VAR_prefix-fs" -m "$TF_VAR_prefix-mt" \
         -p "/$TF_VAR_prefix-export" -c $TF_VAR_compartment_id -s $PRIVATE_SUBNET_OCID
-
-        MT_PVT_IP_OCID=$(oci fs mount-target list --compartment-id $TF_VAR_compartment_id --availability-domain $TF_VAR_availability_domain_id --display-name "$TF_VAR_prefix-mt" --lifecycle-state ACTIVE | jq -r '.data[0]."private-ip-ids"[0]')
-        OCI_MOUNT_IP=$(oci network private-ip get --private-ip-id $MT_PVT_IP_OCID | jq -r '.data."ip-address"')
-        OCI_EXPORT_PATH="/$TF_VAR_prefix-export"
     """
+    MT_PVT_IP_OCID=sh("oci fs mount-target list --compartment-id $TF_VAR_compartment_id --availability-domain $TF_VAR_availability_domain_id --display-name $TF_VAR_prefix-mt --lifecycle-state ACTIVE | jq -r '.data[0].\"private-ip-ids\"[0]'")
+    OCI_MOUNT_IP=sh("oci network private-ip get --private-ip-id $MT_PVT_IP_OCID | jq -r '.data.\"ip-address\"'")
+    OCI_EXPORT_PATH="/$TF_VAR_prefix-export"
 }
 
 def createOCILoadBalancers() {
@@ -1010,16 +1004,13 @@ def createOCILoadBalancers() {
         -c $TF_VAR_compartment_id -s $PUBLIC_SUBNET_OCID \
         -i $WORKER_NODES_IP -p 31390 \
         -f "$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci-load-balancer.json"
-
-    OCI_LB_MGMT_IP=$(oci lb load-balancer list --compartment-id $TF_VAR_compartment_id --display-name "$TF_VAR_prefix-mgmt" --lifecycle-state ACTIVE | jq -r '.data[0].id')
-        OCI_LB_APP_IP=$(oci lb load-balancer list --compartment-id $TF_VAR_compartment_id --display-name "$TF_VAR_prefix-app" --lifecycle-state ACTIVE | jq -r '.data[0].id')
     """
+    OCI_LB_MGMT_IP=sh("oci lb load-balancer list --compartment-id $TF_VAR_compartment_id --display-name $TF_VAR_prefix-mgmt --lifecycle-state ACTIVE | jq -r '.data[0].id'")
+    OCI_LB_APP_IP=sh("oci lb load-balancer list --compartment-id $TF_VAR_compartment_id --display-name $TF_VAR_prefix-app --lifecycle-state ACTIVE | jq -r '.data[0].id'")
 }
 
 def createOCIDNSZone() {
-    script {
-        OCI_DNS_ZONE_OCID=sh(script: "$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c $TF_VAR_compartment_id -s $OCI_DNS_ZONE_SUBDOMAIN_NAME -k $OCI_DNS_SCOPE", returnStdout: true)
-    }
+    OCI_DNS_ZONE_OCID=sh(script: "$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c $TF_VAR_compartment_id -s $OCI_DNS_ZONE_SUBDOMAIN_NAME -k $OCI_DNS_SCOPE", returnStdout: true)
 }
 
 def deleteOLCNECluster() {
