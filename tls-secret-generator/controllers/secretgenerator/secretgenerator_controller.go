@@ -30,14 +30,6 @@ type Reconciler struct {
 	Scraper string
 }
 
-const (
-	istioTLSSecret = "istio-certs"
-	rootCertFile   = "root-cert.pem"
-	certChainFile  = "cert-chain.pem"
-	certKeyFile    = "key.pem"
-	defaultCertDir = "/etc/istio-certs"
-)
-
 var certificateDirectory string
 
 // SetupWithManager creates controller for the MetricsBinding
@@ -91,14 +83,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req k8scontroller.Request) (
 	tlsSecret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: req.Namespace,
-			Name:      istioTLSSecret,
+			Name:      constants.IstioTLSSecretName,
 		},
 	}
 	_, err = controllerutil.CreateOrUpdate(ctx, r.Client, &tlsSecret, func() error {
 		tlsSecret.Data = map[string][]byte{
-			rootCertFile:  rootCert,
-			certChainFile: certChain,
-			certKeyFile:   key,
+			constants.RootCertFileName:  rootCert,
+			constants.CertChainFileName: certChain,
+			constants.CertKeyFileName:   key,
 		}
 		return nil
 	})
@@ -118,7 +110,7 @@ func getCertDir() string {
 	if certificateDirectory != "" {
 		return certificateDirectory
 	}
-	return defaultCertDir
+	return constants.IstioCertDir
 }
 
 // setCertDir updates the certificate directory to the given string

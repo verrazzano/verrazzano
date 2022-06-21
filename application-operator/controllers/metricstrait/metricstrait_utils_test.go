@@ -261,8 +261,8 @@ func TestGetSupportedWorkloadType(t *testing.T) {
 	assert.Empty(workloadType)
 }
 
-// TestCreateServiceMonitorName test the creation of a service monitor name from relevant resources
-func TestCreateServiceMonitorName(t *testing.T) {
+// TestCreatePodMonitorName test the creation of a pod monitor name from relevant resources
+func TestCreatePodMonitorName(t *testing.T) {
 	tests := []struct {
 		name         string
 		trait        *vzapi.MetricsTrait
@@ -312,7 +312,7 @@ func TestCreateServiceMonitorName(t *testing.T) {
 	}
 	assert := asserts.New(t)
 	for _, tt := range tests {
-		name, err := createServiceMonitorName(tt.trait, tt.portNum)
+		name, err := createPodMonitorName(tt.trait, tt.portNum)
 		if tt.expectError {
 			assert.Error(err)
 		} else {

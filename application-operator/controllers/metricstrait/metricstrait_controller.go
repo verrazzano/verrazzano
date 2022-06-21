@@ -405,7 +405,7 @@ func (r *Reconciler) deleteOrUpdateObsoleteResources(ctx context.Context, trait 
 			switch rel.Role {
 			case scraperRole:
 				if rel.Kind == promoperapi.ServiceMonitorsKind {
-					update.RecordOutcome(r.deleteServiceMonitor(ctx, rel, trait, log))
+					update.RecordOutcome(r.deletePodMonitor(ctx, rel, trait, log))
 				} else {
 					update.RecordOutcomeIfError(r.deleteOrUpdateScraperConfigMap(ctx, trait, rel, log)) // Need to pass down traitDefaults, current scraper or current scraper deployment
 				}
@@ -766,7 +766,7 @@ func MutateLabels(trait *vzapi.MetricsTrait, workload *unstructured.Unstructured
 // createPrometheusScrapeConfigMapJobName creates a Prometheus scrape configmap job name from a trait.
 // Format is {oam_app}_{cluster}_{namespace}_{oam_comp}
 func createPrometheusScrapeConfigMapJobName(trait *vzapi.MetricsTrait, portNum int) (string, error) {
-	return createServiceMonitorName(trait, portNum)
+	return createPodMonitorName(trait, portNum)
 }
 
 // createScrapeConfigFromTrait creates Prometheus scrape config for a trait.

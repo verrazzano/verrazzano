@@ -424,8 +424,8 @@ func TestDeploymentUpdateError(t *testing.T) {
 	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("test-error")).Times(3)
 	// Expect a call to get the Service Monitor
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: "test-app-default-test-namespace-test-comp", Namespace: "test-namespace"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, serviceMonitor *promoperapi.ServiceMonitor) error {
+		Get(gomock.Any(), types.NamespacedName{Name: "test-app-default-test-namespace-test-comp", Namespace: vzconst.PrometheusOperatorNamespace}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, podMonitor *promoperapi.PodMonitor) error {
 			return nil
 		})
 	// Expect a call to get the status writer and return a mock.

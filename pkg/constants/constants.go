@@ -112,6 +112,7 @@ const DefaultVerrazzanoCASecretName = "verrazzano-ca-certificate-secret"
 // VmiPromConfigName - The name of the prometheus config map
 const VmiPromConfigName string = "vmi-system-prometheus-config"
 
+// PrometheusJobNameKey is the key for the Prometheus scrape config job name
 const PrometheusJobNameKey = "job_name"
 
 // TestPrometheusJobScrapeInterval - The string 0s representing a test only prometheus config scrape interval
@@ -146,3 +147,18 @@ const VerrazzanoComponentLabelKey = "verrazzano-component"
 
 // PromOperatorComponentName is the name of the Prometheus Operator component
 const PromOperatorComponentName = "prometheus-operator"
+
+// IstioTLSSecretName is the secret name for the Istio certs so that the pod monitors can use TLS
+const IstioTLSSecretName = "istio-certs"
+
+// RootCertFileName is the file name of the root CA cert
+const RootCertFileName = "root-cert.pem"
+
+// CertChainFileName is the file name of the certificate chain
+const CertChainFileName = "cert-chain.pem"
+
+// CertKeyFileName is the file name of the certificate key
+const CertKeyFileName = "key.pem"
+
+// IstioCertDir is the directory of the Istio certs on the Prometheus Pod
+const IstioCertDir = "/etc/istio-certs"
