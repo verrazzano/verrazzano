@@ -977,9 +977,9 @@ def runVerrazzanoAcceptanceTests() {
 
 def testEnvVar() {
     TEST_VAR=sh(returnStdout: true, script: "echo val")
-    sh '''
+    sh """
         echo Testing $TEST_VAR
-    '''
+    """
 }
 
 def createOLCNECluster() {
