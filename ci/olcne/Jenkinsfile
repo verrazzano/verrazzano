@@ -176,6 +176,7 @@ pipeline {
         PRIVATE_SUBNET_OCID=""
         BASTION_IP=""
         BASTION_USER=""
+        TEST_VAR=""
 
         // Terraform variables
         TF_VAR_tenancy_id=credentials('oci-tenancy')
@@ -342,65 +343,74 @@ pipeline {
             }
         }
 
-        stage("Create OLCNE cluster") {
+        stage("Test env var") {
             steps {
                 script {
-                    echo "[INFO] Creating OLCNE cluster"
-                    createOLCNECluster()
-                }
-            }
-            post {
-                failure {
-                    script {
-                        echo "[ERROR] Cluster create failed"
-                    }
+                    echo "[INFO] Test env var"
+                    testEnvVar()
                 }
             }
         }
 
-        stage("Create OCI Storage") {
-            steps {
-                script {
-                    echo "[INFO] Creating OCI FileSystem"
-                    createOCIFileSystem()
-                }
-            }
-        }
+    //     stage("Create OLCNE cluster") {
+    //         steps {
+    //             script {
+    //                 echo "[INFO] Creating OLCNE cluster"
+    //                 createOLCNECluster()
+    //             }
+    //         }
+    //         post {
+    //             failure {
+    //                 script {
+    //                     echo "[ERROR] Cluster create failed"
+    //                 }
+    //             }
+    //         }
+    //     }
+
+    //     stage("Create OCI Storage") {
+    //         steps {
+    //             script {
+    //                 echo "[INFO] Creating OCI FileSystem"
+    //                 createOCIFileSystem()
+    //             }
+    //         }
+    //     }
 
 
-        stage("Create OCI Load Balancers") {
-            steps {
-                script {
-                    echo "[INFO] Creating OCI LoadBalancers"
-                    createOCILoadBalancers()
-                }
-            }
-        }
+    //     stage("Create OCI Load Balancers") {
+    //         steps {
+    //             script {
+    //                 echo "[INFO] Creating OCI LoadBalancers"
+    //                 createOCILoadBalancers()
+    //             }
+    //         }
+    //     }
 
-       stage("Create OCI DNS zone") {
-            steps {
-                script {
-                    echo "[INFO] Creating OCI DNS Zone"
-                    createOCIDNSZone()
-                }
-            }
-        }
+    //    stage("Create OCI DNS zone") {
+    //         steps {
+    //             script {
+    //                 echo "[INFO] Creating OCI DNS Zone"
+    //                 createOCIDNSZone()
+    //             }
+    //         }
+    //     }
 
-        stage("Create image pull secrets") {
-            steps {
-                script {
-                    echo "[INFO] Creating image pull secrets"
-                    createImagePullSecrets()
-                }
-            }
-        }
+    //     stage("Create image pull secrets") {
+    //         steps {
+    //             script {
+    //                 echo "[INFO] Creating image pull secrets"
+    //                 createImagePullSecrets()
+    //             }
+    //         }
+    //     }
 
-        stage("Mount OCI Storage") {
-            steps {
-                setupBastionSSH()
-                mountOCIStorage()
-            }
-        }
+    //     stage("Mount OCI Storage") {
+    //         steps {
+    //             setupBastionSSH()
+    //             mountOCIStorage()
+    //         }
+    //     }
 
         // stage("Install Verrazzano platform operator") {
         //     environment {
@@ -963,6 +973,13 @@ def runVerrazzanoAcceptanceTests() {
             }
         }
     ]
+}
+
+def testEnvVar() {
+    TEST_VAR=sh(returnStdout: true, script: "echo val")
+    sh '''
+        echo Testing $TEST_VAR
+    '''
 }
 
 def createOLCNECluster() {
