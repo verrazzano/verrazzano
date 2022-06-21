@@ -78,16 +78,6 @@ func TestMergeYAMLFilesEmpty(t *testing.T) {
 	assert.Equal(t, vzapi.Dev, vz.Spec.Profile)
 }
 
-// TestMergeYAMLFilesNone
-// GIVEN no YAML files
-//  WHEN I call MergeYAMLFiles
-//  THEN the call returns an error
-func TestMergeYAMLFilesNone(t *testing.T) {
-	_, err := MergeYAMLFiles([]string{})
-	assert.Error(t, err)
-	assert.EqualError(t, err, "Failed to merge files - no files specified")
-}
-
 // TestMergeYAMLFilesNotFound
 // GIVEN a YAML file that does not exist
 //  WHEN I call MergeYAMLFiles

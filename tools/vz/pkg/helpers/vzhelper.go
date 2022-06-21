@@ -50,7 +50,7 @@ func GetVerrazzanoResource(client client.Client, namespacedName types.Namespaced
 	vz := &vzapi.Verrazzano{}
 	err := client.Get(context.TODO(), namespacedName, vz)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to get a Verrazzano install resource: %s", err.Error())
 	}
 	return vz, nil
 }

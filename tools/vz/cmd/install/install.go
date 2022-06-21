@@ -129,7 +129,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	// Create the Verrazzano install resource.
 	err = client.Create(context.TODO(), vz)
 	if err != nil {
-		return fmt.Errorf("Failed to create verrazzano resource: %s", err.Error())
+		return fmt.Errorf("Failed to create the verrazzano install resource: %s", err.Error())
 	}
 
 	// Wait for the Verrazzano install to complete
@@ -174,7 +174,7 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper) (vz *vzapi
 	for path, value := range pv {
 		outYaml, err := yaml.Expand(0, false, path, value)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Failed to generate yaml from specified set flags: %s", err.Error())
 		}
 		vz, err = cmdhelpers.MergeSetFlags(vz, outYaml)
 		if err != nil {
