@@ -174,7 +174,7 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper) (vz *vzapi
 	for path, value := range pv {
 		outYaml, err := yaml.Expand(0, false, path, value)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to generate yaml from supplied set flags: %s", err.Error())
+			return nil, fmt.Errorf("Failed to generate yaml from specified set flags: %s", err.Error())
 		}
 		vz, err = cmdhelpers.MergeSetFlags(vz, outYaml)
 		if err != nil {
