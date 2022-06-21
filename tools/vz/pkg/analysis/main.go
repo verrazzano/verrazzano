@@ -17,9 +17,9 @@ var analyzerTypeFunctions = map[string]func(log *zap.SugaredLogger, args string)
 }
 
 var analyzerType = "cluster" //Currently does only cluster analysis
-var includeInfo bool
-var includeSupport bool
-var includeActions bool
+var includeInfo = true
+var includeSupport = true
+var includeActions = true
 var minImpact int
 var minConfidence int
 var logger *zap.SugaredLogger
