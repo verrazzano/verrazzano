@@ -34,6 +34,14 @@ func DeploymentsAreReady(client clipkg.Client, namespacedNames []types.Namespace
 			return false, fmt.Errorf("waiting for deployment %s replicas to be %v, current available replicas is %v", namespacedName,
 				expectedReplicas, deployment.Status.AvailableReplicas)
 		}
+		if deployment.Status.ReadyReplicas < expectedReplicas {
+			return false, fmt.Errorf("waiting for deployment %s replicas to be %v, current ready replicas is %v", namespacedName,
+				expectedReplicas, deployment.Status.ReadyReplicas)
+		}
+		if deployment.Status.UnavailableReplicas != 0 {
+			return false, fmt.Errorf("waiting for deployment %s replicas to be %v, current unavailable replicas is %v", namespacedName,
+				expectedReplicas, deployment.Status.UnavailableReplicas)
+		}
 		ready, err := podsReadyDeployment(client, namespacedName, deployment.Spec.Selector, expectedReplicas)
 		if !ready {
 			return false, err
