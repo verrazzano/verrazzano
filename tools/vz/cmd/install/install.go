@@ -134,7 +134,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			if retry == 5 {
 				return fmt.Errorf("Failed to create the verrazzano install resource: %s", err.Error())
 			}
-			retry += 1
+			retry++
 			fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Retrying after failing to create the verrazzano install resource: %s\n", err.Error()))
 			continue
 		}
