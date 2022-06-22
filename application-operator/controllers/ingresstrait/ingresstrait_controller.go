@@ -86,6 +86,7 @@ const (
 var (
 	weblogicPortNames = []string{"tcp-cbt", "tcp-ldap", "tcp-iiop", "tcp-snmp", "tcp-default", "tls-ldaps",
 		"tls-default", "tls-cbts", "tls-iiops", "tcp-internal-t3", "internal-t3"}
+	hostNameInTrait = map[string]string{}
 )
 
 // Reconciler is used to reconcile an IngressTrait object
@@ -235,6 +236,11 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 
 	// Create a list of unique hostnames across all rules in the trait
 	allHostsForTrait := r.coallateAllHostsForTrait(trait, status)
+	// Return if all hostnames have been covered by other traits
+	if len(allHostsForTrait) == 0 {
+		return &status, ctrl.Result{}, nil
+	}
+
 	// Generate the certificate and secret for all hosts in the trait rules
 	secretName := r.createOrUseGatewaySecret(ctx, trait, allHostsForTrait, &status, log)
 	if secretName != "" {
@@ -276,6 +282,8 @@ func (r *Reconciler) coallateAllHostsForTrait(trait *vzapi.IngressTrait, status 
 			status.Errors = append(status.Errors, err)
 		}
 	}
+	// Remove hostnames that have already been mapped to another trait
+	allHosts = r.sanitizeHostNameForTrait(allHosts, trait.Name)
 	return allHosts
 }
 
@@ -1354,4 +1362,38 @@ func buildDomainNameForWildcard(cli client.Reader, trait *vzapi.IngressTrait, su
 	}
 	domain := IP + "." + suffix
 	return domain, nil
+}
+
+// sanitizeHostNameForTrait removes hosts that are already listed in other traits
+// and cleans up stale hostname entries
+func (r *Reconciler) sanitizeHostNameForTrait(hosts []string, traitName string) []string {
+	// populate the new slice with hostname entries that are either new
+	// or were already listed under this trait
+	newHosts := []string{}
+	for _, host := range hosts {
+		_, ok := hostNameInTrait[host]
+		if !ok || hostNameInTrait[host] == traitName {
+			newHosts = append(newHosts, host)
+			hostNameInTrait[host] = traitName
+		}
+	}
+
+	// delete orphaned hostnames from the map
+	for host, trait := range hostNameInTrait {
+		if trait != traitName {
+			continue
+		}
+		hostPresent := false
+		for _, newHost := range newHosts {
+			if newHost == host {
+				hostPresent = true
+				break
+			}
+		}
+		if !hostPresent {
+			delete(hostNameInTrait, host)
+		}
+	}
+
+	return newHosts
 }
