@@ -47,26 +47,23 @@ func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	if err != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", err.Error())
 	}
-	reportFormat, err := GetLogFormat(cmd)
-	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", err.Error())
-	}
+	reportFormat := GetLogFormat(cmd)
 
 	return analysis.AnalysisMain(vzHelper, directory, reportFileName, reportFormat.String())
 }
 
 func validateReportFormat(cmd *cobra.Command) error {
-	reportFormatValue, _ := GetLogFormat(cmd)
+	reportFormatValue := GetLogFormat(cmd)
 	if reportFormatValue == "simple" {
 		return nil
 	}
 	return fmt.Errorf("unsupported output format: %s, only supported type is \"simple\"", reportFormatValue)
 }
 
-func GetLogFormat(cmd *cobra.Command) (cmdhelpers.LogFormat, error) {
+func GetLogFormat(cmd *cobra.Command) cmdhelpers.LogFormat {
 	logFormat := cmd.PersistentFlags().Lookup(constants.ReportFormatFlagName)
 	if logFormat == nil {
-		return cmdhelpers.LogFormatSimple, nil
+		return cmdhelpers.LogFormatSimple
 	}
-	return cmdhelpers.LogFormat(logFormat.Value.String()), nil
+	return cmdhelpers.LogFormat(logFormat.Value.String())
 }

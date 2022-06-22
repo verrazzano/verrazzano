@@ -60,7 +60,6 @@ func Analyze(logger *zap.SugaredLogger, analyzerType string, rootDirectory strin
 	// Call the analyzer for the type specified
 	analyzerFunc, ok := analyzerTypeFunctions[analyzerType]
 	if !ok {
-		//printUsage()
 		return fmt.Errorf("Unknown analyzer type supplied: %s", analyzerType)
 	}
 	err = analyzerFunc(logger, rootDirectory)

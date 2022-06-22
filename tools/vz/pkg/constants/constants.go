@@ -67,5 +67,5 @@ const (
 
 	ReportFormatFlagName  = "report-format"
 	ReportFormatFlagValue = "simple"
-	ReportFormatFlagUsage = "The format of the report output. Valid output formats is \"simple\""
+	ReportFormatFlagUsage = "The format of the report output. Valid output format is \"simple\""
 )

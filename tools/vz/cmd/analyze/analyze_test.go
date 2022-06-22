@@ -24,7 +24,7 @@ func TestAnalyzeCommandDefault(t *testing.T) {
 	cmd := NewCmdAnalyze(rc)
 	assert.NotNil(t, cmd)
 	err := cmd.Execute()
-	assert.Contains(t, err.Error(), "\"capture-dir\" not set")
+	assert.Contains(t, err.Error(), "required flag(s) \"capture-dir\" not set")
 }
 
 func TestAnalyzeCommandValidCapturedDir(t *testing.T) {
@@ -79,17 +79,6 @@ func TestAnalyzeCommandReportFileOutputSuccess(t *testing.T) {
 	assert.FileExists(t, "TestAnalyzeCommandReportFileOutput")
 	os.Remove("TestAnalyzeCommandReportFileOutput")
 	assert.NoFileExists(t, "TestAnalyzeCommandReportFileOutput")
-}
-
-func TestAnalyzeCommandCapturedDirRequired(t *testing.T) {
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	cmd := NewCmdAnalyze(rc)
-	assert.NotNil(t, cmd)
-	err := cmd.Execute()
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "required flag(s)")
 }
 
 func TestAnalyzeCommandCapturedDirInvalid(t *testing.T) {
