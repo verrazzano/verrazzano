@@ -13,9 +13,6 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// pod label used to identify the controllerRevision resource for daemonsets and statefulsets
-const controllerRevisionHashLabel = "controller-revision-hash"
-
 // pod label used to identify the replicaset resource for deployments
 const podTemplateHashLabel = "pod-template-hash"
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package k8sutil
@@ -37,20 +37,6 @@ func DeploymentsAreReady(client clipkg.Client, namespacedNames []types.Namespace
 		ready, err := podsReadyDeployment(client, namespacedName, deployment.Spec.Selector, expectedReplicas)
 		if !ready {
 			return false, err
-		}
-	}
-	return true, nil
-}
-
-// DoDeploymentsExist checks if the named deployments exist
-func DoDeploymentsExist(client clipkg.Client, namespacedNames []types.NamespacedName, _ int32, prefix string) (bool, error) {
-	for _, namespacedName := range namespacedNames {
-		deployment := appsv1.Deployment{}
-		if err := client.Get(context.TODO(), namespacedName, &deployment); err != nil {
-			if errors.IsNotFound(err) {
-				return false, fmt.Errorf("%s is waiting for deployment %v to exist", prefix, namespacedName)
-			}
-			return false, fmt.Errorf("%s failed getting deployment %v: %v", prefix, namespacedName, err)
 		}
 	}
 	return true, nil
