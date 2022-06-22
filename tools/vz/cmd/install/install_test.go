@@ -166,8 +166,8 @@ func TestInstallCmdDefaultNoVPO(t *testing.T) {
 	err := cmd.Execute()
 	cmdHelpers.ResetVpoWaitRetries()
 	assert.Error(t, err)
-	assert.EqualError(t, err, "Waiting for verrazzano-platform-operator, pod was not found in namespace verrazzano-install")
-	assert.Equal(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator, pod was not found in namespace verrazzano-install\n")
+	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
+	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
 }
 
 // TestInstallCmdDefaultMultipleVPO

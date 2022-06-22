@@ -123,7 +123,7 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 	seconds := 0
 	retryCount := 0
 	for {
-		ready, err := clik8sutil.DeploymentsAreReady(client, deployments, 1, "")
+		ready, err := clik8sutil.DeploymentsAreReady(client, deployments, 1)
 		if ready {
 			break
 		}

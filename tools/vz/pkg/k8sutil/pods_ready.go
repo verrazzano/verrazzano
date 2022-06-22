@@ -40,19 +40,19 @@ func getPodsList(client clipkg.Client, namespacedName types.NamespacedName, sele
 
 // ensurePodsAreReady makes sure pods using the latest workload revision are ready.
 // A list of pods using the latest revision are passed to this function.
-func ensurePodsAreReady(podsToCheck []corev1.Pod, expectedPods int32, prefix string) (int32, bool, error) {
+func ensurePodsAreReady(podsToCheck []corev1.Pod, expectedPods int32) (int32, bool, error) {
 	var podsReady int32 = 0
 	for _, pod := range podsToCheck {
 		// Check that init containers are ready
 		for _, initContainerStatus := range pod.Status.InitContainerStatuses {
 			if !initContainerStatus.Ready {
-				return 0, false, fmt.Errorf("%s is waiting for init container of pod %s to be ready", prefix, pod.Name)
+				return 0, false, fmt.Errorf("waiting for init container of pod %s to be ready", pod.Name)
 			}
 		}
 		// Check that containers are ready
 		for _, containerStatus := range pod.Status.ContainerStatuses {
 			if !containerStatus.Ready {
-				return 0, false, fmt.Errorf("%s is waiting for container of pod %s to be ready", prefix, pod.Name)
+				return 0, false, fmt.Errorf("waiting for container of pod %s to be ready", pod.Name)
 			}
 		}
 

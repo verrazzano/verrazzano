@@ -17,24 +17,24 @@ import (
 )
 
 // DeploymentsAreReady check that the named deployments have the minimum number of specified replicas ready and available
-func DeploymentsAreReady(client clipkg.Client, namespacedNames []types.NamespacedName, expectedReplicas int32, prefix string) (bool, error) {
+func DeploymentsAreReady(client clipkg.Client, namespacedNames []types.NamespacedName, expectedReplicas int32) (bool, error) {
 	for _, namespacedName := range namespacedNames {
 		deployment := appsv1.Deployment{}
 		if err := client.Get(context.TODO(), namespacedName, &deployment); err != nil {
 			if errors.IsNotFound(err) {
-				return false, fmt.Errorf("%s is waiting for deployment %v to exist", prefix, namespacedName)
+				return false, fmt.Errorf("waiting for deployment %v to exist", namespacedName)
 			}
-			return false, fmt.Errorf("%s failed getting deployment %v: %v", prefix, namespacedName, err)
+			return false, fmt.Errorf("failed getting deployment %v: %v", namespacedName, err)
 		}
 		if deployment.Status.UpdatedReplicas < expectedReplicas {
-			return false, fmt.Errorf("%s is waiting for deployment %s replicas to be %v. Current updated replicas is %v", prefix, namespacedName,
+			return false, fmt.Errorf("waiting for deployment %s replicas to be %v. Current updated replicas is %v", namespacedName,
 				expectedReplicas, deployment.Status.UpdatedReplicas)
 		}
 		if deployment.Status.AvailableReplicas < expectedReplicas {
-			return false, fmt.Errorf("%s is waiting for deployment %s replicas to be %v. Current available replicas is %v", prefix, namespacedName,
+			return false, fmt.Errorf("waiting for deployment %s replicas to be %v. Current available replicas is %v", namespacedName,
 				expectedReplicas, deployment.Status.AvailableReplicas)
 		}
-		ready, err := podsReadyDeployment(client, namespacedName, deployment.Spec.Selector, expectedReplicas, prefix)
+		ready, err := podsReadyDeployment(client, namespacedName, deployment.Spec.Selector, expectedReplicas)
 		if !ready {
 			return false, err
 		}
@@ -58,7 +58,7 @@ func DoDeploymentsExist(client clipkg.Client, namespacedNames []types.Namespaced
 
 // podsReadyDeployment checks for an expected number of pods to be using the latest replicaset revision and are
 // running and ready
-func podsReadyDeployment(client clipkg.Client, namespacedName types.NamespacedName, selector *metav1.LabelSelector, expectedReplicas int32, prefix string) (bool, error) {
+func podsReadyDeployment(client clipkg.Client, namespacedName types.NamespacedName, selector *metav1.LabelSelector, expectedReplicas int32) (bool, error) {
 	// Get a list of pods for a given namespace and labels selector
 	pods, err := getPodsList(client, namespacedName, selector)
 	if err != nil {
@@ -111,13 +111,13 @@ func podsReadyDeployment(client clipkg.Client, namespacedName types.NamespacedNa
 	}
 
 	// Make sure pods using the latest replicaset revision are ready.
-	podsReady, success, err := ensurePodsAreReady(savedPods, expectedReplicas, prefix)
+	podsReady, success, err := ensurePodsAreReady(savedPods, expectedReplicas)
 	if !success {
 		return false, err
 	}
 
 	if podsReady < expectedReplicas {
-		return false, fmt.Errorf("%s is waiting for deployment %s pods to be %v. Current available pods are %v", prefix, namespacedName,
+		return false, fmt.Errorf("waiting for deployment %s pods to be %v. Current available pods are %v", namespacedName,
 			expectedReplicas, podsReady)
 	}
 
