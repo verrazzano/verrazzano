@@ -135,6 +135,70 @@ func TestDeploymentsContainerNotReady(t *testing.T) {
 	assert.False(t, ready)
 }
 
+// TestDeploymentsContainerNotStarted tests a deployment started status check
+// GIVEN a call validate DeploymentsReady
+// WHEN the target Deployment object has a minimum of number of containers started
+// THEN false is returned
+func TestDeploymentsContainerNotStarted(t *testing.T) {
+	started := false
+	selector := &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"app": "foo",
+		},
+	}
+	namespacedName := []types.NamespacedName{
+		{
+			Name:      "foo",
+			Namespace: "bar",
+		},
+	}
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "bar",
+				Name:      "foo",
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: selector,
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "bar",
+				Name:      "foo-95d8c5d96-m6mbr",
+				Labels: map[string]string{
+					podTemplateHashLabel: "95d8c5d96",
+					"app":                "foo",
+				},
+			},
+			Status: corev1.PodStatus{
+				ContainerStatuses: []corev1.ContainerStatus{
+					{
+						Ready:   true,
+						Started: &started,
+					},
+				},
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   "bar",
+				Name:        "foo-95d8c5d96",
+				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
+			},
+		},
+	)
+	ready, err := DeploymentsAreReady(client, namespacedName, 1)
+	assert.Error(t, err)
+	assert.EqualError(t, err, "waiting for container of pod foo-95d8c5d96-m6mbr to be started")
+	assert.False(t, ready)
+}
+
 // TestDeploymentsInitContainerNotReady tests a deployment ready status check
 // GIVEN a call validate DeploymentsReady
 // WHEN the target Deployment object has a minimum of number of init containers ready
@@ -194,6 +258,70 @@ func TestDeploymentsInitContainerNotReady(t *testing.T) {
 	ready, err := DeploymentsAreReady(client, namespacedName, 1)
 	assert.Error(t, err)
 	assert.EqualError(t, err, "waiting for init container of pod foo-95d8c5d96-m6mbr to be ready")
+	assert.False(t, ready)
+}
+
+// TestDeploymentsInitContainerNotStarted tests a deployment started status check
+// GIVEN a call validate DeploymentsReady
+// WHEN the target Deployment object has a minimum of number of init containers started
+// THEN false is returned
+func TestDeploymentsInitContainerNotStarted(t *testing.T) {
+	started := false
+	selector := &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"app": "foo",
+		},
+	}
+	namespacedName := []types.NamespacedName{
+		{
+			Name:      "foo",
+			Namespace: "bar",
+		},
+	}
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "bar",
+				Name:      "foo",
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: selector,
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "bar",
+				Name:      "foo-95d8c5d96-m6mbr",
+				Labels: map[string]string{
+					podTemplateHashLabel: "95d8c5d96",
+					"app":                "foo",
+				},
+			},
+			Status: corev1.PodStatus{
+				InitContainerStatuses: []corev1.ContainerStatus{
+					{
+						Ready:   true,
+						Started: &started,
+					},
+				},
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   "bar",
+				Name:        "foo-95d8c5d96",
+				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
+			},
+		},
+	)
+	ready, err := DeploymentsAreReady(client, namespacedName, 1)
+	assert.Error(t, err)
+	assert.EqualError(t, err, "waiting for init container of pod foo-95d8c5d96-m6mbr to be started")
 	assert.False(t, ready)
 }
 
