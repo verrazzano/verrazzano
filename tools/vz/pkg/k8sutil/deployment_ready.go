@@ -34,7 +34,7 @@ func DeploymentsAreReady(client clipkg.Client, namespacedNames []types.Namespace
 			}
 			if deploymentCondition.Type == appsv1.DeploymentAvailable {
 				if deploymentCondition.Status == corev1.ConditionTrue {
-					deploymentAvailable = true
+					return true, nil
 				}
 			}
 		}
