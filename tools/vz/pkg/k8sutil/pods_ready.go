@@ -40,16 +40,28 @@ func getPodsList(client clipkg.Client, namespacedName types.NamespacedName, sele
 func ensurePodsAreReady(podsToCheck []corev1.Pod, expectedPods int32) (int32, bool, error) {
 	var podsReady int32 = 0
 	for _, pod := range podsToCheck {
-		// Check that init containers are ready
 		for _, initContainerStatus := range pod.Status.InitContainerStatuses {
+			// Check that init containers are ready
 			if !initContainerStatus.Ready {
 				return 0, false, fmt.Errorf("waiting for init container of pod %s to be ready", pod.Name)
 			}
+			// Check that the state is started
+			if initContainerStatus.Started != nil {
+				if !*initContainerStatus.Started {
+					return 0, false, fmt.Errorf("waiting for init container of pod %s to be started", pod.Name)
+				}
+			}
 		}
-		// Check that containers are ready
 		for _, containerStatus := range pod.Status.ContainerStatuses {
+			// Check that containers are ready
 			if !containerStatus.Ready {
 				return 0, false, fmt.Errorf("waiting for container of pod %s to be ready", pod.Name)
+			}
+			// Check that the state is started
+			if containerStatus.Started != nil {
+				if !*containerStatus.Started {
+					return 0, false, fmt.Errorf("waiting for container of pod %s to be started", pod.Name)
+				}
 			}
 		}
 

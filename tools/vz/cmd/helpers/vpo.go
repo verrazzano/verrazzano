@@ -32,7 +32,7 @@ import (
 )
 
 // Number of retries after waiting a second for VPO to be ready
-const vpoDefaultWaitRetries = 60
+const vpoDefaultWaitRetries = 120
 
 var vpoWaitRetries = vpoDefaultWaitRetries
 

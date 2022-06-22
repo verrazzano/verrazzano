@@ -27,11 +27,11 @@ func DeploymentsAreReady(client clipkg.Client, namespacedNames []types.Namespace
 			return false, fmt.Errorf("failed getting deployment %v: %v", namespacedName, err)
 		}
 		if deployment.Status.UpdatedReplicas < expectedReplicas {
-			return false, fmt.Errorf("waiting for deployment %s replicas to be %v. Current updated replicas is %v", namespacedName,
+			return false, fmt.Errorf("waiting for deployment %s replicas to be %v, current updated replicas is %v", namespacedName,
 				expectedReplicas, deployment.Status.UpdatedReplicas)
 		}
 		if deployment.Status.AvailableReplicas < expectedReplicas {
-			return false, fmt.Errorf("waiting for deployment %s replicas to be %v. Current available replicas is %v", namespacedName,
+			return false, fmt.Errorf("waiting for deployment %s replicas to be %v, current available replicas is %v", namespacedName,
 				expectedReplicas, deployment.Status.AvailableReplicas)
 		}
 		ready, err := podsReadyDeployment(client, namespacedName, deployment.Spec.Selector, expectedReplicas)
@@ -56,7 +56,7 @@ func podsReadyDeployment(client clipkg.Client, namespacedName types.NamespacedNa
 
 	// If no pods found log a progress message and return
 	if len(pods.Items) == 0 {
-		return true, fmt.Errorf("Found no pods with matching labels selector %v for namespace %s", selector, namespacedName.Namespace)
+		return true, fmt.Errorf("no pods found with matching labels selector %v for namespace %s", selector, namespacedName.Namespace)
 	}
 
 	// Loop through pods identifying pods that are using the latest replicaset revision
@@ -66,7 +66,7 @@ func podsReadyDeployment(client clipkg.Client, namespacedName types.NamespacedNa
 	for _, pod := range pods.Items {
 		// Log error and return if the pod-template-hash label is not found.  This should never happen.
 		if _, ok := pod.Labels[podTemplateHashLabel]; !ok {
-			return false, fmt.Errorf("Failed to find pod label [pod-template-hash] for pod %s/%s", pod.Namespace, pod.Name)
+			return false, fmt.Errorf("failed to find label [pod-template-hash] for pod %s/%s", pod.Namespace, pod.Name)
 		}
 
 		if pod.Labels[podTemplateHashLabel] == savedPodTemplateHash {
@@ -84,7 +84,7 @@ func podsReadyDeployment(client clipkg.Client, namespacedName types.NamespacedNa
 
 		// Log error and return if the deployment.kubernetes.io/revision annotation is not found.  This should never happen.
 		if _, ok := rs.Annotations[deploymentRevisionAnnotation]; !ok {
-			return false, fmt.Errorf("Failed to find pod annotation [deployment.kubernetes.io/revision] for pod %s/%s", pod.Namespace, pod.Name)
+			return false, fmt.Errorf("failed to find annotation [deployment.kubernetes.io/revision] for pod %s/%s", pod.Namespace, pod.Name)
 		}
 
 		revision, _ := strconv.Atoi(rs.Annotations[deploymentRevisionAnnotation])
@@ -103,7 +103,7 @@ func podsReadyDeployment(client clipkg.Client, namespacedName types.NamespacedNa
 	}
 
 	if podsReady < expectedReplicas {
-		return false, fmt.Errorf("waiting for deployment %s pods to be %v. Current available pods are %v", namespacedName,
+		return false, fmt.Errorf("waiting for deployment %s pods to be %v, current available pods are %v", namespacedName,
 			expectedReplicas, podsReady)
 	}
 
