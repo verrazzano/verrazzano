@@ -15,7 +15,6 @@ import (
 func TestPopulatePodMonitor(t *testing.T) {
 	trueVal := true
 	falseVal := false
-	testNamespace := "test-namespace"
 
 	tests := []struct {
 		name        string
@@ -55,7 +54,7 @@ func TestPopulatePodMonitor(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			podMonitor := &promoperapi.PodMonitor{}
-			err := PopulatePodMonitor(tt.info, podMonitor, testNamespace, vzlog.DefaultLogger())
+			err := PopulatePodMonitor(tt.info, podMonitor, vzlog.DefaultLogger())
 			if tt.expectError {
 				asserts.Error(t, err)
 			} else {
