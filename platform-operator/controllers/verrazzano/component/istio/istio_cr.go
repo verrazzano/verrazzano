@@ -13,8 +13,8 @@ import (
 
 	"sigs.k8s.io/yaml"
 
+	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vzyaml "github.com/verrazzano/verrazzano/platform-operator/internal/yaml"
 )
 
 const (
