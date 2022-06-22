@@ -17,7 +17,7 @@ import (
 )
 
 // DeploymentsAreReady check that the named deployments have the minimum number of specified replicas ready and available
-func DeploymentsAreReady(client clipkg.Client, namespacedNames []types.NamespacedName, expectedReplicas int32) (bool, error) {
+func DeploymentsAreReady(client clipkg.Client, namespacedNames []types.NamespacedName, expectedReplicas int32, lastTransitionTime metav1.Time) (bool, error) {
 	for _, namespacedName := range namespacedNames {
 		deployment := appsv1.Deployment{}
 		if err := client.Get(context.TODO(), namespacedName, &deployment); err != nil {
@@ -25,6 +25,21 @@ func DeploymentsAreReady(client clipkg.Client, namespacedNames []types.Namespace
 				return false, fmt.Errorf("waiting for deployment %v to exist", namespacedName)
 			}
 			return false, fmt.Errorf("failed getting deployment %v: %v", namespacedName, err)
+		}
+		// Check the deployment condition status
+		deploymentAvailable := false
+		for _, deploymentCondition := range deployment.Status.Conditions {
+			if lastTransitionTime.After(deploymentCondition.LastTransitionTime.Time) {
+				continue
+			}
+			if deploymentCondition.Type == appsv1.DeploymentAvailable {
+				if deploymentCondition.Status == corev1.ConditionTrue {
+					deploymentAvailable = true
+				}
+			}
+		}
+		if !deploymentAvailable {
+			return false, fmt.Errorf("waiting for deployment %s condition to be %s\n", namespacedName, appsv1.DeploymentAvailable)
 		}
 		if deployment.Status.UpdatedReplicas < expectedReplicas {
 			return false, fmt.Errorf("waiting for deployment %s replicas to be %v, current updated replicas is %v", namespacedName,

@@ -105,7 +105,7 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 }
 
 // WaitForPlatformOperator waits for the verrazzano-platform-operator to be ready
-func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, condType vzapi.ConditionType) (string, error) {
+func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, condType vzapi.ConditionType, lastTransitionTime metav1.Time) (string, error) {
 	// Find the verrazzano-platform-operator using the app label selector
 	appLabel, _ := labels.NewRequirement("app", selection.Equals, []string{constants.VerrazzanoPlatformOperator})
 	labelSelector := labels.NewSelector()
@@ -141,7 +141,7 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 	seconds := 0
 	retryCount := 0
 	for {
-		ready, err := clik8sutil.DeploymentsAreReady(client, deployments, 1)
+		ready, err := clik8sutil.DeploymentsAreReady(client, deployments, 1, lastTransitionTime)
 		if ready {
 			break
 		}
