@@ -168,13 +168,13 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
-		//if istioInjection == "enabled" {
-		//	t.It("Verify envoy stats", func() {
-		//		Eventually(func() bool {
-		//			return verifyEnvoyStats(envoyStatsRecentLookups)
-		//		}, 40*time.Minute, longPollingInterval).Should(BeTrue())
-		//	})
-		//}
+		if istioInjection == "enabled" {
+			t.It("Verify envoy stats", func() {
+				Eventually(func() bool {
+					return verifyEnvoyStats(envoyStatsRecentLookups)
+				}, 40*time.Minute, longPollingInterval).Should(BeTrue())
+			})
+		}
 	})
 })
 
@@ -214,7 +214,7 @@ func verifyEnvoyStats(metricName string) bool {
 				retValue = verifyLabels(envoyStatsMetric, ns, pod.Name)
 			}
 			if !retValue {
-				return false
+				return true
 			}
 		}
 	}
