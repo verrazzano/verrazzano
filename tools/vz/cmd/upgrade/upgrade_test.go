@@ -249,7 +249,9 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 	assert.NotNil(t, cmd)
 
 	// Run upgrade command
+	cmdHelpers.SetVpoWaitRetries(1) // override for unit testing
 	err := cmd.Execute()
+	cmdHelpers.ResetVpoWaitRetries()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator pod in namespace verrazzano-install: failed to get replicaset")
 	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator pod in namespace verrazzano-install: failed to get replicaset")
