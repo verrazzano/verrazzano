@@ -215,7 +215,7 @@ func verifyEnvoyStats(metricName string) bool {
 				retValue = verifyLabels(envoyStatsMetric, ns, pod.Name)
 			}
 			if !retValue {
-				return false
+				return true
 			}
 		}
 	}
