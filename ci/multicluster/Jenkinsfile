@@ -483,6 +483,11 @@ pipeline {
                         runGinkgoRandomize('verify-install')
                     }
                 }
+                stage('verify-rancher') {
+                    steps {
+                        runGinkgoRandomizeAdmin('verify-rancher')
+                    }
+                }
                 stage ('multicluster/verify-install') {
                     steps {
                         runGinkgoRandomize('multicluster/verify-install')
