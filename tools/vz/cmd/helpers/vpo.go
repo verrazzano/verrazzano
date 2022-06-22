@@ -127,12 +127,12 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 		for {
 			select {
 			case <-feedbackChan:
+				fmt.Fprint(outputStream, "\n")
 				return
 			default:
 				time.Sleep(constants.VerrazzanoPlatformOperatorWait * time.Second)
 				seconds += constants.VerrazzanoPlatformOperatorWait
 				fmt.Fprintf(outputStream, fmt.Sprintf("\rWaiting for %s to be ready before starting %s - %d seconds", constants.VerrazzanoPlatformOperator, getOperationString(condType), seconds))
-
 			}
 		}
 	}(vzHelper.GetOutputStream())
@@ -148,11 +148,13 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 
 		retryCount++
 		if retryCount > vpoWaitRetries {
+			feedbackChan <- true
 			return "", fmt.Errorf("Waiting for %s pod in namespace %s: %v", constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace, err)
 		}
 		time.Sleep(constants.VerrazzanoPlatformOperatorWait * time.Second)
 		seconds += constants.VerrazzanoPlatformOperatorWait
 	}
+	feedbackChan <- true
 
 	// Return the platform operator pod name
 	err := client.List(
