@@ -981,6 +981,9 @@ def upgradeVerrazzano() {
             VERRAZZANO_DEV_VERSION = VERSION_FOR_UPGRADE
         }
 
+        echo "Downloading target upgrade operator yaml"
+        getPlatformOperatorForRelease()
+
         def verrazzanoUpgradeStages = createClusterExecutionsMap()
 
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
@@ -1001,8 +1004,6 @@ def upgradeVerrazzano() {
 def upgradeVerrazzanoOnCluster(count, verrazzanoDevVersion) {
     // For parallel execution, wrap this in a Groovy enclosure {}
     return {
-        echo "Downloading target upgrade operator yaml"
-        getPlatformOperatorForRelease()
         script {
             def kubeClusterConfig="${KUBECONFIG_DIR}/${count}/kube_config"
             def upgradeOperatorFile = "${KUBECONFIG_DIR}/${count}/upgrade-operator.yaml"
