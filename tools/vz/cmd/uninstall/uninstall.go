@@ -113,7 +113,7 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	if err != nil {
 		return fmt.Errorf("Failed to uninstall in Verrazzano resource: %s", err.Error())
 	}
-	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Uninstalling Verrazzano\n"))
+	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), "Uninstalling Verrazzano\n")
 
 	uninstallPodName, err := getUninstallPodName(client, vzHelper)
 	if err != nil {
@@ -238,17 +238,27 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 
 	// Delete verrazzano-install namespace
 	err = deleteNamespace(client, constants.VerrazzanoInstall)
-
-	// Delete other verrazzano resources
-	err = deleteWebhookConfiguration(client, constants.VerrazzanoPlatformOperator)
-	err = deleteClusterRoleBinding(client, constants.VerrazzanoPlatformOperator)
-	err = deleteClusterRole(client, constants.VerrazzanoManagedCluster)
-
 	if err != nil {
 		return err
 	}
-	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Successfully uninstalled Verrazzano\n"))
 
+	// Delete other verrazzano resources
+	err = deleteWebhookConfiguration(client, constants.VerrazzanoPlatformOperator)
+	if err != nil {
+		return err
+	}
+
+	err = deleteClusterRoleBinding(client, constants.VerrazzanoPlatformOperator)
+	if err != nil {
+		return err
+	}
+
+	err = deleteClusterRole(client, constants.VerrazzanoManagedCluster)
+	if err != nil {
+		return err
+	}
+
+	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), "Successfully uninstalled Verrazzano\n")
 	return nil
 }
 
