@@ -31,7 +31,6 @@ import (
 //  WHEN I call cmd.Execute for install
 //  THEN the CLI install command is successful
 func TestInstallCmdDefaultNoWait(t *testing.T) {
-
 	vpo := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
