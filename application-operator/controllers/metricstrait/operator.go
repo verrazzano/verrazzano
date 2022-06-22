@@ -5,26 +5,26 @@ package metricstrait
 
 import (
 	"context"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // doOperatorReconcile reconciles a metrics trait to work with the Prometheus Operator
-// This reconciler will create a ServiceMonitor for each metrics trait application to hook up metrics with Prometheus
+// This reconciler will create a PodMonitor for each metrics trait application to hook up metrics with Prometheus
 func (r *Reconciler) doOperatorReconcile(ctx context.Context, trait *vzapi.MetricsTrait, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
-	log.Debugf("Entering the Service Monitor reconcile process for trait: %s", trait.Name)
+	log.Debugf("Entering the Pod Monitor reconcile process for trait: %s", trait.Name)
 	if trait.DeletionTimestamp.IsZero() {
 		return r.reconcileOperatorTraitCreateOrUpdate(ctx, trait, log)
 	}
@@ -32,7 +32,7 @@ func (r *Reconciler) doOperatorReconcile(ctx context.Context, trait *vzapi.Metri
 }
 
 func (r *Reconciler) reconcileOperatorTraitCreateOrUpdate(ctx context.Context, trait *vzapi.MetricsTrait, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
-	log.Debugf("Creating or Updating the Service Monitor from trait: %s", trait.Name)
+	log.Debugf("Creating or Updating the Pod Monitor from trait: %s", trait.Name)
 	var err error
 	// Add finalizer if required.
 	if err := r.addFinalizerIfRequired(ctx, trait, log); err != nil {
@@ -75,7 +75,7 @@ func (r *Reconciler) reconcileOperatorTraitCreateOrUpdate(ctx context.Context, t
 }
 
 func (r *Reconciler) reconcileOperatorTraitDelete(ctx context.Context, trait *vzapi.MetricsTrait, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
-	log.Debugf("Deleting the Service Monitor from trait: %s", trait.Name)
+	log.Debugf("Deleting the Pod Monitor from trait: %s", trait.Name)
 	status := r.deleteOrUpdateObsoleteResources(ctx, trait, &reconcileresults.ReconcileResults{}, log)
 	// Only remove the finalizer if all related resources were successfully updated.
 	if !status.ContainsErrors() {

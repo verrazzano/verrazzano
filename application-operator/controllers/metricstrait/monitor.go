@@ -5,9 +5,6 @@ package metricstrait
 
 import (
 	"context"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -16,7 +13,10 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/internal/metrics"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -83,10 +83,10 @@ func (r *Reconciler) updatePodMonitor(ctx context.Context, trait *vzapi.MetricsT
 		return metrics.PopulatePodMonitor(scrapeInfo, &podMonitor, log)
 	})
 	if err != nil {
-		return rel, controllerutil.OperationResultNone, log.ErrorfNewErr("Failed to create or update the service monitor for workload %s/%s: %v", workload.GetNamespace(), workload.GetName(), err)
+		return rel, controllerutil.OperationResultNone, log.ErrorfNewErr("Failed to create or update the pod monitor for workload %s/%s: %v", workload.GetNamespace(), workload.GetName(), err)
 	}
 
-	rel = vzapi.QualifiedResourceRelation{APIVersion: promoperapi.SchemeGroupVersion.String(), Kind: promoperapi.ServiceMonitorsKind, Namespace: podMonitor.Namespace, Name: podMonitor.Name, Role: scraperRole}
+	rel = vzapi.QualifiedResourceRelation{APIVersion: promoperapi.SchemeGroupVersion.String(), Kind: promoperapi.PodMonitorsKind, Namespace: podMonitor.Namespace, Name: podMonitor.Name, Role: scraperRole}
 	return rel, result, nil
 }
 
@@ -107,6 +107,7 @@ func (r *Reconciler) deletePodMonitor(ctx context.Context, rel vzapi.QualifiedRe
 
 	// It is the last trait if there is only one left since this one is being deleted
 	if len(metricsTraitList.Items) == 1 {
+		log.Debugf("Deleting the Istio certificate secret %s/%s", trait.GetNamespace(), constants.IstioTLSSecretName)
 		istioCertSecret := corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      constants.IstioTLSSecretName,
