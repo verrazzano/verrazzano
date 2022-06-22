@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	longPollingInterval = 20 * time.Second
-	longWaitTimeout     = 60 * time.Minute
+	longPollingInterval = 8 * time.Second
+	longWaitTimeout     = 10 * time.Minute
 
 	// Constants for sample metrics of system components validated by the test
 	ingressControllerSuccess       = "nginx_ingress_controller_success"
@@ -172,7 +172,7 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 			t.It("Verify envoy stats", func() {
 				Eventually(func() bool {
 					return verifyEnvoyStats(envoyStatsRecentLookups)
-				}, 40*time.Minute, longPollingInterval).Should(BeTrue())
+				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 			})
 		}
 	})
@@ -214,7 +214,7 @@ func verifyEnvoyStats(metricName string) bool {
 				retValue = verifyLabels(envoyStatsMetric, ns, pod.Name)
 			}
 			if !retValue {
-				return true
+				return false
 			}
 		}
 	}
