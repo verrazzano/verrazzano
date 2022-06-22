@@ -53,9 +53,10 @@ func TestUpgradeCmdDefaultNoWait(t *testing.T) {
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
 			UpdatedReplicas:   1,
+			ReadyReplicas:     1,
 		},
 	}
-	replicatSet := &appsv1.ReplicaSet{
+	replicaSet := &appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:   vzconstants.VerrazzanoInstallNamespace,
 			Name:        fmt.Sprintf("%s-56f78ffcfd", constants.VerrazzanoPlatformOperator),
@@ -70,7 +71,7 @@ func TestUpgradeCmdDefaultNoWait(t *testing.T) {
 		},
 	}
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment, replicatSet, vz).Build()
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment, replicaSet, vz).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -115,9 +116,10 @@ func TestUpgradeCmdDefaultTimeout(t *testing.T) {
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
 			UpdatedReplicas:   1,
+			ReadyReplicas:     1,
 		},
 	}
-	replicatSet := &appsv1.ReplicaSet{
+	replicaSet := &appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:   vzconstants.VerrazzanoInstallNamespace,
 			Name:        fmt.Sprintf("%s-56f78ffcfd", constants.VerrazzanoPlatformOperator),
@@ -132,7 +134,7 @@ func TestUpgradeCmdDefaultTimeout(t *testing.T) {
 		},
 	}
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment, replicatSet, vz).Build()
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment, replicaSet, vz).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -221,9 +223,10 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
 			UpdatedReplicas:   1,
+			ReadyReplicas:     1,
 		},
 	}
-	replicatSet := &appsv1.ReplicaSet{
+	replicaSet := &appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:   vzconstants.VerrazzanoInstallNamespace,
 			Name:        fmt.Sprintf("%s-56f78ffcfd", constants.VerrazzanoPlatformOperator),
@@ -238,7 +241,7 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 		},
 	}
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo1, vpo2, deployment, replicatSet, vz).Build()
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo1, vpo2, deployment, replicaSet, vz).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -285,9 +288,10 @@ func TestUpgradeCmdJsonLogFormat(t *testing.T) {
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
 			UpdatedReplicas:   1,
+			ReadyReplicas:     1,
 		},
 	}
-	replicatSet := &appsv1.ReplicaSet{
+	replicaSet := &appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:   vzconstants.VerrazzanoInstallNamespace,
 			Name:        fmt.Sprintf("%s-56f78ffcfd", constants.VerrazzanoPlatformOperator),
@@ -302,7 +306,7 @@ func TestUpgradeCmdJsonLogFormat(t *testing.T) {
 		},
 	}
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment, replicatSet, vz).Build()
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment, replicaSet, vz).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -348,9 +352,10 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
 			UpdatedReplicas:   1,
+			ReadyReplicas:     1,
 		},
 	}
-	replicatSet := &appsv1.ReplicaSet{
+	replicaSet := &appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:   vzconstants.VerrazzanoInstallNamespace,
 			Name:        fmt.Sprintf("%s-56f78ffcfd", constants.VerrazzanoPlatformOperator),
@@ -365,7 +370,7 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 		},
 	}
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment, replicatSet, vz).Build()
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment, replicaSet, vz).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
