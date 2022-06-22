@@ -5,6 +5,7 @@ package k8sutil
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
@@ -15,11 +16,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-// TestDeploymentsReady tests a deployment ready status check
+// TestDeploymentsReady tests a deployment ready check
 // GIVEN a call validate DeploymentsReady
-// WHEN the target Deployment object has a minimum of desired available replicas
+// WHEN the target Deployment object has an available condition of true
 // THEN true is returned
 func TestDeploymentsReady(t *testing.T) {
+	lastTransitionTime := metav1.Now()
 	namespacedName := []types.NamespacedName{
 		{
 			Name:      "foo",
@@ -33,303 +35,27 @@ func TestDeploymentsReady(t *testing.T) {
 				Name:      "foo",
 			},
 			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "bar",
-				Name:      "foo-95d8c5d96-m6mbr",
-				Labels: map[string]string{
-					podTemplateHashLabel: "95d8c5d96",
-					"app":                "foo",
-				},
-			},
-			Status: corev1.PodStatus{
-				InitContainerStatuses: []corev1.ContainerStatus{
+				Conditions: []appsv1.DeploymentCondition{
 					{
-						Ready: true,
+						Type:               appsv1.DeploymentAvailable,
+						Status:             corev1.ConditionTrue,
+						LastTransitionTime: metav1.NewTime(lastTransitionTime.Add(time.Second)),
 					},
 				},
-				ContainerStatuses: []corev1.ContainerStatus{
-					{
-						Ready: true,
-					},
-				},
-			},
-		},
-		&appsv1.ReplicaSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   "bar",
-				Name:        "foo-95d8c5d96",
-				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},
 	)
-	ready, err := DeploymentsAreReady(client, namespacedName, 1)
+	ready, err := DeploymentsAreReady(client, namespacedName, 1, lastTransitionTime)
 	assert.NoError(t, err)
 	assert.True(t, ready)
 }
 
-// TestDeploymentsContainerNotReady tests a deployment ready status check
+// TestDeploymentsNotReady tests a deployment ready check
 // GIVEN a call validate DeploymentsReady
-// WHEN the target Deployment object has a minimum of number of containers ready
+// WHEN the target Deployment object does not have an available condition of true
 // THEN false is returned
-func TestDeploymentsContainerNotReady(t *testing.T) {
-	selector := &metav1.LabelSelector{
-		MatchLabels: map[string]string{
-			"app": "foo",
-		},
-	}
-	namespacedName := []types.NamespacedName{
-		{
-			Name:      "foo",
-			Namespace: "bar",
-		},
-	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "bar",
-				Name:      "foo",
-			},
-			Spec: appsv1.DeploymentSpec{
-				Selector: selector,
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "bar",
-				Name:      "foo-95d8c5d96-m6mbr",
-				Labels: map[string]string{
-					podTemplateHashLabel: "95d8c5d96",
-					"app":                "foo",
-				},
-			},
-			Status: corev1.PodStatus{
-				ContainerStatuses: []corev1.ContainerStatus{
-					{
-						Ready: false,
-					},
-				},
-			},
-		},
-		&appsv1.ReplicaSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   "bar",
-				Name:        "foo-95d8c5d96",
-				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
-			},
-		},
-	)
-	ready, err := DeploymentsAreReady(client, namespacedName, 1)
-	assert.Error(t, err)
-	assert.EqualError(t, err, "waiting for container of pod foo-95d8c5d96-m6mbr to be ready")
-	assert.False(t, ready)
-}
-
-// TestDeploymentsContainerNotStarted tests a deployment started status check
-// GIVEN a call validate DeploymentsReady
-// WHEN the target Deployment object has a minimum of number of containers started
-// THEN false is returned
-func TestDeploymentsContainerNotStarted(t *testing.T) {
-	started := false
-	selector := &metav1.LabelSelector{
-		MatchLabels: map[string]string{
-			"app": "foo",
-		},
-	}
-	namespacedName := []types.NamespacedName{
-		{
-			Name:      "foo",
-			Namespace: "bar",
-		},
-	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "bar",
-				Name:      "foo",
-			},
-			Spec: appsv1.DeploymentSpec{
-				Selector: selector,
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "bar",
-				Name:      "foo-95d8c5d96-m6mbr",
-				Labels: map[string]string{
-					podTemplateHashLabel: "95d8c5d96",
-					"app":                "foo",
-				},
-			},
-			Status: corev1.PodStatus{
-				ContainerStatuses: []corev1.ContainerStatus{
-					{
-						Ready:   true,
-						Started: &started,
-					},
-				},
-			},
-		},
-		&appsv1.ReplicaSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   "bar",
-				Name:        "foo-95d8c5d96",
-				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
-			},
-		},
-	)
-	ready, err := DeploymentsAreReady(client, namespacedName, 1)
-	assert.Error(t, err)
-	assert.EqualError(t, err, "waiting for container of pod foo-95d8c5d96-m6mbr to be started")
-	assert.False(t, ready)
-}
-
-// TestDeploymentsInitContainerNotReady tests a deployment ready status check
-// GIVEN a call validate DeploymentsReady
-// WHEN the target Deployment object has a minimum of number of init containers ready
-// THEN false is returned
-func TestDeploymentsInitContainerNotReady(t *testing.T) {
-	selector := &metav1.LabelSelector{
-		MatchLabels: map[string]string{
-			"app": "foo",
-		},
-	}
-	namespacedName := []types.NamespacedName{
-		{
-			Name:      "foo",
-			Namespace: "bar",
-		},
-	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "bar",
-				Name:      "foo",
-			},
-			Spec: appsv1.DeploymentSpec{
-				Selector: selector,
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "bar",
-				Name:      "foo-95d8c5d96-m6mbr",
-				Labels: map[string]string{
-					podTemplateHashLabel: "95d8c5d96",
-					"app":                "foo",
-				},
-			},
-			Status: corev1.PodStatus{
-				InitContainerStatuses: []corev1.ContainerStatus{
-					{
-						Ready: false,
-					},
-				},
-			},
-		},
-		&appsv1.ReplicaSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   "bar",
-				Name:        "foo-95d8c5d96",
-				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
-			},
-		},
-	)
-	ready, err := DeploymentsAreReady(client, namespacedName, 1)
-	assert.Error(t, err)
-	assert.EqualError(t, err, "waiting for init container of pod foo-95d8c5d96-m6mbr to be ready")
-	assert.False(t, ready)
-}
-
-// TestDeploymentsInitContainerNotStarted tests a deployment started status check
-// GIVEN a call validate DeploymentsReady
-// WHEN the target Deployment object has a minimum of number of init containers started
-// THEN false is returned
-func TestDeploymentsInitContainerNotStarted(t *testing.T) {
-	started := false
-	selector := &metav1.LabelSelector{
-		MatchLabels: map[string]string{
-			"app": "foo",
-		},
-	}
-	namespacedName := []types.NamespacedName{
-		{
-			Name:      "foo",
-			Namespace: "bar",
-		},
-	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "bar",
-				Name:      "foo",
-			},
-			Spec: appsv1.DeploymentSpec{
-				Selector: selector,
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "bar",
-				Name:      "foo-95d8c5d96-m6mbr",
-				Labels: map[string]string{
-					podTemplateHashLabel: "95d8c5d96",
-					"app":                "foo",
-				},
-			},
-			Status: corev1.PodStatus{
-				InitContainerStatuses: []corev1.ContainerStatus{
-					{
-						Ready:   true,
-						Started: &started,
-					},
-				},
-			},
-		},
-		&appsv1.ReplicaSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   "bar",
-				Name:        "foo-95d8c5d96",
-				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
-			},
-		},
-	)
-	ready, err := DeploymentsAreReady(client, namespacedName, 1)
-	assert.Error(t, err)
-	assert.EqualError(t, err, "waiting for init container of pod foo-95d8c5d96-m6mbr to be started")
-	assert.False(t, ready)
-}
-
-// TestMultipleReplicasReady tests a deployment ready status check
-// GIVEN a call validate DeploymentsReady for more than one replica
-// WHEN the target Deployment object has met the minimum of desired available replicas > 1
-// THEN true is returned
-func TestMultipleReplicasReady(t *testing.T) {
+func TestDeploymentsNotReady(t *testing.T) {
+	lastTransitionTime := metav1.Now()
 	namespacedName := []types.NamespacedName{
 		{
 			Name:      "foo",
@@ -343,63 +69,29 @@ func TestMultipleReplicasReady(t *testing.T) {
 				Name:      "foo",
 			},
 			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 2,
-				Replicas:          2,
-				UpdatedReplicas:   2,
-			},
-		},
-		&corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "bar",
-				Name:      "foo-95d8c5d96-m6mbr",
-				Labels: map[string]string{
-					podTemplateHashLabel: "95d8c5d96",
-					"app":                "foo",
-				},
-			},
-			Status: corev1.PodStatus{
-				ContainerStatuses: []corev1.ContainerStatus{
+				Conditions: []appsv1.DeploymentCondition{
 					{
-						Ready: true,
+						Type:               appsv1.DeploymentAvailable,
+						Status:             corev1.ConditionFalse,
+						LastTransitionTime: metav1.NewTime(lastTransitionTime.Add(time.Second)),
 					},
 				},
-			},
-		},
-		&corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "bar",
-				Name:      "foo-95d8c5d96-l6r96",
-				Labels: map[string]string{
-					podTemplateHashLabel: "95d8c5d96",
-					"app":                "foo",
-				},
-			},
-			Status: corev1.PodStatus{
-				ContainerStatuses: []corev1.ContainerStatus{
-					{
-						Ready: true,
-					},
-				},
-			},
-		},
-		&appsv1.ReplicaSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   "bar",
-				Name:        "foo-95d8c5d96",
-				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},
 	)
-	ready, err := DeploymentsAreReady(client, namespacedName, 2)
-	assert.NoError(t, err)
-	assert.True(t, ready)
+	ready, err := DeploymentsAreReady(client, namespacedName, 1, lastTransitionTime)
+	assert.Error(t, err)
+	assert.EqualError(t, err, "waiting for deployment bar/foo condition to be Available")
+	assert.False(t, ready)
 }
 
-// TestMultipleReplicasReadyAboveThreshold tests a deployment ready status check
-// GIVEN a call validate DeploymentsReady for more than one replica
-// WHEN the target Deployment object has more than the minimum desired replicas available
-// THEN true is returned
-func TestMultipleReplicasReadyAboveThreshold(t *testing.T) {
+// TestDeploymentsNotReadyOldAvailable tests a deployment ready check
+// GIVEN a call validate DeploymentsReady
+// WHEN the target Deployment object has an older available condition of true
+// THEN false is returned
+func TestDeploymentsNotReadyOldAvailable(t *testing.T) {
+	oldTransitionTime := metav1.Now()
+	lastTransitionTime := metav1.NewTime(oldTransitionTime.Add(time.Second))
 	namespacedName := []types.NamespacedName{
 		{
 			Name:      "foo",
@@ -413,245 +105,18 @@ func TestMultipleReplicasReadyAboveThreshold(t *testing.T) {
 				Name:      "foo",
 			},
 			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 2,
-				Replicas:          2,
-				UpdatedReplicas:   2,
-			},
-		},
-		&corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "bar",
-				Name:      "foo-95d8c5d96-m6mbr",
-				Labels: map[string]string{
-					podTemplateHashLabel: "95d8c5d96",
-					"app":                "foo",
-				},
-			},
-			Status: corev1.PodStatus{
-				ContainerStatuses: []corev1.ContainerStatus{
+				Conditions: []appsv1.DeploymentCondition{
 					{
-						Ready: true,
-					},
-				},
-			},
-		},
-		&corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "bar",
-				Name:      "foo-95d8c5d96-l6r96",
-				Labels: map[string]string{
-					podTemplateHashLabel: "95d8c5d96",
-					"app":                "foo",
-				},
-			},
-			Status: corev1.PodStatus{
-				ContainerStatuses: []corev1.ContainerStatus{
-					{
-						Ready: true,
-					},
-				},
-			},
-		},
-		&appsv1.ReplicaSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   "bar",
-				Name:        "foo-95d8c5d96",
-				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
-			},
-		},
-	)
-	ready, err := DeploymentsAreReady(client, namespacedName, 1)
-	assert.NoError(t, err)
-	assert.True(t, ready)
-}
-
-// TestDeploymentsNoneAvailable tests a deployment ready status check
-// GIVEN a call validate DeploymentsReady
-// WHEN the target Deployment object does not have a minimum number of desired available replicas
-// THEN false is returned
-func TestDeploymentsNoneAvailable(t *testing.T) {
-	namespacedName := []types.NamespacedName{
-		{
-			Name:      "foo",
-			Namespace: "bar",
-		},
-	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "bar",
-			Name:      "foo",
-		},
-		Status: appsv1.DeploymentStatus{
-			AvailableReplicas: 0,
-			Replicas:          1,
-			UpdatedReplicas:   1,
-		},
-	})
-	ready, err := DeploymentsAreReady(client, namespacedName, 1)
-	assert.Error(t, err)
-	assert.EqualError(t, err, "waiting for deployment bar/foo replicas to be 1, current available replicas is 0")
-	assert.False(t, ready)
-}
-
-// TestDeploymentsNoneUpdated tests a deployment ready status check
-// GIVEN a call validate DeploymentsReady
-// WHEN the target Deployment object does not have a minimum number of desired updated replicas
-// THEN false is returned
-func TestDeploymentsNoneUpdated(t *testing.T) {
-	namespacedName := []types.NamespacedName{
-		{
-			Name:      "foo",
-			Namespace: "bar",
-		},
-	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "bar",
-			Name:      "foo",
-		},
-		Status: appsv1.DeploymentStatus{
-			AvailableReplicas: 0,
-			Replicas:          1,
-			UpdatedReplicas:   0,
-		},
-	})
-	ready, err := DeploymentsAreReady(client, namespacedName, 1)
-	assert.Error(t, err)
-	assert.EqualError(t, err, "waiting for deployment bar/foo replicas to be 1, current updated replicas is 0")
-	assert.False(t, ready)
-}
-
-// TestMultipleReplicasReadyBelowThreshold tests a deployment ready status check
-// GIVEN a call validate DeploymentsReady for more than one replica
-// WHEN the target Deployment object has less than the minimum desired replicas available
-// THEN false is returned
-func TestMultipleReplicasReadyBelowThreshold(t *testing.T) {
-	selector := &metav1.LabelSelector{
-		MatchLabels: map[string]string{
-			"app": "foo",
-		},
-	}
-	namespacedName := []types.NamespacedName{
-		{
-			Name:      "foo",
-			Namespace: "bar",
-		},
-	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "bar",
-				Name:      "foo",
-			},
-			Spec: appsv1.DeploymentSpec{
-				Selector: selector,
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 3,
-				Replicas:          3,
-				UpdatedReplicas:   3,
-			},
-		},
-		&corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "bar",
-				Name:      "foo-95d8c5d96-m6mbr",
-				Labels: map[string]string{
-					podTemplateHashLabel: "95d8c5d96",
-					"app":                "foo",
-				},
-			},
-			Status: corev1.PodStatus{
-				ContainerStatuses: []corev1.ContainerStatus{
-					{
-						Ready: true,
-					},
-				},
-			},
-		},
-		&appsv1.ReplicaSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   "bar",
-				Name:        "foo-95d8c5d96",
-				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
-			},
-		},
-	)
-	ready, err := DeploymentsAreReady(client, namespacedName, 3)
-	assert.Error(t, err)
-	assert.EqualError(t, err, "waiting for deployment bar/foo pods to be 3, current available pods are 1")
-	assert.False(t, ready)
-}
-
-// TestDeploymentsReadyDeploymentNotFound tests a deployment ready status check
-// GIVEN a call validate DeploymentsReady
-// WHEN the target Deployment object is not found
-// THEN false is returned
-func TestDeploymentsReadyDeploymentNotFound(t *testing.T) {
-	namespacedName := []types.NamespacedName{
-		{
-			Name:      "foo",
-			Namespace: "bar",
-		},
-	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	ready, err := DeploymentsAreReady(client, namespacedName, 1)
-	assert.Error(t, err)
-	assert.EqualError(t, err, "waiting for deployment bar/foo to exist")
-	assert.False(t, ready)
-}
-
-// TestDeploymentsReadyReplicaSetNotFound tests a deployment ready status check
-// GIVEN a call validate DeploymentsReady
-// WHEN the target ReplicaSet object is not found
-// THEN false is returned
-func TestDeploymentsReadyReplicaSetNotFound(t *testing.T) {
-	selector := &metav1.LabelSelector{
-		MatchLabels: map[string]string{
-			"app": "foo",
-		},
-	}
-	namespacedName := []types.NamespacedName{
-		{
-			Name:      "foo",
-			Namespace: "bar",
-		},
-	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "bar",
-				Name:      "foo",
-			},
-			Spec: appsv1.DeploymentSpec{
-				Selector: selector,
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "bar",
-				Name:      "foo-95d8c5d96-m6mbr",
-				Labels: map[string]string{
-					podTemplateHashLabel: "95d8c5d96",
-					"app":                "foo",
-				},
-			},
-			Status: corev1.PodStatus{
-				ContainerStatuses: []corev1.ContainerStatus{
-					{
-						Ready: true,
+						Type:               appsv1.DeploymentAvailable,
+						Status:             corev1.ConditionFalse,
+						LastTransitionTime: oldTransitionTime,
 					},
 				},
 			},
 		},
 	)
-	ready, err := DeploymentsAreReady(client, namespacedName, 1)
+	ready, err := DeploymentsAreReady(client, namespacedName, 1, lastTransitionTime)
 	assert.Error(t, err)
-	assert.EqualError(t, err, "failed to get replicaset bar/foo")
+	assert.EqualError(t, err, "waiting for deployment bar/foo condition to be Available")
 	assert.False(t, ready)
 }

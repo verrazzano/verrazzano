@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
@@ -51,21 +52,18 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 			},
 		},
 		Status: appsv1.DeploymentStatus{
-			AvailableReplicas: 1,
-			UpdatedReplicas:   1,
-			ReadyReplicas:     1,
-		},
-	}
-	replicaSet := &appsv1.ReplicaSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:   vzconstants.VerrazzanoInstallNamespace,
-			Name:        fmt.Sprintf("%s-56f78ffcfd", constants.VerrazzanoPlatformOperator),
-			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+			Conditions: []appsv1.DeploymentCondition{
+				{
+					Type:               appsv1.DeploymentAvailable,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: metav1.NewTime(time.Now().Add(time.Minute * 10)),
+				},
+			},
 		},
 	}
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment, replicaSet).Build()
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -113,21 +111,18 @@ func TestInstallCmdDefaultTimeout(t *testing.T) {
 			},
 		},
 		Status: appsv1.DeploymentStatus{
-			AvailableReplicas: 1,
-			UpdatedReplicas:   1,
-			ReadyReplicas:     1,
-		},
-	}
-	replicaSet := &appsv1.ReplicaSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:   vzconstants.VerrazzanoInstallNamespace,
-			Name:        fmt.Sprintf("%s-56f78ffcfd", constants.VerrazzanoPlatformOperator),
-			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+			Conditions: []appsv1.DeploymentCondition{
+				{
+					Type:               appsv1.DeploymentAvailable,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: metav1.NewTime(time.Now().Add(time.Minute * 10)),
+				},
+			},
 		},
 	}
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment, replicaSet).Build()
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -207,20 +202,17 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 			},
 		},
 		Status: appsv1.DeploymentStatus{
-			AvailableReplicas: 1,
-			UpdatedReplicas:   1,
-			ReadyReplicas:     1,
-		},
-	}
-	replicaSet := &appsv1.ReplicaSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:   vzconstants.VerrazzanoInstallNamespace,
-			Name:        fmt.Sprintf("%s-56f78ffcfd", constants.VerrazzanoPlatformOperator),
-			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+			Conditions: []appsv1.DeploymentCondition{
+				{
+					Type:               appsv1.DeploymentAvailable,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: metav1.NewTime(time.Now().Add(time.Minute * 10)),
+				},
+			},
 		},
 	}
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo1, vpo2, deployment, replicaSet).Build()
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo1, vpo2, deployment).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -235,8 +227,8 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 	err := cmd.Execute()
 	cmdHelpers.ResetVpoWaitRetries()
 	assert.Error(t, err)
-	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator pod in namespace verrazzano-install: failed to get replicaset")
-	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator pod in namespace verrazzano-install: failed to get replicaset")
+	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
+	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
 }
 
 // TestInstallCmdJsonLogFormat
@@ -265,20 +257,17 @@ func TestInstallCmdJsonLogFormat(t *testing.T) {
 			},
 		},
 		Status: appsv1.DeploymentStatus{
-			AvailableReplicas: 1,
-			UpdatedReplicas:   1,
-			ReadyReplicas:     1,
-		},
-	}
-	replicaSet := &appsv1.ReplicaSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:   vzconstants.VerrazzanoInstallNamespace,
-			Name:        fmt.Sprintf("%s-56f78ffcfd", constants.VerrazzanoPlatformOperator),
-			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+			Conditions: []appsv1.DeploymentCondition{
+				{
+					Type:               appsv1.DeploymentAvailable,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: metav1.NewTime(time.Now().Add(time.Minute * 10)),
+				},
+			},
 		},
 	}
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment, replicaSet).Build()
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -327,20 +316,17 @@ func TestInstallCmdFilenames(t *testing.T) {
 			},
 		},
 		Status: appsv1.DeploymentStatus{
-			AvailableReplicas: 1,
-			UpdatedReplicas:   1,
-			ReadyReplicas:     1,
-		},
-	}
-	replicaSet := &appsv1.ReplicaSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:   vzconstants.VerrazzanoInstallNamespace,
-			Name:        fmt.Sprintf("%s-56f78ffcfd", constants.VerrazzanoPlatformOperator),
-			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+			Conditions: []appsv1.DeploymentCondition{
+				{
+					Type:               appsv1.DeploymentAvailable,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: metav1.NewTime(time.Now().Add(time.Minute * 10)),
+				},
+			},
 		},
 	}
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment, replicaSet).Build()
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -390,20 +376,17 @@ func TestInstallCmdSets(t *testing.T) {
 			},
 		},
 		Status: appsv1.DeploymentStatus{
-			AvailableReplicas: 1,
-			UpdatedReplicas:   1,
-			ReadyReplicas:     1,
-		},
-	}
-	replicaSet := &appsv1.ReplicaSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:   vzconstants.VerrazzanoInstallNamespace,
-			Name:        fmt.Sprintf("%s-56f78ffcfd", constants.VerrazzanoPlatformOperator),
-			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+			Conditions: []appsv1.DeploymentCondition{
+				{
+					Type:               appsv1.DeploymentAvailable,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: metav1.NewTime(time.Now().Add(time.Minute * 10)),
+				},
+			},
 		},
 	}
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment, replicaSet).Build()
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -455,20 +438,17 @@ func TestInstallCmdFilenamesAndSets(t *testing.T) {
 			},
 		},
 		Status: appsv1.DeploymentStatus{
-			AvailableReplicas: 1,
-			UpdatedReplicas:   1,
-			ReadyReplicas:     1,
-		},
-	}
-	replicaSet := &appsv1.ReplicaSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:   vzconstants.VerrazzanoInstallNamespace,
-			Name:        fmt.Sprintf("%s-56f78ffcfd", constants.VerrazzanoPlatformOperator),
-			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+			Conditions: []appsv1.DeploymentCondition{
+				{
+					Type:               appsv1.DeploymentAvailable,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: metav1.NewTime(time.Now().Add(time.Minute * 10)),
+				},
+			},
 		},
 	}
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment, replicaSet).Build()
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -523,21 +503,18 @@ func TestInstallCmdOperatorFile(t *testing.T) {
 			},
 		},
 		Status: appsv1.DeploymentStatus{
-			AvailableReplicas: 1,
-			UpdatedReplicas:   1,
-			ReadyReplicas:     1,
-		},
-	}
-	replicaSet := &appsv1.ReplicaSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:   vzconstants.VerrazzanoInstallNamespace,
-			Name:        fmt.Sprintf("%s-56f78ffcfd", constants.VerrazzanoPlatformOperator),
-			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+			Conditions: []appsv1.DeploymentCondition{
+				{
+					Type:               appsv1.DeploymentAvailable,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: metav1.NewTime(time.Now().Add(time.Minute * 10)),
+				},
+			},
 		},
 	}
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment, replicaSet).Build()
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
