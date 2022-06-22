@@ -18,23 +18,20 @@ var vzMergeStruct vzapi.Verrazzano
 // MergeYAMLFiles parses the given slice of filenames containing yaml and
 // merges them into a single verrazzano yaml and then returned as a vz resource.
 func MergeYAMLFiles(filenames []string) (*vzapi.Verrazzano, error) {
-	if len(filenames) == 0 {
-		return nil, fmt.Errorf("Failed to merge files - no files specified")
-	}
-	var vzYaml string
+	var vzYAML string
 	for _, filename := range filenames {
 		readBytes, err := os.ReadFile(strings.TrimSpace(filename))
 		if err != nil {
 			return nil, err
 		}
-		vzYaml, err = overlayVerrazzano(vzYaml, string(readBytes))
+		vzYAML, err = overlayVerrazzano(vzYAML, string(readBytes))
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	vz := &vzapi.Verrazzano{}
-	err := yaml.Unmarshal([]byte(vzYaml), &vz)
+	err := yaml.Unmarshal([]byte(vzYAML), &vz)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create a verrazzano install resource: %s", err.Error())
 	}
@@ -45,6 +42,25 @@ func MergeYAMLFiles(filenames []string) (*vzapi.Verrazzano, error) {
 		vz.Name = "verrazzano"
 	}
 
+	return vz, nil
+}
+
+// MergeSetFlags merges yaml representing a set flag passed on the command line with a
+// verrazano install resource.  A merged verrazzano install resource is returned.
+func MergeSetFlags(vz *vzapi.Verrazzano, overlayYAML string) (*vzapi.Verrazzano, error) {
+	baseYAML, err := yaml.Marshal(vz)
+	if err != nil {
+		return vz, err
+	}
+	vzYAML, err := overlayVerrazzano(string(baseYAML), overlayYAML)
+	if err != nil {
+		return vz, err
+	}
+
+	err = yaml.Unmarshal([]byte(vzYAML), &vz)
+	if err != nil {
+		return vz, fmt.Errorf("Failed to create a verrazzano install resource: %s", err.Error())
+	}
 	return vz, nil
 }
 
@@ -68,7 +84,7 @@ func overlayVerrazzano(baseYAML string, overlayYAML string) (string, error) {
 	// Merge the two json representations
 	mergedJSON, err := strategicpatch.StrategicMergePatch(baseJSON, overlayJSON, &vzMergeStruct)
 	if err != nil {
-		return "", fmt.Errorf("Failed to merge yaml files: %s\n for base object: \n%s\n override object: \n%s", err.Error(), baseJSON, overlayJSON)
+		return "", fmt.Errorf("Failed to merge yaml: %s\n base object:\n%s\n override object:\n%s", err.Error(), baseJSON, overlayJSON)
 	}
 
 	mergedYAML, err := yaml.JSONToYAML(mergedJSON)

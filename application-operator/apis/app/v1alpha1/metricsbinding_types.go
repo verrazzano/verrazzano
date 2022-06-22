@@ -35,13 +35,16 @@ type MetricsBindingSpec struct {
 	MetricsTemplate NamespaceName `json:"metricsTemplate"`
 
 	// Identifies a namespace and name for a Prometheus configMap resource
-	PrometheusConfigMap NamespaceName `json:"prometheusConfigMap"`
+	PrometheusConfigMap NamespaceName `json:"prometheusConfigMap,omitempty"`
+
+	// Identifies a namespace, name and key for a secret containing the Prometheus config
+	PrometheusConfigSecret SecretKey `json:"prometheusConfigSecret,omitempty"`
 
 	// Identifies the name and type for a workload
 	Workload Workload `json:"workload"`
 }
 
-// Identifies a namespace and name pair for a resource
+// NamespaceName identifies a namespace and name pair for a resource
 type NamespaceName struct {
 	// Namespace of a resource
 	Namespace string `json:"namespace"`
@@ -50,7 +53,19 @@ type NamespaceName struct {
 	Name string `json:"name"`
 }
 
-// Identifies the name and type of a workload
+// SecretKey identifies a value in a Kubernetes Secret by its namespace, name and key in the Secret.
+type SecretKey struct {
+	// Namespace of the Secret
+	Namespace string `json:"namespace"`
+
+	// Name of the Secret
+	Name string `json:"name"`
+
+	// Key in the Secret whose value this object represents
+	Key string `json:"key"`
+}
+
+// Workload identifies the name and type of a workload
 type Workload struct {
 	// Name of a resource
 	Name string `json:"name"`
