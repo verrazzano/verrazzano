@@ -4,10 +4,11 @@
 package utils_test
 
 import (
-	"github.com/davecgh/go-spew/spew"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/verrazzano-backup/lib/constants"
 	"github.com/verrazzano/verrazzano/verrazzano-backup/lib/utils"
+	apps "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -54,7 +55,7 @@ func TestPopulateConnData(t *testing.T) {
 	k8s := utils.K8s(&utils.K8sImpl{})
 	dclient := dynamicfake.NewSimpleDynamicClient(runtime.NewScheme())
 	conData, err := k8s.PopulateConnData(dclient, clientk, constants.VeleroNameSpace, "Foo", log)
-	spew.Dump(conData)
+	assert.Nil(t, conData)
 	assert.NotNil(t, err)
 }
 
@@ -112,8 +113,6 @@ func TestCheckPodStatus(t *testing.T) {
 	wg.Wait()
 
 	fc = fake.NewSimpleClientset(&TestPod)
-	//_, err := k8s.GetBackup(dclient, "system", "foo", log)
-	//assert.NotNil(t, err)
 	wg.Add(1)
 	err = k8s.CheckPodStatus(fc, "foo", "foo", "down", "1s", log, &wg)
 	log.Infof("%v", err)
@@ -189,5 +188,136 @@ func TestCheckAllPodsAfterRestore(t *testing.T) {
 	err = k8s.CheckAllPodsAfterRestore(fc, log)
 	log.Infof("%v", err)
 	assert.Nil(t, err)
+
+}
+
+// TestCheckDeployment tests the CheckDeployment method for the following use case.
+// GIVEN k8s client
+// WHEN restore is complete
+// THEN checks kibana deployment is present on system
+func TestCheckDeployment(t *testing.T) {
+	t.Parallel()
+	KibanaLabel := make(map[string]string)
+	KibanaLabel["verrazzano-component"] = "kibana"
+	PrimaryDeploy := apps.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "foo",
+			Namespace:   constants.VerrazzanoNameSpaceName,
+			Annotations: map[string]string{},
+			Labels:      KibanaLabel,
+		},
+	}
+
+	SecondaryDeploy := apps.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "bar",
+			Namespace:   constants.VerrazzanoNameSpaceName,
+			Annotations: map[string]string{},
+			Labels:      KibanaLabel,
+		},
+	}
+
+	log, f := logHelper()
+	defer os.Remove(f)
+	k8s := utils.K8s(&utils.K8sImpl{})
+	os.Setenv(constants.OpenSearchHealthCheckTimeoutKey, "1s")
+
+	fmt.Println("Deployment not found")
+	fc := fake.NewSimpleClientset()
+	ok, err := k8s.CheckDeployment(fc, constants.KibanaDeploymentLabelSelector, constants.VerrazzanoNameSpaceName, log)
+	log.Infof("%v", err)
+	assert.Nil(t, err)
+	assert.Equal(t, ok, false)
+
+	fmt.Println("Deployment found")
+	fc = fake.NewSimpleClientset(&PrimaryDeploy)
+	ok, err = k8s.CheckDeployment(fc, constants.KibanaDeploymentLabelSelector, constants.VerrazzanoNameSpaceName, log)
+	log.Infof("%v", err)
+	assert.Nil(t, err)
+	assert.Equal(t, ok, true)
+
+	fmt.Println("Multiple Deployments found")
+	fc = fake.NewSimpleClientset(&PrimaryDeploy, &SecondaryDeploy)
+	ok, err = k8s.CheckDeployment(fc, constants.KibanaDeploymentLabelSelector, constants.VerrazzanoNameSpaceName, log)
+	log.Infof("%v", err)
+	assert.Nil(t, err)
+	assert.Equal(t, ok, false)
+}
+
+// TestIsPodReady tests the IsPodReady method for the following use case.
+// GIVEN k8s client
+// WHEN restore is complete
+// THEN checks is pod is in ready state
+func TestIsPodReady(t *testing.T) {
+	t.Parallel()
+
+	ReadyPod := v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "foo",
+			Namespace:   constants.VerrazzanoNameSpaceName,
+			Annotations: map[string]string{},
+		},
+		Status: v1.PodStatus{
+			Phase: "Running",
+			Conditions: []v1.PodCondition{
+				{
+					Type:   "Initialized",
+					Status: "True",
+				},
+				{
+					Type:   "Ready",
+					Status: "True",
+				},
+				{
+					Type:   "ContainersReady",
+					Status: "True",
+				},
+				{
+					Type:   "PodScheduled",
+					Status: "True",
+				},
+			},
+		},
+	}
+
+	NotReadyPod := v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "foo",
+			Namespace:   constants.VerrazzanoNameSpaceName,
+			Annotations: map[string]string{},
+		},
+		Status: v1.PodStatus{
+			Phase: "Running",
+			Conditions: []v1.PodCondition{
+				{
+					Type:   "Initialized",
+					Status: "True",
+				},
+				{
+					Type:   "ContainersReady",
+					Status: "True",
+				},
+				{
+					Type:   "PodScheduled",
+					Status: "True",
+				},
+			},
+		},
+	}
+
+	log, f := logHelper()
+	defer os.Remove(f)
+	k8s := utils.K8s(&utils.K8sImpl{})
+	os.Setenv(constants.OpenSearchHealthCheckTimeoutKey, "1s")
+
+	ok, err := k8s.IsPodReady(&ReadyPod, log)
+	log.Infof("%v", err)
+	assert.Nil(t, err)
+	assert.Equal(t, ok, true)
+
+	ok, err = k8s.IsPodReady(&NotReadyPod, log)
+	log.Infof("%v", err)
+	assert.Nil(t, err)
+	assert.Equal(t, ok, false)
 
 }

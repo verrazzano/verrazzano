@@ -166,7 +166,7 @@ func (k *K8sImpl) GetBackup(client dynamic.Interface, veleroNamespace, backupNam
 	return &backup, nil
 }
 
-//ScaleDeployment is used to scale deployment to specific replica count
+// ScaleDeployment is used to scale deployment to specific replica count
 // labelselectors,namespace, deploymentName are used to identify deployments and specific pods associated with them
 func (k *K8sImpl) ScaleDeployment(clientk client.Client, k8sclient *kubernetes.Clientset, labelSelector, namespace, deploymentName string, replicaCount int32, log *zap.SugaredLogger) error {
 	log.Infof("Scale deployment '%s' in namespace '%s", deploymentName, namespace)
