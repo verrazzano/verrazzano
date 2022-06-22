@@ -64,5 +64,5 @@ func TestUninstallCmd(t *testing.T) {
 	err := cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
-	assert.Equal(t, "", buf.String())
+	assert.Equal(t, "Uninstalling Verrazzano\n\nfake logs\n", buf.String())
 }
