@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # This install resource sample installs the "dev" profile for Verrazzano on an OLCNE cluster.
@@ -6,9 +6,9 @@
 apiVersion: install.verrazzano.io/v1alpha1
 kind: Verrazzano
 metadata:
-  name: my-olcne-install
+  name: my-ocne-install
 spec:
-  environmentName: uni
+  environmentName: myenv
   profile: dev
   components:
     dns:
@@ -16,6 +16,12 @@ spec:
         suffix: abc.def.xyz.com
     ingress:
       type: NodePort
+      ports:
+      - name: https
+        port: 443
+        nodePort: 31443
+        protocol: TCP
+        targetPort: https
       nginxInstallArgs:
       - name: controller.service.externalTrafficPolicy
         value: Local
@@ -26,19 +32,15 @@ spec:
       - name: controller.service.externalIPs
         valueList:
         - 11.22.33.44
-      ports:
-      - name: http
-        port: 80
-        nodePort: 30080
-      - name: https
-        port: 443
-        nodePort: 30443
-      - name: healthz
-        port: 30254
-        nodePort: 30254
-        protocol: TCP
-        targetPort: 10254
     istio:
+      ingress:
+        type: NodePort
+        ports:
+        - name: https
+          port: 443
+          nodePort: 32443
+          protocol: TCP
+          targetPort: 8443
       istioInstallArgs:
       - name: gateways.istio-ingressgateway.externalIPs
         valueList:
