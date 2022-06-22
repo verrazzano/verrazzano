@@ -47,6 +47,10 @@ type forkInstallFuncSig func(compContext spi.ComponentContext, monitor installMo
 
 var forkInstallFunc forkInstallFuncSig = forkInstall
 
+type isInstalledFuncSig func(log vzlog.VerrazzanoLogger) (bool, error)
+
+var isInstalledFunc isInstalledFuncSig = istio.IsInstalled
+
 type bashFuncSig func(inArgs ...string) (string, string, error)
 
 var bashFunc bashFuncSig = os2.RunBash
@@ -60,10 +64,9 @@ func setBashFunc(f bashFuncSig) {
 }
 
 type installMonitorType struct {
-	running         bool
-	resultCh        chan bool
-	inputCh         chan installRoutineParams
-	istioctlSuccess bool
+	running  bool
+	resultCh chan bool
+	inputCh  chan installRoutineParams
 }
 
 //installRoutineParams - Used to pass args to the install goroutine
@@ -85,8 +88,6 @@ type installMonitor interface {
 	isRunning() bool
 	// run - Run the install with the specified args
 	run(args installRoutineParams)
-	// isIstioctlSuccess - returns boolean to indicate whether istioctl completed successfully
-	isIstioctlSuccess() bool
 }
 
 //checkResult - checks for a result from the goroutine
@@ -94,10 +95,8 @@ type installMonitor interface {
 func (m *installMonitorType) checkResult() (bool, error) {
 	select {
 	case result := <-m.resultCh:
-		m.istioctlSuccess = result
 		return result, nil
 	default:
-		m.istioctlSuccess = false
 		return false, ctrlerrors.RetryableError{Source: ComponentName}
 	}
 }
@@ -128,7 +127,6 @@ func (m *installMonitorType) run(args installRoutineParams) {
 		log := args.log
 
 		result := true
-		m.istioctlSuccess = false
 		log.Oncef("Component Istio is running istioctl")
 		stdout, stderr, err := installFunc(log, args.overrides, args.fileOverrides...)
 		log.Debugf("istioctl stdout: %s", string(stdout))
@@ -148,10 +146,6 @@ func (m *installMonitorType) run(args installRoutineParams) {
 
 	// Pass in the args to get started
 	m.inputCh <- args
-}
-
-func (m *installMonitorType) isIstioctlSuccess() bool {
-	return m.istioctlSuccess
 }
 
 func (i istioComponent) IsOperatorInstallSupported() bool {
@@ -250,6 +244,11 @@ func (i istioComponent) PreInstall(compContext spi.ComponentContext) error {
 }
 
 func (i istioComponent) PostInstall(compContext spi.ComponentContext) error {
+	// During install there is a window where the Istio envoy sidecar container is not included in a pod.
+	// Restart system components that are missing the sidecar.
+	if err := RestartComponents(compContext.Log(), config.GetInjectedSystemNamespaces(), compContext.ActualCR().Generation, DoesPodContainNoIstioSidecar); err != nil {
+		return err
+	}
 	if err := createPeerAuthentication(compContext); err != nil {
 		return err
 	}

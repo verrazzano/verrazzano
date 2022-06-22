@@ -7,6 +7,7 @@ import (
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -67,7 +68,8 @@ type VerrazzanoSpec struct {
 	EnvironmentName string `json:"environmentName,omitempty"`
 	// Core specifies core Verrazzano configuration
 	// +optional
-	Components ComponentSpec `json:"components,omitempty"`
+	// +patchStrategy=merge
+	Components ComponentSpec `json:"components,omitempty" patchStrategy:"merge"`
 
 	// Security specifies Verrazzano security configuration
 	// +optional
@@ -225,9 +227,6 @@ type Condition struct {
 type VzStateType string
 
 const (
-	// VzStateInstalling is the state when an install is in progress
-	VzStateInstalling VzStateType = "Installing"
-
 	// VzStateUninstalling is the state when an uninstall is in progress
 	VzStateUninstalling VzStateType = "Uninstalling"
 
@@ -242,6 +241,9 @@ const (
 
 	// VzStateFailed is the state when an install/uninstall/upgrade has failed
 	VzStateFailed VzStateType = "Failed"
+
+	// VzStateReconciling is the state when a resource is in progress reconciling
+	VzStateReconciling VzStateType = "Reconciling"
 )
 
 // CompStateType identifies the state of a component
@@ -526,7 +528,8 @@ type KialiComponent struct {
 // ConsoleComponent specifies the Console UI configuration
 type ConsoleComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // DNSComponent specifies the DNS configuration
@@ -670,7 +673,8 @@ type FluentdComponent struct {
 
 	// Configuration for integration with OCI (Oracle Cloud Infrastructure) Logging Service
 	// +optional
-	OCI *OciLoggingConfiguration `json:"oci,omitempty"`
+	OCI              *OciLoggingConfiguration `json:"oci,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // WebLogicOperatorComponent specifies the WebLogic Operator configuration
@@ -795,8 +799,9 @@ type InstallOverrides struct {
 	ValueOverrides []Overrides `json:"overrides,omitempty"`
 }
 
-// Overrides stores the specified InstallOverrides
+// Overrides stores the specified overrides
 type Overrides struct {
 	ConfigMapRef *corev1.ConfigMapKeySelector `json:"configMapRef,omitempty"`
 	SecretRef    *corev1.SecretKeySelector    `json:"secretRef,omitempty"`
+	Values       *apiextensionsv1.JSON        `json:"values,omitempty"`
 }

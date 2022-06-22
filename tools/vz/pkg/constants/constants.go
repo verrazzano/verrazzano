@@ -5,25 +5,28 @@ package constants
 
 // GlobalFlagKubeConfig - global flag for specifying the location of the kube config
 const GlobalFlagKubeConfig = "kubeconfig"
-const GlobalFlagKubeConfigHelp = "Path to the kubeconfig file to use."
+const GlobalFlagKubeConfigHelp = "Path to the kubeconfig file to use"
 
 // GlobalFlagContext - global flag for specifying which kube config context to use
 const GlobalFlagContext = "context"
-const GlobalFlagContextHelp = "The name of the kubeconfig context to use."
+const GlobalFlagContextHelp = "The name of the kubeconfig context to use"
 
 // GlobalFlagHelp - global help flag
 const GlobalFlagHelp = "help"
 
 // Flags that are common to more than one command
 const (
-	WaitFlag     = "wait"
-	WaitFlagHelp = "Wait for the command to complete. The wait period is controlled by --timeout."
+	WaitFlag        = "wait"
+	WaitFlagHelp    = "Wait for the command to complete and stream the logs to the console. The wait period is controlled by --timeout."
+	WaitFlagDefault = true
 
 	TimeoutFlag     = "timeout"
-	TimeoutFlagHelp = "Limits the amount of time a command will wait to complete."
+	TimeoutFlagHelp = "Limits the amount of time a command will wait to complete"
 
-	VersionFlag     = "version"
-	VersionFlagHelp = "The version of Verrazzano to install or upgrade."
+	VersionFlag            = "version"
+	VersionFlagDefault     = "latest"
+	VersionFlagInstallHelp = "The version of Verrazzano to install"
+	VersionFlagUpgradeHelp = "The version of Verrazzano to upgrade to"
 
 	DryRunFlag = "dry-run"
 
@@ -34,10 +37,35 @@ const (
 	OperatorFileFlag     = "operator-file"
 	OperatorFileFlagHelp = "The path to the file for installing the Verrazzano platform operator. The default is derived from the version string."
 
-	LogsFlag     = "logs"
-	LogsFlagHelp = "Print the logs until the command completes. Valid output formats are \"simple\" and \"json\"."
+	LogFormatFlag = "log-format"
+	LogFormatHelp = "The format of the log output. Valid output formats are \"simple\" and \"json\"."
 
 	FilenameFlag          = "filename"
 	FilenameFlagShorthand = "f"
 	FilenameFlagHelp      = "Path to file containing Verrazzano custom resource.  This flag can be specified multiple times to overlay multiple files."
+)
+
+// VerrazzanoReleaseList - API for getting the list of Verrazzano releases
+const VerrazzanoReleaseList = "https://api.github.com/repos/verrazzano/verrazzano/releases"
+
+// VerrazzanoOperatorURL - URL for downloading Verrazzano releases
+const VerrazzanoOperatorURL = "https://github.com/verrazzano/verrazzano/releases/download/%s/operator.yaml"
+
+const VerrazzanoPlatformOperator = "verrazzano-platform-operator"
+
+const VerrazzanoPlatformOperatorWait = 1
+
+// Analysis tool flags
+const (
+	DirectoryFlagName  = "capture-dir"
+	DirectoryFlagValue = ""
+	DirectoryFlagUsage = "Directory holding the captured data [Required]"
+
+	ReportFileFlagName  = "report-file"
+	ReportFileFlagValue = ""
+	ReportFileFlagUsage = "Name of report output file. (default stdout)"
+
+	ReportFormatFlagName  = "report-format"
+	ReportFormatFlagValue = "simple"
+	ReportFormatFlagUsage = "The format of the report output. Valid output format is \"simple\""
 )

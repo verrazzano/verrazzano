@@ -1308,6 +1308,12 @@ data:
                 proxy_pass $backend_server_url;
                 proxy_ssl_trusted_certificate /etc/nginx/upstream.pem;
             }
+
+            location /nginx_status {
+                stub_status;
+                allow 127.0.0.1;
+                deny all;
+            }
         }
     }
     daemon off;

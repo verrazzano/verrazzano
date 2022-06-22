@@ -158,7 +158,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger
 	switch vz.Status.State {
 	case installv1alpha1.VzStateFailed:
 		return r.ProcFailedState(vzctx)
-	case installv1alpha1.VzStateInstalling:
+	case installv1alpha1.VzStateReconciling:
 		return r.ProcInstallingState(vzctx)
 	case installv1alpha1.VzStateReady:
 		return r.ProcReadyState(vzctx)
@@ -169,7 +169,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger
 	case installv1alpha1.VzStatePaused:
 		return r.ProcPausedUpgradeState(vzctx)
 	default:
-		panic("Invalid Verrazzano contoller state")
+		panic("Invalid Verrazzano controller state")
 	}
 }
 
@@ -196,11 +196,23 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 
 	// If Verrazzano is installed see if upgrade is needed
 	if isInstalled(actualCR.Status) {
-		if len(actualCR.Spec.Version) > 0 && actualCR.Spec.Version != actualCR.Status.Version {
-			// Transition to upgrade state
-			r.updateVzState(log, actualCR, installv1alpha1.VzStateUpgrading)
-			return newRequeueWithDelay(), err
+		if len(actualCR.Spec.Version) > 0 {
+			specVersion, err := semver.NewSemVersion(actualCR.Spec.Version)
+			if err != nil {
+				return newRequeueWithDelay(), err
+			}
+			statusVersion, err := semver.NewSemVersion(actualCR.Status.Version)
+			if err != nil {
+				return newRequeueWithDelay(), err
+			}
+			// if the spec version field is set and the SemVer spec field doesn't equal the SemVer status field
+			if specVersion.CompareTo(statusVersion) != 0 {
+				// Transition to upgrade state
+				r.updateVzState(log, actualCR, installv1alpha1.VzStateUpgrading)
+				return newRequeueWithDelay(), err
+			}
 		}
+
 		// Keep retrying to reconcile components until it completes
 		if result, err := r.reconcileComponents(vzctx); err != nil {
 			return newRequeueWithDelay(), err
@@ -760,7 +772,7 @@ func checkCondtitionType(currentCondition installv1alpha1.ConditionType) install
 func conditionToVzState(currentCondition installv1alpha1.ConditionType) installv1alpha1.VzStateType {
 	switch currentCondition {
 	case installv1alpha1.CondInstallStarted:
-		return installv1alpha1.VzStateInstalling
+		return installv1alpha1.VzStateReconciling
 	case installv1alpha1.CondUninstallStarted:
 		return installv1alpha1.VzStateUninstalling
 	case installv1alpha1.CondUpgradeStarted:
@@ -983,67 +995,6 @@ func mergeMaps(to map[string]string, from map[string]string) (map[string]string,
 		}
 	}
 	return mergedMap, updated
-}
-
-func addFluentdExtraVolumeMounts(files []string, vz *installv1alpha1.Verrazzano) *installv1alpha1.Verrazzano {
-	for _, extraMount := range dirsOutsideVarLog(files) {
-		if vz.Spec.Components.Fluentd == nil {
-			vz.Spec.Components.Fluentd = &installv1alpha1.FluentdComponent{}
-		}
-		found := false
-		for _, vm := range vz.Spec.Components.Fluentd.ExtraVolumeMounts {
-			if isParentDir(extraMount, vm.Source) {
-				found = true
-			}
-		}
-		if !found {
-			vz.Spec.Components.Fluentd.ExtraVolumeMounts = append(vz.Spec.Components.Fluentd.ExtraVolumeMounts,
-				installv1alpha1.VolumeMount{Source: extraMount})
-		}
-	}
-	return vz
-}
-
-func dirsOutsideVarLog(paths []string) []string {
-	var results []string
-	for _, path := range paths {
-		if !strings.HasPrefix(path, "/var/log/") {
-			found := false
-			var temp []string
-			for _, res := range results {
-				commonPath := commonPath(res, path)
-				if commonPath != "/" {
-					temp = append(temp, commonPath)
-					found = true
-				} else {
-					temp = append(temp, res)
-				}
-			}
-			if !found {
-				temp = append(temp, path)
-			}
-			results = temp
-		}
-	}
-	return results
-}
-
-func isParentDir(path, dir string) bool {
-	if !strings.HasSuffix(dir, "/") {
-		dir = dir + "/"
-	}
-	return commonPath(path, dir) == dir
-}
-
-func commonPath(a, b string) string {
-	i := 0
-	s := 0
-	for ; i < len(a) && i < len(b) && a[i] == b[i]; i++ {
-		if a[i] == '/' {
-			s = i
-		}
-	}
-	return a[0 : s+1]
 }
 
 // Get the install namespace where this controller is running.

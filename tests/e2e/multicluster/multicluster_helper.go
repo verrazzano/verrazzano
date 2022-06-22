@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -538,6 +539,58 @@ spec:
 		return true
 	}, fiveMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Failed creating CA %v", caname))
 	return caname
+}
+
+func (c *Cluster) FindFluentdPod() *corev1.Pod {
+	list, _ := c.kubeClient.CoreV1().Pods(constants.VerrazzanoSystemNamespace).List(context.TODO(), metav1.ListOptions{})
+	if list != nil {
+		for _, pod := range list.Items {
+			if strings.HasPrefix(pod.Name, "fluentd-") {
+				return &pod
+			}
+		}
+	}
+	return nil
+}
+
+const errMsg = "Error: %v"
+
+// FluentdLogs gets fluentd logs if the fluentd pod has been restarted sinc the time specified
+func (c *Cluster) FluentdLogs(lines int64, restartedAfter time.Time) string {
+	pod := c.FindFluentdPod()
+	if pod == nil {
+		return fmt.Sprintf(errMsg, "cannot find fluentd pod")
+	}
+	if pod.Status.StartTime != nil && pod.Status.StartTime.After(restartedAfter) {
+		return c.PodLogs(constants.VerrazzanoSystemNamespace, pod.Name, "fluentd", lines)
+	}
+	return fmt.Sprintf(errMsg, "fluentd is not restarted")
+}
+
+func (c *Cluster) PodLogs(ns, podName, container string, lines int64) string {
+	logsReg := c.kubeClient.CoreV1().Pods(ns).GetLogs(podName, &corev1.PodLogOptions{
+		Container: container,
+		Follow:    false,
+		TailLines: &lines,
+	})
+	podLogs, err := logsReg.Stream(context.TODO())
+	if err != nil {
+		return fmt.Sprintf(errMsg, err)
+	}
+	if podLogs != nil {
+		defer podLogs.Close()
+		buf := new(bytes.Buffer)
+		_, err = io.Copy(buf, podLogs)
+		if err != nil {
+			return fmt.Sprintf(errMsg, err)
+		}
+		return buf.String()
+	}
+	return ""
+}
+
+func (c *Cluster) GetPrometheusIngress() string {
+	return pkg.GetPrometheusIngressHost(c.KubeConfigPath)
 }
 
 func newCluster(name, kubeCfgPath string) *Cluster {

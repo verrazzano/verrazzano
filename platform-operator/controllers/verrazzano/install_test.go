@@ -36,10 +36,10 @@ func TestUpdate(t *testing.T) {
 	reconcilingGen := int64(0)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t,
 		lastReconciledGeneration+1, reconcilingGen, lastReconciledGeneration,
-		"1.3.0", "1.3.0", namespace, name)
+		"1.3.0", "1.3.0", namespace, name, "true")
 	defer reset()
 	asserts.NoError(err)
-	asserts.Equal(vzapi.VzStateInstalling, vz.Status.State)
+	asserts.Equal(vzapi.VzStateReconciling, vz.Status.State)
 	asserts.True(*fakeCompUpdated)
 	asserts.True(result.Requeue)
 }
@@ -55,7 +55,7 @@ func TestNoUpdateSameGeneration(t *testing.T) {
 	lastReconciledGeneration := int64(2)
 	reconcilingGen := int64(0)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t, lastReconciledGeneration, reconcilingGen, lastReconciledGeneration,
-		"1.3.1", "1.3.1", namespace, name)
+		"1.3.1", "1.3.1", namespace, name, "true")
 	defer reset()
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateReady, vz.Status.State)
@@ -74,7 +74,7 @@ func TestUpdateWithUpgrade(t *testing.T) {
 	lastReconciledGeneration := int64(2)
 	reconcilingGen := int64(0)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t, lastReconciledGeneration+1, reconcilingGen, lastReconciledGeneration,
-		"1.3.0", "1.2.0", namespace, name)
+		"1.3.0", "1.2.0", namespace, name, "true")
 	defer reset()
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateUpgrading, vz.Status.State)
@@ -94,12 +94,32 @@ func TestUpdateOnUpdate(t *testing.T) {
 	reconcilingGen := int64(3)
 	asserts, vz, result, fakeCompUpdated, err := testUpdate(t,
 		reconcilingGen+1, reconcilingGen, lastReconciledGeneration,
-		"1.3.3", "1.3.3", namespace, name)
+		"1.3.3", "1.3.3", namespace, name, "true")
 	defer reset()
 	asserts.NoError(err)
-	asserts.Equal(vzapi.VzStateInstalling, vz.Status.State)
+	asserts.Equal(vzapi.VzStateReconciling, vz.Status.State)
 	asserts.True(*fakeCompUpdated)
 	asserts.True(result.Requeue)
+}
+
+// TestUpdateFalseMonitorChanges tests the reconcile func with updated generation
+// GIVEN a request to reconcile an verrazzano resource after install is completed
+// WHEN all components have the smaller LastReconciledGeneration but MonitorOverrides returns false
+// THEN ensure a condition with type InstallStarted is not added
+func TestUpdateFalseMonitorChanges(t *testing.T) {
+	initUnitTesing()
+	namespace := "verrazzano"
+	name := "TestUpdate"
+	lastReconciledGeneration := int64(2)
+	reconcilingGen := int64(0)
+	asserts, vz, result, fakeCompUpdated, err := testUpdate(t,
+		lastReconciledGeneration+1, reconcilingGen, lastReconciledGeneration,
+		"1.3.0", "1.3.0", namespace, name, "false")
+	defer reset()
+	asserts.NoError(err)
+	asserts.Equal(vzapi.VzStateReady, vz.Status.State)
+	asserts.Nil(fakeCompUpdated)
+	asserts.False(result.Requeue)
 }
 
 func reset() {
@@ -115,7 +135,7 @@ func testUpdate(t *testing.T,
 	//mocker *gomock.Controller, mock *mocks.MockClient,
 	vzCrGen, reconcilingGen, lastReconciledGeneration int64,
 	//mockStatus *mocks.MockStatusWriter,
-	specVer, statusVer, namespace, name string) (*assert.Assertions, *vzapi.Verrazzano, ctrl.Result, *bool, error) {
+	specVer, statusVer, namespace, name, monitorChanges string) (*assert.Assertions, *vzapi.Verrazzano, ctrl.Result, *bool, error) {
 	asserts := assert.New(t)
 
 	config.SetDefaultBomFilePath(testBomFile)
@@ -127,6 +147,7 @@ func testUpdate(t *testing.T,
 	fakeComp := fakeComponent{}
 	fakeComp.ReleaseName = "verrazzano-authproxy"
 	fakeComp.SupportsOperatorInstall = true
+	fakeComp.monitorChanges = monitorChanges
 	var fakeCompUpdated *bool
 	fakeComp.installFunc = func(ctx spi.ComponentContext) error {
 		update := true

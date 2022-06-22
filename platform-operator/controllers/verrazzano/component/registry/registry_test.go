@@ -6,6 +6,7 @@ package registry
 import (
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -61,7 +62,7 @@ func TestGetComponents(t *testing.T) {
 	a := assert.New(t)
 	comps := GetComponents()
 
-	a.Len(comps, 25, "Wrong number of components")
+	a.Len(comps, 26, "Wrong number of components")
 	a.Equal(comps[0].Name(), oam.ComponentName)
 	a.Equal(comps[1].Name(), appoper.ComponentName)
 	a.Equal(comps[2].Name(), istio.ComponentName)
@@ -87,6 +88,7 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[22].Name(), promnodeexporter.ComponentName)
 	a.Equal(comps[23].Name(), jaegeroperator.ComponentName)
 	a.Equal(comps[24].Name(), console.ComponentName)
+	a.Equal(comps[25].Name(), fluentd.ComponentName)
 }
 
 // TestFindComponent tests FindComponent

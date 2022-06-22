@@ -5,17 +5,16 @@ package helpers
 
 import (
 	"io"
+	"net/http"
 
-	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/spf13/cobra"
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -38,7 +37,7 @@ func (rc *RootCmdContext) GetInputStream() io.Reader {
 	return rc.IOStreams.In
 }
 
-// GetClient - return a kubernetes client that supports the schemes used by the CLI
+// GetClient - return a Kubernetes controller runtime client that supports the schemes used by the CLI
 func (rc *RootCmdContext) GetClient(cmd *cobra.Command) (client.Client, error) {
 	// Get command line value of kubeConfig location
 	kubeConfigLoc, err := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
@@ -59,12 +58,36 @@ func (rc *RootCmdContext) GetClient(cmd *cobra.Command) (client.Client, error) {
 
 	scheme := runtime.NewScheme()
 	_ = vzapi.AddToScheme(scheme)
-	_ = clustersv1alpha1.AddToScheme(scheme)
-	_ = platformopclusters.AddToScheme(scheme)
-	_ = oamv1alpha2.SchemeBuilder.AddToScheme(scheme)
 	_ = corev1.SchemeBuilder.AddToScheme(scheme)
 
 	return client.New(config, client.Options{Scheme: scheme})
+}
+
+// GetKubeClient - return a Kubernetes clientset for use with the go-client
+func (rc *RootCmdContext) GetKubeClient(cmd *cobra.Command) (kubernetes.Interface, error) {
+	// Get command line value of --kubeconfig
+	kubeConfigLoc, err := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get command line value of --context
+	context, err := cmd.Flags().GetString(constants.GlobalFlagContext)
+	if err != nil {
+		return nil, err
+	}
+
+	config, err := k8sutil.GetKubeConfigGivenPathAndContext(kubeConfigLoc, context)
+	if err != nil {
+		return nil, err
+	}
+
+	return kubernetes.NewForConfig(config)
+}
+
+// GetHTTPClient - return an HTTP client
+func (rc *RootCmdContext) GetHTTPClient() *http.Client {
+	return &http.Client{}
 }
 
 // NewRootCmdContext - create the root command context object

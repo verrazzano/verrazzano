@@ -1,0 +1,13 @@
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+name: base
+host:
+  ip: 1.2.3.4
+  name: foo
+platform:
+  vendor: company1
+  os:
+    name: linux
+    patches:
+      - version: 0.5.0
+        date: 01/01/2020

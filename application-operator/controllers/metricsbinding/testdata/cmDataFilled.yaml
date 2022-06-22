@@ -1,0 +1,43 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets:
+      - vmi-system-alertmanager:9093
+global:
+  evaluation_interval: 30s
+  scrape_interval: 20s
+rule_files:
+- /etc/prometheus/rules/*.rules
+scrape_configs:
+- job_name: test-namespace_test-deployment_apps_v1_Deployment
+  kubernetes_sd_configs:
+    - namespaces:
+        names:
+          - istio-system
+      role: endpoints
+  relabel_configs:
+    - action: keep
+      regex: istiod;http-monitoring
+      source_labels:
+        - __meta_kubernetes_service_name
+        - __meta_kubernetes_endpoint_port_name
+    - source_labels:
+        - __meta_kubernetes_service_label_app
+      target_label: app
+- job_name: test-namespace_test-deployment_apps_v2
+  kubernetes_sd_configs:
+    - namespaces:
+        names:
+          - istio-system
+      role: endpoints
+  relabel_configs:
+    - action: keep
+      regex: istio
+      source_labels:
+        - __meta_kubernetes_service_name
+    - source_labels:
+        - __meta_kubernetes_service_label_app
+      target_label: app

@@ -28,7 +28,7 @@ func QueryMetricWithLabel(metricsName string, kubeconfigPath string, label strin
 	if len(labelValue) == 0 {
 		return QueryMetric(metricsName, kubeconfigPath)
 	}
-	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s{%s=\"%s\"}", getPrometheusIngressHost(kubeconfigPath), metricsName,
+	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s{%s=\"%s\"}", GetPrometheusIngressHost(kubeconfigPath), metricsName,
 		label, labelValue)
 
 	password, err := GetVerrazzanoPasswordInCluster(kubeconfigPath)
@@ -48,7 +48,7 @@ func QueryMetricWithLabel(metricsName string, kubeconfigPath string, label strin
 
 // QueryMetric queries a metric from the Prometheus host, derived from the kubeconfig
 func QueryMetric(metricsName string, kubeconfigPath string) (string, error) {
-	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s", getPrometheusIngressHost(kubeconfigPath), metricsName)
+	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s", GetPrometheusIngressHost(kubeconfigPath), metricsName)
 	password, err := GetVerrazzanoPasswordInCluster(kubeconfigPath)
 	if err != nil {
 		return "", err
@@ -64,8 +64,8 @@ func QueryMetric(metricsName string, kubeconfigPath string) (string, error) {
 	return string(resp.Body), nil
 }
 
-// getPrometheusIngressHost gest the host used for ingress to the system Prometheus in the given cluster
-func getPrometheusIngressHost(kubeconfigPath string) string {
+// GetPrometheusIngressHost gest the host used for ingress to the system Prometheus in the given cluster
+func GetPrometheusIngressHost(kubeconfigPath string) string {
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get clientset for cluster %v", err))
@@ -162,7 +162,7 @@ func ScrapeTargets() ([]interface{}, error) {
 		return nil, err
 	}
 
-	metricsURL := fmt.Sprintf("https://%s/api/v1/targets", getPrometheusIngressHost(kubeconfigPath))
+	metricsURL := fmt.Sprintf("https://%s/api/v1/targets", GetPrometheusIngressHost(kubeconfigPath))
 	password, err := GetVerrazzanoPasswordInCluster(kubeconfigPath)
 	if err != nil {
 		return nil, err

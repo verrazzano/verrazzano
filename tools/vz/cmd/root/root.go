@@ -5,6 +5,7 @@ package root
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/install"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/status"
@@ -20,8 +21,8 @@ var context string
 
 const (
 	CommandName = "vz"
-	helpShort   = "The vz tool is a command line utility that allows Verrazzano operators to query and manage a Verrazzano environment."
-	helpLong    = "The vz tool is a command line utility that allows Verrazzano operators to query and manage a Verrazzano environment."
+	helpShort   = "The vz tool is a command-line utility that allows Verrazzano operators to query and manage a Verrazzano environment"
+	helpLong    = "The vz tool is a command-line utility that allows Verrazzano operators to query and manage a Verrazzano environment"
 )
 
 // NewRootCmd - create the root cobra command
@@ -38,6 +39,7 @@ func NewRootCmd(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.AddCommand(install.NewCmdInstall(vzHelper))
 	cmd.AddCommand(upgrade.NewCmdUpgrade(vzHelper))
 	cmd.AddCommand(uninstall.NewCmdUninstall(vzHelper))
+	cmd.AddCommand(analyze.NewCmdAnalyze(vzHelper))
 
 	return cmd
 }

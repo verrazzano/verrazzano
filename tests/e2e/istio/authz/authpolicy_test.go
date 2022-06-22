@@ -6,10 +6,12 @@ package authz
 import (
 	"bufio"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -30,7 +32,6 @@ const prometheusConfigMapName string = "prometheus.yml"
 const prometheusFooScrapeName string = "authpolicy-appconf_default_foo_springboot-frontend"
 const prometheusBarScrapeName string = "authpolicy-appconf_default_bar_springboot-frontend"
 const prometheusNoIstioScrapeName string = "authpolicy-appconf_default_noistio_springboot-frontend"
-const prometheusJobName string = "job_name"
 const prometheusHTTPSScheme string = "scheme: https"
 
 var expectedPodsFoo = []string{"sleep-workload", "springboot-frontend-workload", "springboot-backend-workload"}
@@ -510,7 +511,7 @@ var _ = t.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 				if strings.Contains(currentString, prometheusFooScrapeName) {
 					for scanner.Scan() {
 						innerString := scanner.Text()
-						if strings.Contains(innerString, prometheusJobName) {
+						if strings.Contains(innerString, constants.PrometheusJobNameKey) {
 							break
 						}
 						if strings.Contains(innerString, prometheusHTTPSScheme) {
@@ -548,7 +549,7 @@ var _ = t.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 				if strings.Contains(currentString, prometheusBarScrapeName) {
 					for scanner.Scan() {
 						innerString := scanner.Text()
-						if strings.Contains(innerString, prometheusJobName) {
+						if strings.Contains(innerString, constants.PrometheusJobNameKey) {
 							break
 						}
 						if strings.Contains(innerString, prometheusHTTPSScheme) {
@@ -586,7 +587,7 @@ var _ = t.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 				if strings.Contains(currentString, prometheusNoIstioScrapeName) {
 					for scanner.Scan() {
 						innerString := scanner.Text()
-						if strings.Contains(innerString, prometheusJobName) {
+						if strings.Contains(innerString, constants.PrometheusJobNameKey) {
 							break
 						}
 						if strings.Contains(innerString, prometheusHTTPSScheme) {

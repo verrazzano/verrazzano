@@ -36,13 +36,13 @@ var TestHelmConfigDir string
 // TestProfilesDir is needed for unit tests
 var TestProfilesDir string
 
-// OperatorConfig specfies the Verrazzano Platform Operator Config
+// OperatorConfig specifies the Verrazzano Platform Operator Config
 type OperatorConfig struct {
 
 	// The CertDir directory containing tls.crt and tls.key
 	CertDir string
 
-	// InitWebhooks enables initialzation of webhooks for the operator
+	// InitWebhooks enables initialization of webhooks for the operator
 	InitWebhooks bool
 
 	// MetricsAddr is the address the metric endpoint binds to
@@ -191,4 +191,8 @@ func GetDefaultBOMFilePath() string {
 
 func GetInjectedSystemNamespaces() []string {
 	return []string{constants.VerrazzanoSystemNamespace, constants.IngressNginxNamespace, constants.KeycloakNamespace}
+}
+
+func GetNoInjectionComponents() []string {
+	return []string{"coherence-operator", "oam-kubernetes-runtime", "verrazzano-application-operator"}
 }

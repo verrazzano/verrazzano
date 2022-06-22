@@ -12,6 +12,7 @@ import (
 	"k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/yaml"
 )
 
 // GetInstallOverridesYAML takes the list of Overrides and returns a string array of YAMLs
@@ -21,22 +22,31 @@ func GetInstallOverridesYAML(ctx spi.ComponentContext, overrides []v1alpha1.Over
 		// Check if ConfigMapRef is populated and gather data
 		if override.ConfigMapRef != nil {
 			// Get the ConfigMap data
-			yaml, err := getConfigMapOverrides(ctx, override.ConfigMapRef)
+			data, err := getConfigMapOverrides(ctx, override.ConfigMapRef)
 			if err != nil {
 				return overrideStrings, err
 			}
-			overrideStrings = append(overrideStrings, yaml)
+			overrideStrings = append(overrideStrings, data)
 			continue
 		}
 		// Check if SecretRef is populated and gather data
 		if override.SecretRef != nil {
 			// Get the Secret data
-			yaml, err := getSecretOverrides(ctx, override.SecretRef)
+			data, err := getSecretOverrides(ctx, override.SecretRef)
 			if err != nil {
 				return overrideStrings, err
 			}
-			overrideStrings = append(overrideStrings, yaml)
+			overrideStrings = append(overrideStrings, data)
+			continue
 		}
+		if override.Values != nil {
+			overrideValuesData, err := yaml.Marshal(override.Values)
+			if err != nil {
+				return overrideStrings, err
+			}
+			overrideStrings = append(overrideStrings, string(overrideValuesData))
+		}
+
 	}
 	return overrideStrings, nil
 }

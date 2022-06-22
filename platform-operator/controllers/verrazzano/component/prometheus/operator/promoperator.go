@@ -6,10 +6,13 @@ package operator
 import (
 	"context"
 	"fmt"
+	"path"
 	"strconv"
 
 	vmoconst "github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -18,16 +21,21 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/kustomize/kyaml/sliceutil"
 )
 
 const (
 	deploymentName  = "prometheus-operator-kube-p-operator"
 	istioVolumeName = "istio-certs-dir"
+	serviceAccount  = "cluster.local/ns/verrazzano-monitoring/sa/prometheus-operator-kube-p-prometheus"
 )
 
 // isPrometheusOperatorReady checks if the Prometheus operator deployment is ready
@@ -66,10 +74,10 @@ func preInstall(ctx spi.ComponentContext) error {
 // does not already exist. Initially this secret is empty but when managed clusters are created, the federated scrape configuration
 // is added to this secret.
 func ensureAdditionalScrapeConfigsSecret(ctx spi.ComponentContext) error {
-	ctx.Log().Debugf("Creating or updating secret %s for Prometheus additional scrape configs", constants.PromAdditionalScrapeConfigsSecretName)
+	ctx.Log().Debugf("Creating or updating secret %s for Prometheus additional scrape configs", vzconst.PromAdditionalScrapeConfigsSecretName)
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.PromAdditionalScrapeConfigsSecretName,
+			Name:      vzconst.PromAdditionalScrapeConfigsSecretName,
 			Namespace: ComponentNamespace,
 		},
 	}
@@ -77,12 +85,12 @@ func ensureAdditionalScrapeConfigsSecret(ctx spi.ComponentContext) error {
 		if secret.Data == nil {
 			secret.Data = make(map[string][]byte)
 		}
-		if _, exists := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]; !exists {
-			secret.Data[constants.PromAdditionalScrapeConfigsSecretKey] = []byte{}
+		if _, exists := secret.Data[vzconst.PromAdditionalScrapeConfigsSecretKey]; !exists {
+			secret.Data[vzconst.PromAdditionalScrapeConfigsSecretKey] = []byte{}
 		}
 		return nil
 	}); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to create or update the %s secret: %v", constants.PromAdditionalScrapeConfigsSecretName, err)
+		return ctx.Log().ErrorfNewErr("Failed to create or update the %s secret: %v", vzconst.PromAdditionalScrapeConfigsSecretName, err)
 	}
 	return nil
 }
@@ -136,14 +144,20 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	}
 
 	// Append the Istio Annotations for Prometheus
-	kvs, err = appendIstioOverrides(ctx,
-		"prometheus.prometheusSpec.podMetadata.annotations",
+	kvs, err = appendIstioOverrides("prometheus.prometheusSpec.podMetadata.annotations",
 		"prometheus.prometheusSpec.volumeMounts",
 		"prometheus.prometheusSpec.volumes",
 		kvs)
 	if err != nil {
 		return kvs, ctx.Log().ErrorfNewErr("Failed applying the Istio Overrides for Prometheus")
 	}
+
+	// Disable HTTP2 to allow mTLS communication with the application Istio sidecars
+	kvs = append(kvs, []bom.KeyValue{
+		{Key: "prometheus.prometheusSpec.containers[0].name", Value: "prometheus"},
+		{Key: "prometheus.prometheusSpec.containers[0].env[0].name", Value: "PROMETHEUS_COMMON_DISABLE_HTTP2"},
+		{Key: "prometheus.prometheusSpec.containers[0].env[0].value", Value: `"1"`},
+	}...)
 
 	kvs, err = appendAdditionalVolumeOverrides(ctx,
 		"prometheus.prometheusSpec.volumeMounts",
@@ -152,6 +166,13 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	if err != nil {
 		return kvs, ctx.Log().ErrorfNewErr("Failed applying additional volume overrides for Prometheus")
 	}
+
+	// Add a label to Prometheus Operator resources to distinguish Verrazzano resources
+	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("commonLabels.%s", constants.VerrazzanoComponentLabelKey), Value: ComponentName})
+
+	// Add label to the Prometheus Operator pod to avoid a sidecar injection
+	kvs = append(kvs, bom.KeyValue{Key: `prometheusOperator.podAnnotations.sidecar\.istio\.io/inject`, Value: `"false"`})
+
 	return kvs, nil
 }
 
@@ -209,29 +230,15 @@ func (c prometheusComponent) validatePrometheusOperator(vz *vzapi.Verrazzano) er
 
 // appendIstioOverrides appends Istio annotations necessary for Prometheus in Istio
 // Istio is required on the Prometheus for mTLS between it and Verrazzano applications
-func appendIstioOverrides(ctx spi.ComponentContext, annotationsKey, volumeMountKey, volumeKey string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	// Set the Istio annotation on Prometheus to exclude Keycloak HTTP Service IP address.
-	// The includeOutboundIPRanges implies all others are excluded.
-	// This is done by adding the traffic.sidecar.istio.io/includeOutboundIPRanges=<Keycloak IP>/32 annotation.
-	svc := corev1.Service{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: "keycloak-http", Namespace: constants.KeycloakNamespace}, &svc)
-	if err != nil {
-		if !errors.IsNotFound(err) {
-			return kvs, ctx.Log().ErrorfNewErr("Failed to get keycloak-http service: %v", err)
-		}
-	}
-	outboundIP := fmt.Sprintf("%s/32", svc.Spec.ClusterIP)
-	if svc.Spec.ClusterIP == "" {
-		outboundIP = "0.0.0.0/0"
-	}
-
+func appendIstioOverrides(annotationsKey, volumeMountKey, volumeKey string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Istio annotations that will copy the volume mount for the Istio certs to the envoy sidecar
 	// The last annotation allows envoy to intercept only requests from the Keycloak Service IP
 	annotations := map[string]string{
 		`proxy\.istio\.io/config`:                             `{"proxyMetadata":{ "OUTPUT_CERTS": "/etc/istio-output-certs"}}`,
 		`sidecar\.istio\.io/userVolumeMount`:                  `[{"name": "istio-certs-dir", "mountPath": "/etc/istio-output-certs"}]`,
-		`traffic\.sidecar\.istio\.io/includeOutboundIPRanges`: outboundIP,
+		`traffic\.sidecar\.istio\.io/excludeOutboundIPRanges`: "0.0.0.0/0",
 	}
+
 	for key, value := range annotations {
 		kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s.%s", annotationsKey, key), Value: value})
 	}
@@ -280,4 +287,68 @@ func appendAdditionalVolumeOverrides(ctx spi.ComponentContext, volumeMountKey, v
 	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[1].secret.optional", volumeKey), Value: "true"})
 
 	return kvs, nil
+}
+
+// applySystemMonitors applies templatized PodMonitor and ServiceMonitor custom resources for Verrazzano system
+// components to the cluster
+func applySystemMonitors(ctx spi.ComponentContext) error {
+	// create template key/value map
+	args := make(map[string]interface{})
+	args["systemNamespace"] = constants.VerrazzanoSystemNamespace
+	args["monitoringNamespace"] = constants.VerrazzanoMonitoringNamespace
+	args["nginxNamespace"] = constants.IngressNginxNamespace
+	args["istioNamespace"] = constants.IstioSystemNamespace
+
+	// substitute template values to all files in the directory and apply the resulting YAML
+	dir := path.Join(config.GetThirdPartyManifestsDir(), "prometheus-operator")
+	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
+	return yamlApplier.ApplyDT(dir, args)
+}
+
+func updateApplicationAuthorizationPolicies(ctx spi.ComponentContext) error {
+	// Get the Application namespaces by filtering the label verrazzano-managed=true
+	nsList := corev1.NamespaceList{}
+	err := ctx.Client().List(context.TODO(), &nsList, &client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{vzconst.VerrazzanoManagedLabelKey: "true"})})
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to list namespaces with the label %s=true: %v", vzconst.VerrazzanoManagedLabelKey, err)
+	}
+
+	// For each namespace, if an authorization policy exists, add the prometheus operator service account as a principal
+	for _, ns := range nsList.Items {
+		authPolicyList := istioclisec.AuthorizationPolicyList{}
+		err = ctx.Client().List(context.TODO(), &authPolicyList, &client.ListOptions{Namespace: ns.Name})
+		if err != nil {
+			return ctx.Log().ErrorfNewErr("Failed to list Authorization Policies in namespace %s: %v", ns.Name, err)
+		}
+		// Parse the authorization policy list for the Verrazzano Istio label and apply the service account to the first rule
+		for i := range authPolicyList.Items {
+			authPolicy := authPolicyList.Items[i]
+			if _, ok := authPolicy.Labels[constants.IstioAppLabel]; !ok {
+				continue
+			}
+			_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), &authPolicy, func() error {
+				rules := authPolicy.Spec.Rules
+				if len(rules) <= 0 || rules[0] == nil {
+					return nil
+				}
+				targetRule := rules[0]
+				if len(targetRule.From) <= 0 || targetRule.From[0] == nil {
+					return nil
+				}
+				targetFrom := targetRule.From[0]
+				if targetFrom.Source == nil {
+					return nil
+				}
+				// Update the object principal with the Prometheus Operator service account if not found
+				if !sliceutil.Contains(targetFrom.Source.Principals, serviceAccount) {
+					authPolicy.Spec.Rules[0].From[0].Source.Principals = append(targetFrom.Source.Principals, serviceAccount)
+				}
+				return nil
+			})
+			if err != nil {
+				return ctx.Log().ErrorfNewErr("Failed to update the Authorization Policy %s in namespace %s: %v", authPolicy.Name, ns.Name, err)
+			}
+		}
+	}
+	return nil
 }

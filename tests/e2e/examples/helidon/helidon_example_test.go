@@ -29,11 +29,12 @@ const (
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
 	skipVerifications        = "Skip Verifications"
+	helloHelidon             = "hello-helidon"
 )
 
 var (
 	t                  = framework.NewTestFramework("helidon")
-	generatedNamespace = pkg.GenerateNamespace("hello-helidon")
+	generatedNamespace = pkg.GenerateNamespace(helloHelidon)
 	//yamlApplier              = k8sutil.YAMLApplier{}
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
 )
@@ -43,11 +44,12 @@ var _ = t.BeforeSuite(func() {
 		start := time.Now()
 		pkg.DeployHelloHelidonApplication(namespace, "", istioInjection)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
+
+		Eventually(func() bool {
+			return pkg.ContainerImagePullWait(namespace, expectedPodsHelloHelidon)
+		}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	}
 
-	Eventually(func() bool {
-		return pkg.ContainerImagePullWait(namespace, expectedPodsHelloHelidon)
-	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	// Verify hello-helidon-deployment pod is running
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig are created
@@ -161,14 +163,14 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 			}
 			Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"kubernetes.labels.app_oam_dev\\/name": "hello-helidon-appconf",
+					"kubernetes.labels.app_oam_dev\\/name": helloHelidon,
 					"kubernetes.container_name":            "hello-helidon-container",
 				})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
 			Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"kubernetes.labels.app_oam_dev\\/component": "hello-helidon-component",
-					"kubernetes.labels.app_oam_dev\\/name":      "hello-helidon-appconf",
+					"kubernetes.labels.app_oam_dev\\/name":      helloHelidon,
 					"kubernetes.container_name":                 "hello-helidon-container",
 				})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
@@ -208,14 +210,16 @@ func appEndpointAccessible(url string, hostname string) bool {
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		t.Logs.Errorf("Unexpected error while making http request=%v", err)
-		bodyRaw, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			t.Logs.Errorf("Unexpected error while marshallling error response=%v", err)
-			return false
-		}
+		if resp.Body != nil {
+			bodyRaw, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				t.Logs.Errorf("Unexpected error while marshallling error response=%v", err)
+				return false
+			}
 
-		t.Logs.Errorf("Error Response=%v", string(bodyRaw))
-		resp.Body.Close()
+			t.Logs.Errorf("Error Response=%v", string(bodyRaw))
+			resp.Body.Close()
+		}
 		return false
 	}
 
@@ -245,11 +249,11 @@ func appEndpointAccessible(url string, hostname string) bool {
 }
 
 func appMetricsExists() bool {
-	return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "hello-helidon")
+	return pkg.MetricsExist("base_jvm_uptime_seconds", "app", helloHelidon)
 }
 
 func appComponentMetricsExists() bool {
-	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", "hello-helidon-appconf")
+	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", helloHelidon)
 }
 
 func appConfigMetricsExists() bool {

@@ -1,0 +1,38 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: envoy-stats
+  namespace: {{ .monitoringNamespace }}
+  labels:
+    release: prometheus-operator
+spec:
+  selector: {}
+  namespaceSelector:
+    any: true
+  podMetricsEndpoints:
+  - path: /stats/prometheus
+    relabelings:
+      - sourceLabels:
+          - __meta_kubernetes_pod_container_port_name
+        regex: .*-envoy-prom
+        action: keep
+      - sourceLabels:
+          - __address__
+          - __meta_kubernetes_pod_annotation_prometheus_io_port
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        action: replace
+        replacement: $1:15090
+        targetLabel: __address__
+      - action: labeldrop
+        regex: __meta_kubernetes_pod_label_(.+) 
+      - sourceLabels:
+          - __meta_kubernetes_namespace
+        action: replace
+        targetLabel: namespace
+      - sourceLabels:
+          - __meta_kubernetes_pod_name
+        action: replace
+        targetLabel: pod_name

@@ -61,7 +61,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -100,6 +100,8 @@ spec:
                               required:
                               - key
                               type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
                     type: object
@@ -1086,7 +1088,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -1125,6 +1127,8 @@ spec:
                               required:
                               - key
                               type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
                     type: object
@@ -1170,7 +1174,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -1209,6 +1213,8 @@ spec:
                               required:
                               - key
                               type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
                     type: object
@@ -1221,7 +1227,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -1260,6 +1266,8 @@ spec:
                               required:
                               - key
                               type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
                     type: object
@@ -1268,6 +1276,53 @@ spec:
                     properties:
                       enabled:
                         type: boolean
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          description: Overrides stores the specified overrides
+                          properties:
+                            configMapRef:
+                              description: Selects a key from a ConfigMap.
+                              properties:
+                                key:
+                                  description: The key to select.
+                                  type: string
+                                name:
+                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind,
+                                    uid?'
+                                  type: string
+                                optional:
+                                  description: Specify whether the ConfigMap or its
+                                    key must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                            secretRef:
+                              description: SecretKeySelector selects a key of a Secret.
+                              properties:
+                                key:
+                                  description: The key of the secret to select from.  Must
+                                    be a valid secret key.
+                                  type: string
+                                name:
+                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind,
+                                    uid?'
+                                  type: string
+                                optional:
+                                  description: Specify whether the Secret or its key
+                                    must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
                     type: object
                   dns:
                     description: DNS contains the DNS component configuration
@@ -1306,7 +1361,7 @@ spec:
                         type: object
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -1345,6 +1400,8 @@ spec:
                               required:
                               - key
                               type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
                       wildcard:
@@ -1510,6 +1567,8 @@ spec:
                           - source
                           type: object
                         type: array
+                      monitorChanges:
+                        type: boolean
                       oci:
                         description: Configuration for integration with OCI (Oracle
                           Cloud Infrastructure) Logging Service
@@ -1524,6 +1583,51 @@ spec:
                         - defaultAppLogId
                         - systemLogId
                         type: object
+                      overrides:
+                        items:
+                          description: Overrides stores the specified overrides
+                          properties:
+                            configMapRef:
+                              description: Selects a key from a ConfigMap.
+                              properties:
+                                key:
+                                  description: The key to select.
+                                  type: string
+                                name:
+                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind,
+                                    uid?'
+                                  type: string
+                                optional:
+                                  description: Specify whether the ConfigMap or its
+                                    key must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                            secretRef:
+                              description: SecretKeySelector selects a key of a Secret.
+                              properties:
+                                key:
+                                  description: The key of the secret to select from.  Must
+                                    be a valid secret key.
+                                  type: string
+                                name:
+                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind,
+                                    uid?'
+                                  type: string
+                                optional:
+                                  description: Specify whether the Secret or its key
+                                    must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
                     type: object
                   grafana:
                     description: Grafana configuration
@@ -1565,7 +1669,7 @@ spec:
                         type: array
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -1604,6 +1708,8 @@ spec:
                               required:
                               - key
                               type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
                       ports:
@@ -3880,7 +3986,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -3919,6 +4025,8 @@ spec:
                               required:
                               - key
                               type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
                     type: object
@@ -3993,7 +4101,7 @@ spec:
                             type: array
                           overrides:
                             items:
-                              description: Overrides stores the specified InstallOverrides
+                              description: Overrides stores the specified overrides
                               properties:
                                 configMapRef:
                                   description: Selects a key from a ConfigMap.
@@ -4035,6 +4143,8 @@ spec:
                                   required:
                                   - key
                                   type: object
+                                values:
+                                  x-kubernetes-preserve-unknown-fields: true
                               type: object
                             type: array
                           volumeSource:
@@ -5674,7 +5784,7 @@ spec:
                         type: object
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -5713,6 +5823,8 @@ spec:
                               required:
                               - key
                               type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
                     type: object
@@ -5725,7 +5837,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -5764,6 +5876,8 @@ spec:
                               required:
                               - key
                               type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
                     type: object
@@ -5782,7 +5896,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -5821,6 +5935,8 @@ spec:
                               required:
                               - key
                               type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
                     type: object
@@ -5833,7 +5949,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -5872,6 +5988,8 @@ spec:
                               required:
                               - key
                               type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
                     type: object
@@ -5890,7 +6008,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -5929,6 +6047,8 @@ spec:
                               required:
                               - key
                               type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
                     type: object
@@ -5941,7 +6061,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -5980,6 +6100,8 @@ spec:
                               required:
                               - key
                               type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
                     type: object
@@ -5992,7 +6114,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -6031,6 +6153,8 @@ spec:
                               required:
                               - key
                               type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
                     type: object
@@ -6043,7 +6167,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -6082,6 +6206,8 @@ spec:
                               required:
                               - key
                               type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
                     type: object
@@ -6094,7 +6220,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -6133,6 +6259,8 @@ spec:
                               required:
                               - key
                               type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
                     type: object
@@ -6170,7 +6298,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -6209,6 +6337,8 @@ spec:
                               required:
                               - key
                               type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
                     type: object
@@ -6221,7 +6351,7 @@ spec:
                         type: boolean
                       overrides:
                         items:
-                          description: Overrides stores the specified InstallOverrides
+                          description: Overrides stores the specified overrides
                           properties:
                             configMapRef:
                               description: Selects a key from a ConfigMap.
@@ -6260,6 +6390,8 @@ spec:
                               required:
                               - key
                               type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
                     type: object

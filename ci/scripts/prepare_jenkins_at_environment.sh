@@ -15,6 +15,11 @@ if [ -z "$JENKINS_URL" ] || [ -z "$GO_REPO_PATH" ] || [ -z "$TESTS_EXECUTED_FILE
   exit 1
 fi
 
+if ! [ -x "$(command -v go)" ]; then
+  echo "vz command-line tool requires go which does not appear to be installed"
+  exit 1
+fi
+
 INSTALL_CALICO=${1:-false}
 WILDCARD_DNS_DOMAIN=${2:-"x=nip.io"}
 KIND_NODE_COUNT=${KIND_NODE_COUNT:-1}
@@ -57,30 +62,28 @@ cd ${GO_REPO_PATH}/verrazzano
 ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
 ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
 
-echo "Install Platform Operator"
+echo "Determine which yaml file to use to install the Verrazzano Platform Operator"
 cd ${GO_REPO_PATH}/verrazzano
 
+OPERATOR_FILE="${WORKSPACE}/downloaded-operator.yaml"
 if [ -z "$OPERATOR_YAML" ] && [ "" = "${OPERATOR_YAML}" ]; then
   # Derive the name of the operator.yaml file, copy or generate the file, then install
   if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
       echo "Using operator.yaml from object storage"
       oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${OCI_OS_LOCATION}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
-      cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
   else
       echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
       env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
+      OPERATOR_FILE="${WORKSPACE}/acceptance-test-operator.yaml"
   fi
-  kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
 else
   # The operator.yaml filename was provided, install using that file.
   echo "Using provided operator.yaml file: " ${OPERATOR_YAML}
-  kubectl apply -f ${OPERATOR_YAML}
+  OPERATOR_FILE="${OPERATOR_YAML}"
 fi
 
-
-
-# make sure ns exists
-./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
+# Create the verrazzano-install namespace
+kubectl create namespace verrazzano-install
 
 # create secret in verrazzano-install ns
 ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
@@ -92,14 +95,7 @@ fi
 
 # Configure the custom resource to install Verrazzano on Kind
 ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}
-
-echo "Wait for Operator to be ready"
-cd ${GO_REPO_PATH}/verrazzano
-kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-if [ $? -ne 0 ]; then
-  echo "Operator is not ready"
-  exit 1
-fi
+cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/acceptance-test-config.yaml
 
 echo "Creating Override ConfigMap"
 kubectl create cm test-overrides --from-file=${TEST_OVERRIDE_CONFIGMAP_FILE}
@@ -116,18 +112,8 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Installing Verrazzano on Kind"
-install_retries=0
-until kubectl apply -f ${INSTALL_CONFIG_FILE_KIND}; do
-  install_retries=$((install_retries+1))
-  sleep 6
-  if [ $install_retries -ge 10 ] ; then
-    echo "Installation Failed trying to apply the Verrazzano CR YAML"
-    exit 1
-  fi
-done
-
-# wait for Verrazzano install to complete
-./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+cd ${GO_REPO_PATH}/verrazzano/tools/vz
+GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${WORKSPACE}/acceptance-test-config.yaml --operator-file ${OPERATOR_FILE}
 result=$?
 ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/post-vz-install-cluster-dump -r ${WORKSPACE}/post-vz-install-cluster-dump/analysis.report
 if [[ $result -ne 0 ]]; then
