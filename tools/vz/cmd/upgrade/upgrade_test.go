@@ -6,8 +6,11 @@ package upgrade
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"os"
 	"testing"
+
+	appsv1 "k8s.io/api/apps/v1"
 
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
@@ -29,27 +32,35 @@ import (
 //  THEN the CLI upgrade command is successful
 func TestUpgradeCmdDefaultNoWait(t *testing.T) {
 	vpo := &corev1.Pod{
-		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
 			Name:      constants.VerrazzanoPlatformOperator,
 			Labels: map[string]string{
-				"app": constants.VerrazzanoPlatformOperator,
+				"app":               constants.VerrazzanoPlatformOperator,
+				"pod-template-hash": "56f78ffcfd",
 			},
 		},
-		Status: corev1.PodStatus{
-			InitContainerStatuses: []corev1.ContainerStatus{
-				{
-					Name:  "webhook-init",
-					Ready: true,
-				},
+	}
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperator,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
 			},
-			ContainerStatuses: []corev1.ContainerStatus{
-				{
-					Name:  "verrazzano-platform-operator",
-					Ready: true,
-				},
-			},
+		},
+		Status: appsv1.DeploymentStatus{
+			AvailableReplicas: 1,
+			UpdatedReplicas:   1,
+		},
+	}
+	replicatSet := &appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:   vzconstants.VerrazzanoInstallNamespace,
+			Name:        fmt.Sprintf("%s-56f78ffcfd", constants.VerrazzanoPlatformOperator),
+			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 		},
 	}
 	vz := &vzapi.Verrazzano{
@@ -60,7 +71,7 @@ func TestUpgradeCmdDefaultNoWait(t *testing.T) {
 		},
 	}
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, vz).Build()
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment, replicatSet, vz).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -83,13 +94,35 @@ func TestUpgradeCmdDefaultNoWait(t *testing.T) {
 //  THEN the CLI upgrade command times out
 func TestUpgradeCmdDefaultTimeout(t *testing.T) {
 	vpo := &corev1.Pod{
-		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
 			Name:      constants.VerrazzanoPlatformOperator,
 			Labels: map[string]string{
-				"app": constants.VerrazzanoPlatformOperator,
+				"app":               constants.VerrazzanoPlatformOperator,
+				"pod-template-hash": "56f78ffcfd",
 			},
+		},
+	}
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperator,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
+			},
+		},
+		Status: appsv1.DeploymentStatus{
+			AvailableReplicas: 1,
+			UpdatedReplicas:   1,
+		},
+	}
+	replicatSet := &appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:   vzconstants.VerrazzanoInstallNamespace,
+			Name:        fmt.Sprintf("%s-56f78ffcfd", constants.VerrazzanoPlatformOperator),
+			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 		},
 	}
 	vz := &vzapi.Verrazzano{
@@ -100,7 +133,7 @@ func TestUpgradeCmdDefaultTimeout(t *testing.T) {
 		},
 	}
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, vz).Build()
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment, replicatSet, vz).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -146,8 +179,8 @@ func TestUpgradeCmdDefaultNoVPO(t *testing.T) {
 	err := cmd.Execute()
 	cmdHelpers.ResetVpoWaitRetries()
 	assert.Error(t, err)
-	assert.EqualError(t, err, "Waiting for verrazzano-platform-operator, pod was not found in namespace verrazzano-install")
-	assert.Equal(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator, pod was not found in namespace verrazzano-install\n")
+	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
+	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
 }
 
 // TestUpgradeCmdDefaultMultipleVPO
@@ -156,12 +189,12 @@ func TestUpgradeCmdDefaultNoVPO(t *testing.T) {
 //  THEN the CLI upgrade command fails
 func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 	vpo1 := &corev1.Pod{
-		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
-			Name:      constants.VerrazzanoPlatformOperator + "-1",
+			Name:      constants.VerrazzanoPlatformOperator,
 			Labels: map[string]string{
-				"app": constants.VerrazzanoPlatformOperator,
+				"app":               constants.VerrazzanoPlatformOperator,
+				"pod-template-hash": "56f78ffcfd",
 			},
 		},
 	}
@@ -171,8 +204,31 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
 			Name:      constants.VerrazzanoPlatformOperator + "-2",
 			Labels: map[string]string{
-				"app": constants.VerrazzanoPlatformOperator,
+				"app":               constants.VerrazzanoPlatformOperator,
+				"pod-template-hash": "56f78ffcfe",
 			},
+		},
+	}
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperator,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
+			},
+		},
+		Status: appsv1.DeploymentStatus{
+			AvailableReplicas: 1,
+			UpdatedReplicas:   1,
+		},
+	}
+	replicatSet := &appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:   vzconstants.VerrazzanoInstallNamespace,
+			Name:        fmt.Sprintf("%s-56f78ffcfd", constants.VerrazzanoPlatformOperator),
+			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 		},
 	}
 	vz := &vzapi.Verrazzano{
@@ -183,7 +239,7 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 		},
 	}
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo1, vpo2, vz).Build()
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo1, vpo2, deployment, replicatSet, vz).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -196,8 +252,8 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.Error(t, err)
-	assert.EqualError(t, err, "Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
-	assert.Equal(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install\n")
+	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator pod in namespace verrazzano-install: failed to get replicaset")
+	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator pod in namespace verrazzano-install: failed to get replicaset")
 }
 
 // TestUpgradeCmdJsonLogFormat
@@ -206,13 +262,35 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 //  THEN the CLI upgrade command is successful
 func TestUpgradeCmdJsonLogFormat(t *testing.T) {
 	vpo := &corev1.Pod{
-		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
 			Name:      constants.VerrazzanoPlatformOperator,
 			Labels: map[string]string{
-				"app": constants.VerrazzanoPlatformOperator,
+				"app":               constants.VerrazzanoPlatformOperator,
+				"pod-template-hash": "56f78ffcfd",
 			},
+		},
+	}
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperator,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
+			},
+		},
+		Status: appsv1.DeploymentStatus{
+			AvailableReplicas: 1,
+			UpdatedReplicas:   1,
+		},
+	}
+	replicatSet := &appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:   vzconstants.VerrazzanoInstallNamespace,
+			Name:        fmt.Sprintf("%s-56f78ffcfd", constants.VerrazzanoPlatformOperator),
+			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 		},
 	}
 	vz := &vzapi.Verrazzano{
@@ -223,7 +301,7 @@ func TestUpgradeCmdJsonLogFormat(t *testing.T) {
 		},
 	}
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, vz).Build()
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment, replicatSet, vz).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -247,13 +325,35 @@ func TestUpgradeCmdJsonLogFormat(t *testing.T) {
 //  THEN the CLI upgrade command is successful
 func TestUpgradeCmdOperatorFile(t *testing.T) {
 	vpo := &corev1.Pod{
-		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
 			Name:      constants.VerrazzanoPlatformOperator,
 			Labels: map[string]string{
-				"app": constants.VerrazzanoPlatformOperator,
+				"app":               constants.VerrazzanoPlatformOperator,
+				"pod-template-hash": "56f78ffcfd",
 			},
+		},
+	}
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperator,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
+			},
+		},
+		Status: appsv1.DeploymentStatus{
+			AvailableReplicas: 1,
+			UpdatedReplicas:   1,
+		},
+	}
+	replicatSet := &appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:   vzconstants.VerrazzanoInstallNamespace,
+			Name:        fmt.Sprintf("%s-56f78ffcfd", constants.VerrazzanoPlatformOperator),
+			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 		},
 	}
 	vz := &vzapi.Verrazzano{
@@ -264,7 +364,7 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 		},
 	}
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, vz).Build()
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment, replicatSet, vz).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
