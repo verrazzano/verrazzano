@@ -119,6 +119,24 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 		},
 	}
 
+	// Provide the user with feedback while waiting for the verrazzano-platform-operator to be ready
+	feedbackChan := make(chan bool)
+	defer close(feedbackChan)
+	go func(outputStream io.Writer) {
+		seconds := 0
+		for {
+			select {
+			case <-feedbackChan:
+				return
+			default:
+				time.Sleep(constants.VerrazzanoPlatformOperatorWait * time.Second)
+				seconds += constants.VerrazzanoPlatformOperatorWait
+				fmt.Fprintf(outputStream, fmt.Sprintf("\rWaiting for %s to be ready before starting %s - %d seconds", constants.VerrazzanoPlatformOperator, getOperationString(condType), seconds))
+
+			}
+		}
+	}(vzHelper.GetOutputStream())
+
 	// Wait for the verrazzano-platform-operator pod to be found
 	seconds := 0
 	retryCount := 0

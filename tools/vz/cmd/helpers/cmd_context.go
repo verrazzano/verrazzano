@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 
+	appv1 "k8s.io/api/apps/v1"
+
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -59,6 +61,7 @@ func (rc *RootCmdContext) GetClient(cmd *cobra.Command) (client.Client, error) {
 	scheme := runtime.NewScheme()
 	_ = vzapi.AddToScheme(scheme)
 	_ = corev1.SchemeBuilder.AddToScheme(scheme)
+	_ = appv1.SchemeBuilder.AddToScheme(scheme)
 
 	return client.New(config, client.Options{Scheme: scheme})
 }
