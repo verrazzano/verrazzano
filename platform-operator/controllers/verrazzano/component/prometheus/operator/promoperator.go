@@ -203,13 +203,13 @@ func appendCustomImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, su
 func appendDefaultImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, subcomponents map[string]string) ([]bom.KeyValue, error) {
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
-		return kvs, ctx.Log().ErrorNewErr("Failed to get the bom file for the Prometheus Operator image overrides: ", err)
+		return kvs, ctx.Log().ErrorNewErr("Failed to get the bom file for the Prometheus Operator image overrides: %v", err)
 	}
 
 	for subcomponent, helmKey := range subcomponents {
 		images, err := bomFile.GetImageNameList(subcomponent)
 		if err != nil {
-			return kvs, ctx.Log().ErrorfNewErr("Failed to get the image for subcomponent %s from the bom: ", subcomponent, err)
+			return kvs, ctx.Log().ErrorfNewErr("Failed to get the image for subcomponent %s from the bom: %v", subcomponent, err)
 		}
 		if len(images) > 0 {
 			kvs = append(kvs, bom.KeyValue{Key: helmKey, Value: images[0]})
@@ -299,7 +299,7 @@ func appendAdditionalVolumeOverrides(ctx spi.ComponentContext, volumeMountKey, v
 func appendTLSSecretGeneratorImage(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
-		return kvs, ctx.Log().ErrorNewErr("Failed to get the bom file for the Prometheus Operator image overrides: ", err)
+		return kvs, ctx.Log().ErrorNewErr("Failed to get the bom file for the Prometheus Operator image overrides: %v", err)
 	}
 	subcomponent := "tls-secret-generator"
 	images, err := bomFile.GetImageNameList(subcomponent)

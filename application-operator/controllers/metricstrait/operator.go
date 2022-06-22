@@ -113,6 +113,8 @@ func (r *Reconciler) fetchTraitDefaults(ctx context.Context, workload *unstructu
 
 }
 
+// copyIstioCertSecret copies the generated Istio cert secret in the verrazzano-monitoring namespace to the applications namespace
+// This enables the Pod Monitor to use the Istio cert for mTLS
 func (r *Reconciler) copyIstioCertSecret(ctx context.Context, workload *unstructured.Unstructured, log vzlog.VerrazzanoLogger) error {
 	istioCertSecret := corev1.Secret{}
 	err := r.Client.Get(ctx, types.NamespacedName{Namespace: vzconst.PrometheusOperatorNamespace, Name: vzconst.IstioTLSSecretName}, &istioCertSecret)
