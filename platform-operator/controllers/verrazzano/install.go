@@ -26,9 +26,9 @@ import (
 func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
 	//GC Create a new Component context from the Custom Resource
 	//GC A component context defines context objects created for component opreations
-	var istio_time_counter = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "istio_time_counter",
-		Help: "Time it takes for istio component to be installed",
+	var test_counter = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "test_counter",
+		Help: "Time for test",
 	})
 	spiCtx, err := spi.NewContext(vzctx.Log, r.Client, vzctx.ActualCR, r.DryRun)
 	if err != nil {
@@ -131,17 +131,14 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 				continue
 			}
 			compLog.Progressf("Component %s pre-install is running ", compName)
-			// Add metric
+
 			if err := comp.PreInstall(compContext); err != nil {
 				requeue = true
 				continue
 			}
 			// If component is not installed,install it
 			//If possible in this part of function maybe add a global array to check that this is defined globally
-			var istio_time_counter = promauto.NewCounter(prometheus.CounterOpts{
-				Name: "istio_time_counter",
-				Help: "Time it takes for istio component to be installed",
-			})
+			test_counter.Set(float64(1))
 			compLog.Oncef("Component %s install started ", compName)
 			if err := comp.Install(compContext); err != nil {
 				requeue = true
