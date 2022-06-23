@@ -4,10 +4,10 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: vpo #name of service monitor
-  namespace: {{ .monitoringNamespace }} #namespace of service monitor
+  name: verrazzano-platform-operator
+  namespace: {{ .monitoringNamespace }} 
   labels:
-    release: prometheus-operator #this tells prometheus to select this monitor for use
+    release: prometheus-operator 
 spec:
   namespaceSelector:
     matchNames:
