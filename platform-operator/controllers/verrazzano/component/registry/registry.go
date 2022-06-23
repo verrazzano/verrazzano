@@ -38,7 +38,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/velero"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 )
 
 type GetCompoentsFnType func() []spi.Component
@@ -67,7 +66,6 @@ func InitRegistry() {
 		oam.NewComponent(),
 		appoper.NewComponent(),
 		istio.NewComponent(),
-		weblogic.NewComponent(),
 		nginx.NewComponent(),
 		certmanager.NewComponent(),
 		externaldns.NewComponent(),
