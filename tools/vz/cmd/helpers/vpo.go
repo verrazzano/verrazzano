@@ -240,7 +240,7 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 			}
 
 			// Pause before next status check
-			time.Sleep(15 * time.Second)
+			time.Sleep(1 * time.Second)
 		}
 	}()
 
