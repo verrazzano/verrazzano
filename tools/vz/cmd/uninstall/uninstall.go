@@ -72,11 +72,6 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-	// Validate the command options.
-	err := cmdhelpers.ValidateCmd(cmd)
-	if err != nil {
-		return fmt.Errorf("Command validation failed: %s", err.Error())
-	}
 
 	// Get the controller runtime client.
 	client, err := vzHelper.GetClient(cmd)
@@ -102,12 +97,6 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return err
 	}
 
-	// Get the verrazzano install resource.
-	vz, err = helpers.GetVerrazzanoResource(client, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name})
-	if err != nil {
-		return err
-	}
-
 	// Delete the Verrazzano custom resource.
 	err = client.Delete(context.TODO(), vz)
 	if err != nil {
@@ -121,7 +110,39 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	}
 
 	// Wait for the Verrazzano uninstall to complete.
-	return waitForUninstallToComplete(client, kubeClient, vzHelper, uninstallPodName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout)
+	err = waitForUninstallToComplete(client, kubeClient, vzHelper, uninstallPodName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout)
+	if err != nil {
+		return fmt.Errorf("Failed to uninstall in Verrazzano resource: %s", err.Error())
+	}
+
+	return cleanupResources(client, vzHelper)
+}
+
+func cleanupResources(client clipkg.Client, vzHelper helpers.VZHelper) error {
+	// Delete verrazzano-install namespace
+	err := deleteNamespace(client, constants.VerrazzanoInstall)
+	if err != nil {
+		return err
+	}
+
+	// Delete other verrazzano resources
+	err = deleteWebhookConfiguration(client, constants.VerrazzanoPlatformOperator)
+	if err != nil {
+		return err
+	}
+
+	err = deleteClusterRoleBinding(client, constants.VerrazzanoPlatformOperator)
+	if err != nil {
+		return err
+	}
+
+	err = deleteClusterRole(client, constants.VerrazzanoManagedCluster)
+	if err != nil {
+		return err
+	}
+
+	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), "Successfully uninstalled Verrazzano\n")
+	return nil
 }
 
 func getUninstallPodName(c client.Client, vzHelper helpers.VZHelper) (string, error) {
@@ -235,36 +256,16 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 			_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Timeout %v exceeded waiting for uninstall to complete\n", timeout.String()))
 		}
 	}
-
-	// Delete verrazzano-install namespace
-	err = deleteNamespace(client, constants.VerrazzanoInstall)
-	if err != nil {
-		return err
-	}
-
-	// Delete other verrazzano resources
-	err = deleteWebhookConfiguration(client, constants.VerrazzanoPlatformOperator)
-	if err != nil {
-		return err
-	}
-
-	err = deleteClusterRoleBinding(client, constants.VerrazzanoPlatformOperator)
-	if err != nil {
-		return err
-	}
-
-	err = deleteClusterRole(client, constants.VerrazzanoManagedCluster)
-	if err != nil {
-		return err
-	}
-
-	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), "Successfully uninstalled Verrazzano\n")
 	return nil
 }
 
 func deleteNamespace(client client.Client, name string) error {
 	ns := &corev1.Namespace{}
 	err := client.Get(context.TODO(), types.NamespacedName{Name: name}, ns)
+	if errors.IsNotFound(err) {
+		return nil
+	}
+
 	if err != nil {
 		return fmt.Errorf("Failed to get Namespace resource %s: %s", name, err.Error())
 	}
@@ -279,6 +280,10 @@ func deleteNamespace(client client.Client, name string) error {
 func deleteWebhookConfiguration(client clipkg.Client, name string) error {
 	vwc := &adminv1.ValidatingWebhookConfiguration{}
 	err := client.Get(context.TODO(), types.NamespacedName{Name: name}, vwc)
+	if errors.IsNotFound(err) {
+		return nil
+	}
+
 	if err != nil {
 		return fmt.Errorf("Failed to get ValidatingWebhookConfig resource %s: %s", name, err.Error())
 	}
@@ -292,8 +297,11 @@ func deleteWebhookConfiguration(client clipkg.Client, name string) error {
 
 func deleteClusterRoleBinding(client clipkg.Client, name string) error {
 	crb := &rbacv1.ClusterRoleBinding{}
-
 	err := client.Get(context.TODO(), types.NamespacedName{Name: name}, crb)
+	if errors.IsNotFound(err) {
+		return nil
+	}
+
 	if err != nil {
 		return fmt.Errorf("Failed to get ClusterRoleBinding resource %s: %s", name, err.Error())
 	}
@@ -308,6 +316,10 @@ func deleteClusterRoleBinding(client clipkg.Client, name string) error {
 func deleteClusterRole(client client.Client, name string) error {
 	cr := &rbacv1.ClusterRole{}
 	err := client.Get(context.TODO(), types.NamespacedName{Name: name}, cr)
+	if errors.IsNotFound(err) {
+		return nil
+	}
+
 	if err != nil {
 		return fmt.Errorf("Failed to get ClusterRole resource %s: %s", name, err.Error())
 	}
