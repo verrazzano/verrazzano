@@ -134,13 +134,16 @@ const ObservedUpgradeRetryVersion = "verrazzano.io/observed-upgrade-retry-versio
 // NGINXControllerServiceName is the nginx ingress controller name
 const NGINXControllerServiceName = "ingress-controller-ingress-nginx-controller"
 
-// InstallOperation is the install string
+// InstallOperation indicates that an install operation being executed by a component
 const InstallOperation = "install"
 
-// UpgradeOperation is the install string
+// UpgradeOperation indicates that an upgrade operation being executed by a component
 const UpgradeOperation = "upgrade"
 
-// InitializeOperation is the initialize string
+// UninstallOperation indicates that an uninstall operation being executed by a component
+const UninstallOperation = "uninstall"
+
+// InitializeOperation indicates that an initialize operation being executed by a component
 const InitializeOperation = "initialize"
 
 // ReconcileLoopRequeueInterval is the interval before reconcile gets called again.
