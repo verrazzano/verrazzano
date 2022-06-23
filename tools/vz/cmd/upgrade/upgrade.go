@@ -140,9 +140,6 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		break
 	}
 
-	if err != nil {
-	}
-
 	// Wait for the Verrazzano upgrade to complete
 	return waitForUpgradeToComplete(client, kubeClient, vzHelper, vpoPodName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, logFormat)
 }
