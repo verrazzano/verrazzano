@@ -18,14 +18,16 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/modules"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/reconciler"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
 // ComponentName is the name of the component
@@ -41,8 +43,8 @@ type weblogicComponent struct {
 	helm.HelmComponent
 }
 
-func NewComponent() spi.Component {
-	return weblogicComponent{
+func NewComponent(module *modulesv1alpha1.Module) modules.DelegateReconciler {
+	h := weblogicComponent{
 		helm.HelmComponent{
 			ReleaseName:               ComponentName,
 			JSONName:                  ComponentJSONName,
@@ -65,6 +67,13 @@ func NewComponent() spi.Component {
 					},
 				},
 			},
+		},
+	}
+	helm.SetForModule(&h, module)
+
+	return &reconciler.Reconciler{
+		ModuleComponent: weblogicComponent{
+			h,
 		},
 	}
 }
