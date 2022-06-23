@@ -14,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	adminv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
@@ -62,6 +63,7 @@ func (rc *RootCmdContext) GetClient(cmd *cobra.Command) (client.Client, error) {
 	_ = vzapi.AddToScheme(scheme)
 	_ = corev1.SchemeBuilder.AddToScheme(scheme)
 	_ = adminv1.SchemeBuilder.AddToScheme(scheme)
+	_ = rbacv1.SchemeBuilder.AddToScheme(scheme)
 
 	return client.New(config, client.Options{Scheme: scheme})
 }
