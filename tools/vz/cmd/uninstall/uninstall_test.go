@@ -20,7 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-// TestUninstallCmd - check that command reports not implemented yet
+// TestUninstallCmd - check that the uninstall command removes the Verrazzano resource
 func TestUninstallCmd(t *testing.T) {
 	uninstall := &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{},

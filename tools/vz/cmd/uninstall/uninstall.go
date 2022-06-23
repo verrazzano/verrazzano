@@ -38,8 +38,8 @@ const (
 # Uninstall Verrazzano except for CRDs and stream the logs to the console.  Stream the logs to the console until the uninstall completes.
 vz uninstall
 
-# Uninstall Verrazzano including the CRDs and wait for the command to complete. Output the logs in json format, timeout the command after 20 minutes.
-vz uninstall --crds --timeout 20m`
+# Uninstall Verrazzano and wait for the command to complete. Timeout the command after 20 minutes.
+vz uninstall --timeout 20m`
 )
 
 // Number of retries after waiting a second for uninstall pod to be ready
@@ -104,6 +104,7 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	}
 	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), "Uninstalling Verrazzano\n")
 
+	// Get the uninstall job to stream the logs.
 	uninstallPodName, err := getUninstallPodName(client, vzHelper)
 	if err != nil {
 		return err
@@ -115,10 +116,11 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return fmt.Errorf("Failed to uninstall in Verrazzano resource: %s", err.Error())
 	}
 
-	return cleanupResources(client, vzHelper)
+	// Delete remaining Verrazzano resources, excluding CRDs
+	return cleanupResources(client, vzHelper, cmd)
 }
 
-func cleanupResources(client clipkg.Client, vzHelper helpers.VZHelper) error {
+func cleanupResources(client clipkg.Client, vzHelper helpers.VZHelper, cmd *cobra.Command) error {
 	// Delete verrazzano-install namespace
 	err := deleteNamespace(client, constants.VerrazzanoInstall)
 	if err != nil {
