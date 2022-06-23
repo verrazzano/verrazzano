@@ -176,7 +176,9 @@ func (r *Reconciler) doReconcile(ctx context.Context, trait *vzapi.IngressTrait,
 		// Trigger a reconcile of all the IngressTraits for this appconfig
 		for _, ingressTrait := range ingressTraits.Items {
 			if ingressTrait.Labels[oam.LabelAppName] == trait.Labels[oam.LabelAppName] {
-				r.Reconcile(context.TODO(), ctrl.Request{types.NamespacedName{Namespace: ingressTrait.Namespace, Name: ingressTrait.Name}})
+				if ingressTrait.DeletionTimestamp == nil {
+					r.Reconcile(context.TODO(), ctrl.Request{types.NamespacedName{Namespace: ingressTrait.Namespace, Name: ingressTrait.Name}})
+				}
 			}
 		}
 		// resource cleanup has succeeded, remove the finalizer
