@@ -32,53 +32,79 @@ func logHelper() (*zap.SugaredLogger, string) {
 }
 
 var (
-	server *httptest.Server
-	o      opensearch.Opensearch
+	httpServer *httptest.Server
+	openSearch opensearch.Opensearch
 )
 
-func mockEnsureOpenSearchIsReachable(w http.ResponseWriter, r *http.Request) {
+func mockEnsureOpenSearchIsReachable(error bool, w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Reachable ...")
 	w.Header().Add("Content-Type", constants.HTTPContentType)
-	w.WriteHeader(http.StatusOK)
+	if error {
+		w.WriteHeader(http.StatusGatewayTimeout)
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
 	var osinfo types.OpenSearchClusterInfo
 	osinfo.ClusterName = "foo"
 	json.NewEncoder(w).Encode(osinfo)
 }
 
-func mockEnsureOpenSearchIsHealthy(w http.ResponseWriter, r *http.Request) {
+func mockEnsureOpenSearchIsHealthy(error bool, w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Healthy ...")
 	w.Header().Add("Content-Type", constants.HTTPContentType)
-	w.WriteHeader(http.StatusOK)
 	var oshealth types.OpenSearchHealthResponse
 	oshealth.ClusterName = "bar"
-	oshealth.Status = "green"
+	if error {
+		w.WriteHeader(http.StatusGatewayTimeout)
+		oshealth.Status = "red"
+	} else {
+		w.WriteHeader(http.StatusOK)
+		oshealth.Status = "green"
+	}
 	json.NewEncoder(w).Encode(oshealth)
 }
 
-func mockOpenSearchOperationResponse(w http.ResponseWriter, r *http.Request) {
+func mockOpenSearchOperationResponse(error bool, w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Snapshot register ...")
 	w.Header().Add("Content-Type", constants.HTTPContentType)
-	w.WriteHeader(http.StatusOK)
 	var registerResponse types.OpenSearchOperationResponse
-	registerResponse.Acknowledged = true
+	if error {
+		w.WriteHeader(http.StatusGatewayTimeout)
+		registerResponse.Acknowledged = false
+	} else {
+		w.WriteHeader(http.StatusOK)
+		registerResponse.Acknowledged = true
+	}
+
 	json.NewEncoder(w).Encode(registerResponse)
 }
 
-func mockReloadOpensearchSecureSettings(w http.ResponseWriter, r *http.Request) {
+func mockReloadOpensearchSecureSettings(error bool, w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Reload secure settings")
 	w.Header().Add("Content-Type", constants.HTTPContentType)
-	w.WriteHeader(http.StatusOK)
 	var reloadsettings types.OpenSearchSecureSettingsReloadStatus
-	reloadsettings.ClusterNodes.Failed = 0
+	w.WriteHeader(http.StatusOK)
 	reloadsettings.ClusterNodes.Total = 3
-	reloadsettings.ClusterNodes.Successful = 3
+	if error {
+		reloadsettings.ClusterNodes.Failed = 1
+		reloadsettings.ClusterNodes.Successful = 3
+	} else {
+		reloadsettings.ClusterNodes.Failed = 0
+		reloadsettings.ClusterNodes.Successful = 3
+	}
 	json.NewEncoder(w).Encode(reloadsettings)
 }
 
-func mockTriggerSnapshotRepository(w http.ResponseWriter, r *http.Request) {
+func mockTriggerSnapshotRepository(error bool, w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Snapshot ...")
 	w.Header().Add("Content-Type", constants.HTTPContentType)
-	w.WriteHeader(http.StatusOK)
+
+	if error {
+		w.WriteHeader(http.StatusGatewayTimeout)
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
+
 	switch r.Method {
 	case http.MethodPost:
 		var triggerSnapshot types.OpenSearchSnapshotResponse
@@ -119,18 +145,18 @@ func mockRestoreProgress(w http.ResponseWriter, r *http.Request) {
 
 func TestMain(m *testing.M) {
 	fmt.Println("Starting mock server")
-	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	httpServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch strings.TrimSpace(r.URL.Path) {
 		case "/":
-			mockEnsureOpenSearchIsReachable(w, r)
+			mockEnsureOpenSearchIsReachable(false, w, r)
 		case "/_cluster/health":
-			mockEnsureOpenSearchIsHealthy(w, r)
+			mockEnsureOpenSearchIsHealthy(false, w, r)
 		case fmt.Sprintf("/_snapshot/%s", constants.OpeSearchSnapShotRepoName), "/_data_stream/*", "/*":
-			mockOpenSearchOperationResponse(w, r)
+			mockOpenSearchOperationResponse(false, w, r)
 		case "/_nodes/reload_secure_settings":
-			mockReloadOpensearchSecureSettings(w, r)
+			mockReloadOpensearchSecureSettings(false, w, r)
 		case fmt.Sprintf("/_snapshot/%s/%s", constants.OpeSearchSnapShotRepoName, "mango"), fmt.Sprintf("/_snapshot/%s/%s/_restore", constants.OpeSearchSnapShotRepoName, "mango"):
-			mockTriggerSnapshotRepository(w, r)
+			mockTriggerSnapshotRepository(false, w, r)
 		case "/_data_stream":
 			mockRestoreProgress(w, r)
 
@@ -138,10 +164,11 @@ func TestMain(m *testing.M) {
 			http.NotFoundHandler().ServeHTTP(w, r)
 		}
 	}))
+	defer httpServer.Close()
 
 	fmt.Println("mock opensearch handler")
 	timeParse, _ := time.ParseDuration("10m")
-	o = opensearch.New(server.URL, timeParse, http.DefaultClient)
+	openSearch = opensearch.New(httpServer.URL, timeParse, http.DefaultClient)
 
 	fmt.Println("Start tests")
 	m.Run()
@@ -155,11 +182,38 @@ func Test_EnsureOpenSearchIsReachable(t *testing.T) {
 	log, f := logHelper()
 	defer os.Remove(f)
 
+	server1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch strings.TrimSpace(r.URL.Path) {
+		case "/":
+			mockEnsureOpenSearchIsReachable(false, w, r)
+		default:
+			http.NotFoundHandler().ServeHTTP(w, r)
+		}
+	}))
+	defer server1.Close()
+	timeParse, _ := time.ParseDuration("10m")
+	o := opensearch.New(server1.URL, timeParse, http.DefaultClient)
+
 	var c types.ConnectionData
 	c.BackupName = "mango"
 	c.Timeout = "1s"
 	err := o.EnsureOpenSearchIsReachable(&c, log)
 	assert.Nil(t, err)
+
+	server2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch strings.TrimSpace(r.URL.Path) {
+		case "/":
+			mockEnsureOpenSearchIsReachable(true, w, r)
+		default:
+			http.NotFoundHandler().ServeHTTP(w, r)
+		}
+	}))
+	defer server2.Close()
+
+	o = opensearch.New(server2.URL, timeParse, http.DefaultClient)
+	err = o.EnsureOpenSearchIsReachable(&c, log)
+	assert.Nil(t, err)
+
 }
 
 // Test_EnsureOpenSearchIsHealthy tests the EnsureOpenSearchIsHealthy method for the following use case.
@@ -170,11 +224,37 @@ func Test_EnsureOpenSearchIsHealthy(t *testing.T) {
 	log, f := logHelper()
 	defer os.Remove(f)
 
+	server1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch strings.TrimSpace(r.URL.Path) {
+		case "/_cluster/health":
+			mockEnsureOpenSearchIsHealthy(false, w, r)
+		default:
+			http.NotFoundHandler().ServeHTTP(w, r)
+		}
+	}))
+	defer server1.Close()
+	timeParse, _ := time.ParseDuration("10m")
+	o := opensearch.New(server1.URL, timeParse, http.DefaultClient)
+
 	var c types.ConnectionData
 	c.BackupName = "mango"
 	c.Timeout = "1s"
 	err := o.EnsureOpenSearchIsHealthy(&c, log)
 	assert.Nil(t, err)
+
+	server2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch strings.TrimSpace(r.URL.Path) {
+		case "/_cluster/health":
+			mockEnsureOpenSearchIsHealthy(true, w, r)
+		default:
+			http.NotFoundHandler().ServeHTTP(w, r)
+		}
+	}))
+	defer server2.Close()
+
+	o = opensearch.New(server2.URL, timeParse, http.DefaultClient)
+	err = o.EnsureOpenSearchIsHealthy(&c, log)
+	assert.NotNil(t, err)
 }
 
 // Test_EnsureOpenSearchIsHealthy tests the EnsureOpenSearchIsHealthy method for the following use case.
@@ -184,6 +264,18 @@ func Test_EnsureOpenSearchIsHealthy(t *testing.T) {
 func Test_RegisterSnapshotRepository(t *testing.T) {
 	log, f := logHelper()
 	defer os.Remove(f)
+
+	server1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch strings.TrimSpace(r.URL.Path) {
+		case fmt.Sprintf("/_snapshot/%s", constants.OpeSearchSnapShotRepoName):
+			mockOpenSearchOperationResponse(false, w, r)
+		default:
+			http.NotFoundHandler().ServeHTTP(w, r)
+		}
+	}))
+	defer server1.Close()
+	timeParse, _ := time.ParseDuration("10m")
+	o := opensearch.New(server1.URL, timeParse, http.DefaultClient)
 
 	var objsecret types.ObjectStoreSecret
 	objsecret.SecretName = "alpha"
@@ -198,6 +290,21 @@ func Test_RegisterSnapshotRepository(t *testing.T) {
 
 	err := o.RegisterSnapshotRepository(&sdat, log)
 	assert.Nil(t, err)
+
+	server2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch strings.TrimSpace(r.URL.Path) {
+		case fmt.Sprintf("/_snapshot/%s", constants.OpeSearchSnapShotRepoName):
+			mockOpenSearchOperationResponse(true, w, r)
+		default:
+			http.NotFoundHandler().ServeHTTP(w, r)
+		}
+	}))
+	defer server2.Close()
+
+	o = opensearch.New(server2.URL, timeParse, http.DefaultClient)
+	err = o.RegisterSnapshotRepository(&sdat, log)
+	assert.NotNil(t, err)
+
 }
 
 // Test_ReloadOpensearchSecureSettings tests the ReloadOpensearchSecureSettings method for the following use case.
@@ -207,8 +314,32 @@ func Test_RegisterSnapshotRepository(t *testing.T) {
 func Test_ReloadOpensearchSecureSettings(t *testing.T) {
 	log, f := logHelper()
 	defer os.Remove(f)
+	server1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch strings.TrimSpace(r.URL.Path) {
+		case "/_nodes/reload_secure_settings":
+			mockReloadOpensearchSecureSettings(false, w, r)
+		default:
+			http.NotFoundHandler().ServeHTTP(w, r)
+		}
+	}))
+	defer server1.Close()
+	timeParse, _ := time.ParseDuration("10m")
+	o := opensearch.New(server1.URL, timeParse, http.DefaultClient)
 	err := o.ReloadOpensearchSecureSettings(log)
 	assert.Nil(t, err)
+
+	server2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch strings.TrimSpace(r.URL.Path) {
+		case "/_nodes/reload_secure_settings":
+			mockReloadOpensearchSecureSettings(true, w, r)
+		default:
+			http.NotFoundHandler().ServeHTTP(w, r)
+		}
+	}))
+	defer server2.Close()
+	o = opensearch.New(server2.URL, timeParse, http.DefaultClient)
+	err = o.ReloadOpensearchSecureSettings(log)
+	assert.NotNil(t, err)
 }
 
 // TestTriggerSnapshot tests the TriggerSnapshot method for the following use case.
@@ -219,10 +350,37 @@ func Test_TriggerSnapshot(t *testing.T) {
 	log, f := logHelper()
 	defer os.Remove(f)
 
+	server1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch strings.TrimSpace(r.URL.Path) {
+		case fmt.Sprintf("/_snapshot/%s/%s", constants.OpeSearchSnapShotRepoName, "mango"):
+			mockTriggerSnapshotRepository(false, w, r)
+		default:
+			http.NotFoundHandler().ServeHTTP(w, r)
+		}
+	}))
+	defer server1.Close()
+	timeParse, _ := time.ParseDuration("10m")
+	o := opensearch.New(server1.URL, timeParse, http.DefaultClient)
+
 	var c types.ConnectionData
 	c.BackupName = "mango"
 	err := o.TriggerSnapshot(&c, log)
 	assert.Nil(t, err)
+
+	server2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch strings.TrimSpace(r.URL.Path) {
+		case fmt.Sprintf("/_snapshot/%s/%s", constants.OpeSearchSnapShotRepoName, "mango"):
+			mockTriggerSnapshotRepository(true, w, r)
+		default:
+			http.NotFoundHandler().ServeHTTP(w, r)
+		}
+	}))
+	defer server2.Close()
+	o = opensearch.New(server2.URL, timeParse, http.DefaultClient)
+
+	err = o.TriggerSnapshot(&c, log)
+	assert.NotNil(t, err)
+
 }
 
 // TestCheckSnapshotProgress tests the CheckSnapshotProgress method for the following use case.
@@ -232,6 +390,18 @@ func Test_TriggerSnapshot(t *testing.T) {
 func TestCheckSnapshotProgress(t *testing.T) {
 	log, f := logHelper()
 	defer os.Remove(f)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch strings.TrimSpace(r.URL.Path) {
+		case fmt.Sprintf("/_snapshot/%s/%s", constants.OpeSearchSnapShotRepoName, "mango"):
+			mockTriggerSnapshotRepository(false, w, r)
+		default:
+			http.NotFoundHandler().ServeHTTP(w, r)
+		}
+	}))
+	defer server.Close()
+	timeParse, _ := time.ParseDuration("10m")
+	o := opensearch.New(server.URL, timeParse, http.DefaultClient)
 
 	var c types.ConnectionData
 	c.BackupName = "mango"
@@ -248,8 +418,34 @@ func Test_DeleteDataStreams(t *testing.T) {
 	log, f := logHelper()
 	defer os.Remove(f)
 
+	server1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch strings.TrimSpace(r.URL.Path) {
+		case "/_data_stream/*", "/*":
+			mockOpenSearchOperationResponse(false, w, r)
+		default:
+			http.NotFoundHandler().ServeHTTP(w, r)
+		}
+	}))
+	defer server1.Close()
+	timeParse, _ := time.ParseDuration("10m")
+	o := opensearch.New(server1.URL, timeParse, http.DefaultClient)
+
 	err := o.DeleteData(log)
 	assert.Nil(t, err)
+
+	server2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch strings.TrimSpace(r.URL.Path) {
+		case "/_data_stream/*", "/*":
+			mockOpenSearchOperationResponse(true, w, r)
+		default:
+			http.NotFoundHandler().ServeHTTP(w, r)
+		}
+	}))
+	defer server2.Close()
+	o = opensearch.New(server2.URL, timeParse, http.DefaultClient)
+
+	err = o.DeleteData(log)
+	assert.NotNil(t, err)
 }
 
 // Test_TriggerSnapshot tests the TriggerRestore method for the following use case.
@@ -260,10 +456,37 @@ func Test_TriggerRestore(t *testing.T) {
 	log, f := logHelper()
 	defer os.Remove(f)
 
+	server1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch strings.TrimSpace(r.URL.Path) {
+		case fmt.Sprintf("/_snapshot/%s/%s/_restore", constants.OpeSearchSnapShotRepoName, "mango"):
+			mockTriggerSnapshotRepository(false, w, r)
+		default:
+			http.NotFoundHandler().ServeHTTP(w, r)
+		}
+	}))
+	defer server1.Close()
+	timeParse, _ := time.ParseDuration("10m")
+	o := opensearch.New(server1.URL, timeParse, http.DefaultClient)
+
 	var c types.ConnectionData
 	c.BackupName = "mango"
+	c.Timeout = "1s"
 	err := o.TriggerRestore(&c, log)
 	assert.Nil(t, err)
+
+	server2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch strings.TrimSpace(r.URL.Path) {
+		case fmt.Sprintf("/_snapshot/%s/%s/_restore", constants.OpeSearchSnapShotRepoName, "mango"):
+			mockTriggerSnapshotRepository(true, w, r)
+		default:
+			http.NotFoundHandler().ServeHTTP(w, r)
+		}
+	}))
+	defer server2.Close()
+	o = opensearch.New(server2.URL, timeParse, http.DefaultClient)
+
+	err = o.TriggerRestore(&c, log)
+	assert.NotNil(t, err)
 }
 
 // Test_CheckRestoreProgress tests the CheckRestoreProgress method for the following use case.
@@ -273,6 +496,18 @@ func Test_TriggerRestore(t *testing.T) {
 func Test_CheckRestoreProgress(t *testing.T) {
 	log, f := logHelper()
 	defer os.Remove(f)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch strings.TrimSpace(r.URL.Path) {
+		case "/_data_stream":
+			mockRestoreProgress(w, r)
+		default:
+			http.NotFoundHandler().ServeHTTP(w, r)
+		}
+	}))
+	defer server.Close()
+	timeParse, _ := time.ParseDuration("10m")
+	o := opensearch.New(server.URL, timeParse, http.DefaultClient)
 
 	var c types.ConnectionData
 	c.BackupName = "mango"
@@ -292,7 +527,7 @@ func Test_Backup(t *testing.T) {
 	var c types.ConnectionData
 	c.BackupName = "mango"
 	c.Timeout = "1s"
-	err := o.Backup(&c, log)
+	err := openSearch.Backup(&c, log)
 	assert.Nil(t, err)
 }
 
@@ -307,6 +542,6 @@ func Test_Restore(t *testing.T) {
 	var c types.ConnectionData
 	c.BackupName = "mango"
 	c.Timeout = "1s"
-	err := o.Restore(&c, log)
+	err := openSearch.Restore(&c, log)
 	assert.Nil(t, err)
 }

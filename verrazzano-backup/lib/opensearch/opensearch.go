@@ -268,6 +268,11 @@ func (o *OpensearchImpl) ReloadOpensearchSecureSettings(log *zap.SugaredLogger) 
 	if err != nil {
 		return err
 	}
+
+	if secureSettings.ClusterNodes.Failed == 0 && secureSettings.ClusterNodes.Total == 0 && secureSettings.ClusterNodes.Successful == 0 {
+		return fmt.Errorf("Invalid cluster settings detected. Check the connection")
+	}
+
 	if secureSettings.ClusterNodes.Failed == 0 && secureSettings.ClusterNodes.Total == secureSettings.ClusterNodes.Successful {
 		log.Infof("Secure settings reloaded sucessfully across all '%v' nodes of the cluster", secureSettings.ClusterNodes.Total)
 		return nil
