@@ -48,9 +48,8 @@ function createLoadBalancer() {
         log "Failed to create the load balancer: $LB_NAME"
         exit 1
     fi
-    LB_INFO=$(oci lb load-balancer list --compartment-id $COMPARTMENT_OCID --display-name $LB_NAME --lifecycle-state ACTIVE)
-    LB_OCID=$($LB_INFO | jq -r '.data[0].id')
-    LB_IP=$($LB_INFO | jq -r '.data[0].ip-addresses[0].ip-address')
+    LB_OCID=$(oci lb load-balancer list --compartment-id $COMPARTMENT_OCID --display-name $LB_NAME --lifecycle-state ACTIVE | jq -r '.data[0].id')
+    LB_IP=$(oci lb load-balancer list --compartment-id $COMPARTMENT_OCID --display-name $LB_NAME --lifecycle-state ACTIVE | jq -r '.data[0].ip-addresses[0].ip-address')
     log "Successfully created the load balancer: $LB_NAME"
     log "Load balancer OCID: $LB_OCID"
     log "Load balancer IP: $LB_IP"
@@ -64,7 +63,7 @@ function deleteLoadBalancer() {
         exit 1
     fi
     log "Load balancer OCID: $LB_OCID"
-    oci lb load-balancer delete --load-balancer-id $LB_OCID --force --wait-for-state SUCCEEDED
+    oci lb load-balancer delete --force --load-balancer-id "$LB_OCID" --wait-for-state "SUCCEEDED"
     if [ $? -ne 0 ]; then
         log "Error while deleting the load balancer: $LB_NAME."
         exit 1

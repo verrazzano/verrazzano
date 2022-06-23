@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // This pipeline is configured to test Verrazzano using OLCNE environment
@@ -973,23 +973,14 @@ def createOLCNECluster() {
     """
     // TODO: Optimize the way in which the groovy variables are set using a file based approach
     API_SERVER_IP=sh(returnStdout: true, script: "cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw apiserver_ip")
-    println(API_SERVER_IP)
     VCN_OCID=sh(returnStdout: true, script: "cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw vcn_id")
-    println(VCN_OCID)
     VCN_CIDR=sh(returnStdout: true, script: "oci network vcn get --vcn-id $VCN_OCID | jq -r '.data.\"cidr-block\"'")
-    println(VCN_CIDR)
     PUBLIC_SUBNET_OCID=sh(returnStdout: true, script: "oci network subnet list -c $TF_VAR_compartment_id --vcn-id $VCN_OCID --display-name $TF_VAR_prefix-bastion | jq -r '.data[0].id'")
-    println(PUBLIC_SUBNET_OCID)
     PRIVATE_SUBNET_OCID=sh(returnStdout: true, script: "cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw subnet_id")
-    println(PRIVATE_SUBNET_OCID)
     BASTION_IP=sh(returnStdout: true, script: "cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw bastion_public_ip")
-    println(BASTION_IP)
     BASTION_USER=sh(returnStdout: true, script: "cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw bastion_user")
-    println(BASTION_USER)
     WORKER_NODES_IP=sh(returnStdout: true, script: "cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -json worker_nodes").replaceAll(/["\[\]]/, "").replaceAll(",", " ")
-    println(WORKER_NODES_IP)
     CONTROL_PLANE_NODES_IP=sh(returnStdout: true, script: "cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -json control_plane_nodes").replaceAll(/["\[\]]/, "").replaceAll(",", " ")
-    println(CONTROL_PLANE_NODES_IP)
 }
 
 def createOCIFileSystem() {
@@ -1000,7 +991,7 @@ def createOCIFileSystem() {
         -p "/$TF_VAR_prefix-export" -c $TF_VAR_compartment_id -s $PRIVATE_SUBNET_OCID
     """
     MT_PVT_IP_OCID=sh(returnStdout: true, script: "oci fs mount-target list --compartment-id $TF_VAR_compartment_id --availability-domain $TF_VAR_availability_domain_id --display-name $TF_VAR_prefix-mt --lifecycle-state ACTIVE | jq -r '.data[0].\"private-ip-ids\"[0]'")
-    OCI_MOUNT_IP=sh(returnStdout: true, script: "oci network private-ip get --private-ip-id $MT_PVT_IP_OCID | jq -r '.data.\"ip-address\"'")
+    OCI_MOUNT_IP=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/get_private_ip_address.sh $MT_PVT_IP_OCID")
     OCI_EXPORT_PATH="/$TF_VAR_prefix-export"
 }
 
@@ -1009,13 +1000,13 @@ def createOCILoadBalancers() {
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_lb_ops.sh \
         -o "create" -n "$TF_VAR_prefix-mgnmt" -e "true" \
         -c $TF_VAR_compartment_id -s $PUBLIC_SUBNET_OCID \
-        -i $WORKER_NODES_IP -p 30443 \
+        -i "$WORKER_NODES_IP" -p 30443 \
         -f "$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci-load-balancer.json"
 
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_lb_ops.sh \
         -o "create" -n "$TF_VAR_prefix-app" -e "true" \
         -c $TF_VAR_compartment_id -s $PUBLIC_SUBNET_OCID \
-        -i $WORKER_NODES_IP -p 31390 \
+        -i "$WORKER_NODES_IP" -p 31390 \
         -f "$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci-load-balancer.json"
     """
     OCI_LB_MGMT_IP=sh(returnStdout: true, script: "oci lb load-balancer list --compartment-id $TF_VAR_compartment_id --display-name $TF_VAR_prefix-mgmt --lifecycle-state ACTIVE | jq -r '.data[0].id'")

@@ -81,7 +81,7 @@ function deleteFileSystem() {
         exit 1
     fi
     log "File system OCID: $FS_OCID"
-    oci fs file-system delete --file-system-id $FS_OCID --force --wait-for-state DELETED
+    oci fs file-system delete --force --file-system-id "$FS_OCID" --wait-for-state "DELETED"
     if [ $? -ne 0 ]; then
         log "Error while deleting the file system: $FS_NAME"
         exit 1
@@ -91,13 +91,13 @@ function deleteFileSystem() {
 
 function deleteMountTarget() {
     log "Deleting the mount target: $MT_NAME"
-    MT_OCID=$(oci fs mount-target list --compartment-id $COMPARTMENT_OCID --availability-domain $AVAILABILITY_DOMAIN --display-name $MT_NAME --lifecycle-state ACTIVE --force | jq -r '.data[0].id')
+    MT_OCID=$(oci fs mount-target list --compartment-id $COMPARTMENT_OCID --availability-domain $AVAILABILITY_DOMAIN --display-name $MT_NAME --lifecycle-state ACTIVE | jq -r '.data[0].id')
     if [ $? -ne 0 ]; then
         log "Error while fetching the mount target: $MT_NAME"
         exit 1
     fi
     log "Mount target OCID: $MT_OCID"
-    oci fs mount-target delete --mount-target-id $MT_OCID --force --wait-for-state DELETED
+    oci fs mount-target delete --force --mount-target-id "$MT_OCID" --wait-for-state "DELETED"
     if [ $? -ne 0 ]; then
         log "Error while deleting the mount target: $MT_NAME"
         exit 1
