@@ -96,8 +96,10 @@ func (s *Syncer) ProcessAgentThread() error {
 	if managedClusterName != s.ManagedClusterName {
 		s.Log.Debugf("Found secret named %s in namespace %s, cluster name changed from %q to %q", secret.Name, secret.Namespace, s.ManagedClusterName, managedClusterName)
 		s.ManagedClusterName = managedClusterName
-
 	}
+
+	// Update all Prometheus monitors relabel configs in all namespaces with new cluster name if needed
+	s.updatePrometheusMonitorsClusterName()
 
 	// Create the client for accessing the admin cluster when there is a change in the secret
 	if secret.ResourceVersion != s.SecretResourceVersion {
