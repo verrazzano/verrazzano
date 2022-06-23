@@ -501,14 +501,14 @@ pipeline {
             
             script {
                 if (keepOLCNEClusterOnFailure == false) {
-                    echo "[INFO] Deleting OLCNE Cluster"
-                    deleteOLCNECluster()
                     echo "[INFO] Deleting OCI DNS Zone"
                     deleteOCIDNSZone()
                     echo "[INFO] Deleting OCI FileSystem"
                     deleteOCIFileSystem()
                     echo "[INFO] Deleting OCI LoadBalancers"
                     deleteOCILoadBalancers()
+                    echo "[INFO] Deleting OLCNE Cluster"
+                    deleteOLCNECluster()
                 }
             }
 
