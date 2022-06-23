@@ -43,7 +43,7 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 	// Was an operator-file passed on the command line?
 	operatorFile, err := GetOperatorFile(cmd)
 	if err != nil {
-		return fmt.Errorf("Failed to parse the command-line option %s: %s", constants.OperatorFileFlag, err.Error())
+		return err
 	}
 
 	// If the operatorFile was specified, is it a local or remote file?
@@ -59,6 +59,8 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 		url = fmt.Sprintf(constants.VerrazzanoOperatorURL, version)
 	}
 
+	const accessErrorMsg = "Failed to access the Verrazzano operator.yaml file %s: %s"
+	const applyErrorMsg = "Failed to apply the Verrazzano operator.yaml file %s: %s"
 	userVisibleFilename := operatorFile
 	if len(url) > 0 {
 		userVisibleFilename = url
@@ -66,21 +68,21 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 		httpClient := vzHelper.GetHTTPClient()
 		resp, err := httpClient.Get(url)
 		if err != nil {
-			return fmt.Errorf("Failed to access the Verrazzano operator.yaml file %s: %s", userVisibleFilename, err.Error())
+			return fmt.Errorf(accessErrorMsg, userVisibleFilename, err.Error())
 		}
 		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("Failed to access the Verrazzano operator.yaml file %s: %s", userVisibleFilename, resp.Status)
+			return fmt.Errorf(accessErrorMsg, userVisibleFilename, resp.Status)
 		}
 		// Store response in a temporary file
 		tmpFile, err := ioutil.TempFile("", "vz")
 		if err != nil {
-			return fmt.Errorf("Failed to install the Verrazzano operator.yaml file %s: %s", userVisibleFilename, err.Error())
+			return fmt.Errorf(applyErrorMsg, userVisibleFilename, err.Error())
 		}
 		defer os.Remove(tmpFile.Name())
 		_, err = tmpFile.ReadFrom(resp.Body)
 		if err != nil {
 			os.Remove(tmpFile.Name())
-			return fmt.Errorf("Failed to install the Verrazzano operator.yaml file %s: %s", userVisibleFilename, err.Error())
+			return fmt.Errorf(applyErrorMsg, userVisibleFilename, err.Error())
 		}
 		internalFilename = tmpFile.Name()
 	}
@@ -90,7 +92,7 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 	yamlApplier := k8sutil.NewYAMLApplier(client, "")
 	err = yamlApplier.ApplyF(internalFilename)
 	if err != nil {
-		return fmt.Errorf("Failed to apply the file: %s", err.Error())
+		return fmt.Errorf(applyErrorMsg, internalFilename, err.Error())
 	}
 
 	// Dump out the object result messages
@@ -114,7 +116,7 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 	for {
 		retryCount++
 		if retryCount > vpoWaitRetries {
-			return "", fmt.Errorf("%s pod not found in namespace %s", constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
+			return "", fmt.Errorf("Waiting for %s, pod was not found in namespace %s", constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
 		}
 		time.Sleep(constants.VerrazzanoPlatformOperatorWait * time.Second)
 		seconds += constants.VerrazzanoPlatformOperatorWait
@@ -127,13 +129,13 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 				LabelSelector: labelSelector,
 			})
 		if err != nil {
-			return "", fmt.Errorf("Failed to list pods %v", err)
+			return "", fmt.Errorf("Waiting for %s, failed to list pods: %s", constants.VerrazzanoPlatformOperator, err.Error())
 		}
 		if len(podList.Items) == 0 {
 			continue
 		}
 		if len(podList.Items) > 1 {
-			return "", fmt.Errorf("More than one %s pod was found in namespace %s", constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
+			return "", fmt.Errorf("Waiting for %s, more than one %s pod was found in namespace %s", constants.VerrazzanoPlatformOperator, constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
 		}
 		break
 	}
@@ -144,11 +146,11 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 	for {
 		time.Sleep(constants.VerrazzanoPlatformOperatorWait * time.Second)
 		seconds += constants.VerrazzanoPlatformOperatorWait
-		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("\rWaiting for verrazzano-platform-operator to be ready before starting %s - %d seconds", getOperationString(condType), seconds))
+		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("\rWaiting for %s to be ready before starting %s - %d seconds", constants.VerrazzanoPlatformOperator, getOperationString(condType), seconds))
 
 		err := client.Get(context.TODO(), types.NamespacedName{Namespace: podList.Items[0].Namespace, Name: podList.Items[0].Name}, pod)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("Waiting for %s to be ready: %s", constants.VerrazzanoPlatformOperator, err.Error())
 		}
 		initReady := true
 		for _, initContainer := range pod.Status.InitContainerStatuses {
@@ -184,7 +186,7 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 		SinceTime: &sinceTime,
 	}).Stream(context.TODO())
 	if err != nil {
-		return fmt.Errorf("Failed to get logs stream: %v", err)
+		return fmt.Errorf("Failed to read the %s log file: %s", constants.VerrazzanoPlatformOperator, err.Error())
 	}
 	defer rc.Close()
 

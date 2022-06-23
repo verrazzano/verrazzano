@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 pipeline {
@@ -32,10 +32,14 @@ pipeline {
         DOCKER_REPO = 'ghcr.io'
         IS_PATCH_RELEASE = 'false'
 
-        OCI_CLI_AUTH = "instance_principal"
-        OCI_REGION = "us-phoenix-1"
         OBJECT_STORAGE_NS = credentials('oci-os-namespace')
         OBJECT_STORAGE_BUCKET="verrazzano-builds"
+        OCI_REGION="us-phoenix-1"
+        OCI_CLI_AUTH="api_key"
+        OCI_CLI_TENANCY = credentials('oci-tenancy')
+        OCI_CLI_USER = credentials('oci-user-ocid')
+        OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
+        OCI_CLI_KEY_FILE = credentials('oci-api-key')
 
         RELEASE_BINARIES_DIR = "${WORKSPACE}/release/scripts/release_work"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
@@ -139,6 +143,27 @@ pipeline {
                 }
             }
         }
+
+        stage('Copy Results to Release') {
+            steps {
+                script {
+                    sh """
+                        if [ $TEST_RUN == true ] ; then
+                          echo "TEST_RUN is set to true, NOT pushing scan artifacts to object storage, but confirming they exist to be pushed and commands to push them:"
+                          echo ""
+                          ls ${RELEASE_BINARIES_DIR}/scan_report_dir/scan_report.out
+                          ls ${RELEASE_BINARIES_DIR}/scan_report_dir/scan_summary.out
+                          echo "oci --region us-phoenix-1 os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_report.out --file ${RELEASE_BINARIES_DIR}/scan_report_dir/scan_report.out"
+                          echo "oci --region us-phoenix-1 os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_summary.out --file ${RELEASE_BINARIES_DIR}/scan_report_dir/scan_summary.out"
+                        else
+                          oci --region us-phoenix-1 os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_report.out --file ${RELEASE_BINARIES_DIR}/scan_report_dir/scan_report.out
+                          oci --region us-phoenix-1 os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_summary.out --file ${RELEASE_BINARIES_DIR}/scan_report_dir/scan_summary.out
+                        fi
+                    """
+                }
+            }
+        }
+
     }
     post {
         always {

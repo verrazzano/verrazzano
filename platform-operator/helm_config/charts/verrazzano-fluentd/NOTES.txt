@@ -1,0 +1,1 @@
+Verrazzano Fluentd Helm chart has been installed!

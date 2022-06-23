@@ -83,7 +83,7 @@ func TestPopulateServiceMonitor(t *testing.T) {
 						promoperapi.LabelName("__meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled"))
 					if len(serviceMonitor.Spec.Endpoints) >= 1 {
 						asserts.Contains(t, serviceMonitor.Spec.Endpoints[1].RelabelConfigs[1].SourceLabels,
-							promoperapi.LabelName("__meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled_1"))
+							promoperapi.LabelName("__meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled1"))
 					}
 					asserts.Contains(t, serviceMonitor.Spec.Endpoints[0].RelabelConfigs[1].SourceLabels,
 						promoperapi.LabelName("test"))

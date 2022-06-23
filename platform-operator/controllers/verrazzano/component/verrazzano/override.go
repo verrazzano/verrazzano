@@ -10,7 +10,6 @@ import (
 	"os"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -40,8 +39,6 @@ func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ s
 		return kvs, ctx.Log().ErrorfNewErr("Failed appending Verrazzano OpenSearch values: %v", err)
 	}
 
-	// append any fluentd overrides
-	appendFluentdOverrides(effectiveCR, &overrides)
 	// append the security role overrides
 	if err := appendSecurityOverrides(effectiveCR, &overrides); err != nil {
 		return kvs, ctx.Log().ErrorfNewErr("Failed appending Verrazzano security overrides: %v", err)
@@ -100,6 +97,7 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *verrazzanoValue
 		DNSSuffix: dnsSuffix,
 	}
 
+	overrides.Istio = &istioValues{Enabled: vzconfig.IsIstioEnabled(effectiveCR)}
 	overrides.Keycloak = &keycloakValues{Enabled: vzconfig.IsKeycloakEnabled(effectiveCR)}
 	overrides.Rancher = &rancherValues{Enabled: vzconfig.IsRancherEnabled(effectiveCR)}
 	overrides.NodeExporter = &nodeExporterValues{Enabled: vzconfig.IsVMOEnabled(effectiveCR)}
@@ -193,51 +191,4 @@ func appendVMIOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValu
 		Requests: storageOverrides,
 	}
 	return kvs, nil
-}
-
-func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues) {
-	overrides.Fluentd = &fluentdValues{
-		Enabled: vzconfig.IsFluentdEnabled(effectiveCR),
-	}
-
-	fluentd := effectiveCR.Spec.Components.Fluentd
-	if fluentd != nil {
-		overrides.Logging = &loggingValues{ConfigHash: HashSum(fluentd)}
-		if len(fluentd.ElasticsearchURL) > 0 {
-			overrides.Logging.ElasticsearchURL = fluentd.ElasticsearchURL
-		}
-		if len(fluentd.ElasticsearchSecret) > 0 {
-			overrides.Logging.ElasticsearchSecret = fluentd.ElasticsearchSecret
-		}
-		if len(fluentd.ExtraVolumeMounts) > 0 {
-			for _, vm := range fluentd.ExtraVolumeMounts {
-				dest := vm.Source
-				if vm.Destination != "" {
-					dest = vm.Destination
-				}
-				readOnly := true
-				if vm.ReadOnly != nil {
-					readOnly = *vm.ReadOnly
-				}
-				overrides.Fluentd.ExtraVolumeMounts = append(overrides.Fluentd.ExtraVolumeMounts,
-					volumeMount{Source: vm.Source, Destination: dest, ReadOnly: readOnly})
-			}
-		}
-		// Overrides for OCI Logging integration
-		if fluentd.OCI != nil {
-			overrides.Fluentd.OCI = &ociLoggingSettings{
-				DefaultAppLogID: fluentd.OCI.DefaultAppLogID,
-				SystemLogID:     fluentd.OCI.SystemLogID,
-				APISecret:       fluentd.OCI.APISecret,
-			}
-		}
-	}
-
-	// Force the override to be the internal ES secret if the legacy ES secret is being used.
-	// This may be the case during an upgrade from a version that was not using the ES internal password for Fluentd.
-	if overrides.Logging != nil {
-		if overrides.Logging.ElasticsearchSecret == globalconst.LegacyElasticsearchSecretName {
-			overrides.Logging.ElasticsearchSecret = globalconst.VerrazzanoESInternal
-		}
-	}
 }

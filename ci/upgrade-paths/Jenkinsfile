@@ -372,6 +372,11 @@ pipeline {
                                 runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/grafana', "${TEST_DUMP_ROOT}/grafana")
                             }
                         }
+                        stage('Metricsbinding pre-upgrade') {
+                            steps {
+                                runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/metricsbinding', "${TEST_DUMP_ROOT}/metricsbinding")
+                            }
+                        }
                         stage ('Deploy Helidon example application - single cluster') {
                             when { expression { isVZOperatorMinimumCompatibleVersion("v1.1.0") } }
                             steps {
@@ -416,6 +421,11 @@ pipeline {
                 stage("upgrade-verrazzano") {
                     steps {
                         upgradeVerrazzano()
+                    }
+                    post {
+                        always {
+                            performDescribeVerrazzanoResource()
+                        }
                     }
                 }
             }
@@ -563,6 +573,11 @@ pipeline {
                                 runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/grafana', "${TEST_DUMP_ROOT}/grafana")
                             }
                         }
+                        stage('Metricsbinding post-upgrade') {
+                            steps {
+                                runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/metricsbinding', "${TEST_DUMP_ROOT}/metricsbinding")
+                            }
+                        }
                         stage('Prometheus post-upgrade') {
                             steps {
                                 runGinkgoVerifyParallel('Prometheus post-upgrade', 'metrics/deploymetrics', "${TEST_DUMP_ROOT}/prompostupgrade", "true", "false", "false", "deploymetrics")
@@ -657,13 +672,7 @@ pipeline {
         always {
             script {
                 if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                    dumpVerrazzanoSystemPods()
-                    dumpCattleSystemPods()
-                    dumpNginxIngressControllerLogs()
-                    dumpVerrazzanoPlatformOperatorLogs()
-                    dumpVerrazzanoApplicationOperatorLogs()
-                    dumpOamKubernetesRuntimeLogs()
-                    dumpVerrazzanoApiLogs()
+                    dumpAll()
                 }
             }
             copyGeneratedTestReports()
@@ -678,11 +687,7 @@ pipeline {
             }
         }
         cleanup {
-            // Delete clusters as the very first thing in cleanup to reclaim cluster resources especially OKE resources
-            deleteClusters()
-            metricBuildDuration()
-            emitJobMetrics()
-            deleteDir()
+            deleteAll()
         }
     }
 }
@@ -710,6 +715,14 @@ def createTestOCIConfigSecret() {
             """
         }
     }
+}
+
+def deleteAll() {
+    // Delete clusters as the very first thing in cleanup to reclaim cluster resources especially OKE resources
+    deleteClusters()
+    metricBuildDuration()
+    emitJobMetrics()
+    deleteDir()
 }
 
 def deleteClusters() {
@@ -1498,6 +1511,17 @@ def validateBom(count) {
     }
 }
 
+def dumpAll() {
+    dumpVerrazzanoSystemPods()
+    dumpCattleSystemPods()
+    dumpNginxIngressControllerLogs()
+    dumpVerrazzanoPlatformOperatorLogs()
+    dumpVerrazzanoApplicationOperatorLogs()
+    dumpOamKubernetesRuntimeLogs()
+    dumpVerrazzanoApiLogs()
+}
+
+
 def dumpK8sCluster(dumpDirectory) {
     script {
         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
@@ -2066,5 +2090,18 @@ def pipelinePostFailure() {
             oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip || true
             rm archive.zip || true
         """
+    }
+}
+
+def performDescribeVerrazzanoResource() {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for(int count=1; count<=clusterCount; count++) {
+            sh """
+                echo "Performing describe on Verrazzano resource on cluster ${count}"
+                export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                kubectl get vz -o yaml
+            """
+        }
     }
 }
