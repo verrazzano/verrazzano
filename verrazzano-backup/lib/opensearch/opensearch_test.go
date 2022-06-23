@@ -102,14 +102,14 @@ func mockRestoreProgress(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", constants.HTTPContentType)
 	w.WriteHeader(http.StatusOK)
 	var dsInfo types.OpenSearchDataStreams
-	var array_ds []types.DataStreams
+	var arrayDs []types.DataStreams
 	var ds types.DataStreams
 	ds.Name = "foo"
 	ds.Status = constants.DataStreamGreen
-	array_ds = append(array_ds, ds)
+	arrayDs = append(arrayDs, ds)
 	ds.Name = "bar"
-	array_ds = append(array_ds, ds)
-	dsInfo.DataStreams = array_ds
+	arrayDs = append(arrayDs, ds)
+	dsInfo.DataStreams = arrayDs
 	json.NewEncoder(w).Encode(dsInfo)
 
 }
@@ -122,13 +122,13 @@ func TestMain(m *testing.M) {
 			mockEnsureOpenSearchIsReachable(w, r)
 		case "/_cluster/health":
 			mockEnsureOpenSearchIsHealthy(w, r)
-		case fmt.Sprintf("/_snapshot/%s", constants.OpeSearchSnapShotRepoName), fmt.Sprintf("/_data_stream/*"), fmt.Sprintf("/*"):
+		case fmt.Sprintf("/_snapshot/%s", constants.OpeSearchSnapShotRepoName), "/_data_stream/*", "/*":
 			mockOpenSearchOperationResponse(w, r)
-		case fmt.Sprintf("/_nodes/reload_secure_settings"):
+		case "/_nodes/reload_secure_settings":
 			mockReloadOpensearchSecureSettings(w, r)
 		case fmt.Sprintf("/_snapshot/%s/%s", constants.OpeSearchSnapShotRepoName, "mango"), fmt.Sprintf("/_snapshot/%s/%s/_restore", constants.OpeSearchSnapShotRepoName, "mango"):
 			mockTriggerSnapshotRepository(w, r)
-		case fmt.Sprintf("/_data_stream"):
+		case "/_data_stream":
 			mockRestoreProgress(w, r)
 
 		default:
