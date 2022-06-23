@@ -126,7 +126,7 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 
 func getUninstallPodName(c client.Client, vzHelper helpers.VZHelper) (string, error) {
 	// Find the verrazzano-platform-operator using the app label selector
-	appLabel, _ := labels.NewRequirement("app", selection.Equals, []string{constants.VerrazzanoUninstall})
+	appLabel, _ := labels.NewRequirement("job-name", selection.Equals, []string{constants.UninstallJob})
 	labelSelector := labels.NewSelector()
 	labelSelector = labelSelector.Add(*appLabel)
 	podList := corev1.PodList{}
