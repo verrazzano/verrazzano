@@ -986,11 +986,11 @@ def createOLCNECluster() {
 def createOCIFileSystem() {
     sh """
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_fs_ops.sh \
-        -o "create" -a $TF_VAR_availability_domain_id \
+        -o create -a $TF_VAR_availability_domain_id \
         -n "$TF_VAR_prefix-fs" -m "$TF_VAR_prefix-mt" \
         -p "/$TF_VAR_prefix-export" -c $TF_VAR_compartment_id -s $PRIVATE_SUBNET_OCID
     """
-    MT_PVT_IP_OCID=sh(returnStdout: true, script: "oci fs mount-target list --compartment-id $TF_VAR_compartment_id --availability-domain $TF_VAR_availability_domain_id --display-name $TF_VAR_prefix-mt --lifecycle-state ACTIVE | jq -r '.data[0].\"private-ip-ids\"[0]'")
+    MT_PVT_IP_OCID=sh(returnStdout: true, script: "oci fs mount-target list --compartment-id $TF_VAR_compartment_id --availability-domain $TF_VAR_availability_domain_id --display-name "$TF_VAR_prefix-mt" --lifecycle-state ACTIVE | jq -r '.data[0].\"private-ip-ids\"[0]'")
     OCI_MOUNT_IP=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/get_private_ip_address.sh $MT_PVT_IP_OCID")
     OCI_EXPORT_PATH="/$TF_VAR_prefix-export"
 }
@@ -998,23 +998,23 @@ def createOCIFileSystem() {
 def createOCILoadBalancers() {
     sh """
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_lb_ops.sh \
-        -o "create" -n "$TF_VAR_prefix-mgnmt" -e "true" \
+        -o create -n "$TF_VAR_prefix-mgnmt" -e true \
         -c $TF_VAR_compartment_id -s $PUBLIC_SUBNET_OCID \
         -i "$WORKER_NODES_IP" -p 30443 \
         -f "$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci-load-balancer.json"
 
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_lb_ops.sh \
-        -o "create" -n "$TF_VAR_prefix-app" -e "true" \
+        -o create -n "$TF_VAR_prefix-app" -e true \
         -c $TF_VAR_compartment_id -s $PUBLIC_SUBNET_OCID \
         -i "$WORKER_NODES_IP" -p 31390 \
         -f "$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci-load-balancer.json"
     """
-    OCI_LB_MGMT_IP=sh(returnStdout: true, script: "oci lb load-balancer list --compartment-id $TF_VAR_compartment_id --display-name $TF_VAR_prefix-mgmt --lifecycle-state ACTIVE | jq -r '.data[0].id'")
-    OCI_LB_APP_IP=sh(returnStdout: true, script: "oci lb load-balancer list --compartment-id $TF_VAR_compartment_id --display-name $TF_VAR_prefix-app --lifecycle-state ACTIVE | jq -r '.data[0].id'")
+    OCI_LB_MGMT_IP=sh(returnStdout: true, script: "oci lb load-balancer list --compartment-id $TF_VAR_compartment_id --display-name \"$TF_VAR_prefix-mgmt\" --lifecycle-state ACTIVE | jq -r '.data[0].\"ip-addresses\"[0].\"ip-address\"'")
+    OCI_LB_APP_IP=sh(returnStdout: true, script: "oci lb load-balancer list --compartment-id $TF_VAR_compartment_id --display-name \"$TF_VAR_prefix-app\" --lifecycle-state ACTIVE | jq -r '.data.\"ip-addresses\"[0].\"ip-address\"'")
 }
 
 def createOCIDNSZone() {
-    OCI_DNS_ZONE_OCID=ssh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c $TF_VAR_compartment_id -s $OCI_DNS_ZONE_SUBDOMAIN_NAME -k $OCI_DNS_SCOPE")
+    OCI_DNS_ZONE_OCID=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c $TF_VAR_compartment_id -s $OCI_DNS_ZONE_SUBDOMAIN_NAME -k $OCI_DNS_SCOPE")
 }
 
 def deleteOLCNECluster() {
@@ -1027,7 +1027,7 @@ def deleteOLCNECluster() {
 def deleteOCIFileSystem() {
     sh """
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_fs_ops.sh \
-        -o "delete" -a $TF_VAR_availability_domain_id \
+        -o delete -a $TF_VAR_availability_domain_id \
         -n "$TF_VAR_prefix-fs" -m "$TF_VAR_prefix-mt" \
         -p "/$TF_VAR_prefix-export" -c $TF_VAR_compartment_id
     """

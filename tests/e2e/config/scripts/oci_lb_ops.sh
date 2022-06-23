@@ -49,7 +49,7 @@ function createLoadBalancer() {
         exit 1
     fi
     LB_OCID=$(oci lb load-balancer list --compartment-id $COMPARTMENT_OCID --display-name $LB_NAME --lifecycle-state ACTIVE | jq -r '.data[0].id')
-    LB_IP=$(oci lb load-balancer list --compartment-id $COMPARTMENT_OCID --display-name $LB_NAME --lifecycle-state ACTIVE | jq -r '.data[0].ip-addresses[0].ip-address')
+    LB_IP=$(oci lb load-balancer list --compartment-id $COMPARTMENT_OCID --display-name $LB_NAME --lifecycle-state ACTIVE | jq -r '.data[0]."ip-addresses"[0]."ip-address"')
     log "Successfully created the load balancer: $LB_NAME"
     log "Load balancer OCID: $LB_OCID"
     log "Load balancer IP: $LB_IP"
