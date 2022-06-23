@@ -5,6 +5,9 @@ package uninstall
 
 import (
 	"bytes"
+	"context"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"testing"
 
@@ -32,14 +35,10 @@ func TestUninstallCmd(t *testing.T) {
 			},
 		},
 	}
-	vpo := &corev1.Pod{
+	namespace := &corev1.Namespace{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vzconstants.VerrazzanoInstallNamespace,
-			Name:      constants.VerrazzanoPlatformOperator,
-			Labels: map[string]string{
-				"app": constants.VerrazzanoPlatformOperator,
-			},
+			Name: vzconstants.VerrazzanoInstallNamespace,
 		},
 	}
 	vz := &vzapi.Verrazzano{
@@ -50,7 +49,7 @@ func TestUninstallCmd(t *testing.T) {
 		},
 	}
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(uninstall, vpo, vz).Build()
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(uninstall, vz, namespace).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -65,4 +64,101 @@ func TestUninstallCmd(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
 	assert.Equal(t, "Uninstalling Verrazzano\n\nfake logs\nSuccessfully uninstalled Verrazzano\n", buf.String())
+
+	// Expect the Verrazzano resource to be deleted
+	v := vzapi.Verrazzano{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &v)
+	assert.True(t, errors.IsNotFound(err))
+
+	// Expect the install namespace to be deleted
+	ns := corev1.Namespace{}
+	err = c.Get(context.TODO(), types.NamespacedName{Name: vzconstants.VerrazzanoInstallNamespace}, &ns)
+	assert.True(t, errors.IsNotFound(err))
+}
+
+// TestUninstallCmdDefaultTimeout
+// GIVEN a CLI uninstall command with all defaults and --timeout=2s
+//  WHEN I call cmd.Execute for uninstall
+//  THEN the CLI uninstall command times out
+func TestUninstallCmdDefaultTimeout(t *testing.T) {
+	uninstall := &corev1.Pod{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoUninstall,
+			Labels: map[string]string{
+				"job-name": constants.VerrazzanoUninstall + "-verrazzano",
+			},
+		},
+	}
+	namespace := &corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: vzconstants.VerrazzanoInstallNamespace,
+		},
+	}
+	vz := &vzapi.Verrazzano{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      "verrazzano",
+		},
+	}
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(uninstall, vz, namespace).Build()
+
+	// Send stdout stderr to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	cmd := NewCmdUninstall(rc)
+	assert.NotNil(t, cmd)
+	_ = cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ns")
+
+	// Run upgrade command
+	err := cmd.Execute()
+	assert.NoError(t, err)
+	assert.Equal(t, "", errBuf.String())
+	assert.Contains(t, buf.String(), "Timeout 2ns exceeded waiting for uninstall to complete")
+}
+
+// TestUninstallCmdDefaultNoWait
+// GIVEN a CLI uninstall command with all defaults and --wait==false
+//  WHEN I call cmd.Execute for uninstall
+//  THEN the CLI uninstall command is successful
+func TestUninstallCmdDefaultNoWait(t *testing.T) {
+	vz := &vzapi.Verrazzano{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      "verrazzano",
+		},
+	}
+	uninstall := &corev1.Pod{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoUninstall,
+			Labels: map[string]string{
+				"job-name": constants.VerrazzanoUninstall + "-verrazzano",
+			},
+		},
+	}
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(uninstall, vz).Build()
+
+	// Send stdout stderr to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	cmd := NewCmdUninstall(rc)
+	assert.NotNil(t, cmd)
+	_ = cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+
+	// Run uninstall command
+	err := cmd.Execute()
+	assert.NoError(t, err)
+	assert.Equal(t, "", errBuf.String())
 }
