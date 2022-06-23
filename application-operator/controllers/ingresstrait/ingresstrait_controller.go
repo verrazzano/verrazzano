@@ -169,6 +169,16 @@ func (r *Reconciler) doReconcile(ctx context.Context, trait *vzapi.IngressTrait,
 			// Requeue without error to avoid higher level log message
 			return reconcile.Result{Requeue: true}, nil
 		}
+		ingressTraits := vzapi.IngressTraitList{}
+		if err := r.List(context.TODO(), &ingressTraits, &client.ListOptions{}); err != nil {
+			return reconcile.Result{Requeue: true}, nil
+		}
+		// Trigger a reconcile of all the IngressTraits for this appconfig
+		for _, ingressTrait := range ingressTraits.Items {
+			if ingressTrait.Labels[oam.LabelAppName] == trait.Labels[oam.LabelAppName] {
+				r.Reconcile(context.TODO(), ctrl.Request{types.NamespacedName{Namespace: ingressTrait.Namespace, Name: ingressTrait.Name}})
+			}
+		}
 		// resource cleanup has succeeded, remove the finalizer
 		if err := r.removeFinalizerIfRequired(ctx, trait, log); err != nil {
 			return vzctrl.NewRequeueWithDelay(2, 3, time.Second), nil
@@ -235,47 +245,45 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 	}
 
 	// Create a list of unique hostnames across all rules in the trait
-	allHostsForTrait := r.coallateAllHostsForTrait(trait, status)
-	// Return if all hostnames have been covered by other traits
-	if len(allHostsForTrait) == 0 {
-		return &status, ctrl.Result{}, nil
-	}
-
-	// Generate the certificate and secret for all hosts in the trait rules
-	secretName := r.createOrUseGatewaySecret(ctx, trait, allHostsForTrait, &status, log)
-	if secretName != "" {
+	allHostsForTrait, uniqueHostsForTrait := r.coallateAllHostsForTrait(trait, status)
+	// Do not add a host entry for a trait that doesn't have an uncommon host
+	if len(uniqueHostsForTrait) == 0 {
 		gwName, err := buildGatewayName(trait)
 		if err != nil {
 			status.Errors = append(status.Errors, err)
 		} else {
-			// The Gateway is shared across all traits, update it with all known hosts for the trait
-			// - Must create GW before service so that external DNS sees the GW once the service is created
-			gateway := r.createOrUpdateGateway(ctx, trait, allHostsForTrait, gwName, secretName, &status, log)
-			for index, rule := range rules {
-				// Find the services associated with the trait in the application configuration.
-				var services []*corev1.Service
-				services, err := r.fetchServicesFromTrait(ctx, trait, log)
-				if err != nil {
-					return &status, reconcile.Result{}, err
-				} else if len(services) == 0 {
-					// This will be the case if the service has not started yet so we requeue and try again.
-					return &status, reconcile.Result{Requeue: true, RequeueAfter: clusters.GetRandomRequeueDelay()}, err
+			gateway := &istioclient.Gateway{}
+			err := r.Get(context.TODO(), types.NamespacedName{Name: gwName, Namespace: trait.Namespace}, gateway)
+			if err != nil {
+				if k8serrors.IsNotFound(err) {
+					// If the gateway has not been created then requeue
+					return &status, reconcile.Result{Requeue: true, RequeueAfter: clusters.GetRandomRequeueDelay()}, nil
 				}
-
-				vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, index)
-				drName := fmt.Sprintf("%s-rule-%d-dr", trait.Name, index)
-				authzPolicyName := fmt.Sprintf("%s-rule-%d-authz", trait.Name, index)
-				r.createOrUpdateVirtualService(ctx, trait, rule, allHostsForTrait, vsName, services, gateway, &status, log)
-				r.createOrUpdateDestinationRule(ctx, trait, rule, drName, &status, log, services)
-				r.createOrUpdateAuthorizationPolicies(ctx, rule, authzPolicyName, &status, log)
+				return &status, reconcile.Result{}, err
+			}
+			return r.createOrUpdateRemainingResources(ctx, &status, rules, trait, gateway, allHostsForTrait, log)
+		}
+	} else {
+		// Generate the certificate and secret for all hosts in the trait rules
+		secretName := r.createOrUseGatewaySecret(ctx, trait, uniqueHostsForTrait, &status, log)
+		if secretName != "" {
+			gwName, err := buildGatewayName(trait)
+			if err != nil {
+				status.Errors = append(status.Errors, err)
+			} else {
+				// The Gateway is shared across all traits, update it with all known hosts for the trait
+				// - Must create GW before service so that external DNS sees the GW once the service is created
+				gateway := r.createOrUpdateGateway(ctx, trait, uniqueHostsForTrait, gwName, secretName, &status, log)
+				return r.createOrUpdateRemainingResources(ctx, &status, rules, trait, gateway, allHostsForTrait, log)
 			}
 		}
 	}
 	return &status, ctrl.Result{}, nil
 }
 
-func (r *Reconciler) coallateAllHostsForTrait(trait *vzapi.IngressTrait, status reconcileresults.ReconcileResults) []string {
+func (r *Reconciler) coallateAllHostsForTrait(trait *vzapi.IngressTrait, status reconcileresults.ReconcileResults) ([]string, []string) {
 	allHosts := []string{}
+	uniqueHosts := []string{}
 	var err error
 	for _, rule := range trait.Spec.Rules {
 		if allHosts, err = createHostsFromIngressTraitRule(r, rule, trait, allHosts...); err != nil {
@@ -283,8 +291,8 @@ func (r *Reconciler) coallateAllHostsForTrait(trait *vzapi.IngressTrait, status 
 		}
 	}
 	// Remove hostnames that have already been mapped to another trait
-	allHosts = r.sanitizeHostNameForTrait(allHosts, trait.Name)
-	return allHosts
+	uniqueHosts = r.sanitizeHostNameForTrait(allHosts, trait.Name)
+	return allHosts, uniqueHosts
 }
 
 // buildGatewayName will generate a gateway name from the namespace and application name of the provided trait. Returns
@@ -1362,6 +1370,31 @@ func buildDomainNameForWildcard(cli client.Reader, trait *vzapi.IngressTrait, su
 	}
 	domain := IP + "." + suffix
 	return domain, nil
+}
+
+//
+func (r *Reconciler) createOrUpdateRemainingResources(ctx context.Context, status *reconcileresults.ReconcileResults, rules []vzapi.IngressRule,
+	trait *vzapi.IngressTrait, gateway *istioclient.Gateway, allHostsForTrait []string, log vzlog.VerrazzanoLogger) (*reconcileresults.ReconcileResults, ctrl.Result, error) {
+	for index, rule := range rules {
+		// Find the services associated with the trait in the application configuration.
+		var services []*corev1.Service
+		services, err := r.fetchServicesFromTrait(ctx, trait, log)
+		if err != nil {
+			return status, reconcile.Result{}, err
+		} else if len(services) == 0 {
+			// This will be the case if the service has not started yet so we requeue and try again.
+			return status, reconcile.Result{Requeue: true, RequeueAfter: clusters.GetRandomRequeueDelay()}, err
+		}
+
+		vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, index)
+		drName := fmt.Sprintf("%s-rule-%d-dr", trait.Name, index)
+		authzPolicyName := fmt.Sprintf("%s-rule-%d-authz", trait.Name, index)
+		r.createOrUpdateVirtualService(ctx, trait, rule, allHostsForTrait, vsName, services, gateway, status, log)
+		r.createOrUpdateDestinationRule(ctx, trait, rule, drName, status, log, services)
+		r.createOrUpdateAuthorizationPolicies(ctx, rule, authzPolicyName, status, log)
+	}
+	return status, ctrl.Result{}, nil
+
 }
 
 // sanitizeHostNameForTrait removes hosts that are already listed in other traits
