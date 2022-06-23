@@ -54,3 +54,18 @@ const VerrazzanoOperatorURL = "https://github.com/verrazzano/verrazzano/releases
 const VerrazzanoPlatformOperator = "verrazzano-platform-operator"
 
 const VerrazzanoPlatformOperatorWait = 1
+
+// Analysis tool flags
+const (
+	DirectoryFlagName  = "capture-dir"
+	DirectoryFlagValue = ""
+	DirectoryFlagUsage = "Directory holding the captured data [Required]"
+
+	ReportFileFlagName  = "report-file"
+	ReportFileFlagValue = ""
+	ReportFileFlagUsage = "Name of report output file. (default stdout)"
+
+	ReportFormatFlagName  = "report-format"
+	ReportFormatFlagValue = "simple"
+	ReportFormatFlagUsage = "The format of the report output. Valid output format is \"simple\""
+)
