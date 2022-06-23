@@ -240,10 +240,10 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 
 			// Return when the Verrazzano uninstall has completed
 			vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
-			if vz == nil && errors.IsNotFound(err) {
+			if vz == nil {
 				resChan <- nil
 			}
-			if err != nil {
+			if err != nil && !errors.IsNotFound(err) {
 				resChan <- err
 			}
 		}
