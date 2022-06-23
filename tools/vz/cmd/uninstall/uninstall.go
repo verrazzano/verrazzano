@@ -58,6 +58,8 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.Example = helpExample
 
 	cmd.PersistentFlags().Bool(constants.WaitFlag, constants.WaitFlagDefault, constants.WaitFlagHelp)
+	_ = cmd.PersistentFlags().MarkHidden(constants.WaitFlag)
+
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*30, constants.TimeoutFlagHelp)
 
 	// Remove CRD's flag is still being discussed - keep hidden for now
