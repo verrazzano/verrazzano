@@ -127,9 +127,21 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Create the Verrazzano install resource.
-	err = client.Create(context.TODO(), vz)
-	if err != nil {
-		return fmt.Errorf("Failed to create the verrazzano install resource: %s", err.Error())
+	// We will retry up to 5 times if there is an error.
+	// Sometimes we see intermittent webhook errors due to timeouts.
+	retry := 0
+	for {
+		err = client.Create(context.TODO(), vz)
+		if err != nil {
+			if retry == 5 {
+				return fmt.Errorf("Failed to create the verrazzano install resource: %s", err.Error())
+			}
+			time.Sleep(time.Second)
+			retry++
+			fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Retrying after failing to create the verrazzano install resource: %s\n", err.Error()))
+			continue
+		}
+		break
 	}
 
 	// Wait for the Verrazzano install to complete

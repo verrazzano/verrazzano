@@ -121,11 +121,23 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return err
 	}
 
-	// Update the version in the verrazzano install resource
+	// Update the version in the verrazzano install resource.  This will initiate the Verrazzano upgrade.
+	// We will retry up to 5 times if there is an error.
+	// Sometimes we see intermittent webhook errors due to timeouts.
 	vz.Spec.Version = version
-	err = client.Update(context.TODO(), vz)
-	if err != nil {
-		return fmt.Errorf("Failed to set upgrade version in the verrazzano install resource: %s", err.Error())
+	retry := 0
+	for {
+		err = client.Update(context.TODO(), vz)
+		if err != nil {
+			if retry == 5 {
+				return fmt.Errorf("Failed to set the upgrade version in the verrazzano install resource: %s", err.Error())
+			}
+			time.Sleep(time.Second)
+			retry++
+			fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Retrying after failing to set the upgrade version in the verrazzano install resource: %s\n", err.Error()))
+			continue
+		}
+		break
 	}
 
 	// Wait for the Verrazzano upgrade to complete
