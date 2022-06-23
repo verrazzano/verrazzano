@@ -55,8 +55,6 @@ const VerrazzanoPlatformOperator = "verrazzano-platform-operator"
 
 const VerrazzanoUninstall = "verrazzano-uninstall"
 
-const UninstallJob = "verrazzano-uninstall-verrazzano"
-
 const VerrazzanoInstall = "verrazzano-install"
 
 const VerrazzanoManagedCluster = "verrazzano-managed-cluster"

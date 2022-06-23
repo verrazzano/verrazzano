@@ -28,7 +28,7 @@ func TestUninstallCmd(t *testing.T) {
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
 			Name:      constants.VerrazzanoUninstall,
 			Labels: map[string]string{
-				"job-name": constants.UninstallJob,
+				"job-name": constants.VerrazzanoUninstall + "-verrazzano",
 			},
 		},
 	}

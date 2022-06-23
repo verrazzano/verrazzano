@@ -107,7 +107,8 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), "Uninstalling Verrazzano\n")
 
 	// Get the uninstall job to stream the logs.
-	uninstallPodName, err := getUninstallPodName(client, vzHelper)
+	jobName := constants.VerrazzanoUninstall + "-" + vz.Name
+	uninstallPodName, err := getUninstallPodName(client, vzHelper, jobName)
 	if err != nil {
 		return err
 	}
@@ -149,11 +150,11 @@ func cleanupResources(client clipkg.Client, vzHelper helpers.VZHelper, cmd *cobr
 	return nil
 }
 
-func getUninstallPodName(c client.Client, vzHelper helpers.VZHelper) (string, error) {
-	// Find the verrazzano-platform-operator using the app label selector
-	appLabel, _ := labels.NewRequirement("job-name", selection.Equals, []string{constants.UninstallJob})
+func getUninstallPodName(c client.Client, vzHelper helpers.VZHelper, jobName string) (string, error) {
+	// Find the verrazzano-uninstall pod using the job-name label selector
+	uninstallPod, _ := labels.NewRequirement("job-name", selection.Equals, []string{jobName})
 	labelSelector := labels.NewSelector()
-	labelSelector = labelSelector.Add(*appLabel)
+	labelSelector = labelSelector.Add(*uninstallPod)
 	podList := corev1.PodList{}
 
 	// Wait for the verrazzano-uninstall pod to be found
