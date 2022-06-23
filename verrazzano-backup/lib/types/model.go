@@ -17,7 +17,7 @@ type ConnectionData struct {
 	Timeout    string            `json:"timeout"`
 }
 
-//ObjectStoreSecret to render secret details
+// ObjectStoreSecret to render secret details
 type ObjectStoreSecret struct {
 	SecretName      string `json:"secret_name"`
 	SecretKey       string `json:"secret_key"`
@@ -25,7 +25,7 @@ type ObjectStoreSecret struct {
 	ObjectSecretKey string `json:"object_store_secret_key"`
 }
 
-//VeleroBackupStorageLocation defines the spec for BSL
+// VeleroBackupStorageLocation defines the spec for BSL
 type VeleroBackupStorageLocation struct {
 	APIVersion string `json:"apiVersion"`
 	Kind       string `json:"kind"`
@@ -64,7 +64,7 @@ type VeleroBackupStorageLocation struct {
 	} `json:"status"`
 }
 
-//VeleroBackup defines the spec for backup
+// VeleroBackup defines the spec for backup
 type VeleroBackup struct {
 	APIVersion string `json:"apiVersion"`
 	Kind       string `json:"kind"`
@@ -124,7 +124,7 @@ type VeleroBackup struct {
 	} `json:"status"`
 }
 
-//OpenSearchHealthResponse used to determine health details
+// OpenSearchHealthResponse used to determine health details
 type OpenSearchHealthResponse struct {
 	ClusterName                 string  `json:"cluster_name"`
 	Status                      string  `json:"status"`
@@ -144,7 +144,7 @@ type OpenSearchHealthResponse struct {
 	ActiveShardsPercentAsNumber float64 `json:"active_shards_percent_as_number"`
 }
 
-//OpenSearchSnapshotRequestPayload struct for registering a snapshot
+// OpenSearchSnapshotRequestPayload struct for registering a snapshot
 type OpenSearchSnapshotRequestPayload struct {
 	Type     string `json:"type"`
 	Settings struct {
@@ -156,59 +156,65 @@ type OpenSearchSnapshotRequestPayload struct {
 	} `json:"settings"`
 }
 
-//OpenSearchOperationResponse to render common operational responses
+// OpenSearchOperationResponse to render common operational responses
 type OpenSearchOperationResponse struct {
 	Acknowledged bool `json:"acknowledged,omitempty"`
 }
 
-//OpenSearchSnapshotResponse to render snapshot response
+// OpenSearchSnapshotResponse to render snapshot response
 type OpenSearchSnapshotResponse struct {
 	Accepted bool `json:"accepted,omitempty"`
 }
 
-//OpenSearchSnapshotStatus to render snapshot status
+// OpenSearchSnapshotStatus to render all snapshot status
 type OpenSearchSnapshotStatus struct {
-	Snapshots []struct {
-		Snapshot           string        `json:"snapshot"`
-		UUID               string        `json:"uuid"`
-		VersionID          int           `json:"version_id"`
-		Version            string        `json:"version"`
-		Indices            []string      `json:"indices"`
-		DataStreams        []string      `json:"data_streams"`
-		IncludeGlobalState bool          `json:"include_global_state"`
-		State              string        `json:"state"`
-		StartTime          time.Time     `json:"start_time"`
-		StartTimeInMillis  int64         `json:"start_time_in_millis"`
-		EndTime            time.Time     `json:"end_time"`
-		EndTimeInMillis    int64         `json:"end_time_in_millis"`
-		DurationInMillis   int           `json:"duration_in_millis"`
-		Failures           []interface{} `json:"failures"`
-		Shards             struct {
-			Total      int `json:"total"`
-			Failed     int `json:"failed"`
-			Successful int `json:"successful"`
-		} `json:"shards"`
-	} `json:"snapshots"`
+	Snapshots []Snapshot `json:"snapshots"`
 }
 
-//OpenSearchDataStreams struct to render datat streams info
+// Snapshot to render snapshot status
+type Snapshot struct {
+	Snapshot           string        `json:"snapshot"`
+	UUID               string        `json:"uuid"`
+	VersionID          int           `json:"version_id"`
+	Version            string        `json:"version"`
+	Indices            []string      `json:"indices"`
+	DataStreams        []string      `json:"data_streams"`
+	IncludeGlobalState bool          `json:"include_global_state"`
+	State              string        `json:"state"`
+	StartTime          time.Time     `json:"start_time"`
+	StartTimeInMillis  int64         `json:"start_time_in_millis"`
+	EndTime            time.Time     `json:"end_time"`
+	EndTimeInMillis    int64         `json:"end_time_in_millis"`
+	DurationInMillis   int           `json:"duration_in_millis"`
+	Failures           []interface{} `json:"failures"`
+	Shards             struct {
+		Total      int `json:"total"`
+		Failed     int `json:"failed"`
+		Successful int `json:"successful"`
+	} `json:"shards"`
+}
+
+// OpenSearchDataStreams struct to render array of data streams info
 type OpenSearchDataStreams struct {
-	DataStreams []struct {
-		Name           string `json:"name"`
-		TimestampField struct {
-			Name string `json:"name"`
-		} `json:"timestamp_field"`
-		Indices []struct {
-			IndexName string `json:"index_name"`
-			IndexUUID string `json:"index_uuid"`
-		} `json:"indices"`
-		Generation int    `json:"generation"`
-		Status     string `json:"status"`
-		Template   string `json:"template"`
-	} `json:"data_streams"`
+	DataStreams []DataStreams `json:"data_streams"`
 }
 
-//OpenSearchClusterInfo renders opensearch cluster reachability
+// DataStreams struct to render data streams info
+type DataStreams struct {
+	Name           string `json:"name"`
+	TimestampField struct {
+		Name string `json:"name"`
+	} `json:"timestamp_field"`
+	Indices []struct {
+		IndexName string `json:"index_name"`
+		IndexUUID string `json:"index_uuid"`
+	} `json:"indices"`
+	Generation int    `json:"generation"`
+	Status     string `json:"status"`
+	Template   string `json:"template"`
+}
+
+// OpenSearchClusterInfo renders opensearch cluster reachability
 type OpenSearchClusterInfo struct {
 	Name        string `json:"name"`
 	ClusterName string `json:"cluster_name"`
@@ -227,7 +233,7 @@ type OpenSearchClusterInfo struct {
 	Tagline string `json:"tagline"`
 }
 
-//OpenSearchSecureSettingsReloadStatus renders status of nodes on reload secure settings
+// ΩpenSearchSecureSettingsReloadStatus renders status of nodes on reload secure settings
 type OpenSearchSecureSettingsReloadStatus struct {
 	ClusterNodes struct {
 		Total      int `json:"total"`

@@ -13,15 +13,69 @@ import (
 	"github.com/verrazzano/verrazzano/verrazzano-backup/lib/types"
 	"github.com/verrazzano/verrazzano/verrazzano-backup/lib/utils"
 	"go.uber.org/zap"
+	"io"
+	"io/ioutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"net/http"
 	"strconv"
 	"time"
 )
 
+//HTTPHelper supports net/http calls of type GTE/POST/DELETE
+func (o *OpensearchImpl) HTTPHelper(ctx context.Context, method, requestURL string, body io.Reader, data interface{}, log *zap.SugaredLogger) error {
+	log.Debugf("Invoking HTTP '%s' request with url '%s'", method, requestURL)
+	var response *http.Response
+	var request *http.Request
+	var err error
+	//client := &http.Client{}
+	ctx, cancel := context.WithTimeout(ctx, o.Timeout)
+	defer cancel()
+
+	switch method {
+	case "GET":
+		request, err = http.NewRequestWithContext(ctx, http.MethodGet, requestURL, body)
+	case "POST":
+		request, err = http.NewRequestWithContext(ctx, http.MethodPost, requestURL, body)
+	case "DELETE":
+		request, err = http.NewRequestWithContext(ctx, http.MethodDelete, requestURL, body)
+	}
+	if err != nil {
+		log.Error("Error creating request ", zap.Error(err))
+		return err
+	}
+
+	request.Header.Add("Content-Type", constants.HTTPContentType)
+	response, err = o.Client.Do(request)
+	if err != nil {
+		log.Errorf("HTTP '%s' failure while invoking url '%s' due to '%v'", method, requestURL, zap.Error(err))
+		return err
+	}
+	defer response.Body.Close()
+
+	bdata, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Errorf("Unable to read response body ", zap.Error(err))
+		return err
+	}
+
+	if response.StatusCode != 200 {
+		log.Errorf("Response code is not 200 OK!. Actual response code '%v' with response body '%v'", response.StatusCode, string(bdata))
+		return err
+	}
+
+	err = json.Unmarshal(bdata, &data)
+	if err != nil {
+		log.Errorf("json unmarshalling error %v", err)
+		return err
+	}
+
+	return nil
+}
+
 //EnsureOpenSearchIsReachable is used determine whether OpenSearch cluster is reachable
-func (o *OpensearchImpl) EnsureOpenSearchIsReachable(url string, conData *types.ConnectionData, log *zap.SugaredLogger) error {
+func (o *OpensearchImpl) EnsureOpenSearchIsReachable(conData *types.ConnectionData, log *zap.SugaredLogger) error {
 	log.Infof("Checking if cluster is reachable")
 	var osinfo types.OpenSearchClusterInfo
 	done := false
@@ -34,13 +88,13 @@ func (o *OpensearchImpl) EnsureOpenSearchIsReachable(url string, conData *types.
 
 	timeParse, err := time.ParseDuration(conData.Timeout)
 	if err != nil {
-		log.Errorf("Unable to pasr time duration ", zap.Error(err))
+		log.Errorf("Unable to parse time duration ", zap.Error(err))
 		return err
 	}
 	totalSeconds := timeParse.Seconds()
 
 	for !done {
-		err := utils.HTTPHelper("GET", url, nil, &osinfo, log)
+		err := o.HTTPHelper(context.Background(), "GET", o.BaseURL, nil, &osinfo, log)
 		if err != nil {
 			if timeSeconds < totalSeconds {
 				message := "Cluster is not reachable"
@@ -67,21 +121,21 @@ func (o *OpensearchImpl) EnsureOpenSearchIsReachable(url string, conData *types.
 // Verifies if cluster is reachable
 // Verifies if health url is reachable
 // Verifies health status is green
-func (o *OpensearchImpl) EnsureOpenSearchIsHealthy(url string, conData *types.ConnectionData, log *zap.SugaredLogger) error {
+func (o *OpensearchImpl) EnsureOpenSearchIsHealthy(conData *types.ConnectionData, log *zap.SugaredLogger) error {
 	log.Infof("Checking if cluster is healthy")
 	var clusterHealth types.OpenSearchHealthResponse
-	err := o.EnsureOpenSearchIsReachable(url, conData, log)
+	err := o.EnsureOpenSearchIsReachable(conData, log)
 	if err != nil {
 		return err
 	}
 
-	healthURL := fmt.Sprintf("%s/_cluster/health", url)
+	healthURL := fmt.Sprintf("%s/_cluster/health", o.BaseURL)
 	healthReachable := false
 	var timeSeconds float64
 
 	timeParse, err := time.ParseDuration(conData.Timeout)
 	if err != nil {
-		log.Errorf("Unable to pasr time duration ", zap.Error(err))
+		log.Errorf("Unable to parse time duration ", zap.Error(err))
 		return err
 	}
 	totalSeconds := timeParse.Seconds()
@@ -92,7 +146,7 @@ func (o *OpensearchImpl) EnsureOpenSearchIsHealthy(url string, conData *types.Co
 	}
 
 	for !healthReachable {
-		err = utils.HTTPHelper("GET", healthURL, nil, &clusterHealth, log)
+		err = o.HTTPHelper(context.Background(), "GET", healthURL, nil, &clusterHealth, log)
 		if err != nil {
 			if timeSeconds < totalSeconds {
 				message := "Cluster health endpoint is not reachable"
@@ -114,7 +168,7 @@ func (o *OpensearchImpl) EnsureOpenSearchIsHealthy(url string, conData *types.Co
 	healthGreen := false
 
 	for !healthGreen {
-		err = utils.HTTPHelper("GET", healthURL, nil, &clusterHealth, log)
+		err = o.HTTPHelper(context.Background(), "GET", healthURL, nil, &clusterHealth, log)
 		if err != nil {
 			if timeSeconds < totalSeconds {
 				message := "Json unmarshalling error"
@@ -208,8 +262,9 @@ func (o *OpensearchImpl) UpdateKeystore(client kubernetes.Interface, cfg *rest.C
 //ReloadOpenSearchSecureSettings used to reload secure settings once object store keys are updated
 func (o *OpensearchImpl) ReloadOpensearchSecureSettings(log *zap.SugaredLogger) error {
 	var secureSettings types.OpenSearchSecureSettingsReloadStatus
-	url := fmt.Sprintf("%s/_nodes/reload_secure_settings", constants.OpenSearchURL)
-	err := utils.HTTPHelper("POST", url, nil, &secureSettings, log)
+	url := fmt.Sprintf("%s/_nodes/reload_secure_settings", o.BaseURL)
+
+	err := o.HTTPHelper(context.Background(), "POST", url, nil, &secureSettings, log)
 	if err != nil {
 		return err
 	}
@@ -237,8 +292,9 @@ func (o *OpensearchImpl) RegisterSnapshotRepository(secretData *types.Connection
 		return err
 	}
 
-	url := fmt.Sprintf("%s/_snapshot/%s", constants.OpenSearchURL, constants.OpeSearchSnapShotRepoName)
-	err = utils.HTTPHelper("POST", url, bytes.NewBuffer(postBody), &registerResponse, log)
+	url := fmt.Sprintf("%s/_snapshot/%s", o.BaseURL, constants.OpeSearchSnapShotRepoName)
+
+	err = o.HTTPHelper(context.Background(), "POST", url, bytes.NewBuffer(postBody), &registerResponse, log)
 	if err != nil {
 		return err
 	}
@@ -254,8 +310,9 @@ func (o *OpensearchImpl) RegisterSnapshotRepository(secretData *types.Connection
 func (o *OpensearchImpl) TriggerSnapshot(conData *types.ConnectionData, log *zap.SugaredLogger) error {
 	log.Infof("Triggering snapshot with name '%s'", conData.BackupName)
 	var snapshotResponse types.OpenSearchSnapshotResponse
-	snapShotURL := fmt.Sprintf("%s/_snapshot/%s/%s", constants.OpenSearchURL, constants.OpeSearchSnapShotRepoName, conData.BackupName)
-	err := utils.HTTPHelper("POST", snapShotURL, nil, &snapshotResponse, log)
+	snapShotURL := fmt.Sprintf("%s/_snapshot/%s/%s", o.BaseURL, constants.OpeSearchSnapShotRepoName, conData.BackupName)
+
+	err := o.HTTPHelper(context.Background(), "POST", snapShotURL, nil, &snapshotResponse, log)
 	if err != nil {
 		return err
 	}
@@ -270,7 +327,7 @@ func (o *OpensearchImpl) TriggerSnapshot(conData *types.ConnectionData, log *zap
 //CheckSnapshotProgress checks the data backup progress
 func (o *OpensearchImpl) CheckSnapshotProgress(conData *types.ConnectionData, log *zap.SugaredLogger) error {
 	log.Infof("Checking snapshot progress with name '%s'", conData.BackupName)
-	snapShotURL := fmt.Sprintf("%s/_snapshot/%s/%s", constants.OpenSearchURL, constants.OpeSearchSnapShotRepoName, conData.BackupName)
+	snapShotURL := fmt.Sprintf("%s/_snapshot/%s/%s", o.BaseURL, constants.OpeSearchSnapShotRepoName, conData.BackupName)
 	var snapshotInfo types.OpenSearchSnapshotStatus
 
 	if utils.GetEnvWithDefault(constants.DevKey, constants.FalseString) == constants.TruthString {
@@ -281,14 +338,14 @@ func (o *OpensearchImpl) CheckSnapshotProgress(conData *types.ConnectionData, lo
 	var timeSeconds float64
 	timeParse, err := time.ParseDuration(conData.Timeout)
 	if err != nil {
-		log.Errorf("Unable to pasr time duration ", zap.Error(err))
+		log.Errorf("Unable to parse time duration ", zap.Error(err))
 		return err
 	}
 	totalSeconds := timeParse.Seconds()
 
 	done := false
 	for !done {
-		err := utils.HTTPHelper("GET", snapShotURL, nil, &snapshotInfo, log)
+		err := o.HTTPHelper(context.Background(), "GET", snapShotURL, nil, &snapshotInfo, log)
 		if err != nil {
 			return err
 		}
@@ -324,11 +381,11 @@ func (o *OpensearchImpl) CheckSnapshotProgress(conData *types.ConnectionData, lo
 // This requires that ingest be turned off
 func (o *OpensearchImpl) DeleteData(log *zap.SugaredLogger) error {
 	log.Infof("Deleting data streams followed by index ..")
-	dataStreamURL := fmt.Sprintf("%s/_data_stream/*", constants.OpenSearchURL)
-	dataIndexURL := fmt.Sprintf("%s/*", constants.OpenSearchURL)
+	dataStreamURL := fmt.Sprintf("%s/_data_stream/*", o.BaseURL)
+	dataIndexURL := fmt.Sprintf("%s/*", o.BaseURL)
 	var deleteResponse types.OpenSearchOperationResponse
 
-	err := utils.HTTPHelper("DELETE", dataStreamURL, nil, &deleteResponse, log)
+	err := o.HTTPHelper(context.Background(), "DELETE", dataStreamURL, nil, &deleteResponse, log)
 	if err != nil {
 		return err
 	}
@@ -337,7 +394,7 @@ func (o *OpensearchImpl) DeleteData(log *zap.SugaredLogger) error {
 		return fmt.Errorf("Data streams deletion failure. Response = %v ", deleteResponse)
 	}
 
-	err = utils.HTTPHelper("DELETE", dataIndexURL, nil, &deleteResponse, log)
+	err = o.HTTPHelper(context.Background(), "DELETE", dataIndexURL, nil, &deleteResponse, log)
 	if err != nil {
 		return err
 	}
@@ -353,25 +410,25 @@ func (o *OpensearchImpl) DeleteData(log *zap.SugaredLogger) error {
 //TriggerRestore Triggers a restore from a specified snapshot
 func (o *OpensearchImpl) TriggerRestore(conData *types.ConnectionData, log *zap.SugaredLogger) error {
 	log.Infof("Triggering restore with name '%s'", conData.BackupName)
-	restoreURL := fmt.Sprintf("%s/_snapshot/%s/%s/_restore", constants.OpenSearchURL, constants.OpeSearchSnapShotRepoName, conData.BackupName)
+	restoreURL := fmt.Sprintf("%s/_snapshot/%s/%s/_restore", o.BaseURL, constants.OpeSearchSnapShotRepoName, conData.BackupName)
 	var restoreResponse types.OpenSearchSnapshotResponse
 
-	err := utils.HTTPHelper("POST", restoreURL, nil, &restoreResponse, log)
+	err := o.HTTPHelper(context.Background(), "POST", restoreURL, nil, &restoreResponse, log)
 	if err != nil {
 		return err
 	}
 
 	if !restoreResponse.Accepted {
-		return fmt.Errorf("Snapshot registration failure. Response = %v ", restoreResponse)
+		return fmt.Errorf("Snapshot restore trigger failed. Response = %v ", restoreResponse)
 	}
-	log.Infof("Snapshot registered successfully !")
+	log.Infof("Snapshot restore triggered successfully !")
 	return nil
 }
 
 //CheckRestoreProgress checks progress of restore process, by monitoring all the data streams
 func (o *OpensearchImpl) CheckRestoreProgress(conData *types.ConnectionData, log *zap.SugaredLogger) error {
 	log.Infof("Checking restore progress with name '%s'", conData.BackupName)
-	dsURL := fmt.Sprintf("%s/_data_stream", constants.OpenSearchURL)
+	dsURL := fmt.Sprintf("%s/_data_stream", o.BaseURL)
 	var snapshotInfo types.OpenSearchDataStreams
 
 	if utils.GetEnvWithDefault(constants.DevKey, constants.FalseString) == constants.TruthString {
@@ -382,7 +439,7 @@ func (o *OpensearchImpl) CheckRestoreProgress(conData *types.ConnectionData, log
 	var timeSeconds float64
 	timeParse, err := time.ParseDuration(conData.Timeout)
 	if err != nil {
-		log.Errorf("Unable to pasr time duration ", zap.Error(err))
+		log.Errorf("Unable to parse time duration ", zap.Error(err))
 		return err
 	}
 	totalSeconds := timeParse.Seconds()
@@ -390,7 +447,7 @@ func (o *OpensearchImpl) CheckRestoreProgress(conData *types.ConnectionData, log
 	notGreen := false
 
 	for !done {
-		err := utils.HTTPHelper("GET", dsURL, nil, &snapshotInfo, log)
+		err := o.HTTPHelper(context.Background(), "GET", dsURL, nil, &snapshotInfo, log)
 		if err != nil {
 			return err
 		}

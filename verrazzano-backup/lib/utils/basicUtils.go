@@ -6,14 +6,10 @@ package utils
 import (
 	"bufio"
 	"crypto/rand"
-	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/verrazzano-backup/lib/constants"
 	"go.uber.org/zap"
-	"io"
-	"io/ioutil"
 	"math/big"
-	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -54,60 +50,6 @@ func WaitRandom(message, timeout string, log *zap.SugaredLogger) (int, error) {
 	log.Infof("%v . Wait for '%v' seconds ...", message, randomInt)
 	time.Sleep(time.Second * time.Duration(randomInt))
 	return randomInt, nil
-}
-
-//HTTPHelper supports net/http calls of type GTE/POST/DELETE
-func HTTPHelper(method, requestURL string, body io.Reader, data interface{}, log *zap.SugaredLogger) error {
-	log.Debugf("Invoking HTTP '%s' request with url '%s'", method, requestURL)
-	var response *http.Response
-	var request *http.Request
-	var err error
-	client := &http.Client{}
-	switch method {
-	case "GET":
-		request, err = http.NewRequest(http.MethodGet, requestURL, body)
-		if err != nil {
-			log.Error("Error creating request ", zap.Error(err))
-			return err
-		}
-	case "POST":
-		request, err = http.NewRequest(http.MethodPost, requestURL, body)
-		if err != nil {
-			log.Error("Error creating request ", zap.Error(err))
-			return err
-		}
-	case "DELETE":
-		request, err = http.NewRequest(http.MethodDelete, requestURL, body)
-		if err != nil {
-			log.Error("Error creating request ", zap.Error(err))
-			return err
-		}
-	}
-	request.Header.Add("Content-Type", constants.HTTPContentType)
-	response, err = client.Do(request)
-	if err != nil {
-		log.Errorf("HTTP '%s' failure while invoking url '%s' due to '%v'", method, requestURL, zap.Error(err))
-		return err
-	}
-
-	bdata, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		log.Errorf("HTTP DELETE failure ", zap.Error(err))
-		return err
-	}
-
-	if response.StatusCode != 200 {
-		log.Errorf("Response code is not 200 OK!. Actual response code '%v' with response body '%v'", response.StatusCode, string(bdata))
-		return err
-	}
-
-	err = json.Unmarshal(bdata, &data)
-	if err != nil {
-		log.Errorf("json unmarshalling error %v", err)
-		return err
-	}
-
-	return nil
 }
 
 //ReadTempCredsFile reads object store credentials from a temporary file for registration purpose

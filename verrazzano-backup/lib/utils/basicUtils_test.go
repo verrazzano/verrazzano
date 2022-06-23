@@ -53,27 +53,6 @@ func TestWaitRandom(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-// TestHTTPHelper tests the HTTPHelper method for the following use case.
-// GIVEN a URL
-// WHEN the method type is GET/POST/DELETE with a body
-// THEN Invoke the http request and return the appropriate response
-func TestHTTPHelper(t *testing.T) {
-	t.Parallel()
-	log, fname := logHelper()
-	defer os.Remove(fname)
-	URL := "http://127.0.0.1"
-	data := make(map[string]interface{})
-
-	err := utils.HTTPHelper("GET", URL, nil, &data, log)
-	assert.NotNil(t, err)
-
-	err = utils.HTTPHelper("POST", URL, nil, &data, log)
-	assert.NotNil(t, err)
-
-	err = utils.HTTPHelper("DELETE", URL, nil, &data, log)
-	assert.NotNil(t, err)
-}
-
 // TestReadTempCredsFile tests the ReadTempCredsFile method for the following use case.
 // GIVEN an existing file to read
 // WHEN the file exists

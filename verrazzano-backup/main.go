@@ -15,11 +15,13 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"net/http"
 	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"strings"
+	"time"
 )
 
 var (
@@ -86,14 +88,18 @@ func main() {
 	var kubeClient *kubernetes.Clientset
 	var clientk client.Client
 	var dynClient dynamic.Interface
-	var search opensearch.Opensearch
+	//var search opensearch.Opensearch
 	var cData model.ConnectionData
 	cData.Timeout = utils.GetEnvWithDefault(constants.OpenSearchHealthCheckTimeoutKey, constants.OpenSearchHealthCheckTimeoutDefaultValue)
-
+	timeParse, err := time.ParseDuration(cData.Timeout)
+	if err != nil {
+		log.Errorf("Unable to parse time duration ", zap.Error(err))
+		os.Exit(1)
+	}
 	// Check OpenSearch health before proceeding with backup or restore
+	search := opensearch.New(constants.OpenSearchURL, timeParse, http.DefaultClient)
 	if Component == constants.OSComponent {
-		search = opensearch.Opensearch(&opensearch.OpensearchImpl{})
-		err = search.EnsureOpenSearchIsHealthy(constants.OpenSearchURL, &cData, log)
+		err = search.EnsureOpenSearchIsHealthy(&cData, log)
 		if err != nil {
 			log.Errorf("Operation cannot be performed as OpenSearch is not healthy")
 			os.Exit(1)
