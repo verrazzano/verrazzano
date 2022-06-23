@@ -241,8 +241,6 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 			// Return when the Verrazzano uninstall has completed
 			vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
 			if vz == nil {
-				// Delete remaining Verrazzano resources, excluding CRDs
-				_ = cleanupResources(client, vzHelper)
 				resChan <- nil
 			}
 			if err != nil && !errors.IsNotFound(err) {
@@ -252,12 +250,16 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 	}()
 	select {
 	case result := <-resChan:
+		// Delete remaining Verrazzano resources, excluding CRDs
+		_ = cleanupResources(client, vzHelper)
 		return result
 	case <-time.After(timeout):
 		if timeout.Nanoseconds() != 0 {
 			_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Timeout %v exceeded waiting for uninstall to complete\n", timeout.String()))
 		}
 	}
+	// Delete remaining Verrazzano resources, excluding CRDs
+	_ = cleanupResources(client, vzHelper)
 	return nil
 }
 
