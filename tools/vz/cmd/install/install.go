@@ -222,7 +222,15 @@ func createSetFlagsYAMl(pvs map[string]string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(yamlFile), nil
+
+	yamlString := string(yamlFile)
+
+	// Replace any double-quoted strings that are surrounded by single quotes.
+	// These type of strings are problematic for helm.
+	yamlString = strings.ReplaceAll(yamlString, "'\"", "\"")
+	yamlString = strings.ReplaceAll(yamlString, "\"'", "\"")
+
+	return yamlString, nil
 }
 
 // getSetArguments gets all the set arguments and returns a map of property/value

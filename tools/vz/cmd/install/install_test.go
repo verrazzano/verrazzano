@@ -460,6 +460,9 @@ func TestInstallCmdFilenamesAndSets(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/dev-profile.yaml")
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=prod")
 	cmd.PersistentFlags().Set(constants.SetFlag, "environmentName=test")
+	cmd.PersistentFlags().Set(constants.SetFlag, "components.ingress.overrides[0].values.controller.podLabels.override=\"true\"")
+	cmd.PersistentFlags().Set(constants.SetFlag, "components.ingress.overrides[1].values.controller.service.annotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\"=10Mbps")
+	cmd.PersistentFlags().Set(constants.SetFlag, "components.ingress.enabled=true")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 
 	// Run install command
@@ -467,12 +470,19 @@ func TestInstallCmdFilenamesAndSets(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
 
-	// Verify the vz resource is as expected
+	// Verify the vz resource is as expected.
 	vz := vzapi.Verrazzano{}
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "my-verrazzano"}, &vz)
 	assert.NoError(t, err)
 	assert.Equal(t, vzapi.Prod, vz.Spec.Profile)
 	assert.Equal(t, "test", vz.Spec.EnvironmentName)
+	assert.Equal(t, true, *vz.Spec.Components.Ingress.Enabled)
+	json, err := vz.Spec.Components.Ingress.InstallOverrides.ValueOverrides[0].Values.MarshalJSON()
+	assert.NoError(t, err)
+	assert.Equal(t, "{\"controller\":{\"podLabels\":{\"override\":\"true\"}}}", string(json))
+	json, err = vz.Spec.Components.Ingress.InstallOverrides.ValueOverrides[1].Values.MarshalJSON()
+	assert.NoError(t, err)
+	assert.Equal(t, "{\"controller\":{\"service\":{\"annotations\":{\"service.beta.kubernetes.io/oci-load-balancer-shape\":\"10Mbps\"}}}}", string(json))
 }
 
 // TestInstallCmdOperatorFile
