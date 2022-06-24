@@ -1060,7 +1060,7 @@ def setupBastionSSH() {
         echo "[ERROR] Failed to install sshuttle"
         exit 1
     fi
-    sshuttle -r "$BASTION_USER"@"$BASTION_IP" "$VCN_CIDR" --ssh-cmd "ssh -o StrictHostKeyChecking=no -i $TF_VAR_ssh_private_key_path" --daemon
+    sudo sshuttle -r "$BASTION_USER"@"$BASTION_IP" "$VCN_CIDR" --ssh-cmd "ssh -o StrictHostKeyChecking=no -i $TF_VAR_ssh_private_key_path" --daemon
     if [[ $? -ne 0 ]]; then
         echo "[ERROR] Failed to ssh tunnel to the bastion host $TF_VAR_prefix-bastion at $BASTION_USER@$BASTION_IP"
         exit 1
@@ -1069,7 +1069,7 @@ def setupBastionSSH() {
 }
 
 def mountOCIStorage() {
-    def INSTANCE_IP=$WORKER_NODES_IP.split(" ")[0]
+    def INSTANCE_IP=WORKER_NODES_IP.split(" ")[0]
     sh """
         ssh -o StrictHostKeyChecking=no opc@"$INSTANCE_IP" -i "$TF_VAR_ssh_private_key_path" "
             sudo mkdir -p "/mnt/$OCI_EXPORT_PATH"
