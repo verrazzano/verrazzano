@@ -23,7 +23,7 @@ function log () {
 }
 
 function addDNSRecord() {
-    oci dns record domain patch --domain $1 --zone-name-or-id $ZONE_NAME --scope $DNS_SCOPE --items "[{\"domain\": \"$1\", \"isProtected\": \"true\", \"rtype\": \"$2\", \"rdata\": \"$3\", \"ttl\": \"300\"}]"
+    oci dns record domain patch --domain "$1" --zone-name-or-id "$ZONE_NAME" --scope "$DNS_SCOPE" --items "[{\"domain\": \"$1\", \"isProtected\": true, \"rtype\": \"$2\", \"rdata\": \"$3\", \"ttl\": 300}]"
 }
 
 function createVerrazzanoDNSRecords() {
