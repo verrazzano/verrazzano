@@ -481,10 +481,12 @@ func TestInstallCmdFilenamesAndSets(t *testing.T) {
 	json, err := vz.Spec.Components.Ingress.InstallOverrides.ValueOverrides[0].Values.MarshalJSON()
 	assert.NoError(t, err)
 	outyaml, err := yaml.JSONToYAML(json)
+	assert.NoError(t, err)
 	assert.Equal(t, "controller:\n  podLabels:\n    override: \"true\"\n", string(outyaml))
 	json, err = vz.Spec.Components.Ingress.InstallOverrides.ValueOverrides[1].Values.MarshalJSON()
 	assert.NoError(t, err)
 	outyaml, err = yaml.JSONToYAML(json)
+	assert.NoError(t, err)
 	assert.Equal(t, "controller:\n  service:\n    annotations:\n      service.beta.kubernetes.io/oci-load-balancer-shape: 10Mbps\n", string(outyaml))
 }
 
