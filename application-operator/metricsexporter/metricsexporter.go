@@ -14,7 +14,7 @@ func InitalizeMetricsEndpoint() {
 	go InitalizeMetricsEndpointHelper()
 }
 
-//InitalizeMetricsEndpointHelper creates and serves a /metrics endpoint at 9100 for Prometheus to scrape metrics from
+// InitalizeMetricsEndpointHelper creates and serves a /metrics endpoint at 9100 for Prometheus to scrape metrics from
 func InitalizeMetricsEndpointHelper() {
 	http.Handle("/metrics", promhttp.Handler())
 	http.ListenAndServe(":9100", nil)
