@@ -42,7 +42,7 @@ spec:
               name: webhook
               protocol: TCP
             - containerPort: 9100
-              name: http-metric-vpo
+              name: http-metric
               protocol: TCP
           startupProbe:
             httpGet:
