@@ -133,15 +133,15 @@ func NewComponent() spi.Component {
 	}
 }
 
-func (h istioComponent) PreUninstall(context spi.ComponentContext) error {
+func (i istioComponent) PreUninstall(context spi.ComponentContext) error {
 	return nil
 }
 
-func (h istioComponent) Uninstall(context spi.ComponentContext) error {
+func (i istioComponent) Uninstall(context spi.ComponentContext) error {
 	return nil
 }
 
-func (h istioComponent) PostUninstall(context spi.ComponentContext) error {
+func (i istioComponent) PostUninstall(context spi.ComponentContext) error {
 	return nil
 }
 
