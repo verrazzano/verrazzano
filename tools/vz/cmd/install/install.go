@@ -184,7 +184,7 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper) (vz *vzapi
 	}
 
 	// Generate yaml for the set flags passed on the command line
-	outYAML, err := createSetFlagsYAMl(pvs)
+	outYAML, err := generateYAMLForSetFlags(pvs)
 	if err != nil {
 		return nil, err
 	}
@@ -200,9 +200,9 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper) (vz *vzapi
 	return vz, nil
 }
 
-// createSetFlagsYAMl creates a YAML string from a map of property value pairs representing --set flags
-// specified in the install command
-func createSetFlagsYAMl(pvs map[string]string) (string, error) {
+// generateYAMLForSetFlags creates a YAML string from a map of property value pairs representing --set flags
+// specified on the install command
+func generateYAMLForSetFlags(pvs map[string]string) (string, error) {
 	yamlObject := map[string]interface{}{}
 	for path, value := range pvs {
 		// replace unwanted characters in the value to avoid splitting

@@ -470,7 +470,7 @@ func TestInstallCmdFilenamesAndSets(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
 
-	// Verify the vz resource is as expected.
+	// Verify the vz resource is as expected
 	vz := vzapi.Verrazzano{}
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "my-verrazzano"}, &vz)
 	assert.NoError(t, err)
