@@ -29,9 +29,7 @@ install:
 # Executes test suite(s) against the target Verrazzano install
 test: export TEST_SUITES ?= verify-install/...
 .PHONY: test
-test:
-	@echo "Running tests ${TEST_SUITES}"
-	make run-test
+test: run-test
 
 # Executes an upgrade to a new Verrazzano version from the initially installed version
 .PHONY: upgrade
@@ -48,8 +46,4 @@ update:
 uninstall:
 	@echo "Uninstall not implemented"
 
-# Executes an upgrade to a new Verrazzano version from the initially installed version
-.PHONY: cleanup
-cleanup: pipeline-artifacts clean-kind
-	@echo "Running test cleanup"
 

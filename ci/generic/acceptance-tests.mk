@@ -19,104 +19,54 @@ run-test: export RUN_PARALLEL := false
 .PHONY: run-sequential
 run-sequential: run-test
 
+.PHONY: kind-acceptance-tests
+kind-acceptance-tests: setup install verify-all
+
 .PHONY: verify-all
 verify-all: verify-infra-all verify-deployment-all
 
 .PHONY: verify-infra-all
-verify-infra-all: verify-install verify-scripts verify-infra verify-security-rbac verify-system-metrics verify-console
+verify-infra-all:  verify-infra-all-parallel verify-infra-all-sequential verify-console
 
-.PHONY: verify-install
-verify-install:
-	TEST_SUITES=verify-install/... make test
+.PHONY: verify-deployment-all
+verify-deployment-all: verify-deployment-parallel verify-deployment-sequential
+
+verify-infra-all-parallel: export TEST_SUITES = verify-install/... verify-infra/... scripts/...
+.PHONY: verify-infra-all-parallel
+verify-infra-all-parallel: run-test
 
 .PHONY: verify-scripts
 verify-scripts:
 	TEST_SUITES=scripts/... make test
 
-.PHONY: verify-infra
-verify-infra:
-	TEST_SUITES=verify-infra/... make test
+verify-infra-all-sequential: export TEST_SUITES = security/rbac/...  metrics/syscomponents/...
+.PHONY: verify-infra-all-sequential
+verify-infra-all-sequential: run-test
 
-.PHONY: verify-security-rbac
-verify-security-rbac:
-	TEST_SUITES=security/rbac/... make run-sequential
-
-.PHONY: verify-system-metrics
-verify-system-metrics:
-	TEST_SUITES=metrics/syscomponents/... make run-sequential
-
-verify-console: export DUMP_DIRECTORY ?= ${DUMP_ROOT_DIRECTORY}/console
 PHONY: verify-console
 verify-console:
 	${CI_SCRIPTS_DIR}/run_console_tests.sh
 
-.PHONY: verify-deployment-all
-verify-deployment-all: verify-opensearch-topology verify-istio-authz verify-deployment-workload-metrics \
-	verify-system-logging verify-opensearch-logging verify-helidon-logging verify-helidon-metrics \
-	verify-examples-helidon verify-workloads verify-console-ingress verify-wls-loggingtraits verify-poko-metricsbinding \
-	verify-security-netpol
+.PHONY: verify-deployment-parallel
+verify-deployment-parallel: export TEST_SUITES = opensearch/topology/... examples/helidon/...
+verify-deployment-parallel: run-test
 
-.PHONY: verify-opensearch-topology
-verify-opensearch-topology:
-	TEST_SUITES=opensearch/topology/... make test
-
-.PHONY: verify-istio-authz
-verify-istio-authz:
-	TEST_SUITES=istio/authz/... make run-sequential
-
-.PHONY: verify-deployment-workload-metrics
-verify-deployment-workload-metrics:
-	TEST_SUITES=metrics/deploymetrics/... make run-sequential
-
-.PHONY: verify-system-logging
-verify-system-logging:
-	TEST_SUITES=logging/system/... make run-sequential
-
-.PHONY: verify-opensearch-logging
-verify-opensearch-logging:
-	TEST_SUITES=logging/opensearch/... make run-sequential
-
-.PHONY: verify-helidon-logging
-verify-helidon-logging:
-	TEST_SUITES=logging/helidon/... make run-sequential
-
-.PHONY: verify-helidon-metrics
-verify-helidon-metrics:
-	TEST_SUITES=examples/helidonmetrics/... make run-sequential
-
-.PHONY: verify-examples-helidon
-verify-examples-helidon:
-	TEST_SUITES=examples/helidon/... make test
-
-.PHONY: verify-workloads
-verify-workloads:
-	TEST_SUITES=workloads/... make run-sequential
-
-.PHONY: verify-console-ingress
-verify-console-ingress:
-	TEST_SUITES=ingress/console/... make run-sequential
-
-.PHONY: verify-wls-loggingtraits
-verify-wls-loggingtraits:
-	TEST_SUITES=loggingtrait/... make run-sequential
-
-.PHONY: verify-poko-metricsbinding
-verify-poko-metricsbinding:
-	TEST_SUITES=metricsbinding/... make run-sequential
-
-.PHONY: verify-security-netpol
-verify-security-netpol:
-	TEST_SUITES=security/netpol/... make run-sequential
+.PHONY: verify-deployment-sequential
+verify-deployment-sequential: export TEST_SUITES = istio/authz/... metrics/deploymetrics/... logging/system/... logging/opensearch/...  logging/helidon/... examples/helidonmetrics/... workloads/... ingress/console/... loggingtrait/... metricsbinding/... security/netpol/...
+verify-deployment-sequential: run-sequential
 
 .PHONY: dumplogs
 dumplogs:
+	@echo "Dumping test logs to ${DUMP_ROOT_DIRECTORY}"
 	${CI_SCRIPTS_DIR}/dumpRunLogs.sh ${DUMP_ROOT_DIRECTORY}
 
 test-reports: export TEST_REPORT ?= "test-report.xml"
 test-reports: export TEST_REPORT_DIR ?= "${WORKSPACE}/tests/e2e"
 .PHONY: test-reports
 test-reports:
+	@echo "Copying test reports to ${TEST_REPORT_DIR}"
 	# Copy the generated test reports to WORKSPACE to archive them
+	# FIXME: should this be copying from ${WORKSPACE} in the pipelines?
 	mkdir -p ${TEST_REPORT_DIR}
 	cd ${GO_REPO_PATH}/verrazzano/tests/e2e
 	find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
@@ -124,3 +74,6 @@ test-reports:
 .PHONY: pipeline-artifacts
 pipeline-artifacts: dumplogs test-reports
 
+# Executes an upgrade to a new Verrazzano version from the initially installed version
+.PHONY: cleanup
+cleanup: pipeline-artifacts clean-kind
