@@ -10,15 +10,16 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/verrazzano/verrazzano/pkg/yaml"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	"helm.sh/helm/v3/pkg/strvals"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -157,8 +158,8 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper) (vz *vzapi
 		return nil, err
 	}
 
-	// Get the set arguments - list of paths and value
-	pv, err := getSetArguments(cmd, vzHelper)
+	// Get the set arguments - returning a list of properties and value
+	pvs, err := getSetArguments(cmd, vzHelper)
 	if err != nil {
 		return nil, err
 	}
@@ -182,21 +183,46 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper) (vz *vzapi
 		}
 	}
 
+	// Generate yaml for the set flags passed on the command line
+	outYAML, err := createSetFlagsYAMl(pvs)
+	if err != nil {
+		return nil, err
+	}
+
 	// Merge the set flags passed on the command line. The set flags take precedence over
 	// the yaml files passed on the command line.
-	for path, value := range pv {
-		outYaml, err := yaml.Expand(0, false, path, value)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to generate yaml from specified set flags: %s", err.Error())
-		}
-		vz, err = cmdhelpers.MergeSetFlags(vz, outYaml)
-		if err != nil {
-			return nil, err
-		}
+	vz, err = cmdhelpers.MergeSetFlags(vz, outYAML)
+	if err != nil {
+		return nil, err
 	}
 
 	// Return the merged verrazzano install resource to be created
 	return vz, nil
+}
+
+// createSetFlagsYAMl creates a YAML string from a map of property value pairs representing --set flags
+// specified in the install command
+func createSetFlagsYAMl(pvs map[string]string) (string, error) {
+	yamlObject := map[string]interface{}{}
+	for path, value := range pvs {
+		// replace unwanted characters in the value to avoid splitting
+		ignoreChars := ",[.{}"
+		for _, char := range ignoreChars {
+			value = strings.Replace(value, string(char), "\\"+string(char), -1)
+		}
+
+		composedStr := fmt.Sprintf("%s=%s", path, value)
+		err := strvals.ParseInto(composedStr, yamlObject)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	yamlFile, err := yaml.Marshal(yamlObject)
+	if err != nil {
+		return "", err
+	}
+	return string(yamlFile), nil
 }
 
 // getSetArguments gets all the set arguments and returns a map of property/value
