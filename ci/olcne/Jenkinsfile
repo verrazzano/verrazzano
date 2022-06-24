@@ -972,26 +972,26 @@ def createOLCNECluster() {
         terraform apply -input=false -no-color -auto-approve tfplan
     """
     // TODO: Optimize the way in which the groovy variables are set using a file based approach
-    API_SERVER_IP=sh(returnStdout: true, script: "cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw apiserver_ip")
-    VCN_OCID=sh(returnStdout: true, script: "cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw vcn_id")
-    VCN_CIDR=sh(returnStdout: true, script: "oci network vcn get --vcn-id $VCN_OCID | jq -r '.data.\"cidr-block\"'")
-    PUBLIC_SUBNET_OCID=sh(returnStdout: true, script: "oci network subnet list -c $TF_VAR_compartment_id --vcn-id $VCN_OCID --display-name $TF_VAR_prefix-bastion | jq -r '.data[0].id'")
-    PRIVATE_SUBNET_OCID=sh(returnStdout: true, script: "cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw subnet_id")
-    BASTION_IP=sh(returnStdout: true, script: "cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw bastion_public_ip")
-    BASTION_USER=sh(returnStdout: true, script: "cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw bastion_user")
-    WORKER_NODES_IP=sh(returnStdout: true, script: "cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -json worker_nodes").replaceAll(/["\[\]]/, "").replaceAll(",", " ")
-    CONTROL_PLANE_NODES_IP=sh(returnStdout: true, script: "cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -json control_plane_nodes").replaceAll(/["\[\]]/, "").replaceAll(",", " ")
+    API_SERVER_IP=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw apiserver_ip """)
+    VCN_OCID=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw vcn_id """)
+    VCN_CIDR=sh(returnStdout: true, script: """ oci network vcn get --vcn-id "$VCN_OCID" | jq -r '.data."cidr-block"' """)
+    PUBLIC_SUBNET_OCID=sh(returnStdout: true, script: """ oci network subnet list -c "$TF_VAR_compartment_id" --vcn-id "$VCN_OCID" --display-name "$TF_VAR_prefix-bastion" | jq -r '.data[0].id' """)
+    PRIVATE_SUBNET_OCID=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw subnet_id """)
+    BASTION_IP=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw bastion_public_ip """)
+    BASTION_USER=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw bastion_user """)
+    WORKER_NODES_IP=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -json worker_nodes""").replaceAll(/["\[\]]/, "").replaceAll(",", " ")
+    CONTROL_PLANE_NODES_IP=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -json control_plane_nodes """).replaceAll(/["\[\]]/, "").replaceAll(",", " ")
 }
 
 def createOCIFileSystem() {
     sh """
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_fs_ops.sh \
-        -o create -a $TF_VAR_availability_domain_id \
+        -o create -a "$TF_VAR_availability_domain_id" \
         -n "$TF_VAR_prefix-fs" -m "$TF_VAR_prefix-mt" \
-        -p "/$TF_VAR_prefix-export" -c $TF_VAR_compartment_id -s $PRIVATE_SUBNET_OCID
+        -p "/$TF_VAR_prefix-export" -c "$TF_VAR_compartment_id" -s "$PRIVATE_SUBNET_OCID"
     """
-    MT_PVT_IP_OCID=sh(returnStdout: true, script: "oci fs mount-target list --compartment-id $TF_VAR_compartment_id --availability-domain $TF_VAR_availability_domain_id --display-name "$TF_VAR_prefix-mt" --lifecycle-state ACTIVE | jq -r '.data[0].\"private-ip-ids\"[0]'")
-    OCI_MOUNT_IP=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/get_private_ip_address.sh $MT_PVT_IP_OCID")
+    MT_PVT_IP_OCID=sh(returnStdout: true, script: """ oci fs mount-target list --compartment-id "$TF_VAR_compartment_id" --availability-domain "$TF_VAR_availability_domain_id" --display-name "$TF_VAR_prefix-mt" --lifecycle-state ACTIVE | jq -r '.data[0]."private-ip-ids"[0]' """)
+    OCI_MOUNT_IP=sh(returnStdout: true, script: """ $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/get_private_ip_address.sh "$MT_PVT_IP_OCID" """)
     OCI_EXPORT_PATH="/$TF_VAR_prefix-export"
 }
 
@@ -999,22 +999,22 @@ def createOCILoadBalancers() {
     sh """
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_lb_ops.sh \
         -o create -n "$TF_VAR_prefix-mgnmt" -e true \
-        -c $TF_VAR_compartment_id -s $PUBLIC_SUBNET_OCID \
+        -c "$TF_VAR_compartment_id" -s "$PUBLIC_SUBNET_OCID" \
         -i "$WORKER_NODES_IP" -p 30443 \
         -f "$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci-load-balancer.json"
 
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_lb_ops.sh \
         -o create -n "$TF_VAR_prefix-app" -e true \
-        -c $TF_VAR_compartment_id -s $PUBLIC_SUBNET_OCID \
+        -c "$TF_VAR_compartment_id" -s "$PUBLIC_SUBNET_OCID" \
         -i "$WORKER_NODES_IP" -p 31390 \
         -f "$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci-load-balancer.json"
     """
-    OCI_LB_MGMT_IP=sh(returnStdout: true, script: "oci lb load-balancer list --compartment-id $TF_VAR_compartment_id --display-name \"$TF_VAR_prefix-mgmt\" --lifecycle-state ACTIVE | jq -r '.data[0].\"ip-addresses\"[0].\"ip-address\"'")
-    OCI_LB_APP_IP=sh(returnStdout: true, script: "oci lb load-balancer list --compartment-id $TF_VAR_compartment_id --display-name \"$TF_VAR_prefix-app\" --lifecycle-state ACTIVE | jq -r '.data.\"ip-addresses\"[0].\"ip-address\"'")
+    OCI_LB_MGMT_IP=sh(returnStdout: true, script: """ oci lb load-balancer list --compartment-id "$TF_VAR_compartment_id" --display-name "$TF_VAR_prefix-mgmt" --lifecycle-state ACTIVE | jq -r '.data[0]."ip-addresses"[0]."ip-address"' """)
+    OCI_LB_APP_IP=sh(returnStdout: true, script: """ oci lb load-balancer list --compartment-id "$TF_VAR_compartment_id" --display-name "$TF_VAR_prefix-app" --lifecycle-state ACTIVE | jq -r '.data."ip-addresses"[0]."ip-address"' """)
 }
 
 def createOCIDNSZone() {
-    OCI_DNS_ZONE_OCID=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c $TF_VAR_compartment_id -s $OCI_DNS_ZONE_SUBDOMAIN_NAME -k $OCI_DNS_SCOPE")
+    OCI_DNS_ZONE_OCID=sh(returnStdout: true, script: """ $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c "$TF_VAR_compartment_id" -s "$OCI_DNS_ZONE_SUBDOMAIN_NAME" -k "$OCI_DNS_SCOPE" """)
 }
 
 def deleteOLCNECluster() {
@@ -1027,9 +1027,9 @@ def deleteOLCNECluster() {
 def deleteOCIFileSystem() {
     sh """
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_fs_ops.sh \
-        -o delete -a $TF_VAR_availability_domain_id \
+        -o delete -a "$TF_VAR_availability_domain_id" \
         -n "$TF_VAR_prefix-fs" -m "$TF_VAR_prefix-mt" \
-        -p "/$TF_VAR_prefix-export" -c $TF_VAR_compartment_id
+        -p "/$TF_VAR_prefix-export" -c "$TF_VAR_compartment_id"
     """
 }
 
@@ -1037,45 +1037,43 @@ def deleteOCILoadBalancers() {
     sh """
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_lb_ops.sh \
         -o delete -n "$TF_VAR_prefix-mgnmt" \
-        -c $TF_VAR_compartment_id
+        -c "$TF_VAR_compartment_id"
 
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_lb_ops.sh \
         -o delete -n "$TF_VAR_prefix-app" \
-        -c $TF_VAR_compartment_id
+        -c "$TF_VAR_compartment_id"
     """
 }
 
 def deleteOCIDNSZone() {
     sh """
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh \
-        -o delete -s $OCI_DNS_ZONE_SUBDOMAIN_NAME -k $OCI_DNS_SCOPE \
+        -o delete -s "$OCI_DNS_ZONE_SUBDOMAIN_NAME" -k "$OCI_DNS_SCOPE" \
         || echo "[ERROR] Failed to delete DNS zone $OCI_DNS_ZONE_SUBDOMAIN_NAME"
     """
 }
 
 def setupBastionSSH() {
-    status=sh(returnStdout: true, script: "sudo yum -y install oracle-epel-release-el7 && sudo yum -y install sshuttle")
-    sh """
-        if [ $status -ne 0 ]; then
-            echo "[ERROR] Failed to install sshuttle"
-            exit 1
-        fi
-    """
-    status=sh(returnStdout: true, script: "sshuttle -r $BASTION_USER@$BASTION_IP $VCN_CIDR --ssh-cmd 'ssh -o StrictHostKeyChecking=no -i '$OPC_USER_KEY_FILE'' --daemon")
-    sh """
-        if [ $status -ne 0 ]; then
-            echo "[ERROR] Failed to ssh tunnel to the bastion host $TF_VAR_prefix-bastion at $BASTION_USER@$BASTION_IP"
-            exit 1
-        fi
-    """
+    sh '''
+    sudo yum -y install oracle-epel-release-el7 && sudo yum -y install sshuttle
+    if [[ $? -ne 0 ]]; then
+        echo "[ERROR] Failed to install sshuttle"
+        exit 1
+    fi
+    sshuttle -r "$BASTION_USER"@"$BASTION_IP" "$VCN_CIDR" --ssh-cmd "ssh -o StrictHostKeyChecking=no -i $TF_VAR_ssh_private_key_path" --daemon
+    if [[ $? -ne 0 ]]; then
+        echo "[ERROR] Failed to ssh tunnel to the bastion host $TF_VAR_prefix-bastion at $BASTION_USER@$BASTION_IP"
+        exit 1
+    fi
+    '''
 }
 
 def mountOCIStorage() {
     def INSTANCE_IP=$WORKER_NODES_IP.split(" ")[0]
     sh """
-        ssh -o StrictHostKeyChecking=no opc@$INSTANCE_IP "
+        ssh -o StrictHostKeyChecking=no opc@"$INSTANCE_IP" -i "$TF_VAR_ssh_private_key_path" "
             sudo mkdir -p "/mnt/$OCI_EXPORT_PATH"
-            sudo mount $OCI_MOUNT_IP:"/$OCI_EXPORT_PATH" "/mnt/$OCI_EXPORT_PATH"
+            sudo mount "$OCI_MOUNT_IP":"/$OCI_EXPORT_PATH" "/mnt/$OCI_EXPORT_PATH"
             for x in {0001..0020};
                 do sudo mkdir -p /mnt/olcne-master-filesystem/pv${x} && \
                 sudo chmod 777 /mnt/olcne-master-filesystem/pv${x}; 
@@ -1084,12 +1082,12 @@ def mountOCIStorage() {
     """
 
     sh """
-        ssh -o StrictHostKeyChecking=no opc@$API_SERVER_IP "
+        ssh -o StrictHostKeyChecking=no opc@"$API_SERVER_IP" -i "$TF_VAR_ssh_private_key_path" "
             cat << EOF | kubectl apply -f -
             apiVersion: storage.k8s.io/v1
             kind: StorageClass
             metadata:
-                name: $TF_VAR_prefix-nfs
+                name: "$TF_VAR_prefix-nfs"
                 annotations:
                 storageclass.kubernetes.io/is-default-class: "true"
             provisioner: kubernetes.io/no-provisioner
@@ -1099,17 +1097,17 @@ def mountOCIStorage() {
             apiVersion: v1
             kind: PersistentVolume
             metadata:
-                name: $TF_VAR_prefix-pv${n}
+                name: "$TF_VAR_prefix-pv${n}"
             spec:
-                storageClassName: $TF_VAR_prefix-nfs
+                storageClassName: "$TF_VAR_prefix-nfs"
                 accessModes:
                 - ReadWriteOnce
                 - ReadWriteMany
                 capacity:
                 storage: 50Gi
                 nfs:
-                path: /$OCI_EXPORT_PATH/pv${n}
-                server: $OCI_MOUNT_IP
+                path: "/$OCI_EXPORT_PATH/pv${n}"
+                server: "$OCI_MOUNT_IP"
                 volumeMode: Filesystem
                 persistentVolumeReclaimPolicy: Recycle
             EOF
@@ -1121,8 +1119,8 @@ def mountOCIStorage() {
 def installVerrazzanoPlatformOperator() {
     sh """
         oci --region us-phoenix-1 os object get \
-        --namespace $OCI_OS_NAMESPACE -bn $OCI_OS_BUCKET \
-        --name ${env.BRANCH_NAME}/$SHORT_COMMIT_HASH/operator.yaml \
+        --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_BUCKET" \
+        --name "${env.BRANCH_NAME}/$SHORT_COMMIT_HASH/operator.yaml" \
         --file $WORKSPACE/downloaded-operator.yaml
         cp $WORKSPACE/downloaded-operator.yaml $WORKSPACE/acceptance-test-operator.yaml
         # Install the verrazzano-platform-operator
@@ -1137,20 +1135,20 @@ def installVerrazzanoPlatformOperator() {
 
 def installVerrazzano() {
     sh """
-        yq -i eval '.spec.environmentName = $TEST_ENV' $INSTALL_CONFIG_FILE_OLCNE
-        yq -i eval '.spec.components.dns.external.suffix = $OCI_DNS_ZONE_NAME' $INSTALL_CONFIG_FILE_OLCNE
-        yq -i eval '.spec.components.ingress.nginxInstallArgs[0].valueList[0] = $OCI_LB_MGMT_IP' $INSTALL_CONFIG_FILE_OLCNE
-        yq -i eval '.spec.components.istio.istioInstallArgs[0].valueList[0] = $OCI_LB_APP_IP' $INSTALL_CONFIG_FILE_OLCNE
+        yq -i eval '.spec.environmentName = "$TEST_ENV"' "$INSTALL_CONFIG_FILE_OLCNE"
+        yq -i eval '.spec.components.dns.external.suffix = $OCI_DNS_ZONE_NAME' "$INSTALL_CONFIG_FILE_OLCNE"
+        yq -i eval '.spec.components.ingress.nginxInstallArgs[0].valueList[0] = $OCI_LB_MGMT_IP' "$INSTALL_CONFIG_FILE_OLCNE"
+        yq -i eval '.spec.components.istio.istioInstallArgs[0].valueList[0] = $OCI_LB_APP_IP' "$INSTALL_CONFIG_FILE_OLCNE"
         # apply config to create cluster
-        kubectl apply -f $INSTALL_CONFIG_FILE_OLCNE
+        kubectl apply -f "$INSTALL_CONFIG_FILE_OLCNE"
         # wait for Verrazzano install to complete
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
         # Create acceptance test configuration file
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/common-test-setup-script.sh "$WORKSPACE" "$TEST_CONFIG_FILE" "$GHCR_REPO" "$KUBECONFIG" "$OCR_CREDS_USR" "$OCR_CREDS_PSW" "$VZ_ENVIRONMENT_NAME"
         # TODO: edit the test config file
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/get_ingress_ip.sh $TEST_CONFIG_FILE
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/get_ingress_ip.sh "$TEST_CONFIG_FILE"
         echo "[INFO] ----------Test config file:-------------"
-        cat $TEST_CONFIG_FILE
+        cat "$TEST_CONFIG_FILE"
         echo "[INFO] ----------------------------------------"   
     """
 }
