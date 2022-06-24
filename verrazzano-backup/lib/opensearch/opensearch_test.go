@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/verrazzano-backup/lib/klog"
 	"github.com/verrazzano/verrazzano/verrazzano-backup/lib/opensearch"
 	"github.com/verrazzano/verrazzano/verrazzano-backup/lib/types"
+	"github.com/verrazzano/verrazzano/verrazzano-backup/lib/utils/vzk8sfake"
 	"go.uber.org/zap"
 	"net/http"
 	"net/http/httptest"
@@ -544,4 +545,34 @@ func Test_Restore(t *testing.T) {
 	c.Timeout = "1s"
 	err := openSearch.Restore(&c, log)
 	assert.Nil(t, err)
+}
+
+// TestCheckDeployment tests the CheckDeployment method for the following use case.
+// GIVEN k8s client
+// WHEN restore is complete
+// THEN checks kibana deployment is present on system
+func Test_UpdateKeystore(t *testing.T) {
+	log, f := logHelper()
+	defer os.Remove(f)
+
+	var c types.ConnectionData
+	c.BackupName = "mango"
+	c.Timeout = "1s"
+
+	var objsecret types.ObjectStoreSecret
+	objsecret.SecretName = "alpha"
+	objsecret.SecretKey = "cloud"
+	objsecret.ObjectAccessKey = "alphalapha"
+	objsecret.ObjectSecretKey = "betabetabeta"
+	var sdat types.ConnectionData
+	sdat.Secret = objsecret
+	sdat.BackupName = "mango"
+	sdat.RegionName = "region"
+	sdat.Endpoint = constants.OpenSearchURL
+
+	cfg, vzkfake := vzk8sfake.NewClientsetConfig()
+	ok, err := openSearch.UpdateKeystore(vzkfake, cfg, &sdat, log)
+	assert.Nil(t, err)
+	assert.Equal(t, ok, true)
+
 }
