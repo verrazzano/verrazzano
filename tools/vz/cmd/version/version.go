@@ -23,7 +23,8 @@ const (
 )
 
 // statusOutputTemplate - template for output of status command
-const versionOutputTemplate = `Version: v{{.cli_version}}
+const versionOutputTemplate = `
+Version: v{{.cli_version}}
 BuildDate: {{.build_date}}
 GitCommit: {{.git_commit}}
 `
