@@ -141,10 +141,6 @@ func (h istioComponent) Uninstall(context spi.ComponentContext) error {
 	return nil
 }
 
-func (h istioComponent) IsUninstallDone(context spi.ComponentContext) (bool, error) {
-	return true, nil
-}
-
 func (h istioComponent) PostUninstall(context spi.ComponentContext) error {
 	return nil
 }

@@ -79,8 +79,6 @@ type ComponentUninstaller interface {
 	PreUninstall(context ComponentContext) error
 	// Uninstall will Uninstall the Verrazzano component specified in the CR.Version field
 	Uninstall(context ComponentContext) error
-	// IsUninstallDone will return true if the component has been uninstalled
-	IsUninstallDone(context ComponentContext) (bool, error)
 	// PostUninstall allows components to perform any post-processing required after upgrading
 	PostUninstall(context ComponentContext) error
 }

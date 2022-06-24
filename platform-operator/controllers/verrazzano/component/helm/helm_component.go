@@ -308,10 +308,6 @@ func (h HelmComponent) Uninstall(context spi.ComponentContext) error {
 	return nil
 }
 
-func (h HelmComponent) IsUninstallDone(context spi.ComponentContext) (bool, error) {
-	return true, nil
-}
-
 func (h HelmComponent) PostUninstall(context spi.ComponentContext) error {
 	return nil
 }
