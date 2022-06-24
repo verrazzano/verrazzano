@@ -760,6 +760,11 @@ func TestSyncer_configureLogging(t *testing.T) {
 				mcMock.EXPECT().
 					Update(gomock.Any(), gomock.Any(), gomock.Any()).
 					DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet, opts ...client.UpdateOption) error {
+						// for default secret (verrazzano-es-internal), the secret-volume should be optional, since it may
+						// not exist on managed clusters.
+						if dsSecretName == defaultSecretName {
+							asserts.Equal(t, true, ds.Spec.Template.Spec.Volumes[0].Secret.Optional)
+						}
 						return nil
 					})
 			}
@@ -787,6 +792,7 @@ func getTestDaemonSetSpec(clusterName, esURL, secretName string) appsv1.DaemonSe
 		usernameKey = constants.VerrazzanoUsernameData
 		passwordKey = constants.VerrazzanoPasswordData
 	}
+	volumeIsOptional := secretName == defaultSecretName
 	return appsv1.DaemonSetSpec{
 		Template: corev1.PodTemplateSpec{
 			Spec: corev1.PodSpec{
@@ -829,6 +835,17 @@ func getTestDaemonSetSpec(clusterName, esURL, secretName string) appsv1.DaemonSe
 										}(true),
 									},
 								},
+							},
+						},
+					},
+				},
+				Volumes: []corev1.Volume{
+					{
+						Name: "secret-volume",
+						VolumeSource: corev1.VolumeSource{
+							Secret: &corev1.SecretVolumeSource{
+								SecretName: secretName,
+								Optional:   &volumeIsOptional,
 							},
 						},
 					},

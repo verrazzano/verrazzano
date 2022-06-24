@@ -5,13 +5,17 @@ package fluentd
 
 import (
 	"github.com/stretchr/testify/assert"
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -30,6 +34,7 @@ const (
 )
 
 var enabled = true
+var notEnabled = false
 var fluentdEnabledCR = &vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		Components: vzapi.ComponentSpec{
@@ -37,6 +42,13 @@ var fluentdEnabledCR = &vzapi.Verrazzano{
 				Enabled: &enabled,
 			},
 		},
+	},
+}
+
+var vzEsInternalSecret = &v1.Secret{
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      globalconst.VerrazzanoESInternal,
+		Namespace: constants.VerrazzanoSystemNamespace,
 	},
 }
 
@@ -252,17 +264,51 @@ func TestPostUpgrade(t *testing.T) {
 }
 
 // TestPreInstall tests the Fluentd PreInstall call
-// GIVEN a Verrazzano component
+// GIVEN a Fluentd component
 //  WHEN I call PreInstall when dependencies are met
-//  THEN no error is returned
+//  THEN no error is returned. Otherwise, return error.
 func TestPreInstall(t *testing.T) {
-	c := createPreInstallTestClient()
-	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	err := NewComponent().PreInstall(ctx)
-	assert.NoError(t, err)
+	var tests = []struct {
+		name   string
+		spec   *vzapi.Verrazzano
+		client client.Client
+		err    error
+	}{
+		{
+			"should fail when verrazzano-es-internal secret does not exist and keycloak is enabled",
+			keycloakEnabledCR,
+			createFakeClient(),
+			ctrlerrors.RetryableError{Source: ComponentName},
+		},
+		{
+			"should pass when verrazzano-es-internal secret does exist and keycloak is enabled",
+			keycloakEnabledCR,
+			createFakeClient(vzEsInternalSecret),
+			nil,
+		},
+		{
+			"always nil error when keycloak is disabled",
+			keycloakDisabledCR,
+			createFakeClient(),
+			nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.client, tt.spec, false)
+			err := NewComponent().PreInstall(ctx)
+			if tt.err != nil {
+				assert.Error(t, err)
+				assert.IsTypef(t, tt.err, err, "")
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }
 
-func createPreInstallTestClient(extraObjs ...client.Object) client.Client {
+func createFakeClient(extraObjs ...client.Object) client.Client {
 	objs := []client.Object{}
 	objs = append(objs, extraObjs...)
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(objs...).Build()
@@ -274,7 +320,7 @@ func createPreInstallTestClient(extraObjs ...client.Object) client.Client {
 //  WHEN I call Install when dependencies are met
 //  THEN no error is returned
 func TestInstall(t *testing.T) {
-	c := createPreInstallTestClient()
+	c := createFakeClient()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
@@ -301,13 +347,50 @@ func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string,
 // TestPreUpgrade tests the Verrazzano PreUpgrade call
 // GIVEN a Verrazzano component
 //  WHEN I call PreUpgrade with defaults
-//  THEN no error is returned
+//  THEN no error is returned. Otherwise, return error.
 func TestPreUpgrade(t *testing.T) {
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
 	config.TestHelmConfigDir = "../../../../helm_config"
-	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vzapi.Verrazzano{}, false))
-	assert.NoError(t, err)
+
+	var tests = []struct {
+		name   string
+		spec   *vzapi.Verrazzano
+		client client.Client
+		err    error
+	}{
+		{
+			"should fail when verrazzano-es-internal secret does not exist and keycloak is enabled",
+			keycloakEnabledCR,
+			createFakeClient(),
+			ctrlerrors.RetryableError{Source: ComponentName},
+		},
+		{
+			"should pass when verrazzano-es-internal secret does exist and keycloak is enabled",
+			keycloakEnabledCR,
+			createFakeClient(vzEsInternalSecret),
+			nil,
+		},
+		{
+			"always nil error when keycloak is disabled",
+			keycloakDisabledCR,
+			createFakeClient(),
+			nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.client, tt.spec, false)
+			err := NewComponent().PreUpgrade(ctx)
+			if tt.err != nil {
+				assert.Error(t, err)
+				assert.IsTypef(t, tt.err, err, "")
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }
 
 // TestUpgrade tests the Fluentd Upgrade call; simple wrapper exercise, more detailed testing is done elsewhere

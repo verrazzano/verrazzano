@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -29,6 +30,30 @@ const (
 	fluentdConfig   = "fluentd-config"
 	fluentdEsConfig = "fluentd-es-config"
 )
+
+//checkSecretExists whether verrazzano-es-internal secret exists. Return error if secret does not exist.
+func checkSecretExists(ctx spi.ComponentContext) error {
+	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
+		// Check verrazzano-es-internal Secret. return error which will cause requeue
+		secret := &corev1.Secret{}
+		err := ctx.Client().Get(context.TODO(), clipkg.ObjectKey{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      globalconst.VerrazzanoESInternal,
+		}, secret)
+
+		if err != nil {
+			if errors.IsNotFound(err) {
+				ctx.Log().Progressf("Component Fluentd waiting for the secret %s/%s to exist",
+					constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoESInternal)
+				return ctrlerrors.RetryableError{Source: ComponentName}
+			}
+			ctx.Log().Errorf("Component Fluentd failed to get the secret %s/%s: %v",
+				constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoESInternal, err)
+			return err
+		}
+	}
+	return nil
+}
 
 // loggingPreInstall copies logging secrets from the verrazzano-install namespace to the verrazzano-system namespace
 func loggingPreInstall(ctx spi.ComponentContext) error {
