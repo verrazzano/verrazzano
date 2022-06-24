@@ -131,6 +131,7 @@ spec:
             secretName: {{ .Values.logging.elasticsearchSecret }}
   {{- else }}
             secretName: verrazzano-es-internal
+            optional: true
   {{- end }}
   {{- if .Values.fluentd.oci }}
   {{- if .Values.fluentd.oci.apiSecret }}
