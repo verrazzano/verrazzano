@@ -1018,10 +1018,16 @@ def createOCIDNSZone() {
 }
 
 def deleteOLCNECluster() {
-    sh """
+    sh '''
         cd $GO_REPO_PATH/terraform-oci-olcne
         terraform destroy -auto-approve
-    """
+        for x in {1..3}; do
+            if [[ $? -ne 0 ]]; then 
+                echo "[INFO] Failed to destroy terraform resources. Retrying ..."
+                terraform destroy -auto-approve
+            fi
+        done
+    '''
 }
 
 def deleteOCIFileSystem() {
