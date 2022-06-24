@@ -288,7 +288,7 @@ func deleteWebhookConfiguration(client clipkg.Client, name string) error {
 
 	err := client.Delete(context.TODO(), vwc, deleteOptions)
 	if err != nil && !errors.IsNotFound(err) {
-		return fmt.Errorf("Failed to delete ValidatingWebhookConfig resource %s: %s", name, err.Error())
+		return fmt.Errorf("Failed to delete ValidatingWebhookConfiguration resource %s: %s", name, err.Error())
 	}
 	return nil
 }
