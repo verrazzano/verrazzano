@@ -8,8 +8,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+// InitalizeMetricsEndpoint creates and serves a /metrics endpoint at 9100 for Prometheus to scrape metrics from
 func InitalizeMetricsEndpoint() {
 	http.Handle("/metrics", promhttp.Handler())
 	http.ListenAndServe(":9100", nil)
-
 }
