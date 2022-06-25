@@ -84,10 +84,10 @@ func getComponents() []spi.Component {
 			kubestatemetrics.NewComponent(),
 			pushgateway.NewComponent(),
 			promnodeexporter.NewComponent(),
-			jaegeroperator.NewComponent(),
-			velero.NewComponent(),
+			jaegeroperator.NewComponent(),			
 			console.NewComponent(),
 			fluentd.NewComponent(),
+			velero.NewComponent(),
 		}
 	}
 	return componentsRegistry

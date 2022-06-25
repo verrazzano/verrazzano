@@ -88,9 +88,9 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[21].Name(), pushgateway.ComponentName)
 	a.Equal(comps[22].Name(), promnodeexporter.ComponentName)
 	a.Equal(comps[23].Name(), jaegeroperator.ComponentName)
-	a.Equal(comps[24].Name(), console.ComponentName)
-	a.Equal(comps[25].Name(), velero.ComponentName)
+	a.Equal(comps[24].Name(), console.ComponentName)	
 	a.Equal(comps[25].Name(), fluentd.ComponentName)
+	a.Equal(comps[26].Name(), velero.ComponentName)
 }
 
 // TestFindComponent tests FindComponent
