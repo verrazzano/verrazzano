@@ -619,7 +619,7 @@
       "name": "velero",
       "subcomponents": [
         {
-          "repository": "verrazzano",
+          "repository": "verrazzano/velero",
           "name": "velero",
           "images": [
             {
@@ -629,12 +629,22 @@
           ]
         },
         {
-          "repository": "verrazzano",
+          "repository": "verrazzano/velero-plugin-for-aws",
           "name": "velero-plugin-for-aws",
           "images": [
             {
               "image": "velero-plugin-for-aws",
               "tag": "v1.4.1"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano/velero-restic-restore-helper",
+          "name": "velero-restic-restore-helper",
+          "images": [
+            {
+              "image": "velero-restic-restore-helper",
+              "tag": "v1.8.1"
             }
           ]
         }

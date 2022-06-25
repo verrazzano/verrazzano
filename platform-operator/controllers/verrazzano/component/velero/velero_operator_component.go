@@ -22,6 +22,8 @@ const (
 	ComponentNamespace = constants.VeleroNameSpace
 	// ComponentJSONName is the json name of the component in the CRD
 	ComponentJSONName = "velero"
+
+	resticConfigmapFile = "/velero/velero-configmap.yaml"
 )
 
 var (

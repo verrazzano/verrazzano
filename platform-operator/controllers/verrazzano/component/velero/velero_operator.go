@@ -7,13 +7,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"go.uber.org/zap"
+	"path"
 	"time"
-
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 )
 
 const (
@@ -41,6 +42,7 @@ const (
 var subcomponentNames = []string{
 	"velero",
 	"velero-plugin-for-aws",
+	"velero-restic-restore-helper",
 }
 
 func componentInstall(ctx spi.ComponentContext) error {
@@ -65,6 +67,17 @@ func componentInstall(ctx spi.ComponentContext) error {
 	if response.Error != nil {
 		return ctx.Log().ErrorfNewErr("Failed to install Velero Operator: %v", response.Error)
 	}
+
+	// Create configmap for velero restic helper
+	resticHelperYamlArgs := make(map[string]interface{})
+	resticHelperYamlArgs["veleroNamespace"] = ComponentNamespace
+	resticHelperYamlArgs["veleroRunnerImage"] = args.VeleroResticRestoreHelperImage
+
+	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), ComponentNamespace)
+	if err := yamlApplier.ApplyFT(path.Join(config.GetThirdPartyManifestsDir(), resticConfigmapFile), resticHelperYamlArgs); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to create configmap for velero restic helper: %v", err)
+	}
+
 	ctx.Log().Infof("%v", response.Stdout.String())
 	return nil
 }

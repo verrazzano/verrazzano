@@ -23,8 +23,9 @@ type RunnerResponse struct {
 }
 
 type VeleroImage struct {
-	VeleroImage             string `json:"velero"`
-	VeleroPluginForAwsImage string `json:"velero-plugin-for-aws"`
+	VeleroImage                    string `json:"velero"`
+	VeleroPluginForAwsImage        string `json:"velero-plugin-for-aws"`
+	VeleroResticRestoreHelperImage string `json:"velero-restic-restore-helper"`
 }
 
 // Generic method to execute shell commands
