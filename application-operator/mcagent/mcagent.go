@@ -431,13 +431,19 @@ func updateLoggingDaemonsetVolumes(isManaged bool, vzESSecret string, old []core
 		secretName = vzESSecret
 	}
 	var new []corev1.Volume
+	isOptional := false
+	if secretName == defaultSecretName {
+		// the default secret might not exist on a managed cluster until registration is completed.
+		// make it optional so that fluentd still comes up
+		isOptional = true
+	}
 	for _, vol := range old {
 		if vol.Name == "secret-volume" {
 			new = append(new, corev1.Volume{
 				Name: vol.Name,
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
-						SecretName: secretName},
+						SecretName: secretName, Optional: &isOptional},
 				},
 			})
 		} else {

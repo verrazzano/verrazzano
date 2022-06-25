@@ -60,7 +60,7 @@ func TestGetVerrazzanoResourceNotFound(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	_, err := GetVerrazzanoResource(client, types.NamespacedName{Namespace: "default", Name: "verrazzano"})
-	assert.EqualError(t, err, "verrazzanos.install.verrazzano.io \"verrazzano\" not found")
+	assert.EqualError(t, err, "Failed to get a Verrazzano install resource: verrazzanos.install.verrazzano.io \"verrazzano\" not found")
 }
 
 // TestFindVerrazzanoResource
