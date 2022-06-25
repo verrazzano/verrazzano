@@ -763,6 +763,19 @@ func IsGrafanaEnabled(kubeconfigPath string) bool {
 	return *vz.Spec.Components.Grafana.Enabled
 }
 
+// IsVeleroEnabled returns false if the Velero component is not set, or the value of its Enabled field otherwise
+func IsVeleroEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.Velero == nil || vz.Spec.Components.Velero.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.Velero.Enabled
+}
+
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
 func APIExtensionsClientSet() (*apiextv1.ApiextensionsV1Client, error) {
 	config, err := k8sutil.GetKubeConfig()
