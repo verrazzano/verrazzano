@@ -584,18 +584,27 @@
           "images": [
             {
               "image": "velero",
-              "tag": "20220503000302-4750a3fa"
+              "tag": "v1.8.1"
             }
           ]
         },
         {
-          "registry": "olcne-containers-stable-ol8.dockerhub-iad.oci.oraclecorp.com",
-          "repository": "olcne",
+          "repository": "verrazzano/velero-plugin-for-aws",
           "name": "velero-plugin-for-aws",
           "images": [
             {
               "image": "velero-plugin-for-aws",
               "tag": "v1.4.1"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano/velero-restic-restore-helper",
+          "name": "velero-restic-restore-helper",
+          "images": [
+            {
+              "image": "velero-restic-restore-helper",
+              "tag": "v1.8.1"
             }
           ]
         }
