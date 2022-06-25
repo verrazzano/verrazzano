@@ -121,7 +121,7 @@ func setImageOverride(args map[string]interface{}, bomFile bom.Bom, subcomponent
 	return nil
 }
 
-// isVeleroOperatorReady checks if the Jaeger operator deployment is ready
+// isVeleroOperatorReady checks if the Velero operator deployment is ready
 func isVeleroOperatorReady(context spi.ComponentContext) bool {
 	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, componentPrefix)
 }

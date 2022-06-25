@@ -65,7 +65,7 @@ func (v veleroComponent) IsReady(context spi.ComponentContext) bool {
 	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, componentPrefix)
 }
 
-// IsEnabled returns true only if the Jaeger Operator is explicitly enabled
+// IsEnabled returns true only if the Velero Operator is explicitly enabled
 // in the Verrazzano CR.
 func (v veleroComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	comp := effectiveCR.Spec.Components.Velero
