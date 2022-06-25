@@ -62,9 +62,9 @@ func componentInstall(ctx spi.ComponentContext) error {
 	bcmd = append(bcmd, resticPodCPURequest, resticPodCPULimit, resticPodMemRequest, resticPodMemLimit)
 	vcmd.CommandArgs = bcmd
 
-	response := veleroRunner(&vcmd, ctx.Log())
-	if response.Error != nil {
-		return ctx.Log().ErrorfNewErr("Failed to install Velero Operator: %v", response.Error)
+	veleroInstallResponse := veleroRunner(&vcmd, ctx.Log())
+	if veleroInstallResponse.CommandError != nil {
+		return ctx.Log().ErrorfNewErr("Failed to install Velero Operator: %v", veleroInstallResponse.CommandError)
 	}
 
 	// Create configmap for velero restic helper
@@ -77,7 +77,7 @@ func componentInstall(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed to create configmap for velero restic helper: %v", err)
 	}
 
-	ctx.Log().Infof("%v", response.Stdout.String())
+	ctx.Log().Infof("%v", veleroInstallResponse.StandardOut.String())
 	return nil
 }
 
