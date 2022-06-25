@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package operator
+package velero
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -16,6 +16,8 @@ import (
 	"testing"
 )
 
+const profilesRelativePath = "../../../../manifests/profiles"
+
 var enabled = true
 var veleroEnabledCR = &vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
@@ -25,6 +27,56 @@ var veleroEnabledCR = &vzapi.Verrazzano{
 			},
 		},
 	},
+}
+
+// TestIsEnabled tests the IsEnabled function for the Velero Operator component
+func TestIsEnabled(t *testing.T) {
+	falseValue := false
+	tests := []struct {
+		name       string
+		actualCR   vzapi.Verrazzano
+		expectTrue bool
+	}{
+		{
+			// GIVEN a default Verrazzano custom resource
+			// WHEN we call IsReady on the Velero Operator component
+			// THEN the call returns false
+			name:       "Test IsEnabled when using default Verrazzano CR",
+			actualCR:   vzapi.Verrazzano{},
+			expectTrue: false,
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Velero Operator enabled
+			// WHEN we call IsReady on the Velero Operator component
+			// THEN the call returns true
+			name:       "Test IsEnabled when Velero Operator component set to enabled",
+			actualCR:   *veleroEnabledCR,
+			expectTrue: true,
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Velero Operator disabled
+			// WHEN we call IsReady on the Velero Operator component
+			// THEN the call returns false
+			name: "Test IsEnabled when Velero Operator component set to disabled",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Velero: &vzapi.VeleroComponent{
+							Enabled: &falseValue,
+						},
+					},
+				},
+			},
+			expectTrue: false,
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, false, profilesRelativePath)
+			assert.Equal(t, tt.expectTrue, NewComponent().IsEnabled(ctx.EffectiveCR()))
+		})
+	}
 }
 
 //TestIsInstalled verifies component IsInstalled checks presence of the
@@ -66,15 +118,17 @@ func TestIsInstalled(t *testing.T) {
 
 func TestInstallUpgrade(t *testing.T) {
 	defer config.Set(config.Get())
-	j := NewComponent()
+	v := NewComponent()
 	config.Set(config.OperatorConfig{VerrazzanoRootDir: "../../../../../"})
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(client, veleroEnabledCR, false)
-	err := j.Install(ctx)
+	//client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	//ctx := spi.NewFakeContext(client, veleroEnabledCR, false)
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), veleroEnabledCR, false)
+	//ctx := spi.NewFakeContext(client, veleroEnabledCR, false, profilesRelativePath)
+	err := v.Install(ctx)
 	assert.NoError(t, err)
-	err = j.Upgrade(ctx)
+	err = v.Upgrade(ctx)
 	assert.NoError(t, err)
-	err = j.Reconcile(ctx)
+	err = v.Reconcile(ctx)
 	assert.NoError(t, err)
 }
 
@@ -87,7 +141,7 @@ func TestGetDependencies(t *testing.T) {
 }
 
 func TestGetName(t *testing.T) {
-	j := NewComponent()
-	assert.Equal(t, ComponentName, j.Name())
-	assert.Equal(t, ComponentJSONName, j.GetJSONName())
+	v := NewComponent()
+	assert.Equal(t, ComponentName, v.Name())
+	assert.Equal(t, ComponentJSONName, v.GetJSONName())
 }

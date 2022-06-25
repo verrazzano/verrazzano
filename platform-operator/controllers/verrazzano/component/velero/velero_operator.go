@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package operator
+package velero
 
 import (
 	"encoding/json"
@@ -62,7 +62,7 @@ func componentInstall(ctx spi.ComponentContext) error {
 	bcmd = append(bcmd, resticPodCPURequest, resticPodCPULimit, resticPodMemRequest, resticPodMemLimit)
 	vcmd.CommandArgs = bcmd
 
-	veleroInstallResponse := veleroRunner(&vcmd, ctx.Log())
+	veleroInstallResponse := genericRunner(&vcmd, ctx.Log())
 	if veleroInstallResponse.CommandError != nil {
 		return ctx.Log().ErrorfNewErr("Failed to install Velero Operator: %v", veleroInstallResponse.CommandError)
 	}

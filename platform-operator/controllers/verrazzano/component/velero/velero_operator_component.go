@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package operator
+package velero
 
 import (
 	"context"
@@ -53,7 +53,6 @@ func (v veleroComponent) Upgrade(ctx spi.ComponentContext) error {
 }
 
 func (v veleroComponent) Install(ctx spi.ComponentContext) error {
-	ctx.Log().Infof("+++ Install Velero Operator Triggered +++")
 	return componentInstall(ctx)
 }
 
@@ -69,7 +68,6 @@ func (v veleroComponent) IsReady(context spi.ComponentContext) bool {
 // in the Verrazzano CR.
 func (v veleroComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	comp := effectiveCR.Spec.Components.Velero
-	fmt.Printf(" COMP = %v", comp)
 	if comp == nil || comp.Enabled == nil {
 		return false
 	}

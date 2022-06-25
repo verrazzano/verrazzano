@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package operator
+package velero
 
 import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -63,13 +63,13 @@ func TestBuildInstallArgs(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				for _, subcomponent := range subcomponentNames {
-					operatorImage := args.VeleroImage
-					pluginImage := args.VeleroPluginForAwsImage
 					switch subcomponent {
 					case "velero":
-						assert.Contains(t, operatorImage, subcomponent)
+						assert.Contains(t, args.VeleroImage, subcomponent)
 					case "velero-plugin-for-aws":
-						assert.Contains(t, pluginImage, subcomponent)
+						assert.Contains(t, args.VeleroPluginForAwsImage, subcomponent)
+					case "velero-restic-restore-helper":
+						assert.Contains(t, args.VeleroResticRestoreHelperImage, subcomponent)
 					}
 				}
 			}

@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package operator
+package velero
 
 import (
 	"bytes"
@@ -32,7 +32,7 @@ type VeleroImage struct {
 }
 
 // Generic method to execute shell commands
-func veleroRunner(bcmd *BashCommand, log vzlog.VerrazzanoLogger) *RunnerResponse {
+func genericRunner(bcmd *BashCommand, log vzlog.VerrazzanoLogger) *RunnerResponse {
 	var stdoutBuf, stderrBuf bytes.Buffer
 	var bashCommandResponse RunnerResponse
 	bashCommand := exec.Command(bcmd.CommandArgs[0], bcmd.CommandArgs[1:]...) //nolint:gosec
