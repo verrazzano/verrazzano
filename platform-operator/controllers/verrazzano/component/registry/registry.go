@@ -84,7 +84,7 @@ func getComponents() []spi.Component {
 			kubestatemetrics.NewComponent(),
 			pushgateway.NewComponent(),
 			promnodeexporter.NewComponent(),
-			jaegeroperator.NewComponent(),			
+			jaegeroperator.NewComponent(),
 			console.NewComponent(),
 			fluentd.NewComponent(),
 			velero.NewComponent(),
