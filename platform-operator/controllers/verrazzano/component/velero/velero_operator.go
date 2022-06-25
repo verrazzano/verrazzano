@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"go.uber.org/zap"
+	"os"
 	"path"
 	"time"
 )
@@ -51,6 +52,7 @@ func componentInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 	var vcmd BashCommand
+	var veleroInstallResponse *RunnerResponse
 	vcmd.Timeout = time.Second * 600
 
 	var bcmd []string
@@ -62,9 +64,12 @@ func componentInstall(ctx spi.ComponentContext) error {
 	bcmd = append(bcmd, resticPodCPURequest, resticPodCPULimit, resticPodMemRequest, resticPodMemLimit)
 	vcmd.CommandArgs = bcmd
 
-	veleroInstallResponse := genericRunner(&vcmd, ctx.Log())
-	if veleroInstallResponse.CommandError != nil {
-		return ctx.Log().ErrorfNewErr("Failed to install Velero Operator: %v", veleroInstallResponse.CommandError)
+	if os.Getenv("DEV_TEST") != "True" {
+		veleroInstallResponse = genericRunner(&vcmd, ctx.Log())
+		if veleroInstallResponse.CommandError != nil {
+			return ctx.Log().ErrorfNewErr("Failed to install Velero Operator: %v", veleroInstallResponse.CommandError)
+		}
+		ctx.Log().Infof("%v", veleroInstallResponse.StandardOut.String())
 	}
 
 	// Create configmap for velero restic helper
@@ -77,7 +82,6 @@ func componentInstall(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed to create configmap for velero restic helper: %v", err)
 	}
 
-	ctx.Log().Infof("%v", veleroInstallResponse.StandardOut.String())
 	return nil
 }
 

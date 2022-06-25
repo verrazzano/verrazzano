@@ -6,11 +6,11 @@ package velero
 import (
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
 	crtclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
@@ -117,27 +117,19 @@ func TestIsInstalled(t *testing.T) {
 }
 
 func TestInstallUpgrade(t *testing.T) {
+	os.Setenv("DEV_TEST", "True")
 	defer config.Set(config.Get())
 	v := NewComponent()
 	config.Set(config.OperatorConfig{VerrazzanoRootDir: "../../../../../"})
-	//client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	//ctx := spi.NewFakeContext(client, veleroEnabledCR, false)
-	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), veleroEnabledCR, false)
-	//ctx := spi.NewFakeContext(client, veleroEnabledCR, false, profilesRelativePath)
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(client, veleroEnabledCR, false)
 	err := v.Install(ctx)
 	assert.NoError(t, err)
 	err = v.Upgrade(ctx)
 	assert.NoError(t, err)
 	err = v.Reconcile(ctx)
 	assert.NoError(t, err)
-}
-
-func TestGetMinVerrazzanoVersion(t *testing.T) {
-	assert.Equal(t, constants.VerrazzanoVersion1_3_0, NewComponent().GetMinVerrazzanoVersion())
-}
-
-func TestGetDependencies(t *testing.T) {
-	assert.Equal(t, []string{}, NewComponent().GetDependencies())
+	os.Unsetenv("DEV_TEST")
 }
 
 func TestGetName(t *testing.T) {
