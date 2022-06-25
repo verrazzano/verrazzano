@@ -44,6 +44,7 @@ type verrazzanoValues struct {
 	PrometheusPushgateway  *prometheusPushgatewayValues  `json:"prometheusPushgateway,omitempty"`
 	PrometheusNodeExporter *prometheusNodeExporterValues `json:"prometheusNodeExporter,omitempty"`
 	JaegerOperator         *jaegerOperatorValues         `json:"jaegerOperator,omitempty"`
+	Velero                 *veleroValues                 `json:",omitempty"`
 }
 
 type subject struct {
@@ -161,5 +162,9 @@ type prometheusNodeExporterValues struct {
 }
 
 type jaegerOperatorValues struct {
+	Enabled bool `json:"enabled"` // Always write
+}
+
+type veleroValues struct {
 	Enabled bool `json:"enabled"` // Always write
 }
