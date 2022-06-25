@@ -32,7 +32,7 @@ type VeleroImage struct {
 func veleroRunner(bcmd *BashCommand, log vzlog.VerrazzanoLogger) *RunnerResponse {
 	var stdoutBuf, stderrBuf bytes.Buffer
 	var response RunnerResponse
-	execCmd := exec.Command(bcmd.CommandArgs[0], bcmd.CommandArgs[1:]...)
+	execCmd := exec.Command(bcmd.CommandArgs[0], bcmd.CommandArgs[1:]...) //nolint:gosec
 	execCmd.Dir = bcmd.CmdDirectory
 	execCmd.Stdout = io.MultiWriter(os.Stdout, &stdoutBuf)
 	execCmd.Stderr = io.MultiWriter(os.Stderr, &stderrBuf)
@@ -64,11 +64,10 @@ func veleroRunner(bcmd *BashCommand, log vzlog.VerrazzanoLogger) *RunnerResponse
 			response.Stderr = stderrBuf
 			response.Error = err
 			return &response
-		} else {
-			log.Debugf("Command '%s' execution successful", execCmd.String())
-			response.Stdout = stdoutBuf
-			response.Error = err
-			return &response
 		}
+		log.Debugf("Command '%s' execution successful", execCmd.String())
+		response.Stdout = stdoutBuf
+		response.Error = err
+		return &response
 	}
 }

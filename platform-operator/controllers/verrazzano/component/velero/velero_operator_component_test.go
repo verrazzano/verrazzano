@@ -16,8 +16,6 @@ import (
 	"testing"
 )
 
-const profilesRelativePath = "../../../../../manifests/profiles"
-
 var enabled = true
 var veleroEnabledCR = &vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{

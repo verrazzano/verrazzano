@@ -28,15 +28,14 @@ const (
 	resticCli            = "--use-restic"
 	nosecret             = "--no-secret"
 	noDefaultBackup      = "--no-default-backup-location"
-	veleroPodCpuRequest  = "--velero-pod-cpu-request=500m"
-	veleroPodCpuLimit    = "--velero-pod-cpu-limit=1000m"
+	veleroPodCPURequest  = "--velero-pod-cpu-request=500m"
+	veleroPodCPULimit    = "--velero-pod-cpu-limit=1000m"
 	veleroPodMemRequest  = "--velero-pod-mem-request=128Mi"
 	veleroPodMemLimit    = "--velero-pod-mem-limit=512Mi"
-	resticPodCpuRequest  = "--restic-pod-cpu-request=500m"
-	resticPodCpuLimit    = "--restic-pod-cpu-limit=1000m"
+	resticPodCPURequest  = "--restic-pod-cpu-request=500m"
+	resticPodCPULimit    = "--restic-pod-cpu-limit=1000m"
 	resticPodMemRequest  = "--restic-pod-mem-request=128Mi"
 	resticPodMemLimit    = "--restic-pod-mem-limit=512Mi"
-	cliwait              = "--wait"
 )
 
 var subcomponentNames = []string{
@@ -59,8 +58,8 @@ func componentInstall(ctx spi.ComponentContext) error {
 	bcmd = append(bcmd, veleroImageCli, args.VeleroImage)
 	bcmd = append(bcmd, pluginImageCli, args.VeleroPluginForAwsImage)
 	bcmd = append(bcmd, resticCli, volSnapshotEnableCli, nosecret, noDefaultBackup)
-	bcmd = append(bcmd, veleroPodCpuRequest, veleroPodCpuLimit, veleroPodMemRequest, veleroPodMemLimit)
-	bcmd = append(bcmd, resticPodCpuRequest, resticPodMemRequest, resticPodMemLimit, resticPodCpuLimit)
+	bcmd = append(bcmd, veleroPodCPURequest, veleroPodCPULimit, veleroPodMemRequest, veleroPodMemLimit)
+	bcmd = append(bcmd, resticPodCPURequest, resticPodCPULimit, resticPodMemRequest, resticPodMemLimit)
 	vcmd.CommandArgs = bcmd
 
 	response := veleroRunner(&vcmd, ctx.Log())
