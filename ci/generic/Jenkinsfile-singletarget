@@ -89,6 +89,8 @@ pipeline {
         VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
 
         TEST_ROOT = "${WORKSPACE}/tests/e2e"
+        TEST_SCRIPTS_DIR = "${TEST_ROOT}/config/scripts"
+
         POST_INSTALL_DUMP="true"
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
         TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
