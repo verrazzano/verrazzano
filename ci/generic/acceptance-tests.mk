@@ -54,6 +54,10 @@ test-reports:
 	cd ${GO_REPO_PATH}/verrazzano/tests/e2e
 	find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
 
+.PHONY: jobmetrics
+jobmetrics:
+	${RUNGINKGO} jobmetrics/...
+
 .PHONY: pipeline-artifacts
 pipeline-artifacts: dumplogs test-reports
 
