@@ -9,13 +9,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
-	adminv1 "k8s.io/api/admissionregistration/v1"
-	appv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -59,14 +54,7 @@ func (rc *RootCmdContext) GetClient(cmd *cobra.Command) (client.Client, error) {
 		return nil, err
 	}
 
-	scheme := runtime.NewScheme()
-	_ = vzapi.AddToScheme(scheme)
-	_ = corev1.SchemeBuilder.AddToScheme(scheme)
-	_ = adminv1.SchemeBuilder.AddToScheme(scheme)
-	_ = rbacv1.SchemeBuilder.AddToScheme(scheme)
-	_ = appv1.SchemeBuilder.AddToScheme(scheme)
-
-	return client.New(config, client.Options{Scheme: scheme})
+	return client.New(config, client.Options{Scheme: helpers.NewScheme()})
 }
 
 // GetKubeClient - return a Kubernetes clientset for use with the go-client
