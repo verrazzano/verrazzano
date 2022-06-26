@@ -38,9 +38,9 @@ var (
 		"volumesnapshotlocations.velero.io",
 	}
 	expectedVeleroImages = map[string]string{
-		"VELERO":                       "ghcr.io/verrazzano/velero/velero",
-		"VELERO-PLUGIN-FOR-AWS":        "ghcr.io/verrazzano/velero-plugin-for-aws/velero-plugin-for-aws",
-		"VELERO-RESTIC-RESTORE-HELPER": "ghcr.io/verrazzano/velero-restic-restore-helper/velero-restic-restore-helper",
+		"VELERO":                       "ghcr.io/verrazzano/velero",
+		"VELERO-PLUGIN-FOR-AWS":        "ghcr.io/verrazzano/velero-plugin-for-aws",
+		"VELERO-RESTIC-RESTORE-HELPER": "ghcr.io/verrazzano/velero-restic-restore-helper",
 	}
 )
 
