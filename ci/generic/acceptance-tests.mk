@@ -5,7 +5,6 @@ include global-env.mk
 
 export DUMP_ROOT_DIRECTORY ?= ${WORKSPACE}/cluster-snapshots
 export GINGKO_ARGS ?= -v --keep-going --no-color --junit-report=test-report.xml --keep-separate-reports=true
-export RUNGINKGO = ${CI_SCRIPTS_DIR}/run-ginkgo.sh
 
 run-test: export RANDOMIZE_TESTS ?= true
 run-test: export RUN_PARALLEL ?= true
