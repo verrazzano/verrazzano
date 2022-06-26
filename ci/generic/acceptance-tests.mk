@@ -69,16 +69,92 @@ cleanup: pipeline-artifacts clean-kind
 verify-all: verify-infra-all verify-deployment-all
 
 .PHONY: verify-infra-all
-verify-infra-all:  verify-infra-all-parallel verify-infra-all-sequential verify-console
+verify-infra-all: verify-install verify-scripts verify-infra verify-security-rbac verify-system-metrics verify-console
+
+.PHONY: verify-install
+verify-install:
+	${RUNGINKGO} verify-install/...
+
+.PHONY: jobmetrics
+jobmetrics:
+	${RUNGINKGO} jobmetrics/...
+
+.PHONY: verify-scripts
+verify-scripts:
+	${RUNGINKGO} scripts/...
+
+.PHONY: verify-infra
+verify-infra:
+	${RUNGINKGO} verify-infra/...
+
+.PHONY: verify-security-rbac
+verify-security-rbac:
+	RUN_PARALLEL=false ${RUNGINKGO} security/rbac/...
+
+.PHONY: verify-system-metrics
+verify-system-metrics:
+	RUN_PARALLEL=false ${RUNGINKGO} metrics/syscomponents/...
+
+verify-console: export DUMP_DIRECTORY ?= ${DUMP_ROOT_DIRECTORY}/console
+PHONY: verify-console
+verify-console:
+	${CI_SCRIPTS_DIR}/run_console_tests.sh
 
 .PHONY: verify-deployment-all
-verify-deployment-all: verify-deployment-parallel verify-deployment-sequential
+verify-deployment-all: verify-opensearch-topology verify-istio-authz verify-deployment-workload-metrics \
+	verify-system-logging verify-opensearch-logging verify-helidon-logging verify-helidon-metrics \
+	verify-examples-helidon verify-workloads verify-console-ingress verify-wls-loggingtraits verify-poko-metricsbinding \
+	verify-security-netpol
 
-verify-infra-all-parallel: export TEST_SUITES = verify-install/... verify-infra/... scripts/...
-.PHONY: verify-infra-all-parallel
-verify-infra-all-parallel: run-test
+.PHONY: verify-opensearch-topology
+verify-opensearch-topology:
+	${RUNGINKGO} opensearch/topology/...
 
-verify-infra-all-sequential: export TEST_SUITES = security/rbac/...  metrics/syscomponents/...
-.PHONY: verify-infra-all-sequential
-verify-infra-all-sequential: run-test
+.PHONY: verify-istio-authz
+verify-istio-authz:
+	RUN_PARALLEL=false ${RUNGINKGO} istio/authz/...
+
+.PHONY: verify-deployment-workload-metrics
+verify-deployment-workload-metrics:
+	RUN_PARALLEL=false ${RUNGINKGO} metrics/deploymetrics/...
+
+.PHONY: verify-system-logging
+verify-system-logging:
+	RUN_PARALLEL=false ${RUNGINKGO} logging/system/...
+
+.PHONY: verify-opensearch-logging
+verify-opensearch-logging:
+	RUN_PARALLEL=false ${RUNGINKGO} logging/opensearch/...
+
+.PHONY: verify-helidon-logging
+verify-helidon-logging:
+	RUN_PARALLEL=false ${RUNGINKGO} logging/helidon/...
+
+.PHONY: verify-helidon-metrics
+verify-helidon-metrics:
+	RUN_PARALLEL=false ${RUNGINKGO} examples/helidonmetrics/...
+
+.PHONY: verify-examples-helidon
+verify-examples-helidon:
+	${RUNGINKGO} examples/helidon/...
+
+.PHONY: verify-workloads
+verify-workloads:
+	RUN_PARALLEL=false ${RUNGINKGO} workloads/...
+
+.PHONY: verify-console-ingress
+verify-console-ingress:
+	RUN_PARALLEL=false ${RUNGINKGO} ingress/console/...
+
+.PHONY: verify-wls-loggingtraits
+verify-wls-loggingtraits:
+	RUN_PARALLEL=false ${RUNGINKGO} loggingtrait/...
+
+.PHONY: verify-poko-metricsbinding
+verify-poko-metricsbinding:
+	RUN_PARALLEL=false ${RUNGINKGO} metricsbinding/...
+
+.PHONY: verify-security-netpol
+verify-security-netpol:
+	RUN_PARALLEL=false ${RUNGINKGO} security/netpol/...
 
