@@ -99,7 +99,7 @@ var _ = t.Describe("Velero", Label("f:platform-lcm.install"), func() {
 				}
 				result, err := pkg.PodsRunning(constants.VeleroNameSpace, []string{veleroName})
 				if err != nil {
-					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", veleroName, constants.VerrazzanoMonitoringNamespace, err))
+					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", veleroName, constants.VeleroNameSpace, err))
 				}
 				return result
 			}
@@ -109,7 +109,7 @@ var _ = t.Describe("Velero", Label("f:platform-lcm.install"), func() {
 		// GIVEN the Velero is installed
 		// WHEN we check to make sure the default velero images are from Verrazzano
 		// THEN we see that the env is correctly populated
-		WhenVeleroInstalledIt("should have the correct default Jaeger images", func() {
+		WhenVeleroInstalledIt("should have the correct default velero images", func() {
 			verifyImages := func() bool {
 				if isVeleroEnabled() {
 					// Check if velero is running with the expected Verrazzano velero image
