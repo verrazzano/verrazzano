@@ -88,7 +88,7 @@ var _ = t.Describe("Velero", Label("f:platform-lcm.install"), func() {
 				return pkg.DoesNamespaceExist(constants.VeleroNameSpace)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
-		
+
 		// GIVEN the Velero is installed
 		// WHEN we check to make sure the default velero images are from Verrazzano
 		// THEN we see that the env is correctly populated
