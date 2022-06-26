@@ -88,24 +88,7 @@ var _ = t.Describe("Velero", Label("f:platform-lcm.install"), func() {
 				return pkg.DoesNamespaceExist(constants.VeleroNameSpace)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
-
-		// GIVEN the Velero is installed
-		// WHEN we check to make sure the pods are running
-		// THEN we successfully find the running pods
-		WhenVeleroInstalledIt("should have running pods", func() {
-			veleroPodsRunning := func() bool {
-				if !isVeleroEnabled() {
-					return true
-				}
-				result, err := pkg.PodsRunning(constants.VeleroNameSpace, []string{veleroName})
-				if err != nil {
-					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", veleroName, constants.VeleroNameSpace, err))
-				}
-				return result
-			}
-			Eventually(veleroPodsRunning(), waitTimeout, pollingInterval).Should(BeTrue())
-		})
-
+		
 		// GIVEN the Velero is installed
 		// WHEN we check to make sure the default velero images are from Verrazzano
 		// THEN we see that the env is correctly populated
