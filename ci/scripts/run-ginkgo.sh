@@ -12,7 +12,7 @@ fi
 
 TEST_ROOT=${TEST_ROOT:-"${GOPATH}/src/github.com/verrazzano"}
 TEST_DUMP_ROOT=${TEST_DUMP_ROOT:-"."}
-SEQUENTIAL_SUITES=${SEQUENTIAL_SUITES:-false}
+RUN_PARALLEL=${RUN_PARALLEL:-true}
 
 GINGKO_ARGS=${GINGKO_ARGS:-"-v --keep-going --no-color"}
 if [ "${RUN_PARALLEL}" == "true" ]; then

@@ -5,6 +5,7 @@ include global-env.mk
 
 export DUMP_ROOT_DIRECTORY ?= ${WORKSPACE}/cluster-snapshots
 export GINGKO_ARGS ?= -v --keep-going --no-color --junit-report=test-report.xml --keep-separate-reports=true
+export RUNGINKGO = ${CI_SCRIPTS_DIR}/run-ginkgo.sh
 
 run-test: export RANDOMIZE_TESTS ?= true
 run-test: export RUN_PARALLEL ?= true
@@ -20,28 +21,12 @@ run-test: export RUN_PARALLEL := false
 run-sequential: run-test
 
 .PHONY: kind-acceptance-tests
-kind-acceptance-tests: setup install verify-all
-
-.PHONY: verify-all
-verify-all: verify-infra-all verify-deployment-all
-
-.PHONY: verify-infra-all
-verify-infra-all:  verify-infra-all-parallel verify-infra-all-sequential verify-console
-
-.PHONY: verify-deployment-all
-verify-deployment-all: verify-deployment-parallel verify-deployment-sequential
-
-verify-infra-all-parallel: export TEST_SUITES = verify-install/... verify-infra/... scripts/...
-.PHONY: verify-infra-all-parallel
-verify-infra-all-parallel: run-test
-
-.PHONY: verify-scripts
-verify-scripts:
-	TEST_SUITES=scripts/... make test
-
-verify-infra-all-sequential: export TEST_SUITES = security/rbac/...  metrics/syscomponents/...
-.PHONY: verify-infra-all-sequential
-verify-infra-all-sequential: run-test
+kind-acceptance-tests: setup install
+	${RUNGINKGO} verify-install/... verify-infra/... scripts/...
+	RUN_PARALLEL=false 	${RUNGINKGO} security/rbac/...  metrics/syscomponents/...
+    ${CI_SCRIPTS_DIR}/run_console_tests.sh
+    ${RUNGINKGO} opensearch/topology/... examples/helidon/...
+    RUN_PARALLEL=false 	${RUNGINKGO} istio/authz/... metrics/deploymetrics/... logging/system/... logging/opensearch/...  logging/helidon/... examples/helidonmetrics/... workloads/... ingress/console/... loggingtrait/... metricsbinding/... security/netpol/...
 
 PHONY: verify-console
 verify-console:
@@ -77,3 +62,21 @@ pipeline-artifacts: dumplogs test-reports
 # Executes an upgrade to a new Verrazzano version from the initially installed version
 .PHONY: cleanup
 cleanup: pipeline-artifacts clean-kind
+
+.PHONY: verify-all
+verify-all: verify-infra-all verify-deployment-all
+
+.PHONY: verify-infra-all
+verify-infra-all:  verify-infra-all-parallel verify-infra-all-sequential verify-console
+
+.PHONY: verify-deployment-all
+verify-deployment-all: verify-deployment-parallel verify-deployment-sequential
+
+verify-infra-all-parallel: export TEST_SUITES = verify-install/... verify-infra/... scripts/...
+.PHONY: verify-infra-all-parallel
+verify-infra-all-parallel: run-test
+
+verify-infra-all-sequential: export TEST_SUITES = security/rbac/...  metrics/syscomponents/...
+.PHONY: verify-infra-all-sequential
+verify-infra-all-sequential: run-test
+
