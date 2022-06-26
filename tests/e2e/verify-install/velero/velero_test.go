@@ -44,7 +44,7 @@ var (
 	}
 )
 
-var t = framework.NewTestFramework("jaegeroperator")
+var t = framework.NewTestFramework("velero")
 
 func isVeleroEnabled() bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
