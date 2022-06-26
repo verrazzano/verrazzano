@@ -25,3 +25,5 @@ spec:
       enabled: true
     prometheusNodeExporter:
       enabled: true
+    velero:
+      true
