@@ -47,6 +47,6 @@ prometheusNodeExporter:
 jaegerOperator:
   enabled: false
 velero:
-  enabled: false
+  enabled: true
 istio:
   enabled: true
