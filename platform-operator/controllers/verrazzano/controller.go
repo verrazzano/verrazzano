@@ -1032,8 +1032,10 @@ func (r *Reconciler) procDelete(ctx context.Context, log vzlog.VerrazzanoLogger,
 
 	// Uninstall all components
 	log.Oncef("Uninstalling components")
-	if err := r.uninstallComponents(ctx, log, vz); err != nil {
+	if result, err := r.reconcileUninstall(log, vz); err != nil {
 		return newRequeueWithDelay(), err
+	} else if vzctrl.ShouldRequeue(result) {
+		return result, nil
 	}
 
 	// Run the uninstall and check for completion
@@ -1317,12 +1319,4 @@ func (r *Reconciler) IsWatchedComponent(compName string) bool {
 	r.WatchMutex.RLock()
 	defer r.WatchMutex.RUnlock()
 	return r.WatchedComponents[compName]
-}
-
-//uninstallComponents Loops through all components calling uninstall on each; returns nil when all have completed successfully
-func (r *Reconciler) uninstallComponents(_ context.Context, log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
-	if err := r.setUninstallCondition(log, nil, vz); err != nil {
-		return err
-	}
-	return nil
 }
