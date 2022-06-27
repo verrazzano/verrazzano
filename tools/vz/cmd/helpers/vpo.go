@@ -226,7 +226,7 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 	}(vzHelper.GetOutputStream())
 
 	// goroutine to wait for the completion of the operation
-	go func(outputStream io.Writer) {
+	go func() {
 		for {
 			// Pause before each status check
 			time.Sleep(1 * time.Second)
@@ -249,7 +249,7 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 				}
 			}
 		}
-	}(vzHelper.GetOutputStream())
+	}()
 
 	select {
 	case result := <-resChan:
