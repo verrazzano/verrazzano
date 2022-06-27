@@ -8,19 +8,23 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sigs.k8s.io/yaml"
 	"testing"
+	"time"
+
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	cmdHelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
-	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
+	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -30,36 +34,42 @@ import (
 //  THEN the CLI install command is successful
 func TestInstallCmdDefaultNoWait(t *testing.T) {
 	vpo := &corev1.Pod{
-		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
 			Name:      constants.VerrazzanoPlatformOperator,
 			Labels: map[string]string{
-				"app": constants.VerrazzanoPlatformOperator,
+				"app":               constants.VerrazzanoPlatformOperator,
+				"pod-template-hash": "56f78ffcfd",
 			},
 		},
-		Status: corev1.PodStatus{
-			InitContainerStatuses: []corev1.ContainerStatus{
-				{
-					Name:  "webhook-init",
-					Ready: true,
-				},
+	}
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperator,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
 			},
-			ContainerStatuses: []corev1.ContainerStatus{
+		},
+		Status: appsv1.DeploymentStatus{
+			Conditions: []appsv1.DeploymentCondition{
 				{
-					Name:  "verrazzano-platform-operator",
-					Ready: true,
+					Type:               appsv1.DeploymentAvailable,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: metav1.NewTime(time.Now().Add(time.Minute * 10)),
 				},
 			},
 		},
 	}
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo).Build()
+
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
@@ -82,22 +92,42 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 //  THEN the CLI install command times out
 func TestInstallCmdDefaultTimeout(t *testing.T) {
 	vpo := &corev1.Pod{
-		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
 			Name:      constants.VerrazzanoPlatformOperator,
 			Labels: map[string]string{
-				"app": constants.VerrazzanoPlatformOperator,
+				"app":               constants.VerrazzanoPlatformOperator,
+				"pod-template-hash": "56f78ffcfd",
 			},
 		},
 	}
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo).Build()
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperator,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
+			},
+		},
+		Status: appsv1.DeploymentStatus{
+			Conditions: []appsv1.DeploymentCondition{
+				{
+					Type:               appsv1.DeploymentAvailable,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: metav1.NewTime(time.Now().Add(time.Minute * 10)),
+				},
+			},
+		},
+	}
+
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
@@ -115,13 +145,12 @@ func TestInstallCmdDefaultTimeout(t *testing.T) {
 //  WHEN I call cmd.Execute for install
 //  THEN the CLI install command fails
 func TestInstallCmdDefaultNoVPO(t *testing.T) {
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
@@ -131,8 +160,8 @@ func TestInstallCmdDefaultNoVPO(t *testing.T) {
 	err := cmd.Execute()
 	cmdHelpers.ResetVpoWaitRetries()
 	assert.Error(t, err)
-	assert.EqualError(t, err, "Waiting for verrazzano-platform-operator, pod was not found in namespace verrazzano-install")
-	assert.Equal(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator, pod was not found in namespace verrazzano-install\n")
+	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
+	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
 }
 
 // TestInstallCmdDefaultMultipleVPO
@@ -141,12 +170,12 @@ func TestInstallCmdDefaultNoVPO(t *testing.T) {
 //  THEN the CLI install command fails
 func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 	vpo1 := &corev1.Pod{
-		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
-			Name:      constants.VerrazzanoPlatformOperator + "-1",
+			Name:      constants.VerrazzanoPlatformOperator,
 			Labels: map[string]string{
-				"app": constants.VerrazzanoPlatformOperator,
+				"app":               constants.VerrazzanoPlatformOperator,
+				"pod-template-hash": "56f78ffcfd",
 			},
 		},
 	}
@@ -156,26 +185,48 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
 			Name:      constants.VerrazzanoPlatformOperator + "-2",
 			Labels: map[string]string{
-				"app": constants.VerrazzanoPlatformOperator,
+				"app":               constants.VerrazzanoPlatformOperator,
+				"pod-template-hash": "56f78ffcfe",
 			},
 		},
 	}
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo1, vpo2).Build()
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperator,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
+			},
+		},
+		Status: appsv1.DeploymentStatus{
+			Conditions: []appsv1.DeploymentCondition{
+				{
+					Type:               appsv1.DeploymentAvailable,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: metav1.NewTime(time.Now().Add(time.Minute * 10)),
+				},
+			},
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo1, vpo2, deployment).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 
 	// Run install command
+	cmdHelpers.SetVpoWaitRetries(1) // override for unit testing
 	err := cmd.Execute()
+	cmdHelpers.ResetVpoWaitRetries()
 	assert.Error(t, err)
-	assert.EqualError(t, err, "Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
-	assert.Equal(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install\n")
+	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
+	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
 }
 
 // TestInstallCmdJsonLogFormat
@@ -184,22 +235,41 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 //  THEN the CLI install command is successful
 func TestInstallCmdJsonLogFormat(t *testing.T) {
 	vpo := &corev1.Pod{
-		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
 			Name:      constants.VerrazzanoPlatformOperator,
 			Labels: map[string]string{
-				"app": constants.VerrazzanoPlatformOperator,
+				"app":               constants.VerrazzanoPlatformOperator,
+				"pod-template-hash": "56f78ffcfd",
 			},
 		},
 	}
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo).Build()
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperator,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
+			},
+		},
+		Status: appsv1.DeploymentStatus{
+			Conditions: []appsv1.DeploymentCondition{
+				{
+					Type:               appsv1.DeploymentAvailable,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: metav1.NewTime(time.Now().Add(time.Minute * 10)),
+				},
+			},
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
@@ -223,22 +293,41 @@ func TestInstallCmdJsonLogFormat(t *testing.T) {
 //  THEN the CLI install command is successful
 func TestInstallCmdFilenames(t *testing.T) {
 	vpo := &corev1.Pod{
-		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
 			Name:      constants.VerrazzanoPlatformOperator,
 			Labels: map[string]string{
-				"app": constants.VerrazzanoPlatformOperator,
+				"app":               constants.VerrazzanoPlatformOperator,
+				"pod-template-hash": "56f78ffcfd",
 			},
 		},
 	}
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo).Build()
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperator,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
+			},
+		},
+		Status: appsv1.DeploymentStatus{
+			Conditions: []appsv1.DeploymentCondition{
+				{
+					Type:               appsv1.DeploymentAvailable,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: metav1.NewTime(time.Now().Add(time.Minute * 10)),
+				},
+			},
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
@@ -263,22 +352,41 @@ func TestInstallCmdFilenames(t *testing.T) {
 //  THEN the CLI install command is successful
 func TestInstallCmdSets(t *testing.T) {
 	vpo := &corev1.Pod{
-		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
 			Name:      constants.VerrazzanoPlatformOperator,
 			Labels: map[string]string{
-				"app": constants.VerrazzanoPlatformOperator,
+				"app":               constants.VerrazzanoPlatformOperator,
+				"pod-template-hash": "56f78ffcfd",
 			},
 		},
 	}
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo).Build()
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperator,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
+			},
+		},
+		Status: appsv1.DeploymentStatus{
+			Conditions: []appsv1.DeploymentCondition{
+				{
+					Type:               appsv1.DeploymentAvailable,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: metav1.NewTime(time.Now().Add(time.Minute * 10)),
+				},
+			},
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
@@ -305,28 +413,50 @@ func TestInstallCmdSets(t *testing.T) {
 //  THEN the CLI install command is successful
 func TestInstallCmdFilenamesAndSets(t *testing.T) {
 	vpo := &corev1.Pod{
-		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
 			Name:      constants.VerrazzanoPlatformOperator,
 			Labels: map[string]string{
-				"app": constants.VerrazzanoPlatformOperator,
+				"app":               constants.VerrazzanoPlatformOperator,
+				"pod-template-hash": "56f78ffcfd",
 			},
 		},
 	}
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo).Build()
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperator,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
+			},
+		},
+		Status: appsv1.DeploymentStatus{
+			Conditions: []appsv1.DeploymentCondition{
+				{
+					Type:               appsv1.DeploymentAvailable,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: metav1.NewTime(time.Now().Add(time.Minute * 10)),
+				},
+			},
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/dev-profile.yaml")
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=prod")
 	cmd.PersistentFlags().Set(constants.SetFlag, "environmentName=test")
+	cmd.PersistentFlags().Set(constants.SetFlag, "components.ingress.overrides[0].values.controller.podLabels.override=\"true\"")
+	cmd.PersistentFlags().Set(constants.SetFlag, "components.ingress.overrides[1].values.controller.service.annotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\"=10Mbps")
+	cmd.PersistentFlags().Set(constants.SetFlag, "components.ingress.enabled=true")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 
 	// Run install command
@@ -340,6 +470,17 @@ func TestInstallCmdFilenamesAndSets(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, vzapi.Prod, vz.Spec.Profile)
 	assert.Equal(t, "test", vz.Spec.EnvironmentName)
+	assert.Equal(t, true, *vz.Spec.Components.Ingress.Enabled)
+	json, err := vz.Spec.Components.Ingress.InstallOverrides.ValueOverrides[0].Values.MarshalJSON()
+	assert.NoError(t, err)
+	outyaml, err := yaml.JSONToYAML(json)
+	assert.NoError(t, err)
+	assert.Equal(t, "controller:\n  podLabels:\n    override: \"true\"\n", string(outyaml))
+	json, err = vz.Spec.Components.Ingress.InstallOverrides.ValueOverrides[1].Values.MarshalJSON()
+	assert.NoError(t, err)
+	outyaml, err = yaml.JSONToYAML(json)
+	assert.NoError(t, err)
+	assert.Equal(t, "controller:\n  service:\n    annotations:\n      service.beta.kubernetes.io/oci-load-balancer-shape: 10Mbps\n", string(outyaml))
 }
 
 // TestInstallCmdOperatorFile
@@ -353,17 +494,39 @@ func TestInstallCmdOperatorFile(t *testing.T) {
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
 			Name:      constants.VerrazzanoPlatformOperator,
 			Labels: map[string]string{
-				"app": constants.VerrazzanoPlatformOperator,
+				"app":               constants.VerrazzanoPlatformOperator,
+				"pod-template-hash": "56f78ffcfd",
 			},
 		},
 	}
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo).Build()
+	deployment := &appsv1.Deployment{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperator,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
+			},
+		},
+		Status: appsv1.DeploymentStatus{
+			Conditions: []appsv1.DeploymentCondition{
+				{
+					Type:               appsv1.DeploymentAvailable,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: metav1.NewTime(time.Now().Add(time.Minute * 10)),
+				},
+			},
+		},
+	}
+
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
@@ -402,7 +565,7 @@ func TestInstallCmdOperatorFile(t *testing.T) {
 func TestInstallValidations(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.OperatorFileFlag, "test")
@@ -419,7 +582,7 @@ func TestInstallValidations(t *testing.T) {
 func TestGetWaitTimeoutDefault(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	duration, err := cmdHelpers.GetWaitTimeout(cmd)
@@ -434,7 +597,7 @@ func TestGetWaitTimeoutDefault(t *testing.T) {
 func TestGetWaitTimeoutNoWait(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
@@ -450,7 +613,7 @@ func TestGetWaitTimeoutNoWait(t *testing.T) {
 func TestGetWaitTimeoutSpecified(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "10m")
@@ -466,7 +629,7 @@ func TestGetWaitTimeoutSpecified(t *testing.T) {
 func TestGetLogFormatSimple(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "simple")
@@ -482,7 +645,7 @@ func TestGetLogFormatSimple(t *testing.T) {
 func TestGetLogFormatJson(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "json")
@@ -498,7 +661,7 @@ func TestGetLogFormatJson(t *testing.T) {
 func TestSetCommandInvalidFormat(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.SetFlag, "badflag")
@@ -516,7 +679,7 @@ func TestSetCommandInvalidFormat(t *testing.T) {
 func TestSetCommandSingle(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=dev")
@@ -533,7 +696,7 @@ func TestSetCommandSingle(t *testing.T) {
 func TestSetCommandMultiple(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=dev")
@@ -552,7 +715,7 @@ func TestSetCommandMultiple(t *testing.T) {
 func TestSetCommandOverride(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=dev")

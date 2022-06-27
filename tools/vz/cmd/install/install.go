@@ -10,15 +10,16 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/verrazzano/verrazzano/pkg/yaml"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	"helm.sh/helm/v3/pkg/strvals"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -69,7 +70,7 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 
 func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
 	// Validate the command options
-	err := cmdhelpers.ValidateCmd(cmd)
+	err := validateCmd(cmd)
 	if err != nil {
 		return fmt.Errorf("Command validation failed: %s", err.Error())
 	}
@@ -115,13 +116,14 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Apply the Verrazzano operator.yaml.
+	lastTransitionTime := metav1.Now()
 	err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)
 	if err != nil {
 		return err
 	}
 
 	// Wait for the platform operator to be ready before we create the Verrazzano resource.
-	vpoPodName, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, vzapi.CondInstallComplete)
+	vpoPodName, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, vzapi.CondInstallComplete, lastTransitionTime)
 	if err != nil {
 		return err
 	}
@@ -156,8 +158,8 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper) (vz *vzapi
 		return nil, err
 	}
 
-	// Get the set arguments - list of paths and value
-	pv, err := getSetArguments(cmd, vzHelper)
+	// Get the set arguments - returning a list of properties and value
+	pvs, err := getSetArguments(cmd, vzHelper)
 	if err != nil {
 		return nil, err
 	}
@@ -181,21 +183,54 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper) (vz *vzapi
 		}
 	}
 
+	// Generate yaml for the set flags passed on the command line
+	outYAML, err := generateYAMLForSetFlags(pvs)
+	if err != nil {
+		return nil, err
+	}
+
 	// Merge the set flags passed on the command line. The set flags take precedence over
 	// the yaml files passed on the command line.
-	for path, value := range pv {
-		outYaml, err := yaml.Expand(0, false, path, value)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to generate yaml from specified set flags: %s", err.Error())
-		}
-		vz, err = cmdhelpers.MergeSetFlags(vz, outYaml)
-		if err != nil {
-			return nil, err
-		}
+	vz, err = cmdhelpers.MergeSetFlags(vz, outYAML)
+	if err != nil {
+		return nil, err
 	}
 
 	// Return the merged verrazzano install resource to be created
 	return vz, nil
+}
+
+// generateYAMLForSetFlags creates a YAML string from a map of property value pairs representing --set flags
+// specified on the install command
+func generateYAMLForSetFlags(pvs map[string]string) (string, error) {
+	yamlObject := map[string]interface{}{}
+	for path, value := range pvs {
+		// replace unwanted characters in the value to avoid splitting
+		ignoreChars := ",[.{}"
+		for _, char := range ignoreChars {
+			value = strings.Replace(value, string(char), "\\"+string(char), -1)
+		}
+
+		composedStr := fmt.Sprintf("%s=%s", path, value)
+		err := strvals.ParseInto(composedStr, yamlObject)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	yamlFile, err := yaml.Marshal(yamlObject)
+	if err != nil {
+		return "", err
+	}
+
+	yamlString := string(yamlFile)
+
+	// Replace any double-quoted strings that are surrounded by single quotes.
+	// These type of strings are problematic for helm.
+	yamlString = strings.ReplaceAll(yamlString, "'\"", "\"")
+	yamlString = strings.ReplaceAll(yamlString, "\"'", "\"")
+
+	return yamlString, nil
 }
 
 // getSetArguments gets all the set arguments and returns a map of property/value
@@ -234,4 +269,12 @@ func getSetArguments(cmd *cobra.Command, vzHelper helpers.VZHelper) (map[string]
 // the ongoing Verrazzano install.
 func waitForInstallToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration, logFormat cmdhelpers.LogFormat) error {
 	return cmdhelpers.WaitForOperationToComplete(client, kubeClient, vzHelper, vpoPodName, namespacedName, timeout, logFormat, vzapi.CondInstallComplete)
+}
+
+// validateCmd - validate the command line options
+func validateCmd(cmd *cobra.Command) error {
+	if cmd.PersistentFlags().Changed(constants.VersionFlag) && cmd.PersistentFlags().Changed(constants.OperatorFileFlag) {
+		return fmt.Errorf("--%s and --%s cannot both be specified", constants.VersionFlag, constants.OperatorFileFlag)
+	}
+	return nil
 }
