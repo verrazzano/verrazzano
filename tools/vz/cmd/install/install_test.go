@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sigs.k8s.io/yaml"
 	"testing"
 	"time"
 
@@ -453,6 +454,9 @@ func TestInstallCmdFilenamesAndSets(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/dev-profile.yaml")
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=prod")
 	cmd.PersistentFlags().Set(constants.SetFlag, "environmentName=test")
+	cmd.PersistentFlags().Set(constants.SetFlag, "components.ingress.overrides[0].values.controller.podLabels.override=\"true\"")
+	cmd.PersistentFlags().Set(constants.SetFlag, "components.ingress.overrides[1].values.controller.service.annotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\"=10Mbps")
+	cmd.PersistentFlags().Set(constants.SetFlag, "components.ingress.enabled=true")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 
 	// Run install command
@@ -466,6 +470,17 @@ func TestInstallCmdFilenamesAndSets(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, vzapi.Prod, vz.Spec.Profile)
 	assert.Equal(t, "test", vz.Spec.EnvironmentName)
+	assert.Equal(t, true, *vz.Spec.Components.Ingress.Enabled)
+	json, err := vz.Spec.Components.Ingress.InstallOverrides.ValueOverrides[0].Values.MarshalJSON()
+	assert.NoError(t, err)
+	outyaml, err := yaml.JSONToYAML(json)
+	assert.NoError(t, err)
+	assert.Equal(t, "controller:\n  podLabels:\n    override: \"true\"\n", string(outyaml))
+	json, err = vz.Spec.Components.Ingress.InstallOverrides.ValueOverrides[1].Values.MarshalJSON()
+	assert.NoError(t, err)
+	outyaml, err = yaml.JSONToYAML(json)
+	assert.NoError(t, err)
+	assert.Equal(t, "controller:\n  service:\n    annotations:\n      service.beta.kubernetes.io/oci-load-balancer-shape: 10Mbps\n", string(outyaml))
 }
 
 // TestInstallCmdOperatorFile
