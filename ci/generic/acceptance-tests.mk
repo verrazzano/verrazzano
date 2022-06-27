@@ -24,19 +24,12 @@ kind-acceptance-tests: setup install
 	${RUNGINKGO} verify-install/... verify-infra/... scripts/...
 	RUN_PARALLEL=false 	${RUNGINKGO} security/rbac/...  metrics/syscomponents/...
 	${CI_SCRIPTS_DIR}/run_console_tests.sh	${RUNGINKGO} opensearch/topology/... examples/helidon/...
-	RUN_PARALLEL=false 	${RUNGINKGO} istio/authz/... metrics/deploymetrics/... logging/system/... logging/opensearch/...  logging/helidon/... examples/helidonmetrics/... workloads/... ingress/console/... loggingtrait/... metricsbinding/... security/netpol/...
+	RUN_PARALLEL=false 	${RUNGINKGO} istio/authz/... metrics/deploymetrics/... logging/system/... logging/opensearch/...  logging/helidon/... examples/helidonmetrics/... workloads/... ingress/console/... loggingtrait/... security/netpol/...
 
+verify-console: export DUMP_DIRECTORY ?= ${DUMP_ROOT_DIRECTORY}/console
 PHONY: verify-console
 verify-console:
 	${CI_SCRIPTS_DIR}/run_console_tests.sh
-
-.PHONY: verify-deployment-parallel
-verify-deployment-parallel: export TEST_SUITES = opensearch/topology/... examples/helidon/...
-verify-deployment-parallel: run-test
-
-.PHONY: verify-deployment-sequential
-verify-deployment-sequential: export TEST_SUITES = istio/authz/... metrics/deploymetrics/... logging/system/... logging/opensearch/...  logging/helidon/... examples/helidonmetrics/... workloads/... ingress/console/... loggingtrait/... metricsbinding/... security/netpol/...
-verify-deployment-sequential: run-sequential
 
 .PHONY: dumplogs
 dumplogs:
@@ -65,6 +58,14 @@ pipeline-artifacts: dumplogs test-reports
 .PHONY: cleanup
 cleanup: pipeline-artifacts clean-kind
 
+.PHONY: verify-deployment-parallel
+verify-deployment-parallel: export TEST_SUITES = opensearch/topology/... examples/helidon/...
+verify-deployment-parallel: run-test
+
+.PHONY: verify-deployment-sequential
+verify-deployment-sequential: export TEST_SUITES = istio/authz/... metrics/deploymetrics/... logging/system/... logging/opensearch/...  logging/helidon/... examples/helidonmetrics/... workloads/... ingress/console/... loggingtrait/... security/netpol/...
+verify-deployment-sequential: run-sequential
+
 .PHONY: verify-all
 verify-all: verify-infra-all verify-deployment-all
 
@@ -74,10 +75,6 @@ verify-infra-all: verify-install verify-scripts verify-infra verify-security-rba
 .PHONY: verify-install
 verify-install:
 	${RUNGINKGO} verify-install/...
-
-.PHONY: jobmetrics
-jobmetrics:
-	${RUNGINKGO} jobmetrics/...
 
 .PHONY: verify-scripts
 verify-scripts:
@@ -95,15 +92,10 @@ verify-security-rbac:
 verify-system-metrics:
 	RUN_PARALLEL=false ${RUNGINKGO} metrics/syscomponents/...
 
-verify-console: export DUMP_DIRECTORY ?= ${DUMP_ROOT_DIRECTORY}/console
-PHONY: verify-console
-verify-console:
-	${CI_SCRIPTS_DIR}/run_console_tests.sh
-
 .PHONY: verify-deployment-all
 verify-deployment-all: verify-opensearch-topology verify-istio-authz verify-deployment-workload-metrics \
 	verify-system-logging verify-opensearch-logging verify-helidon-logging verify-helidon-metrics \
-	verify-examples-helidon verify-workloads verify-console-ingress verify-wls-loggingtraits verify-poko-metricsbinding \
+	verify-examples-helidon verify-workloads verify-console-ingress verify-wls-loggingtraits \
 	verify-security-netpol
 
 .PHONY: verify-opensearch-topology
@@ -149,10 +141,6 @@ verify-console-ingress:
 .PHONY: verify-wls-loggingtraits
 verify-wls-loggingtraits:
 	RUN_PARALLEL=false ${RUNGINKGO} loggingtrait/...
-
-.PHONY: verify-poko-metricsbinding
-verify-poko-metricsbinding:
-	RUN_PARALLEL=false ${RUNGINKGO} metricsbinding/...
 
 .PHONY: verify-security-netpol
 verify-security-netpol:

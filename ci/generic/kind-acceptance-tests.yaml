@@ -63,7 +63,5 @@ testGroups:
         target: "verify-console-ingress"
       - name: "logging trait WebLogic workload"
         target: "verify-wls-loggingtraits"
-      - name: "poko metricsbinding"
-        target: "verify-poko-metricsbinding"
       - name: "security network policies"
         target: "verify-security-netpol"
