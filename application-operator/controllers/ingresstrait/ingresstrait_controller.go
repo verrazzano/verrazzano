@@ -177,7 +177,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, trait *vzapi.IngressTrait,
 		for _, ingressTrait := range ingressTraits.Items {
 			if ingressTrait.Labels[oam.LabelAppName] == trait.Labels[oam.LabelAppName] {
 				if ingressTrait.DeletionTimestamp == nil {
-					r.Reconcile(context.TODO(), ctrl.Request{types.NamespacedName{Namespace: ingressTrait.Namespace, Name: ingressTrait.Name}})
+					r.Reconcile(context.TODO(), ctrl.Request{NamespacedName: types.NamespacedName{Namespace: ingressTrait.Namespace, Name: ingressTrait.Name}})
 				}
 			}
 		}
@@ -285,7 +285,6 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 
 func (r *Reconciler) coallateAllHostsForTrait(trait *vzapi.IngressTrait, status reconcileresults.ReconcileResults) ([]string, []string) {
 	allHosts := []string{}
-	uniqueHosts := []string{}
 	var err error
 	for _, rule := range trait.Spec.Rules {
 		if allHosts, err = createHostsFromIngressTraitRule(r, rule, trait, allHosts...); err != nil {
@@ -293,7 +292,7 @@ func (r *Reconciler) coallateAllHostsForTrait(trait *vzapi.IngressTrait, status 
 		}
 	}
 	// Remove hostnames that have already been mapped to another trait
-	uniqueHosts = r.sanitizeHostNameForTrait(allHosts, trait.Name)
+	uniqueHosts := r.sanitizeHostNameForTrait(allHosts, trait.Name)
 	return allHosts, uniqueHosts
 }
 
