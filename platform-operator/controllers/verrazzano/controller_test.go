@@ -741,7 +741,7 @@ func TestUninstallFailed(t *testing.T) {
 		})
 
 	// Expect a status update on the job
-	mockStatus.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
+	mockStatus.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	// Expect a call to update the finalizers - return success
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
@@ -754,7 +754,7 @@ func TestUninstallFailed(t *testing.T) {
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			return nil
-		})
+		}).AnyTimes()
 
 	expectDeleteClusterRoleBinding(mock, getInstallNamespace(), name)
 	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
@@ -842,7 +842,7 @@ func TestUninstallSucceeded(t *testing.T) {
 		})
 
 	// Expect a status update on the job
-	mockStatus.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
+	mockStatus.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	// Expect a call to update the finalizers - return success
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
@@ -855,7 +855,7 @@ func TestUninstallSucceeded(t *testing.T) {
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			return nil
-		})
+		}).AnyTimes()
 
 	expectDeleteClusterRoleBinding(mock, getInstallNamespace(), name)
 	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
