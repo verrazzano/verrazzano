@@ -36,12 +36,12 @@ func InitalizeMetricsEndpoint() {
 		}
 	}, time.Second*3, wait.NeverStop)
 }
-func AddAuthproxyInstallStartTime(start_time int64) {
-	installStartTimeMap["verrazzano-authproxy"] = start_time
+func AddAuthproxyInstallStartTime(startTime int64) {
+	installStartTimeMap["verrazzano-authproxy"] = startTime
 }
 func CollectAuthProxyInstallTimeMetric() {
-	end_time := time.Now().Unix()
-	total_install_time := end_time - installStartTimeMap["verrazzano-authproxy"]
-	authproxyInstallTimeMetric.Set(float64(total_install_time))
+	endTime := time.Now().Unix()
+	totalInstallTime := endTime - installStartTimeMap["verrazzano-authproxy"]
+	authproxyInstallTimeMetric.Set(float64(totalInstallTime))
 
 }

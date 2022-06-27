@@ -93,7 +93,7 @@ func (c authProxyComponent) IsReady(ctx spi.ComponentContext) bool {
 // PreInstall - actions to perform prior to installing this component
 func (c authProxyComponent) PreInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debug("AuthProxy pre-install")
-	start_time := time.Now().Unix()
+	startTime := time.Now().Unix()
 
 	err := authproxyPreHelmOps(ctx)
 	if err != nil {
@@ -110,7 +110,7 @@ func (c authProxyComponent) PreInstall(ctx spi.ComponentContext) error {
 		return nil
 	}
 
-	metricsexporter.AddAuthproxyInstallStartTime(start_time)
+	metricsexporter.AddAuthproxyInstallStartTime(startTime)
 
 	return nil
 }
