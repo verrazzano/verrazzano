@@ -169,17 +169,8 @@ func (r *Reconciler) doReconcile(ctx context.Context, trait *vzapi.IngressTrait,
 			// Requeue without error to avoid higher level log message
 			return reconcile.Result{Requeue: true}, nil
 		}
-		ingressTraits := vzapi.IngressTraitList{}
-		if err := r.List(context.TODO(), &ingressTraits, &client.ListOptions{}); err != nil {
-			return reconcile.Result{Requeue: true}, nil
-		}
-		// Trigger a reconcile of all the IngressTraits for this appconfig
-		for _, ingressTrait := range ingressTraits.Items {
-			if ingressTrait.Labels[oam.LabelAppName] == trait.Labels[oam.LabelAppName] {
-				if ingressTrait.DeletionTimestamp == nil {
-					r.Reconcile(context.TODO(), ctrl.Request{NamespacedName: types.NamespacedName{Namespace: ingressTrait.Namespace, Name: ingressTrait.Name}})
-				}
-			}
+		if err := r.reconcileIngressTraits(trait); err != nil {
+			return reconcile.Result{Requeue: true, RequeueAfter: clusters.GetRandomRequeueDelay()}, nil
 		}
 		// resource cleanup has succeeded, remove the finalizer
 		if err := r.removeFinalizerIfRequired(ctx, trait, log); err != nil {
@@ -247,7 +238,7 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 	}
 
 	// Create a list of unique hostnames across all rules in the trait
-	allHostsForTrait, uniqueHostsForTrait := r.coallateAllHostsForTrait(trait, status)
+	allHostsForTrait, uniqueHostsForTrait, shouldReconcile := r.coallateAllHostsForTrait(trait, status)
 	// Do not add a host entry for a trait that doesn't have an uncommon host
 	if len(uniqueHostsForTrait) == 0 {
 		gwName, err := buildGatewayName(trait)
@@ -280,10 +271,17 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 			}
 		}
 	}
+
+	if shouldReconcile {
+		err := r.reconcileIngressTraits(trait)
+		if err != nil {
+			return &status, reconcile.Result{Requeue: true, RequeueAfter: clusters.GetRandomRequeueDelay()}, nil
+		}
+	}
 	return &status, ctrl.Result{}, nil
 }
 
-func (r *Reconciler) coallateAllHostsForTrait(trait *vzapi.IngressTrait, status reconcileresults.ReconcileResults) ([]string, []string) {
+func (r *Reconciler) coallateAllHostsForTrait(trait *vzapi.IngressTrait, status reconcileresults.ReconcileResults) ([]string, []string, bool) {
 	allHosts := []string{}
 	var err error
 	for _, rule := range trait.Spec.Rules {
@@ -292,8 +290,8 @@ func (r *Reconciler) coallateAllHostsForTrait(trait *vzapi.IngressTrait, status 
 		}
 	}
 	// Remove hostnames that have already been mapped to another trait
-	uniqueHosts := r.sanitizeHostNameForTrait(allHosts, trait.Name)
-	return allHosts, uniqueHosts
+	uniqueHosts, shouldReconcile := r.sanitizeHostNameForTrait(allHosts, trait)
+	return allHosts, uniqueHosts, shouldReconcile
 }
 
 // buildGatewayName will generate a gateway name from the namespace and application name of the provided trait. Returns
@@ -1401,21 +1399,22 @@ func (r *Reconciler) createOrUpdateRemainingResources(ctx context.Context, statu
 
 // sanitizeHostNameForTrait removes hosts that are already listed in other traits
 // and cleans up stale hostname entries
-func (r *Reconciler) sanitizeHostNameForTrait(hosts []string, traitName string) []string {
+func (r *Reconciler) sanitizeHostNameForTrait(hosts []string, trait *vzapi.IngressTrait) ([]string, bool) {
 	// populate the new slice with hostname entries that are either new
 	// or were already listed under this trait
 	newHosts := []string{}
 	for _, host := range hosts {
 		_, ok := parentTraitOfHost[host]
-		if !ok || parentTraitOfHost[host] == traitName {
+		if !ok || parentTraitOfHost[host] == trait.Name {
 			newHosts = append(newHosts, host)
-			parentTraitOfHost[host] = traitName
+			parentTraitOfHost[host] = trait.Name
 		}
 	}
 
+	shouldReconcile := false
 	// delete orphaned hostnames from the map
-	for host, trait := range parentTraitOfHost {
-		if trait != traitName {
+	for host, traitName := range parentTraitOfHost {
+		if traitName != trait.Name {
 			continue
 		}
 		hostPresent := false
@@ -1426,9 +1425,28 @@ func (r *Reconciler) sanitizeHostNameForTrait(hosts []string, traitName string) 
 			}
 		}
 		if !hostPresent {
+			// If this host isn't associated with this trait anymore, then we should break this relationship
+			// and reconcile other traits in case the host matches with either of them
+			shouldReconcile = true
 			delete(parentTraitOfHost, host)
 		}
 	}
 
-	return newHosts
+	return newHosts, shouldReconcile
+}
+
+func (r *Reconciler) reconcileIngressTraits(trait *vzapi.IngressTrait) error {
+	ingressTraits := vzapi.IngressTraitList{}
+	if err := r.List(context.TODO(), &ingressTraits, &client.ListOptions{}); err != nil {
+		return err
+	}
+	// Trigger a reconcile of all the IngressTraits for this appconfig
+	for _, ingressTrait := range ingressTraits.Items {
+		if ingressTrait.Labels[oam.LabelAppName] == trait.Labels[oam.LabelAppName] {
+			if ingressTrait.DeletionTimestamp == nil {
+				r.Reconcile(context.TODO(), ctrl.Request{NamespacedName: types.NamespacedName{Namespace: ingressTrait.Namespace, Name: ingressTrait.Name}})
+			}
+		}
+	}
+	return nil
 }

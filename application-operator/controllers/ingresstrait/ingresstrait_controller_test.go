@@ -780,6 +780,12 @@ func TestFailureCreateNewIngressWithSecretNoHosts(t *testing.T) {
 			assert.Equal(finalizerName, trait.Finalizers[0])
 			return nil
 		})
+
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, traitList *vzapi.IngressTraitList, options *client.ListOptions) error {
+			return nil
+		})
 	getMockStatusWriterExpectations(mock, mockStatus)
 	// Expect a call to update the status of the ingress trait.  The status is checked for the expected error condition.
 	mockStatus.EXPECT().
@@ -839,6 +845,12 @@ func TestFailureCreateGatewayCertNoAppName(t *testing.T) {
 			assert.Equal(testTraitName, trait.Name)
 			assert.Len(trait.Finalizers, 1)
 			assert.Equal(finalizerName, trait.Finalizers[0])
+			return nil
+		})
+
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, traitList *vzapi.IngressTraitList, options *client.ListOptions) error {
 			return nil
 		})
 
