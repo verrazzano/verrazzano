@@ -99,13 +99,15 @@ func (s *Syncer) ProcessAgentThread() error {
 	}
 
 	// Update all Prometheus monitors relabel configs in all namespaces with new cluster name if needed
-	s.updatePrometheusMonitorsClusterName()
-
+	err = s.updatePrometheusMonitorsClusterName()
+	if err != nil {
+		return fmt.Errorf("failed to update the cluster name to %s on Prometheus monitor resources with error %v", s.ManagedClusterName, err)
+	}
 	// Create the client for accessing the admin cluster when there is a change in the secret
 	if secret.ResourceVersion != s.SecretResourceVersion {
 		adminClient, err := getAdminClient(&secret)
 		if err != nil {
-			return fmt.Errorf("Failed to get the client for cluster %q with error %v", managedClusterName, err)
+			return fmt.Errorf("failed to get the client for cluster %q with error %v", managedClusterName, err)
 		}
 		s.AdminClient = adminClient
 		s.SecretResourceVersion = secret.ResourceVersion
