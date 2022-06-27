@@ -86,7 +86,6 @@ var (
 )
 
 func main() {
-
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&defaultMetricsScraper, "default-metrics-scraper", defaultScraperName,
 		"The namespace/deploymentName of the prometheus deployment to be used as the default metrics scraper")
@@ -341,7 +340,7 @@ func main() {
 	// Create a buffered channel of size 10 for the multi cluster agent to receive messages
 	agentChannel := make(chan clusters.StatusUpdateMessage, constants.StatusUpdateChannelBufferSize)
 
-	// Implementation of metricsExporter
+	// Initialize of metricsExporter
 	metricsexporter.InitalizeMetricsEndpoint()
 
 	if err = (&multiclustersecret.Reconciler{

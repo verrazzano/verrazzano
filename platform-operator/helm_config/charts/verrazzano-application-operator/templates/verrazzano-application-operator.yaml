@@ -313,7 +313,6 @@ spec:
     - name: https-webhook
       port: 443
       targetPort: 9443
-      # adding service for metrics
     - name: http-metric
       protocol: TCP
       port: 9100

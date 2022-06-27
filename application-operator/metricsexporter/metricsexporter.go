@@ -5,18 +5,20 @@ package metricsexporter
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-// InitalizeMetricsEndpoint creates a goroutine so this process will not halt execcution of the code
+// InitalizeMetricsEndpoint creates and serves a /metrics endpoint at 9100 for Prometheus to scrape metrics from
 func InitalizeMetricsEndpoint() {
-	go InitalizeMetricsEndpointHelper()
-}
-
-// InitalizeMetricsEndpointHelper creates and serves a /metrics endpoint at 9100 for Prometheus to scrape metrics from
-func InitalizeMetricsEndpointHelper() {
-	http.Handle("/metrics", promhttp.Handler())
-	http.ListenAndServe(":9100", nil)
-
+	go wait.Until(func() {
+		http.Handle("/metrics", promhttp.Handler())
+		err := http.ListenAndServe(":9100", nil)
+		if err != nil {
+			zap.S().Errorf("Failed to start metrics server for verrazzano-platform-operator: %v", err)
+		}
+	}, time.Second*3, wait.NeverStop)
 }
