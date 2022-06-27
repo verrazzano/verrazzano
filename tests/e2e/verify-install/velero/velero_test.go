@@ -19,9 +19,8 @@ import (
 const (
 	waitTimeout                  = 3 * time.Minute
 	pollingInterval              = 10 * time.Second
-	veleroName                   = "velero"
-	operatorImage                = "ghcr.io/verrazzano/velero"
 	veleroRestoreHelperConfigMap = "restic-restore-action-config"
+	resticHelperImage            = "ghcr.io/verrazzano/velero-restic-restore-helper"
 )
 
 var (
@@ -37,11 +36,6 @@ var (
 		"schedules.velero.io",
 		"serverstatusrequests.velero.io",
 		"volumesnapshotlocations.velero.io",
-	}
-	expectedVeleroImages = map[string]string{
-		"VELERO":                       "ghcr.io/verrazzano/velero",
-		"VELERO-PLUGIN-FOR-AWS":        "ghcr.io/verrazzano/velero-plugin-for-aws",
-		"VELERO-RESTIC-RESTORE-HELPER": "ghcr.io/verrazzano/velero-restic-restore-helper",
 	}
 )
 
@@ -91,9 +85,9 @@ var _ = t.Describe("Velero", Label("f:platform-lcm.install"), func() {
 		})
 
 		// GIVEN the Velero is installed
-		// WHEN we check to make sure the default velero images are from Verrazzano
-		// THEN we see that the env is correctly populated
-		WhenVeleroInstalledIt("should have the correct default velero images", func() {
+		// WHEN we check to make sure the restore helper configmap is created in velero namespace
+		// THEN we see that configmap data has the right image set
+		WhenVeleroInstalledIt("should have restore configmap created with valid velero image", func() {
 			verifyImages := func() bool {
 				if isVeleroEnabled() {
 
@@ -102,8 +96,8 @@ var _ = t.Describe("Velero", Label("f:platform-lcm.install"), func() {
 						pkg.Log(pkg.Error, fmt.Sprintf("Unable to retrieve configmap %s in the namespace: %s, error: %v", veleroRestoreHelperConfigMap, constants.VeleroNameSpace, err))
 						return false
 					}
-					if !strings.HasPrefix(cfgMap.Data["image"], expectedVeleroImages["VELERO-RESTIC-RESTORE-HELPER"]) {
-						pkg.Log(pkg.Error, fmt.Sprintf("Configmap %s does not have the image prefix %s in the namespace: %s", veleroRestoreHelperConfigMap, expectedVeleroImages["VELERO-RESTIC-RESTORE-HELPER"], constants.VeleroNameSpace))
+					if !strings.HasPrefix(cfgMap.Data["image"], resticHelperImage) {
+						pkg.Log(pkg.Error, fmt.Sprintf("Configmap %s does not have the image prefix %s in the namespace: %s", veleroRestoreHelperConfigMap, resticHelperImage, constants.VeleroNameSpace))
 						return false
 					}
 				}
