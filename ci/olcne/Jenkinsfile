@@ -155,7 +155,7 @@ pipeline {
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
         INSTALL_PROFILE="${params.INSTALL_PROFILE}"
         GOPATH='/home/opc/go'
-        GO_REPO_PATH="${GOPATH}/src/github.com/verrazzano"
+        GO_REPO_PATH="$GOPATH/src/github.com/verrazzano"
         TEST_CONFIG_FILE="$HOME/testConfigOke.yaml"
         KUBECONFIG="$WORKSPACE/test_kubeconfig"
         VERRAZZANO_KUBECONFIG="$KUBECONFIG"
