@@ -4,8 +4,8 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: verrazzano-application-operator #name of service monitor
-  namespace: {{ .monitoringNamespace }} #namespace of service monitor
+  name: verrazzano-application-operator 
+  namespace: {{ .monitoringNamespace }}
   labels:
     release: prometheus-operator #this tells prometheus to select this monitor for use
 spec:
@@ -25,9 +25,3 @@ spec:
       - sourceLabels:
           - __meta_kubernetes_service_label_app
         targetLabel: app
-      #test 2
-
- # - port: http-metric-vao
-  #  path: /metrics
-  #  scheme: http
-  #  interval: 30s

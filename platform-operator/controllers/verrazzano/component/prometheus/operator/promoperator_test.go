@@ -361,14 +361,22 @@ func TestApplySystemMonitors(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, monitors.Items, 3)
 
+<<<<<<< HEAD
 	// expect that 2 ServiceMonitors are created
+=======
+	// expect that # ServiceMonitors are created
+>>>>>>> 017233f8 (final b4 merge)
 	monitors = &unstructured.UnstructuredList{}
 	monitors.SetGroupVersionKind(schema.GroupVersionKind{Group: "monitoring.coreos.com", Version: "v1", Kind: "ServiceMonitor"})
 	err = client.List(context.TODO(), monitors)
 	assert.NoError(t, err)
+<<<<<<< HEAD
 
 	assert.Len(t, monitors.Items, 3)
 
+=======
+	assert.Len(t, monitors.Items, 2)
+>>>>>>> 017233f8 (final b4 merge)
 }
 
 // TestValidatePrometheusOperator tests the validation of the Prometheus Operator installation and the Verrazzano CR
