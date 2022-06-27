@@ -269,8 +269,16 @@ pipeline {
             steps {
                 script {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-                    INTERIM_UPGRADE_COMMIT = sh(returnStdout: true, script: "git rev-parse --short=8 ${SHORT_COMMIT_HASH}^1").trim()
-                    while (sh(returnStatus: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${INTERIM_UPGRADE_COMMIT}/operator.yaml --file ${WORKSPACE}/interim-operator.yaml") != 0) {
+                    // check if this commit is first in branch
+                    BRANCH_ORIGIN = sh(returnStdout: true, script: "git log master..HEAD --oneline | tail -1").trim()
+                    BRANCH_TO_USE = "${env.BRANCH_NAME}"
+                    if (BRANCH_ORIGIN == null || BRANCH_ORIGIN.length() <= 0) {
+                        INTERIM_UPGRADE_COMMIT = sh(returnStdout: true, script: "git rev-parse --short=8 master^1").trim()
+                        BRANCH_TO_USE = "master"
+                    } else {
+                        INTERIM_UPGRADE_COMMIT = sh(returnStdout: true, script: "git rev-parse --short=8 ${SHORT_COMMIT_HASH}^1").trim()
+                    }
+                    while (sh(returnStatus: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${BRANCH_TO_USE}/${INTERIM_UPGRADE_COMMIT}/operator.yaml --file ${WORKSPACE}/interim-operator.yaml") != 0) {
                         INTERIM_UPGRADE_COMMIT = sh(returnStdout: true, script: "git rev-parse --short=8 ${INTERIM_UPGRADE_COMMIT}^1").trim()
                     }
                 }
@@ -487,12 +495,9 @@ pipeline {
                         # Make sure the upgrade is still in progress
                         vz_status=\$(kubectl get vz -o jsonpath='{.items[0].status.conditions[?(@.type=="UpgradeStarted")].type}')
                         if [[ \${vz_status} == "UpgradeStarted" ]]; then
-                            # Uninstall VZ
-                            kubectl delete verrazzano my-verrazzano
-                            kubectl delete namespace verrazzano-install
-                            kubectl delete ValidatingWebhookConfiguration verrazzano-platform-operator
-                            kubectl delete ClusterRoleBinding verrazzano-platform-operator
-                            kubectl delete ClusterRole verrazzano-managed-cluster
+                            echo "Uninstalling Verrazzano"
+                            cd ${GO_REPO_PATH}/verrazzano/tools/vz
+                            GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go uninstall
 
                             ## dump out uninstall logs
                             mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
