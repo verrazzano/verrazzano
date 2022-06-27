@@ -261,7 +261,7 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 		}
 	}(vzHelper.GetOutputStream())
 
-	go func(outputStream io.Writer) {
+	go func() {
 		for {
 			// Pause before each check
 			time.Sleep(1 * time.Second)
@@ -281,7 +281,7 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 				}
 			}
 		}
-	}(vzHelper.GetOutputStream())
+	}()
 
 	select {
 	case result := <-resChan:
