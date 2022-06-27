@@ -96,7 +96,7 @@ var _ = t.Describe("Velero", Label("f:platform-lcm.install"), func() {
 			verifyImages := func() bool {
 				if isVeleroEnabled() {
 					// Check if velero is running with the expected Verrazzano velero image
-					image, err := pkg.GetContainerImage(constants.VerrazzanoMonitoringNamespace, veleroName, veleroName)
+					image, err := pkg.GetContainerImage(constants.VeleroNameSpace, veleroName, veleroName)
 					if err != nil {
 						pkg.Log(pkg.Error, fmt.Sprintf("Container %s is not running in the namespace: %s, error: %v", veleroName, constants.VeleroNameSpace, err))
 						return false
