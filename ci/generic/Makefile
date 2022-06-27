@@ -5,6 +5,7 @@ include ./global-env.mk
 include ./kind.mk
 include ./install.mk
 include ./acceptance-tests.mk
+include ./alternative-targets.mk
 
 .PHONY: all
 all: setup install test upgrade uninstall cleanup
