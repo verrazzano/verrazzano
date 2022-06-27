@@ -22,6 +22,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -295,6 +296,10 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 			Source:    h.ReleaseName,
 			Operation: "Check if certificates are ready",
 		}
+	}
+
+	if h.ReleaseName == "verrazzano-authproxy"{
+		metricsexporter.CollectAuthProxyInstallTimeMetric()
 	}
 
 	return nil

@@ -1,5 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+// Copyright (c) 2022, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package metricsexporter
 
 import (
@@ -7,12 +9,23 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-// PreInstall called multiple times but only successfully completed once
-//
+var (
+	//InstallStartTimeMap is a map that will have its keys as the component name and the time since the epoch in seconds as its value
+	//It will be used to store the "true" time when a component install successfully begins
+	installStartTimeMap = map[string]int64{}
+
+	authproxyInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "authproxy_component_install_time",
+		Help: "The install time for the authproxy component",
+	})
+)
+
 //InitalizeMetricsEndpoint creates and serves a /metrics endpoint at 9100 for Prometheus to scrape metrics from
 func InitalizeMetricsEndpoint() {
 	go wait.Until(func() {
@@ -23,3 +36,13 @@ func InitalizeMetricsEndpoint() {
 		}
 	}, time.Second*3, wait.NeverStop)
 }
+func AddAuthproxyInstallStartTime(start_time int64){
+	installStartTimeMap["authproxy"] = start_time
+}
+func CollectAuthProxyInstallTimeMetric(){
+	end_time := time.Now().Unix()
+	total_install_time := end_time - installStartTimeMap["authproxy"]
+	authproxyInstallTimeMetric.Set(float64(total_install_time))
+
+}
+
