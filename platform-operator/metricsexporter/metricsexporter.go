@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
@@ -36,13 +36,12 @@ func InitalizeMetricsEndpoint() {
 		}
 	}, time.Second*3, wait.NeverStop)
 }
-func AddAuthproxyInstallStartTime(start_time int64){
-	installStartTimeMap["authproxy"] = start_time
+func AddAuthproxyInstallStartTime(start_time int64) {
+	installStartTimeMap["verrazzano-authproxy"] = start_time
 }
-func CollectAuthProxyInstallTimeMetric(){
+func CollectAuthProxyInstallTimeMetric() {
 	end_time := time.Now().Unix()
-	total_install_time := end_time - installStartTimeMap["authproxy"]
+	total_install_time := end_time - installStartTimeMap["verrazzano-authproxy"]
 	authproxyInstallTimeMetric.Set(float64(total_install_time))
 
 }
-

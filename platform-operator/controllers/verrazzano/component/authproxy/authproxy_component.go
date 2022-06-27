@@ -109,9 +109,9 @@ func (c authProxyComponent) PreInstall(ctx spi.ComponentContext) error {
 		ctx.Log().Oncef("Component %s already installed, skipping PreInstall checks", ComponentName)
 		return nil
 	}
-	
+
 	metricsexporter.AddAuthproxyInstallStartTime(start_time)
-	
+
 	return nil
 }
 
