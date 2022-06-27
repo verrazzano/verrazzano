@@ -340,7 +340,7 @@ func main() {
 	// Create a buffered channel of size 10 for the multi cluster agent to receive messages
 	agentChannel := make(chan clusters.StatusUpdateMessage, constants.StatusUpdateChannelBufferSize)
 
-	// Initialize of metricsExporter
+	// Initialize the metricsExporter
 	metricsexporter.InitalizeMetricsEndpoint()
 
 	if err = (&multiclustersecret.Reconciler{

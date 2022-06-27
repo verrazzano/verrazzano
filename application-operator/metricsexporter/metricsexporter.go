@@ -18,7 +18,7 @@ func InitalizeMetricsEndpoint() {
 		http.Handle("/metrics", promhttp.Handler())
 		err := http.ListenAndServe(":9100", nil)
 		if err != nil {
-			zap.S().Errorf("Failed to start metrics server for verrazzano-platform-operator: %v", err)
+			zap.S().Errorf("Failed to start metrics server for verrazzano-application-operator: %v", err)
 		}
 	}, time.Second*3, wait.NeverStop)
 }
