@@ -257,7 +257,7 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 		sc := bufio.NewScanner(rc)
 		sc.Split(bufio.ScanLines)
 		for sc.Scan() {
-			_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("%s\n", sc.Text()))
+			_, _ = fmt.Fprintf(outputStream, fmt.Sprintf("%s\n", sc.Text()))
 		}
 	}(vzHelper.GetOutputStream())
 
