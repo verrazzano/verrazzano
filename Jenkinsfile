@@ -686,9 +686,11 @@ def qualityCheck() {
         echo "run all linters"
         cd ${GO_REPO_PATH}/verrazzano
         make check check-tests
+
         echo "copyright scan"
         time make copyright-check
         ./ci/scripts/check_if_clean_after_generate.sh
+
         echo "Third party license check"
     """
 }
