@@ -246,17 +246,20 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 	if err != nil {
 		return fmt.Errorf("Failed to get logs stream: %v", err)
 	}
-	defer func(rc io.ReadCloser) {
-		_ = rc.Close()
-	}(rc)
 
 	resChan := make(chan error, 1)
-	go func() {
+	defer close(resChan)
+
+	go func(outputStream io.Writer) {
 		sc := bufio.NewScanner(rc)
 		sc.Split(bufio.ScanLines)
 		for sc.Scan() {
 			_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("%s\n", sc.Text()))
+		}
+	}(vzHelper.GetOutputStream())
 
+	go func() {
+		for {
 			// Return when the Verrazzano uninstall has completed
 			vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
 			if vz == nil {
@@ -265,8 +268,11 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 			if err != nil && !errors.IsNotFound(err) {
 				resChan <- err
 			}
+			// Pause before next check
+			time.Sleep(1 * time.Second)
 		}
 	}()
+
 	select {
 	case result := <-resChan:
 		// Delete remaining Verrazzano resources, excluding CRDs
