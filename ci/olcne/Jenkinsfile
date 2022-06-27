@@ -162,16 +162,6 @@ pipeline {
         INSTALL_CONFIG_FILE_OLCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-olcne.yaml"
         OLCNE_TERRAFORM_GIT_URL=credentials("terraform-oci-olcne-url")
         OLCNE_BRANCH_TO_USE="origin/release/$OLCNE_VERSION"
-        API_SERVER_IP=""
-        WORKER_NODES_IP=""
-        CONTROL_PLANE_NODES_IP=""
-        VCN_OCID=""
-        VCN_CIDR=""
-        PUBLIC_SUBNET_OCID=""
-        PRIVATE_SUBNET_OCID=""
-        BASTION_IP=""
-        BASTION_USER=""
-        TEST_VAR=""
 
         // Terraform variables
         TF_VAR_tenancy_id=credentials('oci-tenancy')
@@ -209,11 +199,6 @@ pipeline {
         OCI_DNS_SCOPE="${params.OCI_DNS_SCOPE}"
         OCI_DNS_ZONE_SUBDOMAIN_NAME="$dnsZoneSubdomainName"
         OCI_DNS_ZONE_NAME="${OCI_DNS_ZONE_SUBDOMAIN_NAME}.v8o.io"
-        OCI_DNS_ZONE_OCID=""
-        OCI_LB_MGMT_IP=""
-        OCI_LB_APP_IP=""
-        OCI_MOUNT_IP=""
-        OCI_EXPORT_PATH=""
 
         // used for cluster dump
         DUMP_KUBECONFIG="$KUBECONFIG"
@@ -314,6 +299,7 @@ pipeline {
                         sudo yum install -y terraform
                         mkdir -p $WORKSPACE/terraform-oci-olcne
                         ssh-keygen -t rsa -b 4096 -q -N "" -f $TF_VAR_ssh_private_key_path
+                        chmod 600 $TF_VAR_ssh_private_key_path
                     """
 
                     sh """
@@ -401,62 +387,62 @@ pipeline {
             }
         }
 
-        // stage("Install Verrazzano platform operator") {
-        //     environment {
-        //         OCI_CLI_AUTH="instance_principal"
-        //     }
-        //     steps {
-        //         echo "[INFO] Installing Verrazzano Platform Operator"
-        //         installVerrazzanoPlatformOperator()
-        //     }
-        //     post {
-        //         always {
-        //             archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
-        //         }
-        //     }
-        // }
+        stage("Install Verrazzano platform operator") {
+            environment {
+                OCI_CLI_AUTH="instance_principal"
+            }
+            steps {
+                echo "[INFO] Installing Verrazzano Platform Operator"
+                installVerrazzanoPlatformOperator()
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
+                }
+            }
+        }
 
-        // stage("Install Verrazzano") {
-        //     steps {
-        //         echo "[INFO] Installing Verrazzano on $TEST_ENV"
-        //         installVerrazzano()
-        //     }
-        //     post {
-        //         always {
-        //             script {
-        //                 dumpVerrazzanoInstallLogs()
-        //                 VZ_TEST_METRIC=metricJobName('')
-        //                 metricTimerStart("${VZ_TEST_METRIC}")
-        //             }
-        //         }
-        //     }
-        // }
+        stage("Install Verrazzano") {
+            steps {
+                echo "[INFO] Installing Verrazzano on $TEST_ENV"
+                installVerrazzano()
+            }
+            post {
+                always {
+                    script {
+                        dumpVerrazzanoInstallLogs()
+                        VZ_TEST_METRIC=metricJobName('')
+                        metricTimerStart("${VZ_TEST_METRIC}")
+                    }
+                }
+            }
+        }
 
-        // stage('Post-install Verify Tests') {
-        //     steps {
-        //         runGinkgoRandomize('verify-install', "${TEST_DUMP_ROOT}/post-install-verify-install")
-        //     }
-        //     post {
-        //         always {
-        //             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-        //             junit testResults: '**/*test-result.xml', allowEmptyResults: true
-        //         }
-        //     }
-        // }
+        stage('Post-install Verify Tests') {
+            steps {
+                runGinkgoRandomize('verify-install', "${TEST_DUMP_ROOT}/post-install-verify-install")
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
 
-        // stage('Post-install Infra Tests') {
-        //     steps {
-        //         script {
-        //             parallel generateVerifyInfraStages("${TEST_DUMP_ROOT}/post-install-infra-tests")
-        //         }
-        //     }
-        //     post {
-        //         always {
-        //             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-        //             junit testResults: '**/*test-result.xml', allowEmptyResults: true
-        //         }
-        //     }
-        // }
+        stage('Post-install Infra Tests') {
+            steps {
+                script {
+                    parallel generateVerifyInfraStages("${TEST_DUMP_ROOT}/post-install-infra-tests")
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
 
         // TODO: Need to deploy the test applications before running these tests
         // stage('Post-install Acceptance Tests') {
@@ -476,28 +462,28 @@ pipeline {
     }
     post {
         always {
-            // script {
-            //     if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true || currentBuild.currentResult == 'FAILURE') {
-            //         dumpK8sCluster('olcne-acceptance-tests-cluster-dump')
-            //     }
-            // }
+            script {
+                if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true || currentBuild.currentResult == 'FAILURE') {
+                    dumpK8sCluster('olcne-acceptance-tests-cluster-dump')
+                }
+            }
 
-            // dumpVerrazzanoSystemPods()
-            // dumpCattleSystemPods()
-            // dumpNginxIngressControllerLogs()
-            // dumpVerrazzanoPlatformOperatorLogs()
+            dumpVerrazzanoSystemPods()
+            dumpCattleSystemPods()
+            dumpNginxIngressControllerLogs()
+            dumpVerrazzanoPlatformOperatorLogs()
 
-            // archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*-cluster-dump/**,**/test-cluster-dumps/**/,**/${TEST_REPORT}", allowEmptyArchive: true
-            // junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
-            // script {
-            //     if (params.EMIT_METRICS) {
-            //         withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
-            //             sh """
-            //                 $GO_REPO_PATH/verrazzano/ci/scripts/dashboard/emit_metrics.sh "$WORKSPACE/tests/e2e" "${PROMETHEUS_CREDENTIALS}" || echo "[ERROR] Emit metrics failed, continuing with other post actions"
-            //             """
-            //         }
-            //     }
-            // }
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*-cluster-dump/**,**/test-cluster-dumps/**/,**/${TEST_REPORT}", allowEmptyArchive: true
+            junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
+            script {
+                if (params.EMIT_METRICS) {
+                    withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+                        sh """
+                            $GO_REPO_PATH/verrazzano/ci/scripts/dashboard/emit_metrics.sh "$WORKSPACE/tests/e2e" "${PROMETHEUS_CREDENTIALS}" || echo "[ERROR] Emit metrics failed, continuing with other post actions"
+                        """
+                    }
+                }
+            }
             
             script {
                 if (keepOLCNEClusterOnFailure == false) {
@@ -512,40 +498,40 @@ pipeline {
                 }
             }
 
-            // sh """
-            //     if [ -f ${POST_DUMP_FAILED_FILE} ]; then
-            //     echo "[INFO] Failures seen during dumping of artifacts, treat post as failed"
-            //     exit 1
-            //     fi
-            // """
+            sh """
+                if [ -f ${POST_DUMP_FAILED_FILE} ]; then
+                echo "[INFO] Failures seen during dumping of artifacts, treat post as failed"
+                exit 1
+                fi
+            """
         }
-    //    failure {
-    //         sh """
-    //             curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o $WORKSPACE/build-console-output.log ${BUILD_URL}consoleText
-    //         """
-    //         archiveArtifacts artifacts: '**/build-console-output.log', allowEmptyArchive: true
-    //         sh """
-    //             curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip
-    //             OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip
-    //             rm archive.zip
-    //         """
-    //         script {
-    //             METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
-    //             if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-.*" || env.BRANCH_NAME ==~ "mark/*") {
-    //                 slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
-    //             }
-    //         }
-    //    }
-    //    success {
-    //        script {
-    //            METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
-    //         }
-    //    }
-    //    cleanup {
-    //        metricBuildDuration()
-    //        emitJobMetrics()
-    //        deleteDir()
-    //     }
+       failure {
+            sh """
+                curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o $WORKSPACE/build-console-output.log ${BUILD_URL}consoleText
+            """
+            archiveArtifacts artifacts: '**/build-console-output.log', allowEmptyArchive: true
+            sh """
+                curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip
+                OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip
+                rm archive.zip
+            """
+            script {
+                METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
+                if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-.*" || env.BRANCH_NAME ==~ "mark/*") {
+                    slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
+                }
+            }
+       }
+       success {
+           script {
+               METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
+            }
+       }
+       cleanup {
+           metricBuildDuration()
+           emitJobMetrics()
+           deleteDir()
+        }
     }
 }
 
@@ -973,14 +959,14 @@ def createOLCNECluster() {
     """
     // TODO: Optimize the way in which the groovy variables are set using a file based approach
     API_SERVER_IP=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw apiserver_ip """)
-    VCN_OCID=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw vcn_id """)
-    VCN_CIDR=sh(returnStdout: true, script: """ oci network vcn get --vcn-id "$VCN_OCID" | jq -r '.data."cidr-block"' """)
-    PUBLIC_SUBNET_OCID=sh(returnStdout: true, script: """ oci network subnet list -c "$TF_VAR_compartment_id" --vcn-id "$VCN_OCID" --display-name "$TF_VAR_prefix-bastion" | jq -r '.data[0].id' """)
-    PRIVATE_SUBNET_OCID=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw subnet_id """)
-    BASTION_IP=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw bastion_public_ip """)
-    BASTION_USER=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw bastion_user """)
     WORKER_NODES_IP=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -json worker_nodes""").replaceAll(/["\[\]]/, "").replaceAll(",", " ")
     CONTROL_PLANE_NODES_IP=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -json control_plane_nodes """).replaceAll(/["\[\]]/, "").replaceAll(",", " ")
+    PRIVATE_SUBNET_OCID=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw subnet_id """)
+    PUBLIC_SUBNET_OCID=sh(returnStdout: true, script: """ oci network subnet list -c "$TF_VAR_compartment_id" --vcn-id "$VCN_OCID" --display-name "$TF_VAR_prefix-bastion" | jq -r '.data[0].id' """)
+    VCN_OCID=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw vcn_id """)
+    VCN_CIDR=sh(returnStdout: true, script: """ oci network vcn get --vcn-id "$VCN_OCID" | jq -r '.data."cidr-block"' """)
+    BASTION_IP=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw bastion_public_ip """)
+    BASTION_USER=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw bastion_user """)
 }
 
 def createOCIFileSystem() {
@@ -992,7 +978,7 @@ def createOCIFileSystem() {
     """
     MT_PVT_IP_OCID=sh(returnStdout: true, script: """ oci fs mount-target list --compartment-id "$TF_VAR_compartment_id" --availability-domain "$TF_VAR_availability_domain_id" --display-name "$TF_VAR_prefix-mt" --lifecycle-state ACTIVE | jq -r '.data[0]."private-ip-ids"[0]' """)
     OCI_MOUNT_IP=sh(returnStdout: true, script: """ $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/get_private_ip_address.sh "$MT_PVT_IP_OCID" """)
-    OCI_EXPORT_PATH="/$TF_VAR_prefix-export"
+    OCI_EXPORT_PATH="$TF_VAR_prefix-export"
 }
 
 def createOCILoadBalancers() {
@@ -1017,48 +1003,6 @@ def createOCIDNSZone() {
     OCI_DNS_ZONE_OCID=sh(returnStdout: true, script: """ $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c "$TF_VAR_compartment_id" -s "$OCI_DNS_ZONE_SUBDOMAIN_NAME" -k "$OCI_DNS_SCOPE" """)
 }
 
-def deleteOLCNECluster() {
-    sh '''
-        cd $GO_REPO_PATH/terraform-oci-olcne
-        terraform destroy -auto-approve
-        for x in {1..3}; do
-            if [[ $? -ne 0 ]]; then 
-                echo "[INFO] Failed to destroy terraform resources. Retrying ..."
-                terraform destroy -auto-approve
-            fi
-        done
-    '''
-}
-
-def deleteOCIFileSystem() {
-    sh """
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_fs_ops.sh \
-        -o delete -a "$TF_VAR_availability_domain_id" \
-        -n "$TF_VAR_prefix-fs" -m "$TF_VAR_prefix-mt" \
-        -p "/$TF_VAR_prefix-export" -c "$TF_VAR_compartment_id"
-    """
-}
-
-def deleteOCILoadBalancers() {
-    sh """
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_lb_ops.sh \
-        -o delete -n "$TF_VAR_prefix-mgnmt" \
-        -c "$TF_VAR_compartment_id"
-
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_lb_ops.sh \
-        -o delete -n "$TF_VAR_prefix-app" \
-        -c "$TF_VAR_compartment_id"
-    """
-}
-
-def deleteOCIDNSZone() {
-    sh """
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh \
-        -o delete -s "$OCI_DNS_ZONE_SUBDOMAIN_NAME" -k "$OCI_DNS_SCOPE" \
-        || echo "[ERROR] Failed to delete DNS zone $OCI_DNS_ZONE_SUBDOMAIN_NAME"
-    """
-}
-
 def setupBastionSSH() {
     sh '''
     sudo yum -y install oracle-epel-release-el7 && sudo yum -y install sshuttle
@@ -1075,50 +1019,10 @@ def setupBastionSSH() {
 }
 
 def mountOCIStorage() {
-    def INSTANCE_IP=WORKER_NODES_IP.split(" ")[0]
+    INSTANCE_IP=WORKER_NODES_IP.split(" ")[0]
     sh """
-        ssh -o StrictHostKeyChecking=no opc@"$INSTANCE_IP" -i "$TF_VAR_ssh_private_key_path" "
-            sudo mkdir -p "/mnt/$OCI_EXPORT_PATH"
-            sudo mount "$OCI_MOUNT_IP":"/$OCI_EXPORT_PATH" "/mnt/$OCI_EXPORT_PATH"
-            for x in {0001..0020};
-                do sudo mkdir -p /mnt/olcne-master-filesystem/pv${x} && \
-                sudo chmod 777 /mnt/olcne-master-filesystem/pv${x}; 
-            done
-        "
-    """
-
-    sh """
-        ssh -o StrictHostKeyChecking=no opc@"$API_SERVER_IP" -i "$TF_VAR_ssh_private_key_path" "
-            cat << EOF | kubectl apply -f -
-            apiVersion: storage.k8s.io/v1
-            kind: StorageClass
-            metadata:
-                name: "$TF_VAR_prefix-nfs"
-                annotations:
-                storageclass.kubernetes.io/is-default-class: "true"
-            provisioner: kubernetes.io/no-provisioner
-            volumeBindingMode: WaitForFirstConsumer
-            EOF
-            for n in {0001..0020}; do cat << EOF | kubectl apply -f -
-            apiVersion: v1
-            kind: PersistentVolume
-            metadata:
-                name: "$TF_VAR_prefix-pv${n}"
-            spec:
-                storageClassName: "$TF_VAR_prefix-nfs"
-                accessModes:
-                - ReadWriteOnce
-                - ReadWriteMany
-                capacity:
-                storage: 50Gi
-                nfs:
-                path: "/$OCI_EXPORT_PATH/pv${n}"
-                server: "$OCI_MOUNT_IP"
-                volumeMode: Filesystem
-                persistentVolumeReclaimPolicy: Recycle
-            EOF
-            done
-        "
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/mount_oci_storage.sh \
+        "$INSTANCE_IP" "$API_SERVER_IP" "$OCI_MOUNT_IP" "$TF_VAR_prefix" "$TF_VAR_ssh_private_key_path" "$OCI_EXPORT_PATH"
     """
 }
 
@@ -1168,5 +1072,47 @@ def dumpVerrazzanoInstallLogs() {
         echo "[INFO] Verrazzano Installation logs dumped to verrazzano-install.log"
         echo "[INFO] Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
         echo "[INFO] ------------------------------------------"
+    """
+}
+
+def deleteOLCNECluster() {
+    sh '''
+        cd $GO_REPO_PATH/terraform-oci-olcne
+        terraform destroy -auto-approve
+        for x in {1..3}; do
+            if [[ $? -ne 0 ]]; then 
+                echo "[INFO] Failed to destroy terraform resources. Retrying ..."
+                terraform destroy -auto-approve
+            fi
+        done
+    '''
+}
+
+def deleteOCIFileSystem() {
+    sh """
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_fs_ops.sh \
+        -o delete -a "$TF_VAR_availability_domain_id" \
+        -n "$TF_VAR_prefix-fs" -m "$TF_VAR_prefix-mt" \
+        -p "/$TF_VAR_prefix-export" -c "$TF_VAR_compartment_id"
+    """
+}
+
+def deleteOCILoadBalancers() {
+    sh """
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_lb_ops.sh \
+        -o delete -n "$TF_VAR_prefix-mgnmt" \
+        -c "$TF_VAR_compartment_id"
+
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_lb_ops.sh \
+        -o delete -n "$TF_VAR_prefix-app" \
+        -c "$TF_VAR_compartment_id"
+    """
+}
+
+def deleteOCIDNSZone() {
+    sh """
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh \
+        -o delete -s "$OCI_DNS_ZONE_SUBDOMAIN_NAME" -k "$OCI_DNS_SCOPE" \
+        || echo "[ERROR] Failed to delete DNS zone $OCI_DNS_ZONE_SUBDOMAIN_NAME"
     """
 }
