@@ -19,9 +19,6 @@ const (
 	// vzStateUninstallMC is the state where the multi-cluster resources are being uninstalled
 	vzStateUninstallMC uninstallState = "vzStateUninstallMC"
 
-	// vzStateUninstallApps is the state where the application resources are being uninstalled
-	vzStateUninstallApps uninstallState = "vzStateUninstallApps"
-
 	// vzStateUninstallComponents is the state where the components are being uninstalled
 	vzStateUninstallComponents uninstallState = "vzStateUninstallComponents"
 
@@ -62,9 +59,6 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			tracker.vzState = vzStateUninstallMC
 
 		case vzStateUninstallMC:
-			tracker.vzState = vzStateUninstallApps
-
-		case vzStateUninstallApps:
 			tracker.vzState = vzStateUninstallComponents
 
 		case vzStateUninstallComponents:
