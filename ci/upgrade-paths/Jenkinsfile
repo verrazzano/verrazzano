@@ -468,23 +468,6 @@ pipeline {
             }
         }
 
-        stage ('Verify Install') {
-            parallel {
-                stage('verify-install') {
-                    steps {
-                        runGinkgoRandomizeSerial('verify-install')
-                    }
-                }
-
-                stage ('multicluster/verify-install') {
-                    when { expression { isMultiCluster() } }
-                    steps {
-                        runGinkgoRandomizeParallel('multicluster/verify-install')
-                    }
-                }
-            }
-        }
-
         // Run Verify Registry
         stage('Verify Registry') {
             steps {
@@ -565,11 +548,6 @@ pipeline {
                         stage('Metricsbinding post-upgrade') {
                             steps {
                                 runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/metricsbinding', "${TEST_DUMP_ROOT}/metricsbinding")
-                            }
-                        }
-                        stage('Prometheus post-upgrade') {
-                            steps {
-                                runGinkgoVerifyParallel('Prometheus post-upgrade', 'metrics/deploymetrics', "${TEST_DUMP_ROOT}/prompostupgrade", "true", "false", "false", "deploymetrics")
                             }
                         }
                         stage ("Verify install scripts") {
