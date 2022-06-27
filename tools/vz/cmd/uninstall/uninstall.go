@@ -157,6 +157,24 @@ func getUninstallPodName(c client.Client, vzHelper helpers.VZHelper, jobName str
 	labelSelector = labelSelector.Add(*jobNameLabel)
 	podList := corev1.PodList{}
 
+	// Provide the user with feedback while waiting for the verrazzano-install pod to be ready
+	feedbackChan := make(chan bool)
+	defer close(feedbackChan)
+	go func(outputStream io.Writer) {
+		seconds := 0
+		for {
+			select {
+			case <-feedbackChan:
+				fmt.Fprint(outputStream, "\n")
+				return
+			default:
+				time.Sleep(constants.VerrazzanoPlatformOperatorWait * time.Second)
+				seconds += constants.VerrazzanoPlatformOperatorWait
+				fmt.Fprintf(outputStream, fmt.Sprintf("\rWaiting for %s to be ready before starting uninstall - %d seconds", jobName, seconds))
+			}
+		}
+	}(vzHelper.GetOutputStream())
+
 	// Wait for the verrazzano-uninstall pod to be found
 	seconds := 0
 	retryCount := 0
@@ -184,6 +202,7 @@ func getUninstallPodName(c client.Client, vzHelper helpers.VZHelper, jobName str
 		if len(podList.Items) > 1 {
 			return "", fmt.Errorf("More than one %s pod was found in namespace %s", constants.VerrazzanoUninstall, vzconstants.VerrazzanoInstallNamespace)
 		}
+		feedbackChan <- true
 		break
 	}
 

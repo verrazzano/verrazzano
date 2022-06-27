@@ -82,7 +82,9 @@ func TestUninstallCmd(t *testing.T) {
 	err := cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
-	assert.Equal(t, "Uninstalling Verrazzano\n\nfake logs\nSuccessfully uninstalled Verrazzano\n", buf.String())
+	assert.Contains(t, buf.String(), "Uninstalling Verrazzano\n")
+	assert.Contains(t, buf.String(), "Waiting for verrazzano-uninstall-verrazzano to be ready before starting uninstall")
+	assert.Contains(t, buf.String(), "Successfully uninstalled Verrazzano\n")
 
 	// Expect the Verrazzano resource to be deleted
 	v := vzapi.Verrazzano{}
