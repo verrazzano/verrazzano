@@ -62,6 +62,11 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			tracker.vzState = vzStateUninstallComponents
 
 		case vzStateUninstallComponents:
+			log.Once("Uninstalling all Verrazzano components")
+			res, err := r.uninstallComponents(log, cr, tracker)
+			if err != nil || res.Requeue {
+				return res, err
+			}
 			tracker.vzState = vzStateUninstallDone
 
 		case vzStateUninstallDone:
