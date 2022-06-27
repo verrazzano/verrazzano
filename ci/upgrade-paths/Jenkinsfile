@@ -547,17 +547,6 @@ pipeline {
                                 executeBomValidator()
                             }
                         }
-                        stage ('Console') {
-                            when { expression { isMultiCluster() } }
-                            steps {
-                                runConsoleTests()
-                            }
-                            post {
-                                always {
-                                    saveConsoleTestArtifacts()
-                                }
-                            }
-                        }
                         stage('post-upgrade verify keycloak') {
                             steps {
                                 runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
