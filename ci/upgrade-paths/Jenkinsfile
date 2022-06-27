@@ -396,7 +396,7 @@ pipeline {
                             }
                         }
                         stage ('Deploy Coherence example application - multi cluster') {
-                            when { expression { isMultiCluster() && isVZOperatorMinimumCompatibleVersion("v1.1.0") && checkUpgradeAcrossVer("v1.3") == "true" } }
+                            when { expression { isMultiCluster() && isVZOperatorMinimumCompatibleVersion("v1.1.0") && checkUpgradeAcrossVer() == "true" } }
                             steps {
                                 runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", "false", "true", "true")
                             }
@@ -606,7 +606,7 @@ pipeline {
                         }
                         stage ('Verify/Uninstall Example Coherence') {
                             steps {
-                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", checkUpgradeAcrossVer("v1.3"), "false", "false")
+                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", checkUpgradeAcrossVer(), "false", "false")
                             }
                         }
                     }
@@ -681,10 +681,10 @@ pipeline {
     }
 }
 
-def checkUpgradeAcrossVer(version) {
+def checkUpgradeAcrossVer() {
     script {
         def undeploy = "true" // undeploy
-        if (!params.VERSION_FOR_INSTALL.startsWith($version) && params.VERSION_FOR_UPGRADE.startsWith($version)) {
+        if (!params.VERSION_FOR_INSTALL.startsWith("v1.3") && params.VERSION_FOR_UPGRADE.startsWith("v1.3")) {
             undeploy = "false" // deploy
         }
         return undeploy
