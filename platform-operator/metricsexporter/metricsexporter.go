@@ -20,11 +20,33 @@ var (
 	//It will be used to store the "true" time when a component install successfully begins
 	installStartTimeMap = map[string]int64{}
 
-	verrazzano_authproxyInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+	verrazzanoAuthproxyInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "authproxy_component_install_time",
 		Help: "The install time for the authproxy component",
 	})
-	installMetricsMap = map[string]prometheus.Gauge{"verrazzano-authproxy": verrazzano_authproxyInstallTimeMetric}
+	oamInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "oam_component_install_time",
+		Help: "The install time for the oam component",
+	})
+	apopperInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "apopper_component_install_time",
+		Help: "The install time for the authproxy component",
+	})
+	istioInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "istio_component_install_time",
+		Help: "The install time for the authproxy component",
+	})
+	weblogicInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "weblogic_component_install_time",
+		Help: "The install time for the authproxy component",
+	})
+	installMetricsMap = map[string]prometheus.Gauge{
+		"verrazzano-authproxy":            verrazzanoAuthproxyInstallTimeMetric,
+		"oam-kubernetes-runtime":          oamInstallTimeMetric,
+		"verrazzano-application-operator": apopperInstallTimeMetric,
+		"istio":                           istioInstallTimeMetric,
+		"weblogic-operator":               weblogicInstallTimeMetric,
+	}
 )
 
 //InitalizeMetricsEndpoint creates and serves a /metrics endpoint at 9100 for Prometheus to scrape metrics from

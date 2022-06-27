@@ -6,6 +6,7 @@ package helm
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
@@ -265,12 +266,14 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 }
 
 func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
+	startTime := time.Now().Unix()
 	if h.PreInstallFunc != nil {
 		err := h.PreInstallFunc(context, h.ReleaseName, h.resolveNamespace(context.EffectiveCR().Namespace), h.ChartDir)
 		if err != nil {
 			return err
 		}
 	}
+	metricsexporter.AddInstallStartTime(startTime, h.ReleaseName)
 	return nil
 }
 
@@ -298,9 +301,7 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 		}
 	}
 
-	if h.ReleaseName == "verrazzano-authproxy" {
-		metricsexporter.CollectInstallTimeMetric(h.ReleaseName)
-	}
+	metricsexporter.CollectInstallTimeMetric(h.ReleaseName)
 
 	return nil
 }
