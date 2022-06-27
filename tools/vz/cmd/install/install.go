@@ -69,7 +69,7 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 
 func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
 	// Validate the command options
-	err := cmdhelpers.ValidateCmd(cmd)
+	err := validateCmd(cmd)
 	if err != nil {
 		return fmt.Errorf("Command validation failed: %s", err.Error())
 	}
@@ -115,21 +115,34 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Apply the Verrazzano operator.yaml.
+	lastTransitionTime := metav1.Now()
 	err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)
 	if err != nil {
 		return err
 	}
 
 	// Wait for the platform operator to be ready before we create the Verrazzano resource.
-	vpoPodName, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, vzapi.CondInstallComplete)
+	vpoPodName, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, vzapi.CondInstallComplete, lastTransitionTime)
 	if err != nil {
 		return err
 	}
 
 	// Create the Verrazzano install resource.
-	err = client.Create(context.TODO(), vz)
-	if err != nil {
-		return fmt.Errorf("Failed to create the verrazzano install resource: %s", err.Error())
+	// We will retry up to 5 times if there is an error.
+	// Sometimes we see intermittent webhook errors due to timeouts.
+	retry := 0
+	for {
+		err = client.Create(context.TODO(), vz)
+		if err != nil {
+			if retry == 5 {
+				return fmt.Errorf("Failed to create the verrazzano install resource: %s", err.Error())
+			}
+			time.Sleep(time.Second)
+			retry++
+			fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Retrying after failing to create the verrazzano install resource: %s\n", err.Error()))
+			continue
+		}
+		break
 	}
 
 	// Wait for the Verrazzano install to complete
@@ -222,4 +235,12 @@ func getSetArguments(cmd *cobra.Command, vzHelper helpers.VZHelper) (map[string]
 // the ongoing Verrazzano install.
 func waitForInstallToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration, logFormat cmdhelpers.LogFormat) error {
 	return cmdhelpers.WaitForOperationToComplete(client, kubeClient, vzHelper, vpoPodName, namespacedName, timeout, logFormat, vzapi.CondInstallComplete)
+}
+
+// validateCmd - validate the command line options
+func validateCmd(cmd *cobra.Command) error {
+	if cmd.PersistentFlags().Changed(constants.VersionFlag) && cmd.PersistentFlags().Changed(constants.OperatorFileFlag) {
+		return fmt.Errorf("--%s and --%s cannot both be specified", constants.VersionFlag, constants.OperatorFileFlag)
+	}
+	return nil
 }

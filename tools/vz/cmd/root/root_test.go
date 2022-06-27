@@ -6,6 +6,7 @@ package root
 import (
 	"bytes"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	"os"
 	"strings"
 	"testing"
@@ -31,7 +32,7 @@ func TestNewRootCmd(t *testing.T) {
 	assert.NotNil(t, rootCmd)
 
 	// Verify the expected commands are defined
-	assert.Len(t, rootCmd.Commands(), 5)
+	assert.Len(t, rootCmd.Commands(), 6)
 	foundCount := 0
 	for _, cmd := range rootCmd.Commands() {
 		switch cmd.Name() {
@@ -45,9 +46,11 @@ func TestNewRootCmd(t *testing.T) {
 			foundCount++
 		case uninstall.CommandName:
 			foundCount++
+		case analyze.CommandName:
+			foundCount++
 		}
 	}
-	assert.Equal(t, 5, foundCount)
+	assert.Equal(t, 6, foundCount)
 
 	// Verify the expected global flags are defined
 	assert.NotNil(t, rootCmd.PersistentFlags().Lookup(constants.GlobalFlagKubeConfig))
