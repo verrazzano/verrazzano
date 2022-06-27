@@ -17,10 +17,11 @@ import (
 )
 
 const (
-	waitTimeout     = 3 * time.Minute
-	pollingInterval = 10 * time.Second
-	veleroName      = "velero"
-	operatorImage   = "ghcr.io/verrazzano/velero"
+	waitTimeout                  = 3 * time.Minute
+	pollingInterval              = 10 * time.Second
+	veleroName                   = "velero"
+	operatorImage                = "ghcr.io/verrazzano/velero"
+	veleroRestoreHelperConfigMap = "restic-restore-action-config"
 )
 
 var (
@@ -95,38 +96,15 @@ var _ = t.Describe("Velero", Label("f:platform-lcm.install"), func() {
 		WhenVeleroInstalledIt("should have the correct default velero images", func() {
 			verifyImages := func() bool {
 				if isVeleroEnabled() {
-					// Check if velero is running with the expected Verrazzano velero image
-					image, err := pkg.GetContainerImage(constants.VeleroNameSpace, veleroName, veleroName)
+
+					cfgMap, err := pkg.GetConfigMap(veleroRestoreHelperConfigMap, constants.VeleroNameSpace)
 					if err != nil {
-						pkg.Log(pkg.Error, fmt.Sprintf("Container %s is not running in the namespace: %s, error: %v", veleroName, constants.VeleroNameSpace, err))
+						pkg.Log(pkg.Error, fmt.Sprintf("Unable to retrieve configmap %s in the namespace: %s, error: %v", veleroRestoreHelperConfigMap, constants.VeleroNameSpace, err))
 						return false
 					}
-					if !strings.HasPrefix(image, operatorImage) {
-						pkg.Log(pkg.Error, fmt.Sprintf("Container %s image %s is not running with the expected image %s in the namespace: %s", veleroName, image, operatorImage, constants.VeleroNameSpace))
+					if !strings.HasPrefix(cfgMap.Data["image"], expectedVeleroImages["VELERO-RESTIC-RESTORE-HELPER"]) {
+						pkg.Log(pkg.Error, fmt.Sprintf("Configmap %s does not have the image prefix %s in the namespace: %s", veleroRestoreHelperConfigMap, expectedVeleroImages["VELERO-RESTIC-RESTORE-HELPER"], constants.VeleroNameSpace))
 						return false
-					}
-					// Check if velero env has been set to use Verrazzano velero images
-					containerEnv, err := pkg.GetContainerEnv(constants.VeleroNameSpace, veleroName, veleroName)
-					if err != nil {
-						pkg.Log(pkg.Error, fmt.Sprintf("Not able to get the environment variables in the container %s, error: %v", veleroName, err))
-						return false
-					}
-					for name, val := range expectedVeleroImages {
-						found := false
-						for _, actualEnv := range containerEnv {
-							if actualEnv.Name == name {
-								if !strings.HasPrefix(actualEnv.Value, val) {
-									pkg.Log(pkg.Error, fmt.Sprintf("The value %s of the env %s for the container %s does not have the image %s as expected",
-										actualEnv.Value, actualEnv.Name, veleroName, val))
-									return false
-								}
-								found = true
-							}
-						}
-						if !found {
-							pkg.Log(pkg.Error, fmt.Sprintf("The env %s not set for the container %s", name, veleroName))
-							return false
-						}
 					}
 				}
 				return true
