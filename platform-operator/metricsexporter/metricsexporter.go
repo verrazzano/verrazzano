@@ -20,10 +20,11 @@ var (
 	//It will be used to store the "true" time when a component install successfully begins
 	installStartTimeMap = map[string]int64{}
 
-	authproxyInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+	verrazzano_authproxyInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "authproxy_component_install_time",
 		Help: "The install time for the authproxy component",
 	})
+	installMetricsMap = map[string]prometheus.Gauge{"verrazzano-authproxy": verrazzano_authproxyInstallTimeMetric}
 )
 
 //InitalizeMetricsEndpoint creates and serves a /metrics endpoint at 9100 for Prometheus to scrape metrics from
@@ -36,12 +37,12 @@ func InitalizeMetricsEndpoint() {
 		}
 	}, time.Second*3, wait.NeverStop)
 }
-func AddAuthproxyInstallStartTime(startTime int64) {
-	installStartTimeMap["verrazzano-authproxy"] = startTime
+func AddInstallStartTime(startTime int64, componentName string) {
+	installStartTimeMap[componentName] = startTime
 }
-func CollectAuthProxyInstallTimeMetric() {
+func CollectInstallTimeMetric(componentName string) {
 	endTime := time.Now().Unix()
-	totalInstallTime := endTime - installStartTimeMap["verrazzano-authproxy"]
-	authproxyInstallTimeMetric.Set(float64(totalInstallTime))
+	totalInstallTime := endTime - installStartTimeMap[componentName]
+	installMetricsMap[componentName].Set(float64(totalInstallTime))
 
 }

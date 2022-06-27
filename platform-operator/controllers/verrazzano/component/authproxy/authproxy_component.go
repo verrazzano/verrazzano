@@ -110,7 +110,7 @@ func (c authProxyComponent) PreInstall(ctx spi.ComponentContext) error {
 		return nil
 	}
 
-	metricsexporter.AddAuthproxyInstallStartTime(startTime)
+	metricsexporter.AddInstallStartTime(startTime, ComponentName)
 
 	return nil
 }

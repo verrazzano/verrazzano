@@ -306,7 +306,7 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 	}
 
 	if h.ReleaseName == "verrazzano-authproxy" {
-		metricsexporter.CollectAuthProxyInstallTimeMetric()
+		metricsexporter.CollectInstallTimeMetric(h.ReleaseName)
 	}
 
 	return nil
