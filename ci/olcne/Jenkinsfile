@@ -961,10 +961,10 @@ def createOLCNECluster() {
     API_SERVER_IP=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw apiserver_ip """)
     WORKER_NODES_IP=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -json worker_nodes""").replaceAll(/["\[\]]/, "").replaceAll(",", " ")
     CONTROL_PLANE_NODES_IP=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -json control_plane_nodes """).replaceAll(/["\[\]]/, "").replaceAll(",", " ")
-    PRIVATE_SUBNET_OCID=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw subnet_id """)
-    PUBLIC_SUBNET_OCID=sh(returnStdout: true, script: """ oci network subnet list -c "$TF_VAR_compartment_id" --vcn-id "$VCN_OCID" --display-name "$TF_VAR_prefix-bastion" | jq -r '.data[0].id' """)
     VCN_OCID=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw vcn_id """)
     VCN_CIDR=sh(returnStdout: true, script: """ oci network vcn get --vcn-id "$VCN_OCID" | jq -r '.data."cidr-block"' """)
+    PRIVATE_SUBNET_OCID=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw subnet_id """)
+    PUBLIC_SUBNET_OCID=sh(returnStdout: true, script: """ oci network subnet list -c "$TF_VAR_compartment_id" --vcn-id "$VCN_OCID" --display-name "$TF_VAR_prefix-bastion" | jq -r '.data[0].id' """)
     BASTION_IP=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw bastion_public_ip """)
     BASTION_USER=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw bastion_user """)
 }
