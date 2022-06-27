@@ -149,13 +149,16 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	rc.SetClient(c)
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
-	_ = cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ns")
+	_ = cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
-	assert.Contains(t, buf.String(), "Timeout 2ns exceeded waiting for uninstall to complete")
+	// This timeout is so short because the vz resource gets deleted from cache almost instantaneously.
+	// If this causes intermittent failures, the timeout duration will have to be decreased
+	// or a sleep will need to be forced in the uninstall function.
+	assert.Contains(t, buf.String(), "Timeout 2ms exceeded waiting for uninstall to complete")
 }
 
 // TestUninstallCmdDefaultNoWait

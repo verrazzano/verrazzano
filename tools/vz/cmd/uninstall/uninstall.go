@@ -250,6 +250,9 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 	resChan := make(chan error, 1)
 	defer close(resChan)
 
+	feedbackChan := make(chan bool)
+	defer close(feedbackChan)
+
 	go func(outputStream io.Writer) {
 		sc := bufio.NewScanner(rc)
 		sc.Split(bufio.ScanLines)
@@ -258,20 +261,27 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 		}
 	}(vzHelper.GetOutputStream())
 
-	go func() {
+	go func(outputStream io.Writer) {
 		for {
-			// Return when the Verrazzano uninstall has completed
-			vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
-			if vz == nil {
-				resChan <- nil
-			}
-			if err != nil && !errors.IsNotFound(err) {
-				resChan <- err
-			}
-			// Pause before next check
+			// Pause before each check
 			time.Sleep(1 * time.Second)
+			select {
+			case <-feedbackChan:
+				return
+			default:
+				// Return when the Verrazzano uninstall has completed
+				vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
+				if vz == nil {
+					resChan <- nil
+					return
+				}
+				if err != nil && !errors.IsNotFound(err) {
+					resChan <- err
+					return
+				}
+			}
 		}
-	}()
+	}(vzHelper.GetOutputStream())
 
 	select {
 	case result := <-resChan:
@@ -280,6 +290,7 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 		return result
 	case <-time.After(timeout):
 		if timeout.Nanoseconds() != 0 {
+			feedbackChan <- true
 			_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Timeout %v exceeded waiting for uninstall to complete\n", timeout.String()))
 		}
 	}
