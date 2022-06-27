@@ -98,6 +98,18 @@ func (d opensearchDashboardsComponent) Install(ctx spi.ComponentContext) error {
 	return common.CreateOrUpdateVMI(ctx, updateFunc)
 }
 
+func (d opensearchDashboardsComponent) PreUninstall(context spi.ComponentContext) error {
+	return nil
+}
+
+func (d opensearchDashboardsComponent) Uninstall(context spi.ComponentContext) error {
+	return nil
+}
+
+func (d opensearchDashboardsComponent) PostUninstall(context spi.ComponentContext) error {
+	return nil
+}
+
 // PreUpgrade OpenSearch-Dashboards component pre-upgrade processing
 func (d opensearchDashboardsComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	// create or update  VMI secret

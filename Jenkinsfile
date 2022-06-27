@@ -35,7 +35,6 @@ pipeline {
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to trigger full testing after a successful run. Off by default. This is always done for successful master and release* builds, this setting only is used to enable the trigger for other branches', name: 'TRIGGER_FULL_TESTS', defaultValue: false)
-        booleanParam (description: 'Whether to generate the analysis tool', name: 'GENERATE_TOOL', defaultValue: false)
         booleanParam (description: 'Whether to generate a tarball', name: 'GENERATE_TARBALL', defaultValue: false)
         booleanParam (description: 'Whether to generate the Verrazzano CLI', name: 'GENERATE_CLI', defaultValue: false)
         booleanParam (description: 'Whether to push images to OCIR', name: 'PUSH_TO_OCIR', defaultValue: false)
@@ -170,32 +169,6 @@ pipeline {
                         SUSPECT_LIST = getSuspectList(commitList, userMappings)
                         echo "Suspect list: ${SUSPECT_LIST}"
                     }
-                }
-            }
-        }
-
-        stage('Analysis Tool') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                    anyOf {
-                        branch 'master';
-                        branch 'release-*';
-                        expression {params.GENERATE_TOOL == true};
-                    }
-                }
-            }
-            steps {
-                buildAnalysisTool("${DOCKER_IMAGE_TAG}")
-            }
-            post {
-                failure {
-                    script {
-                        SKIP_TRIGGERED_TESTS = true
-                    }
-                }
-                always {
-                    archiveArtifacts artifacts: '**/*.tar.gz*', allowEmptyArchive: true
                 }
             }
         }
@@ -641,15 +614,6 @@ def moveContentToGoRepoPath() {
     """
 }
 
-// Called in Stage Analysis Tool steps
-def buildAnalysisTool(dockerImageTag) {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano/tools/analysis
-        make go-build DOCKER_IMAGE_TAG=${dockerImageTag}
-        ${GO_REPO_PATH}/verrazzano/ci/scripts/save_tooling.sh ${env.BRANCH_NAME} ${SHORT_COMMIT_HASH}
-    """
-}
-
 // Called in Stage CLI steps
 def buildVerrazzanoCLI(dockerImageTag) {
     sh """
@@ -722,11 +686,9 @@ def qualityCheck() {
         echo "run all linters"
         cd ${GO_REPO_PATH}/verrazzano
         make check check-tests
-
         echo "copyright scan"
         time make copyright-check
         ./ci/scripts/check_if_clean_after_generate.sh
-
         echo "Third party license check"
     """
 }
