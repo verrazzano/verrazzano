@@ -137,6 +137,19 @@ func (r *VerrazzanoConfigMapsReconciler) reconcileInstallOverrideConfigMap(ctx c
 			}
 			r.log.Infof("Updated Verrazzano Resource")
 		}
+
+		module, err := controllers.ModuleContainsResource(componentCtx, configMap.Name, configMap.Kind)
+		if err != nil {
+			r.log.Errorf("Failed to find Module associated with ConfigMap %s: %v", configMap.Name, err)
+			return newRequeueWithDelay(), err
+		}
+		if module.Name != "" {
+			err = controllers.UpdateModuleForInstallOverrides(componentCtx.Client(), module)
+			if err != nil {
+				r.log.Errorf("Error updating the status for module %s: %v", module.Name, err)
+				return newRequeueWithDelay(), err
+			}
+		}
 	}
 	return ctrl.Result{}, nil
 }

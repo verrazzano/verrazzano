@@ -312,15 +312,17 @@ func (h HelmComponent) Uninstall(ctx spi.ComponentContext) error {
 }
 
 func SetForModule(h *HelmComponent, module *modulesv1alpha1.Module) {
-	chart := module.Spec.Installer.HelmChart
-	if chart != nil {
-		h.ReleaseName = chart.Name
-		h.JSONName = chart.Name
-		h.ChartDir = filepath.Join(h.ChartDir, chart.Repository.Path)
-		h.ChartNamespace = chart.Namespace
-		h.IgnoreNamespaceOverride = true
-		h.GetInstallOverridesFunc = func(_ *vzapi.Verrazzano) []vzapi.Overrides {
-			return chart.InstallOverrides.ValueOverrides
+	if module != nil {
+		chart := module.Spec.Installer.HelmChart
+		if chart != nil {
+			h.ReleaseName = chart.Name
+			h.JSONName = chart.Name
+			h.ChartDir = filepath.Join(h.ChartDir, chart.Repository.Path)
+			h.ChartNamespace = chart.Namespace
+			h.IgnoreNamespaceOverride = true
+			h.GetInstallOverridesFunc = func(_ *vzapi.Verrazzano) []vzapi.Overrides {
+				return chart.InstallOverrides.ValueOverrides
+			}
 		}
 	}
 }

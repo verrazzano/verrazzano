@@ -6,18 +6,21 @@ package keycloak
 import (
 	"context"
 	"fmt"
+	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/modules"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/reconciler"
 
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/modules"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/reconciler"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
@@ -38,10 +41,17 @@ const ComponentNamespace = constants.KeycloakNamespace
 // ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "keycloak"
 
+const ConfigMapName = "keycloak-vz-config"
+
+const overridesFile = "keycloak-values.yaml"
+
 // KeycloakComponent represents an Keycloak component
 type KeycloakComponent struct {
 	helm.HelmComponent
 }
+
+// Verify that KeycloakComponent implements Component
+var _ spi.Component = KeycloakComponent{}
 
 var certificates = []types.NamespacedName{
 	{Namespace: ComponentNamespace, Name: keycloakCertificateName},
@@ -61,6 +71,7 @@ func NewComponent(module *modulesv1alpha1.Module) modules.DelegateReconciler {
 			},
 		},
 	}
+
 	helm.SetForModule(&h, module)
 	return &reconciler.Reconciler{
 		ModuleComponent: KeycloakComponent{
@@ -98,6 +109,10 @@ func NewComponent(module *modulesv1alpha1.Module) modules.DelegateReconciler {
 	//		GetInstallOverridesFunc: GetOverrides,
 	//	},
 	//}
+}
+
+func (c KeycloakComponent) IsOperatorInstallSupported() bool {
+	return false
 }
 
 // Reconcile - first checks whether Keycloak is installed yet, then
@@ -142,6 +157,9 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
+	if err := common.ApplyOverride(ctx, overridesFile); err != nil {
+		return err
+	}
 	return c.HelmComponent.PreInstall(ctx)
 }
 
@@ -182,6 +200,9 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 
 // PreUpgrade - component level processing for pre-upgrade
 func (c KeycloakComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	if err := common.ApplyOverride(ctx, overridesFile); err != nil {
+		return err
+	}
 	// Delete the StatefulSet before the upgrade
 	if err := deleteStatefulSet(ctx); err != nil {
 		return err
@@ -262,4 +283,11 @@ func (c KeycloakComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 		return true
 	}
 	return false
+}
+
+func (c KeycloakComponent) Name() string {
+	if c.HelmComponent.ReleaseName == "" {
+		return ComponentName
+	}
+	return c.HelmComponent.ReleaseName
 }

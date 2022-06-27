@@ -3,112 +3,119 @@
 
 # NOTE: The keycloak image now comes from the bill of materials file (verrazzano-bom.json).
 
-command:
-  - "/opt/keycloak/bin/kc.sh"
-  - "start"
-  - "--http-enabled=true"
-  - "--hostname-strict=false"
-  - "--hostname-strict-https=false"
-  - "--spi-login-protocol-openid-connect-legacy-logout-redirect-uri=true"
-  - "--spi-login-protocol-openid-connect-suppress-logout-confirmation-screen=true"
-
-fullnameOverride: "keycloak"
-nameOverride: "keycloak"
-
-extraEnv: |
-  - name: KEYCLOAK_ADMIN
-    value: "keycloakadmin"
-  - name: KEYCLOAK_ADMIN_PASSWORD
-    valueFrom:
-      secretKeyRef:
-        name: keycloak-http
-        key: password
-  - name: JAVA_OPTS_APPEND
-    value: >-
-      -Djgroups.dns.query={{ include "keycloak.fullname" . }}-headless
-
-proxy:
-  mode: edge
-
-database:
-  vendor: mysql
-  port: 3306
-  username: keycloak
-  existingSecret: mysql-cluster-secret
-  existingSecretKey: userPassword
-  database: keycloak
-
-extraVolumes: |
-  - name: theme
-    emptyDir: {}
-  - name: cacerts
-    emptyDir: {}
-  - name: keycloak-http
-    secret:
-       secretName: keycloak-http
-
-extraVolumeMounts: |
-  - name: theme
-    mountPath: /opt/keycloak/themes/oracle
-  - name: keycloak-http
-    mountPath: /etc/keycloak-http
-
-extraPorts:
-  - name: jgroups
-    containerPort: 7800
-    protocol: TCP
-
-service:
-  port: 8083
-  extraPorts:
-    - name: jgroups
-      port: 7800
-      targetPort: jgroups
-
-podAnnotations:
-  traffic.sidecar.istio.io/excludeInboundPorts: "7800"
-  traffic.sidecar.istio.io/excludeOutboundPorts: "7800"
-
-ingress:
-  enabled: true
-  annotations:
-    kubernetes.io/tls-acme: "true"
-    external-dns.alpha.kubernetes.io/ttl: "60"
-    nginx.ingress.kubernetes.io/app-root: /auth
-    nginx.ingress.kubernetes.io/service-upstream: "true"
-    nginx.ingress.kubernetes.io/upstream-vhost: "keycloak-http.${namespace}.svc.cluster.local"
-    nginx.ingress.kubernetes.io/affinity: "cookie"
-    nginx.ingress.kubernetes.io/proxy-buffer-size: "256k"
-    nginx.ingress.kubernetes.io/session-cookie-conditional-samesite-none: "true"
-    nginx.ingress.kubernetes.io/session-cookie-expires: "86400"
-    nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
-    nginx.ingress.kubernetes.io/session-cookie-name: "keycloak"
-    nginx.ingress.kubernetes.io/session-cookie-samesite: "Strict"
-    external-dns.alpha.kubernetes.io/target: "{{ .Values.dnsTarget }}"
-  rules:
-    -
-      paths:
-        - path: /
-          pathType: ImplementationSpecific
-      host: "{{ .Values.rulesHost }}"
-  tls:
-    -
-      hosts:
-        - "{{ .Values.tlsHosts }}"
-      secretName: "{{ .Values.tlsSecret }}"
-
-securityContext:
-  allowPrivilegeEscalation: false
-  privileged: false
-  runAsNonRoot: true
-  runAsUser: 1000
-  runAsGroup: 0
-  capabilities:
-    drop:
-      - ALL
-
-podSecurityContext:
-  seccompProfile:
-    type: RuntimeDefault
-
-replicas: 1
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-vz-config
+  namespace: default
+data:
+  values.yaml: |-
+    command:
+      - "/opt/keycloak/bin/kc.sh"
+      - "start"
+      - "--http-enabled=true"
+      - "--hostname-strict=false"
+      - "--hostname-strict-https=false"
+      - "--spi-login-protocol-openid-connect-legacy-logout-redirect-uri=true"
+      - "--spi-login-protocol-openid-connect-suppress-logout-confirmation-screen=true"
+    
+    fullnameOverride: "keycloak"
+    nameOverride: "keycloak"
+    
+    extraEnv: |
+      - name: KEYCLOAK_ADMIN
+        value: "keycloakadmin"
+      - name: KEYCLOAK_ADMIN_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: keycloak-http
+            key: password
+      - name: JAVA_OPTS_APPEND
+        value: >-
+          -Djgroups.dns.query={{ include "keycloak.fullname" . }}-headless
+    
+    proxy:
+      mode: edge
+    
+    database:
+      vendor: mysql
+      port: 3306
+      username: keycloak
+      existingSecret: mysql-cluster-secret
+      existingSecretKey: userPassword
+      database: keycloak
+    
+    extraVolumes: |
+      - name: theme
+        emptyDir: {}
+      - name: cacerts
+        emptyDir: {}
+      - name: keycloak-http
+        secret:
+           secretName: keycloak-http
+    
+    extraVolumeMounts: |
+      - name: theme
+        mountPath: /opt/keycloak/themes/oracle
+      - name: keycloak-http
+        mountPath: /etc/keycloak-http
+    
+    extraPorts:
+      - name: jgroups
+        containerPort: 7800
+        protocol: TCP
+    
+    service:
+      port: 8083
+      extraPorts:
+        - name: jgroups
+          port: 7800
+          targetPort: jgroups
+    
+    podAnnotations:
+      traffic.sidecar.istio.io/excludeInboundPorts: "7800"
+      traffic.sidecar.istio.io/excludeOutboundPorts: "7800"
+    
+    ingress:
+      enabled: true
+      annotations:
+        kubernetes.io/tls-acme: "true"
+        external-dns.alpha.kubernetes.io/ttl: "60"
+        nginx.ingress.kubernetes.io/app-root: /auth
+        nginx.ingress.kubernetes.io/service-upstream: "true"
+        nginx.ingress.kubernetes.io/upstream-vhost: "keycloak-http.${namespace}.svc.cluster.local"
+        nginx.ingress.kubernetes.io/affinity: "cookie"
+        nginx.ingress.kubernetes.io/proxy-buffer-size: "256k"
+        nginx.ingress.kubernetes.io/session-cookie-conditional-samesite-none: "true"
+        nginx.ingress.kubernetes.io/session-cookie-expires: "86400"
+        nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
+        nginx.ingress.kubernetes.io/session-cookie-name: "keycloak"
+        nginx.ingress.kubernetes.io/session-cookie-samesite: "Strict"
+        external-dns.alpha.kubernetes.io/target: "{{ .Values.dnsTarget }}"
+      rules:
+        -
+          paths:
+            - path: /
+              pathType: ImplementationSpecific
+          host: "{{ .Values.rulesHost }}"
+      tls:
+        -
+          hosts:
+            - "{{ .Values.tlsHosts }}"
+          secretName: "{{ .Values.tlsSecret }}"
+    
+    securityContext:
+      allowPrivilegeEscalation: false
+      privileged: false
+      runAsNonRoot: true
+      runAsUser: 1000
+      runAsGroup: 0
+      capabilities:
+        drop:
+          - ALL
+    
+    podSecurityContext:
+      seccompProfile:
+        type: RuntimeDefault
+    
+    replicas: 1

@@ -18,8 +18,8 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - description: Phase of Module reconciliation
-      jsonPath: .status.phase
+    - description: State of Module reconciliation
+      jsonPath: .status.state
       name: Status
       type: string
     name: v1alpha1
@@ -116,7 +116,6 @@ spec:
                     type: object
                 type: object
             required:
-            - dependencies
             - installer
             type: object
           status:
@@ -149,11 +148,11 @@ spec:
               observedGeneration:
                 format: int64
                 type: integer
-              phase:
-                description: ModulePhase describes the current reconciling stage of
-                  a Module
-                type: string
               reconciledAt:
+                type: string
+              state:
+                description: ModuleState describes the current reconciling stage of
+                  a Module
                 type: string
             type: object
         type: object

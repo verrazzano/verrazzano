@@ -9,6 +9,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -67,7 +68,7 @@ func WeblogicOperatorPreInstall(ctx spi.ComponentContext, _ string, namespace st
 		}
 		return err
 	}
-	return nil
+	return common.ApplyOverride(ctx, overridesFile)
 }
 
 func (c weblogicComponent) isWeblogicOperatorReady(ctx spi.ComponentContext) bool {

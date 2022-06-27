@@ -3,16 +3,16 @@
 
 package v1alpha1
 
-// ModulePhase describes the current reconciling stage of a Module
-type ModulePhase string
+// ModuleState describes the current reconciling stage of a Module
+type ModuleState string
 
 const (
-	PhasePreinstall   ModulePhase = "PreInstalling"
-	PhaseInstalling   ModulePhase = "Installing"
-	PhaseUninstalling ModulePhase = "Uninstalling"
-	PhaseReady        ModulePhase = "Ready"
-	PhasePreUpgrade   ModulePhase = "PreUpgrading"
-	PhaseUpgrading    ModulePhase = "Upgrading"
+	StatePreinstall   ModuleState = "PreInstalling"
+	StateInstalling   ModuleState = "Installing"
+	StateUninstalling ModuleState = "Uninstalling"
+	StateReady        ModuleState = "Ready"
+	StatePreUpgrade   ModuleState = "PreUpgrading"
+	StateUpgrading    ModuleState = "Upgrading"
 )
 
 type ModuleCondition string
@@ -29,23 +29,23 @@ const (
 	CondUpgradeComplete ModuleCondition = "UpgradeComplete"
 )
 
-func (m *Module) SetPhase(phase ModulePhase) {
-	m.Status.Phase = &phase
+func (m *Module) SetState(state ModuleState) {
+	m.Status.State = &state
 }
 
-func Phase(condition ModuleCondition) ModulePhase {
+func State(condition ModuleCondition) ModuleState {
 	switch condition {
 	case CondPreInstall:
-		return PhasePreinstall
+		return StatePreinstall
 	case CondInstallStarted:
-		return PhaseInstalling
+		return StateInstalling
 	case CondUninstall:
-		return PhaseUninstalling
+		return StateUninstalling
 	case CondPreUpgrade:
-		return PhasePreUpgrade
+		return StatePreUpgrade
 	case CondUpgradeStarted:
-		return PhaseUpgrading
+		return StateUpgrading
 	default: // CondUpgradeComplete, CondInstallComplete
-		return PhaseReady
+		return StateReady
 	}
 }
