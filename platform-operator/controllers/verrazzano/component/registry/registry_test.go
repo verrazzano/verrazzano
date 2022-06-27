@@ -4,10 +4,11 @@
 package registry
 
 import (
+	"testing"
+
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
-	"testing"
 
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -533,6 +534,18 @@ func (f fakeComponent) Install(_ spi.ComponentContext) error {
 }
 
 func (f fakeComponent) PostInstall(_ spi.ComponentContext) error {
+	return nil
+}
+
+func (f fakeComponent) PreUninstall(_ spi.ComponentContext) error {
+	return nil
+}
+
+func (f fakeComponent) Uninstall(_ spi.ComponentContext) error {
+	return nil
+}
+
+func (f fakeComponent) PostUninstall(_ spi.ComponentContext) error {
 	return nil
 }
 
