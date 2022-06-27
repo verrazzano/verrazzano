@@ -157,6 +157,24 @@ func getUninstallPodName(c client.Client, vzHelper helpers.VZHelper, jobName str
 	labelSelector = labelSelector.Add(*jobNameLabel)
 	podList := corev1.PodList{}
 
+	// Provide the user with feedback while waiting for the verrazzano-install pod to be ready
+	feedbackChan := make(chan bool)
+	defer close(feedbackChan)
+	go func(outputStream io.Writer) {
+		seconds := 0
+		for {
+			select {
+			case <-feedbackChan:
+				fmt.Fprint(outputStream, "\n")
+				return
+			default:
+				time.Sleep(constants.VerrazzanoPlatformOperatorWait * time.Second)
+				seconds += constants.VerrazzanoPlatformOperatorWait
+				fmt.Fprintf(outputStream, fmt.Sprintf("\rWaiting for %s to be ready before starting uninstall - %d seconds", jobName, seconds))
+			}
+		}
+	}(vzHelper.GetOutputStream())
+
 	// Wait for the verrazzano-uninstall pod to be found
 	seconds := 0
 	retryCount := 0
@@ -184,6 +202,7 @@ func getUninstallPodName(c client.Client, vzHelper helpers.VZHelper, jobName str
 		if len(podList.Items) > 1 {
 			return "", fmt.Errorf("More than one %s pod was found in namespace %s", constants.VerrazzanoUninstall, vzconstants.VerrazzanoInstallNamespace)
 		}
+		feedbackChan <- true
 		break
 	}
 
@@ -227,27 +246,43 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 	if err != nil {
 		return fmt.Errorf("Failed to get logs stream: %v", err)
 	}
-	defer func(rc io.ReadCloser) {
-		_ = rc.Close()
-	}(rc)
 
 	resChan := make(chan error, 1)
-	go func() {
+	defer close(resChan)
+
+	feedbackChan := make(chan bool)
+	defer close(feedbackChan)
+
+	go func(outputStream io.Writer) {
 		sc := bufio.NewScanner(rc)
 		sc.Split(bufio.ScanLines)
 		for sc.Scan() {
-			_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("%s\n", sc.Text()))
+			_, _ = fmt.Fprintf(outputStream, fmt.Sprintf("%s\n", sc.Text()))
+		}
+	}(vzHelper.GetOutputStream())
 
-			// Return when the Verrazzano uninstall has completed
-			vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
-			if vz == nil {
-				resChan <- nil
-			}
-			if err != nil && !errors.IsNotFound(err) {
-				resChan <- err
+	go func() {
+		for {
+			// Pause before each check
+			time.Sleep(1 * time.Second)
+			select {
+			case <-feedbackChan:
+				return
+			default:
+				// Return when the Verrazzano uninstall has completed
+				vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
+				if vz == nil {
+					resChan <- nil
+					return
+				}
+				if err != nil && !errors.IsNotFound(err) {
+					resChan <- err
+					return
+				}
 			}
 		}
 	}()
+
 	select {
 	case result := <-resChan:
 		// Delete remaining Verrazzano resources, excluding CRDs
@@ -255,6 +290,7 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 		return result
 	case <-time.After(timeout):
 		if timeout.Nanoseconds() != 0 {
+			feedbackChan <- true
 			_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Timeout %v exceeded waiting for uninstall to complete\n", timeout.String()))
 		}
 	}
