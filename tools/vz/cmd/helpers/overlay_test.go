@@ -5,13 +5,14 @@ package helpers
 
 import (
 	"context"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 // TestMergeYAMLFilesSingle
@@ -101,8 +102,7 @@ func TestMergeSetFlags(t *testing.T) {
 			Name:      "verrazzano",
 		},
 	}
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vz).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vz).Build()
 
 	_, err := MergeSetFlags(vz, yamlString)
 	assert.NoError(t, err)

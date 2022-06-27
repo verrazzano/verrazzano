@@ -15,13 +15,13 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	cmdHelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
-	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -67,13 +67,12 @@ func TestUpgradeCmdDefaultNoWait(t *testing.T) {
 			Name:      "verrazzano",
 		},
 	}
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment, vz).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment, vz).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
@@ -127,13 +126,12 @@ func TestUpgradeCmdDefaultTimeout(t *testing.T) {
 			Name:      "verrazzano",
 		},
 	}
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment, vz).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment, vz).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
@@ -158,13 +156,12 @@ func TestUpgradeCmdDefaultNoVPO(t *testing.T) {
 			Name:      "verrazzano",
 		},
 	}
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vz).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vz).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
@@ -231,13 +228,12 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 			Name:      "verrazzano",
 		},
 	}
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo1, vpo2, deployment, vz).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo1, vpo2, deployment, vz).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
@@ -293,13 +289,12 @@ func TestUpgradeCmdJsonLogFormat(t *testing.T) {
 			Name:      "verrazzano",
 		},
 	}
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment, vz).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment, vz).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
@@ -354,13 +349,12 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 			Name:      "verrazzano",
 		},
 	}
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment, vz).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment, vz).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
@@ -408,13 +402,12 @@ func TestUpgradeCmdNoVerrazzano(t *testing.T) {
 			},
 		},
 	}
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
