@@ -305,7 +305,7 @@ func applySystemMonitors(ctx spi.ComponentContext) error {
 	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
 	err := yamlApplier.ApplyDT(dir, args)
 	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to substitute template values for System Monitors %v", err)
+		return ctx.Log().ErrorfNewErr("Failed to substitute template values for System Monitors: %v", err)
 	}
 	return nil
 }
