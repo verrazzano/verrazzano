@@ -273,7 +273,9 @@ func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
 			return err
 		}
 	}
-	metricsexporter.AddInstallStartTime(startTime, h.ReleaseName)
+	if h.ReleaseName == "oam-kubernetes-runtime" || h.ReleaseName == "verrazzano-application-operator" || h.ReleaseName == "weblogic-operator" {
+		metricsexporter.AddInstallStartTime(startTime, h.ReleaseName)
+	}
 	return nil
 }
 
@@ -300,8 +302,9 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 			Operation: "Check if certificates are ready",
 		}
 	}
-
-	metricsexporter.CollectInstallTimeMetric(h.ReleaseName)
+	if h.ReleaseName == "verrazzano-authproxy" || h.ReleaseName == "oam-kubernetes-runtime" || h.ReleaseName == "verrazzano-application-operator" || h.ReleaseName == "weblogic-operator" {
+		metricsexporter.CollectInstallTimeMetric(h.ReleaseName)
+	}
 
 	return nil
 }
