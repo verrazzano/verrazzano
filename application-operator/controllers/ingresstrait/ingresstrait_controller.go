@@ -1374,7 +1374,8 @@ func buildDomainNameForWildcard(cli client.Reader, trait *vzapi.IngressTrait, su
 	return domain, nil
 }
 
-//
+// createOrUpdateRemainingResources creates or updates VirtualService, DestinationRule and Authorization policies
+// for an IngressTrait
 func (r *Reconciler) createOrUpdateRemainingResources(ctx context.Context, status *reconcileresults.ReconcileResults, rules []vzapi.IngressRule,
 	trait *vzapi.IngressTrait, gateway *istioclient.Gateway, allHostsForTrait []string, log vzlog.VerrazzanoLogger) (*reconcileresults.ReconcileResults, ctrl.Result, error) {
 	for index, rule := range rules {
