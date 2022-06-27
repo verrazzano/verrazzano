@@ -368,21 +368,21 @@ pipeline {
             }
         }
 
-        stage("Create image pull secrets") {
-            steps {
-                script {
-                    echo "[INFO] Creating image pull secrets"
-                    createImagePullSecrets()
-                }
-            }
-        }
-
         stage("Mount OCI Storage") {
             steps {
                 script {
                     echo "[INFO] Mounting OCI storage"
                     setupBastionSSH()
                     mountOCIStorage()
+                }
+            }
+        }
+
+        stage("Create image pull secrets") {
+            steps {
+                script {
+                    echo "[INFO] Creating image pull secrets"
+                    createImagePullSecrets()
                 }
             }
         }
