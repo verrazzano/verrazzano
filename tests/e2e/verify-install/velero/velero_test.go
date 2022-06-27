@@ -20,7 +20,7 @@ const (
 	waitTimeout     = 3 * time.Minute
 	pollingInterval = 10 * time.Second
 	veleroName      = "velero"
-	operatorImage   = "ghcr.io/verrazzano/velero/velero"
+	operatorImage   = "ghcr.io/verrazzano/velero"
 )
 
 var (
