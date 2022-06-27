@@ -2447,6 +2447,7 @@ func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 	assert.Equal(true, result.Requeue, "Expected a requeue due to status update.")
 
 	assert.Len(parentTraitOfHost, 1)
+	assert.Equal(parentTraitOfHost[testLoadBalancerAppGatewayServerHost], "test-trait")
 
 	gw := istioclient.Gateway{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
@@ -2482,6 +2483,10 @@ func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 	result, err = reconciler.Reconcile(nil, request)
 	assert.NoError(err)
 
+	// Verify that the old mapping is still intact
+	assert.Len(parentTraitOfHost, 1)
+	assert.Equal(parentTraitOfHost[testLoadBalancerAppGatewayServerHost], "test-trait")
+
 	// Gateway remains intact when the newly created IngressTrait object is reconciled
 	gw1 := istioclient.Gateway{}
 	assert.NoError(cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw1))
@@ -2504,8 +2509,6 @@ func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 	assert.Equal(uint32(8001), vs.Spec.Http[0].Route[0].Destination.Port.Number)
 	assert.Len(vs.Spec.Http[0].Route, 1)
 	assert.Len(vs.Spec.Http, 1)
-
-	assert.Len(parentTraitOfHost, 1)
 
 }
 
