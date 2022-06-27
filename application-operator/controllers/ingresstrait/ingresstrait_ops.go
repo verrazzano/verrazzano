@@ -147,7 +147,7 @@ func cleanupGateway(trait *vzapi.IngressTrait, c client.Client, log vzlog.Verraz
 		if server.Name == trait.Name {
 			// cleanup hosts from memory map
 			for _, host := range server.Hosts {
-				delete(hostNameInTrait, host)
+				delete(parentTraitOfHost, host)
 			}
 			continue
 		}

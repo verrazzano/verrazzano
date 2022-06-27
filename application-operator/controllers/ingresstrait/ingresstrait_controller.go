@@ -86,7 +86,7 @@ const (
 var (
 	weblogicPortNames = []string{"tcp-cbt", "tcp-ldap", "tcp-iiop", "tcp-snmp", "tcp-default", "tls-ldaps",
 		"tls-default", "tls-cbts", "tls-iiops", "tcp-internal-t3", "internal-t3"}
-	hostNameInTrait = map[string]string{}
+	parentTraitOfHost = map[string]string{}
 )
 
 // Reconciler is used to reconcile an IngressTrait object
@@ -1406,15 +1406,15 @@ func (r *Reconciler) sanitizeHostNameForTrait(hosts []string, traitName string) 
 	// or were already listed under this trait
 	newHosts := []string{}
 	for _, host := range hosts {
-		_, ok := hostNameInTrait[host]
-		if !ok || hostNameInTrait[host] == traitName {
+		_, ok := parentTraitOfHost[host]
+		if !ok || parentTraitOfHost[host] == traitName {
 			newHosts = append(newHosts, host)
-			hostNameInTrait[host] = traitName
+			parentTraitOfHost[host] = traitName
 		}
 	}
 
 	// delete orphaned hostnames from the map
-	for host, trait := range hostNameInTrait {
+	for host, trait := range parentTraitOfHost {
 		if trait != traitName {
 			continue
 		}
@@ -1426,7 +1426,7 @@ func (r *Reconciler) sanitizeHostNameForTrait(hosts []string, traitName string) 
 			}
 		}
 		if !hostPresent {
-			delete(hostNameInTrait, host)
+			delete(parentTraitOfHost, host)
 		}
 	}
 
