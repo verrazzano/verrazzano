@@ -487,14 +487,22 @@ pipeline {
             
             script {
                 if (keepOLCNEClusterOnFailure == false) {
-                    echo "[INFO] Deleting OLCNE Cluster"
-                    deleteOLCNECluster()
-                    echo "[INFO] Deleting OCI DNS Zone"
-                    deleteOCIDNSZone()
-                    echo "[INFO] Deleting OCI FileSystem"
-                    deleteOCIFileSystem()
-                    echo "[INFO] Deleting OCI LoadBalancers"
-                    deleteOCILoadBalancers()
+                    if (createdOCIDNSZone == "true") {
+                        echo "[INFO] Deleting OCI DNS Zone"
+                        deleteOCIDNSZone()
+                    }
+                    if (createdOCIFileSystem == "true") {
+                        echo "[INFO] Deleting OCI FileSystem"
+                        deleteOCIFileSystem()
+                    }
+                    if (createOCILoadBalancers == "true") {
+                        echo "[INFO] Deleting OCI LoadBalancers"
+                        deleteOCILoadBalancers()
+                    }
+                    if (createdOLCNECluster == "true") {
+                        echo "[INFO] Deleting OLCNE Cluster"
+                        deleteOLCNECluster()
+                    }
                 }
             }
 
@@ -951,6 +959,7 @@ def runVerrazzanoAcceptanceTests() {
 }
 
 def createOLCNECluster() {
+    createdOLCNECluster="true"
     sh """
         cd $GO_REPO_PATH/terraform-oci-olcne
         terraform init -input=false
@@ -970,6 +979,7 @@ def createOLCNECluster() {
 }
 
 def createOCIFileSystem() {
+    createdOCIFileSystem="true"
     sh """
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_fs_ops.sh \
         -o create -a "$TF_VAR_availability_domain_id" \
@@ -982,6 +992,7 @@ def createOCIFileSystem() {
 }
 
 def createOCILoadBalancers() {
+    createdOCILoadBalancers="true"
     sh """
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_lb_ops.sh \
         -o create -n "$TF_VAR_prefix-mgnmt" -e true \
@@ -1000,6 +1011,7 @@ def createOCILoadBalancers() {
 }
 
 def createOCIDNSZone() {
+    createdOCIDNSZone="true"
     OCI_DNS_ZONE_OCID=sh(returnStdout: true, script: """ $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c "$TF_VAR_compartment_id" -s "$OCI_DNS_ZONE_SUBDOMAIN_NAME" -k "$OCI_DNS_SCOPE" """)
 }
 
