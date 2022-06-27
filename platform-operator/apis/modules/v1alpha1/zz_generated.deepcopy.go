@@ -182,9 +182,9 @@ func (in *ModuleStatus) DeepCopyInto(out *ModuleStatus) {
 		*out = make([]Condition, len(*in))
 		copy(*out, *in)
 	}
-	if in.Phase != nil {
-		in, out := &in.Phase, &out.Phase
-		*out = new(ModulePhase)
+	if in.State != nil {
+		in, out := &in.State, &out.State
+		*out = new(ModuleState)
 		**out = **in
 	}
 	if in.ReconciledAt != nil {

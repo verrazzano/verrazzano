@@ -22,8 +22,10 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/modules"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/reconciler"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -38,6 +40,10 @@ const ComponentNamespace = constants.VerrazzanoSystemNamespace
 
 // ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "weblogicOperator"
+
+const ConfigMapName = "weblogic-operator-vz-config"
+
+const overridesFile = "weblogic-values.yaml"
 
 type weblogicComponent struct {
 	helm.HelmComponent
@@ -76,6 +82,14 @@ func NewComponent(module *modulesv1alpha1.Module) modules.DelegateReconciler {
 			h,
 		},
 	}
+}
+
+func (c weblogicComponent) PreInstall(ctx spi.ComponentContext) error {
+	return common.ApplyOverride(ctx, overridesFile)
+}
+
+func (c weblogicComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	return common.ApplyOverride(ctx, overridesFile)
 }
 
 // IsEnabled WebLogic-specific enabled check for installation
@@ -129,4 +143,15 @@ func (c weblogicComponent) PostUninstall(context spi.ComponentContext) error {
 		Log:       context.Log(),
 	}.Delete()
 	return err
+}
+
+func (c weblogicComponent) IsOperatorInstallSupported() bool {
+	return false
+}
+
+func (c weblogicComponent) Name() string {
+	if c.HelmComponent.ReleaseName == "" {
+		return ComponentName
+	}
+	return c.HelmComponent.ReleaseName
 }

@@ -77,7 +77,7 @@ func (r *Reconciler) doReconcile(ctx spi.ComponentContext) error {
 		}
 		return r.UpdateStatus(ctx, modulesv1alpha1.CondUpgradeStarted)
 	case modulesv1alpha1.CondInstallComplete, modulesv1alpha1.CondUpgradeComplete:
-		return r.ReadyPhase(ctx)
+		return r.ReadyState(ctx)
 	case modulesv1alpha1.CondUpgradeStarted:
 		if r.IsReady(ctx) {
 			log.Progressf("Module %s post-upgrade is running", module.Name)
@@ -92,8 +92,8 @@ func (r *Reconciler) doReconcile(ctx spi.ComponentContext) error {
 	return nil
 }
 
-//ReadyPhase reconciles put the Module back to pending state if the generation has changed
-func (r *Reconciler) ReadyPhase(ctx spi.ComponentContext) error {
+//ReadyState reconciles put the Module back to pending state if the generation has changed
+func (r *Reconciler) ReadyState(ctx spi.ComponentContext) error {
 	if NeedsReconcile(ctx) {
 		return r.UpdateStatus(ctx, modulesv1alpha1.CondPreUpgrade)
 	}
@@ -122,10 +122,10 @@ func initializeModule(ctx spi.ComponentContext) error {
 
 func initializeModuleStatus(ctx spi.ComponentContext) {
 	module := ctx.Module()
-	if module.Status.Phase == nil {
-		module.SetPhase(modulesv1alpha1.PhasePreinstall)
+	if module.Status.State == nil {
+		module.SetState(modulesv1alpha1.StatePreinstall)
 		module.Status.Conditions = []modulesv1alpha1.Condition{
-			NewCondition(string(modulesv1alpha1.PhasePreinstall), modulesv1alpha1.CondPreInstall),
+			NewCondition(string(modulesv1alpha1.StatePreinstall), modulesv1alpha1.CondPreInstall),
 		}
 	}
 }

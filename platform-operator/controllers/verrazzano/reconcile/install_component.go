@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/adapter"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 
@@ -88,6 +89,12 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, compTra
 	compContext := spiCtx.Init(compName).Operation(vzconst.InstallOperation)
 	compLog := compContext.Log()
 
+	if !comp.IsOperatorInstallSupported() {
+		if err := adapter.ApplyComponentAsModule(spiCtx.Client(), spiCtx.EffectiveCR(), compName); err != nil {
+			return newRequeueWithDelay()
+		}
+		return ctrl.Result{}
+	}
 	componentStatus, ok := spiCtx.ActualCR().Status.Components[comp.Name()]
 	if !ok {
 		compLog.Debugf("Did not find status details in map for component %s", comp.Name())

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -20,6 +21,13 @@ func ApplyCRDYaml(ctx spi.ComponentContext, helmChartsDir string) error {
 	return yamlApplier.ApplyD(path)
 }
 
+func ApplyOverride(ctx spi.ComponentContext, overrideFile string) error {
+	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), ctx.EffectiveCR().Namespace)
+	path := filepath.Join(config.GetHelmOverridesDir(), overrideFile)
+	ctx.Log().Oncef("Applying override objects in %s", path)
+	return yamlApplier.ApplyF(path)
+}
+
 // ConvertVerrazzanoCR converts older version of Verrzzano CR in v1alpha1.Verrazzano to newer version of v1beta1.Verrazzano
 func ConvertVerrazzanoCR(vz *vzapi.Verrazzano, vzv1beta1 *v1beta1.Verrazzano) error {
 	if vz == nil {
@@ -30,3 +38,4 @@ func ConvertVerrazzanoCR(vz *vzapi.Verrazzano, vzv1beta1 *v1beta1.Verrazzano) er
 	}
 	return nil
 }
+

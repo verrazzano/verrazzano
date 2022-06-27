@@ -11,7 +11,7 @@ import (
 
 type ModuleSpec struct {
 	Installer    ModuleInstaller    `json:"installer"`
-	Dependencies []ModuleDependency `json:"dependencies"`
+	Dependencies []ModuleDependency `json:"dependencies,omitempty"`
 }
 
 type ModuleInstaller struct {
@@ -39,7 +39,7 @@ type ModuleDependency struct {
 type ModuleStatus struct {
 	// Information about the current state of a component
 	Conditions         []Condition  `json:"conditions,omitempty"`
-	Phase              *ModulePhase `json:"phase,omitempty"`
+	State              *ModuleState `json:"state,omitempty"`
 	ObservedGeneration int64        `json:"observedGeneration,omitempty"`
 	ReconciledAt       *string      `json:"reconciledAt,omitempty"`
 }
@@ -60,7 +60,7 @@ type Condition struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.phase",description="Phase of Module reconciliation"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.state",description="State of Module reconciliation"
 // +genclient
 
 // Module is the Schema for the modules API
