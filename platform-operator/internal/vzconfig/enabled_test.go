@@ -490,9 +490,9 @@ func TestIsApplicationOperatorEnabled(t *testing.T) {
 //  THEN the value of the Enabled flag is returned if present, false otherwise (disabled by default)
 func TestIsVeleroEnabled(t *testing.T) {
 	asserts := assert.New(t)
-	asserts.True(IsVeleroEnabled(nil))
-	asserts.True(IsVeleroEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
-	asserts.True(IsVeleroEnabled(
+	asserts.False(IsVeleroEnabled(nil))
+	asserts.False(IsVeleroEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.False(IsVeleroEnabled(
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Velero: &vzapi.VeleroComponent{},
