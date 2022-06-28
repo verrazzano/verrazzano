@@ -169,9 +169,9 @@ func AddInstallStartTime(startTime int64, componentName string) {
 	installStartTimeMap[componentName] = startTime
 }
 func CollectInstallTimeMetric(componentName string) {
-	endTime := time.Now().Unix()
-	totalInstallTime := endTime - installStartTimeMap[componentName]
-	installMetricsMap[componentName].Set(float64(totalInstallTime))
+	endTime := time.Now().UnixMilli()
+	totalInstallTime := float64((endTime - installStartTimeMap[componentName])) / 1000.0
+	installMetricsMap[componentName].Set(totalInstallTime)
 
 }
 func CheckIfAlreadyBeingMonitored(componentName string) bool {
