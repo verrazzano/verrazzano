@@ -1,0 +1,41 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  # any name can be used; Velero uses the labels (below)
+  # to identify it rather than the name
+  name: restic-restore-action-config
+  # must be in the velero namespace
+  namespace: {{ .veleroNamespace }}
+  # the below labels should be used verbatim in your
+  # ConfigMap.
+  labels:
+    # this value-less label identifies the ConfigMap as
+    # config for a plugin (i.e. the built-in restic restore
+    # item action plugin)
+    velero.io/plugin-config: ""
+    # this label identifies the name and kind of plugin
+    # that this ConfigMap is for.
+    velero.io/restic: RestoreItemAction
+data:
+  # The value for "image" can either include a tag or not;
+  # if the tag is *not* included, the tag from the main Velero
+  # image will automatically be used.
+  image: {{ .veleroRunnerImage }}
+
+  # "cpuRequest" sets the request.cpu value on the restic init containers during restore.
+  # If not set, it will default to "100m". A value of "0" is treated as unbounded.
+  cpuRequest: 200m
+
+  # "memRequest" sets the request.memory value on the restic init containers during restore.
+  # If not set, it will default to "128Mi". A value of "0" is treated as unbounded.
+  memRequest: 128Mi
+
+  # "cpuLimit" sets the request.cpu value on the restic init containers during restore.
+  # If not set, it will default to "100m". A value of "0" is treated as unbounded.
+  cpuLimit: 200m
+
+  # "memLimit" sets the request.memory value on the restic init containers during restore.
+  # If not set, it will default to "128Mi". A value of "0" is treated as unbounded.
+  memLimit: 128Mi

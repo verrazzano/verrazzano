@@ -194,3 +194,6 @@ const VerrazzanoComponentLabelKey = "verrazzano-component"
 
 // IstioAppLabel is the label used for Verrazzano Istio components
 const IstioAppLabel = "verrazzano.io/istio"
+
+// VeleroNameSpace indicates the namespace to be used for velero installation
+const VeleroNameSpace = "velero"

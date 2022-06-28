@@ -179,3 +179,11 @@ func IsApplicationOperatorEnabled(vz *vzapi.Verrazzano) bool {
 	}
 	return true
 }
+
+// IsVeleroEnabled returns false only if Velero Operator is explicitly disabled in the CR
+func IsVeleroEnabled(vz *vzapi.Verrazzano) bool {
+	if vz != nil && vz.Spec.Components.Velero != nil && vz.Spec.Components.Velero.Enabled != nil {
+		return *vz.Spec.Components.Velero.Enabled
+	}
+	return false
+}

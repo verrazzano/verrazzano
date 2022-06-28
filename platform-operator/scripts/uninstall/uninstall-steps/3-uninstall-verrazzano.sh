@@ -232,6 +232,11 @@ function delete_fluentd {
   fi
 }
 
+function delete_velero {
+  log "Uninstall velero"
+  velero uninstall --namespace velero --force || err_return $? "Could not delete Velero"
+}
+
 action "Deleting Fluentd" delete_fluentd || exit 1
 action "Deleting Verrazzano Console" delete_verrazzano_console || exit 1
 action "Deleting Prometheus Pushgateway " delete_prometheus_pushgateway || exit 1
@@ -248,3 +253,4 @@ action "Deleting Verrazzano AuthProxy" delete_authproxy || exit 1
 action "Deleting Verrazzano Monitoring Operator" delete_vmo || exit 1
 action "Deleting Verrazzano Components" delete_verrazzano || exit 1
 action "Deleting Kiali " delete_kiali || exit 1
+action "Deleting Velero " delete_velero || exit 1

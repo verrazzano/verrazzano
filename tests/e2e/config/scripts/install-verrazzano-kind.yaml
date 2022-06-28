@@ -25,3 +25,22 @@ spec:
       enabled: true
     prometheusNodeExporter:
       enabled: true
+    velero:
+      enabled: true
+      kubernetes:
+        resources:
+          limits:
+            cpu: 1
+            memory: 513Mi
+          requests:
+            cpu: 501m
+            memory: 129Mi
+        restic:
+          kubernetes:
+            resources:
+              limits:
+                cpu: 200m
+                memory: 256Mi
+              requests:
+                cpu: 100m
+                memory: 128Mi

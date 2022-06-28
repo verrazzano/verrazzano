@@ -614,6 +614,41 @@
           ]
         }
       ]
+    },
+    {
+      "name": "velero",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "velero",
+          "images": [
+            {
+              "image": "velero",
+              "tag": "v1.8.1"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "velero-plugin-for-aws",
+          "images": [
+            {
+              "image": "velero-plugin-for-aws",
+              "tag": "v1.4.1"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "velero-restic-restore-helper",
+          "images": [
+            {
+              "image": "velero-restic-restore-helper",
+              "tag": "v1.8.1"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

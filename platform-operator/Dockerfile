@@ -32,6 +32,7 @@ RUN yum update -y \
     && yum install -y kubectl-1.20.11-4.el7 \
     && yum install -y helm-3.8.0-1.el7 \
     && yum install -y istio-istioctl-1.13.2-1.el7 \
+    && yum install -y velero-1.8.1-1.el7 \
     && yum clean all \
     && rm -rf /var/cache/yum
 

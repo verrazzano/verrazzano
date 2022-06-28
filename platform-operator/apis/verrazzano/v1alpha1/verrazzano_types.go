@@ -377,6 +377,10 @@ type ComponentSpec struct {
 	// +optional
 	WebLogicOperator *WebLogicOperatorComponent `json:"weblogicOperator,omitempty"`
 
+	// Velero configuration
+	// +optional
+	Velero *VeleroComponent `json:"velero,omitempty"`
+
 	// Verrazzano configuration
 	// +optional
 	Verrazzano *VerrazzanoComponent `json:"verrazzano,omitempty"`
@@ -685,6 +689,30 @@ type WebLogicOperatorComponent struct {
 	// +optional
 	Enabled          *bool `json:"enabled,omitempty"`
 	InstallOverrides `json:",inline"`
+}
+
+// VeleroComponent  specifies the Velero configuration
+type VeleroComponent struct {
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// +optional
+	// Common Kubernetes requests configuration
+	Kubernetes *VeleroKubernetesSection `json:"kubernetes,omitempty"`
+
+	// +optional
+	// Common kubernetes configuration for Restic pods
+	Restic *VeleroResticSection `json:"restic,omitempty"`
+}
+
+// VeleroResticSection comprises of the kubernetes resource configuration for restic pods
+type VeleroResticSection struct {
+	Kubernetes *VeleroKubernetesSection `json:"kubernetes,omitempty"`
+}
+
+// VeleroKubernetesSection specifies the Kubernetes resources that can be customized for Velero.
+type VeleroKubernetesSection struct {
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 // InstallArgs identifies a name/value or name/value list needed for install.
