@@ -941,7 +941,7 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
 def getPlatformOperatorForRelease(){
     script {
         //Removing v from the upgrade version for error handling.
-        VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
+        VERSION_FOR_UPGRADE_ENV = VERSION_FOR_UPGRADE_ENV - "v"
         def operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file"
 
         if(params.VERSION_FOR_UPGRADE != "current_branch" && params.IS_TRIGGERED_MANUALLY != "YES" && params.VERSION_FOR_UPGRADE != "NONE"){
@@ -951,7 +951,7 @@ def getPlatformOperatorForRelease(){
             operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name release-${latestReleaseBranch}/operator.yaml --file"
 
         }else if(params.IS_TRIGGERED_MANUALLY == "YES" && params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "current_branch"){
-            operatorCMD = "curl -L https://github.com/verrazzano/verrazzano/releases/download/v${VERSION_FOR_UPGRADE}/operator.yaml --output"
+            operatorCMD = "curl -L https://github.com/verrazzano/verrazzano/releases/download/v${VERSION_FOR_UPGRADE_ENV}/operator.yaml --output"
         }
 
         sh(script: "$operatorCMD $TARGET_UPGRADE_OPERATOR_YAML")
