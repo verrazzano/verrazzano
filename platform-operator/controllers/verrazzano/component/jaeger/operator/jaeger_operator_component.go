@@ -6,7 +6,6 @@ package operator
 import (
 	"context"
 	"fmt"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -45,18 +44,6 @@ func NewComponent() spi.Component {
 
 func (c jaegerOperatorComponent) PreInstall(ctx spi.ComponentContext) error {
 	return ensureVerrazzanoMonitoringNamespace(ctx)
-}
-
-func (c jaegerOperatorComponent) PreUninstall(context spi.ComponentContext) error {
-	return nil
-}
-
-func (c jaegerOperatorComponent) Uninstall(context spi.ComponentContext) error {
-	return nil
-}
-
-func (c jaegerOperatorComponent) PostUninstall(context spi.ComponentContext) error {
-	return nil
 }
 
 func (c jaegerOperatorComponent) Upgrade(ctx spi.ComponentContext) error {

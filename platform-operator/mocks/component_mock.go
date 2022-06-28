@@ -625,20 +625,6 @@ func (mr *MockComponentMockRecorder) Install(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Install", reflect.TypeOf((*MockComponent)(nil).Install), arg0)
 }
 
-// Uninstall mocks base method.
-func (m *MockComponent) Uninstall(arg0 spi.ComponentContext) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Uninstall", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Uninstall indicates an expected call of Uninstall.
-func (mr *MockComponentMockRecorder) Uninstall(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Uninstall", reflect.TypeOf((*MockComponent)(nil).Uninstall), arg0)
-}
-
 // IsEnabled mocks base method.
 func (m *MockComponent) IsEnabled(arg0 *v1alpha1.Verrazzano) bool {
 	m.ctrl.T.Helper()
@@ -738,20 +724,6 @@ func (mr *MockComponentMockRecorder) PostInstall(arg0 interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostInstall", reflect.TypeOf((*MockComponent)(nil).PostInstall), arg0)
 }
 
-// PostUninstall mocks base method.
-func (m *MockComponent) PostUninstall(arg0 spi.ComponentContext) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PostInstall", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// PostUninstall indicates an expected call of PostUninstall.
-func (mr *MockComponentMockRecorder) PostUninstall(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostUninstall", reflect.TypeOf((*MockComponent)(nil).PostUninstall), arg0)
-}
-
 // PostUpgrade mocks base method.
 func (m *MockComponent) PostUpgrade(arg0 spi.ComponentContext) error {
 	m.ctrl.T.Helper()
@@ -778,20 +750,6 @@ func (m *MockComponent) PreInstall(arg0 spi.ComponentContext) error {
 func (mr *MockComponentMockRecorder) PreInstall(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PreInstall", reflect.TypeOf((*MockComponent)(nil).PreInstall), arg0)
-}
-
-// PreUninstall mocks base method.
-func (m *MockComponent) PreUninstall(arg0 spi.ComponentContext) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PreUninstall", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// PreUninstall indicates an expected call of PreUninstall.
-func (mr *MockComponentMockRecorder) PreUninstall(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PreUninstall}", reflect.TypeOf((*MockComponent)(nil).PreUninstall), arg0)
 }
 
 // PreUpgrade mocks base method.

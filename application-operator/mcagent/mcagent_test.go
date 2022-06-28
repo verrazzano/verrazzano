@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	v1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -83,8 +82,6 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 			return nil
 		})
 
-	expectServiceAndPodMonitorsList(mcMock, assert)
-
 	// Managed Cluster - expect call to list VerrazzanoProject objects - return an empty list
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Any()).
@@ -116,22 +113,6 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 	mcMocker.Finish()
 	assert.NoError(err)
 	assert.Equal(validSecret.ResourceVersion, s.SecretResourceVersion)
-}
-
-func expectServiceAndPodMonitorsList(mock *mocks.MockClient, assert *asserts.Assertions) {
-	// Managed Cluster, expect call to list service monitors, return an empty list
-	mock.EXPECT().
-		List(gomock.Any(), &v1.ServiceMonitorList{}, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *v1.ServiceMonitorList, opts ...client.ListOption) error {
-			return nil
-		})
-	// Managed Cluster, expect call to list pod monitors, return an empty list
-	mock.EXPECT().
-		List(gomock.Any(), &v1.PodMonitorList{}, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *v1.PodMonitorList, opts ...client.ListOption) error {
-			return nil
-		})
-
 }
 
 // TestProcessAgentThreadSecretDeleted tests agent thread when the registration secret is deleted

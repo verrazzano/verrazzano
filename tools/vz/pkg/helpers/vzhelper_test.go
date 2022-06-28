@@ -10,10 +10,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
+	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -24,7 +25,7 @@ import (
 func TestGetLatestReleaseVersion(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	latestRelease, err := GetLatestReleaseVersion(rc.GetHTTPClient())
 	assert.NoError(t, err)
 	assert.Equal(t, latestRelease, "v1.3.1")
@@ -35,7 +36,8 @@ func TestGetLatestReleaseVersion(t *testing.T) {
 //  WHEN I call GetVerrazzanoResource
 //  THEN expect it to return a verrazzano rsource
 func TestGetVerrazzanoResource(t *testing.T) {
-	client := fake.NewClientBuilder().WithScheme(NewScheme()).WithObjects(
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "default",
@@ -54,7 +56,8 @@ func TestGetVerrazzanoResource(t *testing.T) {
 //  WHEN I call GetVerrazzanoResource
 //  THEN expect it to return an error
 func TestGetVerrazzanoResourceNotFound(t *testing.T) {
-	client := fake.NewClientBuilder().WithScheme(NewScheme()).Build()
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	_, err := GetVerrazzanoResource(client, types.NamespacedName{Namespace: "default", Name: "verrazzano"})
 	assert.EqualError(t, err, "Failed to get a Verrazzano install resource: verrazzanos.install.verrazzano.io \"verrazzano\" not found")
@@ -65,7 +68,8 @@ func TestGetVerrazzanoResourceNotFound(t *testing.T) {
 //  WHEN I call FindVerrazzanoResource
 //  THEN expect to find a single verrazzano rsource
 func TestFindVerrazzanoResource(t *testing.T) {
-	client := fake.NewClientBuilder().WithScheme(NewScheme()).WithObjects(
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "default",
@@ -84,7 +88,8 @@ func TestFindVerrazzanoResource(t *testing.T) {
 //  WHEN I call FindVerrazzanoResource
 //  THEN return an error when multiple verrazzano resources found
 func TestFindVerrazzanoResourceMultiple(t *testing.T) {
-	client := fake.NewClientBuilder().WithScheme(NewScheme()).WithObjects(
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "default",
@@ -107,7 +112,8 @@ func TestFindVerrazzanoResourceMultiple(t *testing.T) {
 //  WHEN I call FindVerrazzanoResource
 //  THEN return an error when no verrazzano resources are found
 func TestFindVerrazzanoResourceNone(t *testing.T) {
-	client := fake.NewClientBuilder().WithScheme(NewScheme()).Build()
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	_, err := FindVerrazzanoResource(client)
 	assert.EqualError(t, err, "Failed to find any Verrazzano resources")

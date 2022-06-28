@@ -5,7 +5,6 @@ package opensearch
 
 import (
 	"fmt"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -93,18 +92,6 @@ func (o opensearchComponent) PreInstall(ctx spi.ComponentContext) error {
 // Install OpenSearch component install processing
 func (o opensearchComponent) Install(ctx spi.ComponentContext) error {
 	return common.CreateOrUpdateVMI(ctx, updateFunc)
-}
-
-func (o opensearchComponent) PreUninstall(context spi.ComponentContext) error {
-	return nil
-}
-
-func (o opensearchComponent) Uninstall(context spi.ComponentContext) error {
-	return nil
-}
-
-func (o opensearchComponent) PostUninstall(context spi.ComponentContext) error {
-	return nil
 }
 
 // PreUpgrade OpenSearch component pre-upgrade processing

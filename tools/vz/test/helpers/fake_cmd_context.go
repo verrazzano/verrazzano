@@ -11,8 +11,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/github"
+
+	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"

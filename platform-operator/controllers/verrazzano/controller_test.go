@@ -10,8 +10,6 @@ import (
 	"testing"
 	"time"
 
-	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
-
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -496,19 +494,6 @@ func TestUninstallComplete(t *testing.T) {
 		Time: time.Now(),
 	}
 
-	registry.OverrideGetComponentsFn(func() []spi.Component {
-		return []spi.Component{
-			fakeComponent{
-				HelmComponent: helm2.HelmComponent{
-					ReleaseName: "fake",
-				},
-				isInstalledFunc: func(ctx spi.ComponentContext) (bool, error) {
-					return false, nil
-				},
-			},
-		}
-	})
-
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
@@ -805,19 +790,6 @@ func TestUninstallSucceeded(t *testing.T) {
 		Time: time.Now(),
 	}
 
-	registry.OverrideGetComponentsFn(func() []spi.Component {
-		return []spi.Component{
-			fakeComponent{
-				HelmComponent: helm2.HelmComponent{
-					ReleaseName: "fake",
-				},
-				isInstalledFunc: func(ctx spi.ComponentContext) (bool, error) {
-					return false, nil
-				},
-			},
-		}
-	})
-
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -873,7 +845,7 @@ func TestUninstallSucceeded(t *testing.T) {
 	mockStatus.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
 
 	// Expect a call to update the finalizers - return success
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()

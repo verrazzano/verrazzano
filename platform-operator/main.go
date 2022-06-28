@@ -25,7 +25,6 @@ import (
 	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/netpolicy"
-	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"go.uber.org/zap"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -163,8 +162,6 @@ func main() {
 	}
 
 	installv1alpha1.SetComponentValidator(validator.ComponentValidatorImpl{})
-
-	metricsexporter.InitalizeMetricsEndpoint()
 
 	// Setup the reconciler
 	reconciler := vzcontroller.Reconciler{

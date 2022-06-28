@@ -6,6 +6,10 @@ package uninstall
 import (
 	"bytes"
 	"context"
+	adminv1 "k8s.io/api/admissionregistration/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"testing"
 
@@ -13,15 +17,11 @@ import (
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
-	adminv1 "k8s.io/api/admissionregistration/v1"
+	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -68,12 +68,13 @@ func TestUninstallCmd(t *testing.T) {
 			Name:      "verrazzano",
 		},
 	}
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(uninstall, vz, namespace, validatingWebhookConfig, clusterRoleBinding, clusterRole).Build()
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(uninstall, vz, namespace, validatingWebhookConfig, clusterRoleBinding, clusterRole).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
@@ -82,9 +83,7 @@ func TestUninstallCmd(t *testing.T) {
 	err := cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
-	assert.Contains(t, buf.String(), "Uninstalling Verrazzano\n")
-	assert.Contains(t, buf.String(), "Waiting for verrazzano-uninstall-verrazzano to be ready before starting uninstall")
-	assert.Contains(t, buf.String(), "Successfully uninstalled Verrazzano\n")
+	assert.Equal(t, "Uninstalling Verrazzano\n\nfake logs\nSuccessfully uninstalled Verrazzano\n", buf.String())
 
 	// Expect the Verrazzano resource to be deleted
 	v := vzapi.Verrazzano{}
@@ -140,24 +139,23 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 			Name:      "verrazzano",
 		},
 	}
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(uninstall, vz, namespace).Build()
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(uninstall, vz, namespace).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
-	_ = cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
+	_ = cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ns")
 
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
-	// This must be less than the 1 second polling delay to pass
-	// since the Verrazzano resource gets deleted almost instantaneously
-	assert.Contains(t, buf.String(), "Timeout 2ms exceeded waiting for uninstall to complete")
+	assert.Contains(t, buf.String(), "Timeout 2ns exceeded waiting for uninstall to complete")
 }
 
 // TestUninstallCmdDefaultNoWait
@@ -182,12 +180,13 @@ func TestUninstallCmdDefaultNoWait(t *testing.T) {
 			},
 		},
 	}
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(uninstall, vz).Build()
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(uninstall, vz).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)

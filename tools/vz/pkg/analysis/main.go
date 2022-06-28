@@ -4,6 +4,7 @@ package analysis
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/buildlog"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/cluster"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -11,7 +12,8 @@ import (
 )
 
 var analyzerTypeFunctions = map[string]func(log *zap.SugaredLogger, args string) (err error){
-	"cluster": cluster.RunAnalysis,
+	"cluster":  cluster.RunAnalysis,
+	"buildlog": buildlog.RunAnalysis,
 }
 
 var analyzerType = "cluster" //Currently does only cluster analysis
