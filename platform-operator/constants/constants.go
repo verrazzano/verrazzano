@@ -173,7 +173,7 @@ const KubernetesAppLabel = "app.kubernetes.io/component"
 // JaegerCollectorService is a label value for Jaeger collector
 const JaegerCollectorService = "service-collector"
 
-//VeleroOperatorNameSpace
+// VeleroNameSpace indicates the namespace to be used for velero installation
 const VeleroNameSpace = "velero"
 
 // OverridesFinalizer is a label value for value override object finalizer

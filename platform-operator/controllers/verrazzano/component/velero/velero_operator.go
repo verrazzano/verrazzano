@@ -13,30 +13,32 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"go.uber.org/zap"
+	v1 "k8s.io/api/core/v1"
 	"os"
 	"path"
+	"strings"
 	"time"
 )
 
 const (
 	deploymentName = "velero"
 
-	veleroBin            = "velero"
-	installCli           = "install"
-	volSnapshotEnableCli = "--use-volume-snapshots=false"
-	pluginImageCli       = "--plugins"
-	veleroImageCli       = "--image"
-	resticCli            = "--use-restic"
-	nosecret             = "--no-secret"
-	noDefaultBackup      = "--no-default-backup-location"
-	veleroPodCPURequest  = "--velero-pod-cpu-request=500m"
-	veleroPodCPULimit    = "--velero-pod-cpu-limit=1000m"
-	veleroPodMemRequest  = "--velero-pod-mem-request=128Mi"
-	veleroPodMemLimit    = "--velero-pod-mem-limit=512Mi"
-	resticPodCPURequest  = "--restic-pod-cpu-request=500m"
-	resticPodCPULimit    = "--restic-pod-cpu-limit=1000m"
-	resticPodMemRequest  = "--restic-pod-mem-request=128Mi"
-	resticPodMemLimit    = "--restic-pod-mem-limit=512Mi"
+	veleroBin                 = "velero"
+	installCli                = "install"
+	volSnapshotEnableCli      = "--use-volume-snapshots=false"
+	pluginImageCli            = "--plugins"
+	veleroImageCli            = "--image"
+	resticCli                 = "--use-restic"
+	nosecret                  = "--no-secret"
+	noDefaultBackup           = "--no-default-backup-location"
+	veleroPodCpuRequestCli    = "--velero-pod-cpu-request="
+	veleroPodCpuLimitCli      = "--velero-pod-cpu-limit="
+	veleroPodMemoryRequestCli = "--velero-pod-mem-request="
+	veleroPodMemoryLimitCli   = "--velero-pod-mem-limit="
+	resticPodCpuRequestCli    = "--restic-pod-cpu-request="
+	resticPodCpuLimitCli      = "--restic-pod-cpu-limit="
+	resticPodMemoryRequestCli = "--restic-pod-mem-request="
+	resticPodMemoryLimitCli   = "--restic-pod-mem-limit="
 )
 
 var subcomponentNames = []string{
@@ -45,23 +47,141 @@ var subcomponentNames = []string{
 	"velero-restic-restore-helper",
 }
 
+func getDefaultValues(resourceCategory, resourceType string) string {
+	switch resourceCategory {
+	case "limits":
+		switch resourceType {
+		case "cpu":
+			return "200m"
+		case "memory":
+			return "128Mi"
+		}
+	case "requests":
+		switch resourceType {
+		case "cpu":
+			return "200m"
+		case "memory":
+			return "128Mi"
+		}
+	}
+	return ""
+}
+
+func getValueFromResourceReqs(rq *v1.ResourceRequirements, resourceCategory, resourceType string) string {
+	valueNotConfigured := true
+	switch strings.ToLower(resourceCategory) {
+	case "limits":
+		if rq.Limits != nil {
+			switch resourceType {
+			case "cpu":
+				if rq.Limits.Cpu() != nil {
+					valueNotConfigured = false
+				}
+				if valueNotConfigured {
+					return getDefaultValues(resourceCategory, resourceType)
+				}
+				return rq.Limits.Cpu().String()
+
+			case "memory":
+				if rq.Limits.Memory() != nil {
+					valueNotConfigured = false
+				}
+				if valueNotConfigured {
+					return getDefaultValues(resourceCategory, resourceType)
+				}
+				return rq.Limits.Memory().String()
+			}
+		}
+		return getDefaultValues(resourceCategory, resourceType)
+	case "requests":
+		if rq.Requests != nil {
+			switch resourceType {
+			case "cpu":
+				if rq.Requests.Cpu() != nil {
+					valueNotConfigured = false
+				}
+				if valueNotConfigured {
+					return getDefaultValues(resourceCategory, resourceType)
+				}
+				return rq.Requests.Cpu().String()
+
+			case "memory":
+				if rq.Requests.Memory() != nil {
+					valueNotConfigured = false
+				}
+				if valueNotConfigured {
+					return getDefaultValues(resourceCategory, resourceType)
+				}
+				return rq.Requests.Memory().String()
+			}
+		}
+		return getDefaultValues(resourceCategory, resourceType)
+
+	}
+	return ""
+}
+
+func getCRValue(ctx spi.ComponentContext, resourceName, resourceCategory, resourceType string) string {
+	switch resourceName {
+	case "velero":
+		if ctx.EffectiveCR().Spec.Components.Velero.Kubernetes != nil {
+			if ctx.EffectiveCR().Spec.Components.Velero.Kubernetes.Resources != nil {
+				rq := ctx.EffectiveCR().Spec.Components.Velero.Kubernetes.Resources
+				return getValueFromResourceReqs(rq, resourceCategory, resourceType)
+			}
+			ctx.Log().Infof("calling default for velero for %v type %v", resourceCategory, resourceType)
+			return getDefaultValues(resourceCategory, resourceType)
+		}
+		ctx.Log().Infof("calling default for velero for %v type %v", resourceCategory, resourceType)
+		return getDefaultValues(resourceCategory, resourceType)
+
+	case "restic":
+		if ctx.EffectiveCR().Spec.Components.Velero.Restic != nil {
+			if ctx.EffectiveCR().Spec.Components.Velero.Restic.Kubernetes != nil {
+				if ctx.EffectiveCR().Spec.Components.Velero.Restic.Kubernetes.Resources != nil {
+					rq := ctx.EffectiveCR().Spec.Components.Velero.Restic.Kubernetes.Resources
+					return getValueFromResourceReqs(rq, resourceCategory, resourceType)
+				}
+				ctx.Log().Infof("calling default for restic for %v type %v", resourceCategory, resourceType)
+				return getDefaultValues(resourceCategory, resourceType)
+			}
+			ctx.Log().Infof("calling default for restic for %v type %v", resourceCategory, resourceType)
+			return getDefaultValues(resourceCategory, resourceType)
+		}
+		ctx.Log().Infof("calling default for restic for %v type %v", resourceCategory, resourceType)
+		return getDefaultValues(resourceCategory, resourceType)
+
+	}
+	return ""
+}
+
 func componentInstall(ctx spi.ComponentContext) error {
+
 	args, err := buildInstallArgs()
 	if err != nil {
 		ctx.Log().Errorf("Unable to build installargs %v", zap.Error(err))
 		return err
 	}
-	var vcmd BashCommand
-	var veleroInstallResponse *RunnerResponse
+	var vcmd bashCommand
+	var veleroInstallResponse *runnerResponse
 	vcmd.Timeout = time.Second * 600
+	veleroCpuRequestCmd := fmt.Sprintf("%s%s", veleroPodCpuRequestCli, getCRValue(ctx, "velero", "requests", "cpu"))
+	veleroCpuLimitCmd := fmt.Sprintf("%s%s", veleroPodCpuLimitCli, getCRValue(ctx, "velero", "limits", "cpu"))
+	veleroMemRequestCmd := fmt.Sprintf("%s%s", veleroPodMemoryRequestCli, getCRValue(ctx, "velero", "requests", "memory"))
+	veleroMemLimitCmd := fmt.Sprintf("%s%s", veleroPodMemoryLimitCli, getCRValue(ctx, "velero", "limits", "memory"))
+
+	resticCpuRequestCmd := fmt.Sprintf("%s%s", resticPodCpuRequestCli, getCRValue(ctx, "restic", "requests", "cpu"))
+	resticCpuLimitCmd := fmt.Sprintf("%s%s", resticPodCpuLimitCli, getCRValue(ctx, "restic", "limits", "cpu"))
+	resticMemRequestCmd := fmt.Sprintf("%s%s", resticPodMemoryRequestCli, getCRValue(ctx, "restic", "requests", "memory"))
+	resticMemLimitCmd := fmt.Sprintf("%s%s", resticPodMemoryLimitCli, getCRValue(ctx, "restic", "limits", "memory"))
 
 	var bcmd []string
 	bcmd = append(bcmd, veleroBin, installCli)
 	bcmd = append(bcmd, veleroImageCli, args.VeleroImage)
 	bcmd = append(bcmd, pluginImageCli, args.VeleroPluginForAwsImage)
 	bcmd = append(bcmd, resticCli, volSnapshotEnableCli, nosecret, noDefaultBackup)
-	bcmd = append(bcmd, veleroPodCPURequest, veleroPodCPULimit, veleroPodMemRequest, veleroPodMemLimit)
-	bcmd = append(bcmd, resticPodCPURequest, resticPodCPULimit, resticPodMemRequest, resticPodMemLimit)
+	bcmd = append(bcmd, veleroCpuRequestCmd, veleroCpuLimitCmd, veleroMemRequestCmd, veleroMemLimitCmd)
+	bcmd = append(bcmd, resticCpuRequestCmd, resticCpuLimitCmd, resticMemRequestCmd, resticMemLimitCmd)
 	vcmd.CommandArgs = bcmd
 
 	if os.Getenv("DEV_TEST") != "True" {

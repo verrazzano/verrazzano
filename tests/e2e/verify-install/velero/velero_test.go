@@ -83,7 +83,7 @@ var _ = t.Describe("Velero", Label("f:platform-lcm.install"), func() {
 				return pkg.DoesNamespaceExist(constants.VeleroNameSpace)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
-
+		
 		// GIVEN the Velero is installed
 		// WHEN we check to make sure the restore helper configmap is created in velero namespace
 		// THEN we see that configmap data has the right image set

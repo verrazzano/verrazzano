@@ -13,13 +13,13 @@ import (
 	"time"
 )
 
-type BashCommand struct {
+type bashCommand struct {
 	Timeout      time.Duration `json:"timeout"`
 	CmdDirectory string        `json:"directory"`
 	CommandArgs  []string      `json:"cmdArgs"`
 }
 
-type RunnerResponse struct {
+type runnerResponse struct {
 	StandardOut  bytes.Buffer `json:"stdout"`
 	StandardErr  bytes.Buffer `json:"stderr"`
 	CommandError error        `json:"error"`
@@ -32,43 +32,43 @@ type VeleroImage struct {
 }
 
 // Generic method to execute shell commands
-func genericRunner(bcmd *BashCommand, log vzlog.VerrazzanoLogger) *RunnerResponse {
+func genericRunner(bcmd *bashCommand, log vzlog.VerrazzanoLogger) *runnerResponse {
 	var stdoutBuf, stderrBuf bytes.Buffer
-	var bashCommandResponse RunnerResponse
-	bashCommand := exec.Command(bcmd.CommandArgs[0], bcmd.CommandArgs[1:]...) //nolint:gosec
-	bashCommand.Dir = bcmd.CmdDirectory
-	bashCommand.Stdout = io.MultiWriter(os.Stdout, &stdoutBuf)
-	bashCommand.Stderr = io.MultiWriter(os.Stderr, &stderrBuf)
+	var bashCommandResponse runnerResponse
+	shellCommand := exec.Command(bcmd.CommandArgs[0], bcmd.CommandArgs[1:]...) //nolint:gosec
+	shellCommand.Dir = bcmd.CmdDirectory
+	shellCommand.Stdout = io.MultiWriter(os.Stdout, &stdoutBuf)
+	shellCommand.Stderr = io.MultiWriter(os.Stderr, &stderrBuf)
 
-	log.Debugf("Executing command '%v'", bashCommand.String())
-	err := bashCommand.Start()
+	log.Debugf("Executing command '%v'", shellCommand.String())
+	err := shellCommand.Start()
 	if err != nil {
-		log.Errorf("Cmd '%v' execution failed due to '%v'", bashCommand.String(), zap.Error(err))
+		log.Errorf("Cmd '%v' execution failed due to '%v'", shellCommand.String(), zap.Error(err))
 		bashCommandResponse.CommandError = err
 		return &bashCommandResponse
 	}
 	done := make(chan error, 1)
 	go func() {
-		done <- bashCommand.Wait()
+		done <- shellCommand.Wait()
 	}()
 	select {
 	case <-time.After(bcmd.Timeout):
-		if err = bashCommand.Process.Kill(); err != nil {
-			log.Errorf("Failed to kill cmd '%v' due to '%v'", bashCommand.String(), zap.Error(err))
+		if err = shellCommand.Process.Kill(); err != nil {
+			log.Errorf("Failed to kill cmd '%v' due to '%v'", shellCommand.String(), zap.Error(err))
 			bashCommandResponse.CommandError = err
 			return &bashCommandResponse
 		}
-		log.Errorf("Cmd '%v' timeout expired", bashCommand.String())
+		log.Errorf("Cmd '%v' timeout expired", shellCommand.String())
 		bashCommandResponse.CommandError = err
 		return &bashCommandResponse
 	case err = <-done:
 		if err != nil {
-			log.Errorf("Cmd '%v' execution failed due to '%v'", bashCommand.String(), zap.Error(err))
+			log.Errorf("Cmd '%v' execution failed due to '%v'", shellCommand.String(), zap.Error(err))
 			bashCommandResponse.StandardErr = stderrBuf
 			bashCommandResponse.CommandError = err
 			return &bashCommandResponse
 		}
-		log.Debugf("Command '%s' execution successful", bashCommand.String())
+		log.Debugf("Command '%s' execution successful", shellCommand.String())
 		bashCommandResponse.StandardOut = stdoutBuf
 		bashCommandResponse.CommandError = err
 		return &bashCommandResponse
