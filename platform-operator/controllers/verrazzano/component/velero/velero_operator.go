@@ -68,28 +68,21 @@ func getDefaultValues(resourceCategory, resourceType string) string {
 }
 
 func getValueFromResourceReqs(rq *v1.ResourceRequirements, resourceCategory, resourceType string) string {
-	valueNotConfigured := true
 	switch strings.ToLower(resourceCategory) {
 	case "limits":
 		if rq.Limits != nil {
 			switch resourceType {
 			case "cpu":
 				if rq.Limits.Cpu() != nil {
-					valueNotConfigured = false
+					return rq.Limits.Cpu().String()
 				}
-				if valueNotConfigured {
-					return getDefaultValues(resourceCategory, resourceType)
-				}
-				return rq.Limits.Cpu().String()
+				return getDefaultValues(resourceCategory, resourceType)
 
 			case "memory":
 				if rq.Limits.Memory() != nil {
-					valueNotConfigured = false
+					return rq.Limits.Memory().String()
 				}
-				if valueNotConfigured {
-					return getDefaultValues(resourceCategory, resourceType)
-				}
-				return rq.Limits.Memory().String()
+				return getDefaultValues(resourceCategory, resourceType)
 			}
 		}
 		return getDefaultValues(resourceCategory, resourceType)
@@ -98,25 +91,17 @@ func getValueFromResourceReqs(rq *v1.ResourceRequirements, resourceCategory, res
 			switch resourceType {
 			case "cpu":
 				if rq.Requests.Cpu() != nil {
-					valueNotConfigured = false
+					return rq.Requests.Cpu().String()
 				}
-				if valueNotConfigured {
-					return getDefaultValues(resourceCategory, resourceType)
-				}
-				return rq.Requests.Cpu().String()
-
+				return getDefaultValues(resourceCategory, resourceType)
 			case "memory":
 				if rq.Requests.Memory() != nil {
-					valueNotConfigured = false
+					return rq.Requests.Memory().String()
 				}
-				if valueNotConfigured {
-					return getDefaultValues(resourceCategory, resourceType)
-				}
-				return rq.Requests.Memory().String()
+				return getDefaultValues(resourceCategory, resourceType)
 			}
 		}
 		return getDefaultValues(resourceCategory, resourceType)
-
 	}
 	return ""
 }
@@ -192,7 +177,7 @@ func componentInstall(ctx spi.ComponentContext) error {
 		ctx.Log().Infof("%v", veleroInstallResponse.StandardOut.String())
 	}
 
-	// Create configmap for velero restic helper
+	// Create configmap for Velero Restic helper
 	resticHelperYamlArgs := make(map[string]interface{})
 	resticHelperYamlArgs["veleroNamespace"] = ComponentNamespace
 	resticHelperYamlArgs["veleroRunnerImage"] = args.VeleroResticRestoreHelperImage
