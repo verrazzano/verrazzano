@@ -8,21 +8,23 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sigs.k8s.io/yaml"
 	"testing"
 	"time"
+
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	cmdHelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
-	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
+	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -62,13 +64,12 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 		},
 	}
 
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
@@ -121,13 +122,12 @@ func TestInstallCmdDefaultTimeout(t *testing.T) {
 		},
 	}
 
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
@@ -145,13 +145,12 @@ func TestInstallCmdDefaultTimeout(t *testing.T) {
 //  WHEN I call cmd.Execute for install
 //  THEN the CLI install command fails
 func TestInstallCmdDefaultNoVPO(t *testing.T) {
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
@@ -211,13 +210,12 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 			},
 		},
 	}
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo1, vpo2, deployment).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo1, vpo2, deployment).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
@@ -266,13 +264,12 @@ func TestInstallCmdJsonLogFormat(t *testing.T) {
 			},
 		},
 	}
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
@@ -325,13 +322,12 @@ func TestInstallCmdFilenames(t *testing.T) {
 			},
 		},
 	}
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
@@ -385,13 +381,12 @@ func TestInstallCmdSets(t *testing.T) {
 			},
 		},
 	}
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
@@ -447,19 +442,21 @@ func TestInstallCmdFilenamesAndSets(t *testing.T) {
 			},
 		},
 	}
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/dev-profile.yaml")
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=prod")
 	cmd.PersistentFlags().Set(constants.SetFlag, "environmentName=test")
+	cmd.PersistentFlags().Set(constants.SetFlag, "components.ingress.overrides[0].values.controller.podLabels.override=\"true\"")
+	cmd.PersistentFlags().Set(constants.SetFlag, "components.ingress.overrides[1].values.controller.service.annotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\"=10Mbps")
+	cmd.PersistentFlags().Set(constants.SetFlag, "components.ingress.enabled=true")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 
 	// Run install command
@@ -473,6 +470,17 @@ func TestInstallCmdFilenamesAndSets(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, vzapi.Prod, vz.Spec.Profile)
 	assert.Equal(t, "test", vz.Spec.EnvironmentName)
+	assert.Equal(t, true, *vz.Spec.Components.Ingress.Enabled)
+	json, err := vz.Spec.Components.Ingress.InstallOverrides.ValueOverrides[0].Values.MarshalJSON()
+	assert.NoError(t, err)
+	outyaml, err := yaml.JSONToYAML(json)
+	assert.NoError(t, err)
+	assert.Equal(t, "controller:\n  podLabels:\n    override: \"true\"\n", string(outyaml))
+	json, err = vz.Spec.Components.Ingress.InstallOverrides.ValueOverrides[1].Values.MarshalJSON()
+	assert.NoError(t, err)
+	outyaml, err = yaml.JSONToYAML(json)
+	assert.NoError(t, err)
+	assert.Equal(t, "controller:\n  service:\n    annotations:\n      service.beta.kubernetes.io/oci-load-balancer-shape: 10Mbps\n", string(outyaml))
 }
 
 // TestInstallCmdOperatorFile
@@ -513,13 +521,12 @@ func TestInstallCmdOperatorFile(t *testing.T) {
 		},
 	}
 
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vpo, deployment).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
@@ -558,7 +565,7 @@ func TestInstallCmdOperatorFile(t *testing.T) {
 func TestInstallValidations(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.OperatorFileFlag, "test")
@@ -575,7 +582,7 @@ func TestInstallValidations(t *testing.T) {
 func TestGetWaitTimeoutDefault(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	duration, err := cmdHelpers.GetWaitTimeout(cmd)
@@ -590,7 +597,7 @@ func TestGetWaitTimeoutDefault(t *testing.T) {
 func TestGetWaitTimeoutNoWait(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
@@ -606,7 +613,7 @@ func TestGetWaitTimeoutNoWait(t *testing.T) {
 func TestGetWaitTimeoutSpecified(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "10m")
@@ -622,7 +629,7 @@ func TestGetWaitTimeoutSpecified(t *testing.T) {
 func TestGetLogFormatSimple(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "simple")
@@ -638,7 +645,7 @@ func TestGetLogFormatSimple(t *testing.T) {
 func TestGetLogFormatJson(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "json")
@@ -654,7 +661,7 @@ func TestGetLogFormatJson(t *testing.T) {
 func TestSetCommandInvalidFormat(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.SetFlag, "badflag")
@@ -672,7 +679,7 @@ func TestSetCommandInvalidFormat(t *testing.T) {
 func TestSetCommandSingle(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=dev")
@@ -689,7 +696,7 @@ func TestSetCommandSingle(t *testing.T) {
 func TestSetCommandMultiple(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=dev")
@@ -708,7 +715,7 @@ func TestSetCommandMultiple(t *testing.T) {
 func TestSetCommandOverride(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=dev")

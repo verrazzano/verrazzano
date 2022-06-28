@@ -5,8 +5,9 @@ package helm
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"os"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -296,6 +297,18 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 		}
 	}
 
+	return nil
+}
+
+func (h HelmComponent) PreUninstall(context spi.ComponentContext) error {
+	return nil
+}
+
+func (h HelmComponent) Uninstall(context spi.ComponentContext) error {
+	return nil
+}
+
+func (h HelmComponent) PostUninstall(context spi.ComponentContext) error {
 	return nil
 }
 

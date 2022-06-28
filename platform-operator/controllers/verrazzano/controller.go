@@ -6,12 +6,13 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -760,7 +761,7 @@ func checkCondtitionType(currentCondition installv1alpha1.ConditionType) install
 	case installv1alpha1.CondUpgradePaused:
 		return installv1alpha1.CompStateUpgrading
 	case installv1alpha1.CondUninstallComplete:
-		return installv1alpha1.CompStateReady
+		return installv1alpha1.CompStateUninstalled
 	case installv1alpha1.CondInstallFailed, installv1alpha1.CondUpgradeFailed, installv1alpha1.CondUninstallFailed:
 		return installv1alpha1.CompStateFailed
 	}
