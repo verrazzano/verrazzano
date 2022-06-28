@@ -229,6 +229,10 @@ var (
 		Name: "fluentd_upgrade_time",
 		Help: "The upgrade time for the fluentd component",
 	})
+	testingUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "test_component_upgrade_time",
+		Help: "The upgrade time for the fake component",
+	})
 
 	installMetricsMap = map[string]prometheus.Gauge{
 		"verrazzano-authproxy":            verrazzanoAuthproxyInstallTimeMetric,
@@ -285,6 +289,7 @@ var (
 		"jaeger-operator":                 jaegerOperatorUpgradeTimeMetric,
 		"verrazzano-console":              verrazzanoConsoleUpgradeTimeMetric,
 		"fluentd":                         fluentdUpgradeTimeMetric,
+		"":                                testingUpgradeTimeMetric,
 	}
 )
 
