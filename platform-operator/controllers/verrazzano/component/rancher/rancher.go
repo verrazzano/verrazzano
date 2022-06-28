@@ -292,6 +292,8 @@ func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
 
 // Delete the local cluster
 func DeleteLocalCluster(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi.Verrazzano) error {
+	log.Once("Deleting Rancher local cluster")
+
 	password, err := common.GetAdminSecret(c)
 	if err != nil {
 		return log.ErrorfThrottledNewErr("Failed getting Rancher admin secret: %s", err.Error())
@@ -320,5 +322,6 @@ func DeleteLocalCluster(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi.V
 		return log.ErrorfThrottledNewErr("Failed deleting Rancher local host: %s", err.Error())
 	}
 
+	log.Once("Successfully delete Rancher local cluster")
 	return nil
 }
