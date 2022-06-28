@@ -30,22 +30,128 @@ var (
 	})
 	apopperInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "apopper_component_install_time",
-		Help: "The install time for the authproxy component",
+		Help: "The install time for the apopper component",
 	})
 	istioInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "istio_component_install_time",
-		Help: "The install time for the authproxy component",
+		Help: "The install time for the istio component",
 	})
 	weblogicInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "weblogic_component_install_time",
-		Help: "The install time for the authproxy component",
+		Help: "The install time for the weblogic component",
 	})
+	nginxInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "nginx_component_install_time",
+		Help: "The install time for the nginx component",
+	})
+	certManagerInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "certManager_component_install_time",
+		Help: "The install time for the certManager component",
+	})
+	externalDNSInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "externalDNS_component_install_time",
+		Help: "The install time for the externalDNS component",
+	})
+	rancherInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "rancher_component_install_time",
+		Help: "The install time for the rancher component",
+	})
+	verrazzanoInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "verrazzano_component_install_time",
+		Help: "The install time for the verrazzano component",
+	})
+	verrazzanoMonitoringOperatorInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "verrazzano_monitoring_operator_component_install_time",
+		Help: "The install time for the verrazzano-monitoring-operator component",
+	})
+	openSearchInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "open_search_component_install_time",
+		Help: "The install time for the opensearch component",
+	})
+	openSearchDashboardsInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "open_search_dashboards_component_install_time",
+		Help: "The install time for the opensearch-dashboards component",
+	})
+	grafanaInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "grafana_component_install_time",
+		Help: "The install time for the grafana component",
+	})
+	coherenceInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "coherence_component_install_time",
+		Help: "The install time for the coherence component",
+	})
+	mySqlInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "my_sql_component_install_time",
+		Help: "The install time for the mysql component",
+	})
+	keycloakInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "keycloak_component_install_time",
+		Help: "The install time for the keycloak component",
+	})
+	kialiInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "kiali_component_install_time",
+		Help: "The install time for the kiali component",
+	})
+	prometheusOperatorInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "prometheus_operator_install_time",
+		Help: "The install time for the prometheus-operator component",
+	})
+	prometheusAdapterInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "prometheus_adapter_install_time",
+		Help: "The install time for the prometheus-adapter component",
+	})
+	kubeStateMetricsInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "kube_state_metrics_install_time",
+		Help: "The install time for the kube-state-metrics component",
+	})
+	prometheusPushGatewayInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "prometheus_push_gateway_install_time",
+		Help: "The install time for the prometheus-push-gateway component",
+	})
+	prometheusNodeExporterInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "prometheus_node_exporter_install_time",
+		Help: "The install time for the prometheus-node-exporter component",
+	})
+	jaegerOperatorInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "jaeger_operator_install_time",
+		Help: "The install time for the jaeger-operator component",
+	})
+	verrazzanoConsoleInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "verrazzano_console_install_time",
+		Help: "The install time for the verrazzano-console component",
+	})
+	fluentdInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "fluentd_install_time",
+		Help: "The install time for the fluentd component",
+	})
+
 	installMetricsMap = map[string]prometheus.Gauge{
 		"verrazzano-authproxy":            verrazzanoAuthproxyInstallTimeMetric,
 		"oam-kubernetes-runtime":          oamInstallTimeMetric,
 		"verrazzano-application-operator": apopperInstallTimeMetric,
 		"istio":                           istioInstallTimeMetric,
 		"weblogic-operator":               weblogicInstallTimeMetric,
+		"ingress-controller":              nginxInstallTimeMetric,
+		"cert-manager":                    certManagerInstallTimeMetric,
+		"external-dns":                    externalDNSInstallTimeMetric,
+		"rancher":                         rancherInstallTimeMetric,
+		"verrazzano":                      verrazzanoAuthproxyInstallTimeMetric,
+		"verrazzano-monitoring-operator":  verrazzanoMonitoringOperatorInstallTimeMetric,
+		"opensearch":                      openSearchInstallTimeMetric,
+		"opensearch-dashboards":           openSearchDashboardsInstallTimeMetric,
+		"grafana":                         grafanaInstallTimeMetric,
+		"coherence-operator":              coherenceInstallTimeMetric,
+		"mysql":                           mySqlInstallTimeMetric,
+		"keycloak":                        keycloakInstallTimeMetric,
+		"kiali-server":                    kialiInstallTimeMetric,
+		"prometheus-operator":             prometheusOperatorInstallTimeMetric,
+		"prometheus-adapter":              prometheusAdapterInstallTimeMetric,
+		"kube-state-metrics":              kubeStateMetricsInstallTimeMetric,
+		"prometheus-pushgateway":          prometheusPushGatewayInstallTimeMetric,
+		"prometheus-node-exporter":        prometheusNodeExporterInstallTimeMetric,
+		"jaeger-operator":                 jaegerOperatorInstallTimeMetric,
+		"verrazzano-console":              verrazzanoConsoleInstallTimeMetric,
+		"fluentd":                         fluentdInstallTimeMetric,
 	}
 )
 
@@ -67,4 +173,8 @@ func CollectInstallTimeMetric(componentName string) {
 	totalInstallTime := endTime - installStartTimeMap[componentName]
 	installMetricsMap[componentName].Set(float64(totalInstallTime))
 
+}
+func CheckIfAlreadyBeingMonitored(componentName string) bool {
+	_, monitored := installStartTimeMap[componentName]
+	return monitored
 }

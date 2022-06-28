@@ -6,7 +6,6 @@ package authproxy
 import (
 	"fmt"
 	"path/filepath"
-	"time"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 
@@ -16,7 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -93,7 +91,6 @@ func (c authProxyComponent) IsReady(ctx spi.ComponentContext) bool {
 // PreInstall - actions to perform prior to installing this component
 func (c authProxyComponent) PreInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debug("AuthProxy pre-install")
-	startTime := time.Now().Unix()
 
 	err := authproxyPreHelmOps(ctx)
 	if err != nil {
@@ -109,8 +106,6 @@ func (c authProxyComponent) PreInstall(ctx spi.ComponentContext) error {
 		ctx.Log().Oncef("Component %s already installed, skipping PreInstall checks", ComponentName)
 		return nil
 	}
-
-	metricsexporter.AddInstallStartTime(startTime, ComponentName)
 
 	return nil
 }

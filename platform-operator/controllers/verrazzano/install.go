@@ -4,6 +4,8 @@
 package verrazzano
 
 import (
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -11,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
+	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -117,6 +120,9 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 				continue
 			}
 			compLog.Progressf("Component %s pre-install is running ", compName)
+			if !(metricsexporter.CheckIfAlreadyBeingMonitored(compName)) {
+				metricsexporter.AddInstallStartTime(time.Now().Unix(), compName)
+			}
 			if err := comp.PreInstall(compContext); err != nil {
 				requeue = true
 				continue
@@ -142,6 +148,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 					requeue = true
 					continue
 				}
+				metricsexporter.CollectInstallTimeMetric(compName)
 				compLog.Oncef("Component %s successfully installed", comp.Name())
 				if err := r.updateComponentStatus(compContext, "Install complete", vzapi.CondInstallComplete); err != nil {
 					return ctrl.Result{Requeue: true}, err
