@@ -300,6 +300,10 @@ func applySystemMonitors(ctx spi.ComponentContext) error {
 	args["istioNamespace"] = constants.IstioSystemNamespace
 	args["installNamespace"] = constants.VerrazzanoInstallNamespace
 
+	istio := ctx.EffectiveCR().Spec.Components.Istio
+	enabled := istio != nil && istio.IsInjectionEnabled()
+	args["isIstioEnabled"] = enabled
+
 	// substitute template values to all files in the directory and apply the resulting YAML
 	dir := path.Join(config.GetThirdPartyManifestsDir(), "prometheus-operator")
 	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
