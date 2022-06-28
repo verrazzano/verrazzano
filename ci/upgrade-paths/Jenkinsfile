@@ -467,6 +467,22 @@ pipeline {
                 }
             }
         }
+        stage ('Verify Install') {
+            parallel {
+                stage('verify-install') {
+                    steps {
+                        runGinkgoRandomizeSerial('verify-install')
+                    }
+                }
+
+                stage ('multicluster/verify-install') {
+                    when { expression { isMultiCluster() } }
+                    steps {
+                        runGinkgoRandomizeParallel('multicluster/verify-install')
+                    }
+                }
+            }
+        }
 
         // Run Verify Registry
         stage('Verify Registry') {
@@ -660,14 +676,26 @@ pipeline {
 }
 
 def checkUpgradeAcrossVer(version) {
-    script {
-        def undeploy = "true" // undeploy
-        if (!params.VERSION_FOR_INSTALL.startsWith("${version}") && params.VERSION_FOR_UPGRADE.startsWith("${version}")) {
-            undeploy = "false" // deploy
-        }
-        return undeploy
+    if (isMinVersion(params.VERSION_FOR_INSTALL, version) && !isMinVersion(VERRAZZANO_DEV_VERSION, version)) {
+        return "false"
     }
+    return "true"
 }
+
+def isMinVersion(v1, v2) {
+    v2 = v2 - 'v'
+    v1 = v1 - 'v'
+    def v2Split  = v2.split('\\.')
+    runningVZVersion = v2Split[0] + '.' + v2Split[1]
+    v1Split = v1.split('\\.')
+    if(v2Split[0] > v1Split[0]){
+        return true
+    }else if(v2Split[0] == v1Split[0] && v1Split[1] < v2Split[1]){
+        return true
+    }
+    return false
+}
+
 
 def createOCIDNSZone() {
     script {
