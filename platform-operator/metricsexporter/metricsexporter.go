@@ -233,6 +233,14 @@ var (
 		Name: "test_component_upgrade_time",
 		Help: "The upgrade time for the fake component",
 	})
+	enabledTestingUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "test_component_upgrade_time",
+		Help: "The upgrade time for the fake component",
+	})
+	disabledTestingUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "test_component_upgrade_time",
+		Help: "The upgrade time for the fake component",
+	})
 
 	installMetricsMap = map[string]prometheus.Gauge{
 		"verrazzano-authproxy":            verrazzanoAuthproxyInstallTimeMetric,
@@ -261,6 +269,8 @@ var (
 		"jaeger-operator":                 jaegerOperatorInstallTimeMetric,
 		"verrazzano-console":              verrazzanoConsoleInstallTimeMetric,
 		"fluentd":                         fluentdInstallTimeMetric,
+		"EnabledComponent":                enabledTestingUpgradeTimeMetric,
+		"DisabledComponent":               disabledTestingUpgradeTimeMetric,
 	}
 	upgradeMetricsMap = map[string]prometheus.Gauge{
 		"verrazzano-authproxy":            verrazzanoAuthproxyUpgradeTimeMetric,
@@ -310,13 +320,13 @@ func AddUpgradeStartTime(startTime int64, componentName string) {
 	upgradeStartTimeMap[componentName] = startTime
 }
 func CollectInstallTimeMetric(componentName string) {
-	endTime := time.Now().UnixMilli()
+	endTime := time.Now().UnixNano()
 	totalInstallTime := float64((endTime - installStartTimeMap[componentName])) / 1000000000.0
 	installMetricsMap[componentName].Set(totalInstallTime)
 
 }
 func CollectUpgradeTimeMetric(componentName string) {
-	endTime := time.Now().UnixMilli()
+	endTime := time.Now().UnixNano()
 	totalUpgradeTime := float64((endTime - upgradeStartTimeMap[componentName])) / 1000000000.0
 	upgradeMetricsMap[componentName].Set(totalUpgradeTime)
 
