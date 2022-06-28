@@ -368,11 +368,28 @@ pipeline {
             }
         }
 
+        stage("Create DNS Zone Records") {
+            steps {
+                script {
+                    echo "[INFO] Creating DNS Zone Records"
+                    createOCIDNSZoneRecords()
+                }
+            }
+        }
+
+        stage("Setup Bastion SSH") {
+            steps {
+                script {
+                    echo "[INFO] Setting up Bastion SSH"
+                    setupBastionSSH()
+                }
+            }
+        }
+
         stage("Mount OCI Storage") {
             steps {
                 script {
                     echo "[INFO] Mounting OCI storage"
-                    setupBastionSSH()
                     mountOCIStorage()
                 }
             }
@@ -971,7 +988,7 @@ def runVerrazzanoAcceptanceTests() {
 }
 
 def createOLCNECluster() {
-    createdOLCNECluster="true"
+    env.createdOLCNECluster="true"
     sh """
         cd $GO_REPO_PATH/terraform-oci-olcne
         terraform init -input=false
@@ -1023,7 +1040,15 @@ def createOCILoadBalancers() {
 
 def createOCIDNSZone() {
     env.createdOCIDNSZone="true"
-    OCI_DNS_ZONE_OCID=sh(returnStdout: true, script: """ $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c "$TF_VAR_compartment_id" -s "$OCI_DNS_ZONE_SUBDOMAIN_NAME" -k "$OCI_DNS_SCOPE" """)
+    env.OCI_DNS_ZONE_OCID=sh(returnStdout: true, script: """ $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c "$TF_VAR_compartment_id" -s "$OCI_DNS_ZONE_SUBDOMAIN_NAME" -k "$OCI_DNS_SCOPE" """)
+}
+
+def createOCIDNSZoneRecords() {
+    sh """
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create_dns_records.sh \
+        -c $TF_VAR_compartment_id -e $TEST_ENV -z $OCI_DNS_ZONE_NAME \
+        -s $OCI_DNS_SCOPE -m $OCI_LB_MGMT_IP -a $OCI_LB_APP_IP
+    """
 }
 
 def setupBastionSSH() {
