@@ -26,7 +26,7 @@ ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 # Use developer/olcne, which is required for helm
 
 RUN yum update -y \
-    && yum install -y openssl jq patch wget gzip \
+    && yum install -y openssl jq patch wget \
     && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne13/x86_64/ \
     && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne15/x86_64/ \
     && yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/olcne/x86_64 \
