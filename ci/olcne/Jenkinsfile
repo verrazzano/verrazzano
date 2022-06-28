@@ -493,19 +493,19 @@ pipeline {
             
             script {
                 if (keepOLCNEClusterOnFailure == false) {
-                    if (env.createdOCIDNSZone && createdOCIDNSZone == "true") {
+                    if (env.createdOCIDNSZone && env.createdOCIDNSZone == "true") {
                         echo "[INFO] Deleting OCI DNS Zone"
                         deleteOCIDNSZone()
                     }
-                    if (env.createdOCIFileSystem && createdOCIFileSystem == "true") {
+                    if (env.createdOCIFileSystem && env.createdOCIFileSystem == "true") {
                         echo "[INFO] Deleting OCI FileSystem"
                         deleteOCIFileSystem()
                     }
-                    if (env.createOCILoadBalancers && createOCILoadBalancers == "true") {
+                    if (env.createOCILoadBalancers && env.createOCILoadBalancers == "true") {
                         echo "[INFO] Deleting OCI LoadBalancers"
                         deleteOCILoadBalancers()
                     }
-                    if (env.createdOLCNECluster && createdOLCNECluster == "true") {
+                    if (env.createdOLCNECluster && env.createdOLCNECluster == "true") {
                         echo "[INFO] Deleting OLCNE Cluster"
                         deleteOLCNECluster()
                     }
