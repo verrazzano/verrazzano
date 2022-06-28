@@ -131,7 +131,11 @@ pipeline {
                     EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
                     if (params.GIT_COMMIT_FOR_UPGRADE == "NONE") {
                         echo "Specific GIT commit was not specified, use current head"
-                        def scmInfo = checkout scm
+                        def scmInfo = = checkout([
+                                $class: 'GitSCM',
+                                branches: [[name: env.BRANCH_NAME]],
+                                extensions: [[$class: 'LocalBranch']],
+                                userRemoteConfigs: [[refspec: '+refs/heads/*:refs/remotes/origin/*', url: env.SCM_VERRAZZANO_GIT_URL]]])
                         env.GIT_COMMIT = scmInfo.GIT_COMMIT
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                     } else {
