@@ -992,7 +992,6 @@ def upgradeVerrazzano() {
             if (count == 1) {
                 key = "vz-admin"
             }
-            //VERRAZZANO_DEV_VERSION is used to update VZ CRD with the target upgrade version.
             verrazzanoUpgradeStages["${key}"] = upgradeVerrazzanoOnCluster(count, "${VERRAZZANO_DEV_VERSION}")
         }
         parallel verrazzanoUpgradeStages
