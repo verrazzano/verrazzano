@@ -153,6 +153,10 @@ func CreatePasswordSecret(namespace string, name string, pw string, labels map[s
 
 func CopySecret(secretName, src, dest string) error {
 	client, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get clientset with error: %v", err))
+		return err
+	}
 	secret, err := client.CoreV1().Secrets(src).Get(context.TODO(), secretName, metav1.GetOptions{})
 	if err != nil {
 		return err
