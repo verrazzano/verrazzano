@@ -12,7 +12,7 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
+	//"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -93,9 +93,9 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 
 		case compStatePreUpgrade:
 			compLog.Oncef("Component %s pre-upgrade running", compName)
-			if !(metricsexporter.CheckIfUpgradeAlreadyMonitored(compName)) {
-				metricsexporter.AddUpgradeStartTime(time.Now().UnixNano(), compName)
-			}
+			//if !(metricsexporter.CheckIfUpgradeAlreadyMonitored(compName)) {
+			//		metricsexporter.AddUpgradeStartTime(time.Now().UnixNano(), compName)
+			//	}
 			if err := comp.PreUpgrade(compContext); err != nil {
 				compLog.Errorf("Failed pre-upgrading component %s: %v", compName, err)
 				return ctrl.Result{}, err
@@ -126,7 +126,7 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 			if err := comp.PostUpgrade(compContext); err != nil {
 				return ctrl.Result{}, err
 			}
-			metricsexporter.CollectUpgradeTimeMetric(compName)
+			//	metricsexporter.CollectUpgradeTimeMetric(compName)
 			upgradeContext.state = compStateUpgradeDone
 
 		case compStateUpgradeDone:
