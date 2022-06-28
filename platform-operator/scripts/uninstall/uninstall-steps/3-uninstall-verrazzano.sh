@@ -219,7 +219,7 @@ function delete_fluentd {
 }
 
 action "Deleting Fluentd" delete_fluentd || exit 1
-action "Deleting Verrazzano Console" delete_verrazzano_console || exit 1
+#action "Deleting Verrazzano Console" delete_verrazzano_console || exit 1
 action "Deleting Prometheus Pushgateway " delete_prometheus_pushgateway || exit 1
 action "Deleting Jaeger operator " delete_jaeger_operator || exit 1
 action "Deleting Prometheus adapter " delete_prometheus_adapter || exit 1

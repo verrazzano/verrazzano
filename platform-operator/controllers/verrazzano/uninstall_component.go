@@ -118,6 +118,11 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 				compLog.Progressf("Waiting for the component to be uninstalled", compName)
 				return newRequeueWithDelay(), nil
 			}
+			if err := comp.PostUninstall(compContext); err != nil {
+				compLog.Errorf("PostUninstall for component %s failed, will retry: %v", compName, err)
+				// requeue for 30 to 60 seconds later
+				return controller.NewRequeueWithDelay(30, 60, time.Second), nil
+			}
 			UninstallContext.state = compStateUninstalledone
 
 		case compStateUninstalledone:
