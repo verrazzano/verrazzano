@@ -185,5 +185,5 @@ func IsVeleroEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.Velero != nil && vz.Spec.Components.Velero.Enabled != nil {
 		return *vz.Spec.Components.Velero.Enabled
 	}
-	return true
+	return false
 }

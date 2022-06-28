@@ -44,7 +44,7 @@ type verrazzanoValues struct {
 	PrometheusPushgateway  *prometheusPushgatewayValues  `json:"prometheusPushgateway,omitempty"`
 	PrometheusNodeExporter *prometheusNodeExporterValues `json:"prometheusNodeExporter,omitempty"`
 	JaegerOperator         *jaegerOperatorValues         `json:"jaegerOperator,omitempty"`
-	Velero                 *veleroValues                 `json:",omitempty"`
+	Velero                 *veleroValues                 `json:"velero,omitempty"`
 }
 
 type subject struct {
