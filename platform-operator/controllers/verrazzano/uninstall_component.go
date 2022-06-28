@@ -74,6 +74,11 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 	for UninstallContext.state != compStateUninstallEnd {
 		switch UninstallContext.state {
 		case compStateUninstallStart:
+			// Check if operator based uninstall is supported
+			if !comp.IsOperatorUninstallSupported() {
+				UninstallContext.state = compStateUninstallEnd
+				continue
+			}
 			// Check if component is installed, if not continue
 			installed, err := comp.IsInstalled(compContext)
 			if err != nil {

@@ -47,6 +47,10 @@ func (c jaegerOperatorComponent) PreInstall(ctx spi.ComponentContext) error {
 	return ensureVerrazzanoMonitoringNamespace(ctx)
 }
 
+func (c jaegerOperatorComponent) IsOperatorUninstallSupported() bool {
+	return false
+}
+
 func (c jaegerOperatorComponent) PreUninstall(context spi.ComponentContext) error {
 	return nil
 }

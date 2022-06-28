@@ -73,6 +73,9 @@ type HelmComponent struct {
 	// SupportsOperatorInstall Indicates whether or not the component supports install via the operator
 	SupportsOperatorInstall bool
 
+	// SupportsOperatorUninstall Indicates whether or not the component supports uninstall via the operator
+	SupportsOperatorUninstall bool
+
 	// WaitForInstall Indicates if the operator should wait for helm operations to complete (synchronous behavior)
 	WaitForInstall bool
 
@@ -160,6 +163,11 @@ func (h HelmComponent) GetDependencies() []string {
 // IsOperatorInstallSupported Returns true if the component supports direct install via the operator
 func (h HelmComponent) IsOperatorInstallSupported() bool {
 	return h.SupportsOperatorInstall
+}
+
+// IsOperatorUninstallSupported Returns true if the component supports direct uninstall via the operator
+func (h HelmComponent) IsOperatorUninstallSupported() bool {
+	return h.SupportsOperatorUninstall
 }
 
 // GetCertificateNames returns the list of expected certificates used by this component

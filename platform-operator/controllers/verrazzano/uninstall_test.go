@@ -53,7 +53,8 @@ func TestReconcileUninstalling(t *testing.T) {
 		return []spi.Component{
 			fakeComponent{
 				HelmComponent: helm2.HelmComponent{
-					ReleaseName: "fake",
+					ReleaseName:               "fake",
+					SupportsOperatorUninstall: true,
 				},
 			},
 		}
@@ -161,7 +162,8 @@ func TestReconcileUninstall(t *testing.T) {
 		return []spi.Component{
 			fakeComponent{
 				HelmComponent: helm2.HelmComponent{
-					ReleaseName: "fake",
+					ReleaseName:               "fake",
+					SupportsOperatorUninstall: true,
 				},
 			},
 		}
@@ -243,7 +245,8 @@ func TestReconcileUninstall(t *testing.T) {
 		return []spi.Component{
 			fakeComponent{
 				HelmComponent: helm2.HelmComponent{
-					ReleaseName: "fake",
+					ReleaseName:               "fake",
+					SupportsOperatorUninstall: true,
 				},
 				isInstalledFunc: func(ctx spi.ComponentContext) (bool, error) {
 					return false, nil
