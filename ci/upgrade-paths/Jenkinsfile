@@ -676,6 +676,8 @@ pipeline {
 }
 
 def checkUpgradeAcrossVer(version) {
+    println(isMinVersion(params.VERSION_FOR_INSTALL, version))
+    println(isMinVersion(VERRAZZANO_DEV_VERSION, version))
     if (isMinVersion(params.VERSION_FOR_INSTALL, version) && !isMinVersion(VERRAZZANO_DEV_VERSION, version)) {
         return "false"
     }
@@ -683,6 +685,8 @@ def checkUpgradeAcrossVer(version) {
 }
 
 def isMinVersion(v1, v2) {
+    println(v1)
+    println(v2)
     v2 = v2 - 'v'
     v1 = v1 - 'v'
     def v2Split  = v2.split('\\.')
