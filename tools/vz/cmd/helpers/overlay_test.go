@@ -4,7 +4,9 @@
 package helpers
 
 import (
+	"bytes"
 	"context"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,7 +22,7 @@ import (
 //  WHEN I call MergeYAMLFiles
 //  THEN a vz resource is returned representing the single YAML file
 func TestMergeYAMLFilesSingle(t *testing.T) {
-	vz, err := MergeYAMLFiles([]string{"../../test/testdata/dev-profile.yaml"})
+	vz, err := MergeYAMLFiles([]string{"../../test/testdata/dev-profile.yaml"}, os.Stdin)
 	assert.Nil(t, err)
 	assert.Equal(t, "my-verrazzano", vz.Name)
 	assert.Equal(t, "default", vz.Namespace)
@@ -35,7 +37,7 @@ func TestMergeYAMLFilesComponents(t *testing.T) {
 	vz, err := MergeYAMLFiles([]string{
 		"../../test/testdata/dev-profile.yaml",
 		"../../test/testdata/components.yaml",
-	})
+	}, os.Stdin)
 	assert.Nil(t, err)
 	assert.Equal(t, "my-verrazzano", vz.Name)
 	assert.Equal(t, "default", vz.Namespace)
@@ -54,7 +56,7 @@ func TestMergeYAMLFilesOverrideComponents(t *testing.T) {
 	vz, err := MergeYAMLFiles([]string{
 		"../../test/testdata/components.yaml",
 		"../../test/testdata/override-components.yaml",
-	})
+	}, os.Stdin)
 	assert.Nil(t, err)
 	assert.Equal(t, "verrazzano", vz.Name)
 	assert.Equal(t, "default", vz.Namespace)
@@ -62,6 +64,24 @@ func TestMergeYAMLFilesOverrideComponents(t *testing.T) {
 	assert.Equal(t, true, *vz.Spec.Components.Fluentd.Enabled)
 	assert.Equal(t, false, *vz.Spec.Components.Rancher.Enabled)
 	assert.Nil(t, vz.Spec.Components.Verrazzano)
+}
+
+// TestMergeYAMLFilesStdin
+// GIVEN a yaml file from stdin
+//  WHEN I call MergeYAMLFiles
+//  THEN a vz resource is returned representing the yaml specified via stdin
+func TestMergeYAMLFilesStdin(t *testing.T) {
+	var filenames []string
+	stdinReader := &bytes.Buffer{}
+	b, err := os.ReadFile("../../test/testdata/quick-start.yaml")
+	assert.Nil(t, err)
+	_, err = stdinReader.Write(b)
+	assert.Nil(t, err)
+	filenames = append(filenames, "-")
+	vz, err := MergeYAMLFiles(filenames, stdinReader)
+	assert.Nil(t, err)
+	assert.Equal(t, "example-verrazzano", vz.Name)
+	assert.Equal(t, "default", vz.Namespace)
 }
 
 // TestMergeYAMLFilesEmpty
@@ -72,7 +92,7 @@ func TestMergeYAMLFilesEmpty(t *testing.T) {
 	vz, err := MergeYAMLFiles([]string{
 		"../../test/testdata/dev-profile.yaml",
 		"../../test/testdata/empty.yaml",
-	})
+	}, os.Stdin)
 	assert.Nil(t, err)
 	assert.Equal(t, "my-verrazzano", vz.Name)
 	assert.Equal(t, "default", vz.Namespace)
@@ -84,7 +104,7 @@ func TestMergeYAMLFilesEmpty(t *testing.T) {
 //  WHEN I call MergeYAMLFiles
 //  THEN the call returns an error
 func TestMergeYAMLFilesNotFound(t *testing.T) {
-	_, err := MergeYAMLFiles([]string{"../../test/testdate/file-does-not-exist.yaml"})
+	_, err := MergeYAMLFiles([]string{"../../test/testdate/file-does-not-exist.yaml"}, os.Stdin)
 	assert.Error(t, err)
 	assert.EqualError(t, err, "open ../../test/testdate/file-does-not-exist.yaml: no such file or directory")
 }

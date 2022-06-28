@@ -6,6 +6,7 @@ package install
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -177,7 +178,7 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper) (vz *vzapi
 		}
 	} else {
 		// Merge the yaml files passed on the command line
-		vz, err = cmdhelpers.MergeYAMLFiles(filenames)
+		vz, err = cmdhelpers.MergeYAMLFiles(filenames, os.Stdin)
 		if err != nil {
 			return nil, err
 		}
