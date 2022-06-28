@@ -904,15 +904,15 @@ def setDisplayName() {
 def createImagePullSecrets() {
     sh """
         ssh -o StrictHostKeyChecking=no opc@$API_SERVER_IP -i $TF_VAR_ssh_private_key_path '
-            rm -rf $HOME/verrazzano
-            mkdir -p $HOME/verrazzano
+            rm -rf /home/opc/verrazzano
+            mkdir -p /home/opc/verrazzano
         '
         scp -i "$TF_VAR_ssh_private_key_path" $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh opc@"$API_SERVER_IP":/home/opc/verrazzano/create-image-pull-secret.sh
         ssh -o StrictHostKeyChecking=no opc@$API_SERVER_IP -i $TF_VAR_ssh_private_key_path '
-            chmod +x $HOME/verrazzano/create-image-pull-secret.sh
-            $HOME/verrazzano/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW"
-            $HOME/verrazzano/create-image-pull-secret.sh github-packages "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW"
-            $HOME/verrazzano/create-image-pull-secret.sh ocr "$OCR_REPO" "$OCR_CREDS_USR" "$OCR_CREDS_PSW"
+            chmod +x /home/opc/verrazzano/create-image-pull-secret.sh
+            /home/opc/verrazzano/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW"
+            /home/opc/verrazzano/create-image-pull-secret.sh github-packages "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW"
+            /home/opc/verrazzano/create-image-pull-secret.sh ocr "$OCR_REPO" "$OCR_CREDS_USR" "$OCR_CREDS_PSW"
         '
     """
 }
@@ -1082,38 +1082,47 @@ def installVerrazzanoPlatformOperator() {
         --file $WORKSPACE/downloaded-operator.yaml
         cp $WORKSPACE/downloaded-operator.yaml $WORKSPACE/acceptance-test-operator.yaml
 
-        scp -i "$TF_VAR_ssh_private_key_path" $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh opc@"$API_SERVER_IP":/home/opc/verrazzano/check_verrazzano_ns_exists.sh
+        cd $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts
+        scp -i "$TF_VAR_ssh_private_key_path" check_verrazzano_ns_exists.sh opc@"$API_SERVER_IP":/home/opc/verrazzano/check_verrazzano_ns_exists.sh
         scp -i "$TF_VAR_ssh_private_key_path" $WORKSPACE/acceptance-test-operator.yaml opc@"$API_SERVER_IP":/home/opc/verrazzano/acceptance-test-operator.yaml
         ssh -o StrictHostKeyChecking=no opc@"$API_SERVER_IP" -i "$TF_VAR_ssh_private_key_path" '
             # Install the verrazzano-platform-operator
-            kubectl apply -f $HOME/verrazzano/acceptance-test-operator.yaml
+            kubectl apply -f /home/opc/verrazzano/acceptance-test-operator.yaml
             kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
             # make sure ns exists
-            chmod +x $HOME/verrazzano/check_verrazzano_ns_exists.sh
-            $HOME/verrazzano/check_verrazzano_ns_exists.sh verrazzano-install
+            chmod +x /home/opc/verrazzano/check_verrazzano_ns_exists.sh
+            /home/opc/verrazzano/check_verrazzano_ns_exists.sh verrazzano-install
             # create secret in verrazzano-install ns
-            $HOME/verrazzano/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW" "verrazzano-install"
+            /home/opc/verrazzano/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW" "verrazzano-install"
         '
     """
 }
 
 def installVerrazzano() {
     sh """
-        yq -i eval '.spec.environmentName = "$TEST_ENV"' "$INSTALL_CONFIG_FILE_OLCNE"
+        yq -i eval '.spec.environmentName = $TEST_ENV' "$INSTALL_CONFIG_FILE_OLCNE"
         yq -i eval '.spec.components.dns.external.suffix = $OCI_DNS_ZONE_NAME' "$INSTALL_CONFIG_FILE_OLCNE"
         yq -i eval '.spec.components.ingress.nginxInstallArgs[0].valueList[0] = $OCI_LB_MGMT_IP' "$INSTALL_CONFIG_FILE_OLCNE"
         yq -i eval '.spec.components.istio.istioInstallArgs[0].valueList[0] = $OCI_LB_APP_IP' "$INSTALL_CONFIG_FILE_OLCNE"
-        # apply config to create cluster
-        kubectl apply -f "$INSTALL_CONFIG_FILE_OLCNE"
-        # wait for Verrazzano install to complete
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
-        # Create acceptance test configuration file
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/common-test-setup-script.sh "$WORKSPACE" "$TEST_CONFIG_FILE" "$GHCR_REPO" "$KUBECONFIG" "$OCR_CREDS_USR" "$OCR_CREDS_PSW" "$VZ_ENVIRONMENT_NAME"
-        # TODO: edit the test config file
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/get_ingress_ip.sh "$TEST_CONFIG_FILE"
-        echo "[INFO] ----------Test config file:-------------"
-        cat "$TEST_CONFIG_FILE"
-        echo "[INFO] ----------------------------------------"   
+        
+        cd $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts
+        scp -i "$TF_VAR_ssh_private_key_path" wait-for-verrazzano-install.sh opc@"$API_SERVER_IP":/home/opc/verrazzano/wait-for-verrazzano-install.sh
+        scp -i "$TF_VAR_ssh_private_key_path" common-test-setup-script.sh opc@"$API_SERVER_IP":/home/opc/verrazzano/common-test-setup-script.sh
+        scp -i "$TF_VAR_ssh_private_key_path" get_ingress_ip.sh opc@"$API_SERVER_IP":/home/opc/verrazzano/get_ingress_ip.sh
+        scp -i "$TF_VAR_ssh_private_key_path" $INSTALL_CONFIG_FILE_OLCNE opc@"$API_SERVER_IP":/home/opc/verrazzano/install-verrazzano-olcne.yaml
+        ssh -o StrictHostKeyChecking=no opc@"$API_SERVER_IP" -i "$TF_VAR_ssh_private_key_path" '
+            # apply config to create cluster
+            kubectl apply -f /home/opc/verrazzano/install-verrazzano-olcne.yaml
+            # wait for Verrazzano install to complete
+            /home/opc/verrazzano/wait-for-verrazzano-install.sh
+            # Create acceptance test configuration file
+            /home/opc/verrazzano/common-test-setup-script.sh "$WORKSPACE" "$TEST_CONFIG_FILE" "$GHCR_REPO" "$KUBECONFIG" "$OCR_CREDS_USR" "$OCR_CREDS_PSW" "$VZ_ENVIRONMENT_NAME"
+            # TODO: edit the test config file
+            /home/opc/verrazzano/get_ingress_ip.sh "$TEST_CONFIG_FILE"
+            echo "[INFO] ----------Test config file:-------------"
+            cat "$TEST_CONFIG_FILE"
+            echo "[INFO] ----------------------------------------"   
+        '
     """
 }
 
