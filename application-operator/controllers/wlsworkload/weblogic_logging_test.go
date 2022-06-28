@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package wlsworkload
@@ -91,14 +91,15 @@ func readFormat() string {
 
 func Test_parseFormat(t *testing.T) {
 	tests := []struct {
-		name     string
-		text     string
-		expected string //expected text in the last line of the message
+		name             string
+		text             string
+		expectedMessage  string //expected text in the last line of the message
+		expectedSeverity string //expected severity as severity-value attribute of the message
 	}{
-		{"log1", log1, "-Dweblogic.security.allowCryptoJDefaultJCEVerification=true."},
-		{"log2", log2, "registering MBean >"},
-		{"log3", log3, "Admin Traffic Enabled\t true ResolveDNSName Enabled\t false"},
-		{"log4", log4, "java.net.UnknownHostException: mysql.wrong.svc.cluster.local"},
+		{"log1", log1, "-Dweblogic.security.allowCryptoJDefaultJCEVerification=true.", "64"},
+		{"log2", log2, "registering MBean >", "256"},
+		{"log3", log3, "Admin Traffic Enabled\t true ResolveDNSName Enabled\t false", "64"},
+		{"log4", log4, "java.net.UnknownHostException: mysql.wrong.svc.cluster.local", "64"},
 	}
 	assert := asserts.New(t)
 	for _, tt := range tests {
@@ -108,7 +109,9 @@ func Test_parseFormat(t *testing.T) {
 			//Total number of matches should be 27 = 1 + 13*2
 			assert.Equal(27, len(matches))
 			//The last match should be the message
-			assert.Contains(matches[26], tt.expected)
+			assert.Contains(matches[26], tt.expectedMessage)
+			//The 22nd match should be the severity value
+			assert.Contains(matches[22], tt.expectedSeverity)
 		})
 	}
 }
