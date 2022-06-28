@@ -396,7 +396,7 @@ pipeline {
                             }
                         }
                         stage ('Deploy Coherence example application - multi cluster') {
-                            when { expression { isMultiCluster() && isVZOperatorMinimumCompatibleVersion("v1.1.0") && checkUpgradeAcrossVer("v1.3") == "true" } }
+                            when { expression { isMultiCluster() && isVZOperatorMinimumCompatibleVersion("v1.1.0") && checkUpgradeBelowVer("v1.3") == "true" } }
                             steps {
                                 runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", "false", "true", "true")
                             }
@@ -546,6 +546,17 @@ pipeline {
                                 executeBomValidator()
                             }
                         }
+                        stage ('Console') {
+                            when { expression { isMultiCluster() } }
+                            steps {
+                                runConsoleTests()
+                            }
+                            post {
+                                always {
+                                    saveConsoleTestArtifacts()
+                                }
+                            }
+                        }
                         stage('post-upgrade verify keycloak') {
                             steps {
                                 runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
@@ -564,6 +575,11 @@ pipeline {
                         stage('Metricsbinding post-upgrade') {
                             steps {
                                 runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/metricsbinding', "${TEST_DUMP_ROOT}/metricsbinding")
+                            }
+                        }
+                        stage('Prometheus post-upgrade') {
+                            steps {
+                                runGinkgoVerifyParallel('Prometheus post-upgrade', 'metrics/deploymetrics', "${TEST_DUMP_ROOT}/prompostupgrade", "true", "false", "false", "deploymetrics")
                             }
                         }
                         stage ("Verify install scripts") {
@@ -600,7 +616,7 @@ pipeline {
                         }
                         stage ('Verify/Uninstall Example Coherence') {
                             steps {
-                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", checkUpgradeAcrossVer("v1.3"), "false", "false")
+                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", checkUpgradeBelowVer("v1.3"), "false", "false")
                             }
                         }
                     }
@@ -675,22 +691,21 @@ pipeline {
     }
 }
 
-def checkUpgradeAcrossVer(version) {
+def checkUpgradeBelowVer(version) {
     if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "current_branch"){
         VERRAZZANO_DEV_VERSION = VERSION_FOR_UPGRADE
     }
-    println(isMinVersion(params.VERSION_FOR_INSTALL, version))
-    println(isMinVersion(VERRAZZANO_DEV_VERSION, version))
-
     if (isMinVersion(params.VERSION_FOR_INSTALL, version) && !isMinVersion(VERRAZZANO_DEV_VERSION, version)) {
+        // version parameter falls between vz to (current) and from (to be upgraded) version
         return "false"
     }
+    // vz to (current) and from (to be upgraded) version falls below version parameter
     return "true"
 }
 
 def isMinVersion(v1, v2) {
-    println(v1)
-    println(v2)
+    // true if v1 < v2, false if v1 >= v2
+    // compares up to 2 values of vz version
     v2 = v2 - 'v'
     v1 = v1 - 'v'
     def v2Split  = v2.split('\\.')
