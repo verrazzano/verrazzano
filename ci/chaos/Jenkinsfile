@@ -273,7 +273,7 @@ pipeline {
                     BRANCH_ORIGIN = sh(returnStdout: true, script: "git log -- master..HEAD --oneline | tail -1").trim()
                     BRANCH_TO_USE = "${env.BRANCH_NAME}"
                     if (BRANCH_ORIGIN == null || BRANCH_ORIGIN.length() <= 0) {
-                        INTERIM_UPGRADE_COMMIT = sh(returnStdout: true, script: "git rev-parse --short=8 master^1").trim()
+                        INTERIM_UPGRADE_COMMIT = sh(returnStdout: true, script: "git rev-parse --short=8 origin/master^1").trim()
                         BRANCH_TO_USE = "master"
                     } else {
                         INTERIM_UPGRADE_COMMIT = sh(returnStdout: true, script: "git rev-parse --short=8 ${SHORT_COMMIT_HASH}^1").trim()
