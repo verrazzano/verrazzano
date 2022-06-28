@@ -1,0 +1,38 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+==== START logs for container helm of pod cattle-system/helm-operation-xnktw ====
+helm upgrade --force-adopt=true --history-max=5 --install=true --namespace=cattle-fleet-system --reset-values=true --timeout=5m0s --values=/home/shell/helm/values-fleet-100.0.3-up0.3.9.yaml --version=100.0.3+up0.3.9 --wait=true fleet /home/shell/helm/fleet-100.0.3-up0.3.9.tgz
+checking 15 resources for changes
+Looks like there are no changes for ServiceAccount "gitjob"
+Looks like there are no changes for ServiceAccount "fleet-controller"
+Looks like there are no changes for ServiceAccount "fleet-controller-bootstrap"
+Patch ConfigMap "fleet-controller" in namespace cattle-fleet-system
+Looks like there are no changes for ClusterRole "gitjob"
+Looks like there are no changes for ClusterRole "fleet-controller"
+Looks like there are no changes for ClusterRole "fleet-controller-bootstrap"
+Looks like there are no changes for ClusterRoleBinding "gitjob-binding"
+Looks like there are no changes for ClusterRoleBinding "fleet-controller"
+Looks like there are no changes for ClusterRoleBinding "fleet-controller-bootstrap"
+Looks like there are no changes for Role "fleet-controller"
+Looks like there are no changes for RoleBinding "fleet-controller"
+Looks like there are no changes for Service "gitjob"
+Looks like there are no changes for Deployment "gitjob"
+Looks like there are no changes for Deployment "fleet-controller"
+beginning wait for 15 resources with timeout of 5m0s
+Release "fleet" has been upgraded. Happy Helming!
+NAME: fleet
+LAST DEPLOYED: Thu Jun 16 10:25:57 2022
+NAMESPACE: cattle-fleet-system
+STATUS: deployed
+REVISION: 2
+TEST SUITE: None
+
+---------------------------------------------------------------------
+SUCCESS: helm upgrade --force-adopt=true --history-max=5 --install=true --namespace=cattle-fleet-system --reset-values=true --timeout=5m0s --values=/home/shell/helm/values-fleet-100.0.3-up0.3.9.yaml --version=100.0.3+up0.3.9 --wait=true fleet /home/shell/helm/fleet-100.0.3-up0.3.9.tgz
+---------------------------------------------------------------------
+==== END logs for container helm of pod cattle-system/helm-operation-xnktw ====
+==== START logs for container proxy of pod cattle-system/helm-operation-xnktw ====
+W0616 10:25:56.481589       7 proxy.go:162] Request filter disabled, your proxy is vulnerable to XSRF attacks, please be cautious
+Starting to serve on REDACTED-IP4-ADDRESS:8001
+Terminated
+==== END logs for container proxy of pod cattle-system/helm-operation-xnktw ====

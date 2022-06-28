@@ -1,0 +1,311 @@
+{
+    "kind": "EventList",
+    "apiVersion": "v1",
+    "metadata": {
+        "resourceVersion": "21305"
+    },
+    "items": [
+        {
+            "metadata": {
+                "name": "verrazzano-platform-operator-747578b98d-h2t8j.16f09be2aef6e8be",
+                "namespace": "verrazzano-install",
+                "uid": "06381fa5-356a-465a-82e1-b1e60315d272",
+                "resourceVersion": "2545",
+                "creationTimestamp": "2022-05-19T20:34:21Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-install",
+                "name": "verrazzano-platform-operator-747578b98d-h2t8j",
+                "uid": "6bbb191d-19ca-41b0-88f2-e0184e876dca",
+                "apiVersion": "v1",
+                "resourceVersion": "2539"
+            },
+            "reason": "Scheduled",
+            "message": "Successfully assigned verrazzano-install/verrazzano-platform-operator-747578b98d-h2t8j to REDACTED-IP4-ADDRESS",
+            "source": {},
+            "firstTimestamp": null,
+            "lastTimestamp": null,
+            "type": "Normal",
+            "eventTime": "2022-05-19T20:34:21.145291Z",
+            "action": "Binding",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "default-scheduler-control-plane-host-10-64-195-146"
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-platform-operator-747578b98d-h2t8j.16f09be2c950abb5",
+                "namespace": "verrazzano-install",
+                "uid": "67a981d4-a23b-44cc-89cb-a8ff8c342fee",
+                "resourceVersion": "2549",
+                "creationTimestamp": "2022-05-19T20:34:21Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-install",
+                "name": "verrazzano-platform-operator-747578b98d-h2t8j",
+                "uid": "6bbb191d-19ca-41b0-88f2-e0184e876dca",
+                "apiVersion": "v1",
+                "resourceVersion": "2541",
+                "fieldPath": "spec.initContainers{webhook-init}"
+            },
+            "reason": "Pulling",
+            "message": "Pulling image \"ghcr.io/verrazzano/verrazzano-platform-operator:1.3.0-20220519193336-4dad77f3\"",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-05-19T20:34:21Z",
+            "lastTimestamp": "2022-05-19T20:34:21Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-platform-operator-747578b98d-h2t8j.16f09be5bef4ee03",
+                "namespace": "verrazzano-install",
+                "uid": "9ea90913-0f05-41b8-bcac-310e4f0ef2b2",
+                "resourceVersion": "2594",
+                "creationTimestamp": "2022-05-19T20:34:34Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-install",
+                "name": "verrazzano-platform-operator-747578b98d-h2t8j",
+                "uid": "6bbb191d-19ca-41b0-88f2-e0184e876dca",
+                "apiVersion": "v1",
+                "resourceVersion": "2541",
+                "fieldPath": "spec.initContainers{webhook-init}"
+            },
+            "reason": "Pulled",
+            "message": "Successfully pulled image \"ghcr.io/verrazzano/verrazzano-platform-operator:1.3.0-20220519193336-4dad77f3\" in 12.711085048s",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-05-19T20:34:34Z",
+            "lastTimestamp": "2022-05-19T20:34:34Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-platform-operator-747578b98d-h2t8j.16f09be5c888d584",
+                "namespace": "verrazzano-install",
+                "uid": "18ec152a-3e92-4ed5-9e9f-dc150f98fbaf",
+                "resourceVersion": "2595",
+                "creationTimestamp": "2022-05-19T20:34:34Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-install",
+                "name": "verrazzano-platform-operator-747578b98d-h2t8j",
+                "uid": "6bbb191d-19ca-41b0-88f2-e0184e876dca",
+                "apiVersion": "v1",
+                "resourceVersion": "2541",
+                "fieldPath": "spec.initContainers{webhook-init}"
+            },
+            "reason": "Created",
+            "message": "Created container webhook-init",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-05-19T20:34:34Z",
+            "lastTimestamp": "2022-05-19T20:34:34Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-platform-operator-747578b98d-h2t8j.16f09be5ca8e5cc7",
+                "namespace": "verrazzano-install",
+                "uid": "78e0aa94-2b1d-47a6-9bb9-763756d291ac",
+                "resourceVersion": "2596",
+                "creationTimestamp": "2022-05-19T20:34:34Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-install",
+                "name": "verrazzano-platform-operator-747578b98d-h2t8j",
+                "uid": "6bbb191d-19ca-41b0-88f2-e0184e876dca",
+                "apiVersion": "v1",
+                "resourceVersion": "2541",
+                "fieldPath": "spec.initContainers{webhook-init}"
+            },
+            "reason": "Started",
+            "message": "Started container webhook-init",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-05-19T20:34:34Z",
+            "lastTimestamp": "2022-05-19T20:34:34Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-platform-operator-747578b98d-h2t8j.16f09be7439714e8",
+                "namespace": "verrazzano-install",
+                "uid": "f39477fe-1b67-42a9-9974-175c19e928e2",
+                "resourceVersion": "2622",
+                "creationTimestamp": "2022-05-19T20:34:40Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-install",
+                "name": "verrazzano-platform-operator-747578b98d-h2t8j",
+                "uid": "6bbb191d-19ca-41b0-88f2-e0184e876dca",
+                "apiVersion": "v1",
+                "resourceVersion": "2541",
+                "fieldPath": "spec.containers{verrazzano-platform-operator}"
+            },
+            "reason": "Pulled",
+            "message": "Container image \"ghcr.io/verrazzano/verrazzano-platform-operator:1.3.0-20220519193336-4dad77f3\" already present on machine",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-05-19T20:34:40Z",
+            "lastTimestamp": "2022-05-19T20:34:40Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-platform-operator-747578b98d-h2t8j.16f09be74c7861b7",
+                "namespace": "verrazzano-install",
+                "uid": "5ab8da10-6781-4766-9d5d-7b3f91c7ff96",
+                "resourceVersion": "2626",
+                "creationTimestamp": "2022-05-19T20:34:40Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-install",
+                "name": "verrazzano-platform-operator-747578b98d-h2t8j",
+                "uid": "6bbb191d-19ca-41b0-88f2-e0184e876dca",
+                "apiVersion": "v1",
+                "resourceVersion": "2541",
+                "fieldPath": "spec.containers{verrazzano-platform-operator}"
+            },
+            "reason": "Created",
+            "message": "Created container verrazzano-platform-operator",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-05-19T20:34:40Z",
+            "lastTimestamp": "2022-05-19T20:34:40Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-platform-operator-747578b98d-h2t8j.16f09be74eb237bc",
+                "namespace": "verrazzano-install",
+                "uid": "90ff3177-c5a4-4d7e-9b3d-ef71720bf47d",
+                "resourceVersion": "2627",
+                "creationTimestamp": "2022-05-19T20:34:40Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-install",
+                "name": "verrazzano-platform-operator-747578b98d-h2t8j",
+                "uid": "6bbb191d-19ca-41b0-88f2-e0184e876dca",
+                "apiVersion": "v1",
+                "resourceVersion": "2541",
+                "fieldPath": "spec.containers{verrazzano-platform-operator}"
+            },
+            "reason": "Started",
+            "message": "Started container verrazzano-platform-operator",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-05-19T20:34:41Z",
+            "lastTimestamp": "2022-05-19T20:34:41Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-platform-operator-747578b98d.16f09be2adb74086",
+                "namespace": "verrazzano-install",
+                "uid": "9d025749-0921-4280-b196-ad6c53d26bcf",
+                "resourceVersion": "2542",
+                "creationTimestamp": "2022-05-19T20:34:21Z"
+            },
+            "involvedObject": {
+                "kind": "ReplicaSet",
+                "namespace": "verrazzano-install",
+                "name": "verrazzano-platform-operator-747578b98d",
+                "uid": "e358488f-beca-4fbb-9855-70a759e39ae5",
+                "apiVersion": "apps/v1",
+                "resourceVersion": "2535"
+            },
+            "reason": "SuccessfulCreate",
+            "message": "Created pod: verrazzano-platform-operator-747578b98d-h2t8j",
+            "source": {
+                "component": "replicaset-controller"
+            },
+            "firstTimestamp": "2022-05-19T20:34:21Z",
+            "lastTimestamp": "2022-05-19T20:34:21Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-platform-operator.16f09be2a65ff8b2",
+                "namespace": "verrazzano-install",
+                "uid": "89c00708-3342-4689-b1b6-9159533b5014",
+                "resourceVersion": "2537",
+                "creationTimestamp": "2022-05-19T20:34:21Z"
+            },
+            "involvedObject": {
+                "kind": "Deployment",
+                "namespace": "verrazzano-install",
+                "name": "verrazzano-platform-operator",
+                "uid": "242d79c6-5d17-4951-85b6-464b18418ad3",
+                "apiVersion": "apps/v1",
+                "resourceVersion": "2532"
+            },
+            "reason": "ScalingReplicaSet",
+            "message": "Scaled up replica set verrazzano-platform-operator-747578b98d to 1",
+            "source": {
+                "component": "deployment-controller"
+            },
+            "firstTimestamp": "2022-05-19T20:34:21Z",
+            "lastTimestamp": "2022-05-19T20:34:21Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        }
+    ]
+}

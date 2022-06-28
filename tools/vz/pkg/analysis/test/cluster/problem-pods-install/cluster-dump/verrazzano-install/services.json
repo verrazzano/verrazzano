@@ -1,0 +1,51 @@
+{
+    "kind": "ServiceList",
+    "apiVersion": "v1",
+    "metadata": {
+        "resourceVersion": "21939"
+    },
+    "items": [
+        {
+            "metadata": {
+                "name": "verrazzano-platform-operator",
+                "namespace": "verrazzano-install",
+                "uid": "5677e3f2-beaf-458c-abd2-a14bd24d8632",
+                "resourceVersion": "2151",
+                "creationTimestamp": "2022-06-16T10:17:59Z",
+                "labels": {
+                    "app": "verrazzano-platform-operator"
+                },
+                "annotations": {
+                    "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"verrazzano-platform-operator\"},\"name\":\"verrazzano-platform-operator\",\"namespace\":\"verrazzano-install\"},\"spec\":{\"ports\":[{\"name\":\"webhook\",\"port\":443,\"targetPort\":9443}],\"selector\":{\"app\":\"verrazzano-platform-operator\"}}}\n"
+                }
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": "webhook",
+                        "protocol": "TCP",
+                        "port": 443,
+                        "targetPort": 9443
+                    }
+                ],
+                "selector": {
+                    "app": "verrazzano-platform-operator"
+                },
+                "clusterIP": "REDACTED-IP4-ADDRESS",
+                "clusterIPs": [
+                    "REDACTED-IP4-ADDRESS"
+                ],
+                "type": "ClusterIP",
+                "sessionAffinity": "None",
+                "ipFamilies": [
+                    "IPv4"
+                ],
+                "ipFamilyPolicy": "SingleStack",
+                "internalTrafficPolicy": "Cluster"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        }
+    ]
+}
