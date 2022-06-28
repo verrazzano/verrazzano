@@ -121,7 +121,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 			}
 			compLog.Progressf("Component %s pre-install is running ", compName)
 			if !(metricsexporter.CheckIfAlreadyBeingMonitored(compName)) {
-				metricsexporter.AddInstallStartTime(time.Now().Unix(), compName)
+				metricsexporter.AddInstallStartTime(time.Now().UnixMilli(), compName)
 			}
 			if err := comp.PreInstall(compContext); err != nil {
 				requeue = true
