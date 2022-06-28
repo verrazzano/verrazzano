@@ -396,7 +396,7 @@ pipeline {
                             }
                         }
                         stage ('Deploy Coherence example application - multi cluster') {
-                            when { expression { isMultiCluster() && isVZOperatorMinimumCompatibleVersion("v1.1.0") && checkUpgradeBelowVer("v1.3") } }
+                            when { expression { isMultiCluster() && isVZOperatorMinimumCompatibleVersion("v1.1.0") && checkUpgradeBelowVer("v1.3.0") } }
                             steps {
                                 runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", "false", "true", "true")
                             }
@@ -605,7 +605,7 @@ pipeline {
                         }
                         stage ('Verify/Uninstall Example Coherence') {
                             steps {
-                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", checkUpgradeBelowVer("v1.3"), "false", "false")
+                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", checkUpgradeBelowVer("v1.3.0"), "false", "false")
                             }
                         }
                     }
@@ -695,11 +695,13 @@ def isMinVersion(v1, v2) {
     v2 = v2 - 'v'
     v1 = v1 - 'v'
     def v2Split  = v2.split('\\.')
-    runningVZVersion = v2Split[0] + '.' + v2Split[1]
+    runningVZVersion = v2Split[0] + '.' + v2Split[1] + '.' + v2Split[2].charAt(0)
     v1Split = v1.split('\\.')
-    if(v2Split[0] > v1Split[0]){
+    if(v1Split[0] < v2Split[0]){
         return true
-    }else if(v2Split[0] == v1Split[0] && v1Split[1] < v2Split[1]){
+    }else if(v1Split[0] == v2Split[0] && v1Split[1] < v2Split[1]){
+        return true
+    }else if(v1Split[0] == v2Split[0] && v1Split[1] == v2Split[1] && v1Split[2].charAt(0) < v2Split[2].charAt(0)){
         return true
     }
     return false
