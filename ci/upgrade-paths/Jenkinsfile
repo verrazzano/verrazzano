@@ -960,9 +960,9 @@ def getPlatformOperatorForRelease(){
 
 def getLatestReleaseVersion(){
     def latestReleaseBranch
-    if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "current_branch"){
-        VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
-        def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
+    if(params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "current_branch"){
+        VERSION_FOR_UPGRADE_ENV = VERSION_FOR_UPGRADE_ENV - "v"
+        def latestReleaseTagSplit = VERSION_FOR_UPGRADE_ENV.split("\\.")
         latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
     }
     return latestReleaseBranch
@@ -992,6 +992,7 @@ def upgradeVerrazzano() {
             if (count == 1) {
                 key = "vz-admin"
             }
+            //VERRAZZANO_DEV_VERSION is used to update VZ CRD with the target upgrade version.
             verrazzanoUpgradeStages["${key}"] = upgradeVerrazzanoOnCluster(count, "${VERRAZZANO_DEV_VERSION}")
         }
         parallel verrazzanoUpgradeStages
