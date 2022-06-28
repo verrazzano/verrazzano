@@ -91,9 +91,9 @@ func getComponents() []spi.Component {
 	return componentsRegistry
 }
 
-func FindComponent(releaseName string) (bool, spi.Component) {
+func FindComponent(componentName string) (bool, spi.Component) {
 	for _, comp := range GetComponents() {
-		if comp.Name() == releaseName {
+		if comp.Name() == componentName {
 			return true, comp
 		}
 	}
