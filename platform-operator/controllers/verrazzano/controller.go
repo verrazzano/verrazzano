@@ -604,7 +604,8 @@ func (r *Reconciler) createUninstallJob(log vzlog.VerrazzanoLogger, vz *installv
 
 	log.Progressf("Uninstall job %s is running", buildUninstallJobName(vz.Name))
 
-	if err := r.setUninstallCondition(log, jobFound, vz); err != nil {
+	err = r.setUninstallCondition(log, jobFound, vz)
+	if err != nil {
 		return err
 	}
 
@@ -882,7 +883,7 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 // setUninstallCondition sets the Verrazzano resource condition in status for uninstall
 func (r *Reconciler) setUninstallCondition(log vzlog.VerrazzanoLogger, job *batchv1.Job, vz *installv1alpha1.Verrazzano) (err error) {
 	// If the job has succeeded or failed add the appropriate condition
-	if job != nil && (job.Status.Succeeded != 0 || job.Status.Failed != 0) {
+	if job.Status.Succeeded != 0 || job.Status.Failed != 0 {
 		for _, condition := range vz.Status.Conditions {
 			if condition.Type == installv1alpha1.CondUninstallComplete || condition.Type == installv1alpha1.CondUninstallFailed {
 				return nil
@@ -1030,15 +1031,7 @@ func (r *Reconciler) procDelete(ctx context.Context, log vzlog.VerrazzanoLogger,
 	}
 	log.Once("Deleting Verrazzano installation")
 
-	// Uninstall all components
-	log.Oncef("Uninstalling components")
-	if result, err := r.reconcileUninstall(log, vz); err != nil {
-		return newRequeueWithDelay(), err
-	} else if vzctrl.ShouldRequeue(result) {
-		return result, nil
-	}
-
-	// Run the uninstall and check for completion
+	// Create the uninstall job if it doesn't exist
 	if err := r.createUninstallJob(log, vz); err != nil {
 		if errors.IsConflict(err) {
 			log.Debug("Resource conflict creating the uninstall job, requeuing")

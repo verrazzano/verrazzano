@@ -46,7 +46,7 @@ var UninstallTrackerMap = make(map[string]*UninstallTracker)
 
 // reconcileUninstall will Uninstall a Verrazzano installation
 func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
-	log.Oncef("Uninstalling Verrazzano %s/%s", cr.Namespace, cr.Name)
+	log.Oncef("Upgrading Verrazzano to version %s", cr.Spec.Version)
 
 	tracker := getUninstallTracker(cr)
 	done := false
