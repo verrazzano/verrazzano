@@ -978,32 +978,32 @@ def createOLCNECluster() {
         terraform plan -input=false -out=tfplan -no-color
         terraform apply -input=false -no-color -auto-approve tfplan
     """
-    API_SERVER_IP=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw apiserver_ip """)
-    WORKER_NODES_IP=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -json worker_nodes""").replaceAll(/["\[\]]/, "").replaceAll(",", " ")
-    CONTROL_PLANE_NODES_IP=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -json control_plane_nodes """).replaceAll(/["\[\]]/, "").replaceAll(",", " ")
-    VCN_OCID=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw vcn_id """)
-    VCN_CIDR=sh(returnStdout: true, script: """ oci network vcn get --vcn-id "$VCN_OCID" | jq -r '.data."cidr-block"' """)
-    PRIVATE_SUBNET_OCID=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw subnet_id """)
-    PUBLIC_SUBNET_OCID=sh(returnStdout: true, script: """ oci network subnet list -c "$TF_VAR_compartment_id" --vcn-id "$VCN_OCID" --display-name "$TF_VAR_prefix-bastion" | jq -r '.data[0].id' """)
-    BASTION_IP=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw bastion_public_ip """)
-    BASTION_USER=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw bastion_user """)
+    env.API_SERVER_IP=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw apiserver_ip """)
+    env.WORKER_NODES_IP=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -json worker_nodes""").replaceAll(/["\[\]]/, "").replaceAll(",", " ")
+    env.CONTROL_PLANE_NODES_IP=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -json control_plane_nodes """).replaceAll(/["\[\]]/, "").replaceAll(",", " ")
+    env.VCN_OCID=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw vcn_id """)
+    env.VCN_CIDR=sh(returnStdout: true, script: """ oci network vcn get --vcn-id "$VCN_OCID" | jq -r '.data."cidr-block"' """)
+    env.PRIVATE_SUBNET_OCID=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw subnet_id """)
+    env.PUBLIC_SUBNET_OCID=sh(returnStdout: true, script: """ oci network subnet list -c "$TF_VAR_compartment_id" --vcn-id "$VCN_OCID" --display-name "$TF_VAR_prefix-bastion" | jq -r '.data[0].id' """)
+    env.BASTION_IP=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw bastion_public_ip """)
+    env.BASTION_USER=sh(returnStdout: true, script: """ cd $GO_REPO_PATH/terraform-oci-olcne && terraform output -raw bastion_user """)
 }
 
 def createOCIFileSystem() {
-    createdOCIFileSystem="true"
+    env.createdOCIFileSystem="true"
     sh """
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_fs_ops.sh \
         -o create -a "$TF_VAR_availability_domain_id" \
         -n "$TF_VAR_prefix-fs" -m "$TF_VAR_prefix-mt" \
         -p "/$TF_VAR_prefix-export" -c "$TF_VAR_compartment_id" -s "$PRIVATE_SUBNET_OCID"
     """
-    MT_PVT_IP_OCID=sh(returnStdout: true, script: """ oci fs mount-target list --compartment-id "$TF_VAR_compartment_id" --availability-domain "$TF_VAR_availability_domain_id" --display-name "$TF_VAR_prefix-mt" --lifecycle-state ACTIVE | jq -r '.data[0]."private-ip-ids"[0]' """)
-    OCI_MOUNT_IP=sh(returnStdout: true, script: """ $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/get_private_ip_address.sh "$MT_PVT_IP_OCID" """)
-    OCI_EXPORT_PATH="$TF_VAR_prefix-export"
+    env.MT_PVT_IP_OCID=sh(returnStdout: true, script: """ oci fs mount-target list --compartment-id "$TF_VAR_compartment_id" --availability-domain "$TF_VAR_availability_domain_id" --display-name "$TF_VAR_prefix-mt" --lifecycle-state ACTIVE | jq -r '.data[0]."private-ip-ids"[0]' """)
+    env.OCI_MOUNT_IP=sh(returnStdout: true, script: """ $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/get_private_ip_address.sh "$MT_PVT_IP_OCID" """)
+    env.OCI_EXPORT_PATH="$TF_VAR_prefix-export"
 }
 
 def createOCILoadBalancers() {
-    createdOCILoadBalancers="true"
+    env.createdOCILoadBalancers="true"
     sh """
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_lb_ops.sh \
         -o create -n "$TF_VAR_prefix-mgmt" -e true \
@@ -1017,12 +1017,12 @@ def createOCILoadBalancers() {
         -i "$WORKER_NODES_IP" -p 31390 \
         -f "$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci-load-balancer.json"
     """
-    OCI_LB_MGMT_IP=sh(returnStdout: true, script: """ oci lb load-balancer list --compartment-id "$TF_VAR_compartment_id" --display-name "$TF_VAR_prefix-mgmt" --lifecycle-state ACTIVE | jq -r '.data[0]."ip-addresses"[0]."ip-address"' """)
-    OCI_LB_APP_IP=sh(returnStdout: true, script: """ oci lb load-balancer list --compartment-id "$TF_VAR_compartment_id" --display-name "$TF_VAR_prefix-app" --lifecycle-state ACTIVE | jq -r '.data[0]."ip-addresses"[0]."ip-address"' """)
+    env.OCI_LB_MGMT_IP=sh(returnStdout: true, script: """ oci lb load-balancer list --compartment-id "$TF_VAR_compartment_id" --display-name "$TF_VAR_prefix-mgmt" --lifecycle-state ACTIVE | jq -r '.data[0]."ip-addresses"[0]."ip-address"' """)
+    env.OCI_LB_APP_IP=sh(returnStdout: true, script: """ oci lb load-balancer list --compartment-id "$TF_VAR_compartment_id" --display-name "$TF_VAR_prefix-app" --lifecycle-state ACTIVE | jq -r '.data[0]."ip-addresses"[0]."ip-address"' """)
 }
 
 def createOCIDNSZone() {
-    createdOCIDNSZone="true"
+    env.createdOCIDNSZone="true"
     OCI_DNS_ZONE_OCID=sh(returnStdout: true, script: """ $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c "$TF_VAR_compartment_id" -s "$OCI_DNS_ZONE_SUBDOMAIN_NAME" -k "$OCI_DNS_SCOPE" """)
 }
 
@@ -1042,7 +1042,7 @@ def setupBastionSSH() {
 }
 
 def mountOCIStorage() {
-    INSTANCE_IP=WORKER_NODES_IP.split(" ")[0]
+    env.INSTANCE_IP=WORKER_NODES_IP.split(" ")[0]
     sh """
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/mount_oci_storage.sh \
         "$INSTANCE_IP" "$API_SERVER_IP" "$OCI_MOUNT_IP" "$TF_VAR_prefix" "$TF_VAR_ssh_private_key_path" "$OCI_EXPORT_PATH"
