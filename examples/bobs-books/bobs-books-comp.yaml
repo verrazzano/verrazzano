@@ -189,6 +189,7 @@ spec:
           image: container-registry.oracle.com/middleware/weblogic:12.2.1.4
           imagePullSecrets:
             - name: bobs-books-repo-credentials
+            - name: verrazzano-container-registry
           domainHomeSourceType: "FromModel"
           includeServerOutInPodLog: true
           replicas: 1
@@ -230,7 +231,7 @@ spec:
               app: bobbys-front-end
               version: v1
             auxiliaryImages:
-              - image: container-registry.oracle.com/verrazzano/example-bobbys-front-end:1.0.0-1-20211208104359-15ca14d
+              - image: ghcr.io/verrazzano/example-bobbys-front-end:1.0.0-1-20220608153526-843e168
                 volume: auxiliaryImageVolume1
             env:
               - name: JAVA_OPTIONS
@@ -444,6 +445,7 @@ spec:
             name: bobs-bookstore-weblogic-credentials
           imagePullSecrets:
             - name: bobs-books-repo-credentials
+            - name: verrazzano-container-registry
           clusters:
             - clusterName: cluster-1
           configuration:
@@ -483,7 +485,7 @@ spec:
               app: bobs-orders-wls
               version: v1
             auxiliaryImages:
-              - image: container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:20211129200415-ae4e89e
+              - image: ghcr.io/verrazzano/example-bobs-bookstore-order-manager:1.0.0-1-20220608153526-843e168
                 volume: auxiliaryImageVolume1
             env:
               - name: JAVA_OPTIONS

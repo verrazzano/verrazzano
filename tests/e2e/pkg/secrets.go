@@ -151,6 +151,23 @@ func CreatePasswordSecret(namespace string, name string, pw string, labels map[s
 	return scr, err
 }
 
+func CopySecret(secretName, src, dest string) error {
+	client, err := k8sutil.GetKubernetesClientset()
+	secret, err := client.CoreV1().Secrets(src).Get(context.TODO(), secretName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	secretCopy := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: dest,
+		},
+		Data: secret.Data,
+	}
+	_, err = client.CoreV1().Secrets(dest).Create(context.TODO(), secretCopy, metav1.CreateOptions{})
+	return err
+}
+
 // CreateDockerSecret creates docker secret
 func CreateDockerSecret(namespace string, name string, server string, username string, password string) (*corev1.Secret, error) {
 	Log(Info, fmt.Sprintf("CreateDockerSecret %s in %s", name, namespace))

@@ -100,6 +100,11 @@ func deployBobsBooksExample(namespace string) {
 		return pkg.CreateNamespace(namespace, nsLabels)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
+	t.Logs.Info("Copy image pull secret to bobs books namespace")
+	Eventually(func() error {
+		return pkg.CopySecret("verrazzano-container-registry", "verrazzano-install", namespace)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+
 	t.Logs.Info("Create Docker repository secret")
 	Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateDockerSecret(namespace, "bobs-books-repo-credentials", regServ, regUser, regPass)
