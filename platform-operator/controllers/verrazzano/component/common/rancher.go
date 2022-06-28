@@ -258,7 +258,7 @@ func (r *RESTClient) DeleteLocalHost() error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Failed calling https DELETE url %s: %v : %s", url, resp.Status)
+		return fmt.Errorf("Failed calling https DELETE url %s: %v", url, resp.Status)
 	}
 	return nil
 }
