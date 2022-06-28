@@ -942,14 +942,16 @@ def getPlatformOperatorForRelease(){
     script {
         //Removing v from the upgrade version for error handling.
         VERSION_FOR_UPGRADE_ENV = VERSION_FOR_UPGRADE_ENV - "v"
+        //Command to retrieve the platform operator yaml of the current branch.
         def operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file"
 
+        //Command to retrieve the platform operator yaml of the release branch for patch release upgrade testing.
         if(params.VERSION_FOR_UPGRADE != "current_branch" && params.IS_TRIGGERED_MANUALLY != "YES" && params.VERSION_FOR_UPGRADE != "NONE"){
 
             def latestReleaseBranch = getLatestReleaseVersion()
 
             operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name release-${latestReleaseBranch}/operator.yaml --file"
-
+        //Command to retrieve the released version platform operator yaml.
         }else if(params.IS_TRIGGERED_MANUALLY == "YES" && params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "current_branch"){
             operatorCMD = "curl -L https://github.com/verrazzano/verrazzano/releases/download/v${VERSION_FOR_UPGRADE_ENV}/operator.yaml --output"
         }
@@ -975,9 +977,7 @@ def upgradeVerrazzano() {
         // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
         VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
 
-        if(params.VERSION_FOR_UPGRADE == "NONE"){
-            VERSION_FOR_UPGRADE_ENV = VERRAZZANO_DEV_VERSION
-        } else if(params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "current_branch"){
+        if(params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "current_branch"){
             VERRAZZANO_DEV_VERSION = VERSION_FOR_UPGRADE_ENV
         }
 
