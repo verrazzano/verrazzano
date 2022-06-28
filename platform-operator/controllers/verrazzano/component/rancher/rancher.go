@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -78,7 +80,11 @@ func getRancherHostname(c client.Client, vz *vzapi.Verrazzano) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	rancherHostname := fmt.Sprintf("%s.%s.%s", common.RancherName, vz.Spec.EnvironmentName, dnsSuffix)
+	env := vz.Spec.EnvironmentName
+	if len(env) == 0 {
+		env = constants.DefaultEnvironmentName
+	}
+	rancherHostname := fmt.Sprintf("%s.%s.%s", common.RancherName, env, dnsSuffix)
 	return rancherHostname, nil
 }
 
