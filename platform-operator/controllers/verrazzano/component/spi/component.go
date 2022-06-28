@@ -75,6 +75,9 @@ type ComponentInstaller interface {
 
 // ComponentUninstaller interface defines uninstall operations
 type ComponentUninstaller interface {
+	// IsOperatorUninstallSupported Returns true if the component supports uninstall directly via the platform operator
+	// - scaffolding while we move components from the scripts to the operator
+	IsOperatorUninstallSupported() bool
 	// PreUninstall allows components to perform any pre-processing required prior to upgrading
 	PreUninstall(context ComponentContext) error
 	// Uninstall will Uninstall the Verrazzano component specified in the CR.Version field
