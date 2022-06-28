@@ -80,7 +80,7 @@ var (
 		Name: "coherence_component_install_time",
 		Help: "The install time for the coherence component",
 	})
-	mySqlInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+	mySQLInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "my_sql_component_install_time",
 		Help: "The install time for the mysql component",
 	})
@@ -135,13 +135,13 @@ var (
 		"cert-manager":                    certManagerInstallTimeMetric,
 		"external-dns":                    externalDNSInstallTimeMetric,
 		"rancher":                         rancherInstallTimeMetric,
-		"verrazzano":                      verrazzanoAuthproxyInstallTimeMetric,
+		"verrazzano":                      verrazzanoInstallTimeMetric,
 		"verrazzano-monitoring-operator":  verrazzanoMonitoringOperatorInstallTimeMetric,
 		"opensearch":                      openSearchInstallTimeMetric,
 		"opensearch-dashboards":           openSearchDashboardsInstallTimeMetric,
 		"grafana":                         grafanaInstallTimeMetric,
 		"coherence-operator":              coherenceInstallTimeMetric,
-		"mysql":                           mySqlInstallTimeMetric,
+		"mysql":                           mySQLInstallTimeMetric,
 		"keycloak":                        keycloakInstallTimeMetric,
 		"kiali-server":                    kialiInstallTimeMetric,
 		"prometheus-operator":             prometheusOperatorInstallTimeMetric,
