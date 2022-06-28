@@ -233,12 +233,13 @@ var (
 		Name: "test_component_upgrade_time",
 		Help: "The upgrade time for the fake component",
 	})
+	//Ask about duplicate metric multiple objects most likely
 	enabledTestingUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "test_component_upgrade_time",
+		Name: "enabled_test_component_upgrade_time",
 		Help: "The upgrade time for the fake component",
 	})
 	disabledTestingUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "test_component_upgrade_time",
+		Name: "disabled_test_component_upgrade_time",
 		Help: "The upgrade time for the fake component",
 	})
 
