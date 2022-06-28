@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 apiVersion: core.oam.dev/v1alpha2
@@ -59,7 +59,7 @@ spec:
                     format8 / <(?<info2>(.*?))>/
                     format9 / <(?<info3>(.*?))>/
                     format10 / <(?<sequenceNumber>(.*?))>/
-                    format11 / <(?<severity>(.*?))>/
+                    format11 / <\[severity-value: (?<severity>(\d+))\].*?>/
                     format12 / <(?<messageID>(.*?))>/
                     format13 / <(?<message>[^>]*)>[\\s]*/
                     time_key timestamp
