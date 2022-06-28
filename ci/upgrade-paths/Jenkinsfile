@@ -205,7 +205,7 @@ pipeline {
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
 
-        VERSION_FOR_UPGRADE = "${params.VERSION_FOR_UPGRADE}"
+        VERSION_FOR_UPGRADE_ENV = "${params.VERSION_FOR_UPGRADE}"
         VERSION_FOR_INSTALL = "${params.VERSION_FOR_INSTALL}"
 
         TARGET_UPGRADE_OPERATOR_YAML = "${WORKSPACE}/target-upgrade-operator.yaml"
@@ -975,10 +975,10 @@ def upgradeVerrazzano() {
         // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
         VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
 
-        if(VERSION_FOR_UPGRADE == "NONE"){
-            VERSION_FOR_UPGRADE = VERRAZZANO_DEV_VERSION
-        } else if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "current_branch"){
-            VERRAZZANO_DEV_VERSION = VERSION_FOR_UPGRADE
+        if(params.VERSION_FOR_UPGRADE == "NONE"){
+            VERSION_FOR_UPGRADE_ENV = VERRAZZANO_DEV_VERSION
+        } else if(params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "current_branch"){
+            VERRAZZANO_DEV_VERSION = VERSION_FOR_UPGRADE_ENV
         }
 
         echo "Downloading target upgrade operator yaml"
