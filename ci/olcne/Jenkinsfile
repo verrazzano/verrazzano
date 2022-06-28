@@ -1018,7 +1018,7 @@ def createOCILoadBalancers() {
         -f "$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci-load-balancer.json"
     """
     OCI_LB_MGMT_IP=sh(returnStdout: true, script: """ oci lb load-balancer list --compartment-id "$TF_VAR_compartment_id" --display-name "$TF_VAR_prefix-mgmt" --lifecycle-state ACTIVE | jq -r '.data[0]."ip-addresses"[0]."ip-address"' """)
-    OCI_LB_APP_IP=sh(returnStdout: true, script: """ oci lb load-balancer list --compartment-id "$TF_VAR_compartment_id" --display-name "$TF_VAR_prefix-app" --lifecycle-state ACTIVE | jq -r '.data."ip-addresses"[0]."ip-address"' """)
+    OCI_LB_APP_IP=sh(returnStdout: true, script: """ oci lb load-balancer list --compartment-id "$TF_VAR_compartment_id" --display-name "$TF_VAR_prefix-app" --lifecycle-state ACTIVE | jq -r '.data[0]."ip-addresses"[0]."ip-address"' """)
 }
 
 def createOCIDNSZone() {
