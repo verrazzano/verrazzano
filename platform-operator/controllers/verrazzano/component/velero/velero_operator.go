@@ -31,12 +31,12 @@ const (
 	resticCli                 = "--use-restic"
 	nosecret                  = "--no-secret"
 	noDefaultBackup           = "--no-default-backup-location"
-	veleroPodCpuRequestCli    = "--velero-pod-cpu-request="
-	veleroPodCpuLimitCli      = "--velero-pod-cpu-limit="
+	veleroPodCPURequestCli    = "--velero-pod-cpu-request="
+	veleroPodCPULimitCli      = "--velero-pod-cpu-limit="
 	veleroPodMemoryRequestCli = "--velero-pod-mem-request="
 	veleroPodMemoryLimitCli   = "--velero-pod-mem-limit="
-	resticPodCpuRequestCli    = "--restic-pod-cpu-request="
-	resticPodCpuLimitCli      = "--restic-pod-cpu-limit="
+	resticPodCPURequestCli    = "--restic-pod-cpu-request="
+	resticPodCPULimitCli      = "--restic-pod-cpu-limit="
 	resticPodMemoryRequestCli = "--restic-pod-mem-request="
 	resticPodMemoryLimitCli   = "--restic-pod-mem-limit="
 )
@@ -165,13 +165,13 @@ func componentInstall(ctx spi.ComponentContext) error {
 	var vcmd bashCommand
 	var veleroInstallResponse *runnerResponse
 	vcmd.Timeout = time.Second * 600
-	veleroCpuRequestCmd := fmt.Sprintf("%s%s", veleroPodCpuRequestCli, getCRValue(ctx, "velero", "requests", "cpu"))
-	veleroCpuLimitCmd := fmt.Sprintf("%s%s", veleroPodCpuLimitCli, getCRValue(ctx, "velero", "limits", "cpu"))
+	veleroCPURequestCmd := fmt.Sprintf("%s%s", veleroPodCPURequestCli, getCRValue(ctx, "velero", "requests", "cpu"))
+	veleroCPULimitCmd := fmt.Sprintf("%s%s", veleroPodCPULimitCli, getCRValue(ctx, "velero", "limits", "cpu"))
 	veleroMemRequestCmd := fmt.Sprintf("%s%s", veleroPodMemoryRequestCli, getCRValue(ctx, "velero", "requests", "memory"))
 	veleroMemLimitCmd := fmt.Sprintf("%s%s", veleroPodMemoryLimitCli, getCRValue(ctx, "velero", "limits", "memory"))
 
-	resticCpuRequestCmd := fmt.Sprintf("%s%s", resticPodCpuRequestCli, getCRValue(ctx, "restic", "requests", "cpu"))
-	resticCpuLimitCmd := fmt.Sprintf("%s%s", resticPodCpuLimitCli, getCRValue(ctx, "restic", "limits", "cpu"))
+	resticCPURequestCmd := fmt.Sprintf("%s%s", resticPodCPURequestCli, getCRValue(ctx, "restic", "requests", "cpu"))
+	resticCPULimitCmd := fmt.Sprintf("%s%s", resticPodCPULimitCli, getCRValue(ctx, "restic", "limits", "cpu"))
 	resticMemRequestCmd := fmt.Sprintf("%s%s", resticPodMemoryRequestCli, getCRValue(ctx, "restic", "requests", "memory"))
 	resticMemLimitCmd := fmt.Sprintf("%s%s", resticPodMemoryLimitCli, getCRValue(ctx, "restic", "limits", "memory"))
 
@@ -180,8 +180,8 @@ func componentInstall(ctx spi.ComponentContext) error {
 	bcmd = append(bcmd, veleroImageCli, args.VeleroImage)
 	bcmd = append(bcmd, pluginImageCli, args.VeleroPluginForAwsImage)
 	bcmd = append(bcmd, resticCli, volSnapshotEnableCli, nosecret, noDefaultBackup)
-	bcmd = append(bcmd, veleroCpuRequestCmd, veleroCpuLimitCmd, veleroMemRequestCmd, veleroMemLimitCmd)
-	bcmd = append(bcmd, resticCpuRequestCmd, resticCpuLimitCmd, resticMemRequestCmd, resticMemLimitCmd)
+	bcmd = append(bcmd, veleroCPURequestCmd, veleroCPULimitCmd, veleroMemRequestCmd, veleroMemLimitCmd)
+	bcmd = append(bcmd, resticCPURequestCmd, resticCPULimitCmd, resticMemRequestCmd, resticMemLimitCmd)
 	vcmd.CommandArgs = bcmd
 
 	if os.Getenv("DEV_TEST") != "True" {
