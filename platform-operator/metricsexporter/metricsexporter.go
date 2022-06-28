@@ -19,6 +19,7 @@ var (
 	//InstallStartTimeMap is a map that will have its keys as the component name and the time since the epoch in seconds as its value
 	//It will be used to store the "true" time when a component install successfully begins
 	installStartTimeMap = map[string]int64{}
+	upgradeStartTimeMap = map[string]int64{}
 
 	verrazzanoAuthproxyInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "authproxy_component_install_time",
@@ -124,6 +125,110 @@ var (
 		Name: "fluentd_install_time",
 		Help: "The install time for the fluentd component",
 	})
+	verrazzanoAuthproxyUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "authproxy_component_upgrade_time",
+		Help: "The upgrade time for the authproxy component",
+	})
+	oamUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "oam_component_upgrade_time",
+		Help: "The upgrade time for the oam component",
+	})
+	apopperUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "apopper_component_upgrade_time",
+		Help: "The upgrade time for the apopper component",
+	})
+	istioUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "istio_component_upgrade_time",
+		Help: "The upgrade time for the istio component",
+	})
+	weblogicUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "weblogic_component_upgrade_time",
+		Help: "The upgrade time for the weblogic component",
+	})
+	nginxUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "nginx_component_upgrade_time",
+		Help: "The upgrade time for the nginx component",
+	})
+	certManagerUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "certManager_component_upgrade_time",
+		Help: "The upgrade time for the certManager component",
+	})
+	externalDNSUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "externalDNS_component_upgrade_time",
+		Help: "The upgrade time for the externalDNS component",
+	})
+	rancherUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "rancher_component_upgrade_time",
+		Help: "The upgrade time for the rancher component",
+	})
+	verrazzanoUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "verrazzano_component_upgrade_time",
+		Help: "The upgrade time for the verrazzano component",
+	})
+	verrazzanoMonitoringOperatorUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "verrazzano_monitoring_operator_component_upgrade_time",
+		Help: "The upgrade time for the verrazzano-monitoring-operator component",
+	})
+	openSearchUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "open_search_component_upgrade_time",
+		Help: "The upgrade time for the opensearch component",
+	})
+	openSearchDashboardsUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "open_search_dashboards_component_upgrade_time",
+		Help: "The upgrade time for the opensearch-dashboards component",
+	})
+	grafanaUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "grafana_component_upgrade_time",
+		Help: "The upgrade time for the grafana component",
+	})
+	coherenceUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "coherence_component_upgrade_time",
+		Help: "The upgrade time for the coherence component",
+	})
+	mySQLUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "my_sql_component_upgrade_time",
+		Help: "The upgrade time for the mysql component",
+	})
+	keycloakUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "keycloak_component_upgrade_time",
+		Help: "The upgrade time for the keycloak component",
+	})
+	kialiUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "kiali_component_upgrade_time",
+		Help: "The upgrade time for the upgrade component",
+	})
+	prometheusOperatorUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "prometheus_operator_upgrade_time",
+		Help: "The upgrade time for the prometheus-operator component",
+	})
+	prometheusAdapterUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "prometheus_adapter_upgrade_time",
+		Help: "The upgrade time for the prometheus-adapter component",
+	})
+	kubeStateMetricsUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "kube_state_metrics_upgrade_time",
+		Help: "The upgrade time for the kube-state-metrics component",
+	})
+	prometheusPushGatewayUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "prometheus_push_gateway_upgrade_time",
+		Help: "The upgrade time for the prometheus-push-gateway component",
+	})
+	prometheusNodeExporterUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "prometheus_node_exporter_upgrade_time",
+		Help: "The upgrade time for the prometheus-node-exporter component",
+	})
+	jaegerOperatorUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "jaeger_operator_upgrade_time",
+		Help: "The upgrade time for the jaeger-operator component",
+	})
+	verrazzanoConsoleUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "verrazzano_console_upgrade_time",
+		Help: "The upgrade time for the verrazzano-console component",
+	})
+	fluentdUpgradeTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "fluentd_upgrade_time",
+		Help: "The upgrade time for the fluentd component",
+	})
 
 	installMetricsMap = map[string]prometheus.Gauge{
 		"verrazzano-authproxy":            verrazzanoAuthproxyInstallTimeMetric,
@@ -153,6 +258,34 @@ var (
 		"verrazzano-console":              verrazzanoConsoleInstallTimeMetric,
 		"fluentd":                         fluentdInstallTimeMetric,
 	}
+	upgradeMetricsMap = map[string]prometheus.Gauge{
+		"verrazzano-authproxy":            verrazzanoAuthproxyUpgradeTimeMetric,
+		"oam-kubernetes-runtime":          oamUpgradeTimeMetric,
+		"verrazzano-application-operator": apopperUpgradeTimeMetric,
+		"istio":                           istioUpgradeTimeMetric,
+		"weblogic-operator":               weblogicUpgradeTimeMetric,
+		"ingress-controller":              nginxUpgradeTimeMetric,
+		"cert-manager":                    certManagerUpgradeTimeMetric,
+		"external-dns":                    externalDNSUpgradeTimeMetric,
+		"rancher":                         rancherUpgradeTimeMetric,
+		"verrazzano":                      verrazzanoUpgradeTimeMetric,
+		"verrazzano-monitoring-operator":  verrazzanoMonitoringOperatorUpgradeTimeMetric,
+		"opensearch":                      openSearchUpgradeTimeMetric,
+		"opensearch-dashboards":           openSearchDashboardsUpgradeTimeMetric,
+		"grafana":                         grafanaUpgradeTimeMetric,
+		"coherence-operator":              coherenceUpgradeTimeMetric,
+		"mysql":                           mySQLUpgradeTimeMetric,
+		"keycloak":                        keycloakUpgradeTimeMetric,
+		"kiali-server":                    kialiUpgradeTimeMetric,
+		"prometheus-operator":             prometheusOperatorUpgradeTimeMetric,
+		"prometheus-adapter":              prometheusAdapterUpgradeTimeMetric,
+		"kube-state-metrics":              kubeStateMetricsUpgradeTimeMetric,
+		"prometheus-pushgateway":          prometheusPushGatewayUpgradeTimeMetric,
+		"prometheus-node-exporter":        prometheusNodeExporterUpgradeTimeMetric,
+		"jaeger-operator":                 jaegerOperatorUpgradeTimeMetric,
+		"verrazzano-console":              verrazzanoConsoleUpgradeTimeMetric,
+		"fluentd":                         fluentdUpgradeTimeMetric,
+	}
 )
 
 //InitalizeMetricsEndpoint creates and serves a /metrics endpoint at 9100 for Prometheus to scrape metrics from
@@ -168,13 +301,26 @@ func InitalizeMetricsEndpoint() {
 func AddInstallStartTime(startTime int64, componentName string) {
 	installStartTimeMap[componentName] = startTime
 }
+func AddUpgradeStartTime(startTime int64, componentName string) {
+	upgradeStartTimeMap[componentName] = startTime
+}
 func CollectInstallTimeMetric(componentName string) {
 	endTime := time.Now().UnixMilli()
-	totalInstallTime := float64((endTime - installStartTimeMap[componentName])) / 1000.0
+	totalInstallTime := float64((endTime - installStartTimeMap[componentName])) / 1000000000.0
 	installMetricsMap[componentName].Set(totalInstallTime)
 
 }
-func CheckIfAlreadyBeingMonitored(componentName string) bool {
+func CollectUpgradeTimeMetric(componentName string) {
+	endTime := time.Now().UnixMilli()
+	totalUpgradeTime := float64((endTime - upgradeStartTimeMap[componentName])) / 1000000000.0
+	upgradeMetricsMap[componentName].Set(totalUpgradeTime)
+
+}
+func CheckIfInstallAlreadyMonitored(componentName string) bool {
 	_, monitored := installStartTimeMap[componentName]
+	return monitored
+}
+func CheckIfUpgradeAlreadyMonitored(componentName string) bool {
+	_, monitored := upgradeStartTimeMap[componentName]
 	return monitored
 }
