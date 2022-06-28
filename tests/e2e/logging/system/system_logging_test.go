@@ -50,6 +50,10 @@ var (
 		regexp.MustCompile(`^-+$`),
 		regexp.MustCompile(`^$`),
 	}
+	jaegerExceptions = []*regexp.Regexp {
+		regexp.MustCompile(`^.*http: TLS handshake error.*$`),
+		regexp.MustCompile(`^.*GOMAXPROCS.*$`),
+	}
 )
 
 var t = framework.NewTestFramework("system-logging")
@@ -89,6 +93,8 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		valid = validateGrafanaLogs() && valid
 		valid = validateOpenSearchLogs() && valid
 		valid = validateWeblogicOperatorLogs() && valid
+		valid = validateJaegerCollectorLogs() && valid
+		valid = validateJaegerQueryLogs() && valid
 
 		if !valid {
 			// Don't fail for invalid logs until this is stable.
@@ -510,6 +516,26 @@ func validateNodeExporterLogs() bool {
 		"node-exporter",
 		searchTimeWindow,
 		noExceptions)
+}
+
+func validateJaegerCollectorLogs() bool {
+	return validateElasticsearchRecords(
+		logLevelElasticsearchRecordValidator,
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(monitoringNamespace) },
+		"kubernetes.container_name",
+		"jaeger-collector",
+		"3d",
+		jaegerExceptions)
+}
+
+func validateJaegerQueryLogs() bool {
+	return validateElasticsearchRecords(
+		logLevelElasticsearchRecordValidator,
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(monitoringNamespace) },
+		"kubernetes.container_name",
+		"jaeger-query",
+		"3d",
+		jaegerExceptions)
 }
 
 func validateElasticsearchRecords(hitValidator pkg.ElasticsearchHitValidator, indexFunc func() (string, error), appLabel string, appName string, timeRange string, exceptions []*regexp.Regexp) bool {
