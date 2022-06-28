@@ -289,3 +289,36 @@ func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
 	}
 	return []vzapi.Overrides{}
 }
+
+// Delete the local cluster
+func DeleteLocalCluster(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi.Verrazzano) error {
+	password, err := common.GetAdminSecret(c)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed getting Rancher admin secret: %s", err.Error())
+	}
+	if len(password) == 0 {
+		log.Oncef("Skipping Rancher delete local host because Rancher admin password is missing")
+		return nil
+	}
+	rancherHostName, err := getRancherHostname(c, vz)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed getting Rancher hostname: %s", err.Error())
+	}
+	if len(rancherHostName) == 0 {
+		log.Oncef("Skipping Rancher delete local host since Rancher host name is missing")
+		return nil
+	}
+
+	rest, err := common.NewClient(c, rancherHostName, password)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed getting Rancher client: %s", err.Error())
+	}
+	if err := rest.SetAccessToken(); err != nil {
+		return log.ErrorfThrottledNewErr("Failed setting Rancher access token: %s", err.Error())
+	}
+	if err := rest.DeleteLocalHost(); err != nil {
+		return log.ErrorfThrottledNewErr("Failed deleting Rancher local host: %s", err.Error())
+	}
+
+	return nil
+}

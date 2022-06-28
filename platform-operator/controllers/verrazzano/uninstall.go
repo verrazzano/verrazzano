@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -56,6 +57,9 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			tracker.vzState = vzStateUninstallRancherLocal
 
 		case vzStateUninstallRancherLocal:
+			if err := rancher.DeleteLocalCluster(log, r.Client, cr); err != nil {
+				return ctrl.Result{}, err
+			}
 			tracker.vzState = vzStateUninstallMC
 
 		case vzStateUninstallMC:
