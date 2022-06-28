@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/istio"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -18,7 +17,6 @@ import (
 	os2 "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	istiosec "istio.io/api/security/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -236,14 +234,12 @@ func forkInstall(compContext spi.ComponentContext, monitor installMonitor, overr
 }
 
 func (i istioComponent) PreInstall(compContext spi.ComponentContext) error {
-	startTime := time.Now().Unix()
 	if err := labelNamespace(compContext); err != nil {
 		return err
 	}
 	if err := createCertSecret(compContext); err != nil {
 		return err
 	}
-	metricsexporter.AddInstallStartTime(startTime, ComponentName)
 	return nil
 }
 
@@ -259,7 +255,6 @@ func (i istioComponent) PostInstall(compContext spi.ComponentContext) error {
 	if err := createEnvoyFilter(compContext.Log(), compContext.Client()); err != nil {
 		return err
 	}
-	metricsexporter.CollectInstallTimeMetric(ComponentName)
 	return nil
 }
 

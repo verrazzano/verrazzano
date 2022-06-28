@@ -6,7 +6,6 @@ package helm
 import (
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
@@ -23,7 +22,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -266,15 +264,11 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 }
 
 func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
-	startTime := time.Now().Unix()
 	if h.PreInstallFunc != nil {
 		err := h.PreInstallFunc(context, h.ReleaseName, h.resolveNamespace(context.EffectiveCR().Namespace), h.ChartDir)
 		if err != nil {
 			return err
 		}
-	}
-	if h.ReleaseName == "oam-kubernetes-runtime" || h.ReleaseName == "verrazzano-application-operator" || h.ReleaseName == "weblogic-operator" {
-		metricsexporter.AddInstallStartTime(startTime, h.ReleaseName)
 	}
 	return nil
 }
@@ -301,9 +295,6 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 			Source:    h.ReleaseName,
 			Operation: "Check if certificates are ready",
 		}
-	}
-	if h.ReleaseName == "verrazzano-authproxy" || h.ReleaseName == "oam-kubernetes-runtime" || h.ReleaseName == "verrazzano-application-operator" || h.ReleaseName == "weblogic-operator" {
-		metricsexporter.CollectInstallTimeMetric(h.ReleaseName)
 	}
 
 	return nil
