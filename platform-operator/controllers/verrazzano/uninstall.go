@@ -131,3 +131,7 @@ func DeleteUninstallTracker(cr *installv1alpha1.Verrazzano) {
 		delete(UninstallTrackerMap, key)
 	}
 }
+
+func DeleteResource(name string, namespace string) {
+
+}
