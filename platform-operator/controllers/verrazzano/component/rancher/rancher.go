@@ -328,6 +328,6 @@ func DeleteLocalCluster(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi.V
 		return log.ErrorfThrottledNewErr("Failed deleting Rancher local host: %s", err.Error())
 	}
 
-	log.Once("Successfully delete Rancher local cluster")
+	log.Once("Successfully deleted Rancher local cluster")
 	return nil
 }
