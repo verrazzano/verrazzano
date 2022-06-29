@@ -96,6 +96,7 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			tracker.vzState = vzStateUninstallDone
 
 		case vzStateUninstallDone:
+			log.Once("Successfully uninstalled all Verrazzano components")
 			tracker.vzState = vzStateUninstallEnd
 
 		case vzStateUninstallEnd:
@@ -130,8 +131,4 @@ func DeleteUninstallTracker(cr *installv1alpha1.Verrazzano) {
 	if ok {
 		delete(UninstallTrackerMap, key)
 	}
-}
-
-func DeleteResource(name string, namespace string) {
-
 }
