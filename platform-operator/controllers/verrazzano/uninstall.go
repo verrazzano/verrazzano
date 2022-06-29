@@ -6,6 +6,10 @@ package verrazzano
 import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -56,6 +60,28 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			tracker.vzState = vzStateUninstallRancherLocal
 
 		case vzStateUninstallRancherLocal:
+			// If Rancher is installed, then delete local cluster
+			found, comp := registry.FindComponent(rancher.ComponentName)
+			if !found {
+				tracker.vzState = vzStateUninstallMC
+				continue
+			}
+			spiCtx, err := spi.NewContext(log, r.Client, cr, r.DryRun)
+			if err != nil {
+				return newRequeueWithDelay(), err
+			}
+			compContext := spiCtx.Init(rancher.ComponentName).Operation(vzconst.UninstallOperation)
+			installed, err := comp.IsInstalled(compContext)
+			if err != nil {
+				return newRequeueWithDelay(), err
+			}
+			if !installed {
+				tracker.vzState = vzStateUninstallMC
+				continue
+			}
+			if err := rancher.DeleteLocalCluster(log, r.Client, cr); err != nil {
+				return ctrl.Result{}, err
+			}
 			tracker.vzState = vzStateUninstallMC
 
 		case vzStateUninstallMC:
