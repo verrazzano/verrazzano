@@ -581,7 +581,8 @@
           "images": [
             {
               "image": "jaeger-agent",
-              "tag": "1.32.0"
+              "tag": "1.32.0",
+              "helmFullImageKey": "jaegerAgentImage"
             }
           ]
         },
@@ -591,7 +592,8 @@
           "images": [
             {
               "image": "jaeger-collector",
-              "tag": "1.32.0"
+              "tag": "1.32.0",
+              "helmFullImageKey": "jaegerCollectorImage"
             }
           ]
         },
@@ -601,7 +603,8 @@
           "images": [
             {
               "image": "jaeger-query",
-              "tag": "1.32.0"
+              "tag": "1.32.0",
+              "helmFullImageKey": "jaegerQueryImage"
             }
           ]
         },
@@ -611,7 +614,8 @@
           "images": [
             {
               "image": "jaeger-ingester",
-              "tag": "1.32.0"
+              "tag": "1.32.0",
+              "helmFullImageKey": "jaegerIngesterImage"
             }
           ]
         }

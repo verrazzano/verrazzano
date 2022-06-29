@@ -5,3 +5,13 @@ rbac:
   create: true
   pspEnabled: false
   clusterRole: true
+
+extraEnv:
+  - name: JAEGER-AGENT-IMAGE
+    value: "{{ .Values.agentImage }}"
+  - name: JAEGER-QUERY-IMAGE
+    value: "{{ .Values.queryImage }}"
+  - name: JAEGER-COLLECTOR-IMAGE
+    value: "{{ .Values.jaegerCollectorImage }}"
+  - name: JAEGER-INGESTER-IMAGE
+    value: "{{ .Values.jaegerIngesterImage }}"
