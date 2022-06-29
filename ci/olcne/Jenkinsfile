@@ -1052,6 +1052,14 @@ def createOCIDNSZoneRecords() {
     """
 }
 
+def mountOCIStorage() {
+    env.INSTANCE_IP=WORKER_NODES_IP.split(" ")[0]
+    sh """
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/mount_oci_storage.sh \
+        "$INSTANCE_IP" "$API_SERVER_IP" "$OCI_MOUNT_IP" "$TF_VAR_prefix" "$TF_VAR_ssh_private_key_path" "$OCI_EXPORT_PATH"
+    """
+}
+
 def setupKubeconfig() {
     env.INSTANCE_IP=CONTROL_PLANE_NODES_IP.split(" ")[0]
     sh """
@@ -1063,14 +1071,6 @@ def setupKubeconfig() {
         sed -E 's/https:\\/\\/[0-9.]+/https:\\/\\/127.0.0.1/g' "$KUBECONFIG" > /tmp/kubeconfig
         mv /tmp/kubeconfig "$KUBECONFIG"
         ssh -i "$TF_VAR_ssh_private_key_path" -fN4 -L 6443:$INSTANCE_IP:6443 "$BASTION_USER"@"$BASTION_IP"
-    """
-}
-
-def mountOCIStorage() {
-    env.INSTANCE_IP=WORKER_NODES_IP.split(" ")[0]
-    sh """
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/mount_oci_storage.sh \
-        "$INSTANCE_IP" "$API_SERVER_IP" "$OCI_MOUNT_IP" "$TF_VAR_prefix" "$TF_VAR_ssh_private_key_path" "$OCI_EXPORT_PATH"
     """
 }
 
