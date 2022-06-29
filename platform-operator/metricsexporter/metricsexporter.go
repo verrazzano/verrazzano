@@ -270,8 +270,6 @@ var (
 		"jaeger-operator":                 jaegerOperatorInstallTimeMetric,
 		"verrazzano-console":              verrazzanoConsoleInstallTimeMetric,
 		"fluentd":                         fluentdInstallTimeMetric,
-		"EnabledComponent":                enabledTestingUpgradeTimeMetric,
-		"DisabledComponent":               disabledTestingUpgradeTimeMetric,
 	}
 	upgradeMetricsMap = map[string]prometheus.Gauge{
 		"verrazzano-authproxy":            verrazzanoAuthproxyUpgradeTimeMetric,
@@ -301,6 +299,8 @@ var (
 		"verrazzano-console":              verrazzanoConsoleUpgradeTimeMetric,
 		"fluentd":                         fluentdUpgradeTimeMetric,
 		"":                                testingUpgradeTimeMetric,
+		"EnabledComponent":                enabledTestingUpgradeTimeMetric,
+		"DisabledComponent":               disabledTestingUpgradeTimeMetric,
 	}
 )
 
