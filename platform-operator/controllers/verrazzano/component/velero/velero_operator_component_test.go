@@ -5,12 +5,13 @@ package velero
 
 import (
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
+	"os/exec"
 	crtclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
@@ -27,6 +28,18 @@ var veleroEnabledCR = &vzapi.Verrazzano{
 			},
 		},
 	},
+}
+
+// genericTestRunner is used to run generic OS commands with expected results
+type genericTestRunner struct {
+	stdOut []byte
+	stdErr []byte
+	err    error
+}
+
+// Run genericTestRunner executor
+func (r genericTestRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+	return r.stdOut, r.stdErr, r.err
 }
 
 // TestIsEnabled tests the IsEnabled function for the Velero Operator component
@@ -117,11 +130,23 @@ func TestIsInstalled(t *testing.T) {
 }
 
 func TestInstallUpgrade(t *testing.T) {
-	os.Setenv("DEV_TEST", "True")
 	defer config.Set(config.Get())
 	v := NewComponent()
 	config.Set(config.OperatorConfig{VerrazzanoRootDir: "../../../../../"})
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+
+	helm.SetCmdRunner(genericTestRunner{
+		stdOut: []byte(""),
+		stdErr: []byte{},
+		err:    nil,
+	})
+	defer helm.SetDefaultRunner()
+
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(veleroEnabledCR).Build()
 	ctx := spi.NewFakeContext(client, veleroEnabledCR, false)
 	err := v.Install(ctx)
 	assert.NoError(t, err)
@@ -129,7 +154,6 @@ func TestInstallUpgrade(t *testing.T) {
 	assert.NoError(t, err)
 	err = v.Reconcile(ctx)
 	assert.NoError(t, err)
-	os.Unsetenv("DEV_TEST")
 }
 
 func TestGetName(t *testing.T) {

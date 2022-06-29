@@ -8,11 +8,13 @@ import (
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"path/filepath"
 )
 
 const (
@@ -22,8 +24,8 @@ const (
 	ComponentNamespace = constants.VeleroNameSpace
 	// ComponentJSONName is the json name of the component in the CRD
 	ComponentJSONName = "velero"
-
-	resticConfigmapFile = "/velero/velero-configmap.yaml"
+	// ChartDir is the name of the directory for third party helm charts
+	ChartDir = "velero"
 )
 
 var (
@@ -37,36 +39,32 @@ var (
 	}
 )
 
-//veleroComponent is stubbed if any properties need to be added in the future
-type veleroComponent struct{}
+type veleroHelmComponent struct {
+	helm.HelmComponent
+}
 
 func NewComponent() spi.Component {
-	return veleroComponent{}
+	return veleroHelmComponent{
+		helm.HelmComponent{
+			ReleaseName:             ComponentName,
+			JSONName:                ComponentJSONName,
+			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ChartDir),
+			ChartNamespace:          ComponentNamespace,
+			IgnoreNamespaceOverride: true,
+			SupportsOperatorInstall: true,
+			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
+			ImagePullSecretKeyname:  "image.imagePullSecrets[0].name",
+			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "velero-override-static-values.yaml"),
+			AppendOverridesFunc:     AppendOverrides,
+			GetInstallOverridesFunc: GetOverrides,
+			Dependencies:            []string{},
+		},
+	}
 }
 
-func (v veleroComponent) PreInstall(ctx spi.ComponentContext) error {
-	return nil
-}
-
-func (v veleroComponent) Upgrade(ctx spi.ComponentContext) error {
-	return componentInstall(ctx)
-}
-
-func (v veleroComponent) Install(ctx spi.ComponentContext) error {
-	return componentInstall(ctx)
-}
-
-func (v veleroComponent) Reconcile(ctx spi.ComponentContext) error {
-	return nil
-}
-
-func (v veleroComponent) IsReady(context spi.ComponentContext) bool {
-	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, componentPrefix)
-}
-
-// IsEnabled returns true only if the Velero Operator is explicitly enabled
+// IsEnabled returns true only if Velero is explicitly enabled
 // in the Verrazzano CR.
-func (v veleroComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+func (v veleroHelmComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	comp := effectiveCR.Spec.Components.Velero
 	if comp == nil || comp.Enabled == nil {
 		return false
@@ -74,7 +72,8 @@ func (v veleroComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	return *comp.Enabled
 }
 
-func (v veleroComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
+// IsInstalled returns true only if Velero is installed on the system
+func (v veleroHelmComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	for _, nsn := range deployments {
 		if err := ctx.Client().Get(context.TODO(), nsn, &appsv1.Deployment{}); err != nil {
 			if errors.IsNotFound(err) {
@@ -87,78 +86,45 @@ func (v veleroComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	return true, nil
 }
 
-func (v veleroComponent) Name() string {
-	return ComponentName
+// validateVelero checks scenarios in which the Verrazzano CR violates install verification
+func (v veleroHelmComponent) validateVelero(vz *vzapi.Verrazzano) error {
+	// Validate install overrides
+	if vz.Spec.Components.Velero != nil {
+		if err := vzapi.ValidateInstallOverrides(vz.Spec.Components.Velero.ValueOverrides); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func (v veleroComponent) GetDependencies() []string {
-	return []string{}
-}
-
-func (v veleroComponent) GetMinVerrazzanoVersion() string {
-	return constants.VerrazzanoVersion1_3_0
-}
-
-func (v veleroComponent) GetJSONName() string {
-	return ComponentJSONName
-}
-
-// GetHelmOverrides returns the Helm override sources for a component
-func (v veleroComponent) GetOverrides(_ *vzapi.Verrazzano) []vzapi.Overrides {
-	return []vzapi.Overrides{}
-}
-
-// MonitorOverrides indicates whether monitoring of Helm override sources is enabled for a component
-func (v veleroComponent) MonitorOverrides(_ spi.ComponentContext) bool {
+// MonitorOverrides checks whether monitoring is enabled for install overrides sources
+func (v veleroHelmComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.Velero == nil {
+		return false
+	}
+	if ctx.EffectiveCR().Spec.Components.Velero.MonitorChanges != nil {
+		return *ctx.EffectiveCR().Spec.Components.Velero.MonitorChanges
+	}
 	return true
 }
 
-func (v veleroComponent) IsOperatorInstallSupported() bool {
-	return true
+func (v veleroHelmComponent) PreInstall(ctx spi.ComponentContext) error {
+	return ensureVeleroNamespace(ctx)
 }
 
-// ##### Only interface stubs below #####
+// IsReady checks if the Jaeger Operator deployment is ready
+func (v veleroHelmComponent) IsReady(ctx spi.ComponentContext) bool {
+	return isVeleroOperatorReady(ctx)
+}
 
-func (v veleroComponent) PostInstall(_ spi.ComponentContext) error {
+func (v veleroHelmComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
 	return nil
 }
 
-func (v veleroComponent) PreUpgrade(_ spi.ComponentContext) error {
-	return nil
-}
-
-func (v veleroComponent) PostUpgrade(_ spi.ComponentContext) error {
-	return nil
-}
-
-func (v veleroComponent) GetIngressNames(_ spi.ComponentContext) []types.NamespacedName {
-	return nil
-}
-
-func (v veleroComponent) GetCertificateNames(_ spi.ComponentContext) []types.NamespacedName {
-	return nil
-}
-
-func (v veleroComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
-	return nil
-}
-
-func (v veleroComponent) ValidateUpdate(_, _ *vzapi.Verrazzano) error {
-	return nil
-}
-
-func (v veleroComponent) PreUninstall(_ spi.ComponentContext) error {
-	return nil
-}
-
-func (v veleroComponent) Uninstall(_ spi.ComponentContext) error {
-	return nil
-}
-
-func (v veleroComponent) PostUninstall(_ spi.ComponentContext) error {
-	return nil
-}
-
-func (v veleroComponent) IsOperatorUninstallSupported() bool {
-	return true
+// ValidateUpgrade verifies the upgrade of the Verrazzano object
+func (v veleroHelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	if v.IsEnabled(old) && !v.IsEnabled(new) {
+		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
+	}
+	return v.validateVelero(new)
 }

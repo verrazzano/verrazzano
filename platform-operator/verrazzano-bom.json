@@ -624,27 +624,19 @@
           "images": [
             {
               "image": "velero",
-              "tag": "v1.8.1"
-            }
-          ]
-        },
-        {
-          "repository": "verrazzano",
-          "name": "velero-plugin-for-aws",
-          "images": [
+              "tag": "v1.8.1",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            },
             {
               "image": "velero-plugin-for-aws",
-              "tag": "v1.4.1"
-            }
-          ]
-        },
-        {
-          "repository": "verrazzano",
-          "name": "velero-restic-restore-helper",
-          "images": [
+              "tag": "v1.4.1",
+              "helmFullImageKey": "initContainers[0].image"
+            },
             {
               "image": "velero-restic-restore-helper",
-              "tag": "v1.8.1"
+              "tag": "v1.8.1",
+              "helmFullImageKey": "configMaps.restic-restore-action-config.data.image"
             }
           ]
         }

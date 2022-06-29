@@ -4,7 +4,6 @@
 package velero
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,63 +17,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const testBomPath = "../../../../verrazzano-bom.json"
-
 var testScheme = runtime.NewScheme()
 
 func init() {
 	_ = clientgoscheme.AddToScheme(testScheme)
 	_ = vzapi.AddToScheme(testScheme)
 	_ = appsv1.AddToScheme(testScheme)
-}
-
-//TestBuildInstallArgs verifies the install args are present as expected from the BOM
-func TestBuildInstallArgs(t *testing.T) {
-	defer config.Set(config.Get())
-
-	var tests = []struct {
-		name     string
-		bomFile  string
-		hasError bool
-	}{
-		{
-			"build install args from valid bom",
-			testBomPath,
-			false,
-		},
-		{
-			"fails to build install args when bomfile doesn't exist",
-			"invalid bom file",
-			true,
-		},
-		{
-			"fails to build install args when bomfile doesn't have Velero subcomponent",
-			"invalid bom file",
-			true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			config.SetDefaultBomFilePath(tt.bomFile)
-			args, err := buildInstallArgs()
-			if tt.hasError {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				for _, subcomponent := range subcomponentNames {
-					switch subcomponent {
-					case "velero":
-						assert.Contains(t, args.VeleroImage, subcomponent)
-					case "velero-plugin-for-aws":
-						assert.Contains(t, args.VeleroPluginForAwsImage, subcomponent)
-					case "velero-restic-restore-helper":
-						assert.Contains(t, args.VeleroResticRestoreHelperImage, subcomponent)
-					}
-				}
-			}
-		})
-	}
 }
 
 // TestisVeleroOperatorReady tests the isVeleroOperatorReady function for the Velero Operator

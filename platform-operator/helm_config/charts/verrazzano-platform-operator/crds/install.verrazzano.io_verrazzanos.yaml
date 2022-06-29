@@ -6269,76 +6269,53 @@ spec:
                     properties:
                       enabled:
                         type: boolean
-                      kubernetes:
-                        description: Common Kubernetes requests configuration
-                        properties:
-                          resources:
-                            description: ResourceRequirements describes the compute
-                              resource requirements.
-                            properties:
-                              limits:
-                                additionalProperties:
-                                  anyOf:
-                                  - type: integer
-                                  - type: string
-                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                                  x-kubernetes-int-or-string: true
-                                description: 'Limits describes the maximum amount
-                                  of compute resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
-                                type: object
-                              requests:
-                                additionalProperties:
-                                  anyOf:
-                                  - type: integer
-                                  - type: string
-                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                                  x-kubernetes-int-or-string: true
-                                description: 'Requests describes the minimum amount
-                                  of compute resources required. If Requests is omitted
-                                  for a container, it defaults to Limits if that is
-                                  explicitly specified, otherwise to an implementation-defined
-                                  value. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
-                                type: object
-                            type: object
-                        type: object
-                      restic:
-                        description: Common kubernetes configuration for Restic pods
-                        properties:
-                          kubernetes:
-                            description: VeleroKubernetesSection specifies the Kubernetes
-                              resources that can be customized for Velero.
-                            properties:
-                              resources:
-                                description: ResourceRequirements describes the compute
-                                  resource requirements.
-                                properties:
-                                  limits:
-                                    additionalProperties:
-                                      anyOf:
-                                      - type: integer
-                                      - type: string
-                                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                                      x-kubernetes-int-or-string: true
-                                    description: 'Limits describes the maximum amount
-                                      of compute resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
-                                    type: object
-                                  requests:
-                                    additionalProperties:
-                                      anyOf:
-                                      - type: integer
-                                      - type: string
-                                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                                      x-kubernetes-int-or-string: true
-                                    description: 'Requests describes the minimum amount
-                                      of compute resources required. If Requests is
-                                      omitted for a container, it defaults to Limits
-                                      if that is explicitly specified, otherwise to
-                                      an implementation-defined value. More info:
-                                      https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
-                                    type: object
-                                type: object
-                            type: object
-                        type: object
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          description: Overrides stores the specified overrides
+                          properties:
+                            configMapRef:
+                              description: Selects a key from a ConfigMap.
+                              properties:
+                                key:
+                                  description: The key to select.
+                                  type: string
+                                name:
+                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind,
+                                    uid?'
+                                  type: string
+                                optional:
+                                  description: Specify whether the ConfigMap or its
+                                    key must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                            secretRef:
+                              description: SecretKeySelector selects a key of a Secret.
+                              properties:
+                                key:
+                                  description: The key of the secret to select from.  Must
+                                    be a valid secret key.
+                                  type: string
+                                name:
+                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind,
+                                    uid?'
+                                  type: string
+                                optional:
+                                  description: Specify whether the Secret or its key
+                                    must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
                     type: object
                   verrazzano:
                     description: Verrazzano configuration
