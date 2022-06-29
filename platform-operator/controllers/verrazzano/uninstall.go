@@ -100,8 +100,6 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 
 		case vzStateUninstallEnd:
 			done = true
-			// Uninstall completely done
-			deleteUninstallTracker(cr)
 		}
 	}
 	// Uninstall done, no need to requeue
@@ -124,8 +122,9 @@ func getUninstallTracker(cr *installv1alpha1.Verrazzano) *UninstallTracker {
 	return vuc
 }
 
-// deleteUninstallTracker deletes the Uninstall tracker for the Verrazzano resource
-func deleteUninstallTracker(cr *installv1alpha1.Verrazzano) {
+// DeleteUninstallTracker deletes the Uninstall tracker for the Verrazzano resource
+// This needs to be called when uninstall is completely done
+func DeleteUninstallTracker(cr *installv1alpha1.Verrazzano) {
 	key := getNSNKey(cr)
 	_, ok := UninstallTrackerMap[key]
 	if ok {
