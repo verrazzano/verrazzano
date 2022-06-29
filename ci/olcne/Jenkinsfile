@@ -162,7 +162,6 @@ pipeline {
         INSTALL_CONFIG_FILE_OLCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-olcne.yaml"
         OLCNE_TERRAFORM_GIT_URL=credentials("terraform-oci-olcne-url")
         OLCNE_BRANCH_TO_USE="origin/release/$OLCNE_VERSION"
-        kubectl="kubectl --insecure-skip-tls-verify"
 
         // Terraform variables
         TF_VAR_tenancy_id=credentials('oci-tenancy')
@@ -744,8 +743,8 @@ def dumpVerrazzanoSystemPods() {
 
 def dumpCertManagerNamespaceLogs() {
     sh """
-        $kubectl logs --selector=app=cert-manager -n cert-manager > $WORKSPACE/platform-operator/scripts/install/build/logs/cert-manager.log || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
-        $kubectl logs --selector=app.kubernetes.io/name=external-dns -n cert-manager > $WORKSPACE/platform-operator/scripts/install/build/logs/external-dns.log || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl logs --selector=app=cert-manager -n cert-manager > $WORKSPACE/platform-operator/scripts/install/build/logs/cert-manager.log || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl logs --selector=app.kubernetes.io/name=external-dns -n cert-manager > $WORKSPACE/platform-operator/scripts/install/build/logs/external-dns.log || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 
@@ -769,8 +768,8 @@ def dumpVerrazzanoPlatformOperatorLogs() {
     sh """
         ## dump out verrazzano-platform-operator logs
         mkdir -p $WORKSPACE/verrazzano-platform-operator/logs
-        $kubectl -n verrazzano-install logs --selector=app=verrazzano-platform-operator > $WORKSPACE/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.log --tail -1 || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
-        $kubectl -n verrazzano-install describe pod --selector=app=verrazzano-platform-operator > $WORKSPACE/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.out || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-install logs --selector=app=verrazzano-platform-operator > $WORKSPACE/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.log --tail -1 || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-install describe pod --selector=app=verrazzano-platform-operator > $WORKSPACE/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.out || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
         echo "[INFO] verrazzano-platform-operator logs dumped to verrazzano-platform-operator-pod.log"
         echo "[INFO] verrazzano-platform-operator pod description dumped to verrazzano-platform-operator-pod.out"
         echo "[INFO] ------------------------------------------"
@@ -781,8 +780,8 @@ def dumpVerrazzanoApplicationOperatorLogs() {
     sh """
         ## dump out verrazzano-application-operator logs
         mkdir -p $WORKSPACE/verrazzano-application-operator/logs
-        $kubectl -n verrazzano-system logs --selector=app=verrazzano-application-operator > $WORKSPACE/verrazzano-application-operator/logs/verrazzano-application-operator-pod.log --tail -1 || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
-        $kubectl -n verrazzano-system describe pod --selector=app=verrazzano-application-operator > $WORKSPACE/verrazzano-application-operator/logs/verrazzano-application-operator-pod.out || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-system logs --selector=app=verrazzano-application-operator > $WORKSPACE/verrazzano-application-operator/logs/verrazzano-application-operator-pod.log --tail -1 || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-system describe pod --selector=app=verrazzano-application-operator > $WORKSPACE/verrazzano-application-operator/logs/verrazzano-application-operator-pod.out || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
         echo "[INFO] verrazzano-application-operator logs dumped to verrazzano-application-operator-pod.log"
         echo "[INFO] verrazzano-application-operator pod description dumped to verrazzano-application-operator-pod.out"
         echo "[INFO] ------------------------------------------"
@@ -1068,8 +1067,10 @@ def setupKubeconfig() {
             scp -o StrictHostKeyChecking=no -4 opc@"$API_SERVER_IP":/home/opc/.kube/config $HOME/.kube
         '
         scp -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" -4 "$BASTION_USER"@"$BASTION_IP":/home/"$BASTION_USER"/.kube/config "$KUBECONFIG"
-        sed -E 's/https:\\/\\/[0-9.]+/https:\\/\\/127.0.0.1/g' "$KUBECONFIG" > /tmp/kubeconfig
-        mv /tmp/kubeconfig "$KUBECONFIG"
+        yq -i 'del(.clusters[0].cluster."certificate-authority-data")' "$KUBECONFIG"
+        yq -i eval '.clusters[0].cluster.server = "https://127.0.0.1:6443"' "$KUBECONFIG"
+        yq -i eval '.clusters[0].cluster."insecure-skip-tls-verify" = true' "$KUBECONFIG"
+        cat $KUBECONFIG
         ssh -i "$TF_VAR_ssh_private_key_path" -fN4 -L 6443:$INSTANCE_IP:6443 "$BASTION_USER"@"$BASTION_IP"
     """
 }
@@ -1083,8 +1084,8 @@ def installVerrazzanoPlatformOperator() {
         cp $WORKSPACE/downloaded-operator.yaml $WORKSPACE/acceptance-test-operator.yaml
 
         # Install the verrazzano-platform-operator
-        $kubectl apply -f $HOME/verrazzano/acceptance-test-operator.yaml
-        $kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+        kubectl apply -f $HOME/verrazzano/acceptance-test-operator.yaml
+        kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
         # make sure ns exists
         chmod +x $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
@@ -1101,7 +1102,7 @@ def installVerrazzano() {
         yq -i eval '.spec.components.istio.istioInstallArgs[0].valueList[0] = $OCI_LB_APP_IP' "$INSTALL_CONFIG_FILE_OLCNE"
         
         # apply config to create cluster
-        $kubectl apply -f $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-olcne.yaml
+        kubectl apply -f $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-olcne.yaml
         # wait for Verrazzano install to complete
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
         # Create acceptance test configuration file
@@ -1118,8 +1119,8 @@ def dumpVerrazzanoInstallLogs() {
     sh """
         ## dump out install logs
         mkdir -p $WORKSPACE/platform-operator/scripts/install/build/logs
-        $kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano > $WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
-        $kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > $WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
+        kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano > $WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
+        kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > $WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
         echo "[INFO] Verrazzano Installation logs dumped to verrazzano-install.log"
         echo "[INFO] Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
     """
