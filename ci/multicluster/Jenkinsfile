@@ -848,12 +848,10 @@ def upgradeVerrazzano() {
 
                 # Download the operator.yaml for the target version that we are upgrading to
                 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${upgradeOperatorFile}
-                kubectl get sa -n verrazzano-install verrazzano-platform-operator -o yaml
 
                 echo "Upgrading the Verrazzano installation to version" ${VERRAZZANO_DEV_VERSION}
                 cd ${GO_REPO_PATH}/verrazzano/tools/vz
                 GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go upgrade --version ${VERRAZZANO_DEV_VERSION} --operator-file ${upgradeOperatorFile}
-                kubectl get sa -n verrazzano-install verrazzano-platform-operator -o yaml
 
                 # ideally we don't need to wait here
                 sleep 15
