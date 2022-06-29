@@ -52,11 +52,6 @@ function delete_verrazzano() {
     || return $? # return on pipefail
 
   # Delete CR'S from all Verrazzano managed namespaces
-  delete_managed_k8s_resources applicationconfigurations.core.oam.dev
-  delete_managed_k8s_resources coherence.coherence.oracle.com
-  delete_managed_k8s_resources components.core.oam.dev
-  delete_managed_k8s_resources containerizedworkloads.core.oam.dev
-  delete_managed_k8s_resources domains.weblogic.oracle
   delete_managed_k8s_resources healthscopes.core.oam.dev
   delete_managed_k8s_resources manualscalertraits.core.oam.dev
   delete_managed_k8s_resources traitdefinitions.core.oam.dev
