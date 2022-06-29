@@ -43,7 +43,7 @@ vz uninstall --timeout 30m`
 )
 
 // Number of retries after waiting a second for uninstall pod to be ready
-const uninstallDefaultWaitRetries = 20
+const uninstallDefaultWaitRetries = 60
 
 var uninstallWaitRetries = uninstallDefaultWaitRetries
 

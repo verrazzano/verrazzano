@@ -59,7 +59,7 @@ const VerrazzanoInstall = "verrazzano-install"
 
 const VerrazzanoManagedCluster = "verrazzano-managed-cluster"
 
-const VerrazzanoPlatformOperatorWait = 1
+const VerrazzanoPlatformOperatorWait = 5
 
 // Analysis tool flags
 const (
