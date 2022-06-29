@@ -197,8 +197,8 @@ pipeline {
         // OCI_DNS_COMPARTMENT_OCID and OCI_PRIVATE_KEY_FILE are needed for setting up DNS zone in OCI
         OCI_DNS_COMPARTMENT_OCID=credentials('oci-dns-compartment')
         OCI_DNS_SCOPE="${params.OCI_DNS_SCOPE}"
-        OCI_DNS_ZONE_SUBDOMAIN_NAME="$dnsZoneSubdomainName"
-        OCI_DNS_ZONE_NAME="sk${OCI_DNS_ZONE_SUBDOMAIN_NAME}.v8o.io"
+        OCI_DNS_ZONE_SUBDOMAIN_NAME="sk$dnsZoneSubdomainName"
+        OCI_DNS_ZONE_NAME="${OCI_DNS_ZONE_SUBDOMAIN_NAME}.v8o.io"
 
         // used for cluster dump
         DUMP_KUBECONFIG="$KUBECONFIG"
