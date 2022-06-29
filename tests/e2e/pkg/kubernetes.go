@@ -16,6 +16,7 @@ import (
 	"github.com/google/uuid"
 	certmanagerv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/onsi/gomega"
+	vaoClient "github.com/verrazzano/verrazzano/application-operator/clients/app/clientset/versioned"
 	vpClient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
@@ -322,6 +323,18 @@ func ListNodes() (*corev1.NodeList, error) {
 	return nodes, nil
 }
 
+// GetNodeCount returns the number of nodes for the cluster
+func GetNodeCount() (uint32, error) {
+	nodes, err := ListNodes()
+	if err != nil {
+		return 0, err
+	}
+	if len(nodes.Items) < 1 {
+		return 0, fmt.Errorf("can not find node in the cluster")
+	}
+	return uint32(len(nodes.Items)), nil
+}
+
 // GetPodsFromSelector returns a collection of pods for the given namespace and selector
 func GetPodsFromSelector(selector *metav1.LabelSelector, namespace string) ([]corev1.Pod, error) {
 	var pods *corev1.PodList
@@ -406,6 +419,15 @@ func GetVerrazzanoProjectClientsetInCluster(kubeconfigPath string) (*vpClient.Cl
 		return nil, err
 	}
 	return vpClient.NewForConfig(config)
+}
+
+// GetVerrazzanoApplicationOperatorClientSet returns the Kubernetes clientset for the Verrazzano Application Operator
+func GetVerrazzanoApplicationOperatorClientSet() (*vaoClient.Clientset, error) {
+	config, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		return nil, err
+	}
+	return vaoClient.NewForConfig(config)
 }
 
 // GetDynamicClient returns a dynamic client needed to access Unstructured data

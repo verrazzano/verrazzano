@@ -50,6 +50,7 @@ func NewComponent() spi.Component {
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "mysql-values.yaml"),
 			AppendOverridesFunc:     appendMySQLOverrides,
 			Dependencies:            []string{istio.ComponentName},
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
@@ -109,7 +110,7 @@ func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	if err := common.CompareInstallArgs(c.getInstallArgs(old), c.getInstallArgs(new)); err != nil {
 		return fmt.Errorf("Updates to mysqlInstallArgs not allowed for %s", ComponentJSONName)
 	}
-	return nil
+	return c.HelmComponent.ValidateUpdate(old, new)
 }
 
 func (c mysqlComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
@@ -117,4 +118,15 @@ func (c mysqlComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs
 		return vz.Spec.Components.Keycloak.MySQL.MySQLInstallArgs
 	}
 	return nil
+}
+
+// MonitorOverrides checks whether monitoring of install overrides is enabled or not
+func (c mysqlComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.Keycloak != nil {
+		if ctx.EffectiveCR().Spec.Components.Keycloak.MySQL.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.Keycloak.MySQL.MonitorChanges
+		}
+		return true
+	}
+	return false
 }

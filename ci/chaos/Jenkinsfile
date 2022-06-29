@@ -368,7 +368,7 @@ pipeline {
                         kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
 
                         # A successful completion of the upgrade means the Keycloak configuration was successfully rebuilt
-                        kubectl wait --timeout=25m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                        kubectl wait --timeout=30m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
                         # Kill MySQL and wait for Keycloak to be healthy again
                         ${GO_REPO_PATH}/verrazzano/ci/scripts/chaos_test_ephemeral_storage.sh
@@ -487,8 +487,9 @@ pipeline {
                         # Make sure the upgrade is still in progress
                         vz_status=\$(kubectl get vz -o jsonpath='{.items[0].status.conditions[?(@.type=="UpgradeStarted")].type}')
                         if [[ \${vz_status} == "UpgradeStarted" ]]; then
-                            # Uninstall VZ
-                            kubectl delete verrazzano my-verrazzano
+                            echo "Uninstalling Verrazzano"
+                            cd ${GO_REPO_PATH}/verrazzano/tools/vz
+                            GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go uninstall
 
                             ## dump out uninstall logs
                             mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
@@ -511,7 +512,7 @@ pipeline {
                     if [[ "uninstall.failed.upgrade" != ${params.CHAOS_TEST_TYPE} ]]
                     then
                         # wait for the upgrade to complete
-                        kubectl wait --timeout=25m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                        kubectl wait --timeout=30m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
                         # Dump the resource to debug
                         kubectl get -o yaml verrazzano/my-verrazzano || true

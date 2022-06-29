@@ -8,7 +8,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
@@ -52,20 +51,24 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 			continue
 		}
 		if checkConfigUpdated(spiCtx, componentStatus, compName) && comp.IsEnabled(compContext.EffectiveCR()) {
-			oldState := componentStatus.State
-			oldGen := componentStatus.ReconcilingGeneration
-			componentStatus.ReconcilingGeneration = 0
-			if err := r.updateComponentStatus(compContext, "PreInstall started", vzapi.CondPreInstall); err != nil {
-				return ctrl.Result{Requeue: true}, err
-			}
-			compLog.Oncef("CR.generation: %v reset component %s state: %v generation: %v to state: %v generation: %v ",
-				spiCtx.ActualCR().Generation, compName, oldState, oldGen, componentStatus.State, componentStatus.ReconcilingGeneration)
-			if spiCtx.ActualCR().Status.State == vzapi.VzStateReady {
-				err = r.setInstallingState(vzctx.Log, spiCtx.ActualCR())
-				compLog.Oncef("Reset Verrazzano state to %v for generation %v", spiCtx.ActualCR().Status.State, spiCtx.ActualCR().Generation)
-				if err != nil {
-					spiCtx.Log().Errorf("Failed to reset state: %v", err)
-					return newRequeueWithDelay(), err
+			if !comp.MonitorOverrides(compContext) && comp.IsEnabled(spiCtx.EffectiveCR()) {
+				compLog.Oncef("Skipping update for component %s, monitorChanges set to false", comp.Name())
+			} else {
+				oldState := componentStatus.State
+				oldGen := componentStatus.ReconcilingGeneration
+				componentStatus.ReconcilingGeneration = 0
+				if err := r.updateComponentStatus(compContext, "PreInstall started", vzapi.CondPreInstall); err != nil {
+					return ctrl.Result{Requeue: true}, err
+				}
+				compLog.Oncef("CR.generation: %v reset component %s state: %v generation: %v to state: %v generation: %v ",
+					spiCtx.ActualCR().Generation, compName, oldState, oldGen, componentStatus.State, componentStatus.ReconcilingGeneration)
+				if spiCtx.ActualCR().Status.State == vzapi.VzStateReady {
+					err = r.setInstallingState(vzctx.Log, spiCtx.ActualCR())
+					compLog.Oncef("Reset Verrazzano state to %v for generation %v", spiCtx.ActualCR().Status.State, spiCtx.ActualCR().Generation)
+					if err != nil {
+						spiCtx.Log().Errorf("Failed to reset state: %v", err)
+						return newRequeueWithDelay(), err
+					}
 				}
 			}
 		}
@@ -166,10 +169,7 @@ func checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.Compone
 	if vzState == vzapi.VzStateUpgrading || vzState == vzapi.VzStatePaused {
 		return false
 	}
-	// Current VerrazzanoSpec or CRD does not define VerrazzanoSpec.components.mysql. MySQL Config update is not allowed yet.
-	if name == mysql.ComponentName {
-		return false
-	}
+
 	// The component is being reconciled/installed with ReconcilingGeneration of the CR
 	// if CR.Generation > ReconcilingGeneration then re-enter install flow
 	if componentStatus.ReconcilingGeneration > 0 {

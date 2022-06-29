@@ -148,6 +148,22 @@ func (g grafanaComponent) PostInstall(ctx spi.ComponentContext) error {
 	return common.CheckIngressesAndCerts(ctx, g)
 }
 
+func (g grafanaComponent) IsOperatorUninstallSupported() bool {
+	return false
+}
+
+func (g grafanaComponent) PreUninstall(context spi.ComponentContext) error {
+	return nil
+}
+
+func (g grafanaComponent) Uninstall(context spi.ComponentContext) error {
+	return nil
+}
+
+func (g grafanaComponent) PostUninstall(context spi.ComponentContext) error {
+	return nil
+}
+
 // PreUpgrade ensures that preconditions are met before upgrading the Grafana component
 func (g grafanaComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err := common.EnsureVMISecret(ctx.Client()); err != nil {

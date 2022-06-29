@@ -18,6 +18,7 @@ installerFileName = "install-verrazzano.yaml"
 
 pipeline {
     options {
+        timeout(time: 2, unit: 'HOURS')
         skipDefaultCheckout true
         timestamps ()
     }
@@ -34,6 +35,7 @@ pipeline {
 
     parameters {
         booleanParam (description: 'Whether to use External Elasticsearch', name: 'EXTERNAL_ELASTICSEARCH', defaultValue: false)
+        booleanParam (description: 'Whether to upgrade Verrazzano', name: 'UPGRADE_VERRAZZANO', defaultValue: true)
         choice (description: 'Number of Cluster', name: 'TOTAL_CLUSTERS', choices: ["2", "1", "3"])
         choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
                 choices: ["KIND", "magicdns_oke", "ocidns_oke"])
@@ -185,7 +187,7 @@ pipeline {
         SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
 
         // sample app deployed before upgrade and UI console tests
-        SAMPLE_APP_NAME="hello-helidon-appconf"
+        SAMPLE_APP_NAME="hello-helidon"
         SAMPLE_APP_NAMESPACE="hello-helidon-sample"
         SAMPLE_APP_PROJECT="hello-helidon-sample-proj"
         SAMPLE_APP_COMPONENT="hello-helidon-component"
@@ -417,11 +419,13 @@ pipeline {
                     }
                 }
                 stage("upgrade-platform-operator") {
+                    when { expression { return params.UPGRADE_VERRAZZANO == true } }
                     steps {
                         upgradePlatformOperator()
                     }
                 }
                 stage("upgrade-verrazzano") {
+                    when { expression { return params.UPGRADE_VERRAZZANO == true } }
                     steps {
                         upgradeVerrazzano()
                     }
@@ -437,6 +441,7 @@ pipeline {
         }
 
         stage('Verify Upgrade') {
+            when { expression { return params.UPGRADE_VERRAZZANO == true } }
             // Rerun some stages to verify the upgrade
             steps {
                 script {
@@ -459,9 +464,28 @@ pipeline {
                         runGinkgoAdmin('update/fluentdextes')
                     }
                 }
+                stage("verify-dns-update") {
+                    steps {
+                        script {
+                            parallel verifyDNSUpdate()
+                        }
+                    }
+                }
+                stage("verify-cert-manager-update") {
+                    steps {
+                        script {
+                            parallel verifyCertManagerUpdate()
+                        }
+                    }
+                }
                 stage('verify-install') {
                     steps {
                         runGinkgoRandomize('verify-install')
+                    }
+                }
+                stage('verify-rancher') {
+                    steps {
+                        runGinkgoRandomizeAdmin('multicluster/verify-rancher')
                     }
                 }
                 stage ('multicluster/verify-install') {
@@ -473,28 +497,9 @@ pipeline {
         }
 
         stage ('Verify Infra') {
-            // NOTE: The stages are executed in parallel, however the tests themselves are executed against
-            //       each cluster in sequence. If possible, we should parallelize that as well.
-            parallel {
-                stage('verify-scripts') {
-                    steps {
-                        runGinkgoRandomize('scripts')
-                    }
-                }
-                stage('verify-infra restapi') {
-                    steps {
-                        runGinkgoRandomize('verify-infra/restapi')
-                    }
-                }
-                stage('verify-infra oam') {
-                    steps {
-                        runGinkgoRandomize('verify-infra/oam')
-                    }
-                }
-                stage('verify-infra vmi') {
-                    steps {
-                        runGinkgoRandomize('verify-infra/vmi')
-                    }
+            steps {
+                script {
+                    parallel verifyInfra()
                 }
             }
             post {
@@ -508,33 +513,9 @@ pipeline {
         stage('Acceptance Tests') {
             stages {
                 stage ('Example apps') {
-                    parallel {
-                        stage ('Examples Helidon') {
-                            steps {
-                                runGinkgo("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload")
-                            }
-                        }
-                        stage ('Examples Helidon Deprecated') {
-                            steps {
-                                runGinkgo("multicluster/examples/helidon-deprecated", "${TEST_DUMP_ROOT}/helidon-deprecated")
-                            }
-                        }
-                        stage ('Delete Deployed App NS') {
-                            steps {
-                                script {
-                                    runHelidonNsOpsTest()
-                                }
-                            }
-                        }
-                        stage ('WebLogic Workload') {
-                            steps {
-                                runGinkgo("multicluster/workloads/mcweblogic", "${TEST_DUMP_ROOT}/weblogic-workload")
-                            }
-                        }
-                        stage ('Coherence Workload') {
-                            steps {
-                                runGinkgo("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload")
-                            }
+                    steps {
+                        script {
+                            parallel verifyExamples()
                         }
                     }
                 }
@@ -790,8 +771,8 @@ def getVerrazzanoOperatorYaml() {
         echo "Platform Operator Configuration"
         cd ${GO_REPO_PATH}/verrazzano
         if [ "NONE" == "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
-            if [ "true" == "${params.EXTERNAL_ELASTICSEARCH}" ]; then
-                echo "Using the latest branch operator.yaml from object storage because external ES is not supported in versions prior to v1.1"
+            if [ "false" == "${params.UPGRADE_VERRAZZANO}" ] ; then
+                echo "Using the latest branch operator.yaml from object storage because upgrade is disabled for this job"
                 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                 cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
             else
@@ -921,7 +902,7 @@ def upgradeVerrazzano() {
                 cat ${v8oUpgradeFile}
                 kubectl apply -f ${v8oUpgradeFile}
                 # wait for the upgrade to complete
-                kubectl wait --timeout=25m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                kubectl wait --timeout=30m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
                 # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
                 kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
@@ -1558,6 +1539,67 @@ def verifyUpgrade() {
         },
         "Verify Metrics": {
             runGinkgoRandomize('metrics/syscomponents')
+        },
+    ]
+}
+
+def verifyDNSUpdate() {
+    return [
+        "verify-admin-cluster-dns-update": {
+            runGinkgoAdmin('update/dnsac')
+        },
+        "verify-managed-cluster-dns-update": {
+            runGinkgoAdmin('update/dnsmc')
+        },
+    ]
+}
+
+def verifyCertManagerUpdate() {
+    return [
+        "verify-admin-cluster-cert-manager-update": {
+            runGinkgoAdmin('update/certac')
+        },
+        "verify-managed-cluster-cert-manager-update": {
+            runGinkgoAdmin('update/certmc')
+        },
+    ]
+}
+
+// NOTE: The stages are executed in parallel, however the tests themselves are executed against
+//       each cluster in sequence. If possible, we should parallelize that as well.
+def verifyInfra() {
+    return [
+        "verify-scripts": {
+            runGinkgoRandomize('scripts')
+        },
+        "verify-infra restapi": {
+            runGinkgoRandomize('verify-infra/restapi')
+        },
+        "verify-infra oam": {
+            runGinkgoRandomize('verify-infra/oam')
+        },
+        "verify-infra vmi": {
+            runGinkgoRandomize('verify-infra/vmi')
+        },
+    ]
+}
+
+def verifyExamples() {
+    return [
+        "Examples Helidon": {
+            runGinkgo("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload")
+        },
+        "Examples Helidon Deprecated": {
+            runGinkgo("multicluster/examples/helidon-deprecated", "${TEST_DUMP_ROOT}/helidon-deprecated")
+        },
+        "Delete Deployed App NS": {
+            runHelidonNsOpsTest()
+        },
+        "WebLogic Workload": {
+            runGinkgo("multicluster/workloads/mcweblogic", "${TEST_DUMP_ROOT}/weblogic-workload")
+        },
+        "Coherence Workload": {
+            runGinkgo("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload")
         },
     ]
 }

@@ -142,11 +142,13 @@ func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, service
 	gwPrincipal := "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"
 	promPrincipal := "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator"
 	weblogicOperPrincipal := "cluster.local/ns/verrazzano-system/sa/weblogic-operator-sa"
+	promOperatorPrincipal := "cluster.local/ns/verrazzano-monitoring/sa/prometheus-operator-kube-p-prometheus"
 
 	principals := []string{
 		podPrincipal,
 		gwPrincipal,
 		promPrincipal,
+		promOperatorPrincipal,
 	}
 	// If the pod is WebLogic then add the WebLogic operator principle so that the operator can
 	// communicate with the WebLogic servers

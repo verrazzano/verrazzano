@@ -134,13 +134,16 @@ const ObservedUpgradeRetryVersion = "verrazzano.io/observed-upgrade-retry-versio
 // NGINXControllerServiceName is the nginx ingress controller name
 const NGINXControllerServiceName = "ingress-controller-ingress-nginx-controller"
 
-// InstallOperation is the install string
+// InstallOperation indicates that an install operation being executed by a component
 const InstallOperation = "install"
 
-// UpgradeOperation is the install string
+// UpgradeOperation indicates that an upgrade operation being executed by a component
 const UpgradeOperation = "upgrade"
 
-// InitializeOperation is the initialize string
+// UninstallOperation indicates that an uninstall operation being executed by a component
+const UninstallOperation = "uninstall"
+
+// InitializeOperation indicates that an initialize operation being executed by a component
 const InitializeOperation = "initialize"
 
 // ReconcileLoopRequeueInterval is the interval before reconcile gets called again.
@@ -167,10 +170,10 @@ const VerrazzanoIngressSecret = "verrazzano-tls" //nolint:gosec //#gosec G101
 // VerrazzanoLocalCABundleSecret is a secret containing the admin ca bundle
 const VerrazzanoLocalCABundleSecret = "verrazzano-local-ca-bundle" //nolint:gosec //#gosec G101
 
-//KubernetesAppLabel is a label key for kubernetes apps
+// KubernetesAppLabel is a label key for kubernetes apps
 const KubernetesAppLabel = "app.kubernetes.io/component"
 
-//JaegerCollectorService is a label value for Jaeger collector
+// JaegerCollectorService is a label value for Jaeger collector
 const JaegerCollectorService = "service-collector"
 
 // OverridesFinalizer is a label value for value override object finalizer
@@ -181,3 +184,13 @@ const ConfigMapKind = "ConfigMap"
 
 // SecretKind is a label value for Secret Kind
 const SecretKind = "Secret"
+
+// PromManagedClusterCACertsSecretName is the name of the secret that contains managed cluster CA certificates. The secret is mounted
+// as a volume in the Prometheus pod.
+const PromManagedClusterCACertsSecretName = "managed-cluster-ca-certs"
+
+// VerrazzanoComponentLabelKey is the key for the verrazzano component label to distinguish verrazzano component resources
+const VerrazzanoComponentLabelKey = "verrazzano-component"
+
+// IstioAppLabel is the label used for Verrazzano Istio components
+const IstioAppLabel = "verrazzano.io/istio"

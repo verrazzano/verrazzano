@@ -5,6 +5,7 @@ def agentLabel = env.JOB_NAME.contains('master') ? "phxsmall" : "VM.Standard2.2"
 
 pipeline {
     options {
+        timeout(time: 5, unit: 'HOURS')
         skipDefaultCheckout true
     }
 
@@ -57,6 +58,7 @@ pipeline {
                 defaultValue: '',
                 description: 'The branch to check out after cloning the console repository.',
                 trim: true)
+        booleanParam (description: 'This will FORCE a stable commit update without running any tests. This is normally ONLY used for debugging, it can be used to force a manual value into object storage', name: 'FORCE_STABLE_COMMIT_UPDATE', defaultValue: false)
     }
 
     environment {
@@ -130,6 +132,12 @@ pipeline {
         }
 
         stage ('Kick off parallel tests') {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    expression {params.FORCE_STABLE_COMMIT_UPDATE == false}
+                }
+            }
             parallel {
                 stage('Multi Cluster Tests') {
                     steps {
@@ -137,6 +145,7 @@ pipeline {
                             script {
                                 build job: "/verrazzano-multi-cluster-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
+                                        booleanParam(name: 'UPGRADE_VERRAZZANO', value: true),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
@@ -156,6 +165,7 @@ pipeline {
                             script {
                                 build job: "/verrazzano-multi-cluster-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
+                                        booleanParam(name: 'UPGRADE_VERRAZZANO', value: true),
                                         booleanParam(name: 'EXTERNAL_ELASTICSEARCH', value: true),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -164,7 +174,8 @@ pipeline {
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                         booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                        string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
+                                        string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH),
+                                        string(name: 'VERSION_FOR_INSTALL', value: 'v1.2.0'),
                                     ], wait: true
                             }
                         }
@@ -345,6 +356,10 @@ def storePipelineArtifacts() {
         // as well
         sh """
             echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
+            if [ "true" == "${params.FORCE_STABLE_COMMIT_UPDATE}" ]; then
+                echo "forced-by-job=${env.BUILD_URL}" >> $WORKSPACE/last-stable-commit.txt
+            fi
+            cat $WORKSPACE/last-stable-commit.txt
             oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
         """
     }

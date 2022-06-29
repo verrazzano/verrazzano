@@ -1,0 +1,149 @@
+{
+    "kind": "ServiceList",
+    "apiVersion": "v1",
+    "metadata": {
+        "resourceVersion": "21580"
+    },
+    "items": [
+        {
+            "metadata": {
+                "name": "rancher",
+                "namespace": "cattle-system",
+                "uid": "a34a7adb-2192-4183-a48b-83077201e507",
+                "resourceVersion": "4889",
+                "creationTimestamp": "2022-06-16T10:21:29Z",
+                "labels": {
+                    "app": "rancher",
+                    "app.kubernetes.io/managed-by": "Helm",
+                    "chart": "rancher-2.6.4",
+                    "heritage": "Helm",
+                    "release": "rancher"
+                },
+                "annotations": {
+                    "meta.helm.sh/release-name": "rancher",
+                    "meta.helm.sh/release-namespace": "cattle-system"
+                }
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": "http",
+                        "protocol": "TCP",
+                        "port": 80,
+                        "targetPort": 80
+                    },
+                    {
+                        "name": "https-internal",
+                        "protocol": "TCP",
+                        "port": 443,
+                        "targetPort": 444
+                    }
+                ],
+                "selector": {
+                    "app": "rancher"
+                },
+                "clusterIP": "REDACTED-IP4-ADDRESS",
+                "clusterIPs": [
+                    "REDACTED-IP4-ADDRESS"
+                ],
+                "type": "ClusterIP",
+                "sessionAffinity": "None",
+                "ipFamilies": [
+                    "IPv4"
+                ],
+                "ipFamilyPolicy": "SingleStack",
+                "internalTrafficPolicy": "Cluster"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        },
+        {
+            "metadata": {
+                "name": "rancher-webhook",
+                "namespace": "cattle-system",
+                "uid": "aeeb5e11-64d5-47b2-b037-28c1eb474cd9",
+                "resourceVersion": "10395",
+                "creationTimestamp": "2022-06-16T10:27:13Z",
+                "labels": {
+                    "app.kubernetes.io/managed-by": "Helm"
+                },
+                "annotations": {
+                    "meta.helm.sh/release-name": "rancher-webhook",
+                    "meta.helm.sh/release-namespace": "cattle-system"
+                }
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": "https",
+                        "protocol": "TCP",
+                        "port": 443,
+                        "targetPort": 9443
+                    }
+                ],
+                "selector": {
+                    "app": "rancher-webhook"
+                },
+                "clusterIP": "REDACTED-IP4-ADDRESS",
+                "clusterIPs": [
+                    "REDACTED-IP4-ADDRESS"
+                ],
+                "type": "ClusterIP",
+                "sessionAffinity": "None",
+                "ipFamilies": [
+                    "IPv4"
+                ],
+                "ipFamilyPolicy": "SingleStack",
+                "internalTrafficPolicy": "Cluster"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        },
+        {
+            "metadata": {
+                "name": "webhook-service",
+                "namespace": "cattle-system",
+                "uid": "ac0db4ed-051f-4b65-a29d-8f04dc041e5d",
+                "resourceVersion": "10398",
+                "creationTimestamp": "2022-06-16T10:27:13Z",
+                "labels": {
+                    "app.kubernetes.io/managed-by": "Helm"
+                },
+                "annotations": {
+                    "meta.helm.sh/release-name": "rancher-webhook",
+                    "meta.helm.sh/release-namespace": "cattle-system",
+                    "need-a-cert.cattle.io/secret-name": "rancher-webhook-tls"
+                }
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": "https",
+                        "protocol": "TCP",
+                        "port": 443,
+                        "targetPort": 8777
+                    }
+                ],
+                "selector": {
+                    "app": "rancher-webhook"
+                },
+                "clusterIP": "REDACTED-IP4-ADDRESS",
+                "clusterIPs": [
+                    "REDACTED-IP4-ADDRESS"
+                ],
+                "type": "ClusterIP",
+                "sessionAffinity": "None",
+                "ipFamilies": [
+                    "IPv4"
+                ],
+                "ipFamilyPolicy": "SingleStack",
+                "internalTrafficPolicy": "Cluster"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        }
+    ]
+}

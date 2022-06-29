@@ -195,7 +195,7 @@ pipeline {
         SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
 
         // sample app deployed before upgrade and UI console tests
-        SAMPLE_APP_NAME="hello-helidon-appconf"
+        SAMPLE_APP_NAME="hello-helidon"
         SAMPLE_APP_NAMESPACE="hello-helidon"
         SAMPLE_APP_PROJECT="hello-helidon-sample-proj"
         SAMPLE_APP_COMPONENT="hello-helidon-component"
@@ -205,7 +205,7 @@ pipeline {
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
 
-        VERSION_FOR_UPGRADE = "${params.VERSION_FOR_UPGRADE}"
+        VERSION_FOR_UPGRADE_ENV = "${params.VERSION_FOR_UPGRADE}"
         VERSION_FOR_INSTALL = "${params.VERSION_FOR_INSTALL}"
 
         TARGET_UPGRADE_OPERATOR_YAML = "${WORKSPACE}/target-upgrade-operator.yaml"
@@ -372,6 +372,11 @@ pipeline {
                                 runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/grafana', "${TEST_DUMP_ROOT}/grafana")
                             }
                         }
+                        stage('Metricsbinding pre-upgrade') {
+                            steps {
+                                runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/metricsbinding', "${TEST_DUMP_ROOT}/metricsbinding")
+                            }
+                        }
                         stage ('Deploy Helidon example application - single cluster') {
                             when { expression { isVZOperatorMinimumCompatibleVersion("v1.1.0") } }
                             steps {
@@ -396,21 +401,21 @@ pipeline {
                                 runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", "false", "false", "false")
                             }
                         }
-                    }
-                }
-                stage("upgrade-platform-operator") {
-                    steps {
-                        upgradePlatformOperator()
-                    }
-                }
-                stage("Verify Upgrade Required") {
-                    steps {
-                        runGinkgoRandomizeSerial('upgrade/pre-upgrade/verify-upgrade-required')
+                        stage('Prometheus pre-upgrade') {
+                            steps {
+                                runGinkgoVerifyParallel('Prometheus pre-upgrade', 'metrics/deploymetrics', "${TEST_DUMP_ROOT}/prompreupgrade", "false", "true", "true", "deploymetrics")
+                            }
+                        }
                     }
                 }
                 stage("upgrade-verrazzano") {
                     steps {
                         upgradeVerrazzano()
+                    }
+                    post {
+                        always {
+                            performDescribeVerrazzanoResource()
+                        }
                     }
                 }
             }
@@ -522,19 +527,14 @@ pipeline {
             stages {
                 stage('Post-upgrade Acceptance Tests parallel') {
                     parallel {
-                        stage("Validate BOM") {
+                        stage("Validate BOM : Admin and Managed") {
                             when {
                                 allOf {
                                     expression{params.RUN_BOM_VALIDATOR == true}
                                 }
                             }
-                            environment {
-                                OCI_CLI_AUTH="instance_principal"
-                                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                                OCI_OS_BUCKET="verrazzano-builds"
-                            }
                             steps {
-                                executeBOMValidatorAdmin()
+                                executeBomValidator()
                             }
                         }
                         stage ('Console') {
@@ -561,6 +561,16 @@ pipeline {
                         stage('Grafana post-upgrade') {
                             steps {
                                 runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/grafana', "${TEST_DUMP_ROOT}/grafana")
+                            }
+                        }
+                        stage('Metricsbinding post-upgrade') {
+                            steps {
+                                runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/metricsbinding', "${TEST_DUMP_ROOT}/metricsbinding")
+                            }
+                        }
+                        stage('Prometheus post-upgrade') {
+                            steps {
+                                runGinkgoVerifyParallel('Prometheus post-upgrade', 'metrics/deploymetrics', "${TEST_DUMP_ROOT}/prompostupgrade", "true", "false", "false", "deploymetrics")
                             }
                         }
                         stage ("Verify install scripts") {
@@ -652,13 +662,7 @@ pipeline {
         always {
             script {
                 if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                    dumpVerrazzanoSystemPods()
-                    dumpCattleSystemPods()
-                    dumpNginxIngressControllerLogs()
-                    dumpVerrazzanoPlatformOperatorLogs()
-                    dumpVerrazzanoApplicationOperatorLogs()
-                    dumpOamKubernetesRuntimeLogs()
-                    dumpVerrazzanoApiLogs()
+                    dumpAll()
                 }
             }
             copyGeneratedTestReports()
@@ -673,11 +677,7 @@ pipeline {
             }
         }
         cleanup {
-            // Delete clusters as the very first thing in cleanup to reclaim cluster resources especially OKE resources
-            deleteClusters()
-            metricBuildDuration()
-            emitJobMetrics()
-            deleteDir()
+            deleteAll()
         }
     }
 }
@@ -705,6 +705,14 @@ def createTestOCIConfigSecret() {
             """
         }
     }
+}
+
+def deleteAll() {
+    // Delete clusters as the very first thing in cleanup to reclaim cluster resources especially OKE resources
+    deleteClusters()
+    metricBuildDuration()
+    emitJobMetrics()
+    deleteDir()
 }
 
 def deleteClusters() {
@@ -909,33 +917,22 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
                 # Display the kubectl and cluster versions
                 kubectl version
 
+                ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}/pre-install-resources
+                
+                echo "Create the verrazzano-install namespace"
+                kubectl create namespace verrazzano-install
+
                 echo "Create Image Pull Secrets"
                 ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
                 ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
                 ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
-
-                echo "Installing the Verrazzano Platform Operator"
-                kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
-
-                # make sure ns exists
-                ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
-
-                # create secret in verrazzano-install ns
                 ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
 
-                echo "Wait for Operator to be ready"
-                cd ${GO_REPO_PATH}/verrazzano
-                kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-
-                ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}/pre-install-resources
-
-                echo "Applying \$verrazzanoConfig"
-                kubectl apply -f ${verrazzanoConfig}
-
-                # wait for Verrazzano install to complete
-                ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+                # Install Verrazzano
+                cd ${GO_REPO_PATH}/verrazzano/tools/vz
+                GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --kubeconfig ${KUBECONFIG_DIR}/${count}/kube_config --filename ${verrazzanoConfig} --operator-file ${WORKSPACE}/acceptance-test-operator.yaml
             """
-            RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/${count}/kube_config' && kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
+            RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/${count}/kube_config' && kubectl get verrazzano -o jsonpath='{.items[0].status.version}'").trim()
             echo "Verrazzano Version INSTALl : ${RUNNING_OPERATOR_VERSION}"
         }
     }
@@ -944,17 +941,19 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
 def getPlatformOperatorForRelease(){
     script {
         //Removing v from the upgrade version for error handling.
-        VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
+        VERSION_FOR_UPGRADE_ENV = VERSION_FOR_UPGRADE_ENV - "v"
+        //Command to retrieve the platform operator yaml of the current branch.
         def operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file"
 
-        if(VERSION_FOR_UPGRADE != "current_branch" && params.IS_TRIGGERED_MANUALLY != "YES" && VERSION_FOR_UPGRADE != "NONE"){
+        //Command to retrieve the platform operator yaml of the release branch for patch release upgrade testing.
+        if(params.VERSION_FOR_UPGRADE != "current_branch" && params.IS_TRIGGERED_MANUALLY != "YES" && params.VERSION_FOR_UPGRADE != "NONE"){
 
             def latestReleaseBranch = getLatestReleaseVersion()
 
             operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name release-${latestReleaseBranch}/operator.yaml --file"
-
-        }else if(params.IS_TRIGGERED_MANUALLY == "YES" && VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "current_branch"){
-            operatorCMD = "curl -L https://github.com/verrazzano/verrazzano/releases/download/v${VERSION_FOR_UPGRADE}/operator.yaml --output"
+        //Command to retrieve the released version platform operator yaml.
+        }else if(params.IS_TRIGGERED_MANUALLY == "YES" && params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "current_branch"){
+            operatorCMD = "curl -L https://github.com/verrazzano/verrazzano/releases/download/v${VERSION_FOR_UPGRADE_ENV}/operator.yaml --output"
         }
 
         sh(script: "$operatorCMD $TARGET_UPGRADE_OPERATOR_YAML")
@@ -963,55 +962,12 @@ def getPlatformOperatorForRelease(){
 
 def getLatestReleaseVersion(){
     def latestReleaseBranch
-    if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "current_branch"){
-        VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
-        def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
+    if(params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "current_branch"){
+        VERSION_FOR_UPGRADE_ENV = VERSION_FOR_UPGRADE_ENV - "v"
+        def latestReleaseTagSplit = VERSION_FOR_UPGRADE_ENV.split("\\.")
         latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
     }
     return latestReleaseBranch
-}
-
-// Upgrade the verrazzano-platform-operator for all clusters
-def upgradePlatformOperator() {
-    script {
-        echo "Downloading target upgrade operator yaml"
-        getPlatformOperatorForRelease()
-
-        def verrazzanoPlatformOperatorUpgradeStages= createClusterExecutionsMap()
-
-        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-        for(int count = 1; count <= clusterCount; count++) {
-            def key = "vz-mgd-${count-1}"
-            if (count == 1) {
-                key = "vz-admin"
-            }
-            verrazzanoPlatformOperatorUpgradeStages["${key}"] = upgradePlatformOperatorOnCluster(count)
-        }
-        parallel verrazzanoPlatformOperatorUpgradeStages
-    }
-}
-
-// Upgrade the verrazzano-platform-operator for a given cluster
-// - count is the cluster index into the $KUBECONFIG_DIR
-def upgradePlatformOperatorOnCluster(count) {
-    // For parallel execution, wrap this in a Groovy enclosure {}
-    return {
-        script {
-            def upgradeOperatorFile = "${KUBECONFIG_DIR}/${count}/upgrade-operator.yaml"
-            def kubeClusterConfig="${KUBECONFIG_DIR}/${count}/kube_config"
-            sh """
-                cp ${TARGET_UPGRADE_OPERATOR_YAML} ${upgradeOperatorFile}
-                echo "Upgrading the Verrazzano platform operator"
-                kubectl --kubeconfig=${kubeClusterConfig} apply -f ${upgradeOperatorFile}
-
-                # need to sleep since the old operator needs to transition to terminating state
-                sleep 15
-
-                # ensure operator pod is up
-                kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-            """
-        }
-    }
 }
 
 // Upgrade Verrazzano
@@ -1021,11 +977,12 @@ def upgradeVerrazzano() {
         // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
         VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
 
-        if(VERSION_FOR_UPGRADE == "NONE"){
-            VERSION_FOR_UPGRADE = VERRAZZANO_DEV_VERSION
-        } else if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "current_branch"){
-            VERRAZZANO_DEV_VERSION = VERSION_FOR_UPGRADE
+        if(params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "current_branch"){
+            VERRAZZANO_DEV_VERSION = VERSION_FOR_UPGRADE_ENV
         }
+
+        echo "Downloading target upgrade operator yaml"
+        getPlatformOperatorForRelease()
 
         def verrazzanoUpgradeStages = createClusterExecutionsMap()
 
@@ -1048,27 +1005,19 @@ def upgradeVerrazzanoOnCluster(count, verrazzanoDevVersion) {
     // For parallel execution, wrap this in a Groovy enclosure {}
     return {
         script {
-            def v8oInstallFile="${KUBECONFIG_DIR}/${count}/${installerFileName}"
-            def v8oUpgradeFile="${KUBECONFIG_DIR}/${count}/verrazzano-upgrade-cr.yaml"
             def kubeClusterConfig="${KUBECONFIG_DIR}/${count}/kube_config"
+            def upgradeOperatorFile = "${KUBECONFIG_DIR}/${count}/upgrade-operator.yaml"
             sh """
+                cp ${TARGET_UPGRADE_OPERATOR_YAML} ${upgradeOperatorFile}
+                
                 mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}
 
                 # Get the install job in verrazzano-install namespace
                 kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-pre-upgrade-job.out
 
                 echo "Upgrading the Verrazzano installation to version" ${verrazzanoDevVersion}
-                # Modify the version field in the Verrazzano CR file to be this new Verrazzano version
-                cd ${GO_REPO_PATH}/verrazzano
-                cp ${v8oInstallFile} ${v8oUpgradeFile}
-                ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${verrazzanoDevVersion}  ${v8oUpgradeFile}
-
-                # Do the upgrade
-                echo "Following is the verrazzano CR file with the new version:"
-                cat ${v8oUpgradeFile}
-                kubectl --kubeconfig=${kubeClusterConfig} apply -f ${v8oUpgradeFile}
-                # wait for the upgrade to complete
-                kubectl --kubeconfig=${kubeClusterConfig} wait --timeout=30m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                cd ${GO_REPO_PATH}/verrazzano/tools/vz
+                GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go upgrade --kubeconfig ${kubeClusterConfig} --version ${verrazzanoDevVersion} --operator-file ${upgradeOperatorFile}
 
                 # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
                 kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-post-upgrade-job.out
@@ -1212,6 +1161,8 @@ def runGinkgoVerifyManaged(testSuitePath, clusterDumpDirectory, skipDeploy, skip
             export MANAGED_CLUSTER_NAME="managed1"
             export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
             export CLUSTER_COUNT=$clusterCount
+            export ADMIN_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+            export CLUSTER_NAME="managed1"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
@@ -1322,6 +1273,42 @@ def runGinkgoVerify(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeplo
     }
 }
 
+def runGinkgoVerifyParallel(testSuitePrefix, testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace) {
+    script {
+        def runGinkgoVerifyStages = createClusterExecutionsMap()
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        def clusterName = ""
+        for(int count=1; count<=clusterCount; count++) {
+            // The first cluster created by this script is named as admin, and the subsequent clusters are named as
+            // managed1, managed2, etc.
+            if (count == 1) {
+                clusterName="admin"
+            } else {
+                clusterName="managed${count-1}"
+            }
+            runGinkgoVerifyStages["${testSuitePrefix} - ${clusterName}"] = runGinkgoVerifyInCluster(count, clusterName, testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace)
+        }
+        parallel runGinkgoVerifyStages
+    }
+}
+
+def runGinkgoVerifyInCluster(count, clusterName, testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeploy, skipVerify, namespace) {
+    // For parallel execution, wrap this in a Groovy enclosure {}
+    return {
+        script {
+            sh """
+                export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                export CLUSTER_NAME=${clusterName}
+                export ADMIN_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+                export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                export DUMP_DIRECTORY="${clusterDumpDirectory}${clusterName}"
+                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify} --namespace=${namespace}
+            """
+        }
+    }
+}
+
 // Configure the Admin and Managed cluster installer custom resources
 def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript, String... extraArgs) {
     script {
@@ -1419,17 +1406,52 @@ def createOKEClusters(clusterPrefix) {
     }
 }
 
-// Execute bom-validator against admin cluster
-def executeBOMValidatorAdmin() {
+// execute bom validation against admin and managed cluster
+def executeBomValidator() {
+    script {
+        getBomValidatorFile()
+        def validateBomStages = createClusterExecutionsMap()
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        validateBomStages["validate bom vz-admin"] = validateBom(1)
+        for(int count=2; count<=clusterCount; count++) {
+            validateBomStages["validate bom vz-mgd-${count-1}"] = validateBom(count)
+        }
+        parallel validateBomStages
+    }
+}
+
+// download the bom validator executable file
+def getBomValidatorFile() {
     script {
         sh """
             oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
             chmod +x ${WORKSPACE}/bom-validator
-            export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
-            ${WORKSPACE}/bom-validator
         """
     }
 }
+
+// validate bom-validator against a cluster
+def validateBom(count) {
+    return {
+        script {
+            sh """
+                export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                ${WORKSPACE}/bom-validator
+            """
+        }
+    }
+}
+
+def dumpAll() {
+    dumpVerrazzanoSystemPods()
+    dumpCattleSystemPods()
+    dumpNginxIngressControllerLogs()
+    dumpVerrazzanoPlatformOperatorLogs()
+    dumpVerrazzanoApplicationOperatorLogs()
+    dumpOamKubernetesRuntimeLogs()
+    dumpVerrazzanoApiLogs()
+}
+
 
 def dumpK8sCluster(dumpDirectory) {
     script {
@@ -1863,7 +1885,7 @@ def runConsoleTests() {
         export CONSOLE_APP_CLUSTER="managed1"
         export CONSOLE_APP_COMP="${SAMPLE_APP_COMPONENT}"
         KUBECONFIG=${ADMIN_KUBECONFIG} RUN_APP_TESTS=true ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh
-   """
+    """
 }
 
 def emitJobMetrics() {
@@ -1999,5 +2021,18 @@ def pipelinePostFailure() {
             oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip || true
             rm archive.zip || true
         """
+    }
+}
+
+def performDescribeVerrazzanoResource() {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for(int count=1; count<=clusterCount; count++) {
+            sh """
+                echo "Performing describe on Verrazzano resource on cluster ${count}"
+                export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                kubectl get vz -o yaml
+            """
+        }
     }
 }

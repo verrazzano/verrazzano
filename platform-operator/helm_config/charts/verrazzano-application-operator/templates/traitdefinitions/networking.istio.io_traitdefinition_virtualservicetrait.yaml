@@ -1,0 +1,18 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: TraitDefinition
+metadata:
+  name: virtualservices.networking.istio.io
+spec:
+  appliesToWorkloads:
+    - core.oam.dev/v1alpha2.ContainerizedWorkload
+    - oam.verrazzano.io/v1alpha1.VerrazzanoCoherenceWorkload
+    - oam.verrazzano.io/v1alpha1.VerrazzanoWebLogicWorkload
+    - oam.verrazzano.io/v1alpha1.VerrazzanoHelidonWorkload
+    - apps/v1.Deployment
+    - apps/v1.StatefulSet
+    - apps/v1.DaemonSet
+  definitionRef:
+    name: networking.istio.io/v1beta1.VirtualService

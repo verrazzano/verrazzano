@@ -4,11 +4,12 @@
 package k8sutil_test
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 const (
@@ -129,6 +130,52 @@ func TestApplyFT(t *testing.T) {
 			c := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 			y := k8sutil.NewYAMLApplier(c, "")
 			err := y.ApplyFT(tt.file, tt.args)
+			if tt.isError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.count, len(y.Objects()))
+		})
+	}
+}
+
+// TestApplyDT tests the ApplyDT function.
+func TestApplyDT(t *testing.T) {
+	var tests = []struct {
+		name    string
+		dir     string
+		args    map[string]interface{}
+		count   int
+		isError bool
+	}{
+		// GIVEN a directory of template YAML files
+		// WHEN the ApplyDT function is called with substitution key/value pairs
+		// THEN the call succeeds and the resources are applied to the cluster
+		{
+			"should apply all template files in directory",
+			testdata,
+			map[string]interface{}{"namespace": "default"},
+			3,
+			false,
+		},
+		// GIVEN a directory of template YAML files
+		// WHEN the ApplyDT function is called with no substitution key/value pairs
+		// THEN the call fails
+		{
+			"should fail to apply when one or more templates are incomplete",
+			testdata,
+			map[string]interface{}{},
+			0,
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+			y := k8sutil.NewYAMLApplier(c, "")
+			err := y.ApplyDT(tt.dir, tt.args)
 			if tt.isError {
 				assert.Error(t, err)
 			} else {

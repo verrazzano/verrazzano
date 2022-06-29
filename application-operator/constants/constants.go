@@ -38,9 +38,6 @@ const ElasticsearchUsernameData = "username"
 // cluster's Elasticsearch password
 const ElasticsearchPasswordData = "password"
 
-// LabelVerrazzanoManaged - constant for a Kubernetes label that is applied by Verrazzano
-const LabelVerrazzanoManaged = "verrazzano-managed"
-
 // LabelVerrazzanoManagedDefault - default value for LabelVerrazzanoManaged
 const LabelVerrazzanoManagedDefault = "true"
 
@@ -120,3 +117,11 @@ const VerrazzanoIngressTLSSecret = "verrazzano-tls" //nolint:gosec //#gosec G101
 
 // VerrazzanoLocalCABundleSecret is the name of the secret in the verrazzano-mc namespace on an admin cluster that contains the cluster's ca bundle
 const VerrazzanoLocalCABundleSecret = "verrazzano-local-ca-bundle" //nolint:gosec //#gosec G101
+
+// LegacyDefaultMetricsTemplateName is the name of the default metrics template used for standard
+// Kubernetes workloads (legacy as of VZ 1.4)
+const LegacyDefaultMetricsTemplateName = "standard-k8s-metrics-template"
+
+// LegacyDefaultMetricsTemplateNamespace is the namespace containing the default metrics template
+// used for standard Kubernetes workloads (legacy as of VZ 1.4)
+const LegacyDefaultMetricsTemplateNamespace = VerrazzanoSystemNamespace

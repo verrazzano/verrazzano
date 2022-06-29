@@ -5,6 +5,7 @@ package opensearchdashboards
 
 import (
 	"fmt"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -96,6 +97,22 @@ func (d opensearchDashboardsComponent) PreInstall(ctx spi.ComponentContext) erro
 // Install OpenSearch-Dashboards component install processing
 func (d opensearchDashboardsComponent) Install(ctx spi.ComponentContext) error {
 	return common.CreateOrUpdateVMI(ctx, updateFunc)
+}
+
+func (d opensearchDashboardsComponent) IsOperatorUninstallSupported() bool {
+	return false
+}
+
+func (d opensearchDashboardsComponent) PreUninstall(context spi.ComponentContext) error {
+	return nil
+}
+
+func (d opensearchDashboardsComponent) Uninstall(context spi.ComponentContext) error {
+	return nil
+}
+
+func (d opensearchDashboardsComponent) PostUninstall(context spi.ComponentContext) error {
+	return nil
 }
 
 // PreUpgrade OpenSearch-Dashboards component pre-upgrade processing
