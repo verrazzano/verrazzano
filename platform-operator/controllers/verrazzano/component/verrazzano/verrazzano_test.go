@@ -683,21 +683,11 @@ func TestAssociateHelmObjectAndKeep(t *testing.T) {
 	assert.Equal(t, "Helm", obj.Labels["app.kubernetes.io/managed-by"])
 }
 
-// TestIsReadySecretNotReady tests the Verrazzano isVerrazzanoReady call
+// TestIsReadyNotReady tests the Verrazzano isVerrazzanoReady call
 // GIVEN a Verrazzano component
 //  WHEN I call isVerrazzanoReady when it is installed but the secret is not found
 //  THEN false is returned
-func TestIsReadySecretNotReady(t *testing.T) {
-	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, isVerrazzanoReady(ctx))
-}
-
-// TestIsReadyChartNotInstalled tests the Verrazzano isVerrazzanoReady call
-// GIVEN a Verrazzano component
-//  WHEN I call isVerrazzanoReady when it is not installed
-//  THEN false is returned
-func TestIsReadyChartNotInstalled(t *testing.T) {
+func TestIsReadyNotReady(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
 	assert.False(t, isVerrazzanoReady(ctx))

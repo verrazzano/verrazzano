@@ -266,34 +266,14 @@ func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
 func removeNodeExporterResources(ctx spi.ComponentContext) {
 	ctx.Log().Infof("Removing old node exporter resources from %s namespace", monitoringNamespace)
 
-	namespacedName := types.NamespacedName{Namespace: monitoringNamespace, Name: nodeExporter}
-	s := &corev1.Service{}
-	if err := ctx.Client().Get(context.TODO(), namespacedName, s); err != nil {
-		ctx.Log().Debugf("Ignoring failure to get service %s/%s: %v", monitoringNamespace, nodeExporter, err)
-	} else {
-		if err := ctx.Client().Delete(context.TODO(), s); err != nil {
-			ctx.Log().Debugf("Ignoring failure to delete service %s/%s: %v", monitoringNamespace, nodeExporter, err)
-		}
-	}
+	// Failures are tolerated and logged when removing these resources
+	removeNodeExporterService(ctx)
+	removeNodeExporterServiceAccount(ctx)
+	removeNodeExporterDaemonset(ctx)
+	removeNodeExporterClusterRoleAndBinding(ctx)
+}
 
-	sa := &corev1.ServiceAccount{}
-	if err := ctx.Client().Get(context.TODO(), namespacedName, sa); err != nil {
-		ctx.Log().Debugf("Ignoring failure to get service account %s/%s: %v", monitoringNamespace, nodeExporter, err)
-	} else {
-		if err := ctx.Client().Delete(context.TODO(), sa); err != nil {
-			ctx.Log().Debugf("Ignoring failure to delete service account %s/%s: %v", monitoringNamespace, nodeExporter, err)
-		}
-	}
-
-	ds := &appsv1.DaemonSet{}
-	if err := ctx.Client().Get(context.TODO(), namespacedName, ds); err != nil {
-		ctx.Log().Debugf("Ignoring failure to get daemon set %s/%s: %v", monitoringNamespace, nodeExporter, err)
-	} else {
-		if err := ctx.Client().Delete(context.TODO(), ds); err != nil {
-			ctx.Log().Debugf("Ignoring failure to delete daemon set %s/%s: %v", monitoringNamespace, nodeExporter, err)
-		}
-	}
-
+func removeNodeExporterClusterRoleAndBinding(ctx spi.ComponentContext) {
 	crb := &rbacv1.ClusterRoleBinding{}
 	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: nodeExporter}, crb); err != nil {
 		ctx.Log().Debugf("Ignoring failure to get cluster role binding %s/%s: %v", monitoringNamespace, nodeExporter, err)
@@ -309,6 +289,42 @@ func removeNodeExporterResources(ctx spi.ComponentContext) {
 	} else {
 		if err := ctx.Client().Delete(context.TODO(), cr); err != nil {
 			ctx.Log().Debugf("Ignoring failure to delete cluster role %s/%s: %v", monitoringNamespace, nodeExporter, err)
+		}
+	}
+}
+
+func removeNodeExporterDaemonset(ctx spi.ComponentContext) {
+	namespacedName := types.NamespacedName{Namespace: monitoringNamespace, Name: nodeExporter}
+	ds := &appsv1.DaemonSet{}
+	if err := ctx.Client().Get(context.TODO(), namespacedName, ds); err != nil {
+		ctx.Log().Debugf("Ignoring failure to get daemon set %s/%s: %v", monitoringNamespace, nodeExporter, err)
+	} else {
+		if err := ctx.Client().Delete(context.TODO(), ds); err != nil {
+			ctx.Log().Debugf("Ignoring failure to delete daemon set %s/%s: %v", monitoringNamespace, nodeExporter, err)
+		}
+	}
+}
+
+func removeNodeExporterServiceAccount(ctx spi.ComponentContext) {
+	namespacedName := types.NamespacedName{Namespace: monitoringNamespace, Name: nodeExporter}
+	sa := &corev1.ServiceAccount{}
+	if err := ctx.Client().Get(context.TODO(), namespacedName, sa); err != nil {
+		ctx.Log().Debugf("Ignoring failure to get service account %s/%s: %v", monitoringNamespace, nodeExporter, err)
+	} else {
+		if err := ctx.Client().Delete(context.TODO(), sa); err != nil {
+			ctx.Log().Debugf("Ignoring failure to delete service account %s/%s: %v", monitoringNamespace, nodeExporter, err)
+		}
+	}
+}
+
+func removeNodeExporterService(ctx spi.ComponentContext) {
+	namespacedName := types.NamespacedName{Namespace: monitoringNamespace, Name: nodeExporter}
+	s := &corev1.Service{}
+	if err := ctx.Client().Get(context.TODO(), namespacedName, s); err != nil {
+		ctx.Log().Debugf("Ignoring failure to get service %s/%s: %v", monitoringNamespace, nodeExporter, err)
+	} else {
+		if err := ctx.Client().Delete(context.TODO(), s); err != nil {
+			ctx.Log().Debugf("Ignoring failure to delete service %s/%s: %v", monitoringNamespace, nodeExporter, err)
 		}
 	}
 }
