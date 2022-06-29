@@ -3,9 +3,6 @@
 
 image:
   pullPolicy: IfNotPresent
-initContainers:
-  - name: velero-plugin-for-aws
-    imagePullPolicy: IfNotPresent
 configuration:
   provider: aws
 backupsEnabled: false

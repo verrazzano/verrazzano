@@ -28,6 +28,9 @@ func isVeleroOperatorReady(context spi.ComponentContext) bool {
 func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	arguments := []bom.KeyValue{
 		{Key: "initContainers[0].name", Value: veleroAwsPluginName},
+		{Key: "initContainers[0].imagePullPolicy", Value: "IfNotPresent"},
+		{Key: "initContainers[0].volumeMounts[0].name", Value: "plugins"},
+		{Key: "initContainers[0].volumeMounts[0].mountPath", Value: "/target"},
 	}
 	kvs = append(kvs, arguments...)
 	return kvs, nil
