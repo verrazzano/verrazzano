@@ -120,7 +120,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 				continue
 			}
 			compLog.Progressf("Component %s pre-install is running ", compName)
-			if compContext.ActualCR().Status.Components[compName].State == vzapi.CompStateReady {
+			if compContext.ActualCR().Status.Components[compName].State == vzapi.CompStateDisabled {
 				if metricsexporter.CheckIfNewOperationHasToBegin(compName, "install") {
 					metricsexporter.AddStartTime(time.Now().UnixNano(), compName, "install")
 				}
