@@ -4,6 +4,7 @@
 package nodeexporter
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -41,12 +42,36 @@ func TestIsPrometheusNodeExporterReady(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
 						Name:      daemonsetName,
+						Labels:    map[string]string{"app": "test"},
+					},
+					Spec: appsv1.DaemonSetSpec{
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"app": "test"},
+						},
 					},
 					Status: appsv1.DaemonSetStatus{
 						NumberAvailable:        1,
 						UpdatedNumberScheduled: 1,
 					},
-				}),
+				},
+				&corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ComponentNamespace,
+						Name:      ComponentName,
+						Labels: map[string]string{
+							"app":                      "test",
+							"controller-revision-hash": "test-95d8c5d96",
+						},
+					},
+				},
+				&appsv1.ControllerRevision{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      ComponentName + "-test-95d8c5d96",
+						Namespace: ComponentNamespace,
+					},
+					Revision: 1,
+				},
+			),
 			expectTrue: true,
 		},
 		{

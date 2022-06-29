@@ -60,7 +60,7 @@ func podsReadyDaemonSet(log vzlog.VerrazzanoLogger, client clipkg.Client, namesp
 	// If no pods found log a progress message and return
 	if len(pods.Items) == 0 {
 		log.Progressf("Found no pods with matching labels selector %v for namespace %s", selector, namespacedName.Namespace)
-		return true
+		return false
 	}
 
 	// Loop through pods identifying pods that are using the latest controllerRevision resource

@@ -369,11 +369,34 @@ func getFakeClient(scheduled int32) clipkg.Client {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: globalconst.VerrazzanoSystemNamespace,
 				Name:      ComponentName,
+				Labels:    map[string]string{"app": "test"},
+			},
+			Spec: appsv1.DaemonSetSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": "test"},
+				},
 			},
 			Status: appsv1.DaemonSetStatus{
 				UpdatedNumberScheduled: scheduled,
 				NumberAvailable:        1,
 			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      ComponentName,
+				Labels: map[string]string{
+					"app":                      "test",
+					"controller-revision-hash": "test-95d8c5d96",
+				},
+			},
+		},
+		&appsv1.ControllerRevision{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      ComponentName + "-test-95d8c5d96",
+				Namespace: ComponentNamespace,
+			},
+			Revision: 1,
 		},
 	).Build()
 }

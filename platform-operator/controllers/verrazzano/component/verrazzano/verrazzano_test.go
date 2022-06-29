@@ -746,11 +746,34 @@ func TestIsReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: globalconst.VerrazzanoMonitoringNamespace,
 				Name:      nodeExporterDaemonset,
+				Labels:    map[string]string{"app": "test"},
+			},
+			Spec: appsv1.DaemonSetSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": "test"},
+				},
 			},
 			Status: appsv1.DaemonSetStatus{
 				UpdatedNumberScheduled: 1,
 				NumberAvailable:        1,
 			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: globalconst.VerrazzanoMonitoringNamespace,
+				Name:      ComponentName,
+				Labels: map[string]string{
+					"app":                      "test",
+					"controller-revision-hash": "test-95d8c5d96",
+				},
+			},
+		},
+		&appsv1.ControllerRevision{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      nodeExporterDaemonset + "-test-95d8c5d96",
+				Namespace: globalconst.VerrazzanoMonitoringNamespace,
+			},
+			Revision: 1,
 		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
 			Namespace: ComponentNamespace}},
