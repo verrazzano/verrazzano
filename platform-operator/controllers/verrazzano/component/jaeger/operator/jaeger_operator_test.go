@@ -23,7 +23,6 @@ import (
 )
 
 const (
-	profileDir      = "../../../../../manifests/profiles"
 	testBomFilePath = "../../../testdata/test_bom.json"
 )
 

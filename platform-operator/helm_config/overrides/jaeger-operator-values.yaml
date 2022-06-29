@@ -8,9 +8,9 @@ rbac:
 
 extraEnv:
   - name: JAEGER-AGENT-IMAGE
-    value: "{{ .Values.agentImage }}"
+    value: "{{ .Values.jaegerAgentImage }}"
   - name: JAEGER-QUERY-IMAGE
-    value: "{{ .Values.queryImage }}"
+    value: "{{ .Values.jaegerQueryImage }}"
   - name: JAEGER-COLLECTOR-IMAGE
     value: "{{ .Values.jaegerCollectorImage }}"
   - name: JAEGER-INGESTER-IMAGE
