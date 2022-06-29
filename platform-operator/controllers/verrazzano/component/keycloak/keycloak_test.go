@@ -1218,16 +1218,41 @@ func TestIsKeycloakReady(t *testing.T) {
 		},
 		{
 			"should be ready when certificate status is ready and statefulset is ready",
-			fake.NewClientBuilder().WithScheme(scheme).WithObjects(readySecret, &appsv1.StatefulSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: ComponentNamespace,
-					Name:      ComponentName,
+			fake.NewClientBuilder().WithScheme(scheme).WithObjects(readySecret,
+				&appsv1.StatefulSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ComponentNamespace,
+						Name:      ComponentName,
+						Labels:    map[string]string{"app": "test"},
+					},
+					Spec: appsv1.StatefulSetSpec{
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"app": "test"},
+						},
+					},
+					Status: appsv1.StatefulSetStatus{
+						ReadyReplicas:   1,
+						UpdatedReplicas: 1,
+					},
 				},
-				Status: appsv1.StatefulSetStatus{
-					ReadyReplicas:   1,
-					UpdatedReplicas: 1,
+				&v1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ComponentNamespace,
+						Name:      ComponentName + "-0",
+						Labels: map[string]string{
+							"app":                      "test",
+							"controller-revision-hash": "test-95d8c5d96",
+						},
+					},
 				},
-			}).Build(),
+				&appsv1.ControllerRevision{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-95d8c5d96",
+						Namespace: ComponentNamespace,
+					},
+					Revision: 1,
+				},
+			).Build(),
 			true,
 		},
 	}

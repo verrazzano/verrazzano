@@ -548,7 +548,7 @@ func TestIsReady(t *testing.T) {
 				Name:      esMasterStatefulset + "-0",
 				Labels: map[string]string{
 					"app":                      "system-es-master",
-					"controller-revision-hash": "foo-95d8c5d96",
+					"controller-revision-hash": "test-95d8c5d96",
 				},
 			},
 		},
@@ -556,7 +556,7 @@ func TestIsReady(t *testing.T) {
 			Namespace: ComponentNamespace}},
 		&appsv1.ControllerRevision{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "foo-95d8c5d96",
+				Name:      "test-95d8c5d96",
 				Namespace: ComponentNamespace,
 			},
 			Revision: 1,
