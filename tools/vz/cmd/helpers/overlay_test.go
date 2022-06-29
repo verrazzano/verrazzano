@@ -82,6 +82,34 @@ func TestMergeYAMLFilesStdin(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "example-verrazzano", vz.Name)
 	assert.Equal(t, "default", vz.Namespace)
+	assert.Equal(t, vzapi.Dev, vz.Spec.Profile)
+	assert.Equal(t, "verrazzano-storage", vz.Spec.DefaultVolumeSource.PersistentVolumeClaim.ClaimName)
+	assert.Equal(t, "verrazzano-storage", vz.Spec.VolumeClaimSpecTemplates[0].Name)
+	storage := vz.Spec.VolumeClaimSpecTemplates[0].Spec.Resources.Requests.Storage()
+	assert.Contains(t, storage.String(), "2Gi")
+}
+
+// TestMergeYAMLFilesStdinOverride
+// GIVEN a yaml file from a file and a yaml file from stdin
+//  WHEN I call MergeYAMLFiles
+//  THEN a vz resource is returned representing the merged YAML files
+func TestMergeYAMLFilesStdinOverride(t *testing.T) {
+	var filenames []string
+	filenames = append(filenames, "../../test/testdata/components.yaml")
+	stdinReader := &bytes.Buffer{}
+	b, err := os.ReadFile("../../test/testdata/override-components.yaml")
+	assert.Nil(t, err)
+	_, err = stdinReader.Write(b)
+	assert.Nil(t, err)
+	filenames = append(filenames, "-")
+	vz, err := MergeYAMLFiles(filenames, stdinReader)
+	assert.Nil(t, err)
+	assert.Equal(t, "verrazzano", vz.Name)
+	assert.Equal(t, "default", vz.Namespace)
+	assert.Equal(t, true, *vz.Spec.Components.Console.Enabled)
+	assert.Equal(t, true, *vz.Spec.Components.Fluentd.Enabled)
+	assert.Equal(t, false, *vz.Spec.Components.Rancher.Enabled)
+	assert.Nil(t, vz.Spec.Components.Verrazzano)
 }
 
 // TestMergeYAMLFilesEmpty
