@@ -780,6 +780,10 @@ func (mr *MockComponentMockRecorder) PreInstall(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PreInstall", reflect.TypeOf((*MockComponent)(nil).PreInstall), arg0)
 }
 
+func (m *MockComponent) IsOperatorUninstallSupported() bool {
+	return true
+}
+
 // PreUninstall mocks base method.
 func (m *MockComponent) PreUninstall(arg0 spi.ComponentContext) error {
 	m.ctrl.T.Helper()

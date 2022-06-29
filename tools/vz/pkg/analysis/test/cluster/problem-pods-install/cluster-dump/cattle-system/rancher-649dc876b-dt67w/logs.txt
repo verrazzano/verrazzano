@@ -1,0 +1,405 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+==== START logs for container rancher of pod cattle-system/rancher-649dc876b-dt67w ====
+2022/06/16 10:23:01 [INFO] Rancher version v2.6.4-20220504205847-7131173f2 (7131173f2) is starting
+2022/06/16 10:23:01 [INFO] Rancher arguments {ACMEDomains:[] AddLocal:true Embedded:false BindHost: HTTPListenPort:80 HTTPSListenPort:443 K8sMode:auto Debug:false Trace:false NoCACerts:false AuditLogPath:/var/log/auditlog/rancher-api-audit.log AuditLogMaxage:10 AuditLogMaxsize:100 AuditLogMaxbackup:10 AuditLevel:0 Features: ClusterRegistry:}
+2022/06/16 10:23:01 [INFO] Listening on /tmp/log.sock
+2022/06/16 10:23:02 [INFO] Running in clustered mode with ID REDACTED-IP4-ADDRESS, monitoring endpoint cattle-system/rancher
+2022/06/16 10:23:05 [INFO] Applying CRD features.management.cattle.io
+2022/06/16 10:23:12 [INFO] Applying CRD navlinks.ui.cattle.io
+2022/06/16 10:23:13 [INFO] Applying CRD clusters.management.cattle.io
+2022/06/16 10:23:14 [INFO] Applying CRD apiservices.management.cattle.io
+2022/06/16 10:23:14 [INFO] Applying CRD clusterregistrationtokens.management.cattle.io
+2022/06/16 10:23:15 [INFO] Applying CRD settings.management.cattle.io
+2022/06/16 10:23:16 [INFO] Applying CRD preferences.management.cattle.io
+2022/06/16 10:23:17 [INFO] Applying CRD features.management.cattle.io
+2022/06/16 10:23:18 [INFO] Applying CRD clusterrepos.catalog.cattle.io
+2022/06/16 10:23:19 [INFO] Applying CRD operations.catalog.cattle.io
+2022/06/16 10:23:20 [INFO] Applying CRD apps.catalog.cattle.io
+2022/06/16 10:23:21 [INFO] Applying CRD fleetworkspaces.management.cattle.io
+2022/06/16 10:23:22 [INFO] Applying CRD bundles.fleet.cattle.io
+2022/06/16 10:23:23 [INFO] Applying CRD clusters.fleet.cattle.io
+2022/06/16 10:23:23 [INFO] Applying CRD managedcharts.management.cattle.io
+2022/06/16 10:23:24 [INFO] Applying CRD clusters.provisioning.cattle.io
+2022/06/16 10:23:25 [INFO] Applying CRD clusters.provisioning.cattle.io
+2022/06/16 10:23:27 [INFO] Applying CRD rkeclusters.rke.cattle.io
+2022/06/16 10:23:27 [INFO] Applying CRD rkecontrolplanes.rke.cattle.io
+2022/06/16 10:23:29 [INFO] Applying CRD rkebootstraps.rke.cattle.io
+2022/06/16 10:23:29 [INFO] Applying CRD rkebootstraptemplates.rke.cattle.io
+2022/06/16 10:23:30 [INFO] Applying CRD rkecontrolplanes.rke.cattle.io
+2022/06/16 10:23:31 [INFO] Applying CRD custommachines.rke.cattle.io
+2022/06/16 10:23:32 [INFO] Applying CRD etcdsnapshots.rke.cattle.io
+2022/06/16 10:23:33 [INFO] Applying CRD clusters.cluster.x-k8s.io
+2022/06/16 10:23:33 [INFO] Applying CRD machinedeployments.cluster.x-k8s.io
+2022/06/16 10:23:34 [INFO] Applying CRD machinehealthchecks.cluster.x-k8s.io
+2022/06/16 10:23:35 [INFO] Applying CRD machines.cluster.x-k8s.io
+2022/06/16 10:23:36 [INFO] Applying CRD machinesets.cluster.x-k8s.io
+E0616 10:24:16.316554      10 memcache.go:196] couldn't get resource list for custom.metrics.k8s.io/v1beta1: Got empty response for: custom.metrics.k8s.io/v1beta1
+2022/06/16 10:24:16 [INFO] Starting rke.cattle.io/v1, Kind=RKEBootstrap controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=Group controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=ClusterCatalog controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=CatalogTemplate controller
+2022/06/16 10:24:16 [INFO] Starting /v1, Kind=ServiceAccount controller
+2022/06/16 10:24:16 [INFO] Starting /v1, Kind=Namespace controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=ProjectCatalog controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=DynamicSchema controller
+2022/06/16 10:24:16 [INFO] Starting project.cattle.io/v3, Kind=SourceCodeCredential controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=ClusterTemplate controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=User controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=CisBenchmarkVersion controller
+2022/06/16 10:24:16 [INFO] Starting project.cattle.io/v3, Kind=SourceCodeRepository controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=Node controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=UserAttribute controller
+2022/06/16 10:24:16 [INFO] Starting apiregistration.k8s.io/v1, Kind=APIService controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=NodeTemplate controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=APIService controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=Feature controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=CatalogTemplateVersion controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=CisConfig controller
+2022/06/16 10:24:16 [INFO] Starting API controllers
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=PodSecurityPolicyTemplateProjectBinding controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=Project controller
+2022/06/16 10:24:16 [INFO] Starting rbac.authorization.k8s.io/v1, Kind=Role controller
+2022/06/16 10:24:16 [INFO] Starting project.cattle.io/v3, Kind=Pipeline controller
+2022/06/16 10:24:16 [INFO] Starting rbac.authorization.k8s.io/v1, Kind=ClusterRole controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=GlobalRoleBinding controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=RkeAddon controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=NodeDriver controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=KontainerDriver controller
+2022/06/16 10:24:16 [INFO] Starting apiextensions.k8s.io/v1, Kind=CustomResourceDefinition controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=ClusterRoleTemplateBinding controller
+2022/06/16 10:24:16 [INFO] Starting rbac.authorization.k8s.io/v1, Kind=ClusterRoleBinding controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=AuthConfig controller
+2022/06/16 10:24:16 [INFO] Starting catalog.cattle.io/v1, Kind=ClusterRepo controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=ClusterTemplateRevision controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=MultiClusterApp controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=RkeK8sSystemImage controller
+I0616 10:24:16.323998      10 leaderelection.go:248] attempting to acquire leader lease kube-system/cattle-controllers...
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=Catalog controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=ClusterRegistrationToken controller
+2022/06/16 10:24:16 [INFO] Starting provisioning.cattle.io/v1, Kind=Cluster controller
+2022/06/16 10:24:16 [INFO] Starting cluster.x-k8s.io/v1beta1, Kind=Machine controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=ProjectRoleTemplateBinding controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=ProjectLogging controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=Setting controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=GroupMember controller
+2022/06/16 10:24:16 [INFO] Starting project.cattle.io/v3, Kind=App controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=Preference controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=Token controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=GlobalRole controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=GlobalDns controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=PodSecurityPolicyTemplate controller
+2022/06/16 10:24:16 [INFO] Starting /v1, Kind=ConfigMap controller
+2022/06/16 10:24:16 [INFO] Starting /v1, Kind=Secret controller
+2022/06/16 10:24:16 [INFO] Starting project.cattle.io/v3, Kind=PipelineExecution controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=RoleTemplate controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=RkeK8sServiceOption controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=MultiClusterAppRevision controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=Cluster controller
+2022/06/16 10:24:16 [INFO] Starting management.cattle.io/v3, Kind=NodePool controller
+2022/06/16 10:24:16 [INFO] Starting rbac.authorization.k8s.io/v1, Kind=RoleBinding controller
+2022/06/16 10:24:16 [INFO] Starting /v1, Kind=Endpoints controller
+E0616 10:24:17.604153      10 memcache.go:196] couldn't get resource list for custom.metrics.k8s.io/v1beta1: Got empty response for: custom.metrics.k8s.io/v1beta1
+2022/06/16 10:24:17 [INFO] Starting management.cattle.io/v3, Kind=Group controller
+2022/06/16 10:24:17 [INFO] Starting management.cattle.io/v3, Kind=User controller
+2022/06/16 10:24:17 [INFO] Starting management.cattle.io/v3, Kind=Cluster controller
+2022/06/16 10:24:17 [INFO] Starting management.cattle.io/v3, Kind=Token controller
+2022/06/16 10:24:17 [INFO] Starting management.cattle.io/v3, Kind=GroupMember controller
+2022/06/16 10:24:17 [INFO] Starting management.cattle.io/v3, Kind=UserAttribute controller
+2022/06/16 10:24:17 [INFO] Starting /v1, Kind=Secret controller
+2022/06/16 10:24:17 [INFO] Adding peer wss://REDACTED-IP4-ADDRESS/v3/connect, REDACTED-IP4-ADDRESS
+2022/06/16 10:24:17 [INFO] Listening on :443
+2022/06/16 10:24:17 [INFO] Listening on :80
+2022/06/16 10:24:17 [INFO] certificate CN=dynamic,O=dynamic signed by CN=dynamiclistener-ca,O=dynamiclistener-org: notBefore=2022-06-16 10:24:11 +0000 UTC notAfter=2023-06-16 10:24:17 +0000 UTC
+2022/06/16 10:24:17 [INFO] certificate CN=dynamic,O=dynamic signed by CN=dynamiclistener-ca,O=dynamiclistener-org: notBefore=2022-06-16 10:24:11 +0000 UTC notAfter=2023-06-16 10:24:17 +0000 UTC
+2022/06/16 10:24:18 [ERROR] Failed to connect to peer wss://REDACTED-IP4-ADDRESS/v3/connect [local ID=REDACTED-IP4-ADDRESS]: websocket: bad handshake
+2022/06/16 10:24:18 [INFO] certificate CN=dynamic,O=dynamic signed by CN=dynamiclistener-ca,O=dynamiclistener-org: notBefore=2022-06-16 10:24:11 +0000 UTC notAfter=2023-06-16 10:24:18 +0000 UTC
+2022/06/16 10:24:18 [INFO] Updating TLS secret for serving-cert (count: 7): map[listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=053833AB0C07A4B2B22036150D5EEE081677AC3A]
+2022/06/16 10:24:18 [INFO] Active TLS secret serving-cert (ver=7778) (count 7): map[listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=053833AB0C07A4B2B22036150D5EEE081677AC3A]
+2022/06/16 10:24:18 [INFO] Listening on :444
+2022/06/16 10:24:18 [INFO] certificate CN=dynamic,O=dynamic signed by CN=dynamiclistener-ca,O=dynamiclistener-org: notBefore=2022-06-16 10:24:12 +0000 UTC notAfter=2023-06-16 10:24:18 +0000 UTC
+2022/06/16 10:24:18 [INFO] certificate CN=dynamic,O=dynamic signed by CN=dynamiclistener-ca,O=dynamiclistener-org: notBefore=2022-06-16 10:24:12 +0000 UTC notAfter=2023-06-16 10:24:18 +0000 UTC
+2022/06/16 10:24:18 [INFO] Updating TLS secret for tls-rancher-internal (count: 1): map[listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/fingerprint:SHA1=CDFDDACCB4B7E8FA865290DF7C42A52ABF1C7A61]
+2022/06/16 10:24:19 [INFO] Active TLS secret tls-rancher-internal (ver=7806) (count 1): map[listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/fingerprint:SHA1=CDFDDACCB4B7E8FA865290DF7C42A52ABF1C7A61]
+2022/06/16 10:24:19 [INFO] Adding peer wss://REDACTED-IP4-ADDRESS/v3/connect, REDACTED-IP4-ADDRESS
+2022/06/16 10:24:19 [ERROR] Failed to connect to peer wss://REDACTED-IP4-ADDRESS/v3/connect [local ID=REDACTED-IP4-ADDRESS]: websocket: bad handshake
+E0616 10:24:20.323576      10 memcache.go:196] couldn't get resource list for custom.metrics.k8s.io/v1beta1: Got empty response for: custom.metrics.k8s.io/v1beta1
+2022/06/16 10:24:20 [INFO] Starting /v1, Kind=Secret controller
+2022/06/16 10:24:20 [INFO] Active TLS secret serving-cert (ver=7789) (count 6): map[listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=8BD3DB21263AF6375D218BC92A11BB501875F17D]
+2022/06/16 10:24:23 [ERROR] Failed to connect to peer wss://REDACTED-IP4-ADDRESS/v3/connect [local ID=REDACTED-IP4-ADDRESS]: EOF
+2022/06/16 10:24:24 [ERROR] Failed to connect to peer wss://REDACTED-IP4-ADDRESS/v3/connect [local ID=REDACTED-IP4-ADDRESS]: websocket: bad handshake
+2022/06/16 10:24:25 [INFO] Starting cluster controllers for local
+E0616 10:24:26.089320      10 memcache.go:196] couldn't get resource list for custom.metrics.k8s.io/v1beta1: Got empty response for: custom.metrics.k8s.io/v1beta1
+2022/06/16 10:24:26 [INFO] Starting /v1, Kind=Namespace controller
+2022/06/16 10:24:26 [INFO] Starting /v1, Kind=Secret controller
+2022/06/16 10:24:26 [INFO] Starting /v1, Kind=ServiceAccount controller
+2022/06/16 10:24:26 [INFO] Starting rbac.authorization.k8s.io/v1, Kind=RoleBinding controller
+2022/06/16 10:24:26 [INFO] Starting rbac.authorization.k8s.io/v1, Kind=Role controller
+2022/06/16 10:24:26 [INFO] Starting rbac.authorization.k8s.io/v1, Kind=ClusterRole controller
+2022/06/16 10:24:26 [INFO] Starting rbac.authorization.k8s.io/v1, Kind=ClusterRoleBinding controller
+2022/06/16 10:24:26 [INFO] Starting cluster agent for local [owner=false]
+2022/06/16 10:24:28 [ERROR] Failed to connect to peer wss://REDACTED-IP4-ADDRESS/v3/connect [local ID=REDACTED-IP4-ADDRESS]: websocket: bad handshake
+2022/06/16 10:24:29 [ERROR] Failed to connect to peer wss://REDACTED-IP4-ADDRESS/v3/connect [local ID=REDACTED-IP4-ADDRESS]: websocket: bad handshake
+2022/06/16 10:24:29 [INFO] certificate CN=dynamic,O=dynamic signed by CN=dynamiclistener-ca,O=dynamiclistener-org: notBefore=2022-06-16 10:24:11 +0000 UTC notAfter=2023-06-16 10:24:29 +0000 UTC
+2022/06/16 10:24:29 [INFO] certificate CN=dynamic,O=dynamic signed by CN=dynamiclistener-ca,O=dynamiclistener-org: notBefore=2022-06-16 10:24:11 +0000 UTC notAfter=2023-06-16 10:24:29 +0000 UTC
+2022/06/16 10:24:29 [INFO] certificate CN=dynamic,O=dynamic signed by CN=dynamiclistener-ca,O=dynamiclistener-org: notBefore=2022-06-16 10:24:11 +0000 UTC notAfter=2023-06-16 10:24:29 +0000 UTC
+2022/06/16 10:24:29 [INFO] Updating TLS secret for serving-cert (count: 7): map[listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=A118FB526A6256ED3F647D62E2D4BBD96C6A2477]
+2022/06/16 10:24:29 [INFO] Active TLS secret serving-cert (ver=8143) (count 7): map[listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=A118FB526A6256ED3F647D62E2D4BBD96C6A2477]
+2022/06/16 10:24:29 [INFO] Active TLS secret serving-cert (ver=8146) (count 7): map[listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=160606628277A4D81C7526AA88640324AD0E4C95]
+2022/06/16 10:24:30 [INFO] Handling backend connection request [REDACTED-IP4-ADDRESS]
+2022/06/16 10:24:30 [INFO] Handling backend connection request [REDACTED-IP4-ADDRESS]
+2022/06/16 10:24:30 [INFO] Removing peer REDACTED-IP4-ADDRESS
+2022/06/16 10:24:30 [INFO] error in remotedialer server [400]: websocket: close 1006 (abnormal closure): unexpected EOF
+W0616 10:24:31.471328      10 warnings.go:80] policy/v1beta1 PodSecurityPolicy is deprecated in v1.21+, unavailable in v1.25+
+2022/06/16 10:24:34 [ERROR] Failed to connect to peer wss://REDACTED-IP4-ADDRESS/v3/connect [local ID=REDACTED-IP4-ADDRESS]: EOF
+2022/06/16 10:24:36 [INFO] Active TLS secret serving-cert (ver=8460) (count 8): map[field.cattle.io/projectId:local:p-5hdmj listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=160606628277A4D81C7526AA88640324AD0E4C95]
+2022/06/16 10:24:36 [INFO] Watching metadata for /v1, Kind=Event
+2022/06/16 10:24:36 [INFO] Watching metadata for verrazzano.io/v1, Kind=VerrazzanoMonitoringInstance
+2022/06/16 10:24:36 [INFO] Watching metadata for monitoring.coreos.com/v1, Kind=Probe
+2022/06/16 10:24:36 [INFO] Watching metadata for cert-manager.io/v1, Kind=Issuer
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=MonitorMetric
+2022/06/16 10:24:36 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=LinodeMachine
+2022/06/16 10:24:36 [INFO] Watching metadata for networking.istio.io/v1beta1, Kind=ProxyConfig
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=ClusterAlertGroup
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=KontainerDriver
+2022/06/16 10:24:36 [INFO] Watching metadata for clusters.verrazzano.io/v1alpha1, Kind=MultiClusterComponent
+2022/06/16 10:24:36 [INFO] Watching metadata for project.cattle.io/v3, Kind=Pipeline
+2022/06/16 10:24:36 [INFO] Watching metadata for /v1, Kind=LimitRange
+2022/06/16 10:24:36 [INFO] Watching metadata for networking.istio.io/v1beta1, Kind=Gateway
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=ProjectNetworkPolicy
+2022/06/16 10:24:36 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=DigitaloceanMachine
+2022/06/16 10:24:36 [INFO] Watching metadata for storage.k8s.io/v1, Kind=VolumeAttachment
+2022/06/16 10:24:36 [INFO] Watching metadata for project.cattle.io/v3, Kind=AppRevision
+2022/06/16 10:24:36 [INFO] Watching metadata for monitoring.coreos.com/v1, Kind=ServiceMonitor
+2022/06/16 10:24:36 [INFO] Watching metadata for clusters.verrazzano.io/v1alpha1, Kind=MultiClusterSecret
+2022/06/16 10:24:36 [INFO] Watching metadata for node.k8s.io/v1, Kind=RuntimeClass
+2022/06/16 10:24:36 [INFO] Watching metadata for project.cattle.io/v3, Kind=PipelineSetting
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=FleetWorkspace
+2022/06/16 10:24:36 [INFO] Watching metadata for cert-manager.io/v1, Kind=CertificateRequest
+2022/06/16 10:24:36 [INFO] Watching metadata for coordination.k8s.io/v1, Kind=Lease
+2022/06/16 10:24:36 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=AzureMachineTemplate
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=Group
+2022/06/16 10:24:36 [INFO] Watching metadata for apps/v1, Kind=Deployment
+2022/06/16 10:24:36 [INFO] Watching metadata for networking.k8s.io/v1, Kind=IngressClass
+2022/06/16 10:24:36 [INFO] Watching metadata for oam.verrazzano.io/v1alpha1, Kind=VerrazzanoCoherenceWorkload
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=ProjectAlert
+2022/06/16 10:24:36 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=AzureMachine
+2022/06/16 10:24:36 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=VmwarevsphereMachineTemplate
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=NodeDriver
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=Token
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=ClusterScan
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=GlobalRole
+2022/06/16 10:24:36 [INFO] Watching metadata for weblogic.oracle/v8, Kind=Domain
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=APIService
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=Template
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=ManagedChart
+2022/06/16 10:24:36 [INFO] Watching metadata for /v1, Kind=Node
+2022/06/16 10:24:36 [INFO] Watching metadata for app.verrazzano.io/v1alpha1, Kind=MetricsTemplate
+2022/06/16 10:24:36 [INFO] Watching metadata for autoscaling/v2beta2, Kind=HorizontalPodAutoscaler
+2022/06/16 10:24:36 [INFO] Watching metadata for rbac.authorization.k8s.io/v1, Kind=ClusterRole
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=GlobalDns
+2022/06/16 10:24:36 [INFO] Watching metadata for rbac.authorization.k8s.io/v1, Kind=Role
+2022/06/16 10:24:36 [INFO] Watching metadata for apps/v1, Kind=DaemonSet
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=ClusterCatalog
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=CisConfig
+2022/06/16 10:24:36 [INFO] Watching metadata for flowcontrol.apiserver.k8s.io/v1beta1, Kind=FlowSchema
+2022/06/16 10:24:36 [INFO] Watching metadata for /v1, Kind=PersistentVolume
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=GroupMember
+2022/06/16 10:24:36 [INFO] Watching metadata for certificates.k8s.io/v1, Kind=CertificateSigningRequest
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=Notifier
+2022/06/16 10:24:36 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=DigitaloceanMachineTemplate
+2022/06/16 10:24:36 [INFO] Watching metadata for /v1, Kind=Pod
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=ClusterAlert
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=UserAttribute
+2022/06/16 10:24:36 [INFO] Watching metadata for security.istio.io/v1beta1, Kind=RequestAuthentication
+2022/06/16 10:24:36 [INFO] Watching metadata for apps/v1, Kind=ReplicaSet
+2022/06/16 10:24:36 [INFO] Watching metadata for policy/v1, Kind=PodDisruptionBudget
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=Setting
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=ProjectMonitorGraph
+2022/06/16 10:24:36 [INFO] Watching metadata for rbac.authorization.k8s.io/v1, Kind=RoleBinding
+2022/06/16 10:24:36 [INFO] Watching metadata for clusters.verrazzano.io/v1alpha1, Kind=MultiClusterApplicationConfiguration
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=GlobalRoleBinding
+2022/06/16 10:24:36 [INFO] Watching metadata for apiregistration.k8s.io/v1, Kind=APIService
+2022/06/16 10:24:36 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=VmwarevsphereMachine
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=EtcdBackup
+2022/06/16 10:24:36 [INFO] Watching metadata for admissionregistration.k8s.io/v1, Kind=MutatingWebhookConfiguration
+2022/06/16 10:24:36 [INFO] Watching metadata for storage.k8s.io/v1, Kind=CSINode
+2022/06/16 10:24:36 [INFO] Watching metadata for batch/v1, Kind=CronJob
+2022/06/16 10:24:36 [INFO] Watching metadata for networking.k8s.io/v1, Kind=NetworkPolicy
+2022/06/16 10:24:36 [INFO] Watching metadata for rke.cattle.io/v1, Kind=RKEBootstrapTemplate
+2022/06/16 10:24:36 [INFO] Watching metadata for oam.verrazzano.io/v1alpha1, Kind=IngressTrait
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=User
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=CatalogTemplate
+2022/06/16 10:24:36 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=Amazonec2MachineTemplate
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=MultiClusterApp
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=ClusterTemplateRevision
+2022/06/16 10:24:36 [INFO] Watching metadata for scheduling.k8s.io/v1, Kind=PriorityClass
+2022/06/16 10:24:36 [INFO] Watching metadata for acme.cert-manager.io/v1, Kind=Order
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=TemplateVersion
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=GlobalDnsProvider
+2022/06/16 10:24:36 [INFO] Watching metadata for ui.cattle.io/v1, Kind=NavLink
+2022/06/16 10:24:36 [INFO] Watching metadata for core.oam.dev/v1alpha2, Kind=WorkloadDefinition
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=ComposeConfig
+2022/06/16 10:24:36 [INFO] Watching metadata for rke.cattle.io/v1, Kind=RKEControlPlane
+2022/06/16 10:24:36 [INFO] Watching metadata for cluster.x-k8s.io/v1beta1, Kind=MachineHealthCheck
+2022/06/16 10:24:36 [INFO] Watching metadata for /v1, Kind=ResourceQuota
+2022/06/16 10:24:36 [INFO] Watching metadata for networking.istio.io/v1beta1, Kind=WorkloadEntry
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=NodePool
+2022/06/16 10:24:36 [INFO] Watching metadata for /v1, Kind=ConfigMap
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=TemplateContent
+2022/06/16 10:24:36 [INFO] Watching metadata for clusters.verrazzano.io/v1alpha1, Kind=VerrazzanoManagedCluster
+2022/06/16 10:24:36 [INFO] Watching metadata for cert-manager.io/v1, Kind=ClusterIssuer
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=DynamicSchema
+2022/06/16 10:24:36 [INFO] Watching metadata for core.oam.dev/v1alpha2, Kind=Component
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=NodeTemplate
+2022/06/16 10:24:36 [INFO] Watching metadata for catalog.cattle.io/v1, Kind=App
+2022/06/16 10:24:36 [INFO] Watching metadata for rke-machine-config.cattle.io/v1, Kind=Amazonec2Config
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=PodSecurityPolicyTemplateProjectBinding
+2022/06/16 10:24:36 [INFO] Watching metadata for catalog.cattle.io/v1, Kind=ClusterRepo
+2022/06/16 10:24:36 [INFO] Watching metadata for project.cattle.io/v3, Kind=App
+2022/06/16 10:24:36 [INFO] Watching metadata for storage.k8s.io/v1beta1, Kind=CSIStorageCapacity
+2022/06/16 10:24:36 [INFO] Watching metadata for core.oam.dev/v1alpha2, Kind=ApplicationConfiguration
+2022/06/16 10:24:36 [INFO] Watching metadata for core.oam.dev/v1alpha2, Kind=HealthScope
+2022/06/16 10:24:36 [INFO] Watching metadata for core.oam.dev/v1alpha2, Kind=ManualScalerTrait
+2022/06/16 10:24:36 [INFO] Watching metadata for storage.k8s.io/v1, Kind=StorageClass
+2022/06/16 10:24:36 [INFO] Watching metadata for security.istio.io/v1beta1, Kind=PeerAuthentication
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=Feature
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=RkeAddon
+2022/06/16 10:24:36 [INFO] Watching metadata for /v1, Kind=Endpoints
+2022/06/16 10:24:36 [INFO] Watching metadata for /v1, Kind=PodTemplate
+2022/06/16 10:24:36 [INFO] Watching metadata for rke.cattle.io/v1, Kind=ETCDSnapshot
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=Catalog
+2022/06/16 10:24:36 [INFO] Watching metadata for admissionregistration.k8s.io/v1, Kind=ValidatingWebhookConfiguration
+2022/06/16 10:24:36 [INFO] Watching metadata for monitoring.coreos.com/v1, Kind=ThanosRuler
+2022/06/16 10:24:36 [INFO] Watching metadata for networking.k8s.io/v1, Kind=Ingress
+2022/06/16 10:24:36 [INFO] Watching metadata for monitoring.coreos.com/v1, Kind=Alertmanager
+2022/06/16 10:24:36 [INFO] Watching metadata for project.cattle.io/v3, Kind=SourceCodeRepository
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=PodSecurityPolicyTemplate
+2022/06/16 10:24:36 [INFO] Watching metadata for project.cattle.io/v3, Kind=SourceCodeProviderConfig
+2022/06/16 10:24:36 [INFO] Watching metadata for networking.istio.io/v1alpha3, Kind=EnvoyFilter
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=ClusterMonitorGraph
+2022/06/16 10:24:36 [INFO] Watching metadata for coherence.oracle.com/v1, Kind=Coherence
+2022/06/16 10:24:36 [INFO] Watching metadata for acme.cert-manager.io/v1, Kind=Challenge
+2022/06/16 10:24:36 [INFO] Watching metadata for policy/v1beta1, Kind=PodSecurityPolicy
+2022/06/16 10:24:36 [INFO] Watching metadata for networking.istio.io/v1beta1, Kind=ServiceEntry
+2022/06/16 10:24:36 [INFO] Watching metadata for monitoring.coreos.com/v1alpha1, Kind=AlertmanagerConfig
+2022/06/16 10:24:36 [INFO] Watching metadata for /v1, Kind=ServiceAccount
+2022/06/16 10:24:36 [INFO] Watching metadata for clusters.verrazzano.io/v1alpha1, Kind=VerrazzanoProject
+2022/06/16 10:24:36 [INFO] Watching metadata for telemetry.istio.io/v1alpha1, Kind=Telemetry
+2022/06/16 10:24:36 [INFO] Watching metadata for extensions.istio.io/v1alpha1, Kind=WasmPlugin
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=MultiClusterAppRevision
+2022/06/16 10:24:36 [INFO] Watching metadata for flowcontrol.apiserver.k8s.io/v1beta1, Kind=PriorityLevelConfiguration
+2022/06/16 10:24:36 [INFO] Watching metadata for monitoring.coreos.com/v1, Kind=PodMonitor
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=ProjectAlertRule
+2022/06/16 10:24:36 [INFO] Watching metadata for core.oam.dev/v1alpha2, Kind=ScopeDefinition
+2022/06/16 10:24:36 [INFO] Watching metadata for clusters.verrazzano.io/v1alpha1, Kind=MultiClusterConfigMap
+2022/06/16 10:24:36 [INFO] Watching metadata for install.verrazzano.io/v1alpha1, Kind=Verrazzano
+2022/06/16 10:24:36 [INFO] Watching metadata for project.cattle.io/v3, Kind=PipelineExecution
+2022/06/16 10:24:36 [INFO] Watching metadata for storage.k8s.io/v1, Kind=CSIDriver
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=Project
+2022/06/16 10:24:36 [INFO] Watching metadata for app.verrazzano.io/v1alpha1, Kind=MetricsBinding
+2022/06/16 10:24:36 [INFO] Watching metadata for apps/v1, Kind=ControllerRevision
+2022/06/16 10:24:36 [INFO] Watching metadata for cert-manager.io/v1, Kind=Certificate
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=Cluster
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=RoleTemplate
+2022/06/16 10:24:36 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=HarvesterMachineTemplate
+2022/06/16 10:24:36 [INFO] Watching metadata for fleet.cattle.io/v1alpha1, Kind=Bundle
+2022/06/16 10:24:36 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=LinodeMachineTemplate
+2022/06/16 10:24:36 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=HarvesterMachine
+2022/06/16 10:24:36 [INFO] Watching metadata for security.istio.io/v1beta1, Kind=AuthorizationPolicy
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=ClusterAlertRule
+2022/06/16 10:24:36 [INFO] Watching metadata for rke-machine-config.cattle.io/v1, Kind=DigitaloceanConfig
+2022/06/16 10:24:36 [INFO] Watching metadata for rke.cattle.io/v1, Kind=RKEBootstrap
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=ClusterRegistrationToken
+2022/06/16 10:24:36 [INFO] Watching metadata for oam.verrazzano.io/v1alpha1, Kind=MetricsTrait
+2022/06/16 10:24:36 [INFO] Watching metadata for provisioning.cattle.io/v1, Kind=Cluster
+2022/06/16 10:24:36 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=Amazonec2Machine
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=RkeK8sSystemImage
+2022/06/16 10:24:36 [INFO] Watching metadata for networking.istio.io/v1beta1, Kind=DestinationRule
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=ClusterLogging
+2022/06/16 10:24:36 [INFO] Watching metadata for catalog.cattle.io/v1, Kind=Operation
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=ProjectAlertGroup
+2022/06/16 10:24:36 [INFO] Watching metadata for cluster.x-k8s.io/v1beta1, Kind=Machine
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=SamlToken
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=Node
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=Preference
+2022/06/16 10:24:36 [INFO] Watching metadata for /v1, Kind=ReplicationController
+2022/06/16 10:24:36 [INFO] Watching metadata for apps/v1, Kind=StatefulSet
+2022/06/16 10:24:36 [INFO] Watching metadata for monitoring.coreos.com/v1, Kind=Prometheus
+2022/06/16 10:24:36 [INFO] Watching metadata for events.k8s.io/v1, Kind=Event
+2022/06/16 10:24:36 [INFO] Watching metadata for monitoring.kiali.io/v1alpha1, Kind=MonitoringDashboard
+2022/06/16 10:24:36 [INFO] Watching metadata for core.oam.dev/v1alpha2, Kind=TraitDefinition
+2022/06/16 10:24:36 [INFO] Watching metadata for apiextensions.k8s.io/v1, Kind=CustomResourceDefinition
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=RkeK8sServiceOption
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=CisBenchmarkVersion
+2022/06/16 10:24:36 [INFO] Watching metadata for networking.istio.io/v1beta1, Kind=WorkloadGroup
+2022/06/16 10:24:36 [INFO] Watching metadata for monitoring.coreos.com/v1, Kind=PrometheusRule
+2022/06/16 10:24:36 [INFO] Watching metadata for oam.verrazzano.io/v1alpha1, Kind=VerrazzanoHelidonWorkload
+2022/06/16 10:24:36 [INFO] Watching metadata for rke-machine-config.cattle.io/v1, Kind=VmwarevsphereConfig
+2022/06/16 10:24:36 [INFO] Watching metadata for rke-machine-config.cattle.io/v1, Kind=LinodeConfig
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=CatalogTemplateVersion
+2022/06/16 10:24:36 [INFO] Watching metadata for /v1, Kind=PersistentVolumeClaim
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=ClusterRoleTemplateBinding
+2022/06/16 10:24:36 [INFO] Watching metadata for cluster.x-k8s.io/v1beta1, Kind=MachineDeployment
+2022/06/16 10:24:36 [INFO] Watching metadata for rke.cattle.io/v1, Kind=RKECluster
+2022/06/16 10:24:36 [INFO] Watching metadata for install.istio.io/v1alpha1, Kind=IstioOperator
+2022/06/16 10:24:36 [INFO] Watching metadata for rbac.authorization.k8s.io/v1, Kind=ClusterRoleBinding
+2022/06/16 10:24:36 [INFO] Watching metadata for /v1, Kind=Service
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=AuthConfig
+2022/06/16 10:24:36 [INFO] Watching metadata for rke-machine-config.cattle.io/v1, Kind=HarvesterConfig
+2022/06/16 10:24:36 [INFO] Watching metadata for cluster.x-k8s.io/v1beta1, Kind=MachineSet
+2022/06/16 10:24:36 [INFO] Watching metadata for discovery.k8s.io/v1, Kind=EndpointSlice
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=ClusterTemplate
+2022/06/16 10:24:36 [INFO] Watching metadata for rke.cattle.io/v1, Kind=CustomMachine
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=ProjectRoleTemplateBinding
+2022/06/16 10:24:36 [INFO] Watching metadata for batch/v1, Kind=Job
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=ProjectCatalog
+2022/06/16 10:24:36 [INFO] Watching metadata for project.cattle.io/v3, Kind=SourceCodeCredential
+2022/06/16 10:24:36 [INFO] Watching metadata for /v1, Kind=Namespace
+2022/06/16 10:24:36 [INFO] Watching metadata for fleet.cattle.io/v1alpha1, Kind=Cluster
+2022/06/16 10:24:36 [INFO] Watching metadata for cluster.x-k8s.io/v1beta1, Kind=Cluster
+2022/06/16 10:24:36 [INFO] Watching metadata for core.oam.dev/v1alpha2, Kind=ContainerizedWorkload
+2022/06/16 10:24:36 [INFO] Watching metadata for networking.istio.io/v1beta1, Kind=VirtualService
+2022/06/16 10:24:36 [INFO] Watching metadata for oam.verrazzano.io/v1alpha1, Kind=VerrazzanoWebLogicWorkload
+2022/06/16 10:24:36 [INFO] Watching metadata for rke-machine-config.cattle.io/v1, Kind=AzureConfig
+2022/06/16 10:24:36 [INFO] Watching metadata for networking.istio.io/v1beta1, Kind=Sidecar
+2022/06/16 10:24:36 [INFO] Watching metadata for oam.verrazzano.io/v1alpha1, Kind=LoggingTrait
+2022/06/16 10:24:36 [INFO] Watching metadata for management.cattle.io/v3, Kind=ProjectLogging
+2022/06/16 10:24:36 [INFO] Watching metadata for /v1, Kind=Secret
+W0616 10:24:36.958435      10 warnings.go:80] policy/v1beta1 PodSecurityPolicy is deprecated in v1.21+, unavailable in v1.25+
+W0616 10:24:37.156523      10 warnings.go:80] policy/v1beta1 PodSecurityPolicy is deprecated in v1.21+, unavailable in v1.25+
+2022/06/16 10:24:37 [INFO] Active TLS secret tls-rancher-internal (ver=8526) (count 2): map[field.cattle.io/projectId:local:p-5hdmj listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/fingerprint:SHA1=CDFDDACCB4B7E8FA865290DF7C42A52ABF1C7A61]
+2022/06/16 10:24:39 [ERROR] Failed to connect to peer wss://REDACTED-IP4-ADDRESS/v3/connect [local ID=REDACTED-IP4-ADDRESS]: EOF
+W0616 10:24:45.109670      10 warnings.go:80] policy/v1beta1 PodSecurityPolicy is deprecated in v1.21+, unavailable in v1.25+
+2022/06/16 10:25:22 [INFO] error in remotedialer server [400]: read tcp REDACTED-IP4-ADDRESS:443->REDACTED-IP4-ADDRESS:45658: use of closed network connection
+2022/06/16 10:25:23 [INFO] certificate CN=dynamic,O=dynamic signed by CN=dynamiclistener-ca,O=dynamiclistener-org: notBefore=2022-06-16 10:24:11 +0000 UTC notAfter=2023-06-16 10:25:23 +0000 UTC
+2022/06/16 10:25:23 [INFO] Updating TLS secret for serving-cert (count: 9): map[field.cattle.io/projectId:local:p-5hdmj listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=A0E09BA6257822D13E280A8189D890AFA489D992]
+2022/06/16 10:25:23 [INFO] Active TLS secret serving-cert (ver=9073) (count 9): map[field.cattle.io/projectId:local:p-5hdmj listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=A0E09BA6257822D13E280A8189D890AFA489D992]
+2022/06/16 10:25:23 [INFO] Active TLS secret serving-cert (ver=9074) (count 9): map[field.cattle.io/projectId:local:p-5hdmj listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=302E55AEA811FABD94ECEA62F3180B5CF3DEF64B]
+2022/06/16 10:25:23 [INFO] Active TLS secret serving-cert (ver=9075) (count 9): map[field.cattle.io/projectId:local:p-5hdmj listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=A0E09BA6257822D13E280A8189D890AFA489D992]
+2022/06/16 10:25:23 [INFO] Active TLS secret tls-rancher-internal (ver=9077) (count 1): map[listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/fingerprint:SHA1=982D78345E1ADCBF49D4B6066632834F0AE75DE9]
+2022/06/16 10:25:23 [INFO] Active TLS secret serving-cert (ver=9078) (count 9): map[field.cattle.io/projectId:local:p-5hdmj listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-REDACTED-IP4-ADDRESS:REDACTED-IP4-ADDRESS listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=302E55AEA811FABD94ECEA62F3180B5CF3DEF64B]
+2022/06/16 10:25:27 [ERROR] Failed to serve peer connection REDACTED-IP4-ADDRESS: websocket: close 1006 (abnormal closure): unexpected EOF
+2022/06/16 10:25:27 [INFO] Handling backend connection request [REDACTED-IP4-ADDRESS]
+2022/06/16 10:25:32 [ERROR] Failed to handling tunnel request from remote address REDACTED-IP4-ADDRESS:57924: response 400: cluster not found
+2022/06/16 10:25:37 [ERROR] Failed to handling tunnel request from remote address REDACTED-IP4-ADDRESS:58062: response 400: cluster not found
+2022/06/16 10:25:42 [ERROR] Failed to handling tunnel request from remote address REDACTED-IP4-ADDRESS:58158: response 400: cluster not found
+2022/06/16 10:25:47 [ERROR] Failed to handling tunnel request from remote address REDACTED-IP4-ADDRESS:58242: response 400: cluster not found
+2022/06/16 10:25:50 [INFO] Adding peer wss://REDACTED-IP4-ADDRESS/v3/connect, REDACTED-IP4-ADDRESS
+2022/06/16 10:25:52 [INFO] Handling backend connection request [REDACTED-IP4-ADDRESS]
+W0616 10:26:03.147431      10 warnings.go:80] policy/v1beta1 PodSecurityPolicy is deprecated in v1.21+, unavailable in v1.25+
+2022/06/16 10:26:03 [INFO] Watching metadata for fleet.cattle.io/v1alpha1, Kind=ClusterGroup
+2022/06/16 10:26:03 [INFO] Watching metadata for fleet.cattle.io/v1alpha1, Kind=BundleNamespaceMapping
+2022/06/16 10:26:03 [INFO] Watching metadata for fleet.cattle.io/v1alpha1, Kind=ClusterRegistration
+2022/06/16 10:26:03 [INFO] Watching metadata for gitjob.cattle.io/v1, Kind=GitJob
+2022/06/16 10:26:03 [INFO] Watching metadata for fleet.cattle.io/v1alpha1, Kind=ImageScan
+2022/06/16 10:26:03 [INFO] Watching metadata for fleet.cattle.io/v1alpha1, Kind=GitRepo
+2022/06/16 10:26:03 [INFO] Watching metadata for fleet.cattle.io/v1alpha1, Kind=BundleDeployment
+2022/06/16 10:26:03 [INFO] Watching metadata for fleet.cattle.io/v1alpha1, Kind=GitRepoRestriction
+2022/06/16 10:26:03 [INFO] Watching metadata for fleet.cattle.io/v1alpha1, Kind=ClusterRegistrationToken
+2022/06/16 10:26:03 [INFO] Watching metadata for fleet.cattle.io/v1alpha1, Kind=Content
+W0616 10:26:10.445072      10 warnings.go:80] policy/v1beta1 PodSecurityPolicy is deprecated in v1.21+, unavailable in v1.25+
+W0616 10:30:51.149222      10 warnings.go:80] policy/v1beta1 PodSecurityPolicy is deprecated in v1.21+, unavailable in v1.25+
+W0616 10:39:54.118732      10 warnings.go:80] policy/v1beta1 PodSecurityPolicy is deprecated in v1.21+, unavailable in v1.25+
+W0616 10:46:02.117077      10 warnings.go:80] policy/v1beta1 PodSecurityPolicy is deprecated in v1.21+, unavailable in v1.25+
+==== END logs for container rancher of pod cattle-system/rancher-649dc876b-dt67w ====
