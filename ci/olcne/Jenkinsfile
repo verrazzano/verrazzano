@@ -324,11 +324,15 @@ pipeline {
             }
         }
 
-        stage("Create OLCNE cluster") {
+        stage("Setup OLCNE cluster") {
             steps {
                 script {
                     echo "[INFO] Creating OLCNE cluster"
                     createOLCNECluster()
+                    echo "[INFO] Setting up cluster access"
+                    setupKubeconfig()
+                    echo "[INFO] Enable External IP access"
+                    enableOLCNEExternalIPService
                 }
             }
             post {
@@ -340,15 +344,16 @@ pipeline {
             }
         }
 
-        stage("Create OCI Storage") {
+        stage("Setup OCI Storage") {
             steps {
                 script {
-                    echo "[INFO] Creating OCI FileSystem"
+                    echo "[INFO] Creating OCI Storage"
                     createOCIFileSystem()
+                    echo "[INFO] Mounting OCI Storage"
+                    mountOCIStorage()
                 }
             }
         }
-
 
         stage("Create OCI Load Balancers") {
             steps {
@@ -359,38 +364,13 @@ pipeline {
             }
         }
 
-       stage("Create OCI DNS Zone") {
+       stage("Setup OCI DNS Zone") {
             steps {
                 script {
                     echo "[INFO] Creating OCI DNS Zone"
                     createOCIDNSZone()
-                }
-            }
-        }
-
-        stage("Create DNS Zone Records") {
-            steps {
-                script {
                     echo "[INFO] Creating DNS Zone Records"
                     createOCIDNSZoneRecords()
-                }
-            }
-        }
-
-        stage("Setup cluster access") {
-            steps {
-                script {
-                    echo "[INFO] Setting up cluster access"
-                    setupKubeconfig()
-                }
-            }
-        }
-
-        stage("Mount OCI Storage") {
-            steps {
-                script {
-                    echo "[INFO] Mounting OCI storage"
-                    mountOCIStorage()
                 }
             }
         }
@@ -1072,6 +1052,19 @@ def setupKubeconfig() {
         yq -i eval '.clusters[0].cluster."insecure-skip-tls-verify" = true' "$KUBECONFIG"
         cat $KUBECONFIG
         ssh -i "$TF_VAR_ssh_private_key_path" -fN4 -L 6443:$INSTANCE_IP:6443 "$BASTION_USER"@"$BASTION_IP"
+    """
+}
+
+def enableOLCNEExternalIPService() {
+    sh """
+        ssh -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" -4 "$BASTION_USER"@"$BASTION_IP" '
+            ssh opc@$API_SERVER_IP "
+                olcnectl module update \
+                --environment-name $TF_VAR_environment_name \
+                --name $TF_VAR_kubernetes_name \
+                --restrict-service-externalip=false 
+            " 
+        '
     """
 }
 
