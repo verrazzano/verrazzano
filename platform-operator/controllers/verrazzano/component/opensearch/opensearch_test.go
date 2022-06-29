@@ -546,12 +546,21 @@ func TestIsReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      esMasterStatefulset + "-0",
-				Labels:    map[string]string{"app": "system-es-master"},
+				Labels: map[string]string{
+					"app":                      "system-es-master",
+					"controller-revision-hash": "foo-95d8c5d96",
+				},
 			},
 		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
 			Namespace: ComponentNamespace}},
-	).Build()
+		&appsv1.ControllerRevision{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "foo-95d8c5d96",
+				Namespace: ComponentNamespace,
+			},
+			Revision: 1,
+		}).Build()
 
 	vz := &vzapi.Verrazzano{}
 	vz.Spec.Components = vzapi.ComponentSpec{
