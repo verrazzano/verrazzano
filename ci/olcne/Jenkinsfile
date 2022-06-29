@@ -1047,7 +1047,7 @@ def createOCIDNSZone() {
 def createOCIDNSZoneRecords() {
     sh """
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create_dns_records.sh \
-        -c $TF_VAR_compartment_id -e $TEST_ENV -z $OCI_DNS_ZONE_NAME \
+        -c $TF_VAR_compartment_id -e $VZ_ENVIRONMENT_NAME -z $OCI_DNS_ZONE_NAME \
         -s $OCI_DNS_SCOPE -m $OCI_LB_MGMT_IP -a $OCI_LB_APP_IP
     """
 }
