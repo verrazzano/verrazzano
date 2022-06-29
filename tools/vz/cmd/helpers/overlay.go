@@ -5,6 +5,7 @@ package helpers
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -17,10 +18,22 @@ var vzMergeStruct vzapi.Verrazzano
 
 // MergeYAMLFiles parses the given slice of filenames containing yaml and
 // merges them into a single verrazzano yaml and then returned as a vz resource.
-func MergeYAMLFiles(filenames []string) (*vzapi.Verrazzano, error) {
+func MergeYAMLFiles(filenames []string, stdinReader io.Reader) (*vzapi.Verrazzano, error) {
 	var vzYAML string
+	var stdin bool
 	for _, filename := range filenames {
-		readBytes, err := os.ReadFile(strings.TrimSpace(filename))
+		var readBytes []byte
+		var err error
+		// filename of "-" is for reading from stdin
+		if filename == "-" {
+			if stdin {
+				continue
+			}
+			stdin = true
+			readBytes, err = io.ReadAll(stdinReader)
+		} else {
+			readBytes, err = os.ReadFile(strings.TrimSpace(filename))
+		}
 		if err != nil {
 			return nil, err
 		}
