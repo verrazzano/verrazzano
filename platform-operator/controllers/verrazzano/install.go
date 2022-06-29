@@ -120,11 +120,12 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 				continue
 			}
 			compLog.Progressf("Component %s pre-install is running ", compName)
-			if compContext.ActualCR().Status.Components[compName].Conditions[len(compContext.ActualCR().Status.Components[compName].Conditions)-1].Type == vzapi.CondPreInstall {
+			if compContext.ActualCR().Status.Components[compName].State == vzapi.CompStateReady {
 				if metricsexporter.CheckIfNewOperationHasToBegin(compName, "install") {
 					metricsexporter.AddStartTime(time.Now().UnixNano(), compName, "install")
 				}
-			} else {
+			}
+			if compContext.ActualCR().Status.Components[compName].State == vzapi.CompStateReady {
 				if metricsexporter.CheckIfNewOperationHasToBegin(compName, "update") {
 					metricsexporter.AddStartTime(time.Now().UnixNano(), compName, "update")
 				}
@@ -154,9 +155,10 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 					requeue = true
 					continue
 				}
-				if compContext.ActualCR().Status.Components[compName].Conditions[len(compContext.ActualCR().Status.Components[compName].Conditions)-1].Type == vzapi.CondPreInstall {
+				if compContext.ActualCR().Status.Components[compName].State == vzapi.CompStateDisabled {
 					metricsexporter.CollectTimeMetric(compName, "install")
-				} else {
+				}
+				if compContext.ActualCR().Status.Components[compName].State == vzapi.CompStateReady {
 					metricsexporter.CollectTimeMetric(compName, "update")
 				}
 				compLog.Oncef("Component %s successfully installed", comp.Name())
